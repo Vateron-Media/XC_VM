@@ -4,1762 +4,1762 @@ parameters:
 			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/BinariesCommand.php
+			path: src/Cli/Commands/BinariesCommand.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
-			path: src/cli/Commands/CacheHandlerCommand.php
+			path: src/Cli/Commands/CacheHandlerCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/DelayCommand.php
+			path: src/Cli/Commands/DelayCommand.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, int given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/cli/Commands/LbInstallFlow.php
+			path: src/Cli/Commands/LbInstallFlow.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/LlodCommand.php
+			path: src/Cli/Commands/LlodCommand.php
 
 		-
 			message: '#^Variable \$http_response_header in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.variable
 			count: 1
-			path: src/cli/Commands/LlodCommand.php
+			path: src/Cli/Commands/LlodCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/LoopbackCommand.php
+			path: src/Cli/Commands/LoopbackCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^If condition is always false\.$#'
 			identifier: if.alwaysFalse
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 6
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Left side of && is always false\.$#'
 			identifier: booleanAnd.leftAlwaysFalse
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Left side of \|\| is always false\.$#'
 			identifier: booleanOr.leftAlwaysFalse
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Loose comparison using \=\= between 0 and 20 will always evaluate to false\.$#'
 			identifier: equal.alwaysFalse
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 2
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Result of && is always false\.$#'
 			identifier: booleanAnd.alwaysFalse
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Undefined variable\: \$rForceID$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Undefined variable\: \$rProtocol$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Undefined variable\: \$rStreamSource$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Variable \$E9d347a502b13abd might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Variable \$rBitrate might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/cli/Commands/MonitorCommand.php
+			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
-			path: src/cli/Commands/OndemandCommand.php
+			path: src/Cli/Commands/OndemandCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/ProxyCommand.php
+			path: src/Cli/Commands/ProxyCommand.php
 
 		-
 			message: '#^Parameter \#2 \$offset of function substr expects int, float given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/cli/Commands/ProxyCommand.php
+			path: src/Cli/Commands/ProxyCommand.php
 
 		-
 			message: '#^Parameter \#3 \$length of function substr expects int\|null, float given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/cli/Commands/ProxyCommand.php
+			path: src/Cli/Commands/ProxyCommand.php
 
 		-
 			message: '#^Variable \$rPrebuffer in empty\(\) always exists and is always falsy\.$#'
 			identifier: empty.variable
 			count: 1
-			path: src/cli/Commands/ProxyCommand.php
+			path: src/Cli/Commands/ProxyCommand.php
 
 		-
 			message: '#^Left side of && is always true\.$#'
 			identifier: booleanAnd.leftAlwaysTrue
 			count: 1
-			path: src/cli/Commands/QueueCommand.php
+			path: src/Cli/Commands/QueueCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/RecordCommand.php
+			path: src/Cli/Commands/RecordCommand.php
 
 		-
 			message: '#^Right side of && is always true\.$#'
 			identifier: booleanAnd.rightAlwaysTrue
 			count: 1
-			path: src/cli/Commands/RecordCommand.php
+			path: src/Cli/Commands/RecordCommand.php
 
 		-
 			message: '#^Left side of && is always true\.$#'
 			identifier: booleanAnd.leftAlwaysTrue
 			count: 1
-			path: src/cli/Commands/ScannerCommand.php
+			path: src/Cli/Commands/ScannerCommand.php
 
 		-
 			message: '#^Left side of && is always true\.$#'
 			identifier: booleanAnd.leftAlwaysTrue
 			count: 1
-			path: src/cli/Commands/SignalsCommand.php
+			path: src/Cli/Commands/SignalsCommand.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, int given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/cli/Commands/StartupCommand.php
+			path: src/Cli/Commands/StartupCommand.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/ThumbnailCommand.php
+			path: src/Cli/Commands/ThumbnailCommand.php
 
 		-
 			message: '#^Call to function method_exists\(\) with ''SettingsManager'' and ''clearCache'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/Commands/ToolsCommand.php
+			path: src/Cli/Commands/ToolsCommand.php
 
 		-
 			message: '#^Left side of && is always true\.$#'
 			identifier: booleanAnd.leftAlwaysTrue
 			count: 1
-			path: src/cli/Commands/WatchdogCommand.php
+			path: src/Cli/Commands/WatchdogCommand.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
-			path: src/cli/CronJobs/CacheEngineCronJob.php
+			path: src/Cli/CronJobs/CacheEngineCronJob.php
 
 		-
 			message: '#^Property CacheEngineCronJob\:\:\$rForce is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
-			path: src/cli/CronJobs/CacheEngineCronJob.php
+			path: src/Cli/CronJobs/CacheEngineCronJob.php
 
 		-
 			message: '#^Variable \$rSteps might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/cli/CronJobs/CacheEngineCronJob.php
+			path: src/Cli/CronJobs/CacheEngineCronJob.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
-			path: src/cli/CronJobs/CleanupCronJob.php
+			path: src/Cli/CronJobs/CleanupCronJob.php
 
 		-
 			message: '#^If condition is always false\.$#'
 			identifier: if.alwaysFalse
 			count: 1
-			path: src/cli/CronJobs/EpgCronJob.php
+			path: src/Cli/CronJobs/EpgCronJob.php
 
 		-
 			message: '#^Variable \$ApiDependencyIdentifier on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.variable
 			count: 1
-			path: src/cli/CronJobs/EpgCronJob.php
+			path: src/Cli/CronJobs/EpgCronJob.php
 
 		-
 			message: '#^Variable \$rMD5 might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/CronJobs/MaxMindCronJob.php
+			path: src/Cli/CronJobs/MaxMindCronJob.php
 
 		-
 			message: '#^Offset ''source'' on array\{name\: string, description\: string, version\: string, requires_core\: string, environment\: string, priority\: int, dependencies\: array, optional_dependencies\: array, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
-			path: src/cli/CronJobs/ModuleLicensesCronJob.php
+			path: src/Cli/CronJobs/ModuleLicensesCronJob.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, int given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/cli/CronJobs/RootSignalsCronJob.php
+			path: src/Cli/CronJobs/RootSignalsCronJob.php
 
 		-
 			message: '#^Strict comparison using \=\=\= between mixed and null will always evaluate to false\.$#'
 			identifier: identical.alwaysFalse
 			count: 1
-			path: src/cli/CronJobs/RootSignalsCronJob.php
+			path: src/Cli/CronJobs/RootSignalsCronJob.php
 
 		-
 			message: '#^Variable \$i might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/CronJobs/RootSignalsCronJob.php
+			path: src/Cli/CronJobs/RootSignalsCronJob.php
 
 		-
 			message: '#^Variable \$rLiveKeys might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/CronJobs/UsersCronJob.php
+			path: src/Cli/CronJobs/UsersCronJob.php
 
 		-
 			message: '#^Variable \$rRedisDelete might not be defined\.$#'
 			identifier: variable.undefined
 			count: 11
-			path: src/cli/CronJobs/UsersCronJob.php
+			path: src/Cli/CronJobs/UsersCronJob.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
-			path: src/cli/CronJobs/VodCronJob.php
+			path: src/Cli/CronJobs/VodCronJob.php
 
 		-
 			message: '#^Call to function is_object\(\) with DatabaseHandler will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/cli/migration_logic.php
+			path: src/Cli/migration_logic.php
 
 		-
 			message: '#^Dead catch \- Exception is never thrown in the try block\.$#'
 			identifier: catch.neverThrown
 			count: 1
-			path: src/cli/migration_logic.php
+			path: src/Cli/migration_logic.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
-			path: src/cli/migration_logic.php
+			path: src/Cli/migration_logic.php
 
 		-
 			message: '#^Variable \$AdminAccesCode might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/cli/migration_logic.php
+			path: src/Cli/migration_logic.php
 
 		-
 			message: '#^Method AuthRepository\:\:getHMACById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/core/Auth/AuthRepository.php
+			path: src/Core/Auth/AuthRepository.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, int\|string\> given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/core/Auth/AuthRepository.php
+			path: src/Core/Auth/AuthRepository.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, mixed\> given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/core/Auth/AuthRepository.php
+			path: src/Core/Auth/AuthRepository.php
 
 		-
 			message: '#^Call to function method_exists\(\) with ''Logger'' and ''log'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/core/Auth/Authenticator.php
+			path: src/Core/Auth/Authenticator.php
 
 		-
 			message: '#^Left side of \|\| is always true\.$#'
 			identifier: booleanOr.leftAlwaysTrue
 			count: 1
-			path: src/core/Auth/Authenticator.php
+			path: src/Core/Auth/Authenticator.php
 
 		-
 			message: '#^Right side of \|\| is always true\.$#'
 			identifier: booleanOr.rightAlwaysTrue
 			count: 1
-			path: src/core/Auth/Authenticator.php
+			path: src/Core/Auth/Authenticator.php
 
 		-
 			message: '#^Call to function method_exists\(\) with ''BlocklistService'' and ''getBlockedIPs'' will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/core/Auth/BruteforceGuard.php
+			path: src/Core/Auth/BruteforceGuard.php
 
 		-
 			message: '#^Method Database\:\:escape\(\) should return string\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/core/Database/Database.php
+			path: src/Core/Database/Database.php
 
 		-
 			message: '#^Method Database\:\:last_insert_id\(\) should return int\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/core/Database/Database.php
+			path: src/Core/Database/Database.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
-			path: src/core/Database/Database.php
+			path: src/Core/Database/Database.php
 
 		-
 			message: '#^Method DiagnosticsService\:\:getCertificateInfo\(\) should return array but returns null\.$#'
 			identifier: return.type
 			count: 2
-			path: src/core/Diagnostics/DiagnosticsService.php
+			path: src/Core/Diagnostics/DiagnosticsService.php
 
 		-
 			message: '#^Comparison operation "\<\=" between 1 and 2 is always true\.$#'
 			identifier: smallerOrEqual.alwaysTrue
 			count: 1
-			path: src/core/Http/CurlClient.php
+			path: src/Core/Http/CurlClient.php
 
 		-
 			message: '#^Parameter \#3 \$value of function curl_setopt expects bool, int given\.$#'
 			identifier: argument.type
 			count: 3
-			path: src/core/Http/CurlClient.php
+			path: src/Core/Http/CurlClient.php
 
 		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 1
-			path: src/core/Module/ModuleLoader.php
+			path: src/Core/Module/ModuleLoader.php
 
 		-
 			message: '#^Parameter \#2 \$code of class InvalidArgumentException constructor expects int, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/core/Parsing/PhpM3u8/src/Definition/TagDefinition.php
+			path: src/Core/Parsing/PhpM3u8/src/Definition/TagDefinition.php
 
 		-
 			message: '#^Parameter \#2 \$code of class InvalidArgumentException constructor expects int, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/core/Parsing/PhpM3u8/src/Definition/TagDefinitions.php
+			path: src/Core/Parsing/PhpM3u8/src/Definition/TagDefinitions.php
 
 		-
 			message: '#^Argument of an invalid type ArrayAccess supplied for foreach, only iterables are supported\.$#'
 			identifier: foreach.nonIterable
 			count: 1
-			path: src/core/Parsing/PhpM3u8/src/Dumper/AttributeListDumper.php
+			path: src/Core/Parsing/PhpM3u8/src/Dumper/AttributeListDumper.php
 
 		-
 			message: '#^Access to an undefined property UniqueNode\:\:\$options\.$#'
 			identifier: property.notFound
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Binary operation "\+\=" between int and string results in an error\.$#'
 			identifier: assignOp.invalid
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Call to preg_quote\(\) is missing delimiter / to be effective\.$#'
 			identifier: argument.invalidPregQuote
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Expression "\$this\-\>handle" on a separate line does not do anything\.$#'
 			identifier: expr.resultUnused
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Method StringWalker\:\:getEdges\(\) should return array\<string\> but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Offset 0 on array\{string, int\<\-1, max\>\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Offset 1 on array\{string, int\<\-1, max\>\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
 			count: 1
-			path: src/core/Parsing/XmlStringStreamer.php
+			path: src/Core/Parsing/XmlStringStreamer.php
 
 		-
 			message: '#^Parameter \#2 \$enable of function stream_set_blocking expects bool, int given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/core/Process/Thread.php
+			path: src/Core/Process/Thread.php
 
 		-
 			message: '#^Constructor of class DropboxClient has an unused parameter \$_deprecatedLocale\.$#'
 			identifier: constructor.unusedParameter
 			count: 1
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Method DropboxClient\:\:GetCopyRef\(\) never assigns null to &\$expires so it can be removed from the by\-ref type\.$#'
 			identifier: parameterByRef.unusedType
 			count: 1
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Method DropboxClient\:\:Search\(\) should return object but returns list\<object\>\.$#'
 			identifier: return.type
 			count: 1
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Method DropboxClient\:\:createCurl\(\) never returns resource so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Method DropboxClient\:\:doSingleCall\(\) never assigns null to &\$content so it can be removed from the by\-ref type\.$#'
 			identifier: parameterByRef.unusedType
 			count: 1
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Method DropboxClient\:\:doSingleCall\(\) should return object but returns null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Parameter \#1 \$handle of function curl_setopt expects CurlHandle, resource given\.$#'
 			identifier: argument.type
 			count: 3
-			path: src/core/Storage/DropboxClient.php
+			path: src/Core/Storage/DropboxClient.php
 
 		-
 			message: '#^Call to function is_string\(\) with string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/core/Updates/GithubReleases.php
+			path: src/Core/Updates/GithubReleases.php
 
 		-
 			message: '#^Call to function is_string\(\) with non\-falsy\-string will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/core/Util/AdminHelpers.php
+			path: src/Core/Util/AdminHelpers.php
 
 		-
 			message: '#^PHPDoc tag @method has invalid value \(boolean is\[\.\.\.\]\(\)\)\: Unexpected token "\[", expected ''\('' at offset 60 on line 4$#'
 			identifier: phpDoc.parseError
 			count: 1
-			path: src/core/Util/MobileDetect.php
+			path: src/Core/Util/MobileDetect.php
 
 		-
 			message: '#^Parameter \#1 \$httpHeaders of method Mobile_Detect\:\:setHttpHeaders\(\) expects array\|null, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/core/Util/MobileDetect.php
+			path: src/Core/Util/MobileDetect.php
 
 		-
 			message: '#^Property Mobile_Detect\:\:\$matchesArray \(string\) does not accept array\<string\>\.$#'
 			identifier: assign.propertyType
 			count: 1
-			path: src/core/Util/MobileDetect.php
+			path: src/Core/Util/MobileDetect.php
 
 		-
 			message: '#^Property Mobile_Detect\:\:\$userAgent \(string\) does not accept null\.$#'
 			identifier: assign.propertyType
 			count: 2
-			path: src/core/Util/MobileDetect.php
+			path: src/Core/Util/MobileDetect.php
 
 		-
 			message: '#^Method NetworkUtils\:\:stopDownload\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 2
-			path: src/core/Util/NetworkUtils.php
+			path: src/Core/Util/NetworkUtils.php
 
 		-
 			message: '#^Variable \$rBitrate might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/core/Util/StreamUtils.php
+			path: src/Core/Util/StreamUtils.php
 
 		-
 			message: '#^Call to function is_array\(\) with list\<mixed\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
-			path: src/core/Util/SystemInfo.php
+			path: src/Core/Util/SystemInfo.php
 
 		-
 			message: '#^Comparison operation "\<\=" between int\<1, max\> and 0 is always false\.$#'
 			identifier: smallerOrEqual.alwaysFalse
 			count: 1
-			path: src/core/Util/SystemInfo.php
+			path: src/Core/Util/SystemInfo.php
 
 		-
 			message: '#^Offset ''fb_bouquets'' does not exist on array\{bouquets\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Bouquet/BouquetService.php
+			path: src/Domain/Bouquet/BouquetService.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{bouquet\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Bouquet/BouquetService.php
+			path: src/Domain/Bouquet/BouquetService.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{bouquets\: mixed, fb_bouquets\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Bouquet/BouquetService.php
+			path: src/Domain/Bouquet/BouquetService.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{bouquets\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Bouquet/BouquetService.php
+			path: src/Domain/Bouquet/BouquetService.php
 
 		-
 			message: '#^Offset ''user_id'' does not exist on array\{user\: array\|null\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Device/EnigmaService.php
+			path: src/Domain/Device/EnigmaService.php
 
 		-
 			message: '#^Offset ''user_id'' does not exist on array\{user\: array\|null\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Device/MagService.php
+			path: src/Domain/Device/MagService.php
 
 		-
 			message: '#^Variable \$rEvent might not be defined\.$#'
 			identifier: variable.undefined
 			count: 4
-			path: src/domain/Device/MagService.php
+			path: src/Domain/Device/MagService.php
 
 		-
 			message: '#^Variable \$rLangDesc on left side of \?\? always exists and is not nullable\.$#'
 			identifier: nullCoalesce.variable
 			count: 1
-			path: src/domain/Epg/EPG.php
+			path: src/Domain/Epg/EPG.php
 
 		-
 			message: '#^Method EpgService\:\:getById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/Epg/EpgService.php
+			path: src/Domain/Epg/EpgService.php
 
 		-
 			message: '#^Method EpgService\:\:getProgramme\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/Epg/EpgService.php
+			path: src/Domain/Epg/EpgService.php
 
 		-
 			message: '#^Method LineService\:\:updateLineSignal\(\) with return type void returns false but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Line/LineService.php
+			path: src/Domain/Line/LineService.php
 
 		-
 			message: '#^Method LineService\:\:updateLineSignal\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Line/LineService.php
+			path: src/Domain/Line/LineService.php
 
 		-
 			message: '#^Method LineService\:\:updateLinesSignal\(\) with return type void returns false but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Line/LineService.php
+			path: src/Domain/Line/LineService.php
 
 		-
 			message: '#^Method LineService\:\:updateLinesSignal\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Line/LineService.php
+			path: src/Domain/Line/LineService.php
 
 		-
 			message: '#^Method BlocklistService\:\:checkISP\(\) should return bool but returns int\.$#'
 			identifier: return.type
 			count: 2
-			path: src/domain/Security/BlocklistService.php
+			path: src/Domain/Security/BlocklistService.php
 
 		-
 			message: '#^Method BlocklistService\:\:getISPById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/Security/BlocklistService.php
+			path: src/Domain/Security/BlocklistService.php
 
 		-
 			message: '#^Method BlocklistService\:\:getRTMPIPById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/Security/BlocklistService.php
+			path: src/Domain/Security/BlocklistService.php
 
 		-
 			message: '#^Method BlocklistService\:\:getUserAgentById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/Security/BlocklistService.php
+			path: src/Domain/Security/BlocklistService.php
 
 		-
 			message: '#^Method BlocklistService\:\:isProxy\(\) should return bool but returns null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/Security/BlocklistService.php
+			path: src/Domain/Security/BlocklistService.php
 
 		-
 			message: '#^Method ServerRepository\:\:getById\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''domain_name'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''geoip_countries'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''geoip_countries'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in empty\(\) does not exist\.$#'
 			identifier: empty.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''http_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''http_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…''\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''http_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''https_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{server_online\: bool, order\: 0\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{server_online\: bool\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''isp_names'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''isp_names'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in empty\(\) does not exist\.$#'
 			identifier: empty.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''order'' on array\{server_online\: bool\} in isset\(\) does not exist\.$#'
 			identifier: isset.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''order'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in isset\(\) does not exist\.$#'
 			identifier: isset.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''parent_id'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''parent_id'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''private_ip'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''private_ip'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in empty\(\) does not exist\.$#'
 			identifier: empty.offset
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''rtmp_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''server_ip'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''server_ip'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…''\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Server/ServerRepository.php
+			path: src/Domain/Server/ServerRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{category_id\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Stream/CategoryService.php
+			path: src/Domain/Stream/CategoryService.php
 
 		-
 			message: '#^Method ConnectionTracker\:\:getCapacity\(\) should return array\<int, array\{online_clients\: int, capacity\?\: float\}\> but returns array\<array\{capacity\: mixed\}\>\|object\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/Stream/ConnectionTracker.php
+			path: src/Domain/Stream/ConnectionTracker.php
 
 		-
 			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
 			identifier: greater.alwaysTrue
 			count: 1
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Loose comparison using \=\= between 0 and 0 will always evaluate to true\.$#'
 			identifier: equal.alwaysTrue
 			count: 6
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Loose comparison using \=\= between 0 and 1 will always evaluate to false\.$#'
 			identifier: equal.alwaysFalse
 			count: 1
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Loose comparison using \=\= between null and ''series'' will always evaluate to false\.$#'
 			identifier: equal.alwaysFalse
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Method PlaylistGenerator\:\:generate\(\) should return string but returns false\.$#'
 			identifier: return.type
 			count: 3
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 3
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''category_id'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''channel_id'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: string, year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''custom_sid'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: null, \.\.\.\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''custom_sid'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: mixed, year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
 			identifier: empty.offset
 			count: 1
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''id'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''live'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''stream_display_name'' on array\{movie_properties\: mixed, type_key\: null\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''stream_icon'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: null\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''target_container'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''tv_archive_server_id'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''type_key'' on array\{movie_properties\: mixed\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''type_output'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: null, \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''type_output'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: string, year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 6
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Offset ''year'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: ''''\} on left side of \?\? does not exist\.$#'
 			identifier: nullCoalesce.offset
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Parameter \#1 \$array \(list\<\(int\|string\)\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Parameter \#2 \$rYear of static method StreamSorter\:\:formatTitle\(\) expects int\|string, null given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, mixed\> given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Variable \$rIcon might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/domain/Stream/PlaylistGenerator.php
+			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
 			message: '#^Call to function is_numeric\(\) with int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 2
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Method StreamProcess\:\:deleteCache\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Method StreamProcess\:\:updateStreams\(\) with return type void returns false but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Method StreamProcess\:\:updateStreams\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 2
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rFFProbeOutput might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rGenPTS might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rMap might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rProtocol might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rReadNative might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rRealSource might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rSleepTime might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rSource might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Variable \$rStreamSource might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamProcess.php
+			path: src/Domain/Stream/StreamProcess.php
 
 		-
 			message: '#^Method StreamService\:\:parseM3U\(\) should return array but returns M3uParser\\M3uData\.$#'
 			identifier: return.type
 			count: 2
-			path: src/domain/Stream/StreamService.php
+			path: src/Domain/Stream/StreamService.php
 
 		-
 			message: '#^Offset int\<1, max\> on array\{\} in isset\(\) does not exist\.$#'
 			identifier: isset.offset
 			count: 1
-			path: src/domain/Stream/StreamService.php
+			path: src/Domain/Stream/StreamService.php
 
 		-
 			message: '#^Right side of && is always false\.$#'
 			identifier: booleanAnd.rightAlwaysFalse
 			count: 1
-			path: src/domain/Stream/StreamService.php
+			path: src/Domain/Stream/StreamService.php
 
 		-
 			message: '#^Variable \$rInsertID might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Stream/StreamService.php
+			path: src/Domain/Stream/StreamService.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{groups\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/GroupService.php
+			path: src/Domain/User/GroupService.php
 
 		-
 			message: '#^Comparison operation "\<" between 0 and int\<2, max\> is always true\.$#'
 			identifier: smaller.alwaysTrue
 			count: 1
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Method ResellerAPI\:\:processEnigma\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 2
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Method ResellerAPI\:\:processLine\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 2
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Method ResellerAPI\:\:processMAG\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 2
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Method ResellerAPI\:\:processUser\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 3
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Method ResellerAPI\:\:submitTicket\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Variable \$rCost might not be defined\.$#'
 			identifier: variable.undefined
 			count: 6
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Variable \$rOrigCredentials might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/domain/User/ResellerAPI.php
+			path: src/Domain/User/ResellerAPI.php
 
 		-
 			message: '#^Method TicketRepository\:\:getById\(\) should return array\|false but returns null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/User/TicketRepository.php
+			path: src/Domain/User/TicketRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{created\: ''''\}\|array\{created\: non\-falsy\-string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/TicketRepository.php
+			path: src/Domain/User/TicketRepository.php
 
 		-
 			message: '#^Offset ''member_id'' does not exist on array\{created\: string, last_reply\: non\-falsy\-string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/TicketRepository.php
+			path: src/Domain/User/TicketRepository.php
 
 		-
 			message: '#^Offset ''member_id'' does not exist on array\{replies\: list\<array\{message\: non\-falsy\-string\}\>, title\: string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/TicketRepository.php
+			path: src/Domain/User/TicketRepository.php
 
 		-
 			message: '#^Offset ''status'' does not exist on array\{created\: string, last_reply\: non\-falsy\-string\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/TicketRepository.php
+			path: src/Domain/User/TicketRepository.php
 
 		-
 			message: '#^Offset ''title'' does not exist on array\{replies\: array\{\}\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/TicketRepository.php
+			path: src/Domain/User/TicketRepository.php
 
 		-
 			message: '#^Method UserRepository\:\:getAuthUserByCredentials\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 2
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Method UserRepository\:\:getE2Info\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Method UserRepository\:\:getLineById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Method UserRepository\:\:getRegisteredUserById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Method UserRepository\:\:getStreamingUserInfo\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 6
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Method UserRepository\:\:getUserInfo\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 6
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''allowed_outputs'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: 0, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: false, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''id'' does not exist on array\{forced_country\: mixed\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 5
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''is_stalker'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: bool, isp_is_server\: 0\|1, \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''is_stalker'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: int, isp_is_server\: 0\|1, \.\.\.\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''isp_desc'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: 0, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''isp_desc'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: false, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Offset ''isp_desc'' on array\{bouquet\: mixed, allowed_ips\: array, allowed_ua\: array, allowed_outputs\: array, output_formats\: list, con_isp_name\: mixed, isp_violate\: mixed, isp_is_server\: int, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array, allowed_ua\: array, allowed_outputs\: array, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\} in empty\(\) does not exist\.$#'
 			identifier: empty.offset
 			count: 2
-			path: src/domain/User/UserRepository.php
+			path: src/Domain/User/UserRepository.php
 
 		-
 			message: '#^Variable \$rReason might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/User/UserService.php
+			path: src/Domain/User/UserService.php
 
 		-
 			message: '#^Variable \$rInsertID might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/domain/Vod/EpisodeService.php
+			path: src/Domain/Vod/EpisodeService.php
 
 		-
 			message: '#^Variable \$rFilePath in empty\(\) always exists and is not falsy\.$#'
 			identifier: empty.variable
 			count: 1
-			path: src/domain/Vod/MovieService.php
+			path: src/Domain/Vod/MovieService.php
 
 		-
 			message: '#^Method SeriesService\:\:getById\(\) should return array\|false but returns null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/Vod/SeriesService.php
+			path: src/Domain/Vod/SeriesService.php
 
 		-
 			message: '#^Method SeriesService\:\:getByTMDBId\(\) should return array\|false but returns null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/Vod/SeriesService.php
+			path: src/Domain/Vod/SeriesService.php
 
 		-
 			message: '#^Variable \$rFilePath in empty\(\) always exists and is not falsy\.$#'
 			identifier: empty.variable
 			count: 1
-			path: src/domain/Vod/SeriesService.php
+			path: src/Domain/Vod/SeriesService.php
 
 		-
 			message: '#^Method TMDbService\:\:addCategories\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
-			path: src/domain/Vod/TMDbService.php
+			path: src/Domain/Vod/TMDbService.php
 
 		-
 			message: '#^Method TMDbService\:\:getMovie\(\) should return array\|null but returns Movie\.$#'
 			identifier: return.type
 			count: 1
-			path: src/domain/Vod/TMDbService.php
+			path: src/Domain/Vod/TMDbService.php
 
 		-
 			message: '#^Comparison operation "\<" between 0 and int\<1, max\> is always true\.$#'
 			identifier: smaller.alwaysTrue
 			count: 1
-			path: src/infrastructure/ResellerApiDispatcher.php
+			path: src/Infrastructure/ResellerApiDispatcher.php
 
 		-
 			message: '#^Loose comparison using \=\= between 1 and 1 will always evaluate to true\.$#'
 			identifier: equal.alwaysTrue
 			count: 2
-			path: src/infrastructure/ResellerApiDispatcher.php
+			path: src/Infrastructure/ResellerApiDispatcher.php
 
 		-
 			message: '#^Offset ''isp'' does not exist on array\{type\: null\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/infrastructure/ResellerApiDispatcher.php
+			path: src/Infrastructure/ResellerApiDispatcher.php
 
 		-
 			message: '#^Offset ''isp'' on array\{type\: null\} in empty\(\) does not exist\.$#'
 			identifier: empty.offset
 			count: 1
-			path: src/infrastructure/ResellerApiDispatcher.php
+			path: src/Infrastructure/ResellerApiDispatcher.php
 
 		-
 			message: '#^Ternary operator condition is always true\.$#'
 			identifier: ternary.alwaysTrue
 			count: 1
-			path: src/infrastructure/ResellerApiDispatcher.php
+			path: src/Infrastructure/ResellerApiDispatcher.php
 
 		-
 			message: '#^Comparison operation "\>\=" between 43200 and int\<3600, 14400\> is always true\.$#'
 			identifier: greaterOrEqual.alwaysTrue
 			count: 1
-			path: src/infrastructure/ResellerTableRenderer.php
+			path: src/Infrastructure/ResellerTableRenderer.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 2
-			path: src/infrastructure/ResellerTableRenderer.php
+			path: src/Infrastructure/ResellerTableRenderer.php
 
 		-
 			message: '#^Variable \$rFilterBefore might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/infrastructure/ResellerTableRenderer.php
+			path: src/Infrastructure/ResellerTableRenderer.php
 
 		-
 			message: '#^Variable \$rText might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/infrastructure/ResellerTableRenderer.php
+			path: src/Infrastructure/ResellerTableRenderer.php
 
 		-
 			message: '#^Comparison operation "\<" between 0 and int\<1, max\> is always true\.$#'
 			identifier: smaller.alwaysTrue
 			count: 3
-			path: src/infrastructure/bootstrap/player_utility_functions.php
+			path: src/Infrastructure/bootstrap/player_utility_functions.php
 
 		-
 			message: '#^Function getUserSeries\(\) should return array but returns null\.$#'
 			identifier: return.type
 			count: 1
-			path: src/infrastructure/bootstrap/player_utility_functions.php
+			path: src/Infrastructure/bootstrap/player_utility_functions.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
-			path: src/infrastructure/bootstrap/reseller_functions.php
+			path: src/Infrastructure/bootstrap/reseller_functions.php
 
 		-
 			message: '#^Variable \$language might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/infrastructure/bootstrap/reseller_functions.php
+			path: src/Infrastructure/bootstrap/reseller_functions.php
 
 		-
 			message: '#^Variable \$rMobile might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/infrastructure/bootstrap/reseller_functions.php
+			path: src/Infrastructure/bootstrap/reseller_functions.php
 
 		-
 			message: '#^Variable \$rSettings might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3
-			path: src/infrastructure/bootstrap/reseller_functions.php
+			path: src/Infrastructure/bootstrap/reseller_functions.php
 
 		-
 			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/ministra/PortalHandler.php
+			path: src/Modules/ministra/PortalHandler.php
 
 		-
 			message: '#^Variable \$rEPG might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/modules/ministra/PortalHandler.php
+			path: src/Modules/ministra/PortalHandler.php
 
 		-
 			message: '#^Parameter \#4 \$month of function mktime expects int\|null, string given\.$#'
 			identifier: argument.type
 			count: 5
-			path: src/modules/ministra/PortalHelpers.php
+			path: src/Modules/ministra/PortalHelpers.php
 
 		-
 			message: '#^Parameter \#5 \$day of function mktime expects int\|null, string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/modules/ministra/PortalHelpers.php
+			path: src/Modules/ministra/PortalHelpers.php
 
 		-
 			message: '#^Parameter \#6 \$year of function mktime expects int\|null, string given\.$#'
 			identifier: argument.type
 			count: 5
-			path: src/modules/ministra/PortalHelpers.php
+			path: src/Modules/ministra/PortalHelpers.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
-			path: src/modules/plex/PlexController.php
+			path: src/Modules/plex/PlexController.php
 
 		-
 			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
 			identifier: greater.alwaysTrue
 			count: 1
-			path: src/modules/plex/PlexCron.php
+			path: src/Modules/plex/PlexCron.php
 
 		-
 			message: '#^Method PlexCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/plex/PlexCron.php
+			path: src/Modules/plex/PlexCron.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
 			identifier: booleanNot.alwaysFalse
 			count: 1
-			path: src/modules/plex/PlexCron.php
+			path: src/Modules/plex/PlexCron.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Method PlexItem\:\:getEpisode\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 2
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Method PlexItem\:\:getMovie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Method PlexItem\:\:getSerie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Method PlexItem\:\:getSeriesByID\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Variable \$rBG might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Variable \$rThumb might not be defined\.$#'
 			identifier: variable.undefined
 			count: 3
-			path: src/modules/plex/PlexItem.php
+			path: src/Modules/plex/PlexItem.php
 
 		-
 			message: '#^Method Season\:\:getEpisode\(\) should return int but returns Episode\.$#'
 			identifier: return.type
 			count: 1
-			path: src/modules/tmdb/lib/Entities/Season.php
+			path: src/Modules/tmdb/lib/Entities/Season.php
 
 		-
 			message: '#^Property Season\:\:\$_idTVShow is unused\.$#'
 			identifier: property.unused
 			count: 1
-			path: src/modules/tmdb/lib/Entities/Season.php
+			path: src/Modules/tmdb/lib/Entities/Season.php
 
 		-
 			message: '#^Method TVShow\:\:getSeason\(\) should return int but returns Season\.$#'
 			identifier: return.type
 			count: 1
-			path: src/modules/tmdb/lib/Entities/TVShow.php
+			path: src/Modules/tmdb/lib/Entities/TVShow.php
 
 		-
 			message: '#^Variable \$data might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/modules/tmdb/lib/Entities/TVShow.php
+			path: src/Modules/tmdb/lib/Entities/TVShow.php
 
 		-
 			message: '#^Access to an undefined property Release\:\:\$original\.$#'
 			identifier: property.notFound
 			count: 1
-			path: src/modules/tmdb/lib/Release.php
+			path: src/Modules/tmdb/lib/Release.php
 
 		-
 			message: '#^Offset 1 on array\{0\: non\-falsy\-string, 1\: non\-falsy\-string&numeric\-string, 2\?\: '' ''\|''\)''\|''\-''\|''\.''\|''\|''\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
 			count: 1
-			path: src/modules/tmdb/lib/Release.php
+			path: src/Modules/tmdb/lib/Release.php
 
 		-
 			message: '#^Offset 3 does not exist on array\{0\: non\-falsy\-string, season\: numeric\-string, 1\: numeric\-string, episode\: numeric\-string, 2\: ''0''\|\(non\-falsy\-string&numeric\-string\)\}\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/modules/tmdb/lib/Release.php
+			path: src/Modules/tmdb/lib/Release.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 2
-			path: src/modules/tmdb/lib/Release.php
+			path: src/Modules/tmdb/lib/Release.php
 
 		-
 			message: '#^Method TMDB\:\:_call\(\) should return string but returns array\<mixed, mixed\>\.$#'
 			identifier: return.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Method TMDB\:\:getAPIConfig\(\) has invalid return type Configuration\.$#'
 			identifier: class.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Method TMDB\:\:getDiscoverMovie\(\) should return Movie but returns list\<Movie\>\.$#'
 			identifier: return.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Method TMDB\:\:getJobs\(\) should return array but returns string\.$#'
 			identifier: return.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Method TMDB\:\:getTimezones\(\) should return array but returns string\.$#'
 			identifier: return.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''genres'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 2
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''movie_results'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''person_results'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''results'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 20
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''tv_episode_results'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''tv_results'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Offset ''tv_season_results'' does not exist on string\.$#'
 			identifier: offsetAccess.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$companyName$#'
 			identifier: parameter.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^PHPDoc tag @param references unknown parameter\: \$timezone$#'
 			identifier: parameter.notFound
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class APIConfiguration constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class Collection constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class Company constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class Episode constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class Movie constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class Person constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class Season constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#1 \$data of class TVShow constructor expects array, string given\.$#'
 			identifier: argument.type
 			count: 2
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Parameter \#3 \$value of function curl_setopt expects bool, int given\.$#'
 			identifier: argument.type
 			count: 3
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Variable \$cnf might not be defined\.$#'
 			identifier: variable.undefined
 			count: 5
-			path: src/modules/tmdb/lib/TmdbClient.php
+			path: src/Modules/tmdb/lib/TmdbClient.php
 
 		-
 			message: '#^Unreachable statement \- code above always terminates\.$#'
 			identifier: deadCode.unreachable
 			count: 1
-			path: src/modules/watch/WatchController.php
+			path: src/Modules/watch/WatchController.php
 
 		-
 			message: '#^Method WatchCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/watch/WatchCron.php
+			path: src/Modules/watch/WatchCron.php
 
 		-
 			message: '#^Variable \$rStreamDatabase might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/modules/watch/WatchCron.php
+			path: src/Modules/watch/WatchCron.php
 
 		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Method WatchItem\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Method WatchItem\:\:getEpisode\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 2
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Method WatchItem\:\:getMovie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Method WatchItem\:\:getSerie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Parameter \#2 \$data of function fwrite expects string, int\<1, max\> given\.$#'
 			identifier: argument.type
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Variable \$rImage might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Variable \$rRelease might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php
 
 		-
 			message: '#^Variable \$rSeries might not be defined\.$#'
 			identifier: variable.undefined
 			count: 2
-			path: src/modules/watch/WatchItem.php
+			path: src/Modules/watch/WatchItem.php

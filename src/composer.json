@@ -9,8 +9,8 @@
     "autoload": {
         "psr-4": {
             "XcVm\\": "./",
-            "M3uParser\\": "core/Parsing/M3uParser/src/",
-            "Chrisyue\\PhpM3u8\\": "core/Parsing/PhpM3u8/src/"
+            "M3uParser\\": "Core/Parsing/M3uParser/src/",
+            "Chrisyue\\PhpM3u8\\": "Core/Parsing/PhpM3u8/src/"
         }
     },
     "config": {

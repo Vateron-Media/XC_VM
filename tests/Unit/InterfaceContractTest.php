@@ -247,8 +247,8 @@ final class InterfaceContractTest extends TestCase {
     public function testMinistraModuleImplementsBoundaryInterface(): void {
         if (!class_exists(\XcVm\Module\Ministra\MinistraModule::class)) {
             $file = defined('MAIN_HOME')
-                ? MAIN_HOME . 'modules/ministra/MinistraModule.php'
-                : __DIR__ . '/../../src/modules/ministra/MinistraModule.php';
+                ? MAIN_HOME . 'Modules/ministra/MinistraModule.php'
+                : __DIR__ . '/../../src/Modules/ministra/MinistraModule.php';
             require_once $file;
         }
         $rc = new ReflectionClass(\XcVm\Module\Ministra\MinistraModule::class);

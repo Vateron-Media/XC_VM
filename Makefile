@@ -22,10 +22,10 @@ EXCLUDES := \
 	.git
 
 # Directories to copy from MAIN to LB
-# NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
+# NOTE: Modules/ is intentionally excluded — all modules are MAIN-only.
 # Modules: tmdb, plex, watch, ministra
-LB_DIRS := bin cli config content core domain modules\
-	infrastructure public resources signals streaming tmp vendor www
+LB_DIRS := bin Cli config content Core Domain Modules\
+	Infrastructure Public resources signals Streaming tmp vendor www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
 LB_ROOT_FILES := autoload.php bootstrap.php console.php service update
@@ -35,23 +35,23 @@ LB_DIRS_TO_REMOVE := \
 	bin/install \
 	bin/redis \
 	bin/nginx/conf/codes \
-	domain/User \
-	domain/Device \
-	domain/Auth \
-	public/Controllers/Admin \
-	public/Controllers/Player \
-	public/Controllers/Reseller \
-	public/Views \
-	public/assets \
-	public/routes \
+	Domain/User \
+	Domain/Device \
+	Domain/Auth \
+	Public/Controllers/Admin \
+	Public/Controllers/Player \
+	Public/Controllers/Reseller \
+	Public/Views \
+	Public/assets \
+	Public/routes \
 	resources/langs \
 	resources/libs
 
 # Files to remove from LB
 LB_FILES_TO_REMOVE := \
 	bin/maxmind/GeoLite2-City.mmdb \
-	public/Controllers/Api/AdminApiController.php \
-	public/Controllers/Api/ResellerRestApiController.php \
+	Public/Controllers/Api/AdminApiController.php \
+	Public/Controllers/Api/ResellerRestApiController.php \
 	www/xplugin.php \
 	www/probe.php \
 	www/playlist.php \
@@ -62,19 +62,19 @@ LB_FILES_TO_REMOVE := \
 	www/admin/proxy_api.php \
 	www/admin/api.php \
 	config/rclone.conf \
-	cli/Commands/MigrateCommand.php \
-	cli/Commands/CacheHandlerCommand.php \
-	cli/Commands/ServerInstallCommand.php \
-	cli/Commands/LbInstallFlow.php \
-	cli/Commands/ProxyInstallFlow.php \
-	cli/CronJobs/RootMysqlCronJob.php \
-	cli/CronJobs/BackupsCronJob.php \
-	cli/CronJobs/CacheEngineCronJob.php \
-	cli/CronJobs/EpgCronJob.php \
-	cli/CronJobs/UpdateCronJob.php \
-	cli/CronJobs/ProvidersCronJob.php \
-	cli/CronJobs/SeriesCronJob.php \
-	domain/Epg/EPG.php \
+	Cli/Commands/MigrateCommand.php \
+	Cli/Commands/CacheHandlerCommand.php \
+	Cli/Commands/ServerInstallCommand.php \
+	Cli/Commands/LbInstallFlow.php \
+	Cli/Commands/ProxyInstallFlow.php \
+	Cli/CronJobs/RootMysqlCronJob.php \
+	Cli/CronJobs/BackupsCronJob.php \
+	Cli/CronJobs/CacheEngineCronJob.php \
+	Cli/CronJobs/EpgCronJob.php \
+	Cli/CronJobs/UpdateCronJob.php \
+	Cli/CronJobs/ProvidersCronJob.php \
+	Cli/CronJobs/SeriesCronJob.php \
+	Domain/Epg/EPG.php \
 	bin/nginx/conf/gzip.conf
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
