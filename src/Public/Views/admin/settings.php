@@ -1,5 +1,6 @@
 <?php
-// Code reconstruction by Squallp
+
+use XcVm\Core\Config\SettingsManager;// Code reconstruction by Squallp
 
 if (!isset($__settingsViewMode)):
 

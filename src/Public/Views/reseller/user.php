@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * User (sub-reseller) — clean view template.
  * Variables from controller: $rUser, $rGroups
  * ViewGlobals: $rUserInfo, $rPermissions, $rSettings, $language, $rRequest

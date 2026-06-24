@@ -1,5 +1,6 @@
 <?php
-$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+
+use XcVm\Core\Config\SettingsManager;$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
 $selectedCategory = RequestManager::getAll()['category'] ?? null;

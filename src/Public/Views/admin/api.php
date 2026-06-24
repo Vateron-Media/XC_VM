@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /** @var \Database $db */
 
 include 'functions.php';

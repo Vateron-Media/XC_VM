@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * SeriesService — series service
  *

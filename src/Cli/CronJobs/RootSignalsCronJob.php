@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * RootSignalsCronJob — root signals cron job
  *

@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use XcVm\Core\Config\SettingsManager;
 
 /**
  * Bruteforce / Flood Guard

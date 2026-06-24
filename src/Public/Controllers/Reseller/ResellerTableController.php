@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * ResellerTableController — DataTables JSON endpoint for reseller panel.
  *
  * Migrated from reseller/table.php.

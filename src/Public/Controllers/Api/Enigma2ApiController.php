@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * SimpleXMLExtended — SimpleXMLElement с поддержкой CDATA.
  *

@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * ResellerDashboardController — Reseller dashboard.
  *
  * @package XC_VM_Public_Controllers_Reseller

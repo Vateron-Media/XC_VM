@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\ConfigReader;
 /**
  * LegacyInitializer — legacy initializer

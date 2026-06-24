@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Config\SettingsManager;
 /**
  * ToolsCommand — tools command
  *
@@ -196,9 +197,8 @@ class ToolsCommand implements CommandInterface {
 
 	private function processRecaptcha($db): int {
 		$db->query('UPDATE `settings` SET `recaptcha_enable` = 0;');
-		if (class_exists('SettingsManager') && method_exists('SettingsManager', 'clearCache')) {
-			SettingsManager::clearCache();
-		}
+		// SettingsManager is always autoloadable (Composer PSR-4).
+		SettingsManager::clearCache();
 		echo "reCAPTCHA has been disabled. You can now log in to the admin panel.\n";
 		echo "Re-enable it in Settings once outbound access to google.com is restored.\n";
 		return 0;

@@ -8,7 +8,8 @@
 	<link rel="stylesheet" href="css/default-skin.css">
 	<link rel="stylesheet" href="css/main.css">
 	<link rel="shortcut icon" href="img/favicon.ico">
-	<title><?php echo SettingsManager::getAll()['server_name']; ?></title>
+	<title><?php 
+use XcVm\Core\Config\SettingsManager;echo SettingsManager::getAll()['server_name']; ?></title>
 </head>
 <body class="body" style="padding-bottom: 0 !important;">
 	<div class="sign">

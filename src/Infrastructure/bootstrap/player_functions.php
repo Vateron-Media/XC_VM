@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Config\SettingsManager;/**
  * Player functions bootstrap.
  *
  * Loads core dependencies, verifies player session integrity,
