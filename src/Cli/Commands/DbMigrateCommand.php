@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\MigrationRunner;
 /**
  * DbMigrateCommand — apply pending database migrations
  *

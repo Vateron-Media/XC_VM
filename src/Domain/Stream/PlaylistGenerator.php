@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\DomainResolver;
 /**
  * PlaylistGenerator — playlist generator
@@ -17,7 +19,7 @@ class PlaylistGenerator {
 	/**
 	 * Inject the database handler (dependency injection).
 	 *
-	 * @param \DatabaseHandler $db Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {

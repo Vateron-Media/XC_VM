@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Database;
+
 use XcVm\Core\Logging\FileLogger;
 /**
  * Database — database
@@ -7,7 +9,7 @@ use XcVm\Core\Logging\FileLogger;
  * @package XC_VM_Core_Database
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -89,7 +91,7 @@ class Database {
 
 		try {
 			$this->dbh->query('SELECT 1');
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			return false;
 		}
 
@@ -106,7 +108,7 @@ class Database {
 	 */
 	public function db_connect($migrate = false) {
 		try {
-			$this->dbh = XC_VM::db_connect($migrate);
+			$this->dbh = \XC_VM::db_connect($migrate);
 			if (!$this->dbh) {
 				if (!$migrate) {
 					exit(json_encode(array('error' => 'MySQL: Cannot connect to database! Please check credentials.')));
@@ -114,14 +116,14 @@ class Database {
 
 				return false;
 			}
-		} catch (PDOException $e) {
+		} catch (\PDOException $e) {
 			if (!$migrate) {
 				exit(json_encode(array('error' => 'MySQL: ' . $e->getMessage())));
 			}
 			return false;
 		}
 
-		$this->dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$this->dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 		$this->connected = true;
 
 		return true;
@@ -139,25 +141,25 @@ class Database {
 	 */
 	public function db_explicit_connect($rHost, $rPort, $rDatabase, $rUsername, $rPassword) {
 		try {
-			$this->dbh = new PDO('mysql:host=' . $this->normalizeHost($rHost) . ';port=' . $rPort . ';dbname=' . $rDatabase, $rUsername, $rPassword);
+			$this->dbh = new \PDO('mysql:host=' . $this->normalizeHost($rHost) . ';port=' . $rPort . ';dbname=' . $rDatabase, $rUsername, $rPassword);
 
 			if (!$this->dbh) {
 				return false;
 			}
-		} catch (PDOException $e) {
+		} catch (\PDOException $e) {
 			return false;
 		}
 
-		$this->dbh->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+		$this->dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 		$this->connected = true;
 
 		return true;
 	}
 
 	/**
-	 * Capture a PDO statement's debugDumpParams() output as a string.
+	 * Capture a \PDO statement's debugDumpParams() output as a string.
 	 *
-	 * @param PDOStatement $stmt Prepared statement.
+	 * @param \PDOStatement $stmt Prepared statement.
 	 * @return string The dumped parameter/SQL debug text.
 	 */
 	public function debugString($stmt) {
@@ -204,13 +206,13 @@ class Database {
 		}
 
 		if ($buffered === true) {
-			$this->dbh->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
+			$this->dbh->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
 		}
 
 		try {
 			$this->result = $this->dbh->prepare($query);
 			$this->result->execute($next_arg_list);
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			$rDebugParts = explode('Sent SQL:', $this->debugString($this->result));
 			$actual_query = isset($rDebugParts[1]) ? trim(explode("\n", $rDebugParts[1])[0]) : '';
 
@@ -235,7 +237,7 @@ class Database {
 	public function simple_query($query) {
 		try {
 			$this->result = $this->dbh->query($query);
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			FileLogger::log('pdo', $e->getMessage(), $query, (int) $e->getLine());
 			return false;
 		}
@@ -261,7 +263,7 @@ class Database {
 
 		if (0 >= $this->result->rowCount()) {
 		} else {
-			foreach ($this->result->fetchAll(PDO::FETCH_ASSOC) as $row) {
+			foreach ($this->result->fetchAll(\PDO::FETCH_ASSOC) as $row) {
 				if ($use_id && array_key_exists($column_as_id, $row)) {
 					if (!isset($rows[$row[$column_as_id]])) {
 						$rows[$row[$column_as_id]] = array();
@@ -301,7 +303,7 @@ class Database {
 
 		if (0 >= $this->result->rowCount()) {
 		} else {
-			$row = $this->result->fetch(PDO::FETCH_ASSOC);
+			$row = $this->result->fetch(\PDO::FETCH_ASSOC);
 		}
 
 		$this->result = null;

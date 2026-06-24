@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Database\MigrationRunner;
+use XcVm\Core\Database\Database;
 /**
  * Проверка статуса, DB-миграции, конфигурация системы.
  *

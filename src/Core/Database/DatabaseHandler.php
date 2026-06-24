@@ -1,7 +1,9 @@
 <?php
 
+namespace XcVm\Core\Database;
+
 /**
- * Менеджер базы данных (PDO)
+ * Менеджер базы данных (\PDO)
  *
  * Расширяет базовый класс Database:
  *   - Transaction support (begin/commit/rollback)
@@ -38,7 +40,7 @@
  *         $db->query("UPDATE ...", $val1);
  *         $db->query("INSERT ...", $val2);
  *         $db->commit();
- *     } catch (Exception $e) {
+ *     } catch (\Exception $e) {
  *         $db->rollback();
  *     }
  *
@@ -57,13 +59,13 @@
  *         return DatabaseHandler::create($cfg);
  *     });
  *
- * @see core/Database/Database.php  Base PDO wrapper class
+ * @see core/Database/Database.php  Base \PDO wrapper class
  * @see core/Container/ServiceContainer.php  DI container
  *
  * @package XC_VM_Core_Database
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -178,7 +180,7 @@ class DatabaseHandler extends Database {
      *
      * @param callable $callback function(DatabaseHandler $db)
      * @return mixed The return value of the callback
-     * @throws Exception Re-throws after rollback
+     * @throws \Exception Re-throws after rollback
      */
     public function transactional($callback) {
         $this->beginTransaction();

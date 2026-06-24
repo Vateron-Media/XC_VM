@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\Database;
 use XcVm\Core\Parsing\XmlStringStreamer;
 use XcVm\Core\Config\SettingsManager;
 /**

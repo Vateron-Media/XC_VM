@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\QueryHelper;
 use PHPUnit\Framework\TestCase;
 
 /**

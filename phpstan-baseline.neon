@@ -301,7 +301,7 @@ parameters:
 			path: src/Cli/CronJobs/VodCronJob.php
 
 		-
-			message: '#^Call to function is_object\(\) with DatabaseHandler will always evaluate to true\.$#'
+			message: '#^Call to function is_object\(\) with XcVm\\Core\\Database\\DatabaseHandler will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Cli/migration_logic.php
@@ -361,13 +361,13 @@ parameters:
 			path: src/Core/Auth/BruteforceGuard.php
 
 		-
-			message: '#^Method Database\:\:escape\(\) should return string\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Core\\Database\\Database\:\:escape\(\) should return string\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Core/Database/Database.php
 
 		-
-			message: '#^Method Database\:\:last_insert_id\(\) should return int\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Core\\Database\\Database\:\:last_insert_id\(\) should return int\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Core/Database/Database.php

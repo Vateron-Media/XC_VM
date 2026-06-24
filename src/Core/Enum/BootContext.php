@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\Database;
 /**
  * Boot context for XC_Bootstrap::boot().
  *

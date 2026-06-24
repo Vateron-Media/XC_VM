@@ -54,6 +54,8 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Logging\Logger;
@@ -580,7 +582,7 @@ class XC_Bootstrap {
      * the injected instance; db() returns it. Calling this method removes the
      * need for the global $db fallback inside each db() helper.
      *
-     * @param \DatabaseHandler $db DatabaseHandler instance
+     * @param \XcVm\Core\Database\DatabaseHandler $db DatabaseHandler instance
      */
     private static function wireDomainDatabase(object $db): void {
         // Bouquet
