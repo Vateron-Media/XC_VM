@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Config\SettingsManager;
 require_once __DIR__ . '/../CronTrait.php';

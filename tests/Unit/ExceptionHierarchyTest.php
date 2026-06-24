@@ -1,6 +1,9 @@
 <?php
 
 declare(strict_types=1);
+use XcVm\Core\Container\Psr\NotFoundException;
+use XcVm\Core\Container\Psr\NotFoundExceptionInterface;
+use XcVm\Core\Container\Psr\ContainerExceptionInterface;
 
 use PHPUnit\Framework\TestCase;
 

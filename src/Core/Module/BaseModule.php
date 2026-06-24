@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 
 use XcVm\Core\Http\Router;
@@ -39,10 +40,10 @@ abstract class BaseModule implements ModuleInterface, MigratableInterface, CronP
     /**
      * Boot hook: register services/bindings into the container. No-op by default.
      *
-     * @param \ServiceContainer $container The DI container.
+     * @param \XcVm\Core\Container\ServiceContainer $container The DI container.
      * @return void
      */
-    public function boot(\ServiceContainer $container): void {}
+    public function boot(\XcVm\Core\Container\ServiceContainer $container): void {}
 
     /**
      * Event subscribers provided by the module. Empty by default.

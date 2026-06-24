@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Container\Psr;
+
 /**
  * PSR-11 ContainerInterface.
  *

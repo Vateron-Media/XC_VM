@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module\Contract;
+use XcVm\Core\Container\ServiceContainer;
 
 /**
  * @package XC_VM_Core_Module
@@ -15,9 +16,9 @@ interface ServiceProviderInterface {
      *
      * Called once per request during module boot phase.
      *
-     * @param \ServiceContainer $container
+     * @param \XcVm\Core\Container\ServiceContainer $container
      */
-    public function boot(\ServiceContainer $container): void;
+    public function boot(\XcVm\Core\Container\ServiceContainer $container): void;
 
     /**
      * Return event subscribers declared by this module.

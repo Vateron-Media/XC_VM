@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Container\ServiceContainer;
 
 use XcVm\Core\Http\Router;
 use XcVm\Core\Database\Database;
@@ -24,19 +25,19 @@ class ModuleManager {
     private string $modulesPath;
     private string $overridesPath;
     private string $archivesPath;
-    private ?\ServiceContainer $container;
+    private ?\XcVm\Core\Container\ServiceContainer $container;
 
     /**
      * Initialize the module manager.
      *
      * @param string|null $modulesPath   Path to the modules directory.
      * @param string|null $overridesPath Path to the config/modules.php overrides file.
-     * @param \ServiceContainer|null $container Service container for DB access and DI.
+     * @param \XcVm\Core\Container\ServiceContainer|null $container Service container for DB access and DI.
      */
     public function __construct(
         ?string $modulesPath = null,
         ?string $overridesPath = null,
-        ?\ServiceContainer $container = null
+        ?\XcVm\Core\Container\ServiceContainer $container = null
     ) {
         $this->modulesPath   = $modulesPath   ?: (defined('MAIN_HOME')   ? MAIN_HOME   . 'Modules'      : dirname(__DIR__, 2) . '/Modules');
         $this->overridesPath = $overridesPath ?: (defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php'  : dirname(__DIR__, 2) . '/config/modules.php');
@@ -480,7 +481,7 @@ class ModuleManager {
      * Delegates the full download → key-unwrap → extract flow to the
      * XC_VM C extension, then runs installModule() to register it.
      * Fires \PackageInstalledEvent and hot-reloads the module into the
-     * current \ServiceContainer without requiring a PHP-FPM restart.
+     * current \XcVm\Core\Container\ServiceContainer without requiring a PHP-FPM restart.
      *
      * @param string      $slug    Module slug as listed on the platform.
      * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
@@ -815,7 +816,7 @@ class ModuleManager {
     }
 
     /**
-     * Hot-reload a newly installed module into the running \ServiceContainer.
+     * Hot-reload a newly installed module into the running \XcVm\Core\Container\ServiceContainer.
      *
      * Loads and boots the module within the current request so it becomes
      * immediately usable without a PHP-FPM restart.
@@ -853,7 +854,7 @@ class ModuleManager {
      * @return void
      */
     private function hotReload(string $slug, string $modulePath): void {
-        $container = \ServiceContainer::getInstance();
+        $container = \XcVm\Core\Container\ServiceContainer::getInstance();
 
         $loader = new ModuleLoader();
         if (!$loader->load($slug, $modulePath)) {
