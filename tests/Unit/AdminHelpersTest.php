@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 use PHPUnit\Framework\TestCase;
 
 /**

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

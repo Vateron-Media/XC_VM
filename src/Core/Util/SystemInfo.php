@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Util;
+
 /**
  * System Information
  *
@@ -9,7 +11,7 @@
  * @package XC_VM_Core_Util
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -19,7 +21,7 @@ class SystemInfo {
      * Aggregate server statistics.
      *
      * Collects CPU, memory, disk, network, GPU, I/O, audio/video devices.
-     * Requires ServerRepository::getAll()[SERVER_ID] for network interface selection.
+     * Requires \ServerRepository::getAll()[SERVER_ID] for network interface selection.
      *
      * @return array<string, mixed>
      */
@@ -59,12 +61,12 @@ class SystemInfo {
             $rJSON['total_mem_used_percent'] = 100;
         }
 
-        // Network interface selection: delegate to ServerRepository for backward compat
+        // Network interface selection: delegate to \ServerRepository for backward compat
         $rNetworkInterface = null;
-        if (defined('SERVER_ID') && isset(ServerRepository::getAll()[SERVER_ID]['network_interface'])) {
-            $rNetworkInterface = ServerRepository::getAll()[SERVER_ID]['network_interface'] == 'auto'
+        if (defined('SERVER_ID') && isset(\ServerRepository::getAll()[SERVER_ID]['network_interface'])) {
+            $rNetworkInterface = \ServerRepository::getAll()[SERVER_ID]['network_interface'] == 'auto'
                 ? null
-                : ServerRepository::getAll()[SERVER_ID]['network_interface'];
+                : \ServerRepository::getAll()[SERVER_ID]['network_interface'];
         }
         $rJSON['network_info'] = self::getNetwork($rNetworkInterface);
 
@@ -159,7 +161,7 @@ class SystemInfo {
             }
 
             return array('total' => 0, 'free' => 0, 'used' => 0);
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return array('total' => 0, 'free' => 0, 'used' => 0);
         }
     }
@@ -234,7 +236,7 @@ class SystemInfo {
                     }
                 }
             }
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
         }
         return $rReturn;
     }
@@ -247,7 +249,7 @@ class SystemInfo {
     public static function getAudioDevices() {
         try {
             return array_filter(explode("\n", @shell_exec('arecord -L | grep "hw:CARD="') ?? ''));
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return array();
         }
     }

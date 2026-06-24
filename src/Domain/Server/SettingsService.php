@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
@@ -86,7 +87,7 @@ class SettingsService {
 			$rArray['search_items'] = 1;
 		}
 
-		if (isset($rArray['language']) && class_exists('Translator', false)) {
+		if (isset($rArray['language']) && class_exists(\XcVm\Core\Localization\Translator::class, false)) {
 			if (!in_array($rArray['language'], Translator::available(), true)) {
 				$rArray['language'] = 'en';
 			}

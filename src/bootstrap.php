@@ -54,6 +54,10 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Util\Mobile_Detect;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Localization\Translator;
+use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Enum\BootContext;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
@@ -567,7 +571,7 @@ class XC_Bootstrap {
         }
 
         // Translator
-        if (class_exists('Translator', false) && Translator::available()) {
+        if (class_exists(\XcVm\Core\Localization\Translator::class, false) && Translator::available()) {
             $container->set('translator', Translator::class);
         }
 
@@ -704,7 +708,7 @@ class XC_Bootstrap {
         }
 
         require_once MAIN_HOME . 'Core/Util/MobileDetect.php';
-        $rDetect = new \Mobile_Detect();
+        $rDetect = new \XcVm\Core\Util\Mobile_Detect();
         $rMobile = $rDetect->isMobile();
 
         $rTimeout    = 15;

@@ -1,5 +1,6 @@
 <div class="wrapper boxed-layout-ext"
-    <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+    <?php 
+use XcVm\Core\Process\Thread;if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
         echo '';
     } else {
         echo ' style="display: none;"';

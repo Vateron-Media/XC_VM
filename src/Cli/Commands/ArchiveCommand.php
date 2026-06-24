@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Core\Process\ProcessManager;
 /**
  * ArchiveCommand — records a live HLS stream into 1-minute .ts archive segments.
  *

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Logging\DatabaseLogger;
 /**
  * Timeshift stream endpoint

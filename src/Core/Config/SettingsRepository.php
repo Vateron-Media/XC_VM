@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Config;
+use XcVm\Core\Cache\FileCache;
 
 /**
  * SettingsRepository — settings repository
@@ -22,7 +23,7 @@ class SettingsRepository {
 	public static function getAll($rForce = false) {
 		global $db;
 		if (!$rForce) {
-			$rCache = \FileCache::getCache('settings', 20);
+			$rCache = \XcVm\Core\Cache\FileCache::getCache('settings', 20);
 			if (!empty($rCache)) {
 				return $rCache;
 			}
@@ -49,7 +50,7 @@ class SettingsRepository {
 		}
 		$rOutput['api_ips'] = !empty($rOutput['api_ips']) ? explode(',', $rOutput['api_ips']) : [];
 
-		\FileCache::setCache('settings', $rOutput);
+		\XcVm\Core\Cache\FileCache::setCache('settings', $rOutput);
 
 		return $rOutput;
 	}

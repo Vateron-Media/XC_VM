@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Config\SettingsManager;
 /**
  * StreamsCronJob — streams cron job

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\PageAuthorization;
 include 'session.php';
 include 'functions.php';

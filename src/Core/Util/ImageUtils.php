@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Util;
+
 use XcVm\Core\Config\SettingsManager;
 /**
  * ImageUtils — image utils
@@ -7,7 +9,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_Core_Util
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -22,7 +24,7 @@ class ImageUtils {
 	public static function validateURL($rURL, $rForceProtocol = null) {
 		if (substr($rURL, 0, 2) == 's:') {
 			$rSplit = explode(':', $rURL, 3);
-			$rServerURL = ServerRepository::getPublicURL(intval($rSplit[1]), $rForceProtocol);
+			$rServerURL = \ServerRepository::getPublicURL(intval($rSplit[1]), $rForceProtocol);
 			if ($rServerURL) {
 				return $rServerURL . 'images/' . basename($rURL);
 			}
@@ -44,7 +46,7 @@ class ImageUtils {
 		$rImagePath = IMAGES_PATH . 'admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;
 
 		if (file_exists($rImagePath)) {
-			$rServerInfo = ServerRepository::getAll()[SERVER_ID];
+			$rServerInfo = \ServerRepository::getAll()[SERVER_ID];
 			$rDomain = (empty($rServerInfo['domain_name']) ? $rServerInfo['server_ip'] : explode(',', $rServerInfo['domain_name'])[0]);
 
 			return $rServerInfo['server_protocol'] . '://' . $rDomain . ':' . $rServerInfo['request_port'] . '/images/admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;

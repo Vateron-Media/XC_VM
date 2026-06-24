@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Enum;
+use XcVm\Core\Localization\Translator;
+use XcVm\Core\Init\LegacyInitializer;
 
 use XcVm\Core\Database\Database;
 /**

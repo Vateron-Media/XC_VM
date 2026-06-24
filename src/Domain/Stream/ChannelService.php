@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\QueryHelper;

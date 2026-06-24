@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Database\Database;/*
  PHP Mini MySQL Admin
  (c) 2004-2024 Oleg Savchuk <osalabs@gmail.com> http://osalabs.com

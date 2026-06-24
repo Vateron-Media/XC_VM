@@ -1,5 +1,12 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Diagnostics\DiagnosticsService;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;

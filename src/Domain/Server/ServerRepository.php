@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Cache\FileCache;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

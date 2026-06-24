@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Util\ImageResizeService;/**
  * ResellerResizeController — Image resize proxy for reseller panel.
  *
  * Migrated from reseller/resize.php.

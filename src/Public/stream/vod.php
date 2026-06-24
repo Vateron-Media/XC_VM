@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Logging\DatabaseLogger;
 /**
  * VOD stream delivery endpoint

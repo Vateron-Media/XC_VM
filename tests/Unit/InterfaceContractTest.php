@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Events\ListensTo;
 use XcVm\Core\Events\EventDispatcher;

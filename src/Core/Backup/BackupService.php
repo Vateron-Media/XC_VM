@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Backup;
+
 use XcVm\Core\Database\Database;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Storage\DropboxClient;
@@ -12,7 +14,7 @@ use XcVm\Core\Storage\DropboxClient;
  * @package XC_VM_Core_Backup
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -28,12 +30,12 @@ class BackupService {
 
 	/**
 	 * Create a full database backup (structure + data, excluding large log tables).
-	 * Credentials are never exposed to PHP — delegated to XC_VM::db_dump().
+	 * Credentials are never exposed to PHP — delegated to \XC_VM::db_dump().
 	 *
 	 * @param string $filename Output SQL file path
 	 */
 	public static function create($filename) {
-		XC_VM::db_dump($filename, self::$ignoreTables);
+		\XC_VM::db_dump($filename, self::$ignoreTables);
 	}
 
 	/**
@@ -43,8 +45,8 @@ class BackupService {
 	 * @param string $filename SQL file path to restore
 	 */
 	public static function restore($filename) {
-		XC_VM::db_restore($filename);
-		XC_VM::db_dump($filename, self::$ignoreTables);
+		\XC_VM::db_restore($filename);
+		\XC_VM::db_dump($filename, self::$ignoreTables);
 	}
 
 	/**
@@ -53,7 +55,7 @@ class BackupService {
 	 * @param string $host Remote host IP
 	 */
 	public static function grantPrivileges($host) {
-		XC_VM::db_grant($host);
+		\XC_VM::db_grant($host);
 	}
 
 	/**
@@ -62,7 +64,7 @@ class BackupService {
 	 * @param string $host Remote host IP
 	 */
 	public static function revokePrivileges($host) {
-		XC_VM::db_revoke($host);
+		\XC_VM::db_revoke($host);
 	}
 
 	/**
@@ -105,7 +107,7 @@ class BackupService {
 			$rClient->GetFiles();
 
 			return true;
-		} catch (exception $e) {
+		} catch (\exception $e) {
 			return false;
 		}
 	}
@@ -122,7 +124,7 @@ class BackupService {
 			$rClient = new DropboxClient();
 			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 			$rFiles = $rClient->GetFiles();
-		} catch (exception $e) {
+		} catch (\exception $e) {
 			$rFiles = array();
 		}
 		$rBackups = array();
@@ -135,7 +137,7 @@ class BackupService {
 					$rJSON['time'] = strtotime($rFile->server_modified);
 					$rBackups[] = $rJSON;
 				}
-			} catch (exception $e) {
+			} catch (\exception $e) {
 			}
 		}
 		array_multisort(array_column($rBackups, 'time'), SORT_ASC, $rBackups);
@@ -159,7 +161,7 @@ class BackupService {
 			$rClient->downloadFile($rPath, $rFilename);
 
 			return true;
-		} catch (exception $e) {
+		} catch (\exception $e) {
 			return false;
 		}
 	}
@@ -180,7 +182,7 @@ class BackupService {
 			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
 
 			return $rClient->UploadFile($rFilename, $rPath, $rOverwrite);
-		} catch (exception $e) {
+		} catch (\exception $e) {
 			return (object) array('error' => $e);
 		}
 	}
@@ -200,7 +202,7 @@ class BackupService {
 			$rClient->Delete($rPath);
 
 			return true;
-		} catch (exception $e) {
+		} catch (\exception $e) {
 			return false;
 		}
 	}

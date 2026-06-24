@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Database\Database;

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
 /**
  * Установка/настройка сервера (Proxy/LB) через SSH.

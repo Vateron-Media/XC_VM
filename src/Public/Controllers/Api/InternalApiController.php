@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Util\SystemInfo;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;

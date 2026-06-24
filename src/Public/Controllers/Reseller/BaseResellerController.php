@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Auth\Authorization;
 /**

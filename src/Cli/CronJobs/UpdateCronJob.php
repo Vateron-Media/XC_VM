@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Logging\FileLogger;

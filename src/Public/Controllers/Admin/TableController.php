@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;

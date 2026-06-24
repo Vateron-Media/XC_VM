@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\Encryption;
 use XcVm\Core\Logging\DatabaseLogger;
 /**
  * Общий streaming auth middleware для live/vod/timeshift.

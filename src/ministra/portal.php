@@ -1,5 +1,10 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Auth\Authorization;
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Cache-Control: post-check=0, pre-check=0', false);

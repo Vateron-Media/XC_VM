@@ -1,12 +1,15 @@
 <?php
 
+namespace XcVm\Core\Util;
+use XcVm\Core\Process\ProcessManager;
+
 /**
  * StreamUtils — stream utils
  *
  * @package XC_VM_Core_Util
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -159,10 +162,10 @@ class StreamUtils {
 	}
 
 	/**
-	 * Heuristically detect whether a URL is an XC_VM stream endpoint.
+	 * Heuristically detect whether a URL is an \XC_VM stream endpoint.
 	 *
 	 * @param string $rURL URL to inspect.
-	 * @return bool True if the path matches a known XC_VM stream pattern.
+	 * @return bool True if the path matches a known \XC_VM stream pattern.
 	 */
 	public static function detectXC_VM($rURL) {
 		$rPath = parse_url($rURL)['path'];

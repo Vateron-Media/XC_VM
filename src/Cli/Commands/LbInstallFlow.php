@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Config\ConfigReader;
 class LbInstallFlow {
 

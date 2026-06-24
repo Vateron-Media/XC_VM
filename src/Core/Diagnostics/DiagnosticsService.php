@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Diagnostics;
+
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
@@ -13,7 +15,7 @@ use XcVm\Core\Database\DatabaseHandler;
  * @package XC_VM_Core_Diagnostics
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -110,7 +112,7 @@ class DiagnosticsService {
 	 *
 	 * @param \XcVm\Core\Database\DatabaseHandler $db  Database handler (must have ->query(), ->get_rows())
 	 * @return array ['errors' => [...], 'version' => string]
-	 * @throws Exception
+	 * @throws \Exception
 	 */
 	public static function downloadPanelLogs($db): array {
 		ini_set('default_socket_timeout', 60);
@@ -125,7 +127,7 @@ class DiagnosticsService {
 
 			$result = $db->query($query);
 			if (!$result) {
-				throw new Exception('Failed to execute database query');
+				throw new \Exception('Failed to execute database query');
 			}
 
 			$allErrors = $db->get_rows() ?: [];
@@ -141,13 +143,13 @@ class DiagnosticsService {
 
 				try {
 					if ($errorData['date'] > 0) {
-						$dt = new DateTime('@' . $errorData['date']);
-						$dt->setTimezone(new DateTimeZone('UTC'));
+						$dt = new \DateTime('@' . $errorData['date']);
+						$dt->setTimezone(new \DateTimeZone('UTC'));
 						$errorData['human_date'] = $dt->format('Y-m-d H:i:s');
 					} else {
 						$errorData['human_date'] = 'invalid_timestamp';
 					}
-				} catch (Exception $e) {
+				} catch (\Exception $e) {
 					$errorData['human_date'] = 'conversion_error';
 				}
 
@@ -157,11 +159,11 @@ class DiagnosticsService {
 			if (!empty($errors)) {
 				$truncateResult = $db->query('TRUNCATE `panel_logs`;');
 				if (!$truncateResult) {
-					throw new Exception('Failed to truncate panel logs table');
+					throw new \Exception('Failed to truncate panel logs table');
 				}
 			}
-		} catch (Exception $e) {
-			throw new Exception('Failed to process panel logs');
+		} catch (\Exception $e) {
+			throw new \Exception('Failed to process panel logs');
 		}
 
 		return [
@@ -329,7 +331,7 @@ class DiagnosticsService {
 	public static function getNVENCProcesses($rServerID) {
 		global $db;
 		$rProcesses = array();
-		$rServer = ServerRepository::getById($rServerID);
+		$rServer = \ServerRepository::getById($rServerID);
 		$rGPUInfo = json_decode($rServer['gpu_info'], true);
 
 		if (!is_array($rGPUInfo)) {

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
 /**
  * PlexItem — модуль обработки отдельного элемента Plex (фильм/сериал).
  *

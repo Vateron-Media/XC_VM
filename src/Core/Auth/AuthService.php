@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Auth;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\AdminHelpers;
 
 use XcVm\Core\Http\Request;
 use XcVm\Core\Database\QueryHelper;
@@ -32,7 +34,7 @@ class AuthService {
 	public static function processCode($rData) {
 		global $db;
 		if (isset($rData['edit'])) {
-			$rArray = \AdminHelpers::overwriteData(AuthRepository::getCodeById($rData['edit']), $rData);
+			$rArray = \XcVm\Core\Util\AdminHelpers::overwriteData(AuthRepository::getCodeById($rData['edit']), $rData);
 			$rOrigCode = $rArray['code'];
 		} else {
 			$rArray = QueryHelper::verifyPostTable('access_codes', $rData);
@@ -115,7 +117,7 @@ class AuthService {
 	public static function processHMAC($rData) {
 		global $db, $rSettings;
 		if (isset($rData['edit'])) {
-			$rArray = \AdminHelpers::overwriteData(AuthRepository::getHMACById($rData['edit']), $rData);
+			$rArray = \XcVm\Core\Util\AdminHelpers::overwriteData(AuthRepository::getHMACById($rData['edit']), $rData);
 		} else {
 			$rArray = QueryHelper::verifyPostTable('hmac_keys', $rData);
 			unset($rArray['id']);
@@ -137,20 +139,20 @@ class AuthService {
 
 		if (isset($rData['edit'])) {
 			if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
-				$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', \Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), $rData['edit']);
+				$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ? AND `id` <> ?;', \XcVm\Core\Util\Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), $rData['edit']);
 				if (0 < $db->num_rows()) {
 					return array('status' => STATUS_EXISTS_HMAC, 'data' => $rData);
 				}
 			}
 		} else {
-			$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', \Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
+			$db->query('SELECT `id` FROM `hmac_keys` WHERE `key` = ?;', \XcVm\Core\Util\Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 			if (0 < $db->num_rows()) {
 				return array('status' => STATUS_EXISTS_HMAC, 'data' => $rData);
 			}
 		}
 
 		if ($rData['keygen'] != 'HMAC KEY HIDDEN') {
-			$rArray['key'] = \Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rArray['key'] = \XcVm\Core\Util\Encryption::encrypt($rData['keygen'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 		}
 
 		$rPrepare = QueryHelper::prepareArray($rArray);
@@ -203,7 +205,7 @@ class AuthService {
 		}
 
 		foreach ($rKeys as $rKey) {
-			$rSecret = \Encryption::decrypt($rKey['key'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rSecret = \XcVm\Core\Util\Encryption::decrypt($rKey['key'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 			$rResult = hash_hmac('sha256', (string) $rStreamID . '##' . $rExtension . '##' . $rExpiry . '##' . $rMACIP . '##' . $rIdentifier . '##' . $rMaxConnections, $rSecret);
 
 			if (md5($rResult) == md5($rHMAC)) {

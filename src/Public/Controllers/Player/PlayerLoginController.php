@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;

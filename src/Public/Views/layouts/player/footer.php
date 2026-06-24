@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\DomainResolver;
 echo '    <footer class="footer">' . "\r\n\t\t" . '<div class="container">' . "\r\n\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t" . '<div class="footer__copyright">' . "\r\n" . '                        ' . AdminHelpers::getFooter();

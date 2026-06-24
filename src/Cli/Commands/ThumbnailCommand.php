@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Process\ProcessManager;
 /**
  * ThumbnailCommand — thumbnail command
  *

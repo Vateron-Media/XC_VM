@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Logging\UpdateLogger;

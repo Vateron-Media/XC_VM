@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Config\SettingsManager;
 /**
  * WatchItem — модуль обработки отдельного элемента Watch Folder (фильм/сериал).

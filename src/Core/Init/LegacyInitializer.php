@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Core\Init;
+use XcVm\Core\Validation\InputValidator;
+use XcVm\Core\Cache\FileCache;
+
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Http\RequestManager;
@@ -12,7 +16,7 @@ use XcVm\Core\Config\ConfigReader;
  * @package XC_VM_Core_Init
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -62,10 +66,10 @@ class LegacyInitializer {
 			SettingsManager::update('on_demand_wait_time', 15);
 		}
 
-		FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'));
+		\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'));
 
 		if (!$rUseCache) {
-			ServerRepository::getAll();
+			\ServerRepository::getAll();
 			self::generateCron();
 		}
 
@@ -89,7 +93,7 @@ class LegacyInitializer {
 		$rJobs = array();
 		$db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
 		foreach ($db->get_rows() as $rRow) {
-			$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # XC_VM';
+			$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # \XC_VM';
 		}
 
 		shell_exec('crontab -r');
@@ -134,7 +138,7 @@ class LegacyInitializer {
 		}
 
 		if (!$GLOBALS['rSettings']) {
-			$GLOBALS['rSettings'] = CacheReader::get('settings');
+			$GLOBALS['rSettings'] = \CacheReader::get('settings');
 		}
 
 		if (!empty($GLOBALS['rSettings']['default_timezone'])) {
@@ -145,31 +149,31 @@ class LegacyInitializer {
 			$GLOBALS['rSettings']['on_demand_wait_time'] = 15;
 		}
 
-		FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu']);
+		\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu']);
 
-		$GLOBALS['rCached'] = CacheReader::isReady($GLOBALS['rSettings']);
-		$GLOBALS['rServers'] = CacheReader::get('servers');
-		$GLOBALS['rBlockedUA'] = CacheReader::get('blocked_ua');
-		$GLOBALS['rBlockedISP'] = CacheReader::get('blocked_isp');
-		$GLOBALS['rBlockedIPs'] = CacheReader::get('blocked_ips');
-		$GLOBALS['rBlockedServers'] = CacheReader::get('blocked_servers');
-		$GLOBALS['rAllowedIPs'] = CacheReader::get('allowed_ips');
-		$GLOBALS['rProxies'] = CacheReader::get('proxy_servers');
-		$GLOBALS['rBouquets'] = CacheReader::get('bouquets') ?: array();
+		$GLOBALS['rCached'] = \CacheReader::isReady($GLOBALS['rSettings']);
+		$GLOBALS['rServers'] = \CacheReader::get('servers');
+		$GLOBALS['rBlockedUA'] = \CacheReader::get('blocked_ua');
+		$GLOBALS['rBlockedISP'] = \CacheReader::get('blocked_isp');
+		$GLOBALS['rBlockedIPs'] = \CacheReader::get('blocked_ips');
+		$GLOBALS['rBlockedServers'] = \CacheReader::get('blocked_servers');
+		$GLOBALS['rAllowedIPs'] = \CacheReader::get('allowed_ips');
+		$GLOBALS['rProxies'] = \CacheReader::get('proxy_servers');
+		$GLOBALS['rBouquets'] = \CacheReader::get('bouquets') ?: array();
 		$GLOBALS['rSegmentSettings'] = array(
 			'seg_time' => intval($GLOBALS['rSettings']['seg_time']),
 			'seg_list_size' => intval($GLOBALS['rSettings']['seg_list_size'])
 		);
-		DatabaseFactory::connect();
+		\DatabaseFactory::connect();
 
 		// Синхронизация singleton-менеджеров для классов, мигрированных с CU
 		SettingsManager::set($GLOBALS['rSettings']);
 		RequestManager::set($GLOBALS['rRequest']);
 
 		// FFmpeg paths — export to globals (streaming context)
-		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
-		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
+		$GLOBALS['rFFPROBE']    = \FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG_CPU']     = \FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = \FfmpegPaths::gpu();
 
 		self::syncStreamingContainer();
 	}
@@ -182,10 +186,10 @@ class LegacyInitializer {
 	public static function exportGlobals(): void {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();
-		$GLOBALS['rServers']    = ServerRepository::getAll();
-		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
-		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
+		$GLOBALS['rServers']    = \ServerRepository::getAll();
+		$GLOBALS['rFFPROBE']    = \FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG_CPU']     = \FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = \FfmpegPaths::gpu();
 	}
 
 	/**
@@ -198,9 +202,9 @@ class LegacyInitializer {
 		$rContainer->set('core.request', RequestManager::getAll());
 		$rContainer->set('core.config', ConfigReader::getAll());
 		$rContainer->set('core.settings', SettingsManager::getAll());
-		$rContainer->set('core.servers', ServerRepository::getAll());
-		$rContainer->set('core.bouquets', BouquetService::getAll());
-		$rContainer->set('core.categories', CategoryService::getFromDatabase());
+		$rContainer->set('core.servers', \ServerRepository::getAll());
+		$rContainer->set('core.bouquets', \BouquetService::getAll());
+		$rContainer->set('core.categories', \CategoryService::getFromDatabase());
 	}
 
 	/**

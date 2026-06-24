@@ -1,9 +1,9 @@
 <?php
 
 namespace XcVm\Module\Ministra;
+use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Module\BaseModule;
 
-use BoundaryInterface;
 
 /**
  * Ministra (Stalker Portal) Module
