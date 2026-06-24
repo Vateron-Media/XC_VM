@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events;
+
 /**
  * Registry of event listeners with per-event priority ordering.
  *

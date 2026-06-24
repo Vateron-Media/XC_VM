@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events\Settings;
+
 /**
  * Fired after panel settings are saved.
  *

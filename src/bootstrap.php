@@ -54,6 +54,7 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

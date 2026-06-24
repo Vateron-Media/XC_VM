@@ -1,8 +1,10 @@
 <?php
 
+use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Events\ListensTo;
 use PHPUnit\Framework\TestCase;
 
 final class ListensToTestEventAlpha {}
@@ -178,7 +180,7 @@ final class ListensToAttributeTest extends TestCase {
 <?php
 namespace {$ns};
 use XcVm\Core\Module\BaseModule;
-use ListensTo;
+use XcVm\Core\Events\ListensTo;
 use ListensToTestEventAlpha;
 class {$cls} extends BaseModule {
     public function getName(): string    { return '{$name}'; }
@@ -216,7 +218,7 @@ PHP);
 <?php
 namespace {$ns};
 use XcVm\Core\Module\BaseModule;
-use ListensTo;
+use XcVm\Core\Events\ListensTo;
 use ListensToTestEventAlpha;
 use ListensToTestEventBeta;
 class {$cls} extends BaseModule {
@@ -241,7 +243,7 @@ PHP);
 <?php
 namespace {$ns};
 use XcVm\Core\Module\BaseModule;
-use ListensTo;
+use XcVm\Core\Events\ListensTo;
 use ListensToTestEventAlpha;
 use ListensToTestEventBeta;
 class {$cls} extends BaseModule {
@@ -264,7 +266,7 @@ PHP);
 <?php
 namespace {$ns};
 use XcVm\Core\Module\BaseModule;
-use ListensTo;
+use XcVm\Core\Events\ListensTo;
 class {$cls} extends BaseModule {
     public function getName(): string    { return '{$name}'; }
     public function getVersion(): string { return '1.0.0'; }

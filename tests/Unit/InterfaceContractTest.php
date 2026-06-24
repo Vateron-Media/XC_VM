@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Events\ListensTo;
+use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;

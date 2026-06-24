@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events\Module;
+
 /**
  * Fired after XC_VM::module_install() completes successfully.
  *

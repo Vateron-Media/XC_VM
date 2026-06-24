@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events\Stream;
+
 /**
  * Fired after a stream has successfully started.
  *

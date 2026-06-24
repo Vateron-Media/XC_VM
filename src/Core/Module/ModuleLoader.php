@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Events\ListensTo;
+use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;
@@ -611,13 +613,13 @@ class ModuleLoader {
      *   1. getEventSubscribers() — legacy array API:
      *        ['EventClass' => callable]  or  ['EventClass' => [callable, $priority]]
      *
-     *   2. #[\ListensTo] attribute — declarative PHP 8.1 attribute on public methods:
-     *        #[\ListensTo(SomeEvent::class, priority: 10)]
+     *   2. #[\XcVm\Core\Events\ListensTo] attribute — declarative PHP 8.1 attribute on public methods:
+     *        #[\XcVm\Core\Events\ListensTo(SomeEvent::class, priority: 10)]
      *        public function onSome(SomeEvent $e): void { ... }
      *
      * Both paths are additive — using one does not disable the other.
      *
-     * If the event class named in a #[\ListensTo] attribute does not exist at
+     * If the event class named in a #[\XcVm\Core\Events\ListensTo] attribute does not exist at
      * registration time the listener is silently skipped (graceful degradation).
      *
      * @param ServiceProviderInterface $module
@@ -625,9 +627,9 @@ class ModuleLoader {
      * @return void
      */
     private function registerEventSubscribers(ServiceProviderInterface $module, \XcVm\Core\Container\ServiceContainer $container): void {
-        // Verify the container holds an actual \EventDispatcher instance (not just the class name).
-        // Static calls below route to the same instance via \EventDispatcher::getInstance().
-        if (!$container->has('events') || !$container->get('events') instanceof \EventDispatcher) {
+        // Verify the container holds an actual \XcVm\Core\Events\EventDispatcher instance (not just the class name).
+        // Static calls below route to the same instance via \XcVm\Core\Events\EventDispatcher::getInstance().
+        if (!$container->has('events') || !$container->get('events') instanceof \XcVm\Core\Events\EventDispatcher) {
             return;
         }
 
@@ -636,22 +638,22 @@ class ModuleLoader {
         foreach ($subscribers as $event => $handler) {
             if (is_array($handler) && isset($handler[0]) && is_callable($handler[0])) {
                 // [callable, int $priority] tuple — new PSR-14 style
-                \EventDispatcher::listen($event, $handler[0], $handler[1] ?? 0);
+                \XcVm\Core\Events\EventDispatcher::listen($event, $handler[0], $handler[1] ?? 0);
             } else {
                 // Legacy: string event name or class-string, plain callable
-                \EventDispatcher::listen($event, $handler);
+                \XcVm\Core\Events\EventDispatcher::listen($event, $handler);
             }
         }
 
-        // ── 2. #[\ListensTo] attribute scan via Reflection ─────────────────
+        // ── 2. #[\XcVm\Core\Events\ListensTo] attribute scan via Reflection ─────────────────
         $reflection = new \ReflectionClass($module);
         foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-            $attributes = $method->getAttributes(\ListensTo::class);
+            $attributes = $method->getAttributes(\XcVm\Core\Events\ListensTo::class);
             if (empty($attributes)) {
                 continue;
             }
             foreach ($attributes as $attribute) {
-                /** @var \ListensTo $listensTo */
+                /** @var \XcVm\Core\Events\ListensTo $listensTo */
                 $listensTo = $attribute->newInstance();
 
                 // Graceful degradation: skip if the event class is not (yet) loadable.
@@ -659,7 +661,7 @@ class ModuleLoader {
                     continue;
                 }
 
-                \EventDispatcher::listen(
+                \XcVm\Core\Events\EventDispatcher::listen(
                     $listensTo->eventClass,
                     [$module, $method->getName()],
                     $listensTo->priority,

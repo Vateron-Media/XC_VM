@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events\Auth;
+
 /**
  * Fired after a user session is terminated.
  *

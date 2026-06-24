@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events\Stream;
+
 /**
  * Fired after a stream session ends (normally or via abort).
  *

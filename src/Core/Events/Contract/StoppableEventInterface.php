@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Events\Contract;
+
 /**
  * Marks an event as stoppable — listeners can halt further propagation.
  *
