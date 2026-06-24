@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\Response;
+use XcVm\Core\Http\Request;
 /**
  * LlodCommand — llod command
  *

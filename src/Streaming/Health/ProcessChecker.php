@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\CurlClient;
 /**
  * ProcessChecker — process checker
  *

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http\Pipeline;
+
 /**
  * Mutable context object passed through the stream middleware pipeline.
  *

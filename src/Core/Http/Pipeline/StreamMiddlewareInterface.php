@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http\Pipeline;
+
 /**
  * Contract for stream pipeline middleware.
  *

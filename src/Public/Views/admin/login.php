@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 include 'functions.php';
 
 if (file_exists(TMP_PATH . '.migration.first')) {

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 /**
  * MoviesController — movies controller
  *

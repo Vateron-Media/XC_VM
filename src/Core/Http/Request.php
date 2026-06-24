@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http;
+
 /**
  * HTTP Request Wrapper
  *

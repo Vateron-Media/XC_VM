@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Http\RequestManager;/**
  * ResellerTicketController — Create/edit ticket.
  *
  * @package XC_VM_Public_Controllers_Reseller

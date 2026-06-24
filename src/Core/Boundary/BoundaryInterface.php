@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Router;
 /**
  * Marks a subsystem as an isolated request boundary.
  *

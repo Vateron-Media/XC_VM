@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http;
+
 /**
  * HTTP Router
  *
@@ -468,10 +470,10 @@ class Router {
 
         $perm = $entry['permission'];
 
-        // Поддержка формата ['type', 'key'] для Authorization::check()
+        // Поддержка формата ['type', 'key'] для \Authorization::check()
         if (is_array($perm) && count($perm) === 2 && is_string($perm[0])) {
             if (class_exists('Authorization')) {
-                return Authorization::check($perm[0], $perm[1]);
+                return \Authorization::check($perm[0], $perm[1]);
             }
             return true; // fallback если класс недоступен
         }
@@ -502,7 +504,7 @@ class Router {
 
             // Попытка получить экземпляр через ServiceContainer (DI)
             if (class_exists('ServiceContainer', false)) {
-                $container = ServiceContainer::getInstance();
+                $container = \ServiceContainer::getInstance();
                 try {
                     $obj = $container->get($class);
                 } catch (\Throwable $e) {
@@ -524,7 +526,7 @@ class Router {
      */
     protected function denyAccess() {
         if (function_exists('goHome')) {
-            AdminHelpers::goHome();
+            \AdminHelpers::goHome();
         } else {
             http_response_code(403);
             echo 'Access denied';

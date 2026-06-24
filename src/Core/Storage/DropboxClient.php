@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Storage;
+use XcVm\Core\Http\Response;
+use XcVm\Core\Http\Request;
 
 /**
  * DropPHP v2 - A simple Dropbox client that works without cURL.

@@ -4,7 +4,7 @@ namespace XcVm\Module\Watch;
 
 use BaseModule;
 use ServiceContainer;
-use Router;
+use XcVm\Core\Http\Router;
 use CommandRegistry;
 use NavbarRegistry;
 use NavbarItem;

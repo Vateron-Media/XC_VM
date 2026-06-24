@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\ApiClient;
 /**
  * Консолидированный репозиторий аутентификации.
  * Объединяет: CodeRepository, HMACRepository.

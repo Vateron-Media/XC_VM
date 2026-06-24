@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\Request;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\ConfigReader;

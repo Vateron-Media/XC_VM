@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 // Shared tracker — loaded by PHPUnit before any module PHP file is require_once'd by ModuleLoader.
@@ -222,14 +223,14 @@ final class ModuleLoaderBootTest extends TestCase {
             . "namespace {$ns};\n"
             . "use ModuleInterface;\n"
             . "use ServiceContainer;\n"
-            . "use Router;\n"
+            . "use XcVm\\Core\\Http\\Router;\n"
             . "use CommandRegistry;\n"
             . "use NavbarRegistry;\n"
             . "class {$cls} implements ModuleInterface {\n"
             . "\tpublic function getName(): string { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"
             . "\tpublic function boot(ServiceContainer \$container): void { {$boot} }\n"
-            . "\tpublic function registerRoutes(Router \$router): void { {$routes} }\n"
+            . "\tpublic function registerRoutes(\\XcVm\\Core\\Http\\Router \$router): void { {$routes} }\n"
             . "\tpublic function registerCommands(CommandRegistry \$registry): void {}\n"
             . "\tpublic function getEventSubscribers(): array { {$subscriberReturn} }\n"
             . "\tpublic function install(): void {}\n"

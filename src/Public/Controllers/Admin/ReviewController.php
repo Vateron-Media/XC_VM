@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 /**
  * ReviewController — Review imported streams/movies.
  * Very complex data-prep: M3U import processing, category matching, stream/movie API calls.

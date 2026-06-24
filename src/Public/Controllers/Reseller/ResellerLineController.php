@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Http\RequestManager;/**
  * ResellerLineController — Line edit/create.
  *
  * @package XC_VM_Public_Controllers_Reseller

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 /**
  * Контроллер просмотра тикета (admin/ticket_view.php)
  *

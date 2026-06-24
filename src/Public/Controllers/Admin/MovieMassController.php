@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 /**
  * MovieMassController — массовое редактирование фильмов.
  *

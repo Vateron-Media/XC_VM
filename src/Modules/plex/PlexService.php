@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Config\SettingsManager;
 /**

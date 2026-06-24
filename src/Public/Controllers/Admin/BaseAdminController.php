@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\Router;
+use XcVm\Core\Http\RequestManager;
 /**
  * BaseAdminController — базовый контроллер для admin-страниц.
  *

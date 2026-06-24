@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 final class ModuleLoaderTest extends TestCase {
@@ -89,7 +90,7 @@ final class ModuleLoaderTest extends TestCase {
 			. "\tpublic function getName(): string { return '{$name}'; }" . "\n"
 			. "\tpublic function getVersion(): string { return '1.0.0'; }" . "\n"
 			. "\tpublic function boot(ServiceContainer \$container): void {}" . "\n"
-			. "\tpublic function registerRoutes(Router \$router): void {}" . "\n"
+			. "\tpublic function registerRoutes(\\XcVm\\Core\\Http\\Router \$router): void {}" . "\n"
 			. "\tpublic function registerCommands(CommandRegistry \$registry): void {}" . "\n"
 			. "\tpublic function getEventSubscribers(): array { return []; }" . "\n"
 			. "\tpublic function install(): void {}" . "\n"

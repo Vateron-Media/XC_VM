@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Config\SettingsManager;
 $rICount = !empty($GLOBALS['__forcePostMode']) ? 1 : count(get_included_files());
 include 'session.php';

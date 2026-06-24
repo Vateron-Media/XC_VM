@@ -4,7 +4,7 @@ namespace XcVm\Module\Tmdb;
 
 use BaseModule;
 use ServiceContainer;
-use Router;
+use XcVm\Core\Http\Router;
 use CommandRegistry;
 use TmdbController;
 use TmdbCron;

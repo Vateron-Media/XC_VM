@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 /**
  * RecordController — Record programme.
  * Complex data-prep: stream/programme/archive loading from multiple sources.

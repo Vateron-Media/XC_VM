@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Http\RequestManager;/**
  * ResellerLineActivityController — Line activity log.
  *
  * @package XC_VM_Public_Controllers_Reseller

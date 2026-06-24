@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http\Pipeline;
+
 /**
  * Ordered middleware pipeline for stream lifecycle processing.
  *

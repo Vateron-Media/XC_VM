@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\Response;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
 /*
  * XC_VM — Утилитарные функции

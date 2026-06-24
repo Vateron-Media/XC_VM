@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http;
+
 /**
  * CurlClient — curl client
  *

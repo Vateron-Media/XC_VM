@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Request;
 use XcVm\Core\Config\SettingsManager;// Code reconstruction by Squallp
 
 if (!isset($__settingsViewMode)):
