@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Exception\Module;
+
 /**
  * Thrown when a requested module or its dependency cannot be found.
  *

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Exception\Module;
+
 /**
  * Thrown when a module class cannot be instantiated or registered.
  *

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Exception\Container;
+
 use XcVm\Core\Container\ServiceContainer;
 /**
  * Thrown when ServiceContainer detects a circular dependency chain.

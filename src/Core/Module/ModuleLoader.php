@@ -1,6 +1,12 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Exception\Module\ModuleNotFoundException;
+use XcVm\Core\Exception\Module\ModuleManifestException;
+use XcVm\Core\Exception\Module\ModuleLoadException;
+use XcVm\Core\Exception\Module\ModuleCycleException;
+use XcVm\Core\Enum\ServerEnvironment;
+use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Events\ListensTo;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
@@ -100,7 +106,7 @@ class ModuleLoader {
             $modulePath = $discovered[$name]['path'];
 
             if (!$this->load($name, $modulePath)) {
-                throw new \ModuleLoadException("ModuleLoader: failed to load module '{$name}'");
+                throw new \XcVm\Core\Exception\Module\ModuleLoadException("ModuleLoader: failed to load module '{$name}'");
             }
 
             $this->manifests[$name] = $discovered[$name]['manifest'];
@@ -344,11 +350,11 @@ class ModuleLoader {
      * with their paths and normalized manifest data.
      *
      * @param array           $jsonFiles          Array of full paths to module.json files.
-     * @param \ServerEnvironment $currentEnvironment Current server environment.
+     * @param \XcVm\Core\Enum\ServerEnvironment $currentEnvironment Current server environment.
      * @return array Associative array of discovered modules: name => [path, manifest].
      * @throws \RuntimeException If manifest has invalid environment value or JSON is malformed.
      */
-    protected function discoverModules(array $jsonFiles, \ServerEnvironment $currentEnvironment): array {
+    protected function discoverModules(array $jsonFiles, \XcVm\Core\Enum\ServerEnvironment $currentEnvironment): array {
         $discovered = [];
 
         foreach ($jsonFiles as $jsonFile) {
@@ -371,7 +377,7 @@ class ModuleLoader {
             }
 
             if (!in_array($manifest['environment'], ['main', 'lb', 'any'], true)) {
-                throw new \ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
+                throw new \XcVm\Core\Exception\Module\ModuleManifestException("ModuleLoader: invalid environment in module.json for module {$name}");
             }
 
             // Filter by environment: skip if module is for different environment (skip lb-only on main, etc)
@@ -447,11 +453,11 @@ class ModuleLoader {
      *
      * Checks SERVER_TYPE constant. Returns LoadBalancer if set to 'lb' (case-insensitive), else Main.
      */
-    protected function getCurrentEnvironment(): \ServerEnvironment {
+    protected function getCurrentEnvironment(): \XcVm\Core\Enum\ServerEnvironment {
         if (defined('SERVER_TYPE') && strtolower((string) constant('SERVER_TYPE')) === 'lb') {
-            return \ServerEnvironment::LoadBalancer;
+            return \XcVm\Core\Enum\ServerEnvironment::LoadBalancer;
         }
-        return \ServerEnvironment::Main;
+        return \XcVm\Core\Enum\ServerEnvironment::Main;
     }
 
     /**
@@ -475,17 +481,17 @@ class ModuleLoader {
         $manifest = json_decode((string) $raw, true);
 
         if (!is_array($manifest)) {
-            throw new \ModuleManifestException("ModuleLoader: invalid JSON in module manifest for module {$name}");
+            throw new \XcVm\Core\Exception\Module\ModuleManifestException("ModuleLoader: invalid JSON in module manifest for module {$name}");
         }
 
         $normalizeDepArray = function (mixed $raw, string $field) use ($name): array {
             if (!is_array($raw)) {
-                throw new \ModuleManifestException("ModuleLoader: {$field} must be array for module {$name}");
+                throw new \XcVm\Core\Exception\Module\ModuleManifestException("ModuleLoader: {$field} must be array for module {$name}");
             }
             $result = [];
             foreach ($raw as $dep) {
                 if (!is_string($dep) || trim($dep) === '') {
-                    throw new \ModuleManifestException("ModuleLoader: {$field} names must be non-empty strings for module {$name}");
+                    throw new \XcVm\Core\Exception\Module\ModuleManifestException("ModuleLoader: {$field} names must be non-empty strings for module {$name}");
                 }
                 $result[] = trim($dep);
             }
@@ -573,12 +579,12 @@ class ModuleLoader {
                 // Currently visiting = cycle detected
                 $cycle = array_slice($stack, array_search($name, $stack, true) ?: 0);
                 $cycle[] = $name;
-                throw new \ModuleCycleException('ModuleLoader: cyclic module dependency detected: ' . implode(' -> ', $cycle));
+                throw new \XcVm\Core\Exception\Module\ModuleCycleException('ModuleLoader: cyclic module dependency detected: ' . implode(' -> ', $cycle));
             }
         }
 
         if (!isset($discovered[$name])) {
-            throw new \ModuleLoadException("ModuleLoader: unknown module in dependency graph: {$name}");
+            throw new \XcVm\Core\Exception\Module\ModuleLoadException("ModuleLoader: unknown module in dependency graph: {$name}");
         }
 
         // Mark as currently visiting
@@ -588,7 +594,7 @@ class ModuleLoader {
         // Required dependencies — throw if missing
         foreach ($discovered[$name]['manifest']['dependencies'] as $dependency) {
             if (!isset($discovered[$dependency])) {
-                throw new \ModuleNotFoundException("ModuleLoader: module {$name} requires missing dependency {$dependency}");
+                throw new \XcVm\Core\Exception\Module\ModuleNotFoundException("ModuleLoader: module {$name} requires missing dependency {$dependency}");
             }
             $this->visitDependencyNode($dependency, $discovered, $state, $order, $stack);
         }
@@ -732,28 +738,28 @@ class ModuleLoader {
     }
 
     /**
-     * Resolve the effective \ModuleState for a module from its overrides entry.
+     * Resolve the effective \XcVm\Core\Enum\ModuleState for a module from its overrides entry.
      *
      * Reads both the new 'state' key and the legacy 'enabled' bool key so that
      * existing config/modules.php files continue to work without migration.
      *
      * @param string $name Module name or directory name.
-     * @return \ModuleState
+     * @return \XcVm\Core\Enum\ModuleState
      */
-    private function resolveState(string $name): \ModuleState {
+    private function resolveState(string $name): \XcVm\Core\Enum\ModuleState {
         $entry = $this->overrides[$name] ?? null;
         if ($entry === null) {
-            return \ModuleState::Enabled;
+            return \XcVm\Core\Enum\ModuleState::Enabled;
         }
         // New key takes precedence.
         if (isset($entry['state'])) {
-            return \ModuleState::fromRaw($entry['state']);
+            return \XcVm\Core\Enum\ModuleState::fromRaw($entry['state']);
         }
         // Legacy bool key.
         if (array_key_exists('enabled', $entry)) {
-            return \ModuleState::fromRaw($entry['enabled']);
+            return \XcVm\Core\Enum\ModuleState::fromRaw($entry['enabled']);
         }
-        return \ModuleState::Enabled;
+        return \XcVm\Core\Enum\ModuleState::Enabled;
     }
 
     /**

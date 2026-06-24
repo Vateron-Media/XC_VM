@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Core\Exception\Module;
+use XcVm\Core\Exception\XcVmException;
+
 /**
  * Base exception for module lifecycle errors.
  *

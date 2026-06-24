@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Core\Exception\Container;
+use XcVm\Core\Exception\XcVmException;
+
 use XcVm\Core\Container\Psr\ContainerExceptionInterface;
 use XcVm\Core\Container\ServiceContainer;
 /**
