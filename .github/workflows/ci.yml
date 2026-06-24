@@ -69,7 +69,7 @@ jobs:
       # is committed). A no-op while every dependency is path-mapped/vendored,
       # but gates real `require` packages the moment any are added.
       - name: Composer audit
-        run: composer audit --no-interaction --working-dir=src
+        run: composer audit --no-interaction --locked --working-dir=src
 
   test:
     name: PHPUnit
