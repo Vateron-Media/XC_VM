@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Enum;
+
 use XcVm\Core\Database\Database;
 /**
  * Boot context for XC_Bootstrap::boot().

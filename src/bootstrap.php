@@ -54,6 +54,7 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Enum\BootContext;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\Database;

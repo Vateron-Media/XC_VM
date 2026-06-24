@@ -1,6 +1,10 @@
 <?php
 
 namespace XcVm\Core\Container;
+use XcVm\Core\Exception\Container\ServiceCreationException;
+use XcVm\Core\Exception\Container\CircularDependencyException;
+use XcVm\Core\Exception\Container\ContainerException;
+use XcVm\Core\Exception\XcVmException;
 use XcVm\Core\Container\Psr\NotFoundException;
 use XcVm\Core\Container\Psr\ContainerInterface;
 
@@ -242,13 +246,13 @@ class ServiceContainer implements ContainerInterface {
      */
     public function decorate(string $id, string|callable $decorator, int $priority = 0): static {
         if (in_array($id, $this->protectedServices, true)) {
-            throw new \ContainerException(
+            throw new \XcVm\Core\Exception\Container\ContainerException(
                 "ServiceContainer: сервис '{$id}' защищён от декорирования модулями."
             );
         }
 
         if (!isset($this->factories[$id]) && !array_key_exists($id, $this->resolved)) {
-            throw new \ContainerException(
+            throw new \XcVm\Core\Exception\Container\ContainerException(
                 "ServiceContainer: невозможно декорировать незарегистрированный сервис '{$id}'."
             );
         }
@@ -299,12 +303,12 @@ class ServiceContainer implements ContainerInterface {
             try {
                 $service = call_user_func($this->factories[$id], $this);
                 $service = $this->applyDecorators($id, $service);
-            } catch (\XcVmException $e) {
+            } catch (\XcVm\Core\Exception\XcVmException $e) {
                 unset($this->creating[$id]);
                 throw $e;
             } catch (\Exception $e) {
                 unset($this->creating[$id]);
-                throw new \ServiceCreationException(
+                throw new \XcVm\Core\Exception\Container\ServiceCreationException(
                     "ServiceContainer: ошибка при создании сервиса '{$id}': " . $e->getMessage(),
                     0,
                     $e
@@ -489,14 +493,14 @@ class ServiceContainer implements ContainerInterface {
     // ─────────────────────────────────────────────────────────
 
     /**
-     * Throw a \CircularDependencyException describing the resolution chain.
+     * Throw a \XcVm\Core\Exception\Container\CircularDependencyException describing the resolution chain.
      *
      * @param string $id Service id whose creation closed the cycle.
      * @return never
-     * @throws \CircularDependencyException Always.
+     * @throws \XcVm\Core\Exception\Container\CircularDependencyException Always.
      */
     private function throwCircularDependency(string $id): never {
-        throw new \CircularDependencyException(
+        throw new \XcVm\Core\Exception\Container\CircularDependencyException(
             "ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
             . "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
         );

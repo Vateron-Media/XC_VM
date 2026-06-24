@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Exception;
+
 /**
  * Base exception for the XC_VM framework.
  *
@@ -8,7 +10,7 @@
  *
  *   try { ... } catch (XcVmException $e) { ... }
  *
- * Still extends RuntimeException so existing catch(RuntimeException) blocks
+ * Still extends \RuntimeException so existing catch(\RuntimeException) blocks
  * remain unaffected — no breaking change.
  *
  * @package XC_VM_Core_Exception
@@ -16,4 +18,4 @@
  * @copyright 2025-2026 Vateron Media
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-class XcVmException extends RuntimeException {}
+class XcVmException extends \RuntimeException {}

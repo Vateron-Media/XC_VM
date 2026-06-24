@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Enum;
+
 use XcVm\Core\Module\ModuleLoader;
 /**
  * Server deployment environment.

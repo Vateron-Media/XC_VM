@@ -1,6 +1,9 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Core\Exception\Module\ModuleNotFoundException;
+use XcVm\Core\Exception\Module\ModuleException;
+use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Events\Module\PackageInstalledEvent;
 use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Container\ServiceContainer;
@@ -76,7 +79,7 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: \ModuleState, path: string, installed_version: string, source: string, previous_version: string}> Module list.
+     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: \XcVm\Core\Enum\ModuleState, path: string, installed_version: string, source: string, previous_version: string}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
@@ -86,7 +89,7 @@ class ModuleManager {
         foreach ($jsonFiles as $jsonFile) {
             $name  = basename(dirname($jsonFile));
             $meta  = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
-            $state = \ModuleState::fromRaw($overrides[$name]['state'] ?? ($overrides[$name]['enabled'] ?? null));
+            $state = \XcVm\Core\Enum\ModuleState::fromRaw($overrides[$name]['state'] ?? ($overrides[$name]['enabled'] ?? null));
 
             $items[] = [
                 'name'                  => $name,
@@ -128,7 +131,7 @@ class ModuleManager {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
 
-        $this->setState($name, \ModuleState::Installing);
+        $this->setState($name, \XcVm\Core\Enum\ModuleState::Installing);
 
         try {
             $db = $this->getDb();
@@ -141,11 +144,11 @@ class ModuleManager {
                 $module->install();
             }
         } catch (\Throwable $e) {
-            $this->setState($name, \ModuleState::Failed);
+            $this->setState($name, \XcVm\Core\Enum\ModuleState::Failed);
             throw $e;
         }
 
-        $this->setState($name, \ModuleState::Enabled);
+        $this->setState($name, \XcVm\Core\Enum\ModuleState::Enabled);
         // Version priority: explicit $version (platform installs pass the
         // authoritative SaaS release version) → module.json manifest → the
         // module's hardcoded getVersion() (which can drift from the manifest).
@@ -169,7 +172,7 @@ class ModuleManager {
         $module = $this->loadModuleInstance($name);
         $module->uninstall();
         $this->clearInstalledVersion($name);
-        $this->setState($name, \ModuleState::Disabled);
+        $this->setState($name, \XcVm\Core\Enum\ModuleState::Disabled);
     }
 
     /**
@@ -215,10 +218,10 @@ class ModuleManager {
      * When state is anything else the string value is persisted as 'state'.
      *
      * @param string      $name  Module name.
-     * @param \ModuleState $state Target lifecycle state.
+     * @param \XcVm\Core\Enum\ModuleState $state Target lifecycle state.
      * @return void
      */
-    public function setState(string $name, \ModuleState $state): void {
+    public function setState(string $name, \XcVm\Core\Enum\ModuleState $state): void {
         $name      = $this->sanitizeModuleName($name);
         $overrides = $this->readOverrides();
 
@@ -229,7 +232,7 @@ class ModuleManager {
         // Remove any legacy bool 'enabled' key — we use 'state' now.
         unset($overrides[$name]['enabled']);
 
-        if ($state === \ModuleState::Enabled) {
+        if ($state === \XcVm\Core\Enum\ModuleState::Enabled) {
             // Enabled is the default: clean up the key so the file stays minimal.
             unset($overrides[$name]['state']);
             if (empty($overrides[$name])) {
@@ -245,14 +248,14 @@ class ModuleManager {
     /**
      * Enable or disable a module in config/modules.php.
      *
-     * @deprecated Use setState(name, \ModuleState::Enabled / \ModuleState::Disabled) instead.
+     * @deprecated Use setState(name, \XcVm\Core\Enum\ModuleState::Enabled / \XcVm\Core\Enum\ModuleState::Disabled) instead.
      *
      * @param string $name    Module name.
      * @param bool   $enabled True to enable, false to disable.
      * @return void
      */
     public function setEnabled(string $name, bool $enabled): void {
-        $this->setState($name, $enabled ? \ModuleState::Enabled : \ModuleState::Disabled);
+        $this->setState($name, $enabled ? \XcVm\Core\Enum\ModuleState::Enabled : \XcVm\Core\Enum\ModuleState::Disabled);
     }
 
     /**
@@ -353,7 +356,7 @@ class ModuleManager {
             $this->storeModuleArchive($zipFilePath, $moduleName, $version);
 
             $this->recordInstalledVersion($moduleName, $version);
-            $this->setState($moduleName, \ModuleState::Enabled);
+            $this->setState($moduleName, \XcVm\Core\Enum\ModuleState::Enabled);
             $this->hotReloadSafe($moduleName, $targetDir);
 
             return $moduleName;
@@ -741,7 +744,7 @@ class ModuleManager {
         if ($prevVersion !== null) {
             $this->recordInstalledVersion($slug, $prevVersion);
         }
-        $this->setState($slug, \ModuleState::Enabled);
+        $this->setState($slug, \XcVm\Core\Enum\ModuleState::Enabled);
         return true;
     }
 
@@ -770,7 +773,7 @@ class ModuleManager {
         ));
 
         $this->recordInstalledVersion($slug, (string) ($result['version'] ?: $version));
-        $this->setState($slug, \ModuleState::Enabled);
+        $this->setState($slug, \XcVm\Core\Enum\ModuleState::Enabled);
         $this->hotReloadSafe($slug, $result['path']);
     }
 
@@ -941,12 +944,12 @@ class ModuleManager {
         $loader = new ModuleLoader();
         $ok = $loader->load($name, $this->modulesPath . '/' . $name);
         if (!$ok) {
-            throw new \ModuleNotFoundException('Cannot load module: ' . $name);
+            throw new \XcVm\Core\Exception\Module\ModuleNotFoundException('Cannot load module: ' . $name);
         }
 
         $module = $loader->getModule($name);
         if (!$module) {
-            throw new \ModuleNotFoundException('Module instance is not available: ' . $name);
+            throw new \XcVm\Core\Exception\Module\ModuleNotFoundException('Module instance is not available: ' . $name);
         }
 
         return $module;
@@ -962,7 +965,7 @@ class ModuleManager {
     private function sanitizeModuleName(string $name): string {
         $name = trim((string) $name);
         if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $name)) {
-            throw new \ModuleException('Invalid module name.');
+            throw new \XcVm\Core\Exception\Module\ModuleException('Invalid module name.');
         }
         return $name;
     }

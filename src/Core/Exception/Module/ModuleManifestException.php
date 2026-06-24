@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Exception\Module;
+
 /**
  * Thrown when a module.json manifest is invalid, malformed, or missing required fields.
  *

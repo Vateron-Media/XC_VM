@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Module\ModuleManager;
 use PHPUnit\Framework\TestCase;
 
