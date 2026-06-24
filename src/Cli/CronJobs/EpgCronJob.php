@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Parsing\XmlStringStreamer;
 use XcVm\Core\Config\SettingsManager;
 /**
  * EpgCronJob — epg cron job
