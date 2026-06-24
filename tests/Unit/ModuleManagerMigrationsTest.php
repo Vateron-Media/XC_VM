@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Module\ModuleManager;
+use XcVm\Core\Module\BaseModule;
 use PHPUnit\Framework\TestCase;
 
 // Static tracker used by generated module migration callables.
@@ -154,7 +156,7 @@ final class ModuleManagerMigrationsTest extends TestCase {
         file_put_contents($dir . '/' . $className . '.php',
             "<?php\n"
             . "namespace {$namespace};\n"
-            . "use BaseModule;\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
             . "class {$className} extends BaseModule {\n"
             . "\tpublic function getName(): string { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '{$version}'; }\n"
@@ -189,7 +191,7 @@ final class ModuleManagerMigrationsTest extends TestCase {
         file_put_contents($dir . '/' . $className . '.php',
             "<?php\n"
             . "namespace {$namespace};\n"
-            . "use BaseModule;\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
             . "class {$className} extends BaseModule {\n"
             . "\tpublic function getName(): string { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '{$version}'; }\n"

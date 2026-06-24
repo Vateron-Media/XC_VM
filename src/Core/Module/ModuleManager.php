@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module;
+
 use XcVm\Core\Http\Router;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Config\ConfigReader;
@@ -22,19 +24,19 @@ class ModuleManager {
     private string $modulesPath;
     private string $overridesPath;
     private string $archivesPath;
-    private ?ServiceContainer $container;
+    private ?\ServiceContainer $container;
 
     /**
      * Initialize the module manager.
      *
      * @param string|null $modulesPath   Path to the modules directory.
      * @param string|null $overridesPath Path to the config/modules.php overrides file.
-     * @param ServiceContainer|null $container Service container for DB access and DI.
+     * @param \ServiceContainer|null $container Service container for DB access and DI.
      */
     public function __construct(
         ?string $modulesPath = null,
         ?string $overridesPath = null,
-        ?ServiceContainer $container = null
+        ?\ServiceContainer $container = null
     ) {
         $this->modulesPath   = $modulesPath   ?: (defined('MAIN_HOME')   ? MAIN_HOME   . 'Modules'      : dirname(__DIR__, 2) . '/Modules');
         $this->overridesPath = $overridesPath ?: (defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php'  : dirname(__DIR__, 2) . '/config/modules.php');
@@ -71,7 +73,7 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string, installed_version: string, source: string, previous_version: string}> Module list.
+     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: \ModuleState, path: string, installed_version: string, source: string, previous_version: string}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
@@ -81,7 +83,7 @@ class ModuleManager {
         foreach ($jsonFiles as $jsonFile) {
             $name  = basename(dirname($jsonFile));
             $meta  = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
-            $state = ModuleState::fromRaw($overrides[$name]['state'] ?? ($overrides[$name]['enabled'] ?? null));
+            $state = \ModuleState::fromRaw($overrides[$name]['state'] ?? ($overrides[$name]['enabled'] ?? null));
 
             $items[] = [
                 'name'                  => $name,
@@ -117,13 +119,13 @@ class ModuleManager {
      *
      * @param string $name Module name (lowercase, alphanumeric + hyphens).
      * @return void
-     * @throws RuntimeException If the module cannot be loaded.
+     * @throws \RuntimeException If the module cannot be loaded.
      */
     public function installModule(string $name, ?string $version = null): void {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
 
-        $this->setState($name, ModuleState::Installing);
+        $this->setState($name, \ModuleState::Installing);
 
         try {
             $db = $this->getDb();
@@ -136,11 +138,11 @@ class ModuleManager {
                 $module->install();
             }
         } catch (\Throwable $e) {
-            $this->setState($name, ModuleState::Failed);
+            $this->setState($name, \ModuleState::Failed);
             throw $e;
         }
 
-        $this->setState($name, ModuleState::Enabled);
+        $this->setState($name, \ModuleState::Enabled);
         // Version priority: explicit $version (platform installs pass the
         // authoritative SaaS release version) → module.json manifest → the
         // module's hardcoded getVersion() (which can drift from the manifest).
@@ -157,14 +159,14 @@ class ModuleManager {
      *
      * @param string $name Module name.
      * @return void
-     * @throws RuntimeException If the module cannot be loaded.
+     * @throws \RuntimeException If the module cannot be loaded.
      */
     public function uninstallModule(string $name): void {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
         $module->uninstall();
         $this->clearInstalledVersion($name);
-        $this->setState($name, ModuleState::Disabled);
+        $this->setState($name, \ModuleState::Disabled);
     }
 
     /**
@@ -210,10 +212,10 @@ class ModuleManager {
      * When state is anything else the string value is persisted as 'state'.
      *
      * @param string      $name  Module name.
-     * @param ModuleState $state Target lifecycle state.
+     * @param \ModuleState $state Target lifecycle state.
      * @return void
      */
-    public function setState(string $name, ModuleState $state): void {
+    public function setState(string $name, \ModuleState $state): void {
         $name      = $this->sanitizeModuleName($name);
         $overrides = $this->readOverrides();
 
@@ -224,7 +226,7 @@ class ModuleManager {
         // Remove any legacy bool 'enabled' key — we use 'state' now.
         unset($overrides[$name]['enabled']);
 
-        if ($state === ModuleState::Enabled) {
+        if ($state === \ModuleState::Enabled) {
             // Enabled is the default: clean up the key so the file stays minimal.
             unset($overrides[$name]['state']);
             if (empty($overrides[$name])) {
@@ -240,14 +242,14 @@ class ModuleManager {
     /**
      * Enable or disable a module in config/modules.php.
      *
-     * @deprecated Use setState(name, ModuleState::Enabled / ModuleState::Disabled) instead.
+     * @deprecated Use setState(name, \ModuleState::Enabled / \ModuleState::Disabled) instead.
      *
      * @param string $name    Module name.
      * @param bool   $enabled True to enable, false to disable.
      * @return void
      */
     public function setEnabled(string $name, bool $enabled): void {
-        $this->setState($name, $enabled ? ModuleState::Enabled : ModuleState::Disabled);
+        $this->setState($name, $enabled ? \ModuleState::Enabled : \ModuleState::Disabled);
     }
 
     /**
@@ -258,21 +260,21 @@ class ModuleManager {
      *
      * @param string $zipFilePath Path to the uploaded zip file.
      * @return string Installed module name.
-     * @throws RuntimeException If extraction or installation fails.
-     * @throws InvalidArgumentException If the zip file is not found.
+     * @throws \RuntimeException If extraction or installation fails.
+     * @throws \InvalidArgumentException If the zip file is not found.
      */
     public function uploadAndInstall(string $zipFilePath): string {
         if (!class_exists('ZipArchive')) {
-            throw new RuntimeException('ZipArchive extension is not available.');
+            throw new \RuntimeException('ZipArchive extension is not available.');
         }
 
         if (!is_file($zipFilePath)) {
-            throw new InvalidArgumentException('Uploaded zip file not found.');
+            throw new \InvalidArgumentException('Uploaded zip file not found.');
         }
 
         $tempBase = rtrim(sys_get_temp_dir(), '/') . '/xc_module_' . bin2hex(random_bytes(8));
         if (!@mkdir($tempBase, 0755, true) && !is_dir($tempBase)) {
-            throw new RuntimeException('Unable to create temporary directory.');
+            throw new \RuntimeException('Unable to create temporary directory.');
         }
 
         try {
@@ -319,15 +321,15 @@ class ModuleManager {
      */
     public function deployFromArchiveFilesOnly(string $zipFilePath): string {
         if (!class_exists('ZipArchive')) {
-            throw new RuntimeException('ZipArchive extension is not available.');
+            throw new \RuntimeException('ZipArchive extension is not available.');
         }
         if (!is_file($zipFilePath)) {
-            throw new InvalidArgumentException('Module archive not found.');
+            throw new \InvalidArgumentException('Module archive not found.');
         }
 
         $tempBase = rtrim(sys_get_temp_dir(), '/') . '/xc_module_' . bin2hex(random_bytes(8));
         if (!@mkdir($tempBase, 0755, true) && !is_dir($tempBase)) {
-            throw new RuntimeException('Unable to create temporary directory.');
+            throw new \RuntimeException('Unable to create temporary directory.');
         }
 
         try {
@@ -348,7 +350,7 @@ class ModuleManager {
             $this->storeModuleArchive($zipFilePath, $moduleName, $version);
 
             $this->recordInstalledVersion($moduleName, $version);
-            $this->setState($moduleName, ModuleState::Enabled);
+            $this->setState($moduleName, \ModuleState::Enabled);
             $this->hotReloadSafe($moduleName, $targetDir);
 
             return $moduleName;
@@ -365,10 +367,10 @@ class ModuleManager {
         $dest = $this->archivePathFor($name, $version);
         $dir  = dirname($dest);
         if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
-            throw new RuntimeException('Unable to create modules archive directory.');
+            throw new \RuntimeException('Unable to create modules archive directory.');
         }
         if (realpath($sourceZip) !== realpath($dest) && !@copy($sourceZip, $dest)) {
-            throw new RuntimeException('Unable to store module archive.');
+            throw new \RuntimeException('Unable to store module archive.');
         }
         @chmod($dest, 0644);
     }
@@ -477,14 +479,14 @@ class ModuleManager {
      *
      * Delegates the full download → key-unwrap → extract flow to the
      * XC_VM C extension, then runs installModule() to register it.
-     * Fires PackageInstalledEvent and hot-reloads the module into the
-     * current ServiceContainer without requiring a PHP-FPM restart.
+     * Fires \PackageInstalledEvent and hot-reloads the module into the
+     * current \ServiceContainer without requiring a PHP-FPM restart.
      *
      * @param string      $slug    Module slug as listed on the platform.
      * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
      * @param string|null $apiKey  API key for the SaaS platform.
      * @return void
-     * @throws RuntimeException If the C extension is missing, download fails, or install fails.
+     * @throws \RuntimeException If the C extension is missing, download fails, or install fails.
      */
     public function downloadFromPlatform(string $slug, string $version = '', ?string $apiKey = null): void {
         $slug      = $this->sanitizeModuleName($slug);
@@ -512,7 +514,7 @@ class ModuleManager {
             // installs); the module's module.json/getVersion() may lag behind.
             $this->installModule($slug, $resolvedVersion);
 
-            EventDispatcher::dispatch(new PackageInstalledEvent(
+            \EventDispatcher::dispatch(new \PackageInstalledEvent(
                 slug:        $result['module'],
                 version:     $resolvedVersion,
                 path:        $modulePath,
@@ -536,9 +538,9 @@ class ModuleManager {
             if ($backupDir !== null) {
                 $this->deleteDirectory($backupDir);
             }
-        } catch (Throwable $e) {
+        } catch (\Throwable $e) {
             $restored = $this->restoreModuleBackup($slug, $targetDir, $backupDir, $prevVersion);
-            throw new RuntimeException(
+            throw new \RuntimeException(
                 "Platform install of '{$slug}' failed"
                 . ($restored
                     ? ' — rolled back to previous version' . ($prevVersion ? " {$prevVersion}" : '')
@@ -560,7 +562,7 @@ class ModuleManager {
      *
      * @param string      $slug   Module slug.
      * @param string|null $apiKey Platform API key.
-     * @throws RuntimeException If the module was not installed from the store or
+     * @throws \RuntimeException If the module was not installed from the store or
      *                          has no recorded previous version.
      */
     public function rollbackFromPlatform(string $slug, ?string $apiKey = null): void {
@@ -569,11 +571,11 @@ class ModuleManager {
         $entry     = $overrides[$slug] ?? [];
 
         if (($entry['source'] ?? '') !== 'platform') {
-            throw new RuntimeException("Module '{$slug}' was not installed from the store; cannot roll back.");
+            throw new \RuntimeException("Module '{$slug}' was not installed from the store; cannot roll back.");
         }
         $previous = $entry['previous_version'] ?? '';
         if ($previous === '') {
-            throw new RuntimeException("No previous version recorded for '{$slug}'.");
+            throw new \RuntimeException("No previous version recorded for '{$slug}'.");
         }
 
         // Re-installs the previous version (explicit, not "latest").
@@ -736,7 +738,7 @@ class ModuleManager {
         if ($prevVersion !== null) {
             $this->recordInstalledVersion($slug, $prevVersion);
         }
-        $this->setState($slug, ModuleState::Enabled);
+        $this->setState($slug, \ModuleState::Enabled);
         return true;
     }
 
@@ -757,7 +759,7 @@ class ModuleManager {
     public function deployFromPlatformFilesOnly(string $slug, string $version, ?string $apiKey = null): void {
         $result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
 
-        EventDispatcher::dispatch(new PackageInstalledEvent(
+        \EventDispatcher::dispatch(new \PackageInstalledEvent(
             slug:        $result['module'],
             version:     $result['version'],
             path:        $result['path'],
@@ -765,7 +767,7 @@ class ModuleManager {
         ));
 
         $this->recordInstalledVersion($slug, (string) ($result['version'] ?: $version));
-        $this->setState($slug, ModuleState::Enabled);
+        $this->setState($slug, \ModuleState::Enabled);
         $this->hotReloadSafe($slug, $result['path']);
     }
 
@@ -774,11 +776,11 @@ class ModuleManager {
      * files from the platform via the C extension. Does NOT run installModule().
      *
      * @return array{ok: bool, module: string, version: string, path: string}
-     * @throws RuntimeException On a missing extension, registration or download failure.
+     * @throws \RuntimeException On a missing extension, registration or download failure.
      */
     private function pullFilesFromPlatform(string $slug, string $version, ?string $apiKey): array {
         if (!class_exists('XC_VM')) {
-            throw new RuntimeException('XC_VM extension is not loaded. Install xcvm_core.so and enable it in php.ini.');
+            throw new \RuntimeException('XC_VM extension is not loaded. Install xcvm_core.so and enable it in php.ini.');
         }
 
         // Ensure this panel is registered with the platform before installing.
@@ -791,14 +793,14 @@ class ModuleManager {
         $reg = \XC_VM::panel_register($apiKey ?? '');
         if (!is_array($reg) || empty($reg['ok'])) {
             $regReason = $reg['message'] ?? ($reg['reason'] ?? 'unknown');
-            throw new RuntimeException("Panel registration with platform failed for module '{$slug}': {$regReason}");
+            throw new \RuntimeException("Panel registration with platform failed for module '{$slug}': {$regReason}");
         }
 
         $result = \XC_VM::module_install($slug, $version, $apiKey ?? '');
 
         if (!is_array($result) || empty($result['ok'])) {
             $reason = $result['error'] ?? 'unknown';
-            throw new RuntimeException("Platform download failed for module '{$slug}': {$reason}");
+            throw new \RuntimeException("Platform download failed for module '{$slug}': {$reason}");
         }
 
         return [
@@ -813,7 +815,7 @@ class ModuleManager {
     }
 
     /**
-     * Hot-reload a newly installed module into the running ServiceContainer.
+     * Hot-reload a newly installed module into the running \ServiceContainer.
      *
      * Loads and boots the module within the current request so it becomes
      * immediately usable without a PHP-FPM restart.
@@ -851,7 +853,7 @@ class ModuleManager {
      * @return void
      */
     private function hotReload(string $slug, string $modulePath): void {
-        $container = ServiceContainer::getInstance();
+        $container = \ServiceContainer::getInstance();
 
         $loader = new ModuleLoader();
         if (!$loader->load($slug, $modulePath)) {
@@ -929,19 +931,19 @@ class ModuleManager {
      *
      * @param string $name Module name.
      * @return object Module instance implementing ModuleInterface.
-     * @throws RuntimeException If the module cannot be loaded or instantiated.
+     * @throws \RuntimeException If the module cannot be loaded or instantiated.
      */
     private function loadModuleInstance(string $name) {
         $name = $this->sanitizeModuleName($name);
         $loader = new ModuleLoader();
         $ok = $loader->load($name, $this->modulesPath . '/' . $name);
         if (!$ok) {
-            throw new ModuleNotFoundException('Cannot load module: ' . $name);
+            throw new \ModuleNotFoundException('Cannot load module: ' . $name);
         }
 
         $module = $loader->getModule($name);
         if (!$module) {
-            throw new ModuleNotFoundException('Module instance is not available: ' . $name);
+            throw new \ModuleNotFoundException('Module instance is not available: ' . $name);
         }
 
         return $module;
@@ -952,12 +954,12 @@ class ModuleManager {
      *
      * @param string $name Raw module name.
      * @return string Sanitized module name.
-     * @throws InvalidArgumentException If the name is invalid.
+     * @throws \InvalidArgumentException If the name is invalid.
      */
     private function sanitizeModuleName(string $name): string {
         $name = trim((string) $name);
         if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $name)) {
-            throw new ModuleException('Invalid module name.');
+            throw new \ModuleException('Invalid module name.');
         }
         return $name;
     }
@@ -984,7 +986,7 @@ class ModuleManager {
      *
      * @param array $overrides Module overrides to persist.
      * @return void
-     * @throws RuntimeException If the file cannot be written or renamed.
+     * @throws \RuntimeException If the file cannot be written or renamed.
      */
     private function writeOverrides(array $overrides): void {
         ksort($overrides);
@@ -994,18 +996,18 @@ class ModuleManager {
         $dir  = dirname($this->overridesPath);
         $tmp  = @tempnam($dir, '.modules_tmp_');
         if ($tmp === false) {
-            throw new RuntimeException('Unable to create temporary file for config/modules.php');
+            throw new \RuntimeException('Unable to create temporary file for config/modules.php');
         }
 
         try {
             if (@file_put_contents($tmp, $content, LOCK_EX) === false) {
-                throw new RuntimeException('Unable to write config/modules.php (temp stage)');
+                throw new \RuntimeException('Unable to write config/modules.php (temp stage)');
             }
 
             @chmod($tmp, 0644);
 
             if (!@rename($tmp, $this->overridesPath)) {
-                throw new RuntimeException('Unable to atomically replace config/modules.php');
+                throw new \RuntimeException('Unable to atomically replace config/modules.php');
             }
 
             // config/modules.php is read back via require(), which OPcache caches
@@ -1032,12 +1034,12 @@ class ModuleManager {
      * @param string $zipFilePath  Path to the zip file.
      * @param string $destination  Extraction target directory.
      * @return void
-     * @throws RuntimeException If extraction fails or unsafe entries are detected.
+     * @throws \RuntimeException If extraction fails or unsafe entries are detected.
      */
     private function extractZipSafely(string $zipFilePath, string $destination): void {
-        $zip = new ZipArchive();
+        $zip = new \ZipArchive();
         if ($zip->open($zipFilePath) !== true) {
-            throw new RuntimeException('Unable to open zip archive.');
+            throw new \RuntimeException('Unable to open zip archive.');
         }
 
         try {
@@ -1049,32 +1051,32 @@ class ModuleManager {
 
                 $entry = str_replace('\\', '/', $entry);
                 if (strpos($entry, '../') !== false || strpos($entry, '..\\') !== false || strpos($entry, ':') !== false) {
-                    throw new RuntimeException('Unsafe zip entry detected.');
+                    throw new \RuntimeException('Unsafe zip entry detected.');
                 }
 
                 $targetPath = rtrim($destination, '/') . '/' . ltrim($entry, '/');
 
                 if (substr($entry, -1) === '/') {
                     if (!is_dir($targetPath) && !@mkdir($targetPath, 0755, true)) {
-                        throw new RuntimeException('Unable to create directory while extracting zip.');
+                        throw new \RuntimeException('Unable to create directory while extracting zip.');
                     }
                     continue;
                 }
 
                 $dir = dirname($targetPath);
                 if (!is_dir($dir) && !@mkdir($dir, 0755, true)) {
-                    throw new RuntimeException('Unable to create directory while extracting zip.');
+                    throw new \RuntimeException('Unable to create directory while extracting zip.');
                 }
 
                 $in = $zip->getStream($entry);
                 if (!$in) {
-                    throw new RuntimeException('Unable to read zip entry stream.');
+                    throw new \RuntimeException('Unable to read zip entry stream.');
                 }
 
                 $out = @fopen($targetPath, 'wb');
                 if (!$out) {
                     fclose($in);
-                    throw new RuntimeException('Unable to write extracted file.');
+                    throw new \RuntimeException('Unable to write extracted file.');
                 }
 
                 while (!feof($in)) {
@@ -1100,7 +1102,7 @@ class ModuleManager {
      *
      * @param string $tempBase Temporary extraction directory.
      * @return string Path to the directory containing module.json.
-     * @throws RuntimeException If module.json is not found or ambiguous.
+     * @throws \RuntimeException If module.json is not found or ambiguous.
      */
     private function resolveExtractedModuleDir(string $tempBase): string {
         $rootJson = $tempBase . '/module.json';
@@ -1110,7 +1112,7 @@ class ModuleManager {
 
         $jsonFiles = glob($tempBase . '/*/module.json') ?: [];
         if (count($jsonFiles) !== 1) {
-            throw new RuntimeException('Zip must contain exactly one module with module.json.');
+            throw new \RuntimeException('Zip must contain exactly one module with module.json.');
         }
 
         return dirname($jsonFiles[0]);
@@ -1154,15 +1156,15 @@ class ModuleManager {
      * @param string $source      Source directory path.
      * @param string $destination Destination directory path.
      * @return void
-     * @throws RuntimeException If copying fails.
+     * @throws \RuntimeException If copying fails.
      */
     private function copyDirectory(string $source, string $destination): void {
         if (!is_dir($source)) {
-            throw new RuntimeException('Source directory not found: ' . $source);
+            throw new \RuntimeException('Source directory not found: ' . $source);
         }
 
         if (!is_dir($destination) && !@mkdir($destination, 0755, true)) {
-            throw new RuntimeException('Unable to create module directory.');
+            throw new \RuntimeException('Unable to create module directory.');
         }
 
         $items = scandir($source);
@@ -1182,7 +1184,7 @@ class ModuleManager {
                 $this->copyDirectory($src, $dst);
             } else {
                 if (!@copy($src, $dst)) {
-                    throw new RuntimeException('Unable to copy file: ' . $item);
+                    throw new \RuntimeException('Unable to copy file: ' . $item);
                 }
             }
         }

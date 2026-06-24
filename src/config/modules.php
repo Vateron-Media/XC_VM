@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\ModuleInterface;
 /**
  * Overrides модулей
  *

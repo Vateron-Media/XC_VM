@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
 /**
  * Server deployment environment.
  *

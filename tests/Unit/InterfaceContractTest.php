@@ -1,5 +1,15 @@
 <?php
 
+use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
+use XcVm\Core\Module\Contract\ServiceProviderInterface;
+use XcVm\Core\Module\Contract\RouteProviderInterface;
+use XcVm\Core\Module\Contract\NavbarProviderInterface;
+use XcVm\Core\Module\Contract\CronProviderInterface;
+use XcVm\Core\Module\Contract\CommandProviderInterface;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\MigratableInterface;
+use XcVm\Core\Module\ModuleInterface;
+use XcVm\Core\Module\BaseModule;
 use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
@@ -83,7 +93,7 @@ final class InterfaceContractTest extends TestCase {
 
     public function testNavbarProviderInterfaceHasRegisterNavbar(): void {
         $rc = new ReflectionClass(NavbarProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'registerNavbar', ['NavbarRegistry'], 'void');
+        $this->assertInterfaceMethod($rc, 'registerNavbar', ['XcVm\\Core\\Module\\NavbarRegistry'], 'void');
     }
 
     // ── StreamMiddlewareProviderInterface ─────────────────────────

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module\Contract;
+
 /**
  * @package XC_VM_Core_Module
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -13,9 +15,9 @@ interface ServiceProviderInterface {
      *
      * Called once per request during module boot phase.
      *
-     * @param ServiceContainer $container
+     * @param \ServiceContainer $container
      */
-    public function boot(ServiceContainer $container): void;
+    public function boot(\ServiceContainer $container): void;
 
     /**
      * Return event subscribers declared by this module.

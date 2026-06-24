@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Config\SettingsManager;
 /**
  * ModulesController — admin module management page.

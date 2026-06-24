@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

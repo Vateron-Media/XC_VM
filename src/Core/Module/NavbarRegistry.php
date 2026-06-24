@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module;
+
 /**
  * NavbarRegistry — tree-based registry for admin navigation.
  *

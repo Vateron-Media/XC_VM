@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
 /**
  * Thrown when ModuleLoader detects a circular dependency between modules.
  *

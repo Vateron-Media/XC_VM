@@ -1,8 +1,8 @@
 <?php
 
 namespace XcVm\Module\Tmdb;
+use XcVm\Core\Module\BaseModule;
 
-use BaseModule;
 use ServiceContainer;
 use XcVm\Core\Http\Router;
 use CommandRegistry;

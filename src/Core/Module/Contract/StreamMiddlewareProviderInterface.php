@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module\Contract;
+
 use XcVm\Core\Http\Pipeline\StreamPipeline;
 use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
 /**

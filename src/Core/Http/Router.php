@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Http;
+use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Auth\Authorization;
 
 /**

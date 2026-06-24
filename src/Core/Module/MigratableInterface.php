@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Module;
+
 /**
  * MigratableInterface — module upgrade migrations contract.
  *
@@ -14,8 +16,8 @@
  * Example:
  *   public function getMigrations(): array {
  *       return [
- *           '1.1.0' => function (ServiceContainer $c) { $c->get('db')->execute('ALTER TABLE ...'); },
- *           '2.0.0' => function (ServiceContainer $c) { $c->get('db')->execute('CREATE TABLE ...'); },
+ *           '1.1.0' => function (\ServiceContainer $c) { $c->get('db')->execute('ALTER TABLE ...'); },
+ *           '2.0.0' => function (\ServiceContainer $c) { $c->get('db')->execute('CREATE TABLE ...'); },
  *       ];
  *   }
  *
@@ -31,9 +33,9 @@ interface MigratableInterface {
      *
      * Keys are semver strings (e.g. "1.1.0"). Values are callables
      * that perform the schema or data change for that version step.
-     * Each callable receives the ServiceContainer — use it to access db, settings, etc.
+     * Each callable receives the \ServiceContainer — use it to access db, settings, etc.
      *
-     * @return array<string, callable(ServiceContainer): void>
+     * @return array<string, callable(\ServiceContainer): void>
      */
     public function getMigrations(): array;
 }
