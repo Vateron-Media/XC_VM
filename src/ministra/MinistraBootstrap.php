@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\Logger;
 /**
  * Named bootstrap for the Ministra (Stalker Portal) boundary.
  *

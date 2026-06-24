@@ -54,6 +54,7 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Logging\Logger;
 
 // ─────────────────────────────────────────────────────────────────
 //  1. Class autoloader

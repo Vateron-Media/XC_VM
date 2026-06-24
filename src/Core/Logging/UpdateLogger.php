@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Logging;
+
 /**
  * UpdateLogger — dedicated log for system update operations.
  *

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\UpdateLogger;
 /**
  * UpdateCommand — update command
  *

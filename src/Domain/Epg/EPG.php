@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Logging\FileLogger;
 /**
  * EPG — e p g
  *

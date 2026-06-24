@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Logging;
+
 /**
  * Контракт логирования
  *

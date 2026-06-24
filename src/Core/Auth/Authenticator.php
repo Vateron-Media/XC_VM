@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use XcVm\Core\Logging\Logger;
 
 /**
  * Authenticator — authenticator
@@ -68,11 +69,8 @@ class Authenticator {
 
 	/** Writes a reCAPTCHA diagnostic line to the panel log (visible on-screen in DEV_MODE). */
 	private static function logRecaptcha(string $rReason): void {
-		if (class_exists('Logger') && method_exists('Logger', 'log')) {
-			Logger::log('WARNING', '[reCAPTCHA] ' . $rReason, '', __FILE__, __LINE__);
-		} else {
-			error_log('[reCAPTCHA] ' . $rReason);
-		}
+		// Logger is always autoloadable (Composer PSR-4); no defensive guard needed.
+		Logger::log('WARNING', '[reCAPTCHA] ' . $rReason, '', __FILE__, __LINE__);
 	}
 
 	/**

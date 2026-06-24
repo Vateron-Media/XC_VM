@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Logging;
+
 /**
  * A centralized logger class for handling PHP errors, exceptions, and fatal errors.
  * Logs all events to a file in base64-encoded JSON format and optionally displays them on screen.
@@ -84,9 +86,9 @@ final class Logger {
     /**
      * Handler for uncaught exceptions.
      *
-     * @param Throwable $e The uncaught exception
+     * @param \Throwable $e The uncaught exception
      */
-    public static function handleException(Throwable $e): void {
+    public static function handleException(\Throwable $e): void {
         self::log(
             'EXCEPTION',
             $e->getMessage(),
@@ -181,11 +183,11 @@ final class Logger {
     /**
      * Builds a stack trace for an exception chain (including previous exceptions).
      *
-     * @param Throwable $e The exception
+     * @param \Throwable $e The exception
      *
      * @return string Formatted trace string
      */
-    private static function buildExceptionTrace(Throwable $e): string {
+    private static function buildExceptionTrace(\Throwable $e): string {
         $out = [];
 
         do {
