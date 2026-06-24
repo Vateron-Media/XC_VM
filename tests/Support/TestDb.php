@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\Database;
 /**
  * TestDb — in-memory SQLite test double for the XC_VM Database wrapper.
  *

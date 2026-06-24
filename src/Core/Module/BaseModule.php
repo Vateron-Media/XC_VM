@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\Database;
 /**
  * BaseModule — abstract base class for module implementations.
  *

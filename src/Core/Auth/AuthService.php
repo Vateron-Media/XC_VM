@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\QueryHelper;
 /**
  * Консолидированный сервис аутентификации.
  * Объединяет: CodeService, HMACService, HMACValidator.

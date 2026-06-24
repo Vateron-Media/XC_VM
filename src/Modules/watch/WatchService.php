@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Config\SettingsManager;
 /**
  * WatchService — watch service

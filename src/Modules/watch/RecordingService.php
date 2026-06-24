@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\QueryHelper;
 /**
  * RecordingService — recording service
  *

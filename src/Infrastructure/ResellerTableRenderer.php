@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
 /**
  * ResellerTableRenderer — DataTables handler for reseller panel.
@@ -87,7 +89,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -365,7 +367,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -560,7 +562,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -754,7 +756,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -890,7 +892,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -1020,7 +1022,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -1151,7 +1153,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -1289,7 +1291,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -1445,7 +1447,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -1693,7 +1695,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
@@ -1870,7 +1872,7 @@ class ResellerTableRenderer {
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
 	 * @param array  $rSettings    Panel settings.
-	 * @param \DatabaseHandler $db           Database handler.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void

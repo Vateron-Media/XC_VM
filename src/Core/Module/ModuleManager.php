@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Database\Database;
 use XcVm\Core\Config\ConfigReader;
 /**
  * ModuleManager — administrative operations with modules.

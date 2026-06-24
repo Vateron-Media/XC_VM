@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\DatabaseHandler;
 /**
  * Diagnostics Service
  *
@@ -105,7 +107,7 @@ class DiagnosticsService {
 	/**
 	 * Download panel logs from database, format them and clear the logs table
 	 *
-	 * @param \DatabaseHandler $db  Database handler (must have ->query(), ->get_rows())
+	 * @param \XcVm\Core\Database\DatabaseHandler $db  Database handler (must have ->query(), ->get_rows())
 	 * @return array ['errors' => [...], 'version' => string]
 	 * @throws Exception
 	 */
@@ -170,7 +172,7 @@ class DiagnosticsService {
 	/**
 	 * Submit panel logs to the central API server
 	 *
-	 * @param \DatabaseHandler $db  Database handler
+	 * @param \XcVm\Core\Database\DatabaseHandler $db  Database handler
 	 * @return string|false  API response or false on failure
 	 */
 	public static function submitPanelLogs($db) {

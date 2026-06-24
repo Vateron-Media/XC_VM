@@ -1,7 +1,9 @@
 <?php
 
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Database\Database;
 use XcVm\Core\Config\SettingsManager;
-/** @var \Database $db */
+/** @var \XcVm\Core\Database\Database $db */
 
 include 'functions.php';
 session_write_close();
