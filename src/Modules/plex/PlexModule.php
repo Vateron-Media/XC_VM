@@ -4,7 +4,7 @@ namespace XcVm\Module\Plex;
 
 use BaseModule;
 use ServiceContainer;
-use Router;
+use XcVm\Core\Http\Router;
 use CommandRegistry;
 use NavbarRegistry;
 use NavbarItem;

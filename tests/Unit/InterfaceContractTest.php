@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -68,7 +69,7 @@ final class InterfaceContractTest extends TestCase {
 
     public function testRouteProviderInterfaceHasRegisterRoutes(): void {
         $rc = new ReflectionClass(RouteProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'registerRoutes', ['Router'], 'void');
+        $this->assertInterfaceMethod($rc, 'registerRoutes', ['XcVm\\Core\\Http\\Router'], 'void');
     }
 
     // ── CommandProviderInterface ──────────────────────────────────

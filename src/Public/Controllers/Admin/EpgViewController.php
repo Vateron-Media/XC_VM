@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
 /**
  * Контроллер просмотра TV Guide (admin/epg_view.php)

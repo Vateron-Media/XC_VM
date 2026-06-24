@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\Pipeline\StreamPipeline;
+use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
 /**
  * Optional contract for modules that inject middleware into the stream pipeline.
  *

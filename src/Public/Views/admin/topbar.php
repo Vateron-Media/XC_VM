@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\Response;
+use XcVm\Core\Http\RequestManager;
 if (count(get_included_files()) != 1) {
 	if (!isset($rMobile)) {
 		$rMobile = $GLOBALS['rMobile'] ?? false;

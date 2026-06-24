@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Request;
 use XcVm\Core\Database\QueryHelper;
 /**
  * Консолидированный сервис аутентификации.

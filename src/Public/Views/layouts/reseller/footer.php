@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
 if (count(get_included_files()) != 1) {
 	$_PAGE = AdminHelpers::getPageName();

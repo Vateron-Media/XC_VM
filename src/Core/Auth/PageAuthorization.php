@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+use XcVm\Core\Http\RequestManager;
 
 /**
  * PageAuthorization — page-level permission checks for admin/reseller panels.

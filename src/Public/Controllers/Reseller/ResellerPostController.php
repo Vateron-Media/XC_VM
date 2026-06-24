@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Http\RequestManager;/**
  * ResellerPostController — POST form handler for reseller panel.
  *
  * Migrated from reseller/post.php.

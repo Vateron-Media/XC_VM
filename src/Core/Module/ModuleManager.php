@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Router;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Config\ConfigReader;
 /**

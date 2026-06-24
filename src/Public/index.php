@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\Router;
 /**
  * Front Controller — единая точка входа для admin/reseller/player.
  *

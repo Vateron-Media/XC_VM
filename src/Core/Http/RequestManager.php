@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Core\Http;
+
 /**
  * RequestManager — singleton-хранилище распарсенных параметров запроса.
  *

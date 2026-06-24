@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Http\Pipeline\StreamPipeline;
+use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
+use XcVm\Core\Http\Router;
 /**
  * ModuleLoader — automatic system module loader and dependency resolver.
  *

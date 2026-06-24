@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Config\SettingsManager;
 /**
  * AdminApiController — admin api controller

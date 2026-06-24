@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;if (isset(RequestManager::getAll()['type'])) {
     $rType = intval(RequestManager::getAll()['type']);
 } else {

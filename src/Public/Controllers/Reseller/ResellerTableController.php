@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;/**
  * ResellerTableController — DataTables JSON endpoint for reseller panel.
  *

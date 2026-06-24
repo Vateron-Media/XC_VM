@@ -21,6 +21,7 @@
         <div class="row">
             <div class="col-12">
                 <?php 
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;if (!$rMobile) { ?>
                     <?php if (count($rFS) > 0) { ?>
                         <div class="card">

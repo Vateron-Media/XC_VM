@@ -4,7 +4,8 @@
             <div class="col-12">
                 <div class="page-title-box">
                     <div class="page-title-right">
-                        <?php include __DIR__ . '/topbar.php'; ?>
+                        <?php 
+use XcVm\Core\Http\Response;include __DIR__ . '/topbar.php'; ?>
                     </div>
                     <?php if (isset($rTicketInfo)): ?>
                     <h4 class="page-title">Ticket Response</h4>

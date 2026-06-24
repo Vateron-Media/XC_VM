@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Core\Http\RequestManager;/**
  * Reseller functions bootstrap.
  *
  * Extracted from reseller/functions.php for Front Controller use.
