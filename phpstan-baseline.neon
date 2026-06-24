@@ -349,12 +349,6 @@ parameters:
 			path: src/Core/Auth/AuthRepository.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''Logger'' and ''log'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Core/Auth/Authenticator.php
-
-		-
 			message: '#^Left side of \|\| is always true\.$#'
 			identifier: booleanOr.leftAlwaysTrue
 			count: 1
@@ -481,37 +475,37 @@ parameters:
 			path: src/Core/Process/Thread.php
 
 		-
-			message: '#^Constructor of class DropboxClient has an unused parameter \$_deprecatedLocale\.$#'
+			message: '#^Constructor of class XcVm\\Core\\Storage\\DropboxClient has an unused parameter \$_deprecatedLocale\.$#'
 			identifier: constructor.unusedParameter
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
 
 		-
-			message: '#^Method DropboxClient\:\:GetCopyRef\(\) never assigns null to &\$expires so it can be removed from the by\-ref type\.$#'
+			message: '#^Method XcVm\\Core\\Storage\\DropboxClient\:\:GetCopyRef\(\) never assigns null to &\$expires so it can be removed from the by\-ref type\.$#'
 			identifier: parameterByRef.unusedType
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
 
 		-
-			message: '#^Method DropboxClient\:\:Search\(\) should return object but returns list\<object\>\.$#'
+			message: '#^Method XcVm\\Core\\Storage\\DropboxClient\:\:Search\(\) should return object but returns list\<object\>\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
 
 		-
-			message: '#^Method DropboxClient\:\:createCurl\(\) never returns resource so it can be removed from the return type\.$#'
+			message: '#^Method XcVm\\Core\\Storage\\DropboxClient\:\:createCurl\(\) never returns resource so it can be removed from the return type\.$#'
 			identifier: return.unusedType
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
 
 		-
-			message: '#^Method DropboxClient\:\:doSingleCall\(\) never assigns null to &\$content so it can be removed from the by\-ref type\.$#'
+			message: '#^Method XcVm\\Core\\Storage\\DropboxClient\:\:doSingleCall\(\) never assigns null to &\$content so it can be removed from the by\-ref type\.$#'
 			identifier: parameterByRef.unusedType
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
 
 		-
-			message: '#^Method DropboxClient\:\:doSingleCall\(\) should return object but returns null\.$#'
+			message: '#^Method XcVm\\Core\\Storage\\DropboxClient\:\:doSingleCall\(\) should return object but returns null\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
