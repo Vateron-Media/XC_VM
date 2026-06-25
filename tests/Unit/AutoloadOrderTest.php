@@ -54,12 +54,15 @@ final class AutoloadOrderTest extends TestCase {
 		$this->addToAssertionCount(1);
 	}
 
-	public function testInitIsANoOpAndAddsNoLoader(): void {
-		$this->assertTrue(class_exists('XC_Autoloader'), 'Stub class kept for one release.');
-		$before = count(spl_autoload_functions());
-		\XC_Autoloader::init(MAIN_HOME);
-		$after = count(spl_autoload_functions());
-		$this->assertSame($before, $after, 'XC_Autoloader::init() must register nothing.');
+	public function testLegacyAutoloaderIsRemoved(): void {
+		$this->assertFalse(
+			class_exists('XC_Autoloader'),
+			'The legacy XC_Autoloader class has been removed entirely.'
+		);
+		$this->assertFileDoesNotExist(
+			MAIN_HOME . 'autoload.php',
+			'src/autoload.php must be deleted.'
+		);
 	}
 
 	public function testNoClassMapCacheIsWritten(): void {
@@ -67,9 +70,8 @@ final class AutoloadOrderTest extends TestCase {
 		if (is_file($cache)) {
 			@unlink($cache);
 		}
-		// Trigger an autoload + the retired stub; neither may recreate the cache.
+		// Trigger an autoload; resolution is live (Composer) with no cache file.
 		$this->assertTrue(class_exists('XcVm\\Core\\Logging\\Logger'));
-		\XC_Autoloader::init(MAIN_HOME);
 		$this->assertFileDoesNotExist($cache, 'The igbinary class-map cache must be gone.');
 	}
 }

@@ -213,31 +213,28 @@ ModuleLoader) → **Public последним** (в основном проце�
 на один релиз (методы `clearCache()/warmCache()` ещё вызывает `StartupCommand`). В стеке только
 Composer; всё резолвится через Composer / explicit-require / ModuleLoader.
 
-**Шаг 2 — ОСТАЛОСЬ (следующий релиз): полностью удалить `src/autoload.php`.**
-Не делать сейчас — клиенты на предыдущей версии ещё ожидают файл; цикл «заглушка на один релиз».
+**Шаг 2 — ВЫПОЛНЕНО: `src/autoload.php` полностью удалён.** Composer-only автолоад.
 
-Чеклист (один атомарный коммит):
+- [x] **Перенесён `define('MAIN_HOME', ...)`** в `src/bootstrap.php` (до Composer-require).
+- [x] **Убраны** `\XC_Autoloader::clearCache()/warmCache()` из `StartupCommand`.
+- [x] **`src/bootstrap.php`** — убран `require autoload.php` (остался только `vendor/autoload.php`).
+- [x] **`tests/bootstrap.php`** — убран require + locate-guard переведён на `vendor/autoload.php`.
+- [x] **`phpstan.dist.neon`** — `src/autoload.php` убран из `scanFiles`.
+- [x] **`Makefile`** — `autoload.php` убран из `LB_ROOT_FILES`.
+- [x] **`src/migrations/deleted_files.txt`** — добавлен `autoload.php`.
+- [x] **`git rm src/autoload.php`** + `composer dump-autoload` (vendor без изменений — autoload-конфиг
+      не менялся).
+- [x] **`AutoloadOrderTest`** обновлён: утверждает, что класс `XC_Autoloader` НЕ существует и файла нет.
+- [x] **+7 точек входа** (план их упускал, найдены grep'ом): прямые `require .../autoload.php` в
+      `Public/index.php`, `Public/admin/index.php`, `Public/stream/index.php`, `Public/progress/index.php`,
+      `ministra/portal.php`, `Public/Controllers/{Admin,Reseller}/TableController.php` → переведены на
+      `vendor/autoload.php` (+ `define(MAIN_HOME)` где не было).
+- [x] **Проверка:** grep `XC_Autoloader::`=0; `php -l`; `make phpstan` No errors; `make gates`;
+      PHPUnit 303/303; bootstrap-smoke (MAIN_HOME+XC_Bootstrap есть, XC_Autoloader нет, в стеке только
+      Composer).
 
-- [ ] **Перенести `define('MAIN_HOME', ...)`** из `src/autoload.php:377` в `src/bootstrap.php`
-      ДО первого использования (сейчас bootstrap полагается, что `autoload.php` определит MAIN_HOME).
-      Это блокер — без него удаление = fatal на всех контекстах.
-- [ ] **Убрать вызовы из `StartupCommand`** (`src/Cli/Commands/StartupCommand.php:34-35`):
-      `\XC_Autoloader::clearCache(); \XC_Autoloader::warmCache();` (warm/clear кеша автолоадера
-      больше не существует — удалить строки).
-- [ ] **`src/bootstrap.php:110`** — убрать `require_once __DIR__ . '/autoload.php';`.
-- [ ] **`tests/bootstrap.php`** — убрать `require_once MAIN_HOME . 'autoload.php';` (стр. 72) и
-      locate-guard на `autoload.php` (стр. 7-12); MAIN_HOME определять до require.
-- [ ] **`phpstan.dist.neon:42`** — убрать `- src/autoload.php` из `scanFiles` (класс `XC_Autoloader`
-      исчезнет; проверить, что нет оставшихся ссылок на него → иначе PHPStan «unknown class»).
-- [ ] **`Makefile:31`** — убрать `autoload.php` из `LB_ROOT_FILES`
-      (`LB_ROOT_FILES := bootstrap.php console.php service update`).
-- [ ] **`src/migrations/deleted_files.txt`** — добавить `autoload.php` (чистка у клиентов при update).
-- [ ] **`git rm src/autoload.php`** + `cd src && composer dump-autoload` + коммит `vendor/`.
-- [ ] **Проверка:** grep `XC_Autoloader` по `src/`+`tests/` = 0; `php -l`; `make phpstan` (No errors,
-      без новых unknown-class); `make gates`; PHPUnit (включая `AutoloadOrderTest` — он утверждает,
-      что `XC_Autoloader` не в стеке; после удаления класса обновить тест: заменить проверки на
-      «класс `XC_Autoloader` не существует»); бут CLI/Stream/Admin/Player; `make` smoke (архив без
-      `autoload.php`, с `vendor/`).
+> Примечание: вся PSR-4 миграция (Фазы 0…Финал) выпускается одним релизом с ветки `chore/psr4-migration`,
+> поэтому шаги 1 и 2 свёрнуты в один цикл — отдельный «релиз с заглушкой» не требовался.
 
 ## Ключевые файлы
 

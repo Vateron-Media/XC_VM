@@ -1206,3 +1206,6 @@ Infrastructure/bootstrap/reseller_session.php
 Infrastructure/cache/CacheReader.php
 Infrastructure/database/DatabaseFactory.php
 Infrastructure/redis/RedisManager.php
+
+# PSR-4 final phase: legacy XC_Autoloader fallback removed (Composer-only autoload)
+autoload.php

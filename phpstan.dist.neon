@@ -36,10 +36,9 @@ parameters:
         - src/config
         - src/migrations
 
-    # Root files holding global classes (XC_Bootstrap, XC_Autoloader) referenced
-    # across the codebase but living outside any scanned directory.
+    # Root file holding the global XC_Bootstrap class, referenced across the
+    # codebase but living outside any scanned directory.
     scanFiles:
-        - src/autoload.php
         - src/bootstrap.php
 
     excludePaths:

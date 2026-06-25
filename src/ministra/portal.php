@@ -23,7 +23,10 @@ require __DIR__ . '/../Modules/ministra/PortalHandler.php';
 PortalHandler::handlePreInit($rReqType, $rReqAction);
 
 register_shutdown_function('shutdown');
-require_once dirname(__DIR__) . '/autoload.php';
+if (!defined('MAIN_HOME')) {
+	define('MAIN_HOME', dirname(__DIR__) . '/');
+}
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/ministra/MinistraBootstrap.php';
 MinistraBootstrap::boot();
 

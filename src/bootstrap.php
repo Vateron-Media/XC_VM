@@ -104,11 +104,18 @@ use XcVm\Infrastructure\Redis\RedisManager;
 //  1. Class autoloader
 // ─────────────────────────────────────────────────────────────────
 
-// Composer PSR-4 autoloader first (resolves migrated XcVm\* classes), then the
-// legacy XC_Autoloader as an end-of-queue fallback for still-global classes.
+// MAIN_HOME — the deploy root (src/ maps to /home/xc_vm/). Used by the runtime
+// require_once paths below. Defined here now that the legacy autoload.php (which
+// used to define it) has been removed.
+if (!defined('MAIN_HOME')) {
+	define('MAIN_HOME', __DIR__ . '/');
+}
+
+// Composer PSR-4 autoloader — resolves every XcVm\* class. The legacy
+// XC_Autoloader fallback scanner has been retired and removed; modules load via
+// ModuleLoader's PSR-4 resolver.
 require_once __DIR__ . '/vendor/autoload.php';
-require_once __DIR__ . '/autoload.php';
-// After this: MAIN_HOME is defined, Composer + XC_Autoloader are registered
+// After this: MAIN_HOME is defined and the Composer autoloader is registered.
 
 
 // ─────────────────────────────────────────────────────────────────

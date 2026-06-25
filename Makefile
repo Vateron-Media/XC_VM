@@ -28,7 +28,7 @@ LB_DIRS := bin Cli config content Core Domain Modules\
 	Infrastructure Public resources signals Streaming tmp vendor www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
-LB_ROOT_FILES := autoload.php bootstrap.php console.php service update
+LB_ROOT_FILES := bootstrap.php console.php service update
 
 # Directories to remove from LB (admin-only content)
 LB_DIRS_TO_REMOVE := \

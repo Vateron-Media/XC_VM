@@ -15,7 +15,7 @@ if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', dirname(dirname(__DIR__)) . '/');
 }
 
-require_once MAIN_HOME . 'autoload.php';
+require_once MAIN_HOME . 'vendor/autoload.php';
 require_once MAIN_HOME . 'Core/Error/ErrorCodes.php';
 require_once MAIN_HOME . 'Core/Error/ErrorHandler.php';
 require_once MAIN_HOME . 'Core/Config/Paths.php';
