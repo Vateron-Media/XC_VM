@@ -11,30 +11,6 @@
  */
 
 class StreamProcess {
-	private static $db = null;
-
-	/**
-	 * Inject the database handler (dependency injection).
-	 *
-	 * @param \DatabaseHandler $db Database handler.
-	 * @return void
-	 */
-	public static function setDb($db): void {
-		self::$db = $db;
-	}
-
-	/**
-	 * Get the injected database handler.
-	 *
-	 * @return object Database handler.
-	 * @throws \RuntimeException If setDb() was not called first.
-	 */
-	private static function db(): object {
-		if (self::$db === null) {
-			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
-		}
-		return self::$db;
-	}
 	/**
 	 * Write stream action log to file
 	 *
@@ -52,12 +28,6 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Clear cached runtime data for the given stream sources.
-	 *
-	 * @param array $rSources Source identifiers.
-	 * @return void
-	 */
 	public static function deleteCache($rSources) {
 		if (!empty($rSources)) {
 			foreach ($rSources as $rSource) {
@@ -71,15 +41,8 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Queue a channel to be started (optionally on a specific server).
-	 *
-	 * @param int      $rStreamID Stream id.
-	 * @param int|null $rServerID Target server id, or null for the default.
-	 * @return mixed Queue result.
-	 */
 	public static function queueChannel($rStreamID, $rServerID = null) {
-		$db = self::db();
+		global $db;
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -91,60 +54,28 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Create the runtime channel entry for a stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return mixed Creation result.
-	 */
 	public static function createChannel($rStreamID) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php created ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
-	/**
-	 * Start the monitor process for a stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @param int $rRestart  Restart flag/counter.
-	 * @return mixed Start result.
-	 */
 	public static function startMonitor($rStreamID, $rRestart = 0) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
-	/**
-	 * Start the proxy process for a stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return mixed Start result.
-	 */
 	public static function startProxy($rStreamID) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php proxy ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
-	/**
-	 * Start thumbnail generation for a stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return mixed Start result.
-	 */
 	public static function startThumbnail($rStreamID) {
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php thumbnail ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
 		return true;
 	}
 
-	/**
-	 * Push a stream's configuration update to its server.
-	 *
-	 * @param int  $rStreamID Stream id.
-	 * @param bool $rForce    Force the update even if unchanged.
-	 * @return mixed Update result.
-	 */
 	public static function updateStream($rStreamID, $rForce = false) {
-		$db = self::db();
+		global $db;
 		$rCached = SettingsManager::getAll()['enable_cache'];
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
@@ -158,14 +89,8 @@ class StreamProcess {
 		return false;
 	}
 
-	/**
-	 * Push configuration updates for multiple streams.
-	 *
-	 * @param int[] $rStreamIDs Stream ids.
-	 * @return void
-	 */
 	public static function updateStreams($rStreamIDs) {
-		$db = self::db();
+		global $db;
 		$rCached = SettingsManager::getAll()['enable_cache'];
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
@@ -179,16 +104,8 @@ class StreamProcess {
 		return false;
 	}
 
-	/**
-	 * Build the runtime channel item (ffmpeg command/config) for a source.
-	 *
-	 * @param int   $rStreamID Stream id.
-	 * @param mixed $rSource   Source definition.
-	 * @return mixed The constructed channel item.
-	 */
 	public static function createChannelItem($rStreamID, $rSource) {
-		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
-		$db = self::db();
+		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t1.type = 3 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -288,15 +205,8 @@ class StreamProcess {
 		return false;
 	}
 
-	/**
-	 * Stop a running channel stream.
-	 *
-	 * @param int  $rStreamID Stream id.
-	 * @param bool $rStop     Mark the stream as fully stopped (not just restarting).
-	 * @return mixed Stop result.
-	 */
 	public static function stopStream($rStreamID, $rStop = false) {
-		$db = self::db();
+		global $db;
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
 			$rMonitor = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 		} else {
@@ -335,15 +245,8 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Stop a running movie (VOD) stream.
-	 *
-	 * @param int  $rStreamID Stream id.
-	 * @param bool $rForce    Force stop.
-	 * @return mixed Stop result.
-	 */
 	public static function stopMovie($rStreamID, $rForce = false) {
-		$db = self::db();
+		global $db;
 		shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . ".' | grep -v grep | awk '{print \$2}'`;");
 		if ($rForce) {
 			exec('rm ' . MAIN_HOME . 'content/vod/' . intval($rStreamID) . '.*');
@@ -354,15 +257,8 @@ class StreamProcess {
 		self::updateStream($rStreamID);
 	}
 
-	/**
-	 * Queue a movie (VOD) to be started.
-	 *
-	 * @param int      $rStreamID Stream id.
-	 * @param int|null $rServerID Target server id, or null for the default.
-	 * @return mixed Queue result.
-	 */
 	public static function queueMovie($rStreamID, $rServerID = null) {
-		$db = self::db();
+		global $db;
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -371,15 +267,8 @@ class StreamProcess {
 		$db->query("INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES('movie', ?, ?, ?);", $rStreamID, $rServerID, time());
 	}
 
-	/**
-	 * Queue multiple movies to be started.
-	 *
-	 * @param int[]    $rStreamIDs Stream ids.
-	 * @param int|null $rServerID  Target server id, or null for the default.
-	 * @return void
-	 */
 	public static function queueMovies($rStreamIDs, $rServerID = null) {
-		$db = self::db();
+		global $db;
 		if ($rServerID) {
 		} else {
 			$rServerID = SERVER_ID;
@@ -402,15 +291,8 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Refresh movie metadata/processing for the given ids.
-	 *
-	 * @param int[] $rIDs  Stream ids.
-	 * @param int   $rType Refresh type.
-	 * @return void
-	 */
 	public static function refreshMovies($rIDs, $rType = 1) {
-		$db = self::db();
+		global $db;
 		if (0 >= count($rIDs)) {
 		} else {
 			$db->query('DELETE FROM `watch_refresh` WHERE `type` = ? AND `stream_id` IN (' . implode(',', array_map('intval', $rIDs)) . ');', $rType);
@@ -429,15 +311,8 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Start a movie (VOD) stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return mixed Start result.
-	 */
 	public static function startMovie($rStreamID) {
-		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
-		$db = self::db();
+		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$rStream = array();
 		$rLoopback = false;
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 0 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
@@ -584,15 +459,8 @@ class StreamProcess {
 		return false;
 	}
 
-	/**
-	 * Start a loopback stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return mixed Start result.
-	 */
 	public static function startLoopback($rStreamID) {
-		global $rSettings, $rServers;
-		$db = self::db();
+		global $db, $rSettings, $rServers;
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 		} else {
@@ -626,17 +494,8 @@ class StreamProcess {
 		return false;
 	}
 
-	/**
-	 * Start a live-on-demand (LLOD) stream.
-	 *
-	 * @param int         $rStreamID        Stream id.
-	 * @param array       $rStreamInfo      Stream metadata.
-	 * @param array       $rStreamArguments ffmpeg/stream arguments.
-	 * @param string|null $rForceSource     Force a specific source URL.
-	 * @return mixed Start result.
-	 */
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
-		$db = self::db();
+		global $db;
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
@@ -658,21 +517,8 @@ class StreamProcess {
 		return array('main_pid' => $rPID, 'stream_source' => $rSources[0], 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
 	}
 
-	/**
-	 * Start a live stream (main entry point for channel start-up).
-	 *
-	 * Selects a source, builds the ffmpeg command and launches the process.
-	 *
-	 * @param int         $rStreamID    Stream id.
-	 * @param bool        $rFromCache   Use cached stream info.
-	 * @param string|null $rForceSource Force a specific source URL.
-	 * @param bool        $rLLOD        Treat as live-on-demand.
-	 * @param int         $rStartPos    Start position/offset.
-	 * @return mixed Start result.
-	 */
 	public static function startStream($rStreamID, $rFromCache = false, $rForceSource = null, $rLLOD = false, $rStartPos = 0) {
-		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
-		$db = self::db();
+		global $db, $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
 		$rSegmentSettings = array('seg_time' => intval($rSettings['seg_time']), 'seg_list_size' => intval($rSettings['seg_list_size']), 'seg_delete_threshold' => intval($rSettings['seg_delete_threshold']));
 		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
@@ -981,8 +827,7 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rLLODTune = ($rLLOD && !$rLoopback ? '-tune zerolatency ' : '');
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -thread_queue_size 1024 ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . $rLLODTune . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} -max_muxing_queue_size 1024 ';
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
@@ -1000,7 +845,7 @@ class StreamProcess {
 					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressURL . '" ' . $rStream['stream_info']['custom_ffmpeg'];
 				}
 
-				$rLLODOptions = ($rLLOD && !$rLoopback ? '-fflags nobuffer -flags low_delay -strict experimental -threads 0' : '');
+				$rLLODOptions = ($rLLOD && !$rLoopback ? '-fflags nobuffer -flags low_delay -strict experimental' : '');
 				$rOutputs = array();
 
 				if ($rLoopback) {
@@ -1013,8 +858,16 @@ class StreamProcess {
 				}
 
 				$rKeyFrames = ($rSettings['ignore_keyframes'] ? '+split_by_time' : '');
-				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval($rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
-
+				//$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_init_time 2 -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval($rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist+split_by_time' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
+				//$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_init_time 2 -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size 15 -hls_delete_threshold 2 -hls_allow_cache 1 -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
+				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f segment -segment_format mpegts -segment_init_time 2 -segment_time ' . intval($rSegmentSettings['seg_time']) . ' -segment_list_size 15 -segment_list_flags +live+cache+delete -segment_list_type m3u8 ' . $rKeyFrames . ' -segment_list "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" ';
+				
+				
+				
+				
+				
+				
+				
 				if ($rStream['stream_info']['rtmp_output'] == 1) {
 					$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode($rSettings['live_streaming_pass']) . ' ';
 				}
@@ -1110,8 +963,10 @@ class StreamProcess {
 						}
 					}
 
+					//$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
 					$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
+					//$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
+					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f segment -segment_format mpegts -segment_init_time 2 -segment_time ' . intval($rSegmentSettings['seg_time']) . ' -segment_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -segment_start_number ' . $rSegmentStart . ' -segment_list_flags +live+cache+delete -segment_list_type m3u8 -segment_list "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" ';
 
 					$rSleepTime = $rStream['stream_info']['delay_minutes'] * 60;
 
@@ -1156,20 +1011,7 @@ class StreamProcess {
 				$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
 				$rIV = openssl_random_pseudo_bytes($rIVSize);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
-
-				// Wait briefly for PID file to be written, with retry
-				$rPID = 0;
-				$rPIDRetries = 0;
-				while ($rPIDRetries < 10) {
-					usleep(50000); // 50ms
-					if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-						$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-						if ($rPID > 0) {
-							break;
-						}
-					}
-					$rPIDRetries++;
-				}
+				$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 
 				if ($rStream['stream_info']['tv_archive_server_id'] == SERVER_ID) {
 					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php archive ' . intval($rStreamID) . ' >/dev/null 2>/dev/null & echo $!');
