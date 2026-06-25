@@ -3,13 +3,22 @@
         'name' => 'vateron-media/xc-vm',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '1a30966176c12f394973d6f77c3e925af5b95cd3',
+        'reference' => '605b59d435526586b2b27756fb5644e1f7a2fe34',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
         'dev' => true,
     ),
     'versions' => array(
+        'chrisyue/php-m3u8' => array(
+            'pretty_version' => '4.0.3',
+            'version' => '4.0.3.0',
+            'reference' => '122745bda7c2cfcedf6b2893b48a028f87109717',
+            'type' => 'library',
+            'install_path' => __DIR__ . '/../chrisyue/php-m3u8',
+            'aliases' => array(),
+            'dev_requirement' => false,
+        ),
         'gemorroj/m3u-parser' => array(
             'pretty_version' => '6.0.1',
             'version' => '6.0.1.0',
@@ -22,7 +31,7 @@
         'vateron-media/xc-vm' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '1a30966176c12f394973d6f77c3e925af5b95cd3',
+            'reference' => '605b59d435526586b2b27756fb5644e1f7a2fe34',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

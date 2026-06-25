@@ -5,12 +5,12 @@
     "license": "AGPL-3.0-or-later",
     "require": {
         "php": ">=8.1",
-        "gemorroj/m3u-parser": "6.0.1"
+        "gemorroj/m3u-parser": "6.0.1",
+        "chrisyue/php-m3u8": "^4"
     },
     "autoload": {
         "psr-4": {
-            "XcVm\\": "./",
-            "Chrisyue\\PhpM3u8\\": "Core/Parsing/PhpM3u8/src/"
+            "XcVm\\": "./"
         }
     },
     "config": {

@@ -32,7 +32,7 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         ),
         'Chrisyue\\PhpM3u8\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/Core/Parsing/PhpM3u8/src',
+            0 => __DIR__ . '/..' . '/chrisyue/php-m3u8/src',
         ),
     );
 
