@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Public\Controllers\Admin;
+
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Config\SettingsManager;
@@ -56,10 +58,10 @@ class ModulesController extends BaseAdminController {
                         $key  = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
 
                         if ($key === '') {
-                            throw new RuntimeException('Set the platform API key before installing from the store.');
+                            throw new \RuntimeException('Set the platform API key before installing from the store.');
                         }
                         if ($slug === '') {
-                            throw new RuntimeException('Module slug is required.');
+                            throw new \RuntimeException('Module slug is required.');
                         }
 
                         // Always install the latest approved version (resolved by the
@@ -71,7 +73,7 @@ class ModulesController extends BaseAdminController {
                     case 'platform_rollback':
                         $key = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
                         if ($key === '') {
-                            throw new RuntimeException('Set the platform API key before rolling back.');
+                            throw new \RuntimeException('Set the platform API key before rolling back.');
                         }
                         $manager->rollbackFromPlatform($name, $key);
                         $flash = ['type' => 'success', 'message' => 'Module rolled back to previous version: ' . $name];
@@ -80,7 +82,7 @@ class ModulesController extends BaseAdminController {
                     case 'renew_license':
                         $key = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
                         if ($key === '') {
-                            throw new RuntimeException('Set the platform API key before renewing the license.');
+                            throw new \RuntimeException('Set the platform API key before renewing the license.');
                         }
                         if ($manager->renewModuleLicense($name, $key)) {
                             $flash = ['type' => 'success', 'message' => 'License renewed for: ' . $name];
@@ -91,23 +93,23 @@ class ModulesController extends BaseAdminController {
 
                     case 'upload_install':
                         if (!isset($_FILES['module_zip']) || !is_array($_FILES['module_zip'])) {
-                            throw new RuntimeException('Zip file was not uploaded.');
+                            throw new \RuntimeException('Zip file was not uploaded.');
                         }
 
                         if ((int) ($_FILES['module_zip']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
-                            throw new RuntimeException('Upload failed.');
+                            throw new \RuntimeException('Upload failed.');
                         }
 
                         $tmp = (string) ($_FILES['module_zip']['tmp_name'] ?? '');
                         if ($tmp === '' || !is_uploaded_file($tmp)) {
-                            throw new RuntimeException('Uploaded file is invalid.');
+                            throw new \RuntimeException('Uploaded file is invalid.');
                         }
 
                         $installedName = $manager->uploadAndInstall($tmp);
                         $flash = ['type' => 'success', 'message' => 'Module uploaded and installed: ' . $installedName];
                         break;
                 }
-            } catch (Throwable $e) {
+            } catch (\Throwable $e) {
                 $flash = ['type' => 'danger', 'message' => $e->getMessage()];
             }
 

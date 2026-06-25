@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Public\Controllers\Admin;
+
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Domain\User\UserRepository;
@@ -56,7 +58,7 @@ class TableController extends BaseAdminController {
 			$rUserID = $db->get_row()["id"];
 			$rIsAPI = true;
 			require_once MAIN_HOME . "bootstrap.php";
-			XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+			\XC_Bootstrap::boot(\XC_Bootstrap::CONTEXT_ADMIN);
 			$rUserInfo = UserRepository::getRegisteredUserById($rUserID);
 			$rPermissions = AuthRepository::getPermissions($rUserInfo["member_group_id"]);
 			$rPermissions["advanced"] = json_decode($rPermissions["allowed_pages"], true);
@@ -66,7 +68,7 @@ class TableController extends BaseAdminController {
 		} elseif ($_SERVER["REMOTE_ADDR"] == "127.0.0.1" && isset(RequestManager::getAll()["api_user_id"])) {
 			$rIsAPI = true;
 			require_once MAIN_HOME . "bootstrap.php";
-			XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+			\XC_Bootstrap::boot(\XC_Bootstrap::CONTEXT_ADMIN);
 			$rUserInfo = UserRepository::getRegisteredUserById(RequestManager::getAll()["api_user_id"]);
 			$rPermissions = AuthRepository::getPermissions($rUserInfo["member_group_id"]);
 			$rPermissions["advanced"] = json_decode($rPermissions["allowed_pages"], true);
