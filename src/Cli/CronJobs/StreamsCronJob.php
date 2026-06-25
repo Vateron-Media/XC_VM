@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\Stream\StreamProcess;

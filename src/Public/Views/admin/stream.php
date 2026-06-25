@@ -1,6 +1,7 @@
 <div class="wrapper boxed-layout-ext"
 	<?php
 
+use XcVm\Streaming\TS;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Bouquet\BouquetService;

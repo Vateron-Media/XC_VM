@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Streaming\Auth;
+
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Logging\DatabaseLogger;
 /**
@@ -14,7 +16,7 @@ use XcVm\Core\Logging\DatabaseLogger;
  * @package XC_VM_Streaming_Auth
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -46,7 +48,7 @@ class StreamAuthMiddleware {
         }
 
         if (!empty($rSettings['send_unique_header'])) {
-            $rExpires = new DateTime('+6 months', new DateTimeZone('GMT'));
+            $rExpires = new \DateTime('+6 months', new \DateTimeZone('GMT'));
             header('Set-Cookie: ' . $rSettings['send_unique_header'] . '=' . Encryption::randomString(11) . '; Domain=' . $rSettings['send_unique_header_domain'] . '; Expires=' . $rExpires->format(DATE_RFC2822) . '; Path=/; Secure; HttpOnly; SameSite=none');
         }
     }

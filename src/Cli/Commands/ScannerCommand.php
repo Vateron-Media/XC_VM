@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Streaming\Codec\FfmpegPaths;
+use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Http\CurlClient;

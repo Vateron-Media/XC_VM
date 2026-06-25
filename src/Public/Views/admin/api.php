@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Streaming\Codec\FfmpegPaths;
+use XcVm\Streaming\Health\ProcessChecker;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\User\UserService;

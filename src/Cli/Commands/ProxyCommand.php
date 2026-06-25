@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Streaming\Codec\FfmpegPaths;
+use XcVm\Streaming\TS;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Config\SettingsManager;

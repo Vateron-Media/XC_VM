@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\TS;
 use XcVm\Domain\Epg\EPG;
 /**
  * Коды ошибок

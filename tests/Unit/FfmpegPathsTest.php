@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\Codec\FfmpegPaths;
 use PHPUnit\Framework\TestCase;
 
 final class FfmpegPathsTest extends TestCase {
@@ -22,7 +23,7 @@ final class FfmpegPathsTest extends TestCase {
 	}
 
 	private function resetFfmpegPaths() {
-		$reflection = new ReflectionClass('FfmpegPaths');
+		$reflection = new ReflectionClass(FfmpegPaths::class);
 		foreach (array('cpu', 'gpu', 'probe') as $propertyName) {
 			$property = $reflection->getProperty($propertyName);
 			$property->setAccessible(true);

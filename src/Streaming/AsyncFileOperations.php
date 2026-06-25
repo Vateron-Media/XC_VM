@@ -1,15 +1,17 @@
 <?php
 
+namespace XcVm\Streaming;
+
 /**
  * AsyncFileOperations PHP class – non-blocking filesystem utilities
  *
  * @package VateronMedia_AsyncFileOperations
  * @author Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link https://github.com/Vateron-Media/XC_VM
+ * @link https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  *
- * A PHP class created specifically for the XC_VM project to perform
+ * A PHP class created specifically for the \XC_VM project to perform
  * efficient non-blocking file system operations.
  *
  * The class replaces CPU-heavy polling and blocking sleep() calls with
@@ -103,7 +105,7 @@ class AsyncFileOperations {
 
             @fclose($inotify);
             return false;
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return self::awaitFileWithPolling($file, $maxRetries, $delayMs);
         }
     }

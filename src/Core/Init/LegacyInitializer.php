@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Init;
+use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\Stream\CategoryService;
@@ -71,7 +72,7 @@ class LegacyInitializer {
 			SettingsManager::update('on_demand_wait_time', 15);
 		}
 
-		\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'));
+		\XcVm\Streaming\Codec\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'));
 
 		if (!$rUseCache) {
 			\XcVm\Domain\Server\ServerRepository::getAll();
@@ -154,7 +155,7 @@ class LegacyInitializer {
 			$GLOBALS['rSettings']['on_demand_wait_time'] = 15;
 		}
 
-		\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu']);
+		\XcVm\Streaming\Codec\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu']);
 
 		$GLOBALS['rCached'] = \XcVm\Infrastructure\Cache\CacheReader::isReady($GLOBALS['rSettings']);
 		$GLOBALS['rServers'] = \XcVm\Infrastructure\Cache\CacheReader::get('servers');
@@ -176,9 +177,9 @@ class LegacyInitializer {
 		RequestManager::set($GLOBALS['rRequest']);
 
 		// FFmpeg paths — export to globals (streaming context)
-		$GLOBALS['rFFPROBE']    = \FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG_CPU']     = \FfmpegPaths::cpu();
-		$GLOBALS['rFFMPEG_GPU'] = \FfmpegPaths::gpu();
+		$GLOBALS['rFFPROBE']    = \XcVm\Streaming\Codec\FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG_CPU']     = \XcVm\Streaming\Codec\FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = \XcVm\Streaming\Codec\FfmpegPaths::gpu();
 
 		self::syncStreamingContainer();
 	}
@@ -192,9 +193,9 @@ class LegacyInitializer {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();
 		$GLOBALS['rServers']    = \XcVm\Domain\Server\ServerRepository::getAll();
-		$GLOBALS['rFFPROBE']    = \FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG_CPU']     = \FfmpegPaths::cpu();
-		$GLOBALS['rFFMPEG_GPU'] = \FfmpegPaths::gpu();
+		$GLOBALS['rFFPROBE']    = \XcVm\Streaming\Codec\FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG_CPU']     = \XcVm\Streaming\Codec\FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = \XcVm\Streaming\Codec\FfmpegPaths::gpu();
 	}
 
 	/**

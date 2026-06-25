@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\TS;
 use XcVm\Core\Http\Response;
 use XcVm\Core\Http\Request;
 /**

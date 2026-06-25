@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Util;
+use XcVm\Streaming\TS;
 use XcVm\Core\Process\ProcessManager;
 
 /**
