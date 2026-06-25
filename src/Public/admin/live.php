@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Server\ServerRepository;

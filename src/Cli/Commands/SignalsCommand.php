@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Config\SettingsManager;
 /**

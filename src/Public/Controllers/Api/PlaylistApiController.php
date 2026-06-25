@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\Stream\PlaylistGenerator;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\NetworkUtils;

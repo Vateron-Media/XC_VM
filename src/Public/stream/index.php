@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 /**
  * Stream gateway endpoint.
  *

@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Process\ProcessManager;

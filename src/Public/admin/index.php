@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 /**
  * Admin gateway endpoint.
  *

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\ResellerTableRenderer;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;

@@ -1192,3 +1192,17 @@ streaming/Lifecycle/ShutdownHandler.php
 streaming/Protection/ConnectionLimiter.php
 streaming/StreamingBootstrap.php
 streaming/TimeshiftClient.php
+
+# PSR-4 phase 3: Infrastructure subdirs bootstrap/cache/database/redis → PascalCase
+Infrastructure/bootstrap/StreamingRequestBootstrap.php
+Infrastructure/bootstrap/WebApiBootstrap.php
+Infrastructure/bootstrap/admin_functions_fc.php
+Infrastructure/bootstrap/admin_session_fc.php
+Infrastructure/bootstrap/player_functions.php
+Infrastructure/bootstrap/player_session.php
+Infrastructure/bootstrap/player_utility_functions.php
+Infrastructure/bootstrap/reseller_functions.php
+Infrastructure/bootstrap/reseller_session.php
+Infrastructure/cache/CacheReader.php
+Infrastructure/database/DatabaseFactory.php
+Infrastructure/redis/RedisManager.php

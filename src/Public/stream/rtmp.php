@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Security\BlocklistService;

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 namespace XcVm\Core\Auth;
+use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\NetworkUtils;
@@ -85,8 +87,8 @@ class BruteforceGuard {
      * @return object|null
      */
     private static function getDB(): ?object {
-        if (class_exists('DatabaseFactory', false) && \DatabaseFactory::get() !== null) {
-            return \DatabaseFactory::get();
+        if (class_exists('DatabaseFactory', false) && \XcVm\Infrastructure\Database\DatabaseFactory::get() !== null) {
+            return \XcVm\Infrastructure\Database\DatabaseFactory::get();
         }
         global $db;
         if (is_object($db)) {
@@ -105,7 +107,7 @@ class BruteforceGuard {
     private static function blockIP(string $ip, string $reason, bool $useCachedMode = false): void {
         if ($useCachedMode && !empty($GLOBALS['rCached'])) {
             $signalKey = (stripos($reason, 'BRUTEFORCE') !== false ? 'bruteforce_attack' : 'flood_attack');
-            \RedisManager::setSignal($signalKey . '/' . $ip, 1);
+            \XcVm\Infrastructure\Redis\RedisManager::setSignal($signalKey . '/' . $ip, 1);
         } else {
             $db = self::getDB();
             if ($db) {

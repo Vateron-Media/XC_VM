@@ -1299,6 +1299,42 @@ parameters:
 		-
 			message: '#^Comparison operation "\<" between 0 and int\<1, max\> is always true\.$#'
 			identifier: smaller.alwaysTrue
+			count: 3
+			path: src/Infrastructure/Bootstrap/player_utility_functions.php
+
+		-
+			message: '#^Function getUserSeries\(\) should return array but returns null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Infrastructure/Bootstrap/player_utility_functions.php
+
+		-
+			message: '#^Negated boolean expression is always false\.$#'
+			identifier: booleanNot.alwaysFalse
+			count: 1
+			path: src/Infrastructure/Bootstrap/reseller_functions.php
+
+		-
+			message: '#^Variable \$language might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: src/Infrastructure/Bootstrap/reseller_functions.php
+
+		-
+			message: '#^Variable \$rMobile might not be defined\.$#'
+			identifier: variable.undefined
+			count: 1
+			path: src/Infrastructure/Bootstrap/reseller_functions.php
+
+		-
+			message: '#^Variable \$rSettings might not be defined\.$#'
+			identifier: variable.undefined
+			count: 3
+			path: src/Infrastructure/Bootstrap/reseller_functions.php
+
+		-
+			message: '#^Comparison operation "\<" between 0 and int\<1, max\> is always true\.$#'
+			identifier: smaller.alwaysTrue
 			count: 1
 			path: src/Infrastructure/ResellerApiDispatcher.php
 
@@ -1349,42 +1385,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: src/Infrastructure/ResellerTableRenderer.php
-
-		-
-			message: '#^Comparison operation "\<" between 0 and int\<1, max\> is always true\.$#'
-			identifier: smaller.alwaysTrue
-			count: 3
-			path: src/Infrastructure/bootstrap/player_utility_functions.php
-
-		-
-			message: '#^Function getUserSeries\(\) should return array but returns null\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Infrastructure/bootstrap/player_utility_functions.php
-
-		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
-			count: 1
-			path: src/Infrastructure/bootstrap/reseller_functions.php
-
-		-
-			message: '#^Variable \$language might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: src/Infrastructure/bootstrap/reseller_functions.php
-
-		-
-			message: '#^Variable \$rMobile might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: src/Infrastructure/bootstrap/reseller_functions.php
-
-		-
-			message: '#^Variable \$rSettings might not be defined\.$#'
-			identifier: variable.undefined
-			count: 3
-			path: src/Infrastructure/bootstrap/reseller_functions.php
 
 		-
 			message: '#^Parameter \#1 \$prefix of function uniqid expects string, int\<0, max\> given\.$#'

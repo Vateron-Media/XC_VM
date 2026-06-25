@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\Stream\CategoryService;

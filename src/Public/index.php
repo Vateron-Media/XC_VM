@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
+use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Http\Router;
 /**
@@ -161,14 +163,14 @@ $cwdTarget = is_dir($adminDir) ? $adminDir : MAIN_HOME;
 @chdir($cwdTarget);
 
 if ($scope === 'reseller') {
-    $sessionFile    = MAIN_HOME . 'Infrastructure/bootstrap/reseller_session.php';
-    $functionsFile  = MAIN_HOME . 'Infrastructure/bootstrap/reseller_functions.php';
+    $sessionFile    = MAIN_HOME . 'Infrastructure/Bootstrap/reseller_session.php';
+    $functionsFile  = MAIN_HOME . 'Infrastructure/Bootstrap/reseller_functions.php';
 } elseif ($scope === 'player') {
-    $sessionFile    = MAIN_HOME . 'Infrastructure/bootstrap/player_session.php';
-    $functionsFile  = MAIN_HOME . 'Infrastructure/bootstrap/player_functions.php';
+    $sessionFile    = MAIN_HOME . 'Infrastructure/Bootstrap/player_session.php';
+    $functionsFile  = MAIN_HOME . 'Infrastructure/Bootstrap/player_functions.php';
 } else {
-    $sessionFile    = MAIN_HOME . 'Infrastructure/bootstrap/admin_session_fc.php';
-    $functionsFile  = MAIN_HOME . 'Infrastructure/bootstrap/admin_functions_fc.php';
+    $sessionFile    = MAIN_HOME . 'Infrastructure/Bootstrap/admin_session_fc.php';
+    $functionsFile  = MAIN_HOME . 'Infrastructure/Bootstrap/admin_functions_fc.php';
 }
 
 if ($scope === 'player') {

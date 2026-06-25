@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Init;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Bouquet\BouquetService;
@@ -141,7 +143,7 @@ class LegacyInitializer {
 		}
 
 		if (!$GLOBALS['rSettings']) {
-			$GLOBALS['rSettings'] = \CacheReader::get('settings');
+			$GLOBALS['rSettings'] = \XcVm\Infrastructure\Cache\CacheReader::get('settings');
 		}
 
 		if (!empty($GLOBALS['rSettings']['default_timezone'])) {
@@ -154,20 +156,20 @@ class LegacyInitializer {
 
 		\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu']);
 
-		$GLOBALS['rCached'] = \CacheReader::isReady($GLOBALS['rSettings']);
-		$GLOBALS['rServers'] = \CacheReader::get('servers');
-		$GLOBALS['rBlockedUA'] = \CacheReader::get('blocked_ua');
-		$GLOBALS['rBlockedISP'] = \CacheReader::get('blocked_isp');
-		$GLOBALS['rBlockedIPs'] = \CacheReader::get('blocked_ips');
-		$GLOBALS['rBlockedServers'] = \CacheReader::get('blocked_servers');
-		$GLOBALS['rAllowedIPs'] = \CacheReader::get('allowed_ips');
-		$GLOBALS['rProxies'] = \CacheReader::get('proxy_servers');
-		$GLOBALS['rBouquets'] = \CacheReader::get('bouquets') ?: array();
+		$GLOBALS['rCached'] = \XcVm\Infrastructure\Cache\CacheReader::isReady($GLOBALS['rSettings']);
+		$GLOBALS['rServers'] = \XcVm\Infrastructure\Cache\CacheReader::get('servers');
+		$GLOBALS['rBlockedUA'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_ua');
+		$GLOBALS['rBlockedISP'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_isp');
+		$GLOBALS['rBlockedIPs'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_ips');
+		$GLOBALS['rBlockedServers'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_servers');
+		$GLOBALS['rAllowedIPs'] = \XcVm\Infrastructure\Cache\CacheReader::get('allowed_ips');
+		$GLOBALS['rProxies'] = \XcVm\Infrastructure\Cache\CacheReader::get('proxy_servers');
+		$GLOBALS['rBouquets'] = \XcVm\Infrastructure\Cache\CacheReader::get('bouquets') ?: array();
 		$GLOBALS['rSegmentSettings'] = array(
 			'seg_time' => intval($GLOBALS['rSettings']['seg_time']),
 			'seg_list_size' => intval($GLOBALS['rSettings']['seg_list_size'])
 		);
-		\DatabaseFactory::connect();
+		\XcVm\Infrastructure\Database\DatabaseFactory::connect();
 
 		// Синхронизация singleton-менеджеров для классов, мигрированных с CU
 		SettingsManager::set($GLOBALS['rSettings']);

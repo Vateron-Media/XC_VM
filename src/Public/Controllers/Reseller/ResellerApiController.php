@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Infrastructure\ResellerApiDispatcher;
+use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;/**

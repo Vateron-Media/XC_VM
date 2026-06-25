@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\CategoryService;
