@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Module\Ministra\MinistraModule;
 use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Enum\ModuleState;

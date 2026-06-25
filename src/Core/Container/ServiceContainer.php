@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Container;
+use XcVm\Module\Plex\PlexService;
+use XcVm\Module\Plex\PlexModule;
 use XcVm\Core\Exception\Container\ServiceCreationException;
 use XcVm\Core\Exception\Container\CircularDependencyException;
 use XcVm\Core\Exception\Container\ContainerException;
@@ -78,7 +80,7 @@ use XcVm\Core\Config\SettingsManager;
  *           $db    = $container->get('db');
  *           $cache = $container->get('cache');
  *           $container->set('plex.service', function($c) {
- *               return new \PlexService($c->get('db'), $c->get('settings'));
+ *               return new \XcVm\Module\Plex\PlexService($c->get('db'), $c->get('settings'));
  *           });
  *       }
  *   }

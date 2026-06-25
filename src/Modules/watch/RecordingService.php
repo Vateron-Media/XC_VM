@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Watch;
+
 use XcVm\Core\Database\QueryHelper;
 /**
  * RecordingService — recording service

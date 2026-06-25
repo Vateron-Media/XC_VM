@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 /**
  * PlexAuth — plex auth
  *

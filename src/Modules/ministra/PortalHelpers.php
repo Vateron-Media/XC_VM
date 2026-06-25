@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Ministra;
+
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\Stream\StreamSorter;
@@ -735,10 +737,10 @@ class PortalHelpers {
             }
 
             if ($rStream['now_playing']) {
-                $rStartTime = new DateTime();
+                $rStartTime = new \DateTime();
                 $rStartTime->setTimestamp($rStream['now_playing']['start']);
                 $rStartTime->modify((string) $rTimeDifference . ' seconds');
-                $rEndTime = new DateTime();
+                $rEndTime = new \DateTime();
                 $rEndTime->setTimestamp($rStream['now_playing']['end']);
                 $rEndTime->modify((string) $rTimeDifference . ' seconds');
                 $rNowPlaying = $rStartTime->format('H:i') . ' - ' . $rEndTime->format('H:i') . ': ' . $rStream['now_playing']['title'];

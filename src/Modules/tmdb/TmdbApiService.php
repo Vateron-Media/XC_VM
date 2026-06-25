@@ -1,23 +1,25 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
 use XcVm\Domain\Vod\TMDbService;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Config\SettingsManager;
 /**
  * TmdbApiService
  *
- * Сервис для работы с TMDB API.
+ * Сервис для работы с \TMDB API.
  * (Назван TmdbApiService, а не TmdbService, чтобы не конфликтовать с доменным
  *  TMDbService — имена классов в PHP регистронезависимы.)
  *
  * Ответственность:
- *   - Создание экземпляра TMDB с правильной локализацией
- *   - Поиск фильмов/сериалов по названию или TMDB ID
+ *   - Создание экземпляра \TMDB с правильной локализацией
+ *   - Поиск фильмов/сериалов по названию или \TMDB ID
  *   - Получение детальной информации (getMovie, getTVShow, getSeason)
  *   - Трейлеры сериалов
  *
  * Зависимости:
- *   - includes/libs/tmdb.php (класс TMDB)
+ *   - includes/libs/tmdb.php (класс \TMDB)
  *   - includes/libs/tmdb_release.php (parserelease)
  *   - includes/admin.php (getSeriesTrailer)
  *
@@ -31,33 +33,33 @@ use XcVm\Core\Config\SettingsManager;
 class TmdbApiService {
 
     /**
-     * Создать экземпляр TMDB API-клиента
+     * Создать экземпляр \TMDB API-клиента
      *
-     * @param string      $apiKey   TMDB API key
+     * @param string      $apiKey   \TMDB API key
      * @param string|null $language Язык запроса (приоритет: явный → настройка → default)
-     * @return TMDB
+     * @return \TMDB
      */
-    public static function createClient(string $apiKey, ?string $language = null): TMDB {
+    public static function createClient(string $apiKey, ?string $language = null): \TMDB {
         if ($language !== null && strlen($language) > 0) {
-            return new TMDB($apiKey, $language);
+            return new \TMDB($apiKey, $language);
         }
 
         $settingsLang = SettingsManager::getAll()['tmdb_language'] ?? '';
         if (strlen($settingsLang) > 0) {
-            return new TMDB($apiKey, $settingsLang);
+            return new \TMDB($apiKey, $settingsLang);
         }
 
-        return new TMDB($apiKey);
+        return new \TMDB($apiKey);
     }
 
     /**
-     * Поиск по TMDB (фильмы, сериалы, эпизоды)
+     * Поиск по \TMDB (фильмы, сериалы, эпизоды)
      *
      * Поддерживает поиск:
      *   - По числовому ID (прямой getMovie/getTVShow/getSeason)
      *   - По текстовому запросу (searchMovie/searchTVShow)
      *
-     * @param string      $term     Поисковый запрос или TMDB ID
+     * @param string      $term     Поисковый запрос или \TMDB ID
      * @param string      $type     Тип: movie|series|episode
      * @param string|null $language Язык запроса
      * @param int|null    $season   Номер сезона (для episode)
@@ -72,7 +74,7 @@ class TmdbApiService {
         self::requireLibrary();
         $rTMDB = self::createClient($apiKey, $language);
 
-        // Прямой поиск по числовому TMDB ID
+        // Прямой поиск по числовому \TMDB ID
         if (is_numeric($term) && in_array($type, ['movie', 'series', 'episode'])) {
             $rResult = self::fetchByID($rTMDB, $term, $type, $season);
             if (is_array($rResult)) {
@@ -103,9 +105,9 @@ class TmdbApiService {
     }
 
     /**
-     * Получить детальную информацию о фильме/сериале по TMDB ID
+     * Получить детальную информацию о фильме/сериале по \TMDB ID
      *
-     * @param int         $id       TMDB ID
+     * @param int         $id       \TMDB ID
      * @param string      $type     Тип: movie|series
      * @param string|null $language Язык запроса
      * @return array ['result' => bool, 'data' => array|null]
@@ -141,13 +143,13 @@ class TmdbApiService {
     /**
      * Получить данные по числовому ID
      *
-     * @param TMDB     $tmdb   Экземпляр TMDB
-     * @param string   $id     TMDB ID
+     * @param \TMDB     $tmdb   Экземпляр \TMDB
+     * @param string   $id     \TMDB ID
      * @param string   $type   Тип: movie|series|episode
      * @param int|null $season Номер сезона
      * @return array|null
      */
-    private static function fetchByID(TMDB $tmdb, string $id, string $type, ?int $season): ?array {
+    private static function fetchByID(\TMDB $tmdb, string $id, string $type, ?int $season): ?array {
         if ($type === 'movie') {
             return [json_decode($tmdb->getMovie((int) $id)->getJSON(), true)];
         }
@@ -168,7 +170,7 @@ class TmdbApiService {
     }
 
     /**
-     * Подключить библиотеку TMDB (один раз)
+     * Подключить библиотеку \TMDB (один раз)
      */
     private static function requireLibrary(): void {
         static $loaded = false;

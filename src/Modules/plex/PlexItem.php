@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Util\ImageUtils;
 /**
@@ -116,7 +118,7 @@ class PlexItem {
     }
 
     /**
-     * Получить сериал по Plex UUID или TMDB ID.
+     * Получить сериал по Plex UUID или \TMDB ID.
      *
      * @param string $rPlexID
      * @param int|null $rTMDBID
@@ -186,7 +188,7 @@ class PlexItem {
     }
 
     /**
-     * Получить фильм из кэша по Plex UUID или TMDB ID.
+     * Получить фильм из кэша по Plex UUID или \TMDB ID.
      *
      * @param string $rPlexID
      * @param int|null $rTMDBID
@@ -286,7 +288,7 @@ class PlexItem {
     }
 
     /**
-     * Универсальная функция поиска TMDB ID из данных Plex.
+     * Универсальная функция поиска \TMDB ID из данных Plex.
      *
      * @param array $rContent
      * @return array ['tmdb_id' => int|null, 'language' => string|null]
@@ -396,15 +398,15 @@ class PlexItem {
                 }
 
                 $Video = $rContent['Video'];
-                echo "LOG: Movie title: {$Video['@attributes']['title']} (" . ($Video['@attributes']['year'] ?? 'No year') . ")\n";
+                echo "LOG: \Movie title: {$Video['@attributes']['title']} (" . ($Video['@attributes']['year'] ?? 'No year') . ")\n";
 
                 $rTMDBID = null;
                 $rFirstFile = null;
 
-                // TMDB ID
+                // \TMDB ID
                 $tmdb = self::getTmdbIdFromPlex($Video);
                 $rTMDBID = $tmdb['tmdb_id'];
-                echo $rTMDBID ? "LOG: TMDB ID detected: $rTMDBID\n" : "LOG: TMDB ID not found — will work without it\n";
+                echo $rTMDBID ? "LOG: \TMDB ID detected: $rTMDBID\n" : "LOG: \TMDB ID not found — will work without it\n";
 
                 $rFileArray = array('file' => null, 'size' => null, 'data' => null, 'key' => null);
 
@@ -440,7 +442,7 @@ class PlexItem {
                     $rDirectURL    = json_encode(array('http://' . $rThreadData['ip'] . ':' . $rThreadData['port'] . $rFileArray['key'] . '?X-Plex-Token=' . $rThreadData['token']), JSON_UNESCAPED_UNICODE);
 
                     if (in_array($rInternalPath, $rStreamDatabase) || in_array($rDirectURL, $rStreamDatabase)) {
-                        echo "LOG: Movie already exists in database (source match) — skipping import\n";
+                        echo "LOG: \Movie already exists in database (source match) — skipping import\n";
                     } else {
                         echo "LOG: New unique movie detected — preparing import: \"$movieTitle\"\n";
 
@@ -483,7 +485,7 @@ class PlexItem {
                             echo "LOG: No backdrop available in Plex\n";
                         }
 
-                        // Cast, Director, Genre
+                        // Cast, Director, \Genre
                         $rCast = array();
 
                         foreach (array_slice(self::makeArray($Video['Role']), 0, 5) as $rMember) {
@@ -528,7 +530,7 @@ class PlexItem {
                         );
                         $rImportArray['rating'] = floatval($Video['@attributes']['rating'] ?? $Video['@attributes']['audienceRating'] ?? 0);
 
-                        echo "LOG: Movie duration: " . $rImportArray['movie_properties']['duration'] . " | Rating: " . $rImportArray['rating'] . "\n";
+                        echo "LOG: \Movie duration: " . $rImportArray['movie_properties']['duration'] . " | Rating: " . $rImportArray['rating'] . "\n";
 
                         // Source type
                         if ($rThreadData['direct_proxy']) {
@@ -575,7 +577,7 @@ class PlexItem {
                         // Check for existing movie (upgrade logic)
                         $rUpgradeData = self::getMovie($rThreadData['uuid'], ($rThreadData['check_tmdb'] ? $rTMDBID : null));
                         if ($rUpgradeData) {
-                            echo "LOG: Movie already exists in DB (ID: {$rUpgradeData['id']})\n";
+                            echo "LOG: \Movie already exists in DB (ID: {$rUpgradeData['id']})\n";
                             if ($rUpgradeData['source'] != $rFileArray['file']) {
                                 if ($rThreadData['auto_upgrade']) {
                                     echo "LOG: Better source found → UPGRADING movie (new file: {$rFileArray['file']})\n";
@@ -610,7 +612,7 @@ class PlexItem {
                             $rInsertID = $db->last_insert_id() ?: $rImportArray['id'];
 
                             if ($rUpgradeData) {
-                                echo "LOG: Movie successfully upgraded! Stream ID: $rInsertID\n";
+                                echo "LOG: \Movie successfully upgraded! Stream ID: $rInsertID\n";
                                 foreach ($rServers as $rServerID) {
                                     $db->query('UPDATE `streams_servers` SET `bitrate` = NULL, `current_source` = NULL, `to_analyze` = 0, `pid` = NULL, `stream_started` = NULL, `stream_info` = NULL, `compatible` = 0, `video_codec` = NULL, `audio_codec` = NULL, `resolution` = NULL, `stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rInsertID, $rServerID);
                                 }
@@ -664,7 +666,7 @@ class PlexItem {
                 $rShowData = $rContent['Directory'];
                 echo "Show title: {$rShowData['@attributes']['title']}\n";
 
-                // Get TMDB ID and language
+                // Get \TMDB ID and language
                 $tmdbInfo = self::getTmdbIdFromPlex($rShowData);
                 $rTMDBID = $tmdbInfo['tmdb_id'];
                 $rLanguage = $tmdbInfo['language'];

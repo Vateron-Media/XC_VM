@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Watch;
+
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Util\AdminHelpers;

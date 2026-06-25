@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Module\Watch\WatchService;
+use XcVm\Module\Watch\RecordingService;
+use XcVm\Module\Plex\PlexService;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\User\GroupService;
 use XcVm\Domain\Stream\StreamService;

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Module\Watch\WatchService;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\GroupService;

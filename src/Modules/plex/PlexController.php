@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Domain\Server\ServerService;
 use XcVm\Domain\Bouquet\BouquetService;

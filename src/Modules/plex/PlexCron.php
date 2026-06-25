@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 use XcVm\Core\Process\Thread;
 use XcVm\Core\Process\Multithread;
 use XcVm\Core\Config\SettingsManager;

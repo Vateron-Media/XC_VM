@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Module\Ministra\PortalHandler;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\Stream\StreamSorter;

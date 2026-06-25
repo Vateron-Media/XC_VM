@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Watch;
+
 use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Util\ImageUtils;
@@ -155,7 +157,7 @@ class WatchItem {
     }
 
     /**
-     * Получить фильм из кэша по TMDB ID.
+     * Получить фильм из кэша по \TMDB ID.
      *
      * @param int $rTMDBID
      * @return array|null
@@ -167,7 +169,7 @@ class WatchItem {
     }
 
     /**
-     * Получить эпизод из кэша по TMDB ID, сезону и номеру.
+     * Получить эпизод из кэша по \TMDB ID, сезону и номеру.
      *
      * @param int $rTMDBID
      * @param int $rSeason
@@ -205,7 +207,7 @@ class WatchItem {
     }
 
     /**
-     * Получить сериал по TMDB ID.
+     * Получить сериал по \TMDB ID.
      *
      * @param int $rID
      * @return array|null
@@ -224,7 +226,7 @@ class WatchItem {
     }
 
     /**
-     * Получить URL трейлера сериала с TMDB.
+     * Получить URL трейлера сериала с \TMDB.
      *
      * @param int $rTMDBID
      * @param string|null $rLanguage
@@ -353,13 +355,13 @@ class WatchItem {
             $rYear = null;
 
             if (!empty($rThreadData['language'])) {
-                $rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], $rThreadData['language']);
+                $rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], $rThreadData['language']);
                 $rLanguage = $rThreadData['language'];
             } else {
                 if (!empty(SettingsManager::getAll()['tmdb_language'])) {
-                    $rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+                    $rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
                 } else {
-                    $rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+                    $rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
                 }
             }
             if ($rThreadData['type'] != 'movie') {
@@ -473,7 +475,7 @@ class WatchItem {
                                             }
                                         }
                                         if ($rThreadData['type'] == 'movie') {
-                                            print_r('Searching Movie: ' . $rTitle . ' Year: ' . $rSearchYear . "\n");
+                                            print_r('Searching \Movie: ' . $rTitle . ' Year: ' . $rSearchYear . "\n");
                                             $rResults = $rTMDB->searchMovie($rTitle, $rSearchYear);
                                         } else {
                                             print_r('Searching TV Show: ' . $rTitle . ' Year: ' . $rSearchYear . "\n");
@@ -932,7 +934,7 @@ class WatchItem {
                                         }
                                     }
                                     if (strlen($rImportArray['stream_display_name']) == 0) {
-                                        $rImportArray['stream_display_name'] = 'No Episode Title';
+                                        $rImportArray['stream_display_name'] = 'No \Episode Title';
                                     }
                                 }
                             }

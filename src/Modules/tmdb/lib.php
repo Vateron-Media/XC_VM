@@ -1,9 +1,11 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
 /**
- * TMDB Library Loader
+ * \TMDB Library Loader
  *
- * Прокси-файл для загрузки TMDB-библиотеки из includes/libs/.
+ * Прокси-файл для загрузки \TMDB-библиотеки из includes/libs/.
  *
  * Библиотека TMDb (includes/libs/tmdb.php + includes/libs/TMDb/)
  * остаётся на месте до полного перехода на автозагрузку.
