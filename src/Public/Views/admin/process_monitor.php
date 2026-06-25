@@ -1,3 +1,10 @@
+<?php
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Server\ServerRepository;
+?>
+<?php
+?>
 <div class="wrapper" <?= empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest' ? '' : ' style="display: none;"' ?>>
     <div class="container-fluid">
         <div class="row">
@@ -21,9 +28,6 @@
         <div class="row">
             <div class="col-12">
                 <?php 
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Domain\Server\ServerRepository;
 
 if (!$rMobile) { ?>
                     <?php if (count($rFS) > 0) { ?>

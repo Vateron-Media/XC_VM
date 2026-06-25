@@ -69,6 +69,27 @@ jobs:
       - name: Run PHP-CS-Fixer
         run: make cs
 
+  psr4-gates:
+    name: PSR-4 Regression Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        # Full history not needed, but git ls-files requires the working tree.
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      # check-procedural-use: procedural/view files must import every migrated
+      #   class they use (top-of-file `use`; PHP imports are positional).
+      # verify-lb-archive: the LoadBalancer archive must exclude privileged code
+      #   (security blocker 1 — silent rm misses after the PascalCase rename).
+      - name: Run PSR-4 gates
+        run: make gates
+
   composer-audit:
     name: Composer Security Audit
     runs-on: ubuntu-latest

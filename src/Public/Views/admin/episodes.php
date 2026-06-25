@@ -1,3 +1,12 @@
+<?php
+use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Vod\SeriesService;
+?>
+<?php
+?>
 <?
 echo '<div class="wrapper"';
 
@@ -290,9 +299,6 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
-use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
 
 if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();
