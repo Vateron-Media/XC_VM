@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsManager;
 /**

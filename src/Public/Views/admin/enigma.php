@@ -285,6 +285,8 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Config\SettingsManager;if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();
 		<?php endif; ?>

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\User\TicketRepository;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;echo '<div class="wrapper"';
 

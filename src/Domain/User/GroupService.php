@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\User;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;

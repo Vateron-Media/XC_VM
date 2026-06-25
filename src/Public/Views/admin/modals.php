@@ -1,4 +1,5 @@
-<?php if (count(get_included_files()) != 1): ?>
+<?php 
+use XcVm\Domain\Epg\EPG;if (count(get_included_files()) != 1): ?>
 	<div class="modal fade bs-streams-modal-center" tabindex="-1" role="dialog" aria-labelledby="streamViewLabel" aria-hidden="true" style="display: none;" data-id="">
 		<div class="modal-dialog modal-dialog-centered modal-xl">
 			<div class="modal-content">

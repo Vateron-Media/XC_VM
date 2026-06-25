@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsManager;

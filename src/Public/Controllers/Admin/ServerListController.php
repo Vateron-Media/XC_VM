@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 /**
  * ServerListController — список серверов (admin/servers.php).
  *

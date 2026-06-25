@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\GroupService;
 use XcVm\Core\Util\AdminHelpers;/**
  * ResellerUserController — Sub-reseller edit/create.
  *

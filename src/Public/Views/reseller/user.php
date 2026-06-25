@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Config\SettingsManager;/**
  * User (sub-reseller) — clean view template.

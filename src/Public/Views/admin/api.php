@@ -1,5 +1,25 @@
 <?php
 
+use XcVm\Domain\User\UserService;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\TicketRepository;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\ProviderService;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Line\LineRepository;
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Epg\EPG;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Util\ImageUtils;

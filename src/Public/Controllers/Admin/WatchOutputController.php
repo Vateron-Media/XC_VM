@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 /**
  * WatchOutputController — Watch Folder Logs.
  *

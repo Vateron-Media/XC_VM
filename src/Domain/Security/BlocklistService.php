@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Security;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Auth\Authorization;

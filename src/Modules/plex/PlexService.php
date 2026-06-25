@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\QueryHelper;

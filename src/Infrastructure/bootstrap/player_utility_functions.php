@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\Stream\CategoryService;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\DomainResolver;/**

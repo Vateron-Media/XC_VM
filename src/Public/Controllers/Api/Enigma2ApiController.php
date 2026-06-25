@@ -1,5 +1,9 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Auth\BruteforceGuard;

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Database\QueryHelper;

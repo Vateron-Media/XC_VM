@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Epg\EpgService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 /**

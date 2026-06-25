@@ -1,5 +1,8 @@
 <div class="wrapper boxed-layout"
     <?php 
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
     } else {

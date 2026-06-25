@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+
 use XcVm\Core\Config\SettingsManager;
 /**
  * StreamSorter — stream sorter

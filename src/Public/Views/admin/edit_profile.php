@@ -1,4 +1,5 @@
 <div class="wrapper boxed-layout" <?php 
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\SettingsManager;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 /**

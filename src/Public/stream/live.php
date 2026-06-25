@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Logging\DatabaseLogger;
 /**

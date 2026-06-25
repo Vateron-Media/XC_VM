@@ -1,5 +1,9 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Config\SettingsManager;

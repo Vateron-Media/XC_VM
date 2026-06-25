@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\AdminHelpers;
 /**
  * RtmpIpEditController — add/edit RTMP IP.

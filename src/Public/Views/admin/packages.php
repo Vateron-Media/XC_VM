@@ -1,4 +1,5 @@
 <div class="wrapper boxed-layout-ext" <?php 
+use XcVm\Domain\Line\PackageService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 											echo ' style="display: none;"';

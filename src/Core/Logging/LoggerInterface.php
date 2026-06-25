@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Logging;
+use XcVm\Domain\Epg\EPG;
 
 /**
  * Контракт логирования

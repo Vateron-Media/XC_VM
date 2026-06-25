@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Epg\EPG;
 /**
  * EpgListController — EPG Files (admin/epgs.php).
  *

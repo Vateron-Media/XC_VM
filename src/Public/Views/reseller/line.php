@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Domain\User\UserRepository;/**
  * Line — clean view template.
  * Variables from controller: $rLine, $rOrigPackage, $rPackages
  * ViewGlobals: $rUserInfo, $rPermissions, $rSettings, $rGenTrials, $language, $rRequest

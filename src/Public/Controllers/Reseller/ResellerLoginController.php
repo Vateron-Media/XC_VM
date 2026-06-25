@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\User\ResellerAPI;
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;/**

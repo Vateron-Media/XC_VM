@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
 /**
  * SeriesMassController — массовое редактирование сериалов.
  *

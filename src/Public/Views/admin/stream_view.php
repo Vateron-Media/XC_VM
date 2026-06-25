@@ -529,6 +529,8 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
+use XcVm\Domain\Stream\StreamService;
+use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;

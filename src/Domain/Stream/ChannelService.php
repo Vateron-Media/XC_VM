@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Vod\SeriesService;
+
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\CurlClient;
@@ -263,7 +265,7 @@ class StreamProcess {
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
 					if (!empty($rGPUOptions)) {
-						$rFFProbeOutput = FFprobeRunner::probeStream($rSourcePath);
+						$rFFProbeOutput = \FFprobeRunner::probeStream($rSourcePath);
 						if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
 							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
 						}
@@ -311,7 +313,7 @@ class StreamProcess {
 			$rMonitor = intval($rStreamServer['monitor_pid'] ?? 0);
 		}
 
-		if (0 < $rMonitor && ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
+		if (0 < $rMonitor && \ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
 			posix_kill($rMonitor, 9);
 		}
 
@@ -323,7 +325,7 @@ class StreamProcess {
 			$rPID = intval($rStreamServer['pid'] ?? 0);
 		}
 
-		if (0 < $rPID && ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID)) {
+		if (0 < $rPID && \ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID)) {
 			posix_kill($rPID, 9);
 		}
 
@@ -541,7 +543,7 @@ class StreamProcess {
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = '';
 					if (!empty($rGPUOptions)) {
-						$rFFProbeOutput = FFprobeRunner::probeStream($rMoviePath);
+						$rFFProbeOutput = \FFprobeRunner::probeStream($rMoviePath);
 						if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
 							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
 						}
@@ -918,7 +920,7 @@ class StreamProcess {
 				}
 				if (!($rStream['server_info']['on_demand'] && $rLLOD)) {
 					if (!isset($rFFProbeOutput['codecs'])) {
-						$rFFProbeOutput = FFprobeRunner::parseFFProbe($rFFProbeOutput);
+						$rFFProbeOutput = \FFprobeRunner::parseFFProbe($rFFProbeOutput);
 					}
 
 					if (empty($rFFProbeOutput)) {

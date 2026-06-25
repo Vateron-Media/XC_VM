@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Bouquet\BouquetService;
 /**
  * PlexAddController — Add/Edit Plex Library.
  *

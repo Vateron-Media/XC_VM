@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;

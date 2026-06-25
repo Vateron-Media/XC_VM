@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;

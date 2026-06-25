@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Security\BlocklistService;
 /**
  * IspEditController — add/edit blocked ISP.
  *

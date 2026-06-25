@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
 use XcVm\Core\Config\SettingsManager;
 echo '<div class="wrapper boxed-layout"';
 

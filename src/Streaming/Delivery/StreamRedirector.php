@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Bouquet\BouquetService;
 /**
  * StreamRedirector — stream redirector
  *

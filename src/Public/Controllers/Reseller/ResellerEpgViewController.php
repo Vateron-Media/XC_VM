@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Config\SettingsManager;/**
  * ResellerEpgViewController — EPG preview.
  *

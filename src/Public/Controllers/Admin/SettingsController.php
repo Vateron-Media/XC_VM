@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Config\SettingsManager;
 /**

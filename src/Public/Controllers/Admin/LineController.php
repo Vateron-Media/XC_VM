@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;

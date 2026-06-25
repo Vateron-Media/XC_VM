@@ -1,6 +1,9 @@
 <div class="wrapper boxed-layout-ext"
 	<?php
 
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Epg\EPG;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;	if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
 		echo ' style="display: none;"';

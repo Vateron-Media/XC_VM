@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Init\LegacyInitializer;

@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Domain\Bouquet;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Line\LineService;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Auth\Authorization;

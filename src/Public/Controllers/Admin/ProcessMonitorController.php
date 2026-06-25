@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\RequestManager;
 /**

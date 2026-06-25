@@ -1,6 +1,9 @@
 <?php
 
 namespace XcVm\Core\Init;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Cache\FileCache;
 
@@ -69,7 +72,7 @@ class LegacyInitializer {
 		\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'));
 
 		if (!$rUseCache) {
-			\ServerRepository::getAll();
+			\XcVm\Domain\Server\ServerRepository::getAll();
 			self::generateCron();
 		}
 
@@ -186,7 +189,7 @@ class LegacyInitializer {
 	public static function exportGlobals(): void {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();
-		$GLOBALS['rServers']    = \ServerRepository::getAll();
+		$GLOBALS['rServers']    = \XcVm\Domain\Server\ServerRepository::getAll();
 		$GLOBALS['rFFPROBE']    = \FfmpegPaths::probe();
 		$GLOBALS['rFFMPEG_CPU']     = \FfmpegPaths::cpu();
 		$GLOBALS['rFFMPEG_GPU'] = \FfmpegPaths::gpu();
@@ -202,9 +205,9 @@ class LegacyInitializer {
 		$rContainer->set('core.request', RequestManager::getAll());
 		$rContainer->set('core.config', ConfigReader::getAll());
 		$rContainer->set('core.settings', SettingsManager::getAll());
-		$rContainer->set('core.servers', \ServerRepository::getAll());
-		$rContainer->set('core.bouquets', \BouquetService::getAll());
-		$rContainer->set('core.categories', \CategoryService::getFromDatabase());
+		$rContainer->set('core.servers', \XcVm\Domain\Server\ServerRepository::getAll());
+		$rContainer->set('core.bouquets', \XcVm\Domain\Bouquet\BouquetService::getAll());
+		$rContainer->set('core.categories', \XcVm\Domain\Stream\CategoryService::getFromDatabase());
 	}
 
 	/**

@@ -1,5 +1,12 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Device\EnigmaService;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Database\Database;

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Vod\TMDbService;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;

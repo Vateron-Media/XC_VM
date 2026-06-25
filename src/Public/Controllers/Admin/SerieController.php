@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Http\RequestManager;
 /**
  * SerieController — редактирование/добавление сериала.

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Epg\EPG;
 /**
  * Коды ошибок
  *

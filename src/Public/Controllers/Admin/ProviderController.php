@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\ProviderService;
 /**
  * ProviderController — provider controller
  *

@@ -1,5 +1,28 @@
 <?php
 
+use XcVm\Domain\User\UserService;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\Stream\StreamService;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\RadioService;
+use XcVm\Domain\Stream\ProviderService;
+use XcVm\Domain\Stream\ProfileService;
+use XcVm\Domain\Stream\ChannelService;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Server\SettingsService;
+use XcVm\Domain\Server\ServerService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Vod\TMDbService;
+use XcVm\Domain\Vod\SeriesService;
+use XcVm\Domain\Vod\MovieService;
+use XcVm\Domain\Vod\EpisodeService;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Backup\BackupService;

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Epg;
+
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Parsing\XmlStringStreamer;
@@ -305,9 +307,9 @@ class EPG {
 			$this->rEPGSource = $rXML;
 			$this->rValid     = true;
 			$this->log("[EPG] EPG source loaded successfully: $rSource");
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			FileLogger::log('epg', 'EPG failed to process: ' . $rSource);
-			$this->log("[EPG] Exception while loading EPG: " . $e->getMessage() . " | Source: $rSource");
+			$this->log("[EPG] \Exception while loading EPG: " . $e->getMessage() . " | Source: $rSource");
 		}
 	}
 }

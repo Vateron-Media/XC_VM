@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamService;
+use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Core\Http\RequestManager;
 /**
  * ArchiveController — TV Archive / Recordings.

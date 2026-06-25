@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Config\SettingsManager;

@@ -1,5 +1,11 @@
 <?php
 
+use XcVm\Domain\Stream\StreamService;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Epg\EPG;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Vod\MovieService;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;if (isset(RequestManager::getAll()['type'])) {
     $rType = intval(RequestManager::getAll()['type']);

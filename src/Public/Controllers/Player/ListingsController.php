@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Epg\EpgService;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\DomainResolver;

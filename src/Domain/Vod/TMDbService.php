@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Vod;
+
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
@@ -39,45 +41,45 @@ class TMDbService {
 		return self::$db;
 	}
 	/**
-	 * Fetch movie metadata from TMDB.
+	 * Fetch movie metadata from \TMDB.
 	 *
-	 * @param int $rID TMDB movie id.
+	 * @param int $rID \TMDB movie id.
 	 * @return array|null Movie metadata, or null on failure.
 	 */
 	public static function getMovie($rID) {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		return ($rTMDB->getMovie($rID) ?: null);
 	}
 
 	/**
-	 * Fetch series metadata from TMDB.
+	 * Fetch series metadata from \TMDB.
 	 *
-	 * @param int $rID TMDB series id.
+	 * @param int $rID \TMDB series id.
 	 * @return array|null Series metadata, or null on failure.
 	 */
 	public static function getSeries($rID) {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		return (json_decode($rTMDB->getTVShow($rID)->getJSON(), true) ?: null);
 	}
 
 	/**
-	 * Fetch season metadata (with episodes) from TMDB.
+	 * Fetch season metadata (with episodes) from \TMDB.
 	 *
-	 * @param int $rID     TMDB series id.
+	 * @param int $rID     \TMDB series id.
 	 * @param int $rSeason Season number.
 	 * @return array|null Season metadata, or null on failure.
 	 */
@@ -85,18 +87,18 @@ class TMDbService {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
 	}
 
 	/**
-	 * Fetch a series trailer URL/key from TMDB.
+	 * Fetch a series trailer URL/key from \TMDB.
 	 *
-	 * @param int         $rTMDBID   TMDB series id.
+	 * @param int         $rTMDBID   \TMDB series id.
 	 * @param string|null $rLanguage Preferred language, or null for default.
 	 * @return string|null Trailer reference, or null if none.
 	 */
@@ -125,9 +127,9 @@ class TMDbService {
 	}
 
 	/**
-	 * Fetch episode still images from TMDB.
+	 * Fetch episode still images from \TMDB.
 	 *
-	 * @param int $rTMDBID  TMDB series id.
+	 * @param int $rTMDBID  \TMDB series id.
 	 * @param int $rSeason  Season number.
 	 * @param int $rEpisode Episode number.
 	 * @return array Still image references.
@@ -144,7 +146,7 @@ class TMDbService {
 	}
 
 	/**
-	 * Import TMDB genres as VOD categories.
+	 * Import \TMDB genres as VOD categories.
 	 *
 	 * @return void
 	 */
@@ -153,9 +155,9 @@ class TMDbService {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		$rCurrentCats = array('movie' => array(), 'series' => array());
@@ -190,7 +192,7 @@ class TMDbService {
 	}
 
 	/**
-	 * Refresh the TMDB genre → category mappings.
+	 * Refresh the \TMDB genre → category mappings.
 	 *
 	 * @return void
 	 */
@@ -199,9 +201,9 @@ class TMDbService {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		$rCurrentCats = array(1 => array(), 2 => array());

@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Config\SettingsManager;/**
  * Player functions bootstrap.

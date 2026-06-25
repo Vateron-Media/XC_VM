@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\CategoryService;
 use XcVm\Core\Http\RequestManager;
 /**
  * MovieController — редактирование/добавление фильма.

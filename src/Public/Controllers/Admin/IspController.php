@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Security\BlocklistService;
 /**
  * IspController — Blocked ISP's (admin/isps.php).
  *

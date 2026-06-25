@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Device\MagService;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;/**
  * ResellerMagController — MAG device edit/create.

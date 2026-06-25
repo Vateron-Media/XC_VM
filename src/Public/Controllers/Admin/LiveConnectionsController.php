@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Core\Http\RequestManager;
 /**
  * LiveConnectionsController — активные подключения.

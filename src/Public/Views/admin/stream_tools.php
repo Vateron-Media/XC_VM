@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Config\SettingsManager;$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
 $xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';

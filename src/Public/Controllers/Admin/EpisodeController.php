@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 /**

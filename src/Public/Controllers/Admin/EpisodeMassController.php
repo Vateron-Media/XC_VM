@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Vod\SeriesService;
 /**
  * EpisodeMassController — массовое редактирование эпизодов.
  *

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Device\EnigmaService;
 use XcVm\Core\Http\RequestManager;
 /**
  * Контроллер редактирования Enigma-устройства (admin/enigma.php)

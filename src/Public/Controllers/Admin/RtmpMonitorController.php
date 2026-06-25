@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Http\RequestManager;
 /**
  * RtmpMonitorController — мониторинг RTMP.
