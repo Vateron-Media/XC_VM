@@ -1,6 +1,8 @@
 #!/home/xc_vm/bin/php/bin/php
 <?php
 
+use XcVm\Module\Watch\WatchItem;
+use XcVm\Module\Watch\WatchCron;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Http\Router;

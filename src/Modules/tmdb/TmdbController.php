@@ -1,13 +1,15 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 /**
- * TMDB Module Controller
+ * \TMDB Module Controller
  *
- * Обрабатывает API-маршруты модуля TMDB:
+ * Обрабатывает API-маршруты модуля \TMDB:
  *   - search()   — поиск фильмов/сериалов/эпизодов (action: tmdb_search)
- *   - details()  — детальная информация по TMDB ID (action: tmdb)
+ *   - details()  — детальная информация по \TMDB ID (action: tmdb)
  *
  * @see TmdbApiService
  * @see TmdbModule

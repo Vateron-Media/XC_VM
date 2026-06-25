@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Module\Watch\WatchService;
+use XcVm\Module\Watch\WatchModule;
 use XcVm\Cli\Commands\StatusCommand;
 use XcVm\Cli\Commands\StartupCommand;
 use XcVm\Cli\CommandRegistry;

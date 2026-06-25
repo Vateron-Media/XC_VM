@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Watch;
+
 use XcVm\Cli\CommandInterface;
 /**
  * WatchItemCommand — watch item command
@@ -18,7 +20,7 @@ class WatchItemCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Process single Watch item (TMDB search/update)';
+		return 'Process single Watch item (\TMDB search/update)';
 	}
 
 	public function execute(array $rArgs): int {
@@ -51,7 +53,7 @@ class WatchItemCommand implements CommandInterface {
 			@unlink(WATCH_TMP_PATH . @getmypid() . '.wpid');
 		});
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-		require MAIN_HOME . 'Modules/tmdb/lib/Release.php';
+		require MAIN_HOME . 'Modules/tmdb/lib/\Release.php';
 
 		$rPayload = trim((string) $rArgs[0]);
 		$rDecodedPayload = base64_decode($rPayload, true);

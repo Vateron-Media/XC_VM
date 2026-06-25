@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
 use XcVm\Domain\Vod\TMDbService;
 use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Util\ImageUtils;
@@ -9,11 +11,11 @@ use XcVm\Core\Config\SettingsManager;
 /**
  * TmdbCron
  *
- * Крон обработки очереди TMDB (watch_refresh).
+ * Крон обработки очереди \TMDB (watch_refresh).
  *
  * Ответственность:
  *   - Обработка очереди watch_refresh (фильмы, сериалы, эпизоды)
- *   - Поиск совпадений в TMDB API
+ *   - Поиск совпадений в \TMDB API
  *   - Обновление метаданных в БД
  *
  * @package XC_VM_Module_Tmdb
@@ -39,37 +41,37 @@ class TmdbCron {
 
 
     /**
-     * Создать TMDB-клиент с корректным языком.
+     * Создать \TMDB-клиент с корректным языком.
      *
      * Приоритет: язык потока → глобальная настройка → без языка.
      *
      * @param string|null $streamLang Язык потока (tmdb_language)
-     * @return TMDB
+     * @return \TMDB
      */
-    private static function createTmdbClient(?string $streamLang = null): TMDB {
+    private static function createTmdbClient(?string $streamLang = null): \TMDB {
         if (0 < strlen($streamLang)) {
-            return new TMDB(SettingsManager::getAll()['tmdb_api_key'], $streamLang);
+            return new \TMDB(SettingsManager::getAll()['tmdb_api_key'], $streamLang);
         }
         if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-            return new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+            return new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
         }
-        return new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+        return new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
     }
 
     /**
-     * Найти лучшее совпадение в TMDB по названию.
+     * Найти лучшее совпадение в \TMDB по названию.
      *
      * Выполняет поиск дважды: сначала с годом, затем без.
-     * Возвращает TMDB ID или 0.
+     * Возвращает \TMDB ID или 0.
      *
-     * @param TMDB        $tmdb       Инстанс клиента
+     * @param \TMDB        $tmdb       Инстанс клиента
      * @param string      $title      Основной заголовок
      * @param string|null $altTitle    Альтернативный заголовок
      * @param string|null $year       Год выпуска
      * @param string      $searchType 'movie' или 'tv'
-     * @return int TMDB ID (0 — не найден)
+     * @return int \TMDB ID (0 — не найден)
      */
-    private static function findBestMatch(TMDB $tmdb, string $title, ?string $altTitle, ?string $year, string $searchType = 'movie'): int {
+    private static function findBestMatch(\TMDB $tmdb, string $title, ?string $altTitle, ?string $year, string $searchType = 'movie'): int {
         $rMatch = null;
         $rMatches = array();
 
@@ -150,7 +152,7 @@ class TmdbCron {
     /**
      * Обработать обновление фильма (type=1).
      *
-     * Ищет в TMDB по названию/файлу, загружает метаданные,
+     * Ищет в \TMDB по названию/файлу, загружает метаданные,
      * обновляет streams и watch_refresh.
      *
      * @param array $row Строка из watch_refresh
@@ -167,7 +169,7 @@ class TmdbCron {
         $rStream = $db->get_row();
         $rTMDB = self::createTmdbClient($rStream['tmdb_language']);
 
-        /* --- Определяем TMDB ID --- */
+        /* --- Определяем \TMDB ID --- */
         if ($rStream['tmdb_id']) {
             $rTMDBID = $rStream['tmdb_id'];
         } else {
@@ -178,7 +180,7 @@ class TmdbCron {
             }
         }
 
-        /* --- Если TMDB ID неизвестен — ищем --- */
+        /* --- Если \TMDB ID неизвестен — ищем --- */
         if ($rTMDBID == 0) {
             $rFilename = pathinfo(json_decode($rStream['stream_source'], true)[0])['filename'];
             foreach (array($rFilename, $rStream['stream_display_name']) as $rStreamTitle) {
@@ -339,7 +341,7 @@ class TmdbCron {
     /**
      * Обработать обновление сериала (type=2).
      *
-     * Ищет в TMDB по названию, загружает метаданные шоу,
+     * Ищет в \TMDB по названию, загружает метаданные шоу,
      * обновляет streams_series и watch_refresh.
      *
      * @param array $row           Строка из watch_refresh
@@ -358,7 +360,7 @@ class TmdbCron {
         $rTMDB = self::createTmdbClient($rStream['tmdb_language']);
         $rTMDBID = intval($rStream['tmdb_id']);
 
-        /* --- Если TMDB ID неизвестен — ищем --- */
+        /* --- Если \TMDB ID неизвестен — ищем --- */
         if ($rTMDBID == 0) {
             $rFilename = $rStream['title'];
             $rRelease = AdminHelpers::parserelease($rFilename);
@@ -478,7 +480,7 @@ class TmdbCron {
     /**
      * Обработать обновление эпизода (type=3).
      *
-     * Получает данные сезона/эпизода из TMDB,
+     * Получает данные сезона/эпизода из \TMDB,
      * обновляет streams, streams_episodes и watch_refresh.
      *
      * @param array $row           Строка из watch_refresh
@@ -616,14 +618,14 @@ class TmdbCron {
     /**
      * Основная точка входа — обработка всей очереди watch_refresh.
      *
-     * Подключает библиотеки TMDB, выбирает записи из очереди
+     * Подключает библиотеки \TMDB, выбирает записи из очереди
      * и делегирует обработку по типу.
      */
     public static function run(): void {
         $db = self::db();
 
         require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-        require_once MAIN_HOME . 'Modules/tmdb/lib/Release.php';
+        require_once MAIN_HOME . 'Modules/tmdb/lib/\Release.php';
 
         $rUpdateSeries = array();
 

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Module\Plex\PlexRepository;
 /**
  * AdminPlexController — Plex Sync listing (admin wrapper).
  *

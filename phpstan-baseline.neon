@@ -1429,7 +1429,7 @@ parameters:
 			path: src/Modules/plex/PlexCron.php
 
 		-
-			message: '#^Method PlexCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Plex\\PlexCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/plex/PlexCron.php
@@ -1447,25 +1447,25 @@ parameters:
 			path: src/Modules/plex/PlexItem.php
 
 		-
-			message: '#^Method PlexItem\:\:getEpisode\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Plex\\PlexItem\:\:getEpisode\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 2
 			path: src/Modules/plex/PlexItem.php
 
 		-
-			message: '#^Method PlexItem\:\:getMovie\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Plex\\PlexItem\:\:getMovie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/plex/PlexItem.php
 
 		-
-			message: '#^Method PlexItem\:\:getSerie\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Plex\\PlexItem\:\:getSerie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/plex/PlexItem.php
 
 		-
-			message: '#^Method PlexItem\:\:getSeriesByID\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Plex\\PlexItem\:\:getSeriesByID\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/plex/PlexItem.php
@@ -1681,7 +1681,7 @@ parameters:
 			path: src/Modules/watch/WatchController.php
 
 		-
-			message: '#^Method WatchCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Watch\\WatchCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/watch/WatchCron.php
@@ -1699,25 +1699,25 @@ parameters:
 			path: src/Modules/watch/WatchItem.php
 
 		-
-			message: '#^Method WatchItem\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Watch\\WatchItem\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/watch/WatchItem.php
 
 		-
-			message: '#^Method WatchItem\:\:getEpisode\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Watch\\WatchItem\:\:getEpisode\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 2
 			path: src/Modules/watch/WatchItem.php
 
 		-
-			message: '#^Method WatchItem\:\:getMovie\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Watch\\WatchItem\:\:getMovie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/watch/WatchItem.php
 
 		-
-			message: '#^Method WatchItem\:\:getSerie\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Module\\Watch\\WatchItem\:\:getSerie\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Modules/watch/WatchItem.php

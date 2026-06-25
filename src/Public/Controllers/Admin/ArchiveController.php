@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Module\Watch\WatchService;
 use XcVm\Domain\Stream\StreamService;
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Core\Http\RequestManager;

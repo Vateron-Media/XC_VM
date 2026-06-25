@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 /**
  * PlexRepository — plex repository
  *

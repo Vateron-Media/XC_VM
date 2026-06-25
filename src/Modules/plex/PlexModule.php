@@ -8,13 +8,13 @@ use XcVm\Core\Module\BaseModule;
 
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
-use PlexService;
-use PlexRepository;
-use PlexController;
-use PlexCron;
-use PlexItem;
-use PlexCronJob;
-use PlexItemCommand;
+use XcVm\Module\Plex\PlexService;
+use XcVm\Module\Plex\PlexRepository;
+use XcVm\Module\Plex\PlexController;
+use XcVm\Module\Plex\PlexCron;
+use XcVm\Module\Plex\PlexItem;
+use XcVm\Module\Plex\PlexCronJob;
+use XcVm\Module\Plex\PlexItemCommand;
 
 /**
  * Plex Module

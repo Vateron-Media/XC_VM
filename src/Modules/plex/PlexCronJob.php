@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 use XcVm\Cli\CronTrait;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;

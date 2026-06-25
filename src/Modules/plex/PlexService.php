@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Plex;
+
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\ApiClient;

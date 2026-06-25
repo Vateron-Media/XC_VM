@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Ministra;
+
 use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Core\Util\Encryption;
@@ -637,10 +639,10 @@ class PortalHandler {
 
                         for ($n = 0; $n < count($rEPGData); $n++) {
                             if ($rEPGData[$n]['end'] >= time()) {
-                                $rStartTime = new DateTime();
+                                $rStartTime = new \DateTime();
                                 $rStartTime->setTimestamp($rEPGData[$n]['start']);
                                 $rStartTime->modify((string) $rTimeDifference . ' seconds');
-                                $rEndTime = new DateTime();
+                                $rEndTime = new \DateTime();
                                 $rEndTime->setTimestamp($rEPGData[$n]['end']);
                                 $rEndTime->modify((string) $rTimeDifference . ' seconds');
                                 $rEPG['js'][$i]['id'] = $rEPGData[$n]['id'];
@@ -1221,10 +1223,10 @@ class PortalHandler {
                         $open = 1;
                     }
 
-                    $rStartTime = new DateTime();
+                    $rStartTime = new \DateTime();
                     $rStartTime->setTimestamp($rProgram[$i]['start']);
                     $rStartTime->modify((string) $rTimeDifference . ' seconds');
-                    $rEndTime = new DateTime();
+                    $rEndTime = new \DateTime();
                     $rEndTime->setTimestamp($rProgram[$i]['end']);
                     $rEndTime->modify((string) $rTimeDifference . ' seconds');
                     $rData[$i]['id'] = $rProgram[$i]['id'] . '_' . $rChannelID;
@@ -1293,10 +1295,10 @@ class PortalHandler {
                         } else {
                             $rRow['start_timestamp'] = $rRow['start'];
                             $rRow['stop_timestamp'] = $rRow['end'];
-                            $rStartTime = new DateTime();
+                            $rStartTime = new \DateTime();
                             $rStartTime->setTimestamp($rRow['start']);
                             $rStartTime->modify((string) $rTimeDifference . ' seconds');
-                            $rEndTime = new DateTime();
+                            $rEndTime = new \DateTime();
                             $rEndTime->setTimestamp($rRow['end']);
                             $rEndTime->modify((string) $rTimeDifference . ' seconds');
                             $rOutput['js'][] = array('start_timestamp' => $rStartTime->getTimestamp(), 'stop_timestamp' => $rEndTime->getTimestamp(), 'name' => $rRow['title']);

@@ -1,13 +1,15 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
 use XcVm\Core\Config\SettingsManager;
 /**
  * TmdbPopularCron
  *
- * Крон сбора популярных фильмов/сериалов из TMDB.
+ * Крон сбора популярных фильмов/сериалов из \TMDB.
  *
  * Ответственность:
- *   - Сбор популярных фильмов и сериалов из TMDB API
+ *   - Сбор популярных фильмов и сериалов из \TMDB API
  *   - Сопоставление с локальной БД (streams, streams_series)
  *   - Сбор «похожих» (similar) фильмов/сериалов
  *   - Сбор популярных live-потоков по активности
@@ -36,16 +38,16 @@ class TmdbPopularCron {
 
 
     /**
-     * Собрать популярные фильмы и сериалы из TMDB.
+     * Собрать популярные фильмы и сериалы из \TMDB.
      *
-     * Сопоставляет TMDB ID с локальными записями.
+     * Сопоставляет \TMDB ID с локальными записями.
      *
-     * @param TMDB  $tmdb    Инстанс клиента
+     * @param \TMDB  $tmdb    Инстанс клиента
      * @param array $tmdbIDs Маппинг tmdb_id => local_id
      * @param int   $pages   Количество страниц для запроса
      * @return array ['movies' => int[], 'series' => int[]]
      */
-    private static function collectPopular(TMDB $tmdb, array $tmdbIDs, int $pages = 100): array {
+    private static function collectPopular(\TMDB $tmdb, array $tmdbIDs, int $pages = 100): array {
         $rReturn = ['movies' => [], 'series' => []];
 
         // Popular movies
@@ -74,9 +76,9 @@ class TmdbPopularCron {
     /**
      * Заполнить поле `similar` для фильмов.
      *
-     * @param TMDB $tmdb Инстанс клиента
+     * @param \TMDB $tmdb Инстанс клиента
      */
-    private static function processSimilarMovies(TMDB $tmdb): void {
+    private static function processSimilarMovies(\TMDB $tmdb): void {
         $db = self::db();
 
         $db->query(
@@ -115,9 +117,9 @@ class TmdbPopularCron {
     /**
      * Заполнить поле `similar` для сериалов.
      *
-     * @param TMDB $tmdb Инстанс клиента
+     * @param \TMDB $tmdb Инстанс клиента
      */
-    private static function processSimilarSeries(TMDB $tmdb): void {
+    private static function processSimilarSeries(\TMDB $tmdb): void {
         $db = self::db();
 
         $db->query(
@@ -180,7 +182,7 @@ class TmdbPopularCron {
      * Главная точка входа крона.
      *
      * Выполняет:
-     *   1. Сбор популярных фильмов/сериалов из TMDB
+     *   1. Сбор популярных фильмов/сериалов из \TMDB
      *   2. Заполнение similar для фильмов
      *   3. Заполнение similar для сериалов
      *   4. Сбор популярных live-потоков
@@ -193,8 +195,8 @@ class TmdbPopularCron {
         if (strlen(SettingsManager::getAll()['tmdb_api_key'] ?? '') > 0) {
             $lang = SettingsManager::getAll()['tmdb_language'] ?? '';
             $rTMDB = $lang !== ''
-                ? new TMDB(SettingsManager::getAll()['tmdb_api_key'], $lang)
-                : new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+                ? new \TMDB(SettingsManager::getAll()['tmdb_api_key'], $lang)
+                : new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 
             $rPages = 100;
             $rTMDBIDs = [];
@@ -229,7 +231,7 @@ class TmdbPopularCron {
             self::processSimilarSeries($rTMDB);
         }
 
-        // Popular live streams (always, regardless of TMDB key)
+        // Popular live streams (always, regardless of \TMDB key)
         self::collectPopularLive();
     }
 }

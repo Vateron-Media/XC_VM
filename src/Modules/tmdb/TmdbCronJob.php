@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Module\Tmdb;
+
 use XcVm\Cli\CronTrait;
 use XcVm\Cli\CommandInterface;
 /**
@@ -22,7 +24,7 @@ class TmdbCronJob implements CommandInterface {
     }
 
     public function getDescription(): string {
-        return 'Cron: update TMDB data (series, movies)';
+        return 'Cron: update \TMDB data (series, movies)';
     }
 
     public function execute(array $rArgs): int {
@@ -31,10 +33,10 @@ class TmdbCronJob implements CommandInterface {
         }
 
         require MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-        require_once MAIN_HOME . 'Modules/tmdb/lib/Release.php';
+        require_once MAIN_HOME . 'Modules/tmdb/lib/\Release.php';
         require_once __DIR__ . '/TmdbCron.php';
 
-        $this->initCron('XC_VM[TMDB]');
+        $this->initCron('XC_VM[\TMDB]');
 
         $rTimeout = 3600;
         set_time_limit($rTimeout);

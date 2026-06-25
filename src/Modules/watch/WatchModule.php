@@ -8,13 +8,13 @@ use XcVm\Core\Module\BaseModule;
 
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
-use WatchService;
-use RecordingService;
-use WatchController;
-use WatchCron;
-use WatchItem;
-use WatchCronJob;
-use WatchItemCommand;
+use XcVm\Module\Watch\WatchService;
+use XcVm\Module\Watch\RecordingService;
+use XcVm\Module\Watch\WatchController;
+use XcVm\Module\Watch\WatchCron;
+use XcVm\Module\Watch\WatchItem;
+use XcVm\Module\Watch\WatchCronJob;
+use XcVm\Module\Watch\WatchItemCommand;
 
 
 /**
