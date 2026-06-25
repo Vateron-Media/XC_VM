@@ -29,7 +29,7 @@
             "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ is committed and shipped. Use 'composer dump-autoload' to regenerate; do not run 'composer install' on the deploy path.\\n\\\");\""
         ],
         "post-update-cmd": [
-            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ is committed and shipped (composer.lock is gitignored). Commit vendor/ after updating dependencies.\\n\\\");\""
+            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ + composer.lock are committed. After changing deps, commit composer.lock and re-commit a PRODUCTION-only vendor: composer install --no-dev.\\n\\\");\""
         ]
     }
 }
