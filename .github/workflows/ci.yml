@@ -50,6 +50,25 @@ jobs:
       - name: Run PHPStan
         run: make phpstan
 
+  code-style:
+    name: Code Style (PHP-CS-Fixer)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      # PHP-CS-Fixer ships via the committed src/vendor/ (Composer dev dep), like
+      # PHPStan — no download, no `composer install`. Narrow ruleset: import /
+      # namespace hygiene only (see .php-cs-fixer.dist.php). Dry-run fails on diff.
+      - name: Run PHP-CS-Fixer
+        run: make cs
+
   composer-audit:
     name: Composer Security Audit
     runs-on: ubuntu-latest

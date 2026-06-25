@@ -82,7 +82,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
 	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
-	phpstan phpstan-baseline
+	phpstan phpstan-baseline cs cs-fix
 
 # ─── Syntax check ───────────────────────────────────────────────
 syntax_check:
@@ -101,6 +101,20 @@ phpstan:
 # Freeze all current errors into phpstan-baseline.neon (run after a level bump).
 phpstan-baseline:
 	@php "$(PHPSTAN)" analyse --memory-limit=2G --generate-baseline=phpstan-baseline.neon
+
+# ─── Code style (PHP-CS-Fixer) ──────────────────────────────────
+# Ships as a committed Composer dev dependency (src/vendor/). The ruleset is
+# narrow — import/namespace hygiene only (no @PSR12 reformat). See
+# .php-cs-fixer.dist.php.
+CS_FIXER := src/vendor/bin/php-cs-fixer
+
+# Check only — fails (exit 8) on any diff. Used in CI.
+cs:
+	@php "$(CS_FIXER)" fix --dry-run --diff --config=.php-cs-fixer.dist.php
+
+# Apply fixes in place.
+cs-fix:
+	@php "$(CS_FIXER)" fix --config=.php-cs-fixer.dist.php
 
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
