@@ -12,7 +12,6 @@ tests/.cache/
 # committed and shipped (the deploy path has no Composer). Do not add it here.
 .claude/
 
-# Static analysis (PHPStan)
-tools/phpstan/phpstan.phar
+# Static analysis (PHPStan) — binary ships via committed src/vendor/ (Composer)
 .phpstan.cache/
 src/composer.lock
