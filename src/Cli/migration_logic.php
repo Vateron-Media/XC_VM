@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Cli\Commands\MigrateCommand;
 use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Database\QueryHelper;
@@ -11,7 +12,7 @@ use XcVm\Core\Database\DatabaseHandler;
  * @package XC_VM_CLI
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -51,7 +52,7 @@ if ($odb->num_rows() > 0) {
         echo "\n" . "Couldn't find anything to migrate in the `xc_vm_migrate` database. Please ensure you restore your backup to that database specifically." . "\n\n";
         exit();
     }
-    echo "\n" . 'Migrating database to XC_VM...' . "\n\n";
+    echo "\n" . 'Migrating database to \XC_VM...' . "\n\n";
 
     if (in_array('access_codes', $rMigrateOptions)) {
         $odb->query('SELECT * FROM `access_codes`;');
@@ -69,7 +70,7 @@ if ($odb->num_rows() > 0) {
                     $rQuery = 'INSERT INTO `access_codes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
                     AuthRepository::updateCodes();
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -99,7 +100,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -117,7 +118,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -135,7 +136,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -153,7 +154,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -171,7 +172,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -201,7 +202,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -231,7 +232,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `mag_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -249,7 +250,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -267,7 +268,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -285,7 +286,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `users_packages`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -303,7 +304,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `rtmp_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -333,7 +334,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams_series`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -363,7 +364,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams_episodes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -382,7 +383,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -412,7 +413,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -442,7 +443,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams_options`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -478,7 +479,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams_servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -496,7 +497,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -514,7 +515,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -532,7 +533,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `tickets_replies`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -550,7 +551,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `profiles`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -568,7 +569,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `providers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -604,7 +605,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -645,7 +646,7 @@ if ($odb->num_rows() > 0) {
         echo "\n" . "Couldn't find anything to migrate in the `xc_vm_migrate` database. Please ensure you restore your backup to that database specifically." . "\n\n";
         exit();
     }
-    echo "\n" . 'Migrating database to XC_VM...' . "\n\n";
+    echo "\n" . 'Migrating database to \XC_VM...' . "\n\n";
 
     echo 'Remapping bouquets.' . "\n";
     $rSeriesMap = $rBouquetMap = array();
@@ -683,7 +684,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -714,7 +715,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -732,7 +733,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -750,7 +751,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_uas`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -768,7 +769,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -786,7 +787,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `blocked_isps`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -832,7 +833,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -864,7 +865,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `enigma2_devices`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -900,7 +901,7 @@ if ($odb->num_rows() > 0) {
                             $db->query($rQuery, ...$rPrepare['data']);
                         }
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -918,7 +919,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -936,7 +937,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `epg`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -960,7 +961,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -984,7 +985,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1008,7 +1009,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `users_groups`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1047,7 +1048,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `users_packages`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1067,7 +1068,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `rtmp_ips`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1104,7 +1105,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT IGNORE INTO `streams_series`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1136,7 +1137,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams_episodes`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1169,7 +1170,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1202,7 +1203,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `servers`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1246,11 +1247,11 @@ if ($odb->num_rows() > 0) {
                             $rPrepare = QueryHelper::prepareArray($rResult);
                             $rQuery = 'INSERT INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                             $db->query($rQuery, ...$rPrepare['data']);
-                        } catch (Exception $e) {
+                        } catch (\Exception $e) {
                             echo 'Error: ' . $e . "\n";
                         }
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1281,7 +1282,7 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `streams_options`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1330,7 +1331,7 @@ if ($odb->num_rows() > 0) {
                             $db->query($rQuery, ...$rPrepare['data']);
                         }
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1375,7 +1376,7 @@ if ($odb->num_rows() > 0) {
                             $db->query($rQuery, ...$rPrepare['data']);
                         }
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1393,7 +1394,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1411,7 +1412,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1429,7 +1430,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `tickets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1447,7 +1448,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `tickets_replies`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1465,7 +1466,7 @@ if ($odb->num_rows() > 0) {
                     $rPrepare = QueryHelper::prepareArray($rResult);
                     $rQuery = 'INSERT INTO `profiles`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                     $db->query($rQuery, ...$rPrepare['data']);
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1493,7 +1494,7 @@ if ($odb->num_rows() > 0) {
                     foreach ($rResults as $rResult) {
                         $rOutput[$rResult['user_id']][] = $rResult['access_output_id'];
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
@@ -1537,12 +1538,12 @@ if ($odb->num_rows() > 0) {
                         $rQuery = 'INSERT INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
                         $db->query($rQuery, ...$rPrepare['data']);
                     }
-                } catch (Exception $e) {
+                } catch (\Exception $e) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
             try {
-            } catch (Exception $e) {
+            } catch (\Exception $e) {
                 echo 'Error: ' . $e . "\n";
             }
         }
@@ -1574,7 +1575,7 @@ try {
     $odb->query('SELECT * FROM `settings` LIMIT 1;');
     $rSettings = $odb->get_row();
     $db->query('UPDATE `settings` SET `server_name` = ?, `default_timezone` = ?;', $rSettings['server_name'], $rSettings['default_timezone']);
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo 'Error: ' . $e . "\n";
 }
 try {
@@ -1590,13 +1591,13 @@ try {
             $db->query('UPDATE `settings` SET `recaptcha_v2_secret_key` = ?, `recaptcha_v2_site_key` = ?;', $rAdminSettings['recaptcha_v2_secret_key'], $rAdminSettings['recaptcha_v2_site_key']);
         }
     }
-} catch (Exception $e) {
+} catch (\Exception $e) {
     echo 'Error: ' . $e . "\n";
 }
 if (in_array('access_codes', $rMigrateOptions)) {
     echo "\n" . 'Admin acces code: ' . $AdminAccesCode;
 }
-echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
+echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the \XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 
 file_put_contents(TMP_PATH . '.migration.status', 2);
 if (is_object($odb)) {

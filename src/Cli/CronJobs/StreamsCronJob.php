@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\CronJobs;
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\Stream\StreamSorter;
@@ -15,7 +19,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_CronJobs
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -226,14 +230,14 @@ class StreamsCronJob implements CommandInterface {
 
         $db->query('SELECT `stream_id` FROM `streams_servers` WHERE `on_demand` = 1 AND `server_id` = ?;', SERVER_ID);
         $rOnDemandIDs = array_keys($db->get_rows(true, 'stream_id'));
-        $rProcesses = shell_exec('ps aux | grep XC_VM');
-        if (preg_match_all('/XC_VM\\[(.*)\\]/', $rProcesses, $rMatches)) {
+        $rProcesses = shell_exec('ps aux | grep \XC_VM');
+        if (preg_match_all('/\XC_VM\\[(.*)\\]/', $rProcesses, $rMatches)) {
             $rRemove = array_diff($rMatches[1], $rStreamIDs);
             $rRemove = array_diff($rRemove, $rOnDemandIDs);
             foreach ($rRemove as $rStreamID) {
                 if (is_numeric($rStreamID)) {
                     echo 'Kill Stream ID: ' . $rStreamID . "\n";
-                    shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . '_.m3u8\\|XC_VM\\[' . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
+                    shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . '_.m3u8\\|\XC_VM\\[' . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
                     shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
                 }
             }

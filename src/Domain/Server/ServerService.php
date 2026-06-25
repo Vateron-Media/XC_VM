@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Domain\Server;
+use XcVm\Cli\CronJobs\RootSignalsCronJob;
 
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Backup\BackupService;

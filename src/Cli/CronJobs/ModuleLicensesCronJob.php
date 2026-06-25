@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\CronJobs;
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Config\SettingsManager;
@@ -10,7 +14,7 @@ require_once __DIR__ . '/../CronTrait.php';
  * fresh.
  *
  * For every platform-installed module that already carries a license file, it
- * re-mints a hardware-bound .lic with a new expiry (XC_VM::module_license via
+ * re-mints a hardware-bound .lic with a new expiry (\XC_VM::module_license via
  * ModuleManager::renewModuleLicense), so a valid license never lapses while the
  * subscription is active. The SaaS refusing to mint (lapsed/revoked) lets the
  * license expire on its own — the effective kill-switch.

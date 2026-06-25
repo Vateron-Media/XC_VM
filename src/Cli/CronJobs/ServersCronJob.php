@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\CronJobs;
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Core\Process\ProcessManager;
@@ -11,7 +15,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_CronJobs
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -72,18 +76,18 @@ class ServersCronJob implements CommandInterface {
             }
         }
 
-        $rSignals = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "signals|XC_VM\\[Signals\\]" | grep -v grep | grep -v pgrep | wc -l')));
+        $rSignals = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "signals|\XC_VM\\[Signals\\]" | grep -v grep | grep -v pgrep | wc -l')));
         if ($rSignals == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php signals > /dev/null 2>/dev/null &');
         }
 
         if ($rServers[SERVER_ID]['is_main']) {
-            $rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "cache_handler|XC_VM\\[CacheHandler\\]" | grep -v grep | grep -v pgrep | wc -l')));
+            $rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "cache_handler|\XC_VM\\[CacheHandler\\]" | grep -v grep | grep -v pgrep | wc -l')));
             if (SettingsManager::getAll()['enable_cache'] && $rCache == 0) {
                 shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cache_handler > /dev/null 2>/dev/null &');
             } elseif (!SettingsManager::getAll()['enable_cache'] && $rCache > 0) {
                 echo 'Killing Cache Handler' . "\n";
-                exec("pgrep -U xc_vm | xargs ps | grep -E 'cache_handler|XC_VM\\[CacheHandler\\]' | awk '{print \$1}'", $rPIDs);
+                exec("pgrep -U xc_vm | xargs ps | grep -E 'cache_handler|\XC_VM\\[CacheHandler\\]' | awk '{print \$1}'", $rPIDs);
                 foreach ($rPIDs as $rPID) {
                     if (intval($rPID) > 0) {
                         shell_exec('kill -9 ' . intval($rPID));
@@ -97,12 +101,12 @@ class ServersCronJob implements CommandInterface {
             shell_exec(BIN_PATH . 'network > /dev/null 2>/dev/null &');
         }
 
-        $rWatchdog = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "watchdog|XC_VM\\[Watchdog\\]" | grep -v grep | grep -v pgrep | wc -l')));
+        $rWatchdog = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "watchdog|\XC_VM\\[Watchdog\\]" | grep -v grep | grep -v pgrep | wc -l')));
         if ($rWatchdog == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php watchdog > /dev/null 2>/dev/null &');
         }
 
-        $rQueue = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "queue|XC_VM\\[Queue\\]" | grep -v grep | grep -v pgrep | wc -l')));
+        $rQueue = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "queue|\XC_VM\\[Queue\\]" | grep -v grep | grep -v pgrep | wc -l')));
         if ($rQueue == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php queue > /dev/null 2>/dev/null &');
         }

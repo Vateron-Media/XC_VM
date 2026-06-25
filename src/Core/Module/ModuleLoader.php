@@ -1,6 +1,9 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Cli\Commands\StatusCommand;
+use XcVm\Cli\Commands\StartupCommand;
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Exception\Module\ModuleNotFoundException;
 use XcVm\Core\Exception\Module\ModuleManifestException;
 use XcVm\Core\Exception\Module\ModuleLoadException;
@@ -226,10 +229,10 @@ class ModuleLoader {
      * Only calls registerCommands() on modules implementing CommandProviderInterface.
      * Used in CLI context (console.php).
      *
-     * @param \CommandRegistry $registry Command registry for registering module commands.
+     * @param \XcVm\Cli\CommandRegistry $registry Command registry for registering module commands.
      * @return void
      */
-    public function registerAllCommands(\CommandRegistry $registry): void {
+    public function registerAllCommands(\XcVm\Cli\CommandRegistry $registry): void {
         foreach ($this->modules as $module) {
             if ($module instanceof CommandProviderInterface) {
                 $module->registerCommands($registry);

@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\Stream\StreamProcess;
@@ -21,7 +24,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -37,7 +40,7 @@ class MonitorCommand implements CommandInterface {
 
 	public function execute(array $rArgs): int {
 		if (posix_getpwuid(posix_geteuid())['name'] != 'xc_vm') {
-			echo "Please run as XC_VM!\n";
+			echo "Please run as \XC_VM!\n";
 			return 1;
 		}
 

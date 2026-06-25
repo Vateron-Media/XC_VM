@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Module\Contract;
+use XcVm\Cli\CommandRegistry;
+use XcVm\Cli\CommandInterface;
 
 /**
  * @package XC_VM_Core_Module
@@ -16,7 +18,7 @@ interface CommandProviderInterface {
      * Module explicitly instantiates and registers CommandInterface instances.
      * No filesystem scanning — all registration is explicit PHP.
      *
-     * @param \CommandRegistry $registry
+     * @param \XcVm\Cli\CommandRegistry $registry
      */
-    public function registerCommands(\CommandRegistry $registry): void;
+    public function registerCommands(\XcVm\Cli\CommandRegistry $registry): void;
 }

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsManager;
 /**

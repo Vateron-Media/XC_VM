@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Cli\CommandInterface;
 /**
  * PlexItemCommand — plex item command
  *

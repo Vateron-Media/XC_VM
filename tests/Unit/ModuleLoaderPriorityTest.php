@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
@@ -135,7 +136,7 @@ final class ModuleLoaderPriorityTest extends TestCase {
             . 'use XcVm\Core\Module\ModuleInterface;' . "\n"
             . 'use XcVm\Core\Container\ServiceContainer;' . "\n"
             . 'use XcVm\Core\Http\Router;' . "\n"
-            . 'use CommandRegistry;' . "\n"
+            . 'use XcVm\Cli\CommandRegistry;' . "\n"
             . 'use XcVm\Core\Module\NavbarRegistry;' . "\n"
             . 'class ' . $className . ' implements ModuleInterface {' . "\n"
             . "\tpublic function getName(): string { return '{$name}'; }" . "\n"

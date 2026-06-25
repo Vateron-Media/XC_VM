@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Cli\CommandInterface;
 /**
  * WatchItemCommand — watch item command
  *

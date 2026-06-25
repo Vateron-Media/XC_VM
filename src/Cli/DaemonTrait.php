@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Cli;
+
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsRepository;
@@ -13,7 +15,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -36,7 +38,7 @@ trait DaemonTrait {
 	 */
 	protected function assertRunAsXcVm(): bool {
 		if (posix_getpwuid(posix_geteuid())['name'] !== 'xc_vm') {
-			echo "Please run as XC_VM!\n";
+			echo "Please run as \XC_VM!\n";
 			return false;
 		}
 		return true;
@@ -59,14 +61,14 @@ trait DaemonTrait {
 	 * Запомнить MD5 файла команды для обнаружения обновлений.
 	 */
 	protected function initDaemonMD5(): void {
-		$this->rDaemonMD5 = md5_file((new ReflectionClass($this))->getFileName());
+		$this->rDaemonMD5 = md5_file((new \ReflectionClass($this))->getFileName());
 	}
 
 	/**
 	 * Проверить, изменился ли файл команды с момента запуска.
 	 */
 	protected function hasFileChanged(): bool {
-		return md5_file((new ReflectionClass($this))->getFileName()) !== $this->rDaemonMD5;
+		return md5_file((new \ReflectionClass($this))->getFileName()) !== $this->rDaemonMD5;
 	}
 
 	/**

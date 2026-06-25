@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\CronJobs;
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Core\Process\Thread;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Process\Multithread;
@@ -11,7 +15,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_CronJobs
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -85,7 +89,7 @@ class CacheEngineCronJob implements CommandInterface {
         $db->query('SELECT `id`, GREATEST(IFNULL(UNIX_TIMESTAMP(`streams`.`updated`), 0), IFNULL(MAX(UNIX_TIMESTAMP(`streams_servers`.`updated`)), 0)) AS `updated` FROM `streams` LEFT JOIN `streams_servers` ON `streams`.`id` = `streams_servers`.`stream_id` GROUP BY `id`;');
         if ($db->dbh && $db->result) {
             if ($db->result->rowCount() > 0) {
-                foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rRow) {
+                foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
                     if (!file_exists(STREAMS_TMP_PATH . 'stream_' . $rRow['id']) || (filemtime(STREAMS_TMP_PATH . 'stream_' . $rRow['id']) ?: 0) < $rRow['updated']) {
                         $rReturn['changes'][] = $rRow['id'];
                     }
@@ -114,7 +118,7 @@ class CacheEngineCronJob implements CommandInterface {
         $db->query('SELECT `id`, `username`, `password`, `access_token`, UNIX_TIMESTAMP(`updated`) AS `updated` FROM `lines`;');
         if ($db->dbh && $db->result) {
             if ($db->result->rowCount() > 0) {
-                foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rRow) {
+                foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
                     if (!file_exists(LINES_TMP_PATH . 'line_i_' . $rRow['id']) || (filemtime(LINES_TMP_PATH . 'line_i_' . $rRow['id']) ?: 0) < $rRow['updated']) {
                         $rReturn['changes'][] = $rRow['id'];
                     }
@@ -189,7 +193,7 @@ class CacheEngineCronJob implements CommandInterface {
                         $db->query('SELECT * FROM `streams_series`;');
                         if ($db->result) {
                             if ($db->result->rowCount() > 0) {
-                                foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rRow) {
+                                foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
                                     if (isset($cacheInitTime[$rRow['id']])) {
                                         $rRow['last_modified'] = $cacheInitTime[$rRow['id']];
                                     }
@@ -392,7 +396,7 @@ class CacheEngineCronJob implements CommandInterface {
                 }
                 if ($db->result) {
                     if ($db->result->rowCount() > 0) {
-                        foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rUserInfo) {
+                        foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rUserInfo) {
                             $rExists[] = $rUserInfo['id'];
                             file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
                             $rKey = (SettingsManager::getAll()['case_sensitive_line'] ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
@@ -451,7 +455,7 @@ class CacheEngineCronJob implements CommandInterface {
                 }
                 if ($db->result) {
                     if ($db->result->rowCount() > 0) {
-                        $rRows = $db->result->fetchAll(PDO::FETCH_ASSOC);
+                        $rRows = $db->result->fetchAll(\PDO::FETCH_ASSOC);
                         $rStreamMap = $rStreamIDs = [];
                         foreach ($rRows as $rRow) {
                             $rStreamIDs[] = $rRow['id'];
@@ -460,7 +464,7 @@ class CacheEngineCronJob implements CommandInterface {
                             $db->query('SELECT `stream_id`, `server_id`, `pid`, `to_analyze`, `stream_status`, `monitor_pid`, `on_demand`, `delay_available_at`, `bitrate`, `parent_id`, `on_demand`, `stream_info`, `video_codec`, `audio_codec`, `resolution`, `compatible` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ')');
                             if ($db->result) {
                                 if ($db->result->rowCount() > 0) {
-                                    foreach ($db->result->fetchAll(PDO::FETCH_ASSOC) as $rRow) {
+                                    foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
                                         $rStreamMap[intval($rRow['stream_id'])][intval($rRow['server_id'])] = $rRow;
                                     }
                                 }

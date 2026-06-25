@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Config\ConfigReader;
@@ -48,8 +50,8 @@ class LbInstallFlow {
 
 	public static function installArchive($rConn, callable $rRunSSH, string $rInstallFiles, string $rHash, int $rServerID, $db): bool {
 		echo "Download archive\n";
-		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O /tmp/XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
-		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
+		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O /tmp/\XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
+		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum /tmp/\XC_VM.tar.gz)); echo $md5;');
 		if (empty($rFileHash['output']) || $rHash != trim($rFileHash['output'])) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Invalid MD5 checksum! Exiting\n";
@@ -58,7 +60,7 @@ class LbInstallFlow {
 
 		echo "Extracting to directory\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
-		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf /tmp/XC_VM.tar.gz -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf /tmp/\XC_VM.tar.gz -C "' . MAIN_HOME . '"');
 		$rRemoteCheck = trim(call_user_func($rRunSSH, $rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
 		if ($rRemoteCheck !== 'OK') {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -66,7 +68,7 @@ class LbInstallFlow {
 			return false;
 		}
 
-		call_user_func($rRunSSH, $rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
+		call_user_func($rRunSSH, $rConn, 'sudo rm -f "/tmp/\XC_VM.tar.gz"');
 
 		return true;
 	}
@@ -104,7 +106,7 @@ class LbInstallFlow {
 	}
 
 	public static function buildConfig(array $rServers, int $rServerID): string {
-		return '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'database    =   "xc_vm"' . "\n" . 'port        =   ' . intval(ConfigReader::get('port')) . "\n" . 'server_id   =   ' . $rServerID . "\n" . 'is_lb       =   1' . "\n\n" . '[Encrypted]' . "\n" . 'username    =   "' . ConfigReader::get('username') . '"' . "\n" . 'password    =   "' . ConfigReader::get('password') . '"';
+		return '; \XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[\XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'database    =   "xc_vm"' . "\n" . 'port        =   ' . intval(ConfigReader::get('port')) . "\n" . 'server_id   =   ' . $rServerID . "\n" . 'is_lb       =   1' . "\n\n" . '[Encrypted]' . "\n" . 'username    =   "' . ConfigReader::get('username') . '"' . "\n" . 'password    =   "' . ConfigReader::get('password') . '"';
 	}
 
 	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID): int {

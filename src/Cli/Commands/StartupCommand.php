@@ -1,5 +1,11 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\CronJobs\RootMysqlCronJob;
+use XcVm\Cli\CronJobs\ModuleLicensesCronJob;
+use XcVm\Cli\DaemonTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Core\Module\ModuleLoader;
 /**
  * StartupCommand — startup command
@@ -7,7 +13,7 @@ use XcVm\Core\Module\ModuleLoader;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -26,8 +32,8 @@ class StartupCommand implements CommandInterface {
 
 	public function execute(array $rArgs): int {
 		// Сброс кэша автозагрузки — гарантирует актуальную карту классов после обновления
-		XC_Autoloader::clearCache();
-		XC_Autoloader::warmCache();
+		\XC_Autoloader::clearCache();
+		\XC_Autoloader::warmCache();
 
 		$rFixCron = false;
 		if (!empty($rArgs[0]) && intval($rArgs[0]) == 1) {
@@ -88,15 +94,15 @@ class StartupCommand implements CommandInterface {
 
 	private function installRootCrontab(): void {
 		$rCrons = array();
-		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
+		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # \XC_VM';
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/RootMysqlCronJob.php')) {
-			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
+			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # \XC_VM';
 		}
 		// Renew per-machine ionCube licenses for platform modules before they
 		// expire (runs as xc_vm so the .lic is owned by the panel user). No-op
 		// when no licensed modules are installed.
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/ModuleLicensesCronJob.php')) {
-			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # XC_VM';
+			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # \XC_VM';
 		}
 
 		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
@@ -107,7 +113,7 @@ class StartupCommand implements CommandInterface {
 		$rOutput = array();
 		exec('sudo crontab -l', $rOutput);
 
-		// Удаляем старые записи от XC_VM v1.x.x, чтобы не было дубликатов, и проверяем наличие нужных записей
+		// Удаляем старые записи от \XC_VM v1.x.x, чтобы не было дубликатов, и проверяем наличие нужных записей
 		$rFiltered = array();
 		foreach ($rOutput as $rLine) {
 			if (strpos($rLine, MAIN_HOME . 'crons/root_') !== false) {
