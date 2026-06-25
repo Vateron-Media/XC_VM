@@ -28,22 +28,34 @@ for f in $RM_FILES; do
 	manifest=$(printf '%s\n' "$manifest" | grep -vxF "$f" || true)
 done
 
-# Sensitive trees that must never reach an LB node.
+# Privileged paths that must never reach an LB (internet-facing) node. These are
+# the genuinely admin/reseller/install-only trees and files. NOTE: LB legitimately
+# ships most of Cli/Commands and Cli/CronJobs (it runs edge commands + crons like
+# certbot/cache/cleanup), so only the specific privileged ones are listed — not
+# the whole dirs. Each entry must be removed by the Makefile's LB_DIRS_TO_REMOVE /
+# LB_FILES_TO_REMOVE; this asserts the removal actually took effect (catches a
+# silent rm miss after a rename — security blocker 1).
 SENSITIVE=(
+	# Admin / reseller / player UI + the privileged domains (dir-level removes).
 	"Public/Controllers/Admin"
 	"Public/Controllers/Reseller"
 	"Public/Controllers/Player"
 	"Domain/User"
 	"Domain/Device"
-	"Cli/CronJobs"
-	"Cli/Commands"
+	# Install / provisioning commands and root-privileged cron jobs (file-level).
+	"Cli/Commands/ServerInstallCommand.php"
+	"Cli/Commands/LbInstallFlow.php"
+	"Cli/Commands/ProxyInstallFlow.php"
+	"Cli/Commands/MigrateCommand.php"
+	"Cli/CronJobs/RootMysqlCronJob.php"
 )
 
 fail=0
 for s in "${SENSITIVE[@]}"; do
-	if printf '%s\n' "$manifest" | grep -qE "^${s}/"; then
-		echo "LEAK: '${s}/' would ship to the LB archive (privileged code)."
-		printf '%s\n' "$manifest" | grep -E "^${s}/" | sed 's/^/    /' | head -5
+	# Match a directory prefix ("$s/") or an exact file path ("$s").
+	if printf '%s\n' "$manifest" | grep -qE "^${s}(/|$)"; then
+		echo "LEAK: '${s}' would ship to the LB archive (privileged code)."
+		printf '%s\n' "$manifest" | grep -E "^${s}(/|$)" | sed 's/^/    /' | head -5
 		fail=1
 	fi
 done

@@ -44,9 +44,14 @@ jobs:
           # Matches phpVersion (80300) the analysis targets.
           php-version: '8.3'
           coverage: none
+          tools: composer:v2
 
-      # Downloads the pinned PHPStan PHAR (no Composer) and analyses against the
-      # committed baseline — fails only on NEW issues introduced by the change.
+      # The committed src/vendor/ is production-only; PHPStan is a require-dev
+      # tool, so install it here (from the committed lock — reproducible).
+      - name: Install dev dependencies
+        run: composer install --no-interaction --working-dir=src
+
+      # Analyses against the committed baseline — fails only on NEW issues.
       - name: Run PHPStan
         run: make phpstan
 
@@ -62,10 +67,15 @@ jobs:
         with:
           php-version: '8.3'
           coverage: none
+          tools: composer:v2
 
-      # PHP-CS-Fixer ships via the committed src/vendor/ (Composer dev dep), like
-      # PHPStan — no download, no `composer install`. Narrow ruleset: import /
-      # namespace hygiene only (see .php-cs-fixer.dist.php). Dry-run fails on diff.
+      # PHP-CS-Fixer is a require-dev tool; the committed src/vendor/ is
+      # production-only, so install it here (from the committed lock).
+      - name: Install dev dependencies
+        run: composer install --no-interaction --working-dir=src
+
+      # Narrow ruleset: import / namespace hygiene only (see .php-cs-fixer.dist.php).
+      # Dry-run fails on diff.
       - name: Run PHP-CS-Fixer
         run: make cs
 
