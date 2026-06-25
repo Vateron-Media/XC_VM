@@ -1,5 +1,14 @@
 <?php
 
+use XcVm\Streaming\Auth\StreamAuthMiddleware;
+use XcVm\Streaming\Delivery\OffAirHandler;
+use XcVm\Streaming\Delivery\SegmentReader;
+use XcVm\Streaming\Lifecycle\ShutdownHandler;
+use XcVm\Streaming\Delivery\HLSGenerator;
+use XcVm\Streaming\Auth\StreamAuth;
+use XcVm\Streaming\TS;
+use XcVm\Streaming\Delivery\SignalSender;
+use XcVm\Streaming\AsyncFileOperations;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Cache\CacheReader;

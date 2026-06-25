@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Streaming\Delivery\StreamRedirector;
+use XcVm\Streaming\Protection\ConnectionLimiter;
+use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\Stream\ConnectionTracker;

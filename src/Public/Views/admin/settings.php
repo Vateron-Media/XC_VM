@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\TS;
 use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Util\GeoIP;

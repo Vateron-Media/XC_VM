@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\StreamingBootstrap;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Localization\Translator;

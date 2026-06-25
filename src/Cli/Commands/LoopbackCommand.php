@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Streaming\TS;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Config\ConfigReader;
 /**

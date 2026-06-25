@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Infrastructure\Bootstrap;
+use XcVm\Streaming\StreamingBootstrap;
 
 use XcVm\Core\Logging\Logger;
 /**
@@ -93,10 +94,10 @@ class StreamingRequestBootstrap {
 			generate404();
 		}
 
-		// ── 7. Передача в \StreamingBootstrap ────────────────────
+		// ── 7. Передача в \XcVm\Streaming\StreamingBootstrap ────────────────────
 		$rStreamingEndpoints = ['probe', 'player_api', 'live', 'thumb', 'subtitle', 'timeshift', 'vod', 'status', 'rtmp', 'portal'];
 		if (in_array($rFilename, $rStreamingEndpoints, true)) {
-			\StreamingBootstrap::bootstrap($rFilename, $rSettings);
+			\XcVm\Streaming\StreamingBootstrap::bootstrap($rFilename, $rSettings);
 		}
 	}
 }
