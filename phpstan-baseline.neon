@@ -355,12 +355,6 @@ parameters:
 			path: src/Core/Auth/Authenticator.php
 
 		-
-			message: '#^Call to function method_exists\(\) with ''BlocklistService'' and ''getBlockedIPs'' will always evaluate to true\.$#'
-			identifier: function.alreadyNarrowedType
-			count: 1
-			path: src/Core/Auth/BruteforceGuard.php
-
-		-
 			message: '#^Method XcVm\\Core\\Database\\Database\:\:escape\(\) should return string\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
@@ -619,73 +613,73 @@ parameters:
 			path: src/Domain/Epg/EPG.php
 
 		-
-			message: '#^Method EpgService\:\:getById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\Epg\\EpgService\:\:getById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/Epg/EpgService.php
 
 		-
-			message: '#^Method EpgService\:\:getProgramme\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\Epg\\EpgService\:\:getProgramme\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/Epg/EpgService.php
 
 		-
-			message: '#^Method LineService\:\:updateLineSignal\(\) with return type void returns false but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLineSignal\(\) with return type void returns false but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Line/LineService.php
 
 		-
-			message: '#^Method LineService\:\:updateLineSignal\(\) with return type void returns true but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLineSignal\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Line/LineService.php
 
 		-
-			message: '#^Method LineService\:\:updateLinesSignal\(\) with return type void returns false but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLinesSignal\(\) with return type void returns false but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Line/LineService.php
 
 		-
-			message: '#^Method LineService\:\:updateLinesSignal\(\) with return type void returns true but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLinesSignal\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Line/LineService.php
 
 		-
-			message: '#^Method BlocklistService\:\:checkISP\(\) should return bool but returns int\.$#'
+			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:checkISP\(\) should return bool but returns int\.$#'
 			identifier: return.type
 			count: 2
 			path: src/Domain/Security/BlocklistService.php
 
 		-
-			message: '#^Method BlocklistService\:\:getISPById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:getISPById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/Security/BlocklistService.php
 
 		-
-			message: '#^Method BlocklistService\:\:getRTMPIPById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:getRTMPIPById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/Security/BlocklistService.php
 
 		-
-			message: '#^Method BlocklistService\:\:getUserAgentById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:getUserAgentById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/Security/BlocklistService.php
 
 		-
-			message: '#^Method BlocklistService\:\:isProxy\(\) should return bool but returns null\.$#'
+			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:isProxy\(\) should return bool but returns null\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/Security/BlocklistService.php
 
 		-
-			message: '#^Method ServerRepository\:\:getById\(\) should return array\|null but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\Server\\ServerRepository\:\:getById\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/Server/ServerRepository.php
@@ -817,7 +811,7 @@ parameters:
 			path: src/Domain/Stream/CategoryService.php
 
 		-
-			message: '#^Method ConnectionTracker\:\:getCapacity\(\) should return array\<int, array\{online_clients\: int, capacity\?\: float\}\> but returns array\<array\{capacity\: mixed\}\>\|object\.$#'
+			message: '#^Method XcVm\\Domain\\Stream\\ConnectionTracker\:\:getCapacity\(\) should return array\<int, array\{online_clients\: int, capacity\?\: float\}\> but returns array\<array\{capacity\: mixed\}\>\|object\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/Stream/ConnectionTracker.php
@@ -847,7 +841,7 @@ parameters:
 			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
-			message: '#^Method PlaylistGenerator\:\:generate\(\) should return string but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\Stream\\PlaylistGenerator\:\:generate\(\) should return string but returns false\.$#'
 			identifier: return.type
 			count: 3
 			path: src/Domain/Stream/PlaylistGenerator.php
@@ -949,7 +943,7 @@ parameters:
 			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
-			message: '#^Parameter \#2 \$rYear of static method StreamSorter\:\:formatTitle\(\) expects int\|string, null given\.$#'
+			message: '#^Parameter \#2 \$rYear of static method XcVm\\Domain\\Stream\\StreamSorter\:\:formatTitle\(\) expects int\|string, null given\.$#'
 			identifier: argument.type
 			count: 2
 			path: src/Domain/Stream/PlaylistGenerator.php
@@ -973,19 +967,19 @@ parameters:
 			path: src/Domain/Stream/StreamProcess.php
 
 		-
-			message: '#^Method StreamProcess\:\:deleteCache\(\) with return type void returns null but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Stream\\StreamProcess\:\:deleteCache\(\) with return type void returns null but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Stream/StreamProcess.php
 
 		-
-			message: '#^Method StreamProcess\:\:updateStreams\(\) with return type void returns false but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Stream\\StreamProcess\:\:updateStreams\(\) with return type void returns false but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Stream/StreamProcess.php
 
 		-
-			message: '#^Method StreamProcess\:\:updateStreams\(\) with return type void returns true but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Stream\\StreamProcess\:\:updateStreams\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Stream/StreamProcess.php
@@ -1051,7 +1045,7 @@ parameters:
 			path: src/Domain/Stream/StreamProcess.php
 
 		-
-			message: '#^Method StreamService\:\:parseM3U\(\) should return array but returns M3uParser\\M3uData\.$#'
+			message: '#^Method XcVm\\Domain\\Stream\\StreamService\:\:parseM3U\(\) should return array but returns M3uParser\\M3uData\.$#'
 			identifier: return.type
 			count: 2
 			path: src/Domain/Stream/StreamService.php
@@ -1087,31 +1081,31 @@ parameters:
 			path: src/Domain/User/ResellerAPI.php
 
 		-
-			message: '#^Method ResellerAPI\:\:processEnigma\(\) should return array but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\ResellerAPI\:\:processEnigma\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 2
 			path: src/Domain/User/ResellerAPI.php
 
 		-
-			message: '#^Method ResellerAPI\:\:processLine\(\) should return array but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\ResellerAPI\:\:processLine\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 2
 			path: src/Domain/User/ResellerAPI.php
 
 		-
-			message: '#^Method ResellerAPI\:\:processMAG\(\) should return array but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\ResellerAPI\:\:processMAG\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 2
 			path: src/Domain/User/ResellerAPI.php
 
 		-
-			message: '#^Method ResellerAPI\:\:processUser\(\) should return array but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\ResellerAPI\:\:processUser\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 3
 			path: src/Domain/User/ResellerAPI.php
 
 		-
-			message: '#^Method ResellerAPI\:\:submitTicket\(\) should return array but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\ResellerAPI\:\:submitTicket\(\) should return array but returns false\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/User/ResellerAPI.php
@@ -1129,7 +1123,7 @@ parameters:
 			path: src/Domain/User/ResellerAPI.php
 
 		-
-			message: '#^Method TicketRepository\:\:getById\(\) should return array\|false but returns null\.$#'
+			message: '#^Method XcVm\\Domain\\User\\TicketRepository\:\:getById\(\) should return array\|false but returns null\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/User/TicketRepository.php
@@ -1165,37 +1159,37 @@ parameters:
 			path: src/Domain/User/TicketRepository.php
 
 		-
-			message: '#^Method UserRepository\:\:getAuthUserByCredentials\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getAuthUserByCredentials\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 2
 			path: src/Domain/User/UserRepository.php
 
 		-
-			message: '#^Method UserRepository\:\:getE2Info\(\) should return array\|null but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getE2Info\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/User/UserRepository.php
 
 		-
-			message: '#^Method UserRepository\:\:getLineById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getLineById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/User/UserRepository.php
 
 		-
-			message: '#^Method UserRepository\:\:getRegisteredUserById\(\) should return array\|null but return statement is missing\.$#'
+			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getRegisteredUserById\(\) should return array\|null but return statement is missing\.$#'
 			identifier: return.missing
 			count: 1
 			path: src/Domain/User/UserRepository.php
 
 		-
-			message: '#^Method UserRepository\:\:getStreamingUserInfo\(\) should return array\|null but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getStreamingUserInfo\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 6
 			path: src/Domain/User/UserRepository.php
 
 		-
-			message: '#^Method UserRepository\:\:getUserInfo\(\) should return array\|null but returns false\.$#'
+			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getUserInfo\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 6
 			path: src/Domain/User/UserRepository.php
@@ -1273,13 +1267,13 @@ parameters:
 			path: src/Domain/Vod/MovieService.php
 
 		-
-			message: '#^Method SeriesService\:\:getById\(\) should return array\|false but returns null\.$#'
+			message: '#^Method XcVm\\Domain\\Vod\\SeriesService\:\:getById\(\) should return array\|false but returns null\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/Vod/SeriesService.php
 
 		-
-			message: '#^Method SeriesService\:\:getByTMDBId\(\) should return array\|false but returns null\.$#'
+			message: '#^Method XcVm\\Domain\\Vod\\SeriesService\:\:getByTMDBId\(\) should return array\|false but returns null\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/Vod/SeriesService.php
@@ -1291,13 +1285,13 @@ parameters:
 			path: src/Domain/Vod/SeriesService.php
 
 		-
-			message: '#^Method TMDbService\:\:addCategories\(\) with return type void returns true but should not return anything\.$#'
+			message: '#^Method XcVm\\Domain\\Vod\\TMDbService\:\:addCategories\(\) with return type void returns true but should not return anything\.$#'
 			identifier: return.void
 			count: 1
 			path: src/Domain/Vod/TMDbService.php
 
 		-
-			message: '#^Method TMDbService\:\:getMovie\(\) should return array\|null but returns Movie\.$#'
+			message: '#^Method XcVm\\Domain\\Vod\\TMDbService\:\:getMovie\(\) should return array\|null but returns Movie\.$#'
 			identifier: return.type
 			count: 1
 			path: src/Domain/Vod/TMDbService.php

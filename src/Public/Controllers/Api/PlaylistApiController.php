@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\PlaylistGenerator;
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Auth\BruteforceGuard;

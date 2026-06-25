@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Util;
+use XcVm\Domain\Server\ServerRepository;
 
 use XcVm\Core\Config\SettingsManager;
 /**
@@ -24,7 +25,7 @@ class ImageUtils {
 	public static function validateURL($rURL, $rForceProtocol = null) {
 		if (substr($rURL, 0, 2) == 's:') {
 			$rSplit = explode(':', $rURL, 3);
-			$rServerURL = \ServerRepository::getPublicURL(intval($rSplit[1]), $rForceProtocol);
+			$rServerURL = \XcVm\Domain\Server\ServerRepository::getPublicURL(intval($rSplit[1]), $rForceProtocol);
 			if ($rServerURL) {
 				return $rServerURL . 'images/' . basename($rURL);
 			}
@@ -46,7 +47,7 @@ class ImageUtils {
 		$rImagePath = IMAGES_PATH . 'admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;
 
 		if (file_exists($rImagePath)) {
-			$rServerInfo = \ServerRepository::getAll()[SERVER_ID];
+			$rServerInfo = \XcVm\Domain\Server\ServerRepository::getAll()[SERVER_ID];
 			$rDomain = (empty($rServerInfo['domain_name']) ? $rServerInfo['server_ip'] : explode(',', $rServerInfo['domain_name'])[0]);
 
 			return $rServerInfo['server_protocol'] . '://' . $rDomain . ':' . $rServerInfo['request_port'] . '/images/admin/' . md5($rURL) . '_' . $rMaxW . '_' . $rMaxH . '.' . $rExtension;

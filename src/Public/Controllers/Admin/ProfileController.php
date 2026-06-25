@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\StreamConfigRepository;
 /**
  * ProfileController — profile controller
  *

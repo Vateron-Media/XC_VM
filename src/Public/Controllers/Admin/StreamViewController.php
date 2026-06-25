@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Epg\EpgService;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\Encryption;

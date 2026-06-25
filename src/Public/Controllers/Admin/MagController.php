@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Device\MagService;
 use XcVm\Core\Http\RequestManager;
 /**
  * Контроллер редактирования MAG-устройства (admin/mag.php)

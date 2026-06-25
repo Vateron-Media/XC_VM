@@ -1,5 +1,7 @@
 <?php
-/**
+
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Vod\SeriesService;/**
  * ResellerEpisodesController — Episodes listing (read-only).
  *
  * @package XC_VM_Public_Controllers_Reseller

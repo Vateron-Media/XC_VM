@@ -1,5 +1,11 @@
 <?php
 
+namespace XcVm\Domain\Line;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\AuthRepository;
@@ -119,9 +125,9 @@ class LineService {
 					$rArray['exp_date'] = null;
 				} else {
 					try {
-						$rDate = new DateTime($rData['exp_date']);
+						$rDate = new \DateTime($rData['exp_date']);
 						$rArray['exp_date'] = $rDate->format('U');
-					} catch (Exception $e) {
+					} catch (\Exception $e) {
 					}
 				}
 			}
@@ -246,9 +252,9 @@ class LineService {
 				if (!(0 < strlen($rData['exp_date']) && $rData['exp_date'] != '1970-01-01')) {
 				} else {
 					try {
-						$rDate = new DateTime($rData['exp_date']);
+						$rDate = new \DateTime($rData['exp_date']);
 						$rArray['exp_date'] = $rDate->format('U');
-					} catch (Exception $e) {
+					} catch (\Exception $e) {
 						return array('status' => STATUS_INVALID_DATE, 'data' => $rData);
 					}
 				}

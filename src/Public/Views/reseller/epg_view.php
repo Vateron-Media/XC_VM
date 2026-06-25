@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Domain\Epg\EPG;/**
  * EPG preview — clean view template.
  * Variables from controller: $rStreamIDs, $rCount, $rPageInt, $rPages, $rLimit, $rPagination, $rCategories
  * ViewGlobals: $rRequest, $language

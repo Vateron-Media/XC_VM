@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Line\PackageService;
 /**
  * PackageController — Packages (admin/packages.php).
  *

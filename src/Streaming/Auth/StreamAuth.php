@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\ConnectionTracker;
 /**
  * StreamAuth — stream auth
  *

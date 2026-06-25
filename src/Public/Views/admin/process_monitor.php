@@ -21,6 +21,8 @@
         <div class="row">
             <div class="col-12">
                 <?php 
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;if (!$rMobile) { ?>
                     <?php if (count($rFS) > 0) { ?>

@@ -1,5 +1,11 @@
 <?php
 
+namespace XcVm\Domain\Vod;
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;
@@ -113,9 +119,9 @@ class MovieService {
 				require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 				if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-					$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+					$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 				} else {
-					$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+					$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 				}
 
 				$rReview = true;
@@ -514,7 +520,7 @@ class MovieService {
 	}
 
 	/**
-	 * Import movies (e.g. from a source/TMDB) into the catalog.
+	 * Import movies (e.g. from a source/\TMDB) into the catalog.
 	 *
 	 * @param array $rData Import payload (sources, category, options).
 	 * @return array Import result.
@@ -715,7 +721,7 @@ class MovieService {
 							}
 						}
 					}
-					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
+					$rWatchCategories = array(1 => \WatchService::getWatchCategories(1), 2 => \WatchService::getWatchCategories(2));
 
 					foreach ($rImportStreams as $rImportStream) {
 						$rData = array('import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => array(), 'category_id' => array(), 'language' => SettingsManager::getAll()['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(SettingsManager::getAll()['max_genres']), 'duplicate_tmdb' => true);
@@ -989,9 +995,9 @@ class MovieService {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		return json_decode(json_encode($rTMDB->getSimilarMovies($rID, $rPage)), true);

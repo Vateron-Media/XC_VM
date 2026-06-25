@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Epg\EpgService;
 use XcVm\Core\Http\RequestManager;
 /**
  * RecordController — Record programme.

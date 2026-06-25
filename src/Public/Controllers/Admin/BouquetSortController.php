@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Util\AdminHelpers;
 /**
  * BouquetSortController — Bouquet Sort / Reorder Content (admin/bouquet_sort.php).

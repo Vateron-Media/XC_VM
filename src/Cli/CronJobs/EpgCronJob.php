@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Parsing\XmlStringStreamer;

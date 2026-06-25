@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\CategoryService;
 /**
  * CreatedChannelMassController — массовое редактирование каналов.
  *

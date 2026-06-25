@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Line\PackageService;
 use XcVm\Core\Http\RequestManager;
 /**
  * Контроллер редактирования пользователя (admin/user.php)

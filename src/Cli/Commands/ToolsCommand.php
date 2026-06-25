@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Backup\BackupService;

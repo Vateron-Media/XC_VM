@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Server\ServerService;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;

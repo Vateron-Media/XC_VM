@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Http\RequestManager;
 /**
  * Контроллер редактирования EPG (admin/epg.php)

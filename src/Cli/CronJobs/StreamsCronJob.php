@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Vod\TMDbService;
+use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Database\QueryHelper;

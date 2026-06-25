@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 namespace XcVm\Core\Auth;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\NetworkUtils;
 
 use XcVm\Core\Config\SettingsManager;
@@ -53,8 +55,8 @@ class BruteforceGuard {
      * @return array
      */
     private static function getAllowedIPs(): array {
-        if (class_exists('ServerRepository', false)) {
-            return \ServerRepository::getAllowedIPs();
+        if (class_exists(\XcVm\Domain\Server\ServerRepository::class, false)) {
+            return \XcVm\Domain\Server\ServerRepository::getAllowedIPs();
         }
         if (isset($GLOBALS['rAllowedIPs'])) {
             return $GLOBALS['rAllowedIPs'];
@@ -68,8 +70,8 @@ class BruteforceGuard {
      * @return array
      */
     private static function getBlockedIPs(): array {
-        if (class_exists('BlocklistService', false)) {
-            return \BlocklistService::getBlockedIPs();
+        if (class_exists(\XcVm\Domain\Security\BlocklistService::class, false)) {
+            return \XcVm\Domain\Security\BlocklistService::getBlockedIPs();
         }
         if (isset($GLOBALS['rBlockedIPs'])) {
             return $GLOBALS['rBlockedIPs'];
@@ -110,8 +112,8 @@ class BruteforceGuard {
                 $db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $ip, $reason, time());
             }
             // Force-refresh blocked IPs cache
-            if (class_exists('BlocklistService', false) && method_exists('BlocklistService', 'getBlockedIPs')) {
-                \BlocklistService::getBlockedIPs(true);
+            if (class_exists(\XcVm\Domain\Security\BlocklistService::class, false)) {
+                \XcVm\Domain\Security\BlocklistService::getBlockedIPs(true);
             }
         }
         touch(FLOOD_TMP_PATH . 'block_' . $ip);

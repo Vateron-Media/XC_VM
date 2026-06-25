@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Domain\User;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Auth\Authenticator;
@@ -506,7 +510,7 @@ class UserRepository {
 		} else {
 			$rUserInfo['forced_country'] = GeoIP::getCountry($rIP)['registered_country']['iso_code'];
 			if ($rCached) {
-				RedisManager::setSignal('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
+				\RedisManager::setSignal('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
 			} else {
 				$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
 			}
@@ -558,7 +562,7 @@ class UserRepository {
 			if (!($rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc']))) {
 			} else {
 				if ($rCached) {
-					RedisManager::setSignal('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
+					\RedisManager::setSignal('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
 				} else {
 					$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
 				}

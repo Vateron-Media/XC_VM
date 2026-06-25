@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsManager;

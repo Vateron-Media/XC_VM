@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Vod\MovieService;
 use XcVm\Core\Http\RequestManager;
 /**
  * MovieMassController — массовое редактирование фильмов.

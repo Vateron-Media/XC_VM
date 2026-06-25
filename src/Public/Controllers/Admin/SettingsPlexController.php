@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Bouquet\BouquetService;
 /**
  * SettingsPlexController — Plex Settings (admin/settings_plex.php).
  *

@@ -1,5 +1,11 @@
 <?php
 
+namespace XcVm\Domain\Device;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Line\LineRepository;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
@@ -113,9 +119,9 @@ class EnigmaService {
 					$rUserArray['exp_date'] = null;
 				} else {
 					try {
-						$rDate = new DateTime($rData['exp_date']);
+						$rDate = new \DateTime($rData['exp_date']);
 						$rUserArray['exp_date'] = $rDate->format('U');
-					} catch (Exception $e) {
+					} catch (\Exception $e) {
 					}
 				}
 			}
@@ -285,9 +291,9 @@ class EnigmaService {
 				if (!(0 < strlen($rData['exp_date']) && $rData['exp_date'] != '1970-01-01')) {
 				} else {
 					try {
-						$rDate = new DateTime($rData['exp_date']);
+						$rDate = new \DateTime($rData['exp_date']);
 						$rUserArray['exp_date'] = $rDate->format('U');
-					} catch (Exception $e) {
+					} catch (\Exception $e) {
 						return array('status' => STATUS_INVALID_DATE, 'data' => $rData);
 					}
 				}

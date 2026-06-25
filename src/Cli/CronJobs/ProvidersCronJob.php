@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\StreamProcess;
 /**
  * ProvidersCronJob — providers cron job
  *

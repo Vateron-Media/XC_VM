@@ -1,5 +1,10 @@
 <?php
 
+namespace XcVm\Domain\Vod;
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;
@@ -168,7 +173,7 @@ class SeriesService {
 	}
 
 	/**
-	 * Import series (e.g. from a source/TMDB) into the catalog.
+	 * Import series (e.g. from a source/\TMDB) into the catalog.
 	 *
 	 * @param array $rData Import payload (sources, category, options).
 	 * @return array Import result.
@@ -338,7 +343,7 @@ class SeriesService {
 							$rServerIDs[] = intval($rServer['id']);
 						}
 					}
-					$rWatchCategories = array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2));
+					$rWatchCategories = array(1 => \WatchService::getWatchCategories(1), 2 => \WatchService::getWatchCategories(2));
 
 					foreach ($rImportStreams as $rImportStream) {
 						$rData = array('import' => true, 'type' => 'series', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => false, 'ignore_no_match' => false, 'bouquets' => array(), 'category_id' => array(), 'language' => SettingsManager::getAll()['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(SettingsManager::getAll()['max_genres']), 'duplicate_tmdb' => true);
@@ -494,9 +499,9 @@ class SeriesService {
 		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 		} else {
-			$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 		}
 
 		return json_decode(json_encode($rTMDB->getSimilarSeries($rID, $rPage)), true);
@@ -520,7 +525,7 @@ class SeriesService {
 	}
 
 	/**
-	 * Update series seasons from TMDB.
+	 * Update series seasons from \TMDB.
 	 */
 	public static function updateFromTMDB($rID) {
 		$db = self::db();
@@ -535,12 +540,12 @@ class SeriesService {
 			if (0 >= strlen($rTMDBID)) {
 			} else {
 				if (0 < strlen($rRow['tmdb_language'])) {
-					$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], $rRow['tmdb_language']);
+					$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], $rRow['tmdb_language']);
 				} else {
 					if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-						$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+						$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
 					} else {
-						$rTMDB = new TMDB(SettingsManager::getAll()['tmdb_api_key']);
+						$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
 					}
 				}
 
@@ -634,9 +639,9 @@ class SeriesService {
 	}
 
 	/**
-	 * Fetch a series by its TMDB id.
+	 * Fetch a series by its \TMDB id.
 	 *
-	 * @param int $rID TMDB id.
+	 * @param int $rID \TMDB id.
 	 * @return array|false The series row, or false if not found.
 	 */
 	public static function getByTMDBId($rID) {

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Server;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Auth\Authorization;

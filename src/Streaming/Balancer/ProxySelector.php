@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\ConnectionTracker;
 /**
  * ProxySelector — proxy selector
  *

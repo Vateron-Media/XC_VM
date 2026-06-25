@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;

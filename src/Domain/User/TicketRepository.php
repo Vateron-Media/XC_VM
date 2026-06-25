@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\User;
+
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 /**

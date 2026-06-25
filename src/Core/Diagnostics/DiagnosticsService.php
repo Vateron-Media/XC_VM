@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Diagnostics;
+use XcVm\Domain\Server\ServerRepository;
 
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\Database;
@@ -331,7 +332,7 @@ class DiagnosticsService {
 	public static function getNVENCProcesses($rServerID) {
 		global $db;
 		$rProcesses = array();
-		$rServer = \ServerRepository::getById($rServerID);
+		$rServer = \XcVm\Domain\Server\ServerRepository::getById($rServerID);
 		$rGPUInfo = json_decode($rServer['gpu_info'], true);
 
 		if (!is_array($rGPUInfo)) {

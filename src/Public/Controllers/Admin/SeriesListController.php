@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
 /**
  * SeriesListController — список сериалов.
  *

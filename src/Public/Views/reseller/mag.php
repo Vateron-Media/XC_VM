@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Domain\User\UserRepository;/**
  * MAG device — clean view template.
  * Variables from controller: $rDevice, $rLine, $rOrigPackage, $rPackages
  * ViewGlobals: $rUserInfo, $rPermissions, $rSettings, $rGenTrials, $language, $rRequest

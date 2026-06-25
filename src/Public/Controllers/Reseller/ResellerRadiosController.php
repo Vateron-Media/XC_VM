@@ -1,5 +1,6 @@
 <?php
-/**
+
+use XcVm\Domain\Stream\CategoryService;/**
  * ResellerRadiosController — Radio stations listing (read-only).
  *
  * @package XC_VM_Public_Controllers_Reseller

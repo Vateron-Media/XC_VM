@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Domain\Line;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;

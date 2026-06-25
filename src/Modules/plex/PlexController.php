@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Server\ServerService;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;
 /**

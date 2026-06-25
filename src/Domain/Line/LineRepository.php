@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Line;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;

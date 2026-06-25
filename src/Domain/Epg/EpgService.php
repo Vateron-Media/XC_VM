@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Epg;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;

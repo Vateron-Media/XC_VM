@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Config\SettingsManager;
 /**

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\AdminHelpers;

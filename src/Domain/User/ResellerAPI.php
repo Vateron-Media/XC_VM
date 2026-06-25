@@ -1,5 +1,13 @@
 <?php
 
+namespace XcVm\Domain\User;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authorization;

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Config\SettingsManager;
 /**
  * ServerController — редактирование сервера (admin/server.php).

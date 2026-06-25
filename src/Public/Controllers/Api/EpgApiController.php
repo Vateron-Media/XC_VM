@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Auth\BruteforceGuard;

@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Domain\Stream;
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Bouquet\BouquetService;
+
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;

@@ -5,6 +5,7 @@
 				<div class="page-title-box">
 					<div class="page-title-right">
 						<?php 
+use XcVm\Domain\User\GroupService;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Config\SettingsManager;include 'topbar.php'; ?>
 					</div>

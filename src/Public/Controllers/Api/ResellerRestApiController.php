@@ -1,5 +1,13 @@
 <?php
 
+use XcVm\Domain\User\UserService;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\ResellerAPI;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Device\EnigmaService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 /**

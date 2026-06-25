@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;

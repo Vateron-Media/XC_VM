@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Domain\Server;
+
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;

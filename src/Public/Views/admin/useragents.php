@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Config\SettingsManager;
 echo '<div class="wrapper boxed-layout-ext"';
 

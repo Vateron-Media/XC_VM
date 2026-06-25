@@ -1,5 +1,9 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\Encryption;

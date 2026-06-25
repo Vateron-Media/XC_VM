@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 /**
  * CertbotCronJob — certbot cron job

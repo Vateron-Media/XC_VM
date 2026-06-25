@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Util;
+use XcVm\Domain\Server\ServerRepository;
 
 /**
  * ImageResizeService — HTTP image resize handler
@@ -46,7 +47,7 @@ class ImageResizeService {
 			@mkdir($rCacheDir, 0755, true);
 		}
 
-		$rServers = $GLOBALS['rServers'] ?? \ServerRepository::getAll();
+		$rServers = $GLOBALS['rServers'] ?? \XcVm\Domain\Server\ServerRepository::getAll();
 
 		$rURL  = $_GET['url'] ?? '';
 		$rMaxW = 0;

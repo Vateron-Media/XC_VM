@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Http\RequestManager;
 /**
  * Контроллер редактирования User-Agent (admin/useragent.php)

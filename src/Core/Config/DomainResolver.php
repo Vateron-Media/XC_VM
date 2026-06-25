@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Config;
+use XcVm\Domain\Stream\ConnectionTracker;
 
 /**
  * DomainResolver — domain resolver
@@ -39,9 +40,9 @@ class DomainResolver {
 
 		$rProxied = $rServers[$rServerID]['enable_proxy'];
 		if ($rProxied) {
-			$rProxyIDs = array_keys(\ConnectionTracker::getProxies($rServerID, true));
+			$rProxyIDs = array_keys(\XcVm\Domain\Stream\ConnectionTracker::getProxies($rServerID, true));
 			if (count($rProxyIDs) == 0) {
-				$rProxyIDs = array_keys(\ConnectionTracker::getProxies($rServerID, false));
+				$rProxyIDs = array_keys(\XcVm\Domain\Stream\ConnectionTracker::getProxies($rServerID, false));
 			}
 			if (count($rProxyIDs) != 0) {
 				$rOriginatorID = $rServerID;

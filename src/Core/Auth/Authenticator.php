@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 namespace XcVm\Core\Auth;
+use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Util\NetworkUtils;
 
 use XcVm\Core\Logging\Logger;
@@ -96,7 +97,7 @@ class Authenticator {
 		}
 
 		$rIP = \XcVm\Core\Util\NetworkUtils::getUserIP();
-		$rUserInfo = \UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rUserInfo = \XcVm\Domain\User\UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
 		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {
@@ -168,7 +169,7 @@ class Authenticator {
 		}
 
 		$rIP = \XcVm\Core\Util\NetworkUtils::getUserIP();
-		$rUserInfo = \UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rUserInfo = \XcVm\Domain\User\UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
 		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {

@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Config\SettingsManager;
 /**
  * SeriesCronJob — series cron job

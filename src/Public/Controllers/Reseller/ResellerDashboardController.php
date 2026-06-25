@@ -1,5 +1,9 @@
 <?php
 
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Line\LineService;
 use XcVm\Core\Config\SettingsManager;/**
  * ResellerDashboardController — Reseller dashboard.
  *

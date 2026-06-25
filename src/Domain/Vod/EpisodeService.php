@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Domain\Vod;
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamProcess;
+
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
@@ -118,9 +122,9 @@ class EpisodeService {
 				$rSeries = SeriesService::getById(intval($rData['series']));
 
 				if (0 < strlen($rSettings['tmdb_language'])) {
-					$rTMDB = new TMDB($rSettings['tmdb_api_key'], $rSettings['tmdb_language']);
+					$rTMDB = new \TMDB($rSettings['tmdb_api_key'], $rSettings['tmdb_language']);
 				} else {
-					$rTMDB = new TMDB($rSettings['tmdb_api_key']);
+					$rTMDB = new \TMDB($rSettings['tmdb_api_key']);
 				}
 
 				$rJSON = json_decode($rTMDB->getSeason($rData['tmdb_id'], intval($rData['season_num']))->getJSON(), true);

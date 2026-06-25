@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Http\RequestManager;
 /**
  * StreamReviewController — обзор стримов.
