@@ -32,7 +32,8 @@ class TableController extends BaseAdminController {
 		if (!defined('MAIN_HOME')) {
 			session_start();
 			session_write_close();
-			require_once dirname(__DIR__, 3) . '/autoload.php';
+			define('MAIN_HOME', dirname(__DIR__, 3) . '/');
+			require_once MAIN_HOME . 'vendor/autoload.php';
 			WebApiBootstrap::init('admin');
 		} else {
 			session_write_close();

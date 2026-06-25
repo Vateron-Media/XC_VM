@@ -16,7 +16,7 @@ if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', dirname(dirname(__DIR__)) . '/');
 }
 
-require_once MAIN_HOME . 'autoload.php';
+require_once MAIN_HOME . 'vendor/autoload.php';
 
 $rHandler = $_SERVER['XC_ADMIN'] ?? ($_GET['handler'] ?? null);
 

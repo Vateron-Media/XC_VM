@@ -30,7 +30,7 @@ if (!defined('MAIN_HOME')) {
 }
 
 // 1b. Autoloader
-require_once MAIN_HOME . 'autoload.php';
+require_once MAIN_HOME . 'vendor/autoload.php';
 
 // 2. Разбор URL → scope + pageName
 
