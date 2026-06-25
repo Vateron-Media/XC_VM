@@ -1,14 +1,14 @@
 <?php
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Http\CurlClient;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Http\CurlClient;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 /**
  * Admin API entry point
  *

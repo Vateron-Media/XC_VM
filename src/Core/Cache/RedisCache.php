@@ -1,9 +1,10 @@
 <?php
 
 namespace XcVm\Core\Cache;
-use XcVm\Infrastructure\Redis\RedisManager;
 
 use XcVm\Core\Container\ServiceContainer;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * \Redis Cache Driver
  *

@@ -1,11 +1,12 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Process\ProcessManager;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * RecordCommand — record command
  *

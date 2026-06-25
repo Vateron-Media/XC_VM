@@ -1,30 +1,21 @@
 <?php
 
 namespace XcVm\Core\Module;
-use XcVm\Module\Watch\WatchService;
-use XcVm\Module\Watch\WatchModule;
-use XcVm\Cli\Commands\StatusCommand;
-use XcVm\Cli\Commands\StartupCommand;
-use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Exception\Module\ModuleNotFoundException;
-use XcVm\Core\Exception\Module\ModuleManifestException;
-use XcVm\Core\Exception\Module\ModuleLoadException;
-use XcVm\Core\Exception\Module\ModuleCycleException;
-use XcVm\Core\Enum\ServerEnvironment;
-use XcVm\Core\Enum\ModuleState;
-use XcVm\Core\Events\ListensTo;
-use XcVm\Core\Events\EventDispatcher;
-use XcVm\Core\Container\ServiceContainer;
-use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
-use XcVm\Core\Module\Contract\ServiceProviderInterface;
-use XcVm\Core\Module\Contract\RouteProviderInterface;
-use XcVm\Core\Module\Contract\NavbarProviderInterface;
-use XcVm\Core\Module\Contract\CronProviderInterface;
-use XcVm\Core\Module\Contract\CommandProviderInterface;
 
-use XcVm\Core\Http\Pipeline\StreamPipeline;
+use XcVm\Cli\Commands\StartupCommand;
+use XcVm\Cli\Commands\StatusCommand;
 use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
+use XcVm\Core\Http\Pipeline\StreamPipeline;
 use XcVm\Core\Http\Router;
+use XcVm\Core\Module\Contract\CommandProviderInterface;
+use XcVm\Core\Module\Contract\CronProviderInterface;
+use XcVm\Core\Module\Contract\NavbarProviderInterface;
+use XcVm\Core\Module\Contract\RouteProviderInterface;
+use XcVm\Core\Module\Contract\ServiceProviderInterface;
+use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
+use XcVm\Module\Watch\WatchModule;
+use XcVm\Module\Watch\WatchService;
+
 /**
  * ModuleLoader — automatic system module loader and dependency resolver.
  *

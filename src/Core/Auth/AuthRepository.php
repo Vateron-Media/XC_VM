@@ -1,9 +1,9 @@
 <?php
 
 namespace XcVm\Core\Auth;
-use XcVm\Domain\User\UserRepository;
 
 use XcVm\Core\Http\ApiClient;
+
 /**
  * Консолидированный репозиторий аутентификации.
  * Объединяет: \CodeRepository, HMACRepository.

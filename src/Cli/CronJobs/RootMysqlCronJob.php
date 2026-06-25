@@ -1,12 +1,13 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Security\BlocklistService;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * RootMysqlCronJob — root mysql cron job
  *

@@ -2,12 +2,13 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\Bouquet\BouquetService;
+
 /**
  * EpgApiController — epg api controller
  *

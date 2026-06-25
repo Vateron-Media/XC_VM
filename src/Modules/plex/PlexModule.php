@@ -1,20 +1,13 @@
 <?php
 
 namespace XcVm\Module\Plex;
-use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Module\NavbarRegistry;
-use XcVm\Core\Module\NavbarItem;
-use XcVm\Core\Module\BaseModule;
 
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
-use XcVm\Module\Plex\PlexService;
-use XcVm\Module\Plex\PlexRepository;
-use XcVm\Module\Plex\PlexController;
-use XcVm\Module\Plex\PlexCron;
-use XcVm\Module\Plex\PlexItem;
-use XcVm\Module\Plex\PlexCronJob;
-use XcVm\Module\Plex\PlexItemCommand;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Module\NavbarItem;
+use XcVm\Core\Module\NavbarRegistry;
 
 /**
  * Plex Module

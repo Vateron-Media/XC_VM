@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Stream\StreamConfigRepository;
+
 /**
  * ProfileController — profile controller
  *

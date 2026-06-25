@@ -2,9 +2,10 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\CategoryService;
+
 /**
  * StreamReviewController — обзор стримов.
  *

@@ -2,8 +2,9 @@
 
 namespace XcVm\Core\Module\Contract;
 
-use XcVm\Core\Http\Pipeline\StreamPipeline;
 use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
+use XcVm\Core\Http\Pipeline\StreamPipeline;
+
 /**
  * Optional contract for modules that inject middleware into the stream pipeline.
  *

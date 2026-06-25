@@ -1,5 +1,7 @@
 <div class="wrapper boxed-layout-ext" <?php 
-use XcVm\Module\Watch\WatchService;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+use XcVm\Module\Watch\WatchService;
+
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 											echo ' style="display: none;"';
 										} ?>>
 	<div class="container-fluid">

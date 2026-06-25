@@ -1,8 +1,9 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
+
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 
 /**
  * StreamsLogsCronJob — streams logs cron job

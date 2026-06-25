@@ -1,12 +1,13 @@
 <?php
 
-use XcVm\Domain\User\UserRepository;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Config\SettingsManager;/**
+use XcVm\Domain\User\UserRepository;/**
  * User (sub-reseller) — clean view template.
  * Variables from controller: $rUser, $rGroups
  * ViewGlobals: $rUserInfo, $rPermissions, $rSettings, $language, $rRequest
  */
+
 ?>
 <div class="wrapper boxed-layout">
     <div class="container-fluid">

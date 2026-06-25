@@ -1,14 +1,13 @@
 <?php
 
 namespace XcVm\Domain\Stream;
-use XcVm\Infrastructure\Redis\RedisManager;
+
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Server\ServerRepository;
 
-use XcVm\Core\Util\GeoIP;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
-use XcVm\Core\Config\SettingsManager;
 /**
  * ConnectionTracker — live streaming connection management.
  *

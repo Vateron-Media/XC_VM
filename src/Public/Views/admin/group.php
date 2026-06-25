@@ -1,8 +1,9 @@
 <?php
 
-use XcVm\Domain\User\GroupService;
-use XcVm\Domain\Line\PackageService;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\User\GroupService;
+
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

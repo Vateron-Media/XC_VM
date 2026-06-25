@@ -2,13 +2,13 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 /**
  * XPluginApiController — x plugin api controller
  *

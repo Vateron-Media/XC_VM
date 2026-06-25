@@ -2,9 +2,10 @@
 
 namespace XcVm\Cli;
 
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\Encryption;
+
 /**
  * Общий функционал для cron-задач.
  *

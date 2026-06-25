@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\User\TicketRepository;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\User\TicketRepository;
+
 /**
  * Контроллер просмотра тикета (admin/ticket_view.php)
  *

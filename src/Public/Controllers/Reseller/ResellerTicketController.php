@@ -2,10 +2,10 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\User\TicketRepository;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\RequestManager;/**
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\User\TicketRepository;/**
  * ResellerTicketController — Create/edit ticket.
  *
  * @package XC_VM_Public_Controllers_Reseller

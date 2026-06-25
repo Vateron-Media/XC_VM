@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+
 /**
  * Контроллер просмотра TV Guide (admin/epg_view.php)
  *

@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Util\Encryption;
+
 /**
  * Stream thumbnail endpoint
  *

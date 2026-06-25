@@ -1,7 +1,6 @@
 <?php
 
 namespace XcVm\Core\Container\Psr;
-use XcVm\Core\Exception\Container\ContainerException;
 
 /**
  * Thrown when a service identifier is not found in the container.

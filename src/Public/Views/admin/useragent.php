@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Config\SettingsManager;
+
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

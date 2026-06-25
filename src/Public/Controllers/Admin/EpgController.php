@@ -2,9 +2,10 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Epg\EpgService;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Epg\EPG;
+use XcVm\Domain\Epg\EpgService;
+
 /**
  * Контроллер редактирования EPG (admin/epg.php)
  *

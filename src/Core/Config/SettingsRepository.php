@@ -1,7 +1,6 @@
 <?php
 
 namespace XcVm\Core\Config;
-use XcVm\Core\Cache\FileCache;
 
 /**
  * SettingsRepository — settings repository

@@ -2,14 +2,15 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Infrastructure\Cache\CacheReader;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Stream\StreamSorter;
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Cache\CacheReader;
+
 /**
  * PlayerApiController — player api controller
  *

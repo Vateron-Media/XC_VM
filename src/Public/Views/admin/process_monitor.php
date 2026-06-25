@@ -21,10 +21,11 @@
         <div class="row">
             <div class="col-12">
                 <?php 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Epg\EPG;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;if (!$rMobile) { ?>
+use XcVm\Domain\Server\ServerRepository;
+
+if (!$rMobile) { ?>
                     <?php if (count($rFS) > 0) { ?>
                         <div class="card">
                             <div class="card-body" style="overflow-x:auto;">

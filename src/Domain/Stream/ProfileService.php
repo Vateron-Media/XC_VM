@@ -2,10 +2,10 @@
 
 namespace XcVm\Domain\Stream;
 
-use XcVm\Core\Validation\InputValidator;
-use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Validation\InputValidator;
+
 /**
  * ProfileService — profile service
  *

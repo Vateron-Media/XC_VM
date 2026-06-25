@@ -3,6 +3,7 @@
 namespace XcVm\Streaming\Health;
 
 use XcVm\Core\Http\CurlClient;
+
 /**
  * ProcessChecker — process checker
  *

@@ -2,18 +2,18 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Stream\StreamSorter;
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 class Enigma2ApiController {
 	private $deny = true;
 	private $userInfo;

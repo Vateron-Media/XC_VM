@@ -1,8 +1,10 @@
 <div class="wrapper boxed-layout-ext"
 	<?php 
-use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Security\BlocklistService;
+
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
 	<div class="container-fluid">
 		<div class="row">
 			<div class="col-12">

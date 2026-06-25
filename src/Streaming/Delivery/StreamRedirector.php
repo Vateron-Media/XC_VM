@@ -2,8 +2,9 @@
 
 namespace XcVm\Streaming\Delivery;
 
-use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\ConnectionTracker;
+
 /**
  * StreamRedirector — stream redirector
  *

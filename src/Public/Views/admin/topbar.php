@@ -1,10 +1,9 @@
 <?php
 
-use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\Response;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+
 if (count(get_included_files()) != 1) {
 	if (!isset($rMobile)) {
 		$rMobile = $GLOBALS['rMobile'] ?? false;

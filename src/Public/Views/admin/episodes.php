@@ -290,11 +290,11 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;if (!$rMobile && $rSettings['header_stats']): ?>
+
+if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();
 		<?php endif; ?>
 		bindHref();

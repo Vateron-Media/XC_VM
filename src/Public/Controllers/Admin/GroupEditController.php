@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\User\GroupService;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\User\GroupService;
+
 /**
  * GroupEditController — add/edit member group.
  *

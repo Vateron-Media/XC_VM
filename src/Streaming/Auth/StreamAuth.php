@@ -1,9 +1,10 @@
 <?php
 
 namespace XcVm\Streaming\Auth;
-use XcVm\Streaming\Protection\ConnectionLimiter;
 
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Streaming\Protection\ConnectionLimiter;
+
 /**
  * StreamAuth — stream auth
  *

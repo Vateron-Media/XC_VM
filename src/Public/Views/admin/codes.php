@@ -1,6 +1,8 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Config\SettingsManager;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
+use XcVm\Core\Config\SettingsManager;
+
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
 	<div class="container-fluid">
 		<div class="row">
 			<div class="col-12">

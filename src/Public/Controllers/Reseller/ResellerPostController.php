@@ -2,8 +2,8 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\User\ResellerAPI;
-use XcVm\Core\Http\RequestManager;/**
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\User\ResellerAPI;/**
  * ResellerPostController — POST form handler for reseller panel.
  *
  * Migrated from reseller/post.php.

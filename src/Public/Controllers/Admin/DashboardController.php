@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Http\RequestManager;
+
 /**
  * DashboardController — Dashboard page.
  *

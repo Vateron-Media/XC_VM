@@ -2,10 +2,10 @@
 
 namespace XcVm\Module\Watch;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Core\Process\Thread;
-use XcVm\Core\Process\Multithread;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Process\Multithread;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * WatchCron — cron task for watch folders.
  *

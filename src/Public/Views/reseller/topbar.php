@@ -1,9 +1,9 @@
 <?php
 
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\Response;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+
 if (count(get_included_files()) != 1) {
 	$rPage = AdminHelpers::getPageName();
 	$rID = (isset(RequestManager::getAll()['id']) ? intval(RequestManager::getAll()['id']) : null);

@@ -1,8 +1,8 @@
 <?php
 
-use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Http\Request;
-use XcVm\Core\Config\SettingsManager;$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
+use XcVm\Core\Config\SettingsManager;
+
+$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
 $xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';
 ?>
 <div class="wrapper xm-mag <?= $xmTheme ?>" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') : ?><?php else : ?> style="display: none;" <?php endif; ?>>

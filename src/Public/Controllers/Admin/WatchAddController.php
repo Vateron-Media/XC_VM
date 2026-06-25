@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * WatchAddController — Add/Edit Watch Folder.
  *

@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Public\Controllers\Player;
+
 use XcVm\Public\Controllers\Admin\BaseAdminController;
 
 /**

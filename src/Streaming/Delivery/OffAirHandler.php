@@ -1,11 +1,12 @@
 <?php
 
 namespace XcVm\Streaming\Delivery;
-use XcVm\Streaming\Balancer\ProxySelector;
-use XcVm\Streaming\Auth\StreamAuth;
 
-use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Core\Util\Encryption;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Streaming\Auth\StreamAuth;
+use XcVm\Streaming\Balancer\ProxySelector;
+
 /**
  * OffAirHandler — off air handler
  *

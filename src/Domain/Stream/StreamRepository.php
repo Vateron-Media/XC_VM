@@ -1,13 +1,13 @@
 <?php
 
 namespace XcVm\Domain\Stream;
-use XcVm\Domain\Server\ServerRepository;
+
+use XcVm\Core\Database\Database;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Vod\MovieService;
 
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 /**
  * StreamRepository — stream repository
  *

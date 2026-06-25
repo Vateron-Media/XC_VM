@@ -2,8 +2,8 @@
 
 namespace XcVm\Public\Controllers\Player;
 
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Config\SettingsManager;/**
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\Encryption;/**
  * PlayerProxyController — Subtitle proxy for player.
  *
  * Migrated from player/proxy.php.

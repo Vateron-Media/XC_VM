@@ -1,10 +1,10 @@
 <?php
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Auth\SessionManager;
-use XcVm\Core\Config\SettingsManager;/**
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\UserRepository;/**
  * Player functions bootstrap.
  *
  * Loads core dependencies, verifies player session integrity,

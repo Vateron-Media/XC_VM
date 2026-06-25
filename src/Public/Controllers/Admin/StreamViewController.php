@@ -2,15 +2,16 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Epg\EpgService;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * StreamViewController — просмотр стрима.
  *

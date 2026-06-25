@@ -2,10 +2,11 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Vod\SeriesService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Vod\SeriesService;
+
 /**
  * EpisodeController — редактирование/добавление эпизода.
  *

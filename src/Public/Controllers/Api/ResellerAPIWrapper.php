@@ -2,16 +2,15 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Domain\User\UserService;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\User\ResellerAPI;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Line\LineService;
-use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Device\EnigmaService;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\User\ResellerAPI;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\UserService;
 
 class ResellerAPIWrapper {
     public static $db = null;

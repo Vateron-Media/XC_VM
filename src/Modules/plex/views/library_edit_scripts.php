@@ -16,7 +16,9 @@
         });
         setTimeout(pingSession, 30000);
         <?php 
-use XcVm\Core\Config\SettingsManager;if (!$rMobile && $rSettings['header_stats']): ?>
+use XcVm\Core\Config\SettingsManager;
+
+if (!$rMobile && $rSettings['header_stats']): ?>
             headerStats();
         <?php endif; ?>
         bindHref();

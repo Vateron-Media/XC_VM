@@ -1,12 +1,13 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
-use XcVm\Core\Config\SettingsManager;
+
 require_once __DIR__ . '/../CronTrait.php';
 
 /**

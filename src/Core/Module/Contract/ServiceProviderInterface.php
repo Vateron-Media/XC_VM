@@ -1,7 +1,6 @@
 <?php
 
 namespace XcVm\Core\Module\Contract;
-use XcVm\Core\Container\ServiceContainer;
 
 /**
  * @package XC_VM_Core_Module

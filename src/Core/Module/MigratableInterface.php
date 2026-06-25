@@ -1,7 +1,6 @@
 <?php
 
 namespace XcVm\Core\Module;
-use XcVm\Core\Container\ServiceContainer;
 
 /**
  * MigratableInterface — module upgrade migrations contract.

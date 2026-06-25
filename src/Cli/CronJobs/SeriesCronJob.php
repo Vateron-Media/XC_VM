@@ -1,12 +1,13 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Vod\SeriesService;
-use XcVm\Core\Config\SettingsManager;
+
 /**
  * SeriesCronJob — series cron job
  *

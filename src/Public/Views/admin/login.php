@@ -1,10 +1,11 @@
 <?php
 
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authenticator;
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\Security\BlocklistService;
+
 include 'functions.php';
 
 if (file_exists(TMP_PATH . '.migration.first')) {

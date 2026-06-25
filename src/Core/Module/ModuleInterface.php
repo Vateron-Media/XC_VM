@@ -1,10 +1,11 @@
 <?php
 
 namespace XcVm\Core\Module;
-use XcVm\Core\Module\Contract\ServiceProviderInterface;
-use XcVm\Core\Module\Contract\RouteProviderInterface;
-use XcVm\Core\Module\Contract\NavbarProviderInterface;
+
 use XcVm\Core\Module\Contract\CommandProviderInterface;
+use XcVm\Core\Module\Contract\NavbarProviderInterface;
+use XcVm\Core\Module\Contract\RouteProviderInterface;
+use XcVm\Core\Module\Contract\ServiceProviderInterface;
 
 /**
  * Module contract — composite interface for full lifecycle modules.

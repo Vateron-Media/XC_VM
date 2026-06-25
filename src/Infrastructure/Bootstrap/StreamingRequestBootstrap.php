@@ -1,9 +1,9 @@
 <?php
 
 namespace XcVm\Infrastructure\Bootstrap;
-use XcVm\Streaming\StreamingBootstrap;
 
 use XcVm\Core\Logging\Logger;
+
 /**
  * StreamingRequestBootstrap — bootstrap для streaming HTTP endpoint'ов
  *

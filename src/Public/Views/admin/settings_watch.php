@@ -1,8 +1,9 @@
 <?php
 
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\PageAuthorization;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+
 include 'session.php';
 include 'functions.php';
 

@@ -1,5 +1,7 @@
 <?php 
-use XcVm\Core\Util\ImageUtils;if (count($rPopularNow) > 0): ?>
+use XcVm\Core\Util\ImageUtils;
+
+if (count($rPopularNow) > 0): ?>
 <section class="home">
 	<div class="owl-carousel home__bg">
 		<?php foreach ($rPopularNow as $rItem): ?>

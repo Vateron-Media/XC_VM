@@ -1,9 +1,9 @@
 <?php
 
 namespace XcVm\Core\Util;
-use XcVm\Domain\Server\ServerRepository;
 
 use XcVm\Core\Config\SettingsManager;
+
 /**
  * ImageUtils — image utils
  *

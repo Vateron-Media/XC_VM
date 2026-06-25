@@ -1,7 +1,9 @@
 <div class="wrapper " <?php 
-use XcVm\Domain\Stream\CategoryService;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+use XcVm\Domain\Stream\CategoryService;
+
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 							echo ' style="display: none;"';
 						} ?>>
 	<div class="container-fluid">

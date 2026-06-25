@@ -1,14 +1,15 @@
 <?php
 
-use XcVm\Streaming\StreamingBootstrap;
-use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
-use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Http\Router;
 use XcVm\Core\Localization\Translator;
+use XcVm\Core\Logging\Logger;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\NavbarRegistry;
-use XcVm\Core\Http\Router;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Logging\Logger;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
+use XcVm\Streaming\StreamingBootstrap;
+
 /**
  * Named bootstrap for the Ministra (Stalker Portal) boundary.
  *

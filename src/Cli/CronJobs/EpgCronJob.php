@@ -1,14 +1,13 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Parsing\XmlStringStreamer;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Epg\EPG;
+
 /**
  * EpgCronJob — epg cron job
  *

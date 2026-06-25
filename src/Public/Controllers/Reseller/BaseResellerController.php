@@ -1,11 +1,12 @@
 <?php
 
 namespace XcVm\Public\Controllers\Reseller;
+
+use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Auth\PageAuthorization;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Public\Controllers\Admin\BaseAdminController;
 
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\PageAuthorization;
-use XcVm\Core\Auth\Authorization;
 /**
  * BaseResellerController — базовый контроллер для reseller-страниц.
  *

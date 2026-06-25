@@ -26,7 +26,9 @@
 								<a class="nav-link active" data-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a>
 							</li>
 							<?php 
-use XcVm\Core\Config\SettingsManager;if (SettingsManager::getAll()['player_allow_bouquet']): ?>
+use XcVm\Core\Config\SettingsManager;
+
+if (SettingsManager::getAll()['player_allow_bouquet']): ?>
 							<li class="nav-item">
 								<a class="nav-link" data-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a>
 							</li>

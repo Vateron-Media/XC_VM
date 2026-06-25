@@ -2,11 +2,11 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\User\GroupService;
-use XcVm\Domain\Line\PackageService;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Line\LineService;
-use XcVm\Core\Config\SettingsManager;/**
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserRepository;/**
  * ResellerDashboardController — Reseller dashboard.
  *
  * @package XC_VM_Public_Controllers_Reseller

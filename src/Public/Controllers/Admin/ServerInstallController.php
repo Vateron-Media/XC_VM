@@ -2,7 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Core\Http\RequestManager;
 /**
  * ServerInstallController — установка/переустановка сервера (admin/server_install.php).
  *

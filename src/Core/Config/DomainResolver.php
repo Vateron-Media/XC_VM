@@ -1,8 +1,6 @@
 <?php
 
 namespace XcVm\Core\Config;
-use XcVm\Infrastructure\Cache\CacheReader;
-use XcVm\Domain\Stream\ConnectionTracker;
 
 /**
  * DomainResolver — domain resolver

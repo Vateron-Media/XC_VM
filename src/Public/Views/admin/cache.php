@@ -1,8 +1,9 @@
 <div class="wrapper boxed-layout-ext" <?php 
-use XcVm\Domain\Server\ServerRepository;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\TimeUtils;
-use XcVm\Core\Process\Thread;
-use XcVm\Core\Config\SettingsManager;if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+use XcVm\Domain\Server\ServerRepository;
+
+if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
                                             echo '';
                                         } else {
                                             echo ' style="display: none;"';

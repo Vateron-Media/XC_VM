@@ -2,10 +2,11 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * ProcessMonitorController — Process Monitor.
  *

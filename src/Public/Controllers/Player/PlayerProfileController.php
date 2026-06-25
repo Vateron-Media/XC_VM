@@ -2,11 +2,12 @@
 
 namespace XcVm\Public\Controllers\Player;
 
-use XcVm\Domain\Line\LineService;
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Line\LineService;
+
 /**
  * PlayerProfileController — player profile controller
  *

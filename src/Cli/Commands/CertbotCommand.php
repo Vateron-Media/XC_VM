@@ -1,10 +1,11 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerRepository;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Diagnostics\DiagnosticsService;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * CertbotCommand — certbot command
  *

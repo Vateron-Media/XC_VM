@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Cli\Commands;
+
 use XcVm\Cli\CommandInterface;
 
 /**

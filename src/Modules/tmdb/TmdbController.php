@@ -4,6 +4,7 @@ namespace XcVm\Module\Tmdb;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+
 /**
  * \TMDB Module Controller
  *

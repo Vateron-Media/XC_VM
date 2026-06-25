@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Public\Controllers\Reseller;
+
 /**
  * ResellerEnigmasController — Enigma devices listing.
  *

@@ -1,8 +1,9 @@
 <?php
 
 namespace XcVm\Core\Util;
-use XcVm\Streaming\TS;
+
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Streaming\TS;
 
 /**
  * StreamUtils — stream utils

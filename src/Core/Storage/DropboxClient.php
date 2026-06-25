@@ -1,9 +1,10 @@
 <?php
 
 namespace XcVm\Core\Storage;
+
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\Response;
 use XcVm\Core\Http\Request;
+use XcVm\Core\Http\Response;
 
 /**
  * DropPHP v2 - A simple Dropbox client that works without cURL.

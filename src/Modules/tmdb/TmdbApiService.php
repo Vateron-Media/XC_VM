@@ -2,9 +2,10 @@
 
 namespace XcVm\Module\Tmdb;
 
-use XcVm\Domain\Vod\TMDbService;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Vod\TMDbService;
+
 /**
  * TmdbApiService
  *

@@ -2,12 +2,12 @@
 
 namespace XcVm\Domain\User;
 
-use XcVm\Core\Validation\InputValidator;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Validation\InputValidator;
+
 /**
  * GroupService — group service
  *

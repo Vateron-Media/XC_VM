@@ -1,8 +1,9 @@
 <?php
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Server\ServerRepository;
+
 $rParams     = RequestManager::getAll();
 $rAllSettings = SettingsManager::getAll();
 

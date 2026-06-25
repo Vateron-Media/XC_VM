@@ -1,12 +1,11 @@
 <?php
 
 namespace XcVm\Core\Module;
-use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Container\ServiceContainer;
+
+use XcVm\Core\Database\Database;
+use XcVm\Core\Http\Router;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 
-use XcVm\Core\Http\Router;
-use XcVm\Core\Database\Database;
 /**
  * BaseModule — abstract base class for module implementations.
  *

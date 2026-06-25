@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Util\GeoIP;
+
 /**
  * Пути к бинарным файлам
  *

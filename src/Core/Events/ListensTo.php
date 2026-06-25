@@ -3,7 +3,6 @@
 declare(strict_types=1);
 namespace XcVm\Core\Events;
 
-
 /**
  * Declarative listener registration via PHP 8.1 attribute.
  *

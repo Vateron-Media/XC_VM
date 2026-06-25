@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Logging\Logger;
+
 /**
  * Защита HTTP-запросов и инициализация логгера
  *

@@ -1,11 +1,10 @@
 <?php
 
 namespace XcVm\Core\Diagnostics;
-use XcVm\Domain\Server\ServerRepository;
 
-use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Http\ApiClient;
+
 /**
  * Diagnostics Service
  *

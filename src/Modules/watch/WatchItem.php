@@ -2,10 +2,11 @@
 
 namespace XcVm\Module\Watch;
 
-use XcVm\Streaming\Codec\FfmpegPaths;
-use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Streaming\Codec\FfmpegPaths;
+
 /**
  * WatchItem — модуль обработки отдельного элемента Watch Folder (фильм/сериал).
  *

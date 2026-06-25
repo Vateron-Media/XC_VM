@@ -1,13 +1,13 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Streaming\Codec\FfmpegPaths;
-use XcVm\Streaming\TS;
-use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Core\Util\StreamUtils;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Streaming\Codec\FfmpegPaths;
+
 /**
  * ProxyCommand — proxy command
  *

@@ -3,6 +3,7 @@
 namespace XcVm\Streaming\Codec;
 
 use XcVm\Domain\Stream\StreamProcess;
+
 /**
  * FFmpegCommand — f fmpeg command
  *

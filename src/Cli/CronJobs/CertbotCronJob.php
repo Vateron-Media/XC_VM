@@ -1,12 +1,13 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Domain\Server\ServerRepository;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Diagnostics\DiagnosticsService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 /**
  * CertbotCronJob — certbot cron job
  *

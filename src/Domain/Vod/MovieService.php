@@ -1,21 +1,20 @@
 <?php
 
 namespace XcVm\Domain\Vod;
-use XcVm\Module\Watch\WatchService;
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Bouquet\BouquetService;
 
-use XcVm\Core\Validation\InputValidator;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\ApiClient;
-use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\ApiClient;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Validation\InputValidator;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * MovieService — movie service
  *

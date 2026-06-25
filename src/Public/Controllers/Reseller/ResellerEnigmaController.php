@@ -2,11 +2,11 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Device\EnigmaService;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\RequestManager;/**
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Line\PackageService;/**
  * ResellerEnigmaController — Enigma device edit/create.
  *
  * @package XC_VM_Public_Controllers_Reseller

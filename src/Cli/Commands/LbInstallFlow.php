@@ -2,9 +2,9 @@
 
 namespace XcVm\Cli\Commands;
 
-use XcVm\Core\Util\GeoIP;
-use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Updates\GitHubReleases;
+
 class LbInstallFlow {
 
 	// Per-distribution package lists, mirrored from the MAIN installer (install -> PACKAGES),

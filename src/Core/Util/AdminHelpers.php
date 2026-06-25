@@ -1,12 +1,12 @@
 <?php
 
 namespace XcVm\Core\Util;
-use XcVm\Domain\Stream\StreamSorter;
+
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Http\Response;
 use XcVm\Core\Validation\InputValidator;
 
-use XcVm\Core\Http\Response;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;
 /*
  * \XC_VM — Утилитарные функции
  *

@@ -1,19 +1,19 @@
 <?php
 
 namespace XcVm\Domain\Line;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Bouquet\BouquetService;
 
-use XcVm\Core\Validation\InputValidator;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Validation\InputValidator;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\UserRepository;
+
 /**
  * LineService — line service
  *

@@ -1,18 +1,18 @@
 <?php
 
+use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\GeoIP\GeoIPService;
+use XcVm\Core\Logging\DatabaseLogger;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\Encryption;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Delivery\StreamRedirector;
 use XcVm\Streaming\Protection\ConnectionLimiter;
-use XcVm\Streaming\Auth\StreamAuth;
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Core\Util\GeoIP;
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\GeoIP\GeoIPService;
-use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Logging\DatabaseLogger;
+
 /**
  * RTMP stream handler
  *

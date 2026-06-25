@@ -1,35 +1,36 @@
 <?php
 
-use XcVm\Public\Controllers\Reseller\ResellerLogoutController;
-use XcVm\Public\Controllers\Reseller\ResellerUsersController;
-use XcVm\Public\Controllers\Reseller\ResellerUserLogsController;
-use XcVm\Public\Controllers\Reseller\ResellerUserController;
-use XcVm\Public\Controllers\Reseller\ResellerTicketViewController;
-use XcVm\Public\Controllers\Reseller\ResellerTicketsController;
-use XcVm\Public\Controllers\Reseller\ResellerTicketController;
-use XcVm\Public\Controllers\Reseller\ResellerTableController;
-use XcVm\Public\Controllers\Reseller\ResellerStreamsController;
-use XcVm\Public\Controllers\Reseller\ResellerSessionController;
-use XcVm\Public\Controllers\Reseller\ResellerResizeController;
-use XcVm\Public\Controllers\Reseller\ResellerRadiosController;
-use XcVm\Public\Controllers\Reseller\ResellerPostController;
-use XcVm\Public\Controllers\Reseller\ResellerMoviesController;
-use XcVm\Public\Controllers\Reseller\ResellerMagsController;
-use XcVm\Public\Controllers\Reseller\ResellerMagController;
-use XcVm\Public\Controllers\Reseller\ResellerLoginController;
-use XcVm\Public\Controllers\Reseller\ResellerLiveConnectionsController;
-use XcVm\Public\Controllers\Reseller\ResellerLinesController;
-use XcVm\Public\Controllers\Reseller\ResellerLineController;
-use XcVm\Public\Controllers\Reseller\ResellerLineActivityController;
-use XcVm\Public\Controllers\Reseller\ResellerEpisodesController;
-use XcVm\Public\Controllers\Reseller\ResellerEpgViewController;
-use XcVm\Public\Controllers\Reseller\ResellerEnigmasController;
-use XcVm\Public\Controllers\Reseller\ResellerEnigmaController;
-use XcVm\Public\Controllers\Reseller\ResellerEditProfileController;
-use XcVm\Public\Controllers\Reseller\ResellerDashboardController;
-use XcVm\Public\Controllers\Reseller\ResellerCreatedChannelsController;
-use XcVm\Public\Controllers\Reseller\ResellerApiController;
 use XcVm\Core\Http\Router;
+use XcVm\Public\Controllers\Reseller\ResellerApiController;
+use XcVm\Public\Controllers\Reseller\ResellerCreatedChannelsController;
+use XcVm\Public\Controllers\Reseller\ResellerDashboardController;
+use XcVm\Public\Controllers\Reseller\ResellerEditProfileController;
+use XcVm\Public\Controllers\Reseller\ResellerEnigmaController;
+use XcVm\Public\Controllers\Reseller\ResellerEnigmasController;
+use XcVm\Public\Controllers\Reseller\ResellerEpgViewController;
+use XcVm\Public\Controllers\Reseller\ResellerEpisodesController;
+use XcVm\Public\Controllers\Reseller\ResellerLineActivityController;
+use XcVm\Public\Controllers\Reseller\ResellerLineController;
+use XcVm\Public\Controllers\Reseller\ResellerLinesController;
+use XcVm\Public\Controllers\Reseller\ResellerLiveConnectionsController;
+use XcVm\Public\Controllers\Reseller\ResellerLoginController;
+use XcVm\Public\Controllers\Reseller\ResellerLogoutController;
+use XcVm\Public\Controllers\Reseller\ResellerMagController;
+use XcVm\Public\Controllers\Reseller\ResellerMagsController;
+use XcVm\Public\Controllers\Reseller\ResellerMoviesController;
+use XcVm\Public\Controllers\Reseller\ResellerPostController;
+use XcVm\Public\Controllers\Reseller\ResellerRadiosController;
+use XcVm\Public\Controllers\Reseller\ResellerResizeController;
+use XcVm\Public\Controllers\Reseller\ResellerSessionController;
+use XcVm\Public\Controllers\Reseller\ResellerStreamsController;
+use XcVm\Public\Controllers\Reseller\ResellerTableController;
+use XcVm\Public\Controllers\Reseller\ResellerTicketController;
+use XcVm\Public\Controllers\Reseller\ResellerTicketsController;
+use XcVm\Public\Controllers\Reseller\ResellerTicketViewController;
+use XcVm\Public\Controllers\Reseller\ResellerUserController;
+use XcVm\Public\Controllers\Reseller\ResellerUserLogsController;
+use XcVm\Public\Controllers\Reseller\ResellerUsersController;
+
 /**
  * Reseller Routes
  *

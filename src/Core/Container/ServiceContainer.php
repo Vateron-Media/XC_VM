@@ -1,20 +1,15 @@
 <?php
 
 namespace XcVm\Core\Container;
-use XcVm\Module\Plex\PlexService;
-use XcVm\Module\Plex\PlexModule;
-use XcVm\Core\Exception\Container\ServiceCreationException;
-use XcVm\Core\Exception\Container\CircularDependencyException;
-use XcVm\Core\Exception\Container\ContainerException;
-use XcVm\Core\Exception\XcVmException;
-use XcVm\Core\Container\Psr\NotFoundException;
-use XcVm\Core\Container\Psr\ContainerInterface;
 
-use XcVm\Core\Module\ModuleInterface;
-use XcVm\Core\Http\Request;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Container\Psr\ContainerInterface;
+use XcVm\Core\Container\Psr\NotFoundException;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Http\Request;
+use XcVm\Core\Module\ModuleInterface;
+use XcVm\Module\Plex\PlexModule;
+
 /**
  * Минимальный DI-контейнер (Service Container)
  *

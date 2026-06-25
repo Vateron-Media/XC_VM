@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Device\EnigmaService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Device\EnigmaService;
+
 /**
  * Контроллер редактирования Enigma-устройства (admin/enigma.php)
  *

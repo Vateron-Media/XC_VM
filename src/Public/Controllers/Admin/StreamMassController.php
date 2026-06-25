@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\StreamConfigRepository;
+
 /**
  * StreamMassController — массовое редактирование стримов.
  *

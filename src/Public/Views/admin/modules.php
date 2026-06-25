@@ -1,5 +1,5 @@
 <div class="wrapper boxed-layout-ext" <?php 
-use XcVm\Core\Http\Request;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
                                             echo ' style="display: none;"';
                                         } ?>>
     <div class="container-fluid">

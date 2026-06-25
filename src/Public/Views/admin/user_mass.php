@@ -1,10 +1,12 @@
 <?php
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\User\GroupService;
-use XcVm\Domain\Line\PackageService;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;echo '<div class="wrapper boxed-layout-ext"';
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserRepository;
+
+echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 } else {

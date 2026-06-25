@@ -1,14 +1,13 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CronJobs\RootMysqlCronJob;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
-use XcVm\Core\Module\ModuleLoader;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Database\MigrationRunner;
-use XcVm\Core\Database\Database;
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 /**
  * Проверка статуса, DB-миграции, конфигурация системы.
  *

@@ -1,7 +1,6 @@
 <?php
 
 namespace XcVm\Core\Http;
-use XcVm\Core\Auth\Authorization;
 
 /**
  * HTTP Response Helper
