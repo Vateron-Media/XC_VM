@@ -64,21 +64,19 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      # Reads src/composer.lock and checks the dependency graph against the
-      # Packagist advisory database. Does NOT run `composer install` (vendor/
-      # is committed). A no-op while every dependency is path-mapped/vendored,
-      # but gates real `require` packages the moment any are added.
-      #
-      # `composer audit --locked` exits 1 on a lock with zero packages
-      # ("No installed packages found"), so guard on the package count: skip
-      # cleanly while the lock is empty, run the real audit once deps exist.
+      # Audits the committed install set (src/vendor/composer/installed.json)
+      # against the Packagist advisory database. Does NOT run `composer install`
+      # (vendor/ is committed and shipped) and does NOT use --locked
+      # (composer.lock is gitignored, never committed). A no-op while every
+      # dependency is path-mapped/vendored without metadata, but gates real
+      # installed packages the moment any are added.
       - name: Composer audit
         run: |
-          count=$(php -r '$l=json_decode(file_get_contents("src/composer.lock"),true);echo count($l["packages"]??[])+count($l["packages-dev"]??[]);')
+          count=$(php -r '$f="src/vendor/composer/installed.json";$d=is_file($f)?json_decode(file_get_contents($f),true):[];echo is_array($d["packages"]??null)?count($d["packages"]):0;')
           if [ "$count" -eq 0 ]; then
-            echo "No Composer packages in lock file — nothing to audit (all dependencies are vendored/path-mapped)."
+            echo "No installed Composer packages — nothing to audit."
           else
-            composer audit --no-interaction --locked --working-dir=src
+            composer audit --no-interaction --working-dir=src
           fi
 
   test:

@@ -1,0 +1,4 @@
+#EXTM3U
+
+#PLAYLIST:My favorite playlist
+rtp://@127.0.0.1:5003
