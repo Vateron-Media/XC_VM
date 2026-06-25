@@ -1,11 +1,11 @@
 <?php
 
 namespace XcVm\Module\Tmdb;
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Module\BaseModule;
 
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
-use CommandRegistry;
 use TmdbController;
 use TmdbCron;
 use TmdbPopularCron;

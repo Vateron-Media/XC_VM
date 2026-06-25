@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\CronJobs;
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
@@ -9,7 +13,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_CronJobs
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -85,7 +89,7 @@ class BackupsCronJob implements CommandInterface {
                         } else {
                             try {
                                 $rError = json_decode(explode(', in apiCall', $rResponse->error->getMessage())[0], true)['error_summary'];
-                            } catch (exception $e) {
+                            } catch (\exception $e) {
                                 $rError = 'Unknown error';
                             }
                             file_put_contents($rFilename . '.error', $rError);
@@ -115,7 +119,7 @@ class BackupsCronJob implements CommandInterface {
                 foreach ($rDelete as $rItem) {
                     try {
                         BackupService::deleteRemote($rItem['path']);
-                    } catch (exception $e) {
+                    } catch (\exception $e) {
                     }
                 }
             }

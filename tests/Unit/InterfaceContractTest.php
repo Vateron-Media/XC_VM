@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Events\ListensTo;
@@ -91,7 +92,7 @@ final class InterfaceContractTest extends TestCase {
 
     public function testCommandProviderInterfaceHasRegisterCommands(): void {
         $rc = new ReflectionClass(CommandProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'registerCommands', ['CommandRegistry'], 'void');
+        $this->assertInterfaceMethod($rc, 'registerCommands', ['XcVm\Cli\CommandRegistry'], 'void');
     }
 
     // ── NavbarProviderInterface ───────────────────────────────────

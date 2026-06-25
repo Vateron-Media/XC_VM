@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
 /**
  * TmdbCronJob — tmdb cron job
  *

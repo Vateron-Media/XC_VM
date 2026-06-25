@@ -3,7 +3,11 @@
 
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\ModuleInterface;
-use XcVm\Core\Http\Router;/**
+use XcVm\Core\Http\Router;
+use XcVm\Cli\CommandRegistry;
+use XcVm\Cli\CommandInterface;
+
+/**
  * XC_VM Console — единая точка входа для CLI-команд и cron-задач.
  *
  * Использование:
@@ -35,9 +39,8 @@ if (php_sapi_name() !== 'cli') {
 
 // ─── Bootstrap ───────────────────────────────────────────────────
 
-require_once __DIR__ . '/Cli/CommandInterface.php';
-require_once __DIR__ . '/Cli/CommandRegistry.php';
 require_once __DIR__ . '/bootstrap.php';
+// CommandInterface / CommandRegistry are PSR-4 autoloaded via Composer.
 
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_CLI, [
 	'process' => 'XC_VM[Console]',
@@ -49,23 +52,25 @@ $rRegistry = new CommandRegistry();
 
 // ── Auto-discover: core Commands + CronJobs ──────────────────────
 
+// Each directory maps to its PSR-4 namespace; classes are resolved by FQCN and
+// loaded by the Composer autoloader (no manual require, no basename==classname).
 $rCommandDirs = [
-	__DIR__ . '/Cli/Commands',
-	__DIR__ . '/Cli/CronJobs',
+	__DIR__ . '/Cli/Commands' => 'XcVm\\Cli\\Commands\\',
+	__DIR__ . '/Cli/CronJobs' => 'XcVm\\Cli\\CronJobs\\',
 ];
 
-foreach ($rCommandDirs as $rDir) {
+foreach ($rCommandDirs as $rDir => $rNamespace) {
 	if (!is_dir($rDir)) {
 		continue;
 	}
 	foreach (glob($rDir . '/*.php') as $rFile) {
-		$rClassName = basename($rFile, '.php');
-		require_once $rFile;
-		if (class_exists($rClassName, false)) {
-			$rReflection = new ReflectionClass($rClassName);
-			if (!$rReflection->isAbstract() && $rReflection->implementsInterface('CommandInterface')) {
-				$rRegistry->register(new $rClassName());
-			}
+		$rClass = $rNamespace . basename($rFile, '.php');
+		if (!class_exists($rClass)) {
+			continue;
+		}
+		$rReflection = new ReflectionClass($rClass);
+		if (!$rReflection->isAbstract() && $rReflection->implementsInterface(CommandInterface::class)) {
+			$rRegistry->register(new $rClass());
 		}
 	}
 }

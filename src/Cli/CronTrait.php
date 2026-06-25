@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Cli;
+
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Config\SettingsManager;
@@ -12,7 +14,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -26,7 +28,7 @@ trait CronTrait {
      */
     protected function assertRunAsXcVm(): bool {
         if ((posix_getpwuid(posix_geteuid())['name'] ?? null) !== 'xc_vm') {
-            echo "Please run as XC_VM!\n";
+            echo "Please run as \XC_VM!\n";
             return false;
         }
         return true;

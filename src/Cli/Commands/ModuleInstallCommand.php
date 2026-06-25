@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Module\ModuleManager;
 use XcVm\Core\Config\SettingsManager;
@@ -22,7 +25,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class ModuleInstallCommand implements CommandInterface {
@@ -106,7 +109,7 @@ class ModuleInstallCommand implements CommandInterface {
      * Pull a custom module archive from MAIN over the internal system API
      * (action=getFile). Returns the path to a downloaded temp file.
      *
-     * @throws RuntimeException If MAIN cannot be located or the download fails.
+     * @throws \RuntimeException If MAIN cannot be located or the download fails.
      */
     private function fetchArchiveFromMain(string $rArchivePath): string {
         $rMain = null;
@@ -118,7 +121,7 @@ class ModuleInstallCommand implements CommandInterface {
         }
 
         if (!$rMain || empty($rMain['server_ip'])) {
-            throw new RuntimeException('Could not locate the MAIN server to fetch the module archive.');
+            throw new \RuntimeException('Could not locate the MAIN server to fetch the module archive.');
         }
 
         $rPass = (string) (SettingsManager::getAll()['live_streaming_pass'] ?? '');
@@ -129,7 +132,7 @@ class ModuleInstallCommand implements CommandInterface {
         $rTmp = rtrim(sys_get_temp_dir(), '/') . '/xc_lbmod_' . bin2hex(random_bytes(8)) . '.zip';
         $rFp  = @fopen($rTmp, 'wb');
         if (!$rFp) {
-            throw new RuntimeException('Unable to create temporary archive file.');
+            throw new \RuntimeException('Unable to create temporary archive file.');
         }
 
         $rCh = curl_init();
@@ -149,7 +152,7 @@ class ModuleInstallCommand implements CommandInterface {
         $rMagic = @file_get_contents($rTmp, false, null, 0, 2);
         if (!$rOk || $rCode < 200 || $rCode >= 300 || $rMagic !== 'PK') {
             @unlink($rTmp);
-            throw new RuntimeException("Failed to download module archive from MAIN (HTTP {$rCode}).");
+            throw new \RuntimeException("Failed to download module archive from MAIN (HTTP {$rCode}).");
         }
 
         return $rTmp;

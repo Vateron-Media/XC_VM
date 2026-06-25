@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\DaemonTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Domain\Stream\StreamSorter;
@@ -14,7 +18,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -117,11 +121,11 @@ class ScannerCommand implements CommandInterface {
 						if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
 							continue;
 						}
-						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-XC_VM-Detect:1';
+						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-\XC_VM-Detect:1';
 						$rProcessed = true;
 					}
 					if (!$rProcessed) {
-						$rStreamArguments[] = array('value' => 'X-XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
+						$rStreamArguments[] = array('value' => 'X-\XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
 					}
 				}
 
@@ -131,11 +135,11 @@ class ScannerCommand implements CommandInterface {
 						if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
 							continue;
 						}
-						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-XC_VM-Prebuffer:1';
+						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-\XC_VM-Prebuffer:1';
 						$rProcessed = true;
 					}
 					if (!$rProcessed) {
-						$rStreamArguments[] = array('value' => 'X-XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
+						$rStreamArguments[] = array('value' => 'X-\XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
 					}
 				}
 

@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Util\Encryption;
@@ -13,7 +16,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -82,7 +85,7 @@ class ToolsCommand implements CommandInterface {
 
 		// xc_vm subcommands
 		if ($rUser !== 'xc_vm') {
-			echo "Please run as XC_VM!\n";
+			echo "Please run as \XC_VM!\n";
 			return 1;
 		}
 
@@ -115,7 +118,7 @@ class ToolsCommand implements CommandInterface {
 			$rExtension = strtolower(pathinfo($database, PATHINFO_EXTENSION));
 			if ($rExtension === 'sql') {
 				echo 'Restoring: ' . $database . "\n";
-				XC_VM::db_restore($database, 'xc_vm_migrate');
+				\XC_VM::db_restore($database, 'xc_vm_migrate');
 				echo "Restore started in the background.\n\n";
 			} else {
 				echo "Error: File must have .sql extension\n";
@@ -197,7 +200,7 @@ class ToolsCommand implements CommandInterface {
 		echo "  migration   Clear migration database and optionally restore .sql backup\n";
 		echo "  user        Create a rescue admin user for the admin panel\n";
 		echo "  mysql       Reauthorise load balancers on MySQL\n";
-		echo "  database    Restore blank XC_VM database (requires --confirm)\n";
+		echo "  database    Restore blank \XC_VM database (requires --confirm)\n";
 		echo "  flush       Flush all blocked IPs (iptables + database)\n";
 	}
 
@@ -312,7 +315,7 @@ class ToolsCommand implements CommandInterface {
 							$rImages[] = $rProperties['backdrop_path'][0];
 						}
 					}
-				} catch (Exception $e) {
+				} catch (\Exception $e) {
 					echo 'Error: ' . $e . "\n";
 				}
 			}
@@ -336,7 +339,7 @@ class ToolsCommand implements CommandInterface {
 							$rImages[] = $rResult['cover_big'];
 						}
 					}
-				} catch (Exception $e) {
+				} catch (\Exception $e) {
 					echo 'Error: ' . $e . "\n";
 				}
 			}

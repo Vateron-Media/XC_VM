@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module;
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 
@@ -65,10 +66,10 @@ abstract class BaseModule implements ModuleInterface, MigratableInterface, CronP
     /**
      * Register the module's CLI commands. No-op by default.
      *
-     * @param \CommandRegistry $registry The CLI command registry.
+     * @param \XcVm\Cli\CommandRegistry $registry The CLI command registry.
      * @return void
      */
-    public function registerCommands(\CommandRegistry $registry): void {}
+    public function registerCommands(\XcVm\Cli\CommandRegistry $registry): void {}
 
     /**
      * Register the module's navbar entries. No-op by default.

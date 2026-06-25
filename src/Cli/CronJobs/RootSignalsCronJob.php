@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\CronJobs;
+use XcVm\Cli\CronTrait;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Process\ProcessManager;
@@ -10,7 +14,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_CronJobs
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -256,7 +260,7 @@ class RootSignalsCronJob implements CommandInterface {
         $rXC_VMList = trim(implode("\n", array_unique($rXC_VMList)));
         $rCurrentList = (trim(file_get_contents(BIN_PATH . 'nginx/conf/realip_xc_vm.conf')) ?: '');
         if ($rXC_VMList != $rCurrentList) {
-            echo 'Updating XC_VM IP List...' . "\n";
+            echo 'Updating \XC_VM IP List...' . "\n";
             file_put_contents(BIN_PATH . 'nginx/conf/realip_xc_vm.conf', $rXC_VMList);
             $rReload = true;
         }
@@ -444,7 +448,7 @@ class RootSignalsCronJob implements CommandInterface {
                 $rJobs = [];
                 $db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
                 foreach ($db->get_rows() as $rRow) {
-                    $rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # XC_VM';
+                    $rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # \XC_VM';
                 }
                 $rActualCron = trim(implode("\n", $rJobs));
                 if ($rCurrentCron != $rActualCron) {
@@ -455,10 +459,10 @@ class RootSignalsCronJob implements CommandInterface {
                 }
             }
             if (file_exists(CONFIG_PATH . 'sysctl.on')) {
-                if (strtoupper(substr(explode("\n", file_get_contents('/etc/sysctl.conf'))[0], 0, 9)) != '# XC_VM') {
+                if (strtoupper(substr(explode("\n", file_get_contents('/etc/sysctl.conf'))[0], 0, 9)) != '# \XC_VM') {
                     echo 'Sysctl missing! Writing it.' . "\n";
                     exec('sudo modprobe ip_conntrack');
-                    file_put_contents('/etc/sysctl.conf', implode(PHP_EOL, ['# XC_VM', '', 'net.core.somaxconn = 655350', 'net.ipv4.route.flush=1', 'net.ipv4.tcp_no_metrics_save=1', 'net.ipv4.tcp_moderate_rcvbuf = 1', 'fs.file-max = 6815744', 'fs.aio-max-nr = 6815744', 'fs.nr_open = 6815744', 'net.ipv4.ip_local_port_range = 1024 65000', 'net.ipv4.tcp_sack = 1', 'net.ipv4.tcp_rmem = 10000000 10000000 10000000', 'net.ipv4.tcp_wmem = 10000000 10000000 10000000', 'net.ipv4.tcp_mem = 10000000 10000000 10000000', 'net.core.rmem_max = 524287', 'net.core.wmem_max = 524287', 'net.core.rmem_default = 524287', 'net.core.wmem_default = 524287', 'net.core.optmem_max = 524287', 'net.core.netdev_max_backlog = 300000', 'net.ipv4.tcp_max_syn_backlog = 300000', 'net.netfilter.nf_conntrack_max=1215196608', 'net.ipv4.tcp_window_scaling = 1', 'vm.max_map_count = 655300', 'net.ipv4.tcp_max_tw_buckets = 50000', 'net.ipv6.conf.all.disable_ipv6 = 1', 'net.ipv6.conf.default.disable_ipv6 = 1', 'net.ipv6.conf.lo.disable_ipv6 = 1', 'kernel.shmmax=134217728', 'kernel.shmall=134217728', 'vm.overcommit_memory = 1', 'net.ipv4.tcp_tw_reuse=1']));
+                    file_put_contents('/etc/sysctl.conf', implode(PHP_EOL, ['# \XC_VM', '', 'net.core.somaxconn = 655350', 'net.ipv4.route.flush=1', 'net.ipv4.tcp_no_metrics_save=1', 'net.ipv4.tcp_moderate_rcvbuf = 1', 'fs.file-max = 6815744', 'fs.aio-max-nr = 6815744', 'fs.nr_open = 6815744', 'net.ipv4.ip_local_port_range = 1024 65000', 'net.ipv4.tcp_sack = 1', 'net.ipv4.tcp_rmem = 10000000 10000000 10000000', 'net.ipv4.tcp_wmem = 10000000 10000000 10000000', 'net.ipv4.tcp_mem = 10000000 10000000 10000000', 'net.core.rmem_max = 524287', 'net.core.wmem_max = 524287', 'net.core.rmem_default = 524287', 'net.core.wmem_default = 524287', 'net.core.optmem_max = 524287', 'net.core.netdev_max_backlog = 300000', 'net.ipv4.tcp_max_syn_backlog = 300000', 'net.netfilter.nf_conntrack_max=1215196608', 'net.ipv4.tcp_window_scaling = 1', 'vm.max_map_count = 655300', 'net.ipv4.tcp_max_tw_buckets = 50000', 'net.ipv6.conf.all.disable_ipv6 = 1', 'net.ipv6.conf.default.disable_ipv6 = 1', 'net.ipv6.conf.lo.disable_ipv6 = 1', 'kernel.shmmax=134217728', 'kernel.shmall=134217728', 'vm.overcommit_memory = 1', 'net.ipv4.tcp_tw_reuse=1']));
                     exec('sudo sysctl -p > /dev/null');
                 }
             }
@@ -527,7 +531,7 @@ class RootSignalsCronJob implements CommandInterface {
                             break;
                         case 'update_binaries':
                             echo 'Updating binaries...' . "\n";
-                            $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'BINARIES', 'Updating XC_VM binaries from XC_VM server...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
+                            $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'BINARIES', 'Updating \XC_VM binaries from \XC_VM server...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
                             shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php binaries 2>&1 &');
                             break;
                         case 'install_module':
@@ -537,7 +541,7 @@ class RootSignalsCronJob implements CommandInterface {
                             break;
                         case 'update':
                             echo 'Updating...' . "\n";
-                            $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', 'Updating XC_VM...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
+                            $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', 'Updating \XC_VM...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
                             shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php update update 2>&1 &');
                             break;
                         case 'set_services':

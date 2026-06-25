@@ -1,5 +1,8 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Domain\Server\ServerService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Updates\GitHubReleases;
@@ -15,7 +18,7 @@ use XcVm\Core\Config\SettingsManager;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -31,7 +34,7 @@ class ServerInstallCommand implements CommandInterface {
 
 	public function execute(array $rArgs): int {
 		if (posix_getpwuid(posix_geteuid())['name'] != 'xc_vm') {
-			echo "Please run as XC_VM!\n";
+			echo "Please run as \XC_VM!\n";
 			return 1;
 		}
 
@@ -69,7 +72,7 @@ class ServerInstallCommand implements CommandInterface {
 		$rUpdateSysctl = (empty($rArgs[7]) ? 0 : intval($rArgs[7]));
 		$rPrivateIP = (empty($rArgs[8]) ? 0 : intval($rArgs[8]));
 		$rParentIDs = (empty($rArgs[9]) ? array() : json_decode($rArgs[9], true));
-		$rSysCtl = '# XC_VM' . PHP_EOL . PHP_EOL . 'net.ipv4.tcp_congestion_control = bbr' . PHP_EOL . 'net.core.default_qdisc = fq' . PHP_EOL . 'net.ipv4.tcp_rmem = 8192 87380 134217728' . PHP_EOL . 'net.ipv4.udp_rmem_min = 16384' . PHP_EOL . 'net.core.rmem_default = 262144' . PHP_EOL . 'net.core.rmem_max = 268435456' . PHP_EOL . 'net.ipv4.tcp_wmem = 8192 65536 134217728' . PHP_EOL . 'net.ipv4.udp_wmem_min = 16384' . PHP_EOL . 'net.core.wmem_default = 262144' . PHP_EOL . 'net.core.wmem_max = 268435456' . PHP_EOL . 'net.core.somaxconn = 1000000' . PHP_EOL . 'net.core.netdev_max_backlog = 250000' . PHP_EOL . 'net.core.optmem_max = 65535' . PHP_EOL . 'net.ipv4.tcp_max_tw_buckets = 1440000' . PHP_EOL . 'net.ipv4.tcp_max_orphans = 16384' . PHP_EOL . 'net.ipv4.ip_local_port_range = 2000 65000' . PHP_EOL . 'net.ipv4.tcp_no_metrics_save = 1' . PHP_EOL . 'net.ipv4.tcp_slow_start_after_idle = 0' . PHP_EOL . 'net.ipv4.tcp_fin_timeout = 15' . PHP_EOL . 'net.ipv4.tcp_keepalive_time = 300' . PHP_EOL . 'net.ipv4.tcp_keepalive_probes = 5' . PHP_EOL . 'net.ipv4.tcp_keepalive_intvl = 15' . PHP_EOL . 'fs.file-max=20970800' . PHP_EOL . 'fs.nr_open=20970800' . PHP_EOL . 'fs.aio-max-nr=20970800' . PHP_EOL . 'net.ipv4.tcp_timestamps = 1' . PHP_EOL . 'net.ipv4.tcp_window_scaling = 1' . PHP_EOL . 'net.ipv4.tcp_mtu_probing = 1' . PHP_EOL . 'net.ipv4.route.flush = 1' . PHP_EOL . 'net.ipv6.route.flush = 1';
+		$rSysCtl = '# \XC_VM' . PHP_EOL . PHP_EOL . 'net.ipv4.tcp_congestion_control = bbr' . PHP_EOL . 'net.core.default_qdisc = fq' . PHP_EOL . 'net.ipv4.tcp_rmem = 8192 87380 134217728' . PHP_EOL . 'net.ipv4.udp_rmem_min = 16384' . PHP_EOL . 'net.core.rmem_default = 262144' . PHP_EOL . 'net.core.rmem_max = 268435456' . PHP_EOL . 'net.ipv4.tcp_wmem = 8192 65536 134217728' . PHP_EOL . 'net.ipv4.udp_wmem_min = 16384' . PHP_EOL . 'net.core.wmem_default = 262144' . PHP_EOL . 'net.core.wmem_max = 268435456' . PHP_EOL . 'net.core.somaxconn = 1000000' . PHP_EOL . 'net.core.netdev_max_backlog = 250000' . PHP_EOL . 'net.core.optmem_max = 65535' . PHP_EOL . 'net.ipv4.tcp_max_tw_buckets = 1440000' . PHP_EOL . 'net.ipv4.tcp_max_orphans = 16384' . PHP_EOL . 'net.ipv4.ip_local_port_range = 2000 65000' . PHP_EOL . 'net.ipv4.tcp_no_metrics_save = 1' . PHP_EOL . 'net.ipv4.tcp_slow_start_after_idle = 0' . PHP_EOL . 'net.ipv4.tcp_fin_timeout = 15' . PHP_EOL . 'net.ipv4.tcp_keepalive_time = 300' . PHP_EOL . 'net.ipv4.tcp_keepalive_probes = 5' . PHP_EOL . 'net.ipv4.tcp_keepalive_intvl = 15' . PHP_EOL . 'fs.file-max=20970800' . PHP_EOL . 'fs.nr_open=20970800' . PHP_EOL . 'fs.aio-max-nr=20970800' . PHP_EOL . 'net.ipv4.tcp_timestamps = 1' . PHP_EOL . 'net.ipv4.tcp_window_scaling = 1' . PHP_EOL . 'net.ipv4.tcp_mtu_probing = 1' . PHP_EOL . 'net.ipv4.route.flush = 1' . PHP_EOL . 'net.ipv6.route.flush = 1';
 		$rInstallDir = BIN_PATH . 'install/';
 
 		if ($rType == 1) {
@@ -180,7 +183,7 @@ class ServerInstallCommand implements CommandInterface {
 	}
 
 	private function updateSystemAndInstallPackages($rConn, callable $rRunSSH, array $rPackages, int $rType): void {
-		echo "\nStopping any previous version of XC_VM\n";
+		echo "\nStopping any previous version of \XC_VM\n";
 		call_user_func($rRunSSH, $rConn, 'sudo systemctl stop xc_vm');
 		call_user_func($rRunSSH, $rConn, 'sudo killall -9 -u xc_vm');
 
@@ -213,7 +216,7 @@ class ServerInstallCommand implements CommandInterface {
 			return;
 		}
 
-		echo "Creating XC_VM system user\n";
+		echo "Creating \XC_VM system user\n";
 		call_user_func($rRunSSH, $rConn, 'sudo adduser --system --shell /bin/false --group --disabled-login xc_vm');
 		call_user_func($rRunSSH, $rConn, 'sudo mkdir ' . MAIN_HOME);
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . BIN_PATH);
@@ -222,7 +225,7 @@ class ServerInstallCommand implements CommandInterface {
 	private function installSystemdService($rConn, callable $rRunSSH, callable $rSendFileSSH, int $rServerID): void {
 		echo "Installing service\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm /etc/systemd/system/xc_vm.service');
-		$rSystemd = '[Unit]' . "\n" . 'SourcePath=/home/xc_vm/service' . "\n" . 'Description=XC_VM Service' . "\n" . 'After=network.target' . "\n" . 'StartLimitIntervalSec=0' . "\n\n" . '[Service]' . "\n" . 'Type=simple' . "\n" . 'User=root' . "\n" . 'Restart=always' . "\n" . 'RestartSec=1' . "\n" . 'ExecStart=/bin/bash /home/xc_vm/service start' . "\n" . 'ExecRestart=/bin/bash /home/xc_vm/service restart' . "\n" . 'ExecStop=/bin/bash /home/xc_vm/service stop' . "\n\n" . '[Install]' . "\n" . 'WantedBy=multi-user.target';
+		$rSystemd = '[Unit]' . "\n" . 'SourcePath=/home/xc_vm/service' . "\n" . 'Description=\XC_VM Service' . "\n" . 'After=network.target' . "\n" . 'StartLimitIntervalSec=0' . "\n\n" . '[Service]' . "\n" . 'Type=simple' . "\n" . 'User=root' . "\n" . 'Restart=always' . "\n" . 'RestartSec=1' . "\n" . 'ExecStart=/bin/bash /home/xc_vm/service start' . "\n" . 'ExecRestart=/bin/bash /home/xc_vm/service restart' . "\n" . 'ExecStop=/bin/bash /home/xc_vm/service stop' . "\n\n" . '[Install]' . "\n" . 'WantedBy=multi-user.target';
 		file_put_contents(TMP_PATH . 'systemd_' . $rServerID, $rSystemd);
 		call_user_func($rSendFileSSH, $rConn, TMP_PATH . 'systemd_' . $rServerID, '/etc/systemd/system/xc_vm.service', false);
 		call_user_func($rRunSSH, $rConn, 'sudo chmod +x /etc/systemd/system/xc_vm.service');
@@ -251,7 +254,7 @@ class ServerInstallCommand implements CommandInterface {
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'content/streams');
 		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . MAIN_HOME);
 		BackupService::grantPrivileges($rHost);
-		echo "Installation complete! Starting XC_VM\n";
+		echo "Installation complete! Starting \XC_VM\n";
 		call_user_func($rRunSSH, $rConn, 'sudo service xc_vm restart');
 	}
 
@@ -282,7 +285,7 @@ class ServerInstallCommand implements CommandInterface {
 			if (is_resource($rStream)) {
 				fclose($rStream);
 			}
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			$rSuccess = false;
 			if (is_resource($rStream)) {
 				fclose($rStream);

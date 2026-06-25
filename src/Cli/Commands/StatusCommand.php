@@ -1,5 +1,9 @@
 <?php
 
+namespace XcVm\Cli\Commands;
+use XcVm\Cli\CronJobs\RootMysqlCronJob;
+use XcVm\Cli\CommandInterface;
+
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Core\Module\ModuleLoader;
@@ -17,7 +21,7 @@ use XcVm\Core\Database\Database;
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -171,9 +175,9 @@ class StatusCommand implements CommandInterface {
 	private function installRootCrontab(): void {
 		$rCrons = array();
 
-		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
+		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # \XC_VM';
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/RootMysqlCronJob.php')) {
-			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
+			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # \XC_VM';
 		}
 
 		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
@@ -337,7 +341,7 @@ class StatusCommand implements CommandInterface {
 		}
 
 		if ($rOffline === 0) {
-			echo "All servers are Online and reporting back to XC_VM!\n\n";
+			echo "All servers are Online and reporting back to \XC_VM!\n\n";
 		} else {
 			echo "\n";
 		}

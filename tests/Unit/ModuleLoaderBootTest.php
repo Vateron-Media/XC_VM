@@ -229,7 +229,7 @@ final class ModuleLoaderBootTest extends TestCase {
             . "use XcVm\Core\Module\ModuleInterface;\n"
             . "use XcVm\Core\Container\ServiceContainer;\n"
             . "use XcVm\\Core\\Http\\Router;\n"
-            . "use CommandRegistry;\n"
+            . "use XcVm\Cli\CommandRegistry;\n"
             . "use XcVm\Core\Module\NavbarRegistry;\n"
             . "class {$cls} implements ModuleInterface {\n"
             . "\tpublic function getName(): string { return '{$name}'; }\n"

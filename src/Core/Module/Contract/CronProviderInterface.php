@@ -1,6 +1,8 @@
 <?php
 
 namespace XcVm\Core\Module\Contract;
+use XcVm\Cli\Commands\StatusCommand;
+use XcVm\Cli\Commands\StartupCommand;
 
 /**
  * Optional contract for modules that need system-level crontab entries.

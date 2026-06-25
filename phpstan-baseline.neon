@@ -223,7 +223,7 @@ parameters:
 			path: src/Cli/CronJobs/CacheEngineCronJob.php
 
 		-
-			message: '#^Property CacheEngineCronJob\:\:\$rForce is never read, only written\.$#'
+			message: '#^Property XcVm\\Cli\\CronJobs\\CacheEngineCronJob\:\:\$rForce is never read, only written\.$#'
 			identifier: property.onlyWritten
 			count: 1
 			path: src/Cli/CronJobs/CacheEngineCronJob.php
