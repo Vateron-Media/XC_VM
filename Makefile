@@ -83,29 +83,36 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 	lb_archive_move main_archive_move main_install_archive clean \
 	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
-	check-vendor-prod-only
+	check-vendor-prod-only dev-tools
 
 # ─── Syntax check ───────────────────────────────────────────────
 syntax_check:
 	@bash ./tools/php_syntax_check.sh
 
+# ─── Dev tooling ────────────────────────────────────────────────
+# The committed src/vendor/ is PRODUCTION-ONLY (composer install --no-dev). The
+# dev tools below (PHPStan, PHP-CS-Fixer) are require-dev packages — install them
+# into src/vendor/ once with `make dev-tools` before running phpstan / cs. CI runs
+# the equivalent `composer install` step itself. They are never committed (the
+# committed vendor stays prod-only — see tools/ci/check-vendor-prod-only.sh).
+dev-tools:
+	@cd src && composer install --no-interaction
+
 # ─── Static analysis (PHPStan) ──────────────────────────────────
-# PHPStan ships as a committed Composer dev dependency (src/vendor/). The
-# binary auto-loads src/vendor/autoload.php, so it resolves namespaced
-# third-party packages (M3uParser, PhpM3u8). No download, no `composer install`.
 PHPSTAN := src/vendor/bin/phpstan
 
 # Run the analysis using phpstan.dist.neon.
 phpstan:
+	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php "$(PHPSTAN)" analyse --memory-limit=2G
 
 # Freeze all current errors into phpstan-baseline.neon (run after a level bump).
 phpstan-baseline:
+	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php "$(PHPSTAN)" analyse --memory-limit=2G --generate-baseline=phpstan-baseline.neon
 
 # ─── Code style (PHP-CS-Fixer) ──────────────────────────────────
-# Ships as a committed Composer dev dependency (src/vendor/). The ruleset is
-# narrow — import/namespace hygiene only (no @PSR12 reformat). See
+# Narrow ruleset — import/namespace hygiene only (no @PSR12 reformat). See
 # .php-cs-fixer.dist.php.
 CS_FIXER := src/vendor/bin/php-cs-fixer
 
@@ -116,10 +123,12 @@ CS_FLAGS := -d short_open_tag=1
 
 # Check only — fails (exit 8) on any diff. Used in CI.
 cs:
+	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php $(CS_FLAGS) "$(CS_FIXER)" fix --dry-run --diff --config=.php-cs-fixer.dist.php
 
 # Apply fixes in place.
 cs-fix:
+	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php $(CS_FLAGS) "$(CS_FIXER)" fix --config=.php-cs-fixer.dist.php
 
 # ─── PSR-4 regression gates ─────────────────────────────────────
