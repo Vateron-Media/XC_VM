@@ -47,10 +47,10 @@ parameters:
             - src/*/tmp/*
             - src/tmp/*
             - src/backups/*
-            # Composer autoloader glue (committed + shipped, generated code).
+            # Composer autoloader glue + third-party packages (committed +
+            # shipped). Symbols resolve via src/vendor/autoload.php, which the
+            # Composer-installed phpstan binary loads automatically.
             - src/vendor/*
-            # Vendored third-party library shipped inside Core
-            - src/Core/Parsing/M3uParser/*
             # View templates: included into a controller's scope, so their
             # variables ($rSettings, $language, ...) are injected by the caller.
             # PHPStan analyses files standalone and would flag every such var as
