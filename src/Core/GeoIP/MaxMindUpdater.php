@@ -10,14 +10,14 @@ use XcVm\Core\Util\GeoIP;
  * @package XC_VM_Core_GeoIP
  * @author  Kondoooo <https://github.com/Kondoooo>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/\XC_VM
+ * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  *
  * A PHP class created for the \XC_VM project to update GeoIP databases.
  * Supports free GeoLite2 and paid GeoIP2 editions via MaxMind API,
  * downloads tar.gz archives, extracts .mmdb files, and updates version metadata.
  *
- * Implemented for: https://github.com/Vateron-Media/\XC_VM/issues/102
+ * Implemented for: https://github.com/Vateron-Media/XC_VM/issues/102
  */
 class MaxMindUpdater {
 

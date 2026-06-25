@@ -366,27 +366,6 @@ class XC_Autoloader {
             }
         }
     }
-
-    /**
-     * Register default project directories containing PHP classes.
-     *
-     * All directories will be scanned recursively during cache warm-up.
-     * Adding a new top-level source directory here is sufficient to make
-     * its classes discoverable by the autoloader.
-     *
-     * @return void
-     */
-    private static function registerDirectories() {
-        $base = self::$basePath;
-
-        // New architecture directories
-        self::addDirectory($base . 'Core');
-        self::addDirectory($base . 'Domain');
-        self::addDirectory($base . 'Infrastructure');
-        self::addDirectory($base . 'Streaming');
-        self::addDirectory($base . 'Modules');
-        self::addDirectory($base . 'Public');
-    }
 }
 
 // ─────────────────────────────────────────────────────────────────
