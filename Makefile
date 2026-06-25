@@ -82,7 +82,8 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
 	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
-	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates
+	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
+	strip_dev_deps
 
 # ─── Syntax check ───────────────────────────────────────────────
 syntax_check:
@@ -138,6 +139,15 @@ verify-lb-archive:
 # Run every fast PSR-4 gate.
 gates: check-procedural-use verify-lb-archive
 
+# ─── Release: strip Composer dev dependencies ───────────────────
+# Runs against the staged TEMP_DIR (the copy that becomes the archive), pruning
+# PHPStan / PHP-CS-Fixer (+ transitive deps, ~33 MB) and regenerating the
+# autoloader with --no-dev. The committed src/vendor/ keeps its dev deps for
+# local dev / CI. Hooked into both `main` and `lb` after the copy step.
+strip_dev_deps:
+	@echo "==> Stripping Composer dev dependencies from the release tree"
+	@bash tools/build/strip-dev-vendor.sh "$(TEMP_DIR)"
+
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
 # Writes to src/migrations/deleted_files.txt for manual review.
@@ -172,10 +182,10 @@ generate_deleted_files:
 # ─── MAIN targets ────────────────────────────────────────────────
 # Single archive: used for both clean install and update.
 # The update script (src/update) filters out excluded dirs at runtime.
-main: main_copy_files delete_files_list set_permissions create_archive main_archive_move main_install_archive clean
+main: main_copy_files strip_dev_deps delete_files_list set_permissions create_archive main_archive_move main_install_archive clean
 
 # ─── LoadBalancer targets ────────────────────────────────────────
-lb: lb_copy_files lb_delete_files_list set_permissions create_archive lb_archive_move clean
+lb: lb_copy_files strip_dev_deps lb_delete_files_list set_permissions create_archive lb_archive_move clean
 
 lb_copy_files:
 	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
