@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Config;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Domain\Stream\ConnectionTracker;
 
 /**
@@ -60,7 +61,7 @@ class DomainResolver {
 		}
 
 		if ($rProxied || $rSettings['use_mdomain_in_lists'] == 1) {
-			$rResellerDomains = \CacheReader::get('reseller_domains') ?: array();
+			$rResellerDomains = \XcVm\Infrastructure\Cache\CacheReader::get('reseller_domains') ?: array();
 			if (!(strlen($rDomain) > 0 && in_array(strtolower($rDomain), $rResellerDomains))) {
 				if (empty($rServers[$rServerID]['domain_name'])) {
 					$rDomain = escapeshellcmd($rServers[$rServerID]['server_ip']);

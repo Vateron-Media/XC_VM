@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 /**

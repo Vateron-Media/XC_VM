@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Database\Database;

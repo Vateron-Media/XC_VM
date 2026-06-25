@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Infrastructure\Bootstrap;
+
 use XcVm\Core\Logging\Logger;
 /**
  * StreamingRequestBootstrap — bootstrap для streaming HTTP endpoint'ов
@@ -7,7 +9,7 @@ use XcVm\Core\Logging\Logger;
  * @package XC_VM_Infrastructure_Bootstrap
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -91,10 +93,10 @@ class StreamingRequestBootstrap {
 			generate404();
 		}
 
-		// ── 7. Передача в StreamingBootstrap ────────────────────
+		// ── 7. Передача в \StreamingBootstrap ────────────────────
 		$rStreamingEndpoints = ['probe', 'player_api', 'live', 'thumb', 'subtitle', 'timeshift', 'vod', 'status', 'rtmp', 'portal'];
 		if (in_array($rFilename, $rStreamingEndpoints, true)) {
-			StreamingBootstrap::bootstrap($rFilename, $rSettings);
+			\StreamingBootstrap::bootstrap($rFilename, $rSettings);
 		}
 	}
 }

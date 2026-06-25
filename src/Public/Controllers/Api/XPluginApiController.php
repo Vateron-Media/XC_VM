@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Http\RequestManager;

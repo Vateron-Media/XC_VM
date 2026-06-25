@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Database\Database;

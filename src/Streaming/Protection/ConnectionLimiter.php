@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 /**
  * ConnectionLimiter — connection limiter

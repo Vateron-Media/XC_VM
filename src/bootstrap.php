@@ -54,6 +54,8 @@
  */
 
 declare(strict_types=0);
+use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\TicketRepository;
