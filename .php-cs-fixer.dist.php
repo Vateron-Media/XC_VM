@@ -23,12 +23,13 @@ $finder = PhpCsFixer\Finder::create()
 	->exclude('Modules/tmdb/lib')
 	// Runtime/transient trees.
 	->exclude('tmp')
-	->exclude('backups');
-
-// NOTE: view templates (Public/Views, Modules/*/views) and procedural entry
-// points ARE included. The ruleset only rewrites the import/namespace block, and
-// `use` after inline HTML is valid + aliases correctly in PHP — verified. This
-// keeps import hygiene consistent across class files and templates alike.
+	->exclude('backups')
+	// View templates: HTML interleaved with many <? / <?= short-tag PHP blocks.
+	// no_unused_imports cannot reliably see class usage inside short-tag blocks
+	// and would strip still-needed imports. Their import correctness is enforced
+	// instead by tools/ci/check_procedural_use.php (short-tag aware).
+	->notPath('#^Public/Views/#')
+	->notPath('#^Modules/[^/]+/views/#');
 
 return (new PhpCsFixer\Config())
 	->setIndent("\t")

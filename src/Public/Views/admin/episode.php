@@ -1,3 +1,12 @@
+<?php
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\StreamRepository;
+?>
+<?php
+?>
 <?
 echo '<div class="wrapper boxed-layout"';
 
@@ -472,7 +481,6 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
-use XcVm\Core\Config\SettingsManager;
 
 if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();

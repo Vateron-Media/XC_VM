@@ -1,3 +1,10 @@
+<?php
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\User\UserRepository;
+?>
+<?php
+?>
 <? 
 echo '<div class="wrapper boxed-layout"';
 
@@ -285,7 +292,6 @@ renderUnifiedLayoutFooter('admin'); ?>
 		});
 		setTimeout(pingSession, 30000);
 		<?php 
-use XcVm\Core\Config\SettingsManager;
 
 if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();
