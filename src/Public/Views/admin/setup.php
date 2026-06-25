@@ -1,16 +1,14 @@
 <?php
 
-use XcVm\Streaming\TS;
-use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\PageAuthorization;
-use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\Authenticator;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Database\Database;
+use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\NetworkUtils;
+
 include 'functions.php';
 if (!isset(RequestManager::getAll()['update'])):
     $rFirstRun = true;

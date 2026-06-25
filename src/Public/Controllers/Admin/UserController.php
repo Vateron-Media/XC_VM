@@ -2,9 +2,10 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Line\PackageService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\User\UserRepository;
+
 /**
  * Контроллер редактирования пользователя (admin/user.php)
  *

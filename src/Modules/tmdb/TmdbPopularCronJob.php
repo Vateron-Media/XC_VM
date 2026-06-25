@@ -2,8 +2,9 @@
 
 namespace XcVm\Module\Tmdb;
 
-use XcVm\Cli\CronTrait;
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
+
 /**
  * TmdbPopularCronJob — tmdb popular cron job
  *

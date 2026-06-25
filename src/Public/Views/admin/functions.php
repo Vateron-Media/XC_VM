@@ -1,12 +1,14 @@
 <?php
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;if (!defined('MAIN_HOME')) {
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\User\UserRepository;
+
+if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', '/home/xc_vm/');
 }
 

@@ -1,8 +1,9 @@
 <?php
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Server\ServerRepository;
+
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

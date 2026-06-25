@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Public\Controllers\Reseller;
+
 /**
  * ResellerUserLogsController — Sub-reseller login logs.
  *

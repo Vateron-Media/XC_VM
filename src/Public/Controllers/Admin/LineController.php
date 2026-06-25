@@ -2,10 +2,11 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\User\UserRepository;
+
 /**
  * LineController — добавление / редактирование линии.
  *

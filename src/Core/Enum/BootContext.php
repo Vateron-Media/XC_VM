@@ -1,10 +1,11 @@
 <?php
 
 namespace XcVm\Core\Enum;
-use XcVm\Core\Localization\Translator;
-use XcVm\Core\Init\LegacyInitializer;
 
 use XcVm\Core\Database\Database;
+use XcVm\Core\Init\LegacyInitializer;
+use XcVm\Core\Localization\Translator;
+
 /**
  * Boot context for XC_Bootstrap::boot().
  *

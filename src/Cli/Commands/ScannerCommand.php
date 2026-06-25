@@ -1,17 +1,18 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\DaemonTrait;
-use XcVm\Cli\CommandInterface;
 
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\DaemonTrait;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Http\CurlClient;
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Codec\FFprobeRunner;
-use XcVm\Domain\Stream\StreamSorter;
-use XcVm\Core\Util\StreamUtils;
-use XcVm\Core\Http\CurlClient;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Config\SettingsRepository;
-use XcVm\Core\Config\SettingsManager;
+
 /**
  * ScannerCommand — scanner command
  *

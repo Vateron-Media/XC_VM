@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+
 /**
  * BouquetSortController — Bouquet Sort / Reorder Content (admin/bouquet_sort.php).
  *

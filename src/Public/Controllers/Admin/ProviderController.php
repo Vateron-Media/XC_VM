@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Stream\ProviderService;
+
 /**
  * ProviderController — provider controller
  *

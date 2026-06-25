@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Auth\AuthRepository;
+
 /**
  * HmacController — HMAC Keys (admin/hmacs.php).
  *

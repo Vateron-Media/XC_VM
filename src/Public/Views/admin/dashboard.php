@@ -1,11 +1,12 @@
 <div class="wrapper">
 	<div class="container-fluid">
 		<?php 
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Config\SettingsManager;if (Authorization::check('adv', 'index')): ?>
+use XcVm\Domain\Server\ServerRepository;
+
+if (Authorization::check('adv', 'index')): ?>
 			<div class="row">
 				<div class="col-12">
 					<div class="page-title-box">

@@ -1,10 +1,12 @@
 <?php
 
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;echo '<div class="wrapper"';
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\CategoryService;
+
+echo '<div class="wrapper"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 } else {

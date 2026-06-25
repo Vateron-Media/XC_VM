@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Security\BlocklistService;
+
 /**
  * Контроллер редактирования User-Agent (admin/useragent.php)
  *

@@ -2,11 +2,12 @@
 
 namespace XcVm\Module\Plex;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Server\ServerService;
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Server\ServerService;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * Plex Module Controller
  *

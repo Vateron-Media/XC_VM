@@ -1,13 +1,14 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Updates\GitHubReleases;
-use XcVm\Core\Database\MigrationRunner;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Logging\UpdateLogger;
+use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * UpdateCommand — update command
  *

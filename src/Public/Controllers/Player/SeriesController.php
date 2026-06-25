@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Player;
 
-use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\ImageUtils;
+
 /**
  * SeriesController — series controller
  *

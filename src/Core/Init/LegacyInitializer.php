@@ -1,21 +1,16 @@
 <?php
 
 namespace XcVm\Core\Init;
-use XcVm\Streaming\Codec\FfmpegPaths;
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Infrastructure\Cache\CacheReader;
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Validation\InputValidator;
-use XcVm\Core\Cache\FileCache;
 
+use XcVm\Core\Cache\FileCache;
+use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsRepository;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Validation\InputValidator;
+
 /**
  * LegacyInitializer — legacy initializer
  *

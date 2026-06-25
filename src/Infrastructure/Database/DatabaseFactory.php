@@ -2,8 +2,8 @@
 
 namespace XcVm\Infrastructure\Database;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
+
 /**
  * DatabaseFactory — создание, хранение и закрытие глобального подключения к БД.
  *

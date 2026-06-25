@@ -1,11 +1,10 @@
 <?php
 
 namespace XcVm\Core\Auth;
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Util\AdminHelpers;
 
-use XcVm\Core\Http\Request;
 use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\Request;
+
 /**
  * Консолидированный сервис аутентификации.
  * Объединяет: \CodeService, HMACService, HMACValidator.

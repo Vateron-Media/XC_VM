@@ -1,13 +1,14 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Core\Util\GeoIP;
-use XcVm\Core\Updates\GitHubReleases;
-use XcVm\Core\GeoIP\MaxMindUpdater;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\GeoIP\MaxMindUpdater;
+use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Util\GeoIP;
+
 require_once __DIR__ . '/../CronTrait.php';
 
 /**

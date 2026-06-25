@@ -1,21 +1,13 @@
 <?php
 
 namespace XcVm\Module\Watch;
-use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Module\NavbarRegistry;
-use XcVm\Core\Module\NavbarItem;
-use XcVm\Core\Module\BaseModule;
 
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
-use XcVm\Module\Watch\WatchService;
-use XcVm\Module\Watch\RecordingService;
-use XcVm\Module\Watch\WatchController;
-use XcVm\Module\Watch\WatchCron;
-use XcVm\Module\Watch\WatchItem;
-use XcVm\Module\Watch\WatchCronJob;
-use XcVm\Module\Watch\WatchItemCommand;
-
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Module\NavbarItem;
+use XcVm\Core\Module\NavbarRegistry;
 
 /**
  * Watch Module

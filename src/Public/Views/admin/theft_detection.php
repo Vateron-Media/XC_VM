@@ -2,6 +2,7 @@
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
+
 echo '<div class="wrapper boxed-layout-ext"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {

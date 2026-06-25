@@ -1,10 +1,10 @@
 <?php 
-use XcVm\Core\Module\NavbarRegistry;
-use XcVm\Core\Module\NavbarItem;
-use XcVm\Core\Module\CoreNavbarProvider;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Module\CoreNavbarProvider;
+use XcVm\Core\Module\NavbarItem;
+use XcVm\Core\Module\NavbarRegistry;
 
 if (count(get_included_files()) != 1 || TRUE):
     $rModal = isset(RequestManager::getAll()['modal']);

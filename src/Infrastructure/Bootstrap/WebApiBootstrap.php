@@ -1,14 +1,14 @@
 <?php
 
 namespace XcVm\Infrastructure\Bootstrap;
+
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Init\LegacyInitializer;
+use XcVm\Core\Logging\Logger;
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
-use XcVm\Core\Updates\GitHubReleases;
-use XcVm\Core\Init\LegacyInitializer;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Logging\Logger;
 /**
  * WebApiBootstrap — bootstrap для web API endpoint'ов
  *

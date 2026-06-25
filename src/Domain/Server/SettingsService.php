@@ -2,11 +2,11 @@
 
 namespace XcVm\Domain\Server;
 
-use XcVm\Core\Localization\Translator;
-use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Localization\Translator;
+
 /**
  * SettingsService — settings service
  *

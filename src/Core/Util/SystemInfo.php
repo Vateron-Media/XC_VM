@@ -1,7 +1,6 @@
 <?php
 
 namespace XcVm\Core\Util;
-use XcVm\Domain\Server\ServerRepository;
 
 /**
  * System Information

@@ -6,8 +6,10 @@
 				<div class="section__wrap">
 					<h2 class="section__title"><?= $rSearchBy ? strtoupper(htmlspecialchars($rSearchBy)) : ($rPopular ? 'POPULAR MOVIES' : 'MOVIES') ?></h2>
 					<?php 
+use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Stream\CategoryService;
-use XcVm\Core\Util\ImageUtils;if ($rSearchBy): ?>
+
+if ($rSearchBy): ?>
 					<button class="clear__btn wide" type="button">CLEAR</button>
 					<?php endif; ?>
 				</div>

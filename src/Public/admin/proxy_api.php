@@ -1,11 +1,11 @@
 <?php
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 /**
  * Proxy API handler
  *

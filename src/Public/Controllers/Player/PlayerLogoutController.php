@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Player;
 
 use XcVm\Core\Auth\SessionManager;
+
 /**
  * PlayerLogoutController — player logout controller
  *

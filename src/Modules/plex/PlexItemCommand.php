@@ -3,6 +3,7 @@
 namespace XcVm\Module\Plex;
 
 use XcVm\Cli\CommandInterface;
+
 /**
  * PlexItemCommand — plex item command
  *

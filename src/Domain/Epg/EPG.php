@@ -3,9 +3,9 @@
 namespace XcVm\Domain\Epg;
 
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
-use XcVm\Core\Parsing\XmlStringStreamer;
 use XcVm\Core\Logging\FileLogger;
+use XcVm\Core\Parsing\XmlStringStreamer;
+
 /**
  * EPG — e p g
  *

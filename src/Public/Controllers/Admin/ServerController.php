@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * ServerController — редактирование сервера (admin/server.php).
  *

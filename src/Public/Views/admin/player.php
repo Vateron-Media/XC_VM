@@ -1,11 +1,12 @@
 <?php
 
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\PageAuthorization;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\NetworkUtils;
+
 include 'session.php';
 include 'functions.php';
 

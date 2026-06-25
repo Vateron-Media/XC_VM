@@ -2,16 +2,16 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Domain\Stream\PlaylistGenerator;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Auth\BruteforceGuard;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Stream\PlaylistGenerator;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+
 /**
  * PlaylistApiController — playlist api controller
  *

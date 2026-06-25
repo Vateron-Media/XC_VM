@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\GeoIP;
+
 use XcVm\Core\Util\GeoIP;
 
 /**

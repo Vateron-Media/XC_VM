@@ -1,20 +1,20 @@
 <?php
 
 namespace XcVm\Infrastructure;
+
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Redis\RedisManager;
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Device\EnigmaService;
-use XcVm\Core\Util\TimeUtils;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
-use XcVm\Core\Config\SettingsManager;
 /**
  * ResellerTableRenderer — DataTables handler for reseller panel.
  *

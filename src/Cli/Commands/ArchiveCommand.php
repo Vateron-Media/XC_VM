@@ -1,11 +1,12 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Core\Util\StreamUtils;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Domain\Stream\StreamProcess;
+
 /**
  * ArchiveCommand — records a live HLS stream into 1-minute .ts archive segments.
  *

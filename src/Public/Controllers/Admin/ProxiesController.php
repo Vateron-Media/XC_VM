@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Server\ServerRepository;
+
 /**
  * ProxiesController — Proxy Servers listing.
  *

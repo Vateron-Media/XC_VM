@@ -1,11 +1,12 @@
 <?php
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Server\ServerRepository;
+
 if (count(get_included_files()) != 1) {
 	$_PAGE = AdminHelpers::getPageName();
 	include __DIR__ . '/modals.php';

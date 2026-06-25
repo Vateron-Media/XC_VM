@@ -2,10 +2,10 @@
 
 namespace XcVm\Public\Controllers\Player;
 
-use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\ImageUtils;
+
 /**
  * LiveController — live controller
  *

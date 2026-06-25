@@ -1,16 +1,16 @@
 <?php
 
 namespace XcVm\Domain\Stream;
-use XcVm\Domain\Epg\EpgService;
-use XcVm\Domain\Bouquet\BouquetService;
 
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\ApiClient;
-use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\ApiClient;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Epg\EpgService;
+
 /**
  * StreamService — stream service
  *

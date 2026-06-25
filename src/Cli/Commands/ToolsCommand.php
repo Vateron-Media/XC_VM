@@ -1,15 +1,15 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Backup\BackupService;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Database\Database;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * ToolsCommand — tools command
  *

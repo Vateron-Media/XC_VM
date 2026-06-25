@@ -1,16 +1,11 @@
 <?php
 
 namespace XcVm\Core\Module;
-use XcVm\Core\Exception\Module\ModuleNotFoundException;
-use XcVm\Core\Exception\Module\ModuleException;
-use XcVm\Core\Enum\ModuleState;
-use XcVm\Core\Events\Module\PackageInstalledEvent;
-use XcVm\Core\Events\EventDispatcher;
-use XcVm\Core\Container\ServiceContainer;
 
-use XcVm\Core\Http\Router;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Http\Router;
+
 /**
  * ModuleManager — administrative operations with modules.
  *

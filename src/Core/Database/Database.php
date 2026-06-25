@@ -3,6 +3,7 @@
 namespace XcVm\Core\Database;
 
 use XcVm\Core\Logging\FileLogger;
+
 /**
  * Database — database
  *

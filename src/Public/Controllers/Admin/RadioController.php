@@ -2,10 +2,11 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Stream\StreamConfigRepository;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * RadioController — редактирование/добавление радиостанции.
  *

@@ -1,14 +1,14 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Core\Process\Thread;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Process\Multithread;
-use XcVm\Core\Config\SettingsRepository;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Process\Multithread;
+use XcVm\Core\Process\ProcessManager;
+
 /**
  * CacheEngineCronJob — cache engine cron job
  *

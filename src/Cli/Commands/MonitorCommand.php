@@ -1,17 +1,18 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Streaming\Codec\FFprobeRunner;
-use XcVm\Domain\Stream\StreamSorter;
-use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Util\StreamUtils;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Diagnostics\DiagnosticsService;
-use XcVm\Core\Config\SettingsRepository;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Diagnostics\DiagnosticsService;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\StreamUtils;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Streaming\Codec\FFprobeRunner;
+
 /**
  * Мониторинг одного стрима (из cli/monitor.php).
  *

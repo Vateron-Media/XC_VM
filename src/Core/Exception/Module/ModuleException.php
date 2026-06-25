@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Exception\Module;
+
 use XcVm\Core\Exception\XcVmException;
 
 /**

@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Stream\StreamConfigRepository;
+
 /**
  * ProfileEditController — add/edit transcoding profile.
  *

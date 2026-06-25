@@ -2,8 +2,9 @@
 
 namespace XcVm\Streaming\Auth;
 
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Logging\DatabaseLogger;
+use XcVm\Core\Util\Encryption;
+
 /**
  * Общий streaming auth middleware для live/vod/timeshift.
  *

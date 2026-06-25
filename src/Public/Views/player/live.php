@@ -17,7 +17,9 @@
 	</div>
 </section>
 <?php 
-use XcVm\Domain\Stream\CategoryService;if (!$rSearchBy): ?>
+use XcVm\Domain\Stream\CategoryService;
+
+if (!$rSearchBy): ?>
 <div class="filter">
 	<div class="container">
 		<div class="row">

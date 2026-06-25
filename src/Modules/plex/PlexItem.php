@@ -2,8 +2,9 @@
 
 namespace XcVm\Module\Plex;
 
-use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Stream\StreamProcess;
+
 /**
  * PlexItem — модуль обработки отдельного элемента Plex (фильм/сериал).
  *

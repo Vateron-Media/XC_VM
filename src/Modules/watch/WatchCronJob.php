@@ -2,10 +2,11 @@
 
 namespace XcVm\Module\Watch;
 
-use XcVm\Cli\CronTrait;
 use XcVm\Cli\CommandInterface;
-use XcVm\Core\Process\ProcessManager;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Process\ProcessManager;
+
 /**
  * WatchCronJob — watch cron job
  *

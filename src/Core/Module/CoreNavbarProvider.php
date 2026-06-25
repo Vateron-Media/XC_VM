@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module;
+
 use XcVm\Core\Module\Contract\NavbarProviderInterface;
 
 /**

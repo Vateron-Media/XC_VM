@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Http\Pipeline;
+
 use XcVm\Core\Module\ModuleLoader;
 
 /**

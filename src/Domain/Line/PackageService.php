@@ -1,13 +1,13 @@
 <?php
 
 namespace XcVm\Domain\Line;
+
+use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 /**
  * PackageService — package service
  *

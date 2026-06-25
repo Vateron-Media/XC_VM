@@ -1,16 +1,11 @@
 <?php
 
 namespace XcVm\Module\Tmdb;
-use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Module\BaseModule;
 
+use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
-use XcVm\Module\Tmdb\TmdbController;
-use XcVm\Module\Tmdb\TmdbCron;
-use XcVm\Module\Tmdb\TmdbPopularCron;
-use XcVm\Module\Tmdb\TmdbCronJob;
-use XcVm\Module\Tmdb\TmdbPopularCronJob;
+use XcVm\Core\Module\BaseModule;
 
 /**
  * TMDB Module

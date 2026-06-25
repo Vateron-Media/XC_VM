@@ -1,12 +1,13 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\DaemonTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Domain\Server\ServerRepository;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * SignalsCommand — signals command
  *

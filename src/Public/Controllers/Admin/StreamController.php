@@ -2,11 +2,12 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Stream\StreamConfigRepository;
-use XcVm\Domain\Epg\EpgService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * StreamController — редактирование/добавление стрима.
  *

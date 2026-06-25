@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module\Contract;
+
 use XcVm\Core\Module\NavbarRegistry;
 
 /**

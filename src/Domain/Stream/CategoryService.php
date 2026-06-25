@@ -2,11 +2,11 @@
 
 namespace XcVm\Domain\Stream;
 
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Cache\FileCache;
-use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Util\AdminHelpers;
+
 /**
  * CategoryService — category service
  *

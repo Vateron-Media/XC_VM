@@ -2,12 +2,13 @@
 
 namespace XcVm\Module\Watch;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Http\ApiClient;
-use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\ApiClient;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * WatchService — watch service
  *

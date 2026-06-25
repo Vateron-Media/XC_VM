@@ -1,9 +1,10 @@
 <?php
 
 namespace XcVm\Core\Events;
-use XcVm\Core\Events\Contract\StoppableEventInterface;
 
+use XcVm\Core\Events\Contract\StoppableEventInterface;
 use XcVm\Core\Module\ModuleLoader;
+
 /**
  * Event dispatcher with PSR-14-style typed events and priority-ordered listeners.
  *

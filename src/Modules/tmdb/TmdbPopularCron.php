@@ -3,6 +3,7 @@
 namespace XcVm\Module\Tmdb;
 
 use XcVm\Core\Config\SettingsManager;
+
 /**
  * TmdbPopularCron
  *

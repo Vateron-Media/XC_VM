@@ -1,13 +1,14 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Core\Updates\GitHubReleases;
-use XcVm\Core\Config\SettingsManager;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Logging\FileLogger;
+use XcVm\Core\Updates\GitHubReleases;
+
 /**
  * UpdateCronJob — update cron job
  *

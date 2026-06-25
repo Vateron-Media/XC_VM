@@ -1,7 +1,7 @@
 <?php
 
 namespace XcVm\Core\Module\Contract;
-use XcVm\Cli\CommandRegistry;
+
 use XcVm\Cli\CommandInterface;
 
 /**

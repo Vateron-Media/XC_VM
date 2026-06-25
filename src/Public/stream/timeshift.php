@@ -1,17 +1,17 @@
 <?php
 
+use XcVm\Core\Logging\DatabaseLogger;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\Encryption;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Infrastructure\Cache\CacheReader;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Streaming\AsyncFileOperations;
+use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
-use XcVm\Streaming\Auth\StreamAuth;
-use XcVm\Streaming\TS;
-use XcVm\Streaming\AsyncFileOperations;
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Infrastructure\Cache\CacheReader;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Core\Util\Encryption;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Logging\DatabaseLogger;
+
 /**
  * Timeshift stream endpoint
  *

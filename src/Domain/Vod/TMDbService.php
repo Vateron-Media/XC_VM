@@ -2,9 +2,9 @@
 
 namespace XcVm\Domain\Vod;
 
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+
 /**
  * TMDbService — TMDb API integration
  *

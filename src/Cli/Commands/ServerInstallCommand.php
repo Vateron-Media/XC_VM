@@ -1,13 +1,14 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerService;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Server\ServerService;
+
 /**
  * Установка/настройка сервера (Proxy/LB) через SSH.
  *

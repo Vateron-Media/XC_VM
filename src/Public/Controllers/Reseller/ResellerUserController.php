@@ -2,9 +2,9 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\User\UserRepository;
+use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\User\GroupService;
-use XcVm\Core\Util\AdminHelpers;/**
+use XcVm\Domain\User\UserRepository;/**
  * ResellerUserController — Sub-reseller edit/create.
  *
  * @package XC_VM_Public_Controllers_Reseller

@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Streaming\Health\ProcessChecker;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Streaming\Health\ProcessChecker;
+
 /**
  * ServerViewController — просмотр сервера (admin/server_view.php).
  *

@@ -2,9 +2,10 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\CategoryService;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Stream\CategoryService;
+
 /**
  * StreamCategoryController — редактирование категории стрима.
  *

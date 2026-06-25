@@ -1,15 +1,14 @@
 <?php
 
 namespace XcVm\Domain\User;
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\Bouquet\BouquetService;
 
-use XcVm\Core\Util\GeoIP;
-use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\GeoIP\GeoIPService;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Security\BlocklistService;
+
 /**
  * UserRepository — user repository
  *

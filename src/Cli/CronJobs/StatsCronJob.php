@@ -1,10 +1,11 @@
 <?php
 
 namespace XcVm\Cli\CronJobs;
-use XcVm\Cli\CronTrait;
-use XcVm\Cli\CommandInterface;
 
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Domain\Server\ServerRepository;
+
 /**
  * StatsCronJob — stats cron job
  *

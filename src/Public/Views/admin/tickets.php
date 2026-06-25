@@ -1,8 +1,10 @@
 <?php
 
-use XcVm\Domain\User\TicketRepository;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;echo '<div class="wrapper"';
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\User\TicketRepository;
+
+echo '<div class="wrapper"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 } else {

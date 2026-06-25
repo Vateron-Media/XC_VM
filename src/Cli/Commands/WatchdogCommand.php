@@ -1,16 +1,17 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\DaemonTrait;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Util\SystemInfo;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Config\SettingsRepository;
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\SystemInfo;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * WatchdogCommand — watchdog command
  *

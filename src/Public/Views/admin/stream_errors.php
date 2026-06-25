@@ -1,7 +1,9 @@
 <div class="wrapper"
 	<?php 
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Config\SettingsManager;if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+
+if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
 	} else {
 		echo ' style="display: none;"';
 	} ?>>

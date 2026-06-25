@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Stream\CategoryService;
+
 /**
  * SeriesMassController — массовое редактирование сериалов.
  *

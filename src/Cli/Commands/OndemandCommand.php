@@ -1,14 +1,15 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Config\SettingsRepository;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * OndemandCommand — ondemand command
  *

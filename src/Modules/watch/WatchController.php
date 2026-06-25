@@ -2,10 +2,11 @@
 
 namespace XcVm\Module\Watch;
 
-use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\StreamRepository;
+
 /**
  * Watch Module Controller
  *

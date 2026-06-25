@@ -3,6 +3,7 @@
 namespace XcVm\Streaming\Delivery;
 
 use XcVm\Core\Util\Encryption;
+
 /**
  * HLSGenerator — h l s generator
  *

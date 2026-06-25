@@ -1,11 +1,12 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Streaming\Codec\FfmpegPaths;
-use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Streaming\Codec\FfmpegPaths;
+
 /**
  * ThumbnailCommand — thumbnail command
  *

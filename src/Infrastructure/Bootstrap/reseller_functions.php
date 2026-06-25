@@ -1,11 +1,11 @@
 <?php
 
-use XcVm\Domain\User\UserRepository;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Http\RequestManager;/**
+use XcVm\Core\Auth\SessionManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Core\Util\NetworkUtils;
+use XcVm\Domain\User\UserRepository;/**
  * Reseller functions bootstrap.
  *
  * Extracted from reseller/functions.php for Front Controller use.

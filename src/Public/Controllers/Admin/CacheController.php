@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+
 /**
  * CacheController — Cache & \Redis Settings.
  *

@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Bouquet\BouquetService;
+
 /**
  * BouquetListController — Bouquets listing (admin/bouquets.php).
  *

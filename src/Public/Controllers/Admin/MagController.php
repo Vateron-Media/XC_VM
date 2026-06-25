@@ -2,8 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Device\MagService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Device\MagService;
+
 /**
  * Контроллер редактирования MAG-устройства (admin/mag.php)
  *

@@ -1,11 +1,11 @@
 <?php
 
 use XcVm\Cli\Commands\MigrateCommand;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+
 /**
  * Database migration logic
  *

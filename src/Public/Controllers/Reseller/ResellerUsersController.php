@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Public\Controllers\Reseller;
+
 /**
  * ResellerUsersController — Sub-resellers listing.
  *

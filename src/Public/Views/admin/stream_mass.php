@@ -1,9 +1,11 @@
 <?php
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Server\ServerRepository;
+
+$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
 $selectedCategory = RequestManager::getAll()['category'] ?? null;

@@ -1,6 +1,7 @@
 <?php
 
 namespace XcVm\Core\Events\Stream;
+
 use XcVm\Core\Events\AbstractEvent;
 
 /**

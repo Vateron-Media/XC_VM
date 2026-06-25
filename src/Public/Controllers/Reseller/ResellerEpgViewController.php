@@ -2,9 +2,9 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\Stream\CategoryService;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Config\SettingsManager;/**
+use XcVm\Domain\Stream\CategoryService;/**
  * ResellerEpgViewController — EPG preview.
  *
  * @package XC_VM_Public_Controllers_Reseller

@@ -1,9 +1,10 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Database\MigrationRunner;
+
 /**
  * DbMigrateCommand — apply pending database migrations
  *

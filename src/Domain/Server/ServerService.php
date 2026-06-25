@@ -1,15 +1,15 @@
 <?php
 
 namespace XcVm\Domain\Server;
-use XcVm\Cli\CronJobs\RootSignalsCronJob;
 
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Backup\BackupService;
+use XcVm\Cli\CronJobs\RootSignalsCronJob;
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Http\ApiClient;
-use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\ApiClient;
+use XcVm\Core\Util\AdminHelpers;
+
 /**
  * ServerService — server service
  *

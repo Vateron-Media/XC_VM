@@ -3,6 +3,7 @@
 namespace XcVm\Core\Exception\Container;
 
 use XcVm\Core\Container\ServiceContainer;
+
 /**
  * Thrown when a service factory throws during ServiceContainer::get().
  *

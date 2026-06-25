@@ -2,10 +2,11 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Stream\StreamConfigRepository;
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Vod\MovieService;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Vod\MovieService;
+
 /**
  * MovieMassController — массовое редактирование фильмов.
  *

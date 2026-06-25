@@ -2,11 +2,12 @@
 
 namespace XcVm\Public\Controllers\Player;
 
-use XcVm\Domain\Vod\TMDbService;
-use XcVm\Core\Util\ImageUtils;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Vod\TMDbService;
+
 /**
  * PlayerMovieController — player movie controller
  *

@@ -1,22 +1,22 @@
 <?php
 
 namespace XcVm\Domain\User;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Line\LineService;
-use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Device\EnigmaService;
-use XcVm\Domain\Bouquet\BouquetService;
 
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\Authenticator;
-use XcVm\Core\Http\Request;
-use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Database\Database;
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Http\Request;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * Reseller API handler
  *

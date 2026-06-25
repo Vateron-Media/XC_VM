@@ -3,6 +3,7 @@
 namespace XcVm\Module\Watch;
 
 use XcVm\Cli\CommandInterface;
+
 /**
  * WatchItemCommand — watch item command
  *

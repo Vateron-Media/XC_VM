@@ -1,8 +1,10 @@
 <div class="wrapper" <?php 
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Server\ServerRepository;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\CategoryService;
+
+if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
 	<div class="container-fluid">
 		<div class="row">
 			<div class="col-12">

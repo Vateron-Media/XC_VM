@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Bouquet\BouquetService;
+
 /**
  * SettingsWatchController — Watch Settings (admin/settings_watch.php).
  *

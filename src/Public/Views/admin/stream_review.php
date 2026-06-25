@@ -7,10 +7,11 @@
                     <div class="page-title-box">
                         <div class="page-title-right">
                             <?php 
-use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Epg\EPG;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Config\SettingsManager;include 'topbar.php'; ?>
+use XcVm\Domain\Stream\CategoryService;
+
+include 'topbar.php'; ?>
                         </div>
                         <h4 class="page-title"><?= $language::get('mass_edit_review') ?> <small id="selected_count"></small></h4>
                     </div>

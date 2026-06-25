@@ -2,10 +2,11 @@
 
 namespace XcVm\Cli;
 
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * Общий функционал для CLI-демонов (signals, watchdog, queue, cache_handler).
  *

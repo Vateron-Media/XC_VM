@@ -1,11 +1,12 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Core\Module\ModuleManager;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Module\ModuleManager;
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * ModuleInstallCommand — install a module on a load balancer (files only).
  *

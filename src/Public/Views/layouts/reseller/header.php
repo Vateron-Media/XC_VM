@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Domain\Line\LineService;
+
 if (count(get_included_files()) != 1) {
 	$rGenTrials = LineService::canGenerateTrials($rUserInfo['id']);
 	$GLOBALS['rGenTrials'] = $rGenTrials;

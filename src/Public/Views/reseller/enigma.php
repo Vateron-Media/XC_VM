@@ -5,6 +5,7 @@ use XcVm\Domain\User\UserRepository;/**
  * Variables from controller: $rDevice, $rLine, $rOrigPackage, $rPackages
  * ViewGlobals: $rUserInfo, $rPermissions, $rSettings, $rGenTrials, $language, $rRequest
  */
+
 ?>
 <div class="wrapper boxed-layout-ext">
     <div class="container-fluid">

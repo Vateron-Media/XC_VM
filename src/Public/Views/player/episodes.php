@@ -6,7 +6,9 @@
 				<h1 class="details__title"><?= $rSeries['title'] ?><br/>
 					<ul class="card__list">
 						<?php 
-use XcVm\Domain\Stream\CategoryService;foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
+use XcVm\Domain\Stream\CategoryService;
+
+foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
 						<li><?= CategoryService::getFromDatabase()[$rCategoryID]['category_name'] ?></li>
 						<?php endforeach; ?>
 					</ul>

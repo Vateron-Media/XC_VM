@@ -1,9 +1,9 @@
 <?php
 
 namespace XcVm\Core\Http;
-use XcVm\Domain\Server\ServerRepository;
 
 use XcVm\Core\Config\SettingsManager;
+
 /**
  * ApiClient — internal API communication
  *

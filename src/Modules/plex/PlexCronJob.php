@@ -2,9 +2,10 @@
 
 namespace XcVm\Module\Plex;
 
-use XcVm\Cli\CronTrait;
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
 use XcVm\Core\Process\ProcessManager;
+
 /**
  * PlexCronJob — plex cron job
  *

@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Util\ImageResizeService;
+
 /**
  * AdminResizeController — Image resize proxy for admin panel.
  *

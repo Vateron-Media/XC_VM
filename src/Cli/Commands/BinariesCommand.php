@@ -1,10 +1,11 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CommandInterface;
 
-use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Updates\GitHubReleases;
+
 /**
  * BinariesCommand — binaries command
  *

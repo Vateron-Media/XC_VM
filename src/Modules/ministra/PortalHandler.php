@@ -2,10 +2,11 @@
 
 namespace XcVm\Module\Ministra;
 
-use XcVm\Domain\Epg\EPG;
-use XcVm\Core\Util\TimeUtils;
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Domain\Epg\EPG;
+
 /**
  * PortalHandler — portal handler
  *

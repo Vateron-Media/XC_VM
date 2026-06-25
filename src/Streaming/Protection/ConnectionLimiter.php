@@ -2,8 +2,9 @@
 
 namespace XcVm\Streaming\Protection;
 
-use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * ConnectionLimiter — connection limiter
  *

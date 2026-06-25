@@ -1,12 +1,11 @@
 <?php
 
 namespace XcVm\Cli\Commands;
-use XcVm\Cli\CronJobs\RootMysqlCronJob;
-use XcVm\Cli\CronJobs\ModuleLicensesCronJob;
-use XcVm\Cli\DaemonTrait;
-use XcVm\Cli\CommandInterface;
 
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Module\ModuleLoader;
+
 /**
  * StartupCommand — startup command
  *

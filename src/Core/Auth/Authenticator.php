@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 namespace XcVm\Core\Auth;
-use XcVm\Domain\User\UserRepository;
-use XcVm\Core\Util\NetworkUtils;
 
 use XcVm\Core\Logging\Logger;
 

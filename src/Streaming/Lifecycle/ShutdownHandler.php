@@ -2,11 +2,12 @@
 
 namespace XcVm\Streaming\Lifecycle;
 
-use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Infrastructure\Cache\CacheReader;
-use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Core\Auth\BruteforceGuard;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Infrastructure\Cache\CacheReader;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Redis\RedisManager;
+
 /**
  * Общий shutdown handler для streaming endpoints (live, vod, timeshift).
  *
