@@ -82,7 +82,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
 	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
-	phpstan phpstan-baseline cs cs-fix
+	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates
 
 # ─── Syntax check ───────────────────────────────────────────────
 syntax_check:
@@ -108,13 +108,35 @@ phpstan-baseline:
 # .php-cs-fixer.dist.php.
 CS_FIXER := src/vendor/bin/php-cs-fixer
 
+# short_open_tag=1 so the fixer analyses `<?`/`<?=` view templates as PHP (prod
+# runs with short tags on). Without it no_unused_imports cannot see class usage
+# inside short-tag blocks and would wrongly strip still-needed imports.
+CS_FLAGS := -d short_open_tag=1
+
 # Check only — fails (exit 8) on any diff. Used in CI.
 cs:
-	@php "$(CS_FIXER)" fix --dry-run --diff --config=.php-cs-fixer.dist.php
+	@php $(CS_FLAGS) "$(CS_FIXER)" fix --dry-run --diff --config=.php-cs-fixer.dist.php
 
 # Apply fixes in place.
 cs-fix:
-	@php "$(CS_FIXER)" fix --config=.php-cs-fixer.dist.php
+	@php $(CS_FLAGS) "$(CS_FIXER)" fix --config=.php-cs-fixer.dist.php
+
+# ─── PSR-4 regression gates ─────────────────────────────────────
+# Helper: print a variable's resolved value (consumed by CI gate scripts).
+print-%:
+	@echo '$($*)'
+
+# Procedural/view files must import every migrated class they use with a
+# top-of-file `use` (PHP `use` is positional outside the top scope).
+check-procedural-use:
+	@php -d short_open_tag=1 tools/ci/check_procedural_use.php
+
+# LB archive must never contain privileged code (security blocker 1).
+verify-lb-archive:
+	@bash tools/ci/verify-lb-archive.sh
+
+# Run every fast PSR-4 gate.
+gates: check-procedural-use verify-lb-archive
 
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
