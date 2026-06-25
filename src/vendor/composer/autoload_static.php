@@ -28,7 +28,7 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         ),
         'M3uParser\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/Core/Parsing/M3uParser/src',
+            0 => __DIR__ . '/..' . '/gemorroj/m3u-parser/src',
         ),
         'Chrisyue\\PhpM3u8\\' => 
         array (

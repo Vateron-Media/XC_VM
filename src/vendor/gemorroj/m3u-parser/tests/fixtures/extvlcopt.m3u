@@ -1,0 +1,4 @@
+#EXTM3U
+
+#EXTVLCOPT:http-user-agent=Lavf53.32.100
+rtp://@127.0.0.1:5003

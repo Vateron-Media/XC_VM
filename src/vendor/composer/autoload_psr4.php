@@ -7,6 +7,6 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'XcVm\\' => array($baseDir . '/'),
-    'M3uParser\\' => array($baseDir . '/Core/Parsing/M3uParser/src'),
+    'M3uParser\\' => array($vendorDir . '/gemorroj/m3u-parser/src'),
     'Chrisyue\\PhpM3u8\\' => array($baseDir . '/Core/Parsing/PhpM3u8/src'),
 );

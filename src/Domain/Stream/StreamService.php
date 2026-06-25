@@ -833,7 +833,6 @@ class StreamService {
 	 * @return array Parsed playlist entries (iterable, countable).
 	 */
 	public static function parseM3U($rData, $rFile = true) {
-		require_once MAIN_HOME . 'Core/Parsing/M3uParser/bootstrap.php';
 		$rParser = new \M3uParser\M3uParser();
 		$rParser->addDefaultTags();
 

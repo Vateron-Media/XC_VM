@@ -1,0 +1,4 @@
+#EXTM3U
+
+#EXTART:some artist
+rtp://@127.0.0.1:5003

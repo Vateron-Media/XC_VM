@@ -15,3 +15,4 @@ tests/.cache/
 # Static analysis (PHPStan)
 tools/phpstan/phpstan.phar
 .phpstan.cache/
+src/composer.lock
