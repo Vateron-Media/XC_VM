@@ -67,12 +67,13 @@ class XC_Autoloader {
      * @return void
      */
     public static function init($basePath) {
+        // Retired no-op stub. The PSR-4 migration is complete: every class is
+        // resolved by the Composer autoloader (src/vendor/) or an explicit
+        // require (vendored libs, procedural entry points). The legacy directory
+        // scanner is no longer registered. The class is kept for one release as a
+        // no-op so StartupCommand::clearCache()/warmCache() keep working; it will
+        // be removed entirely in a follow-up.
         self::$basePath = rtrim($basePath, '/') . '/';
-
-        self::registerDirectories();
-
-        // prepend = false → fallback at the end of the queue, after Composer.
-        spl_autoload_register([__CLASS__, 'load'], true, false);
     }
 
     /**
