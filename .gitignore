@@ -5,7 +5,12 @@ __pycache__/
 *.pyc
 *.phpunit.result.cache
 EXTENSION.md
-src/tmp/cache/autoload_map
+# Runtime scratch written under src/tmp/ at run/test time (autoload_map, *.log,
+# flood/crons/divergence/... caches). Keep the committed directory skeleton via
+# the .gitkeep files; ignore everything else so it never lands in `git add -A`.
+src/tmp/**
+!src/tmp/**/
+!src/tmp/**/.gitkeep
 tests/.cache/
 # Runtime test scratch dir created by tests/bootstrap.php (bin/, vod/, fake_bin)
 tests/.tmp/
