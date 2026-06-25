@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Public\Controllers\Admin;
+
 /**
  * SessionController — JSON endpoint проверки статуса сессии.
  *

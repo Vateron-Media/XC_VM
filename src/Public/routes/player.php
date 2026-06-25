@@ -1,5 +1,17 @@
 <?php
 
+use XcVm\Public\Controllers\Player\SeriesController;
+use XcVm\Public\Controllers\Player\PlayerResizeController;
+use XcVm\Public\Controllers\Player\PlayerProxyController;
+use XcVm\Public\Controllers\Player\PlayerProfileController;
+use XcVm\Public\Controllers\Player\PlayerMovieController;
+use XcVm\Public\Controllers\Player\PlayerLogoutController;
+use XcVm\Public\Controllers\Player\PlayerLoginController;
+use XcVm\Public\Controllers\Player\MoviesController;
+use XcVm\Public\Controllers\Player\LiveController;
+use XcVm\Public\Controllers\Player\ListingsController;
+use XcVm\Public\Controllers\Player\HomeController;
+use XcVm\Public\Controllers\Player\EpisodesController;
 use XcVm\Core\Http\Router;
 /**
  * Player Routes

@@ -1,5 +1,7 @@
 <?php
 
+namespace XcVm\Public\Controllers\Player;
+
 use XcVm\Domain\User\UserRepository;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\GeoIP;
@@ -16,7 +18,7 @@ use XcVm\Core\Config\SettingsManager;/**
  * @package XC_VM_Public_Controllers_Player
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
- * @link    https://github.com/Vateron-Media/XC_VM
+ * @link    https://github.com/Vateron-Media/\XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
@@ -47,7 +49,7 @@ class PlayerLoginController
 		// Bootstrap: загружаем ядро для БД, settings,
 		// destroySession() и других глобальных зависимостей.
 		require_once MAIN_HOME . 'bootstrap.php';
-		XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+		\XC_Bootstrap::boot(\XC_Bootstrap::CONTEXT_ADMIN);
 
 		// Start session
 		if (session_status() === PHP_SESSION_NONE && !headers_sent()) {

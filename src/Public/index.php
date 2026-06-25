@@ -1,5 +1,14 @@
 <?php
 
+use XcVm\Public\Controllers\Api\XPluginApiController;
+use XcVm\Public\Controllers\Api\ResellerRestApiController;
+use XcVm\Public\Controllers\Api\PlaylistApiController;
+use XcVm\Public\Controllers\Api\PlayerApiController;
+use XcVm\Public\Controllers\Api\InternalApiController;
+use XcVm\Public\Controllers\Api\EpgApiController;
+use XcVm\Public\Controllers\Api\Enigma2ApiController;
+use XcVm\Public\Controllers\Api\AdminApiController;
+use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Core\Module\ModuleLoader;
