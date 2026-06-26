@@ -403,24 +403,6 @@ parameters:
 			path: src/Core/Parsing/File.php
 
 		-
-			message: '#^Parameter \#2 \$code of class InvalidArgumentException constructor expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Core/Parsing/PhpM3u8/src/Definition/TagDefinition.php
-
-		-
-			message: '#^Parameter \#2 \$code of class InvalidArgumentException constructor expects int, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Core/Parsing/PhpM3u8/src/Definition/TagDefinitions.php
-
-		-
-			message: '#^Argument of an invalid type ArrayAccess supplied for foreach, only iterables are supported\.$#'
-			identifier: foreach.nonIterable
-			count: 1
-			path: src/Core/Parsing/PhpM3u8/src/Dumper/AttributeListDumper.php
-
-		-
 			message: '#^Binary operation "\+\=" between int and string results in an error\.$#'
 			identifier: assignOp.invalid
 			count: 1
@@ -517,36 +499,6 @@ parameters:
 			path: src/Core/Util/AdminHelpers.php
 
 		-
-			message: '#^PHPDoc tag @method has invalid value \(boolean is\[\.\.\.\]\(\)\)\: Unexpected token "\[", expected ''\('' at offset 60 on line 4$#'
-			identifier: phpDoc.parseError
-			count: 1
-			path: src/Core/Util/MobileDetect.php
-
-		-
-			message: '#^Parameter \#1 \$httpHeaders of method XcVm\\Core\\Util\\Mobile_Detect\:\:setHttpHeaders\(\) expects array\|null, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Core/Util/MobileDetect.php
-
-		-
-			message: '#^Property XcVm\\Core\\Util\\Mobile_Detect\:\:\$matchesArray \(string\) does not accept array\<string\>\.$#'
-			identifier: assign.propertyType
-			count: 1
-			path: src/Core/Util/MobileDetect.php
-
-		-
-			message: '#^Property XcVm\\Core\\Util\\Mobile_Detect\:\:\$userAgent \(string\) does not accept null\.$#'
-			identifier: assign.propertyType
-			count: 2
-			path: src/Core/Util/MobileDetect.php
-
-		-
-			message: '#^Method XcVm\\Core\\Util\\NetworkUtils\:\:stopDownload\(\) with return type void returns null but should not return anything\.$#'
-			identifier: return.void
-			count: 2
-			path: src/Core/Util/NetworkUtils.php
-
-		-
 			message: '#^Variable \$rBitrate might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -623,30 +575,6 @@ parameters:
 			identifier: return.missing
 			count: 1
 			path: src/Domain/Epg/EpgService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLineSignal\(\) with return type void returns false but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Line/LineService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLineSignal\(\) with return type void returns true but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Line/LineService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLinesSignal\(\) with return type void returns false but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Line/LineService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Line\\LineService\:\:updateLinesSignal\(\) with return type void returns true but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Line/LineService.php
 
 		-
 			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:checkISP\(\) should return bool but returns int\.$#'
@@ -967,24 +895,6 @@ parameters:
 			path: src/Domain/Stream/StreamProcess.php
 
 		-
-			message: '#^Method XcVm\\Domain\\Stream\\StreamProcess\:\:deleteCache\(\) with return type void returns null but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Stream/StreamProcess.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Stream\\StreamProcess\:\:updateStreams\(\) with return type void returns false but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Stream/StreamProcess.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Stream\\StreamProcess\:\:updateStreams\(\) with return type void returns true but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Stream/StreamProcess.php
-
-		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
 			count: 2
@@ -1285,12 +1195,6 @@ parameters:
 			path: src/Domain/Vod/SeriesService.php
 
 		-
-			message: '#^Method XcVm\\Domain\\Vod\\TMDbService\:\:addCategories\(\) with return type void returns true but should not return anything\.$#'
-			identifier: return.void
-			count: 1
-			path: src/Domain/Vod/TMDbService.php
-
-		-
 			message: '#^Method XcVm\\Domain\\Vod\\TMDbService\:\:getMovie\(\) should return array\|null but returns Movie\.$#'
 			identifier: return.type
 			count: 1
@@ -1417,12 +1321,6 @@ parameters:
 			path: src/Modules/ministra/PortalHelpers.php
 
 		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: src/Modules/plex/PlexController.php
-
-		-
 			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
 			identifier: greater.alwaysTrue
 			count: 1
@@ -1481,204 +1379,6 @@ parameters:
 			identifier: variable.undefined
 			count: 3
 			path: src/Modules/plex/PlexItem.php
-
-		-
-			message: '#^Method Season\:\:getEpisode\(\) should return int but returns Episode\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Modules/tmdb/lib/Entities/Season.php
-
-		-
-			message: '#^Property Season\:\:\$_idTVShow is unused\.$#'
-			identifier: property.unused
-			count: 1
-			path: src/Modules/tmdb/lib/Entities/Season.php
-
-		-
-			message: '#^Method TVShow\:\:getSeason\(\) should return int but returns Season\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Modules/tmdb/lib/Entities/TVShow.php
-
-		-
-			message: '#^Variable \$data might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: src/Modules/tmdb/lib/Entities/TVShow.php
-
-		-
-			message: '#^Access to an undefined property Release\:\:\$original\.$#'
-			identifier: property.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/Release.php
-
-		-
-			message: '#^Offset 1 on array\{0\: non\-falsy\-string, 1\: non\-falsy\-string&numeric\-string, 2\?\: '' ''\|''\)''\|''\-''\|''\.''\|''\|''\} in isset\(\) always exists and is not nullable\.$#'
-			identifier: isset.offset
-			count: 1
-			path: src/Modules/tmdb/lib/Release.php
-
-		-
-			message: '#^Offset 3 does not exist on array\{0\: non\-falsy\-string, season\: numeric\-string, 1\: numeric\-string, episode\: numeric\-string, 2\: ''0''\|\(non\-falsy\-string&numeric\-string\)\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/Release.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 2
-			path: src/Modules/tmdb/lib/Release.php
-
-		-
-			message: '#^Method TMDB\:\:_call\(\) should return string but returns array\<mixed, mixed\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Method TMDB\:\:getAPIConfig\(\) has invalid return type Configuration\.$#'
-			identifier: class.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Method TMDB\:\:getDiscoverMovie\(\) should return Movie but returns list\<Movie\>\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Method TMDB\:\:getJobs\(\) should return array but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Method TMDB\:\:getTimezones\(\) should return array but returns string\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''genres'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''movie_results'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''person_results'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''results'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 20
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''tv_episode_results'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''tv_results'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Offset ''tv_season_results'' does not exist on string\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$companyName$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^PHPDoc tag @param references unknown parameter\: \$timezone$#'
-			identifier: parameter.notFound
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class APIConfiguration constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Collection constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Company constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Episode constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Movie constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Person constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class Season constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 1
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#1 \$data of class TVShow constructor expects array, string given\.$#'
-			identifier: argument.type
-			count: 2
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Parameter \#3 \$value of function curl_setopt expects bool, int given\.$#'
-			identifier: argument.type
-			count: 3
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Variable \$cnf might not be defined\.$#'
-			identifier: variable.undefined
-			count: 5
-			path: src/Modules/tmdb/lib/TmdbClient.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: src/Modules/watch/WatchController.php
 
 		-
 			message: '#^Method XcVm\\Module\\Watch\\WatchCron\:\:getBouquet\(\) should return array\|null but return statement is missing\.$#'

@@ -66,7 +66,6 @@ class WatchController {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
                 AdminHelpers::goHome();
-                return;
             }
         }
 

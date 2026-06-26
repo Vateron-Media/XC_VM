@@ -208,10 +208,10 @@ class NetworkUtils {
                 }
                 file_put_contents($rFile, json_encode($rFloodRow), LOCK_EX);
             } else {
-                return null;
+                return;
             }
         } else {
-            return null;
+            return;
         }
     }
 }

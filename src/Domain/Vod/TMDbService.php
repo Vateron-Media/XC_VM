@@ -188,7 +188,7 @@ class TMDbService {
 			}
 		}
 
-		return true;
+		return;
 	}
 
 	/**
