@@ -363,9 +363,9 @@ class LineService {
 			} else {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_line', 'id' => $rUserID)));
 			}
-			return true;
+			return;
 		}
-		return false;
+		return;
 	}
 
 	/**
@@ -384,9 +384,9 @@ class LineService {
 			} else {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_lines', 'id' => $rUserIDs)));
 			}
-			return true;
+			return;
 		}
-		return false;
+		return;
 	}
 
 	/**

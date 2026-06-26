@@ -75,7 +75,7 @@ class StreamProcess {
 				}
 			}
 		} else {
-			return null;
+			return;
 		}
 	}
 
@@ -182,9 +182,9 @@ class StreamProcess {
 			} else {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
 			}
-			return true;
+			return;
 		}
-		return false;
+		return;
 	}
 
 	/**

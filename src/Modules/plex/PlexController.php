@@ -64,7 +64,6 @@ class PlexController {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
             if (!$rFolder) {
                 AdminHelpers::goHome();
-                return;
             }
         }
 
