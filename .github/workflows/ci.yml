@@ -15,22 +15,6 @@ permissions:
   contents: read
 
 jobs:
-  lint:
-    name: PHP Syntax Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.1'
-          coverage: none
-
-      - name: Check syntax
-        run: bash tools/php_syntax_check.sh
-
   phpstan:
     name: PHPStan (static analysis)
     runs-on: ubuntu-latest

@@ -51,19 +51,18 @@ To install the panel, follow these steps:
 
 ## 🔍 Pre-Commit Checks
 
-Before committing, run the PHP syntax checker:
+Install the dev tooling once, then run the linters and tests before committing
+(CI runs the same set):
 
 ```sh
-bash tools/php_syntax_check.sh
+make dev-tools     # install PHPStan + PHP-CS-Fixer (composer install)
+make phpstan       # static analysis (also catches syntax errors)
+make cs            # code style — import/namespace hygiene (PHP-CS-Fixer)
+make gates         # PSR-4 regression gates
+php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist   # unit tests
 ```
 
-This is the same check that CI runs. You can also check a single file:
-
-```sh
-bash tools/php_syntax_check.sh src/domain/Device/EnigmaService.php
-```
-
-Do not submit PRs with syntax errors — CI will reject them.
+Do not submit PRs that fail these — CI will reject them.
 
 ## 🔬 Static Analysis (PHPStan)
 

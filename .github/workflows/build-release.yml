@@ -35,9 +35,6 @@ jobs:
           php-version: '8.1'
           coverage: none
 
-      - name: Check syntax
-        run: bash tools/php_syntax_check.sh
-
       - name: Run unit tests
         run: php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
 

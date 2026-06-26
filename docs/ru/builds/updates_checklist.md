@@ -53,10 +53,11 @@ cat src/migrations/deleted_files.txt
 
 Перед публикацией убедитесь, что сборка работает:
 
-**Проверка синтаксиса PHP:**
+**Проверки качества** (CI прогоняет тот же набор на теге — убедитесь, что зелёный):
 
 ```bash
-make syntax_check
+make dev-tools && make phpstan && make cs && make gates
+php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
 ```
 
 **Тестовая установка в Docker** (см. `tools/test-install/`):
@@ -70,12 +71,7 @@ bash tools/test-install/test_release.sh
 
 > ✅ Убедитесь, что панель открывается по `http://localhost:8880` и вход в админку работает.
 
-**Security-сканирование** (запускается автоматически при push через `.github/workflows/security-scan.yml`):
-
-```bash
-tools/php_syntax_check.sh
-tools/run_scan.sh
-```
+**Security-сканирование:** запускается автоматически при push/PR через `.github/workflows/security-scan.yml` (Semgrep) — вручную ничего делать не нужно.
 
 ---
 
