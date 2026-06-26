@@ -84,7 +84,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 	verify_no_lfs_pointers \
 	delete_files_list lb_delete_files_list generate_deleted_files \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
-	check-vendor-prod-only dev-tools
+	check-vendor-prod-only dev-tools dev-clean
 
 # ─── Dev tooling ────────────────────────────────────────────────
 # The committed src/vendor/ is PRODUCTION-ONLY (composer install --no-dev). The
@@ -94,6 +94,17 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 # committed vendor stays prod-only — see tools/ci/check-vendor-prod-only.sh).
 dev-tools:
 	@cd src && composer install --no-interaction
+
+# Inverse of dev-tools: once you no longer need the checks, remove the installed
+# dev libraries (PHPStan, PHP-CS-Fixer + transitive deps) and restore the
+# production-only vendor/. `composer install --no-dev` prunes vendor/ back to the
+# committed prod set, so `git status` stays clean and no dev package can be staged.
+dev-clean:
+	@cd src && composer install --no-dev --no-interaction
+	@# composer rewrites installed.php/.json with the root package's current git
+	@# reference (HEAD sha), so they churn after every commit even though the prod
+	@# package set is identical — restore the committed copies to keep vendor clean.
+	@git checkout -- src/vendor/composer/installed.php src/vendor/composer/installed.json 2>/dev/null || true
 
 # ─── Static analysis (PHPStan) ──────────────────────────────────
 PHPSTAN := src/vendor/bin/phpstan

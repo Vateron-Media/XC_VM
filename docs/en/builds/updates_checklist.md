@@ -58,6 +58,7 @@ Before publishing, verify the build works:
 ```bash
 make dev-tools && make phpstan && make cs && make gates
 php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
+make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
 ```
 
 **Docker test install** (see `tools/test-install/`):
@@ -184,3 +185,32 @@ After publishing, the workflow will automatically:
 - [ ] Run `md5sum -c hashes.md5` on downloaded files
 - [ ] Check Telegram notification was sent
 - [ ] Close related GitHub issues/milestones
+
+---
+
+## Command Reference
+
+Every `make` target used during release prep, in one place.
+
+**Quality checks** — run `make dev-tools` first, `make dev-clean` when done:
+
+| Command | Purpose |
+| --- | --- |
+| `make dev-tools` | Install dev tooling (PHPStan, PHP-CS-Fixer) via `composer install` |
+| `make phpstan` | Static analysis (also catches syntax errors) |
+| `make phpstan-baseline` | Regenerate the PHPStan baseline |
+| `make cs` | Code-style check — import/namespace hygiene (PHP-CS-Fixer, dry-run) |
+| `make cs-fix` | Apply code-style fixes in place |
+| `make gates` | PSR-4 regression gates (procedural-use, LB-archive, vendor-prod-only) |
+| `make dev-clean` | Remove the dev tools again, restoring the production-only `vendor/` |
+| `php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests |
+
+**Release prep & build:**
+
+| Command | Purpose |
+| --- | --- |
+| `make generate_deleted_files` | Regenerate `src/migrations/deleted_files.txt` |
+| `make new` | Reset the `dist/` output directory (run before building) |
+| `make lb` | Build the LoadBalancer archive into `dist/` |
+| `make main` | Build the MAIN archive into `dist/` |
+| `bash tools/test-install/test_release.sh` | Docker install test of the built release |
