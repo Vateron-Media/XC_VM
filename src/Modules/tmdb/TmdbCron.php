@@ -626,7 +626,7 @@ class TmdbCron {
         $db = self::db();
 
         require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-        require_once MAIN_HOME . 'Modules/tmdb/lib/\Release.php';
+        require_once MAIN_HOME . 'Modules/tmdb/lib/Release.php';
 
         $rUpdateSeries = array();
 
