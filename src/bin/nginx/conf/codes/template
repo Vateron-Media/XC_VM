@@ -1,5 +1,5 @@
 location ^~ /#CODE#/assets/ {
-    alias /home/xc_vm/public/assets/#TYPE#/;
+    alias /home/xc_vm/Public/assets/#TYPE#/;
 }
 
 location ^~ /#CODE# {
@@ -26,7 +26,7 @@ location @fc_#CODE# {
     fastcgi_index index.php;
     fastcgi_pass php;
     include fastcgi_params;
-    fastcgi_param SCRIPT_FILENAME /home/xc_vm/public/index.php;
+    fastcgi_param SCRIPT_FILENAME /home/xc_vm/Public/index.php;
     fastcgi_param SCRIPT_NAME /public/index.php;
     fastcgi_param XC_SCOPE #TYPE#;
     fastcgi_param XC_CODE  #CODE#;
