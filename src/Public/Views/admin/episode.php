@@ -6,8 +6,6 @@ use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\StreamRepository;
 ?>
 <?php
-?>
-<?
 echo '<div class="wrapper boxed-layout"';
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -480,9 +478,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 			window.rSwitches[$(html).attr("id")] = switchery;
 		});
 		setTimeout(pingSession, 30000);
-		<?php 
-
-if (!$rMobile && $rSettings['header_stats']): ?>
+		<?php if (!$rMobile && $rSettings['header_stats']): ?>
 			headerStats();
 		<?php endif; ?>
 		bindHref();
