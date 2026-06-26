@@ -24,6 +24,7 @@
 * 🏁 [Overview](#-overview)
 * ⚠️ [Status](#️-status)
 * 📚 [Documentation](#-documentation)
+* 🔄 [Migration Guide](#-migration-guide)
 * 🧱 [Technology Stack](#-technology-stack)
 * 🧩 [Supported OS](#-supported-operating-systems)
 * 📥 [Quick Install](#-quick-install)
@@ -68,6 +69,15 @@ It enables:
 
 * 🇷🇺 **Руководство на русском**
   [https://vateron-media.github.io/XC_VM/#/ru-ru/](https://vateron-media.github.io/XC_VM/#/ru-ru/)
+
+---
+
+## 🔄 Migration Guide
+
+Migrating from Xtream Codes / XUI.one? Follow the step-by-step migration guide:
+
+* 📖 **Migration Guide**
+  [https://vateron-media.github.io/XC_VM/#/en-us/info/migration_guide](https://vateron-media.github.io/XC_VM/#/en-us/info/migration_guide)
 
 ---
 
