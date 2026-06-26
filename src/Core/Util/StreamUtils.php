@@ -115,7 +115,7 @@ class StreamUtils {
 			}
 		}
 		$rNewArgs = array_filter($rNewArgs);
-		uasort($rNewArgs, array('StreamUtils', 'customOrder'));
+		uasort($rNewArgs, array(self::class, 'customOrder'));
 		return array_map('trim', array_values(array_filter($rNewArgs)));
 	}
 

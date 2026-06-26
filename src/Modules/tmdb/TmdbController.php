@@ -61,10 +61,6 @@ class TmdbController {
     }
 
     private function hasMediaPermission(): bool {
-        if (!class_exists('Authorization')) {
-            return false;
-        }
-
         return Authorization::check('adv', 'add_series')
             || Authorization::check('adv', 'edit_series')
             || Authorization::check('adv', 'add_movie')

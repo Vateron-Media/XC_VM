@@ -18,9 +18,7 @@ use XcVm\Core\Auth\SessionManager;
 
 class AdminLogoutController extends BaseAdminController {
 	public function index() {
-		if (class_exists('SessionManager')) {
-			SessionManager::clearContext('admin');
-		}
+		SessionManager::clearContext('admin');
 		$this->redirect('./login');
 	}
 }

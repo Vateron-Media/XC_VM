@@ -82,7 +82,7 @@ class BruteforceGuard {
      * @return object|null
      */
     private static function getDB(): ?object {
-        if (class_exists('DatabaseFactory', false) && \XcVm\Infrastructure\Database\DatabaseFactory::get() !== null) {
+        if (class_exists(\XcVm\Infrastructure\Database\DatabaseFactory::class, false) && \XcVm\Infrastructure\Database\DatabaseFactory::get() !== null) {
             return \XcVm\Infrastructure\Database\DatabaseFactory::get();
         }
         global $db;
