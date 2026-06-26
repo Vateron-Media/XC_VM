@@ -34,7 +34,7 @@ class TmdbCronJob implements CommandInterface {
         }
 
         require MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-        require_once MAIN_HOME . 'Modules/tmdb/lib/\Release.php';
+        require_once MAIN_HOME . 'Modules/tmdb/lib/Release.php';
         require_once __DIR__ . '/TmdbCron.php';
 
         $this->initCron('XC_VM[\TMDB]');
