@@ -478,10 +478,7 @@ class Router {
 
         // Поддержка формата ['type', 'key'] для \XcVm\Core\Auth\Authorization::check()
         if (is_array($perm) && count($perm) === 2 && is_string($perm[0])) {
-            if (class_exists('Authorization')) {
-                return \XcVm\Core\Auth\Authorization::check($perm[0], $perm[1]);
-            }
-            return true; // fallback если класс недоступен
+            return \XcVm\Core\Auth\Authorization::check($perm[0], $perm[1]);
         }
 
         // Произвольный callable
