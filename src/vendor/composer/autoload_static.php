@@ -11,9 +11,17 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         array (
             'XcVm\\' => 5,
         ),
+        'P' => 
+        array (
+            'Psr\\SimpleCache\\' => 16,
+        ),
         'M' => 
         array (
             'M3uParser\\' => 10,
+        ),
+        'D' => 
+        array (
+            'Detection\\' => 10,
         ),
         'C' => 
         array (
@@ -26,9 +34,17 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         array (
             0 => __DIR__ . '/../..' . '/',
         ),
+        'Psr\\SimpleCache\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/simple-cache/src',
+        ),
         'M3uParser\\' => 
         array (
             0 => __DIR__ . '/..' . '/gemorroj/m3u-parser/src',
+        ),
+        'Detection\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/mobiledetect/mobiledetectlib/src',
         ),
         'Chrisyue\\PhpM3u8\\' => 
         array (

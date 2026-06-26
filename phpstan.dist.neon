@@ -59,7 +59,6 @@ parameters:
             # and the Mobile-Detect library. Like the vendored packages above,
             # they are indexed for symbol resolution but not analysed.
             - src/Modules/tmdb/lib/*
-            - src/Core/Util/MobileDetect.php
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false

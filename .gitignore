@@ -28,11 +28,18 @@ src/vendor/*
 !src/vendor/chrisyue/
 !src/vendor/composer/
 !src/vendor/gemorroj/
-# composer/ is whitelisted for the prod autoloader; re-ignore its dev artifacts.
+!src/vendor/mobiledetect/
+!src/vendor/psr/
+# composer/ and psr/ hold a MIX of prod + dev packages — re-ignore their dev-only
+# parts and whitelist just the prod ones (composer autoloader; psr/simple-cache is
+# a prod dependency of mobiledetectlib, while psr/container|event-dispatcher|log
+# are pulled only by dev tools).
 src/vendor/composer/pcre/
 src/vendor/composer/semver/
 src/vendor/composer/xdebug-handler/
 src/vendor/composer/autoload_files.php
+src/vendor/psr/*
+!src/vendor/psr/simple-cache/
 # composer.lock IS committed (this is an application) so `composer install` is reproducible.
 
 .claude/

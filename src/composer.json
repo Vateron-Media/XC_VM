@@ -6,7 +6,8 @@
     "require": {
         "php": ">=8.1",
         "gemorroj/m3u-parser": "6.0.1",
-        "chrisyue/php-m3u8": "^4"
+        "chrisyue/php-m3u8": "^4",
+        "mobiledetect/mobiledetectlib": "^4.9"
     },
     "require-dev": {
         "phpstan/phpstan": "2.1.17",

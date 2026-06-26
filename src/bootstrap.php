@@ -752,8 +752,7 @@ class XC_Bootstrap {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));
         }
 
-        require_once MAIN_HOME . 'Core/Util/MobileDetect.php';
-        $rDetect = new \XcVm\Core\Util\Mobile_Detect();
+        $rDetect = new \Detection\MobileDetect();
         $rMobile = $rDetect->isMobile();
 
         $rTimeout    = 15;
