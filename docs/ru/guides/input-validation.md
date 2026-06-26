@@ -2,13 +2,13 @@
 
 XC_VM использует двухуровневую защиту входящих данных запроса. Сначала **глобальная санитизация** удаляет опасный контент из всех PHP-суперглобалов во время bootstrap, до того как заработает прикладной код. Затем **валидация на уровне действий** проверяет наличие обязательных полей перед выполнением бизнес-логики.
 
-Оба слоя реализованы в `src/core/Validation/InputValidator.php`.
+Оба слоя реализованы в `src/Core/Validation/InputValidator.php`.
 
 ---
 
 ## Поток глобальной санитизации
 
-Санитизация запускается автоматически при bootstrap. Когда вызывается `LegacyInitializer::initCore()` (в `src/core/Init/LegacyInitializer.php`), он выполняет следующие шаги до любого контроллера или сервиса:
+Санитизация запускается автоматически при bootstrap. Когда вызывается `LegacyInitializer::initCore()` (в `src/Core/Init/LegacyInitializer.php`), он выполняет следующие шаги до любого контроллера или сервиса:
 
 ```
 LegacyInitializer::initCore()
@@ -293,7 +293,7 @@ $safeIds = InputValidator::confirmIDs($userSuppliedIds);
 
 ## Добавление валидации для нового действия
 
-Добавьте `case` в `switch` в `src/core/Validation/InputValidator.php`:
+Добавьте `case` в `switch` в `src/Core/Validation/InputValidator.php`:
 
 ```php
 case 'myNewAction':
@@ -314,7 +314,7 @@ case 'myNewAction':
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Validation/InputValidator.php` | Вся логика санитизации и валидации |
-| `src/core/Init/LegacyInitializer.php` | Bootstrap-вызыватель, запускающий санитизацию через `initCore()` |
-| `src/core/Http/RequestManager.php` | Хранит санитизированные, объединённые данные GET+POST |
-| `src/public/Controllers/` | Контроллеры, вызывающие `validate()` / `validateOrFail()` перед бизнес-логикой |
+| `src/Core/Validation/InputValidator.php` | Вся логика санитизации и валидации |
+| `src/Core/Init/LegacyInitializer.php` | Bootstrap-вызыватель, запускающий санитизацию через `initCore()` |
+| `src/Core/Http/RequestManager.php` | Хранит санитизированные, объединённые данные GET+POST |
+| `src/Public/Controllers/` | Контроллеры, вызывающие `validate()` / `validateOrFail()` перед бизнес-логикой |

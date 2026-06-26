@@ -1,18 +1,6 @@
-# 🛠 CLI Tools & Database Updates
+# CLI Tools & Database Updates
 
 Reference for XC_VM command-line interface, system tools, and the database update process after version upgrades. Covers daily operations, emergency access, and creating new DB update steps.
-
----
-
-## 📚 Navigation
-
-- [🖥 Console Entry Point](#console-entry-point)
-- [📋 Full Command Registry](#full-command-registry)
-- [🆕 Registering a New Command](#registering-a-new-command)
-- [🔧 Tools Command](#tools-command)
-- [🗃 Database Updates After Version Upgrade](#database-updates-after-version-upgrade)
-- [📝 Creating a New DB Update Step](#creating-a-new-db-update-step)
-- [⚙️ Common CLI Operations](#common-cli-operations)
 
 ---
 
@@ -94,7 +82,7 @@ These commands use `DaemonTrait` and run continuously via `while(true)` loops:
 
 All cron job names are prefixed with `cron:`. They use `CronTrait` and are invoked by the system crontab.
 
-**Core cron jobs** (in `src/cli/CronJobs/`):
+**Core cron jobs** (in `src/Cli/CronJobs/`):
 
 | Command | Class | Description |
 | --- | --- | --- |
@@ -136,7 +124,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 
 ## Registering a New Command
 
-All CLI commands implement `CommandInterface`. Core commands are auto-discovered from `src/cli/` via reflection in `console.php`. Module commands are registered via `ModuleLoader::registerAllCommands()`.
+All CLI commands implement `CommandInterface`. Core commands are auto-discovered from `src/Cli/` via reflection in `console.php`. Module commands are registered via `ModuleLoader::registerAllCommands()`.
 
 ### CommandInterface
 
@@ -150,7 +138,7 @@ interface CommandInterface {
 
 ### Step 1. Create the Class
 
-Create a new file in `src/cli/Commands/` (or `src/cli/CronJobs/` for cron jobs):
+Create a new file in `src/Cli/Commands/` (or `src/Cli/CronJobs/` for cron jobs):
 
 ```php
 <?php
@@ -508,3 +496,12 @@ Applies all pending `.sql` files from `/home/xc_vm/migrations/`. Use this when y
 Transfers data from the staging database `xc_vm_migrate`. See the [Database Update Guide](en-us/info/migration_guide.md) for details.
 
 ---
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/console.php` | CLI entry point + FQCN command discovery |
+| `src/Cli/Commands/` | Console commands |
+| `src/Cli/CronJobs/` | Cron job classes |
+| `src/migrations/` | Database migrations |

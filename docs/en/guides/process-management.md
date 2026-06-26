@@ -91,11 +91,11 @@ Used together with CLI process title helpers.
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Process/ProcessManager.php` | process operations |
-| `src/core/Process/Multithread.php` | multi-thread helpers |
-| `src/core/Process/Thread.php` | thread wrapper |
+| `src/Core/Process/ProcessManager.php` | process operations |
+| `src/Core/Process/Multithread.php` | multi-thread helpers |
+| `src/Core/Process/Thread.php` | thread wrapper |
 | `src/bootstrap.php` | CLI process context |

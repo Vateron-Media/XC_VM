@@ -15,7 +15,7 @@ Navbar строится декларативно из дерева `NavbarItem`,
 
 1. `ModuleLoader::bootAll()` вызывает `CoreNavbarProvider::register()`.
 2. Затем для каждого загруженного модуля вызывается `registerNavbar()`.
-3. В `public/Views/admin/header.php` дерево рендерится из `NavbarRegistry`.
+3. В `Public/Views/admin/header.php` дерево рендерится из `NavbarRegistry`.
 
 ## Рендер в header
 
@@ -73,3 +73,12 @@ public function registerNavbar(): void {
 4. Используйте `label('translation_key')` для переводимых строк.
 5. Используйте `label('', 'Literal Text')` для фиксированного текста.
 6. Если модуль не добавляет меню, оставляйте `registerNavbar()` пустым.
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/Core/Module/NavbarRegistry.php` | Собирает пункты navbar от провайдеров |
+| `src/Core/Module/NavbarItem.php` | Value-объект пункта navbar |
+| `src/Core/Module/CoreNavbarProvider.php` | Встроенные пункты меню ядра |
+| `src/Public/Views/admin/header.php` | Рендерит дерево navbar |

@@ -1,4 +1,4 @@
-# ✅ XC_VM Release Preparation Checklist
+# XC_VM Release Preparation Checklist
 
 Step-by-step guide for preparing and publishing an XC_VM release.
 
@@ -19,7 +19,7 @@ VERSION="X.Y.Z"
 
 ---
 
-## 🧹 2. Deleted Files
+## 2. Deleted Files
 
 Before building, generate the list of files to delete on update:
 
@@ -49,7 +49,7 @@ During `php console.php update post-update`, `MigrationRunner::runFileCleanup()`
 
 ---
 
-## 🧪 3. Pre-Release Validation
+## 3. Pre-Release Validation
 
 Before publishing, verify the build works:
 
@@ -79,7 +79,7 @@ tools/run_scan.sh
 
 ---
 
-## 📝 4. Changelog
+## 4. Changelog
 
 **Generate commit log (work commits only):**
 
@@ -106,25 +106,25 @@ The panel fetches this file from the release tag automatically via `GithubReleas
 
 ---
 
-## 🔢 5. Update Version and Create a Single Release Commit
+## 5. Update Version and Create a Single Release Commit
 
 Edit the version constant and disable phpMiniAdmin access flag in:
 
 ```text
-src/core/Config/AppConfig.php
+src/Core/Config/AppConfig.php
 ```
 
 **Quick commands:**
 
 ```bash
-sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/core/Config/AppConfig.php
-sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/core/Config/AppConfig.php
+sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/Core/Config/AppConfig.php
+sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/Core/Config/AppConfig.php
 ```
 
 **Create one final release commit/push:**
 
 ```bash
-git add src/core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
+git add src/Core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
 git commit -m "Prepare release ${VERSION}"
 git push
 ```
@@ -133,7 +133,7 @@ git push
 
 ---
 
-## ⚙️ 6. Build Archives
+## 6. Build Archives
 
 > 🤖 **Production builds** are handled by GitHub Actions (`.github/workflows/build-release.yml`) when a release is published. Assets are attached automatically.
 
@@ -165,7 +165,7 @@ cd dist && md5sum -c hashes.md5
 
 ---
 
-## 🚀 7. GitHub Release
+## 7. GitHub Release
 
 1. Go to [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
 2. Create a new release with the tag from the first step
@@ -182,7 +182,7 @@ After publishing, the workflow will automatically:
 
 ---
 
-## 📢 8. Post-Release
+## 8. Post-Release
 
 - [ ] Verify all 4 assets are attached to the release
 - [ ] Run `md5sum -c hashes.md5` on downloaded files

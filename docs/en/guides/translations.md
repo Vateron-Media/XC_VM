@@ -89,3 +89,10 @@ To contribute a translation to the project:
 3. Submit a Pull Request with the new `.ini` file.
 
 Please ensure all keys from `en.ini` are present and translated.
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/Core/Localization/Translator.php` | Translation lookup |
+| `src/resources/langs/` | Language files |

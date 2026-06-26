@@ -5,27 +5,13 @@ XC_VM использует базы MaxMind GeoIP2/GeoLite2 для геолок�
 
 ---
 
-## Навигация
-
-- [Поиск по GeoIP](#поиск-по-geoip)
-- [Определение ISP и ASN](#определение-isp-и-asn)
-- [Определение устройства](#определение-устройства)
-- [Проверки контроля доступа](#проверки-контроля-доступа)
-- [Географическая маршрутизация](#географическая-маршрутизация)
-- [Обновления базы данных](#обновления-базы-данных)
-- [Логирование активности](#логирование-активности)
-- [Конфигурация](#конфигурация)
-- [Связанные файлы](#связанные-файлы)
-
----
-
 ## Поиск по GeoIP
 
 Два класса предоставляют GeoIP-поиск:
 
 ### GeoIP (утилита)
 
-Файл: `src/core/Util/GeoIP.php`
+Файл: `src/Core/Util/GeoIP.php`
 
 ```php
 GeoIP::getCountry($ip): array|false    // GeoLite2-City lookup
@@ -38,7 +24,7 @@ GeoIP::isASNBlocked($asn, $blockedServers): bool
 
 ### GeoIPService (высокоуровневый)
 
-Файл: `src/core/GeoIP/GeoIPService.php`
+Файл: `src/Core/GeoIP/GeoIPService.php`
 
 ```php
 GeoIPService::getIPInfo($rIP): array|false      // поиск на уровне города
@@ -84,7 +70,7 @@ AND enable_isp_lock = 1
 
 ### Mobile_Detect
 
-Файл: `src/core/Device/MobileDetect.php`
+Файл: `src/Core/Device/MobileDetect.php`
 
 Библиотека (v2.8.45) для разбора user agent:
 
@@ -99,11 +85,11 @@ $detect->isAndroid();   // по бренду
 
 ### Set-Top Box устройства
 
-**EnigmaService** (`src/domain/Device/EnigmaService.php`):
+**EnigmaService** (`src/Domain/Device/EnigmaService.php`):
 
 Управляет аккаунтами STB Enigma2. Поля привязки: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
-**MagService** (`src/domain/Device/MagService.php`):
+**MagService** (`src/Domain/Device/MagService.php`):
 
 Управляет аккаунтами STB MAG. Поля привязки: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
@@ -205,7 +191,7 @@ ProxySelector::availableProxy(
 
 ## Обновления базы данных
 
-Файл: `src/core/GeoIP/MaxMindUpdater.php`
+Файл: `src/Core/GeoIP/MaxMindUpdater.php`
 
 ```php
 $updater = MaxMindUpdater::fromSettings($settings);
@@ -220,7 +206,7 @@ $updater->update();  // загружает и распаковывает все 
 Загрузка через MaxMind API с использованием `maxmind_account_id` и `maxmind_license_key`.
 Распаковывает `.mmdb` файлы из tar.gz архивов в `BIN_PATH/maxmind/`.
 
-Пути файлов баз данных (заданы в `src/core/Config/Binaries.php`):
+Пути файлов баз данных (заданы в `src/Core/Config/Binaries.php`):
 
 ```text
 GEOLITE2_BIN  = BIN_PATH/maxmind/GeoLite2-Country.mmdb
@@ -273,14 +259,14 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Util/GeoIP.php` | низкоуровневые GeoIP-поиски с файловым кэшем |
-| `src/core/GeoIP/GeoIPService.php` | высокоуровневый GeoIP + сопоставление CIDR |
-| `src/core/GeoIP/MaxMindUpdater.php` | загрузчик баз данных MaxMind |
-| `src/core/Config/Binaries.php` | константы путей файлов баз GeoIP |
-| `src/core/Device/MobileDetect.php` | библиотека Mobile_Detect |
-| `src/domain/Device/EnigmaService.php` | управление STB Enigma2 |
-| `src/domain/Device/MagService.php` | управление STB MAG |
-| `src/domain/User/UserRepository.php` | обогащение записей пользователей данными GeoIP |
+| `src/Core/Util/GeoIP.php` | низкоуровневые GeoIP-поиски с файловым кэшем |
+| `src/Core/GeoIP/GeoIPService.php` | высокоуровневый GeoIP + сопоставление CIDR |
+| `src/Core/GeoIP/MaxMindUpdater.php` | загрузчик баз данных MaxMind |
+| `src/Core/Config/Binaries.php` | константы путей файлов баз GeoIP |
+| `src/Core/Device/MobileDetect.php` | библиотека Mobile_Detect |
+| `src/Domain/Device/EnigmaService.php` | управление STB Enigma2 |
+| `src/Domain/Device/MagService.php` | управление STB MAG |
+| `src/Domain/User/UserRepository.php` | обогащение записей пользователей данными GeoIP |
 | `src/www/stream/auth.php` | аутентификация стриминга со всеми гео/устройство проверками |
-| `src/streaming/Auth/StreamAuth.php` | выбор сервера с учётом GeoIP |
-| `src/streaming/Balancer/ProxySelector.php` | выбор прокси с учётом GeoIP |
+| `src/Streaming/Auth/StreamAuth.php` | выбор сервера с учётом GeoIP |
+| `src/Streaming/Balancer/ProxySelector.php` | выбор прокси с учётом GeoIP |

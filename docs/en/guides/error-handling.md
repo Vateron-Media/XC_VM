@@ -36,7 +36,7 @@ Application code
 
 ## Error Code Registry
 
-All codes are declared in `src/core/Error/ErrorCodes.php` as the global `$rErrorCodes` array.
+All codes are declared in `src/Core/Error/ErrorCodes.php` as the global `$rErrorCodes` array.
 
 Code format:
 
@@ -121,7 +121,7 @@ The streaming-specific codes (`CACHE_INCOMPLETE`, `SUBTITLE_DOESNT_EXIST`, `NO_S
 
 ## Error Handlers
 
-Defined in `src/core/Error/ErrorHandler.php`. These are plain functions (not class methods) loaded early in bootstrap.
+Defined in `src/Core/Error/ErrorHandler.php`. These are plain functions (not class methods) loaded early in bootstrap.
 
 ### `generateError(string $rError, bool $rKill = true, ?int $rCode = null)`
 
@@ -167,7 +167,7 @@ generate404(false);  // 404, continue execution
 
 ## Logger Subsystem
 
-Defined in `src/core/Logging/Logger.php`. A `final` class that registers three global PHP handlers to capture all runtime errors and log them to a file.
+Defined in `src/Core/Logging/Logger.php`. A `final` class that registers three global PHP handlers to capture all runtime errors and log them to a file.
 
 ### Initialization
 
@@ -190,7 +190,7 @@ Logger is initialized in two places, depending on the request path:
 | Entry path | File | How |
 | --- | --- | --- |
 | Bootstrap (all contexts) | `src/bootstrap.php` | `XC_Bootstrap::loadConstants()` calls `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` |
-| Streaming endpoints | `src/core/Http/RequestGuard.php` | Loads settings from file cache, defines `PHP_ERRORS`, then calls `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` |
+| Streaming endpoints | `src/Core/Http/RequestGuard.php` | Loads settings from file cache, defines `PHP_ERRORS`, then calls `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` |
 
 In both cases `PHP_ERRORS` mirrors the `debug_show_errors` setting (defaults to `false` when settings are unavailable).
 
@@ -225,7 +225,7 @@ Decoded JSON structure:
 {
     "type":        "WARNING",
     "log_message": "Undefined variable $foo",
-    "file":        "/home/xc_vm/domain/Stream/StreamService.php",
+    "file":        "/home/xc_vm/Domain/Stream/StreamService.php",
     "line":        142,
     "log_extra":   "#0 /home/xc_vm/...(line): function()\n#1 ...",
     "time":        1716220800,
@@ -263,9 +263,9 @@ When `$showErrors` is `true`, Logger also renders errors directly:
 The Logger writes to `error_log.log` on disk. A separate subsystem reads that file and persists entries to the `panel_logs` database table:
 
 1. **Logger** writes base64-encoded JSON lines to `error_log.log`
-2. **FileLogger** (`src/core/Logging/FileLogger.php`) provides a secondary logging interface used by application code (PDO errors, EPG errors, etc.) that writes to the same file in the same format
+2. **FileLogger** (`src/Core/Logging/FileLogger.php`) provides a secondary logging interface used by application code (PDO errors, EPG errors, etc.) that writes to the same file in the same format
 3. Entries are ingested into the `panel_logs` table
-4. **DiagnosticsService** (`src/core/Diagnostics/DiagnosticsService.php`) reads from `panel_logs` for:
+4. **DiagnosticsService** (`src/Core/Diagnostics/DiagnosticsService.php`) reads from `panel_logs` for:
    - `downloadPanelLogs()` -- retrieves up to 1000 recent non-EPG errors, then truncates the table
    - `submitPanelLogs()` -- sends logs to the central API server for analysis
 5. The admin panel exposes these logs under **Management > Logs > Panel Errors**
@@ -281,7 +281,7 @@ The Logger writes to `error_log.log` on disk. A separate subsystem reads that fi
 
 ## Other Loggers
 
-The `src/core/Logging/` directory contains additional specialized loggers:
+The `src/Core/Logging/` directory contains additional specialized loggers:
 
 | Class | File | Purpose |
 | --- | --- | --- |
@@ -300,11 +300,11 @@ The codebase defines a small number of custom exception classes. All uncaught ex
 
 | Exception class | Base class | Location |
 | --- | --- | --- |
-| `DropboxException` | `Exception` | `src/core/Storage/DropboxClient.php` |
-| `M3uParser\Exception` | `\Exception` | `src/core/Parsing/M3uParser/src/Exception.php` |
-| `DataBuildingException` | `\RuntimeException` | `src/core/Parsing/PhpM3u8/src/Parser/DataBuildingException.php` |
-| `DefinitionException` | `\RuntimeException` | `src/core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
-| `DumpingException` | `\RuntimeException` | `src/core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
+| `DropboxException` | `Exception` | `src/Core/Storage/DropboxClient.php` |
+| `M3uParser\Exception` | `\Exception` | `src/Core/Parsing/M3uParser/src/Exception.php` |
+| `DataBuildingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Parser/DataBuildingException.php` |
+| `DefinitionException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
+| `DumpingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
 
 Most application code uses generic `Exception` throws or relies on PHP's built-in error system. The Logger's exception handler accepts any `Throwable`.
 
@@ -333,12 +333,12 @@ Do not enable debug display on production nodes.
 
 The error handling infrastructure is loaded early in the boot sequence:
 
-1. `autoload.php` runs, defining `MAIN_HOME`
+1. `bootstrap.php` defines `MAIN_HOME` and registers the Composer autoloader
 2. `XC_Bootstrap::loadConstants()` loads (in order):
-   - `core/Error/ErrorCodes.php` -- populates `$rErrorCodes`
-   - `core/Error/ErrorHandler.php` -- defines `generateError()` and `generate404()`
+   - `Core/Error/ErrorCodes.php` -- populates `$rErrorCodes`
+   - `Core/Error/ErrorHandler.php` -- defines `generateError()` and `generate404()`
    - Path and config files
-   - `core/Logging/Logger.php` -- class definition
+   - `Core/Logging/Logger.php` -- class definition
 3. `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` is called, registering the three global handlers
 4. From this point forward, all PHP errors, uncaught exceptions, and fatal crashes are captured
 
@@ -348,7 +348,7 @@ For streaming endpoints that bypass the full bootstrap, `RequestGuard.php` perfo
 
 ## Adding a New Error Code
 
-1. Add a new key to `src/core/Error/ErrorCodes.php`:
+1. Add a new key to `src/Core/Error/ErrorCodes.php`:
 
 ```php
 'MY_NEW_ERROR' => 'Human-readable description.',
@@ -364,17 +364,17 @@ Descriptions must stay in English for consistency with the existing registry.
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Error/ErrorCodes.php` | Centralized error code map (`$rErrorCodes`) |
-| `src/core/Error/ErrorHandler.php` | `generateError()` and `generate404()` functions |
-| `src/core/Logging/Logger.php` | Global PHP error, exception, and fatal handlers |
-| `src/core/Logging/LoggerInterface.php` | Logging contract interface |
-| `src/core/Logging/FileLogger.php` | Application-level file logging (PDO, EPG, etc.) |
-| `src/core/Logging/DatabaseLogger.php` | Client streaming request event logging |
-| `src/core/Logging/UpdateLogger.php` | System update operation logging |
-| `src/core/Http/RequestGuard.php` | Streaming path: flood protection, host check, Logger init |
-| `src/core/Diagnostics/DiagnosticsService.php` | Reads `panel_logs` table for admin display and API submission |
+| `src/Core/Error/ErrorCodes.php` | Centralized error code map (`$rErrorCodes`) |
+| `src/Core/Error/ErrorHandler.php` | `generateError()` and `generate404()` functions |
+| `src/Core/Logging/Logger.php` | Global PHP error, exception, and fatal handlers |
+| `src/Core/Logging/LoggerInterface.php` | Logging contract interface |
+| `src/Core/Logging/FileLogger.php` | Application-level file logging (PDO, EPG, etc.) |
+| `src/Core/Logging/DatabaseLogger.php` | Client streaming request event logging |
+| `src/Core/Logging/UpdateLogger.php` | System update operation logging |
+| `src/Core/Http/RequestGuard.php` | Streaming path: flood protection, host check, Logger init |
+| `src/Core/Diagnostics/DiagnosticsService.php` | Reads `panel_logs` table for admin display and API submission |
 | `src/bootstrap.php` | Includes error layer and Logger in all bootstrap contexts |

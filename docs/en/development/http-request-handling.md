@@ -10,23 +10,23 @@ The HTTP layer is built from these core components:
 
 | Component | File | Role |
 | --- | --- | --- |
-| `RequestGuard` | `src/core/Http/RequestGuard.php` | Pre-routing safety: flood protection, host verification, logger init |
-| `InputValidator` | `src/core/Validation/InputValidator.php` | Input sanitization (cleanGlobals, parseIncomingRecursively) |
-| `RequestManager` | `src/core/Http/RequestManager.php` | Static facade storing merged GET+POST request data |
-| `Request` | `src/core/Http/Request.php` | Object-oriented request wrapper (exists but not used in the primary production flow) |
-| `Router` | `src/core/Http/Router.php` | Page and API route registration and dispatch |
-| `Response` | `src/core/Http/Response.php` | Static response helpers (JSON, redirect, CORS, etc.) |
-| `LegacyInitializer` | `src/core/Init/LegacyInitializer.php` | Legacy bootstrap that wires sanitization into `RequestManager` |
-| `StreamingRequestBootstrap` | `src/infrastructure/bootstrap/StreamingRequestBootstrap.php` | Lightweight bootstrap for streaming endpoints |
+| `RequestGuard` | `src/Core/Http/RequestGuard.php` | Pre-routing safety: flood protection, host verification, logger init |
+| `InputValidator` | `src/Core/Validation/InputValidator.php` | Input sanitization (cleanGlobals, parseIncomingRecursively) |
+| `RequestManager` | `src/Core/Http/RequestManager.php` | Static facade storing merged GET+POST request data |
+| `Request` | `src/Core/Http/Request.php` | Object-oriented request wrapper (exists but not used in the primary production flow) |
+| `Router` | `src/Core/Http/Router.php` | Page and API route registration and dispatch |
+| `Response` | `src/Core/Http/Response.php` | Static response helpers (JSON, redirect, CORS, etc.) |
+| `LegacyInitializer` | `src/Core/Init/LegacyInitializer.php` | Legacy bootstrap that wires sanitization into `RequestManager` |
+| `StreamingRequestBootstrap` | `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | Lightweight bootstrap for streaming endpoints |
 
 ---
 
 ## Request Flow: Admin/Panel Pages
 
-Entry point: `src/public/index.php`
+Entry point: `src/Public/index.php`
 
 ```text
-nginx -> public/index.php
+nginx -> Public/index.php
   -> URL parsing (scope + pageName)
   -> XC_Bootstrap::boot(CONTEXT_ADMIN)
        -> floodProtection()          (block banned IPs)
@@ -41,8 +41,8 @@ nginx -> public/index.php
        -> initRedis()
        -> initAdminAPI()
        -> initTranslator()
-  -> Load routes from src/public/routes/{scope}.php
-  -> Load routes from src/public/routes/api.php
+  -> Load routes from src/Public/routes/{scope}.php
+  -> Load routes from src/Public/routes/api.php
   -> ModuleLoader::bootAll() (admin/reseller scope, with collision detection)
   -> Router::dispatchApi($action)  (checked first for "api" page)
   -> Router::dispatch($pageName, $method)
@@ -63,12 +63,12 @@ Throughout the codebase, request data is accessed via `RequestManager::get($key)
 
 ## Request Flow: REST API
 
-Entry point: `src/public/index.php` (short-circuits before Router)
+Entry point: `src/Public/index.php` (short-circuits before Router)
 
 When `XC_SCOPE` is `includes/api/admin` or `includes/api/reseller`:
 
 ```text
-nginx -> public/index.php
+nginx -> Public/index.php
   -> XC_Bootstrap::boot(CONTEXT_ADMIN)
   -> new AdminApiController() or new ResellerRestApiController()
   -> $controller->index()
@@ -81,7 +81,7 @@ This path bypasses the Router entirely.
 
 ## Request Flow: Streaming
 
-Entry point: `www/stream/*.php` endpoints, or `public/index.php` for `player_api`
+Entry point: `www/stream/*.php` endpoints, or `Public/index.php` for `player_api`
 
 ```text
 nginx -> StreamingRequestBootstrap::init($filename)
@@ -103,7 +103,7 @@ The streaming path is deliberately lightweight. It does not load the Router, Eve
 
 ## `RequestGuard`
 
-File: `src/core/Http/RequestGuard.php`
+File: `src/Core/Http/RequestGuard.php`
 
 A procedural guard script included early in the legacy bootstrap. Runs only for HTTP requests (skipped when `$_SERVER['argc']` is set, indicating CLI).
 
@@ -121,7 +121,7 @@ Note: In the modern bootstrap (`XC_Bootstrap::boot()`), these responsibilities a
 
 ## `InputValidator`
 
-File: `src/core/Validation/InputValidator.php`
+File: `src/Core/Validation/InputValidator.php`
 
 Provides static methods for input sanitization and action-level validation.
 
@@ -146,7 +146,7 @@ Provides static methods for input sanitization and action-level validation.
 
 ## `RequestManager`
 
-File: `src/core/Http/RequestManager.php`
+File: `src/Core/Http/RequestManager.php`
 
 Static facade that stores the merged GET+POST request data. This is the primary request data access pattern used throughout the codebase.
 
@@ -187,7 +187,7 @@ RequestManager::update('status', 'active');
 
 ## `Request`
 
-File: `src/core/Http/Request.php`
+File: `src/Core/Http/Request.php`
 
 Object-oriented request wrapper. Contains a static `capture()` factory and instance methods for accessing sanitized input. While the class exists and is fully functional, the primary production flow uses `InputValidator` + `RequestManager` instead. The `Request` class's static sanitization methods (`cleanGlobals`, `parseIncomingRecursively`) are used by `LegacyInitializer::initStreaming()` for backward compatibility.
 
@@ -239,7 +239,7 @@ These mirror `InputValidator` and are used by the streaming init path:
 
 ## `Router`
 
-File: `src/core/Http/Router.php`
+File: `src/Core/Http/Router.php`
 
 Singleton router for page and API dispatch. Replaces the legacy `switch($rAction)` pattern.
 
@@ -302,7 +302,7 @@ This normalization is applied both at registration time (`buildRoute`) and at di
 ### Dispatch
 
 ```php
-// Page dispatch (called from public/index.php)
+// Page dispatch (called from Public/index.php)
 $router->dispatch($pageName, $method);    // returns true if matched
 
 // API dispatch (called for action= parameter)
@@ -353,7 +353,7 @@ During module registration mode (`preserveExistingRoutes = true`), if a module t
 
 ## `Response`
 
-File: `src/core/Http/Response.php`
+File: `src/Core/Http/Response.php`
 
 Static helper for sending HTTP responses. Replaces scattered `header()` + `echo` + `exit()` patterns.
 
@@ -386,21 +386,21 @@ All HTTP contexts (not CLI) also run flood protection and host verification befo
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Http/RequestGuard.php` | Pre-routing safety and logger init (legacy include) |
-| `src/core/Http/Request.php` | OOP request wrapper with sanitization methods |
-| `src/core/Http/Router.php` | Route registration and dispatch |
-| `src/core/Http/RequestManager.php` | Static request data facade (primary access pattern) |
-| `src/core/Http/Response.php` | Response output helpers |
-| `src/core/Validation/InputValidator.php` | Input sanitization and action validation |
-| `src/core/Init/LegacyInitializer.php` | Legacy core initialization (wires sanitization into RequestManager) |
-| `src/infrastructure/bootstrap/StreamingRequestBootstrap.php` | Lightweight streaming endpoint bootstrap |
-| `src/streaming/StreamingBootstrap.php` | Streaming DB connection and legacy init |
+| `src/Core/Http/RequestGuard.php` | Pre-routing safety and logger init (legacy include) |
+| `src/Core/Http/Request.php` | OOP request wrapper with sanitization methods |
+| `src/Core/Http/Router.php` | Route registration and dispatch |
+| `src/Core/Http/RequestManager.php` | Static request data facade (primary access pattern) |
+| `src/Core/Http/Response.php` | Response output helpers |
+| `src/Core/Validation/InputValidator.php` | Input sanitization and action validation |
+| `src/Core/Init/LegacyInitializer.php` | Legacy core initialization (wires sanitization into RequestManager) |
+| `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | Lightweight streaming endpoint bootstrap |
+| `src/Streaming/StreamingBootstrap.php` | Streaming DB connection and legacy init |
 | `src/bootstrap.php` | Unified bootstrap (`XC_Bootstrap` class) |
-| `src/public/index.php` | Front controller for admin/reseller/player/API |
-| `src/public/routes/admin.php` | Admin page route definitions |
-| `src/public/routes/reseller.php` | Reseller page route definitions |
-| `src/public/routes/player.php` | Player page route definitions |
+| `src/Public/index.php` | Front controller for admin/reseller/player/API |
+| `src/Public/routes/admin.php` | Admin page route definitions |
+| `src/Public/routes/reseller.php` | Reseller page route definitions |
+| `src/Public/routes/player.php` | Player page route definitions |

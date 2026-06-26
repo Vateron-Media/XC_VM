@@ -5,22 +5,6 @@ It is the hot path (~10K-100K req/min, <50ms p99) and uses a separate lightweigh
 
 ---
 
-## Navigation
-
-- [Request Flow](#request-flow)
-- [Directory Layout](#directory-layout)
-- [Bootstrap Pipeline](#bootstrap-pipeline)
-- [Token Authentication](#token-authentication)
-- [Stream Delivery](#stream-delivery)
-- [Connection Management](#connection-management)
-- [Load Balancing](#load-balancing)
-- [Rate Limiting and Flood Protection](#rate-limiting-and-flood-protection)
-- [HLS Encryption](#hls-encryption)
-- [Performance](#performance)
-- [Related Files](#related-files)
-
----
-
 ## Request Flow
 
 ```text
@@ -55,7 +39,7 @@ nginx rewrites all streaming URLs to PHP entry points under `www/stream/`:
 ## Directory Layout
 
 ```
-src/streaming/
+src/Streaming/
 ├── StreamingBootstrap.php
 ├── AsyncFileOperations.php
 ├── TimeshiftClient.php
@@ -100,7 +84,7 @@ src/www/stream/
 
 ### 1. StreamingRequestBootstrap::init()
 
-File: `src/infrastructure/bootstrap/StreamingRequestBootstrap.php`
+File: `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php`
 
 Actions in order:
 
@@ -114,7 +98,7 @@ Actions in order:
 
 ### 2. StreamingBootstrap::bootstrap()
 
-File: `src/streaming/StreamingBootstrap.php`
+File: `src/Streaming/StreamingBootstrap.php`
 
 ```php
 public static function bootstrap($rFilename, $rSettings)
@@ -132,7 +116,7 @@ Returns the `$db` database instance (used by legacy entry points).
 
 ### 3. LegacyInitializer::initStreaming()
 
-File: `src/core/Init/LegacyInitializer.php`
+File: `src/Core/Init/LegacyInitializer.php`
 
 Populates global variables from cache:
 
@@ -149,7 +133,7 @@ Connects to database/Redis based on `$rSettings['redis_handler']`.
 
 ## Token Authentication
 
-File: `src/streaming/Auth/StreamAuthMiddleware.php`
+File: `src/Streaming/Auth/StreamAuthMiddleware.php`
 
 ```php
 StreamAuthMiddleware::decryptToken($rToken, $rSettings, $rServers, $rIP): array
@@ -240,7 +224,7 @@ ConnectionTracker::getCapacity()
 
 ### ConnectionLimiter
 
-File: `src/streaming/Protection/ConnectionLimiter.php`
+File: `src/Streaming/Protection/ConnectionLimiter.php`
 
 Enforces per-user connection limits when `max_connections` is exceeded:
 
@@ -258,7 +242,7 @@ Settings:
 
 ### ShutdownHandler
 
-File: `src/streaming/Lifecycle/ShutdownHandler.php`
+File: `src/Streaming/Lifecycle/ShutdownHandler.php`
 
 Registered via `register_shutdown_function()`. On PHP process exit:
 
@@ -272,7 +256,7 @@ Registered via `register_shutdown_function()`. On PHP process exit:
 
 ### Server Selection (StreamAuth::checkAccess)
 
-File: `src/streaming/Auth/StreamAuth.php`
+File: `src/Streaming/Auth/StreamAuth.php`
 
 ```php
 public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserISP = ''): int|false
@@ -291,7 +275,7 @@ Algorithm:
 
 ### Proxy Selection (ProxySelector::availableProxy)
 
-File: `src/streaming/Balancer/ProxySelector.php`
+File: `src/Streaming/Balancer/ProxySelector.php`
 
 ```php
 public static function availableProxy($rProxies, $rCountryCode, $rUserISP = ''): int|null
@@ -333,7 +317,7 @@ Enforced after token validation. Limits concurrent streams per user based on `ma
 
 ## HLS Encryption
 
-File: `src/streaming/Delivery/HLSGenerator.php`
+File: `src/Streaming/Delivery/HLSGenerator.php`
 
 ```php
 public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
@@ -382,20 +366,20 @@ VOD_PATH            = /home/xc_vm/www/vod/
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/streaming/StreamingBootstrap.php` | core streaming bootstrap |
-| `src/infrastructure/bootstrap/StreamingRequestBootstrap.php` | HTTP-level init |
-| `src/streaming/Auth/StreamAuth.php` | server selection and connection validation |
-| `src/streaming/Auth/StreamAuthMiddleware.php` | token decryption and response headers |
-| `src/streaming/Balancer/ProxySelector.php` | proxy server selection |
-| `src/streaming/Protection/ConnectionLimiter.php` | per-user connection limits |
-| `src/streaming/Delivery/HLSGenerator.php` | M3U8 playlist generation |
-| `src/streaming/Delivery/SegmentReader.php` | segment extraction from playlists |
-| `src/streaming/Delivery/StreamRedirector.php` | stream availability and server routing |
-| `src/streaming/AsyncFileOperations.php` | non-blocking filesystem utilities |
-| `src/streaming/Lifecycle/ShutdownHandler.php` | connection cleanup on exit |
-| `src/domain/Stream/ConnectionTracker.php` | connection state in Redis/MySQL |
-| `src/core/Init/LegacyInitializer.php` | global variable setup for streaming |
+| `src/Streaming/StreamingBootstrap.php` | core streaming bootstrap |
+| `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | HTTP-level init |
+| `src/Streaming/Auth/StreamAuth.php` | server selection and connection validation |
+| `src/Streaming/Auth/StreamAuthMiddleware.php` | token decryption and response headers |
+| `src/Streaming/Balancer/ProxySelector.php` | proxy server selection |
+| `src/Streaming/Protection/ConnectionLimiter.php` | per-user connection limits |
+| `src/Streaming/Delivery/HLSGenerator.php` | M3U8 playlist generation |
+| `src/Streaming/Delivery/SegmentReader.php` | segment extraction from playlists |
+| `src/Streaming/Delivery/StreamRedirector.php` | stream availability and server routing |
+| `src/Streaming/AsyncFileOperations.php` | non-blocking filesystem utilities |
+| `src/Streaming/Lifecycle/ShutdownHandler.php` | connection cleanup on exit |
+| `src/Domain/Stream/ConnectionTracker.php` | connection state in Redis/MySQL |
+| `src/Core/Init/LegacyInitializer.php` | global variable setup for streaming |

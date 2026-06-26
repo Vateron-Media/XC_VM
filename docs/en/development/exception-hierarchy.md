@@ -88,7 +88,7 @@ try {
 ## Location
 
 ```
-src/core/Exception/
+src/Core/Exception/
 ├── XcVmException.php
 ├── Container/
 │   ├── ContainerException.php
@@ -102,3 +102,9 @@ src/core/Exception/
     ├── ModuleManifestException.php
     └── ModuleCycleException.php
 ```
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/Core/Exception/` | Exception base classes and the project hierarchy |

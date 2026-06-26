@@ -60,7 +60,7 @@ user -> member_group_id -> group
 
 ### `Authorization`
 
-Файл: `src/core/Auth/Authorization.php`
+Файл: `src/Core/Auth/Authorization.php`
 
 Основной метод:
 
@@ -130,7 +130,7 @@ Authorization::hasResellerPermissions(string $type): bool
 
 ### `PageAuthorization`
 
-Файл: `src/core/Auth/PageAuthorization.php`
+Файл: `src/Core/Auth/PageAuthorization.php`
 
 Обеспечивает гейтинг на уровне страниц для admin- и reseller-панелей. Вызывается во время диспетчеризации запроса, чтобы определить, может ли текущий пользователь получить доступ к заданной странице.
 
@@ -409,7 +409,7 @@ case 'my_entity':
 | Файл | Назначение |
 | --- | --- |
 | `src/config/permissions.php` | Реестр ключей прав (массив `$rPermissionKeys`) |
-| `src/core/Auth/Authorization.php` | Проверки прав на уровне объектов и продвинутых |
-| `src/core/Auth/PageAuthorization.php` | Гейтинг страниц admin- и reseller-панелей |
-| `src/core/Auth/SessionManager.php` | Контекст сессии; заполняет `$rPermissions` и `$rUserInfo` |
-| `src/core/Auth/Authenticator.php` | Аутентификация (вход, проверка учётных данных) |
+| `src/Core/Auth/Authorization.php` | Проверки прав на уровне объектов и продвинутых |
+| `src/Core/Auth/PageAuthorization.php` | Гейтинг страниц admin- и reseller-панелей |
+| `src/Core/Auth/SessionManager.php` | Контекст сессии; заполняет `$rPermissions` и `$rUserInfo` |
+| `src/Core/Auth/Authenticator.php` | Аутентификация (вход, проверка учётных данных) |

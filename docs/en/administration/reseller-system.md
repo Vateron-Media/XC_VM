@@ -5,21 +5,6 @@ Resellers create and manage IPTV lines, MAG devices, and Enigma2 devices within 
 
 ---
 
-## Navigation
-
-- [Overview](#overview)
-- [Credit System](#credit-system)
-- [Line Management](#line-management)
-- [Device Management](#device-management)
-- [Sub-Reseller Hierarchy](#sub-reseller-hierarchy)
-- [Permissions](#permissions)
-- [REST API](#rest-api)
-- [Session and Bootstrap](#session-and-bootstrap)
-- [Routes](#routes)
-- [Related Files](#related-files)
-
----
-
 ## Overview
 
 ```text
@@ -33,7 +18,7 @@ Admin
                     └── sub-reseller has own lines + credits
 ```
 
-Core business logic is in `src/domain/User/ResellerAPI.php`. Web controllers are under `src/public/Controllers/Reseller/`. REST API is in `src/public/Controllers/Api/ResellerRestApiController.php`.
+Core business logic is in `src/Domain/User/ResellerAPI.php`. Web controllers are under `src/Public/Controllers/Reseller/`. REST API is in `src/Public/Controllers/Api/ResellerRestApiController.php`.
 
 ---
 
@@ -115,12 +100,12 @@ If `allow_change_bouquets` permission is enabled, the reseller can select a subs
 
 ### MAG devices
 
-Managed by `MagService` (`src/domain/Device/MagService.php`).
+Managed by `MagService` (`src/Domain/Device/MagService.php`).
 Lock fields: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
 ### Enigma2 devices
 
-Managed by `EnigmaService` (`src/domain/Device/EnigmaService.php`).
+Managed by `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
 Lock fields: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
 Both device types support `lock_device` (hardware binding), `is_isplock` (ISP binding), and `forced_country`.
@@ -203,7 +188,7 @@ What resellers **cannot** do:
 
 ## REST API
 
-File: `src/public/Controllers/Api/ResellerRestApiController.php`
+File: `src/Public/Controllers/Api/ResellerRestApiController.php`
 
 Authentication via API key. Actions:
 
@@ -232,7 +217,7 @@ The `ResellerAPIWrapper` class validates the API key, initializes a session via 
 
 ### Session
 
-File: `src/infrastructure/bootstrap/reseller_session.php`
+File: `src/Infrastructure/Bootstrap/reseller_session.php`
 
 - 60-minute timeout with last activity tracking.
 - IP change detection (if `ip_logout` setting enabled).
@@ -240,7 +225,7 @@ File: `src/infrastructure/bootstrap/reseller_session.php`
 
 ### Functions bootstrap
 
-File: `src/infrastructure/bootstrap/reseller_functions.php`
+File: `src/Infrastructure/Bootstrap/reseller_functions.php`
 
 - Loads database and utilities.
 - Initializes `$rUserInfo` and `$rPermissions`.
@@ -251,7 +236,7 @@ File: `src/infrastructure/bootstrap/reseller_functions.php`
 
 ## Routes
 
-File: `src/public/routes/reseller.php`
+File: `src/Public/routes/reseller.php`
 
 Key routes:
 
@@ -279,18 +264,18 @@ GET  /tickets                 → ResellerTicketsController
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/domain/User/ResellerAPI.php` | core business logic |
-| `src/public/Controllers/Api/ResellerRestApiController.php` | REST API |
-| `src/public/Controllers/Reseller/*.php` | web controllers |
-| `src/public/routes/reseller.php` | URL routing |
-| `src/public/Views/reseller/*.php` | view templates |
-| `src/infrastructure/ResellerApiDispatcher.php` | AJAX action routing |
-| `src/infrastructure/ResellerTableRenderer.php` | DataTables rendering |
-| `src/infrastructure/bootstrap/reseller_session.php` | session management |
-| `src/infrastructure/bootstrap/reseller_functions.php` | initialization |
-| `src/core/Auth/Authorization.php` | ownership checks |
-| `src/core/Auth/PageAuthorization.php` | page-level gating |
+| `src/Domain/User/ResellerAPI.php` | core business logic |
+| `src/Public/Controllers/Api/ResellerRestApiController.php` | REST API |
+| `src/Public/Controllers/Reseller/*.php` | web controllers |
+| `src/Public/routes/reseller.php` | URL routing |
+| `src/Public/Views/reseller/*.php` | view templates |
+| `src/Infrastructure/ResellerApiDispatcher.php` | AJAX action routing |
+| `src/Infrastructure/ResellerTableRenderer.php` | DataTables rendering |
+| `src/Infrastructure/Bootstrap/reseller_session.php` | session management |
+| `src/Infrastructure/Bootstrap/reseller_functions.php` | initialization |
+| `src/Core/Auth/Authorization.php` | ownership checks |
+| `src/Core/Auth/PageAuthorization.php` | page-level gating |

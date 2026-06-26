@@ -83,10 +83,10 @@ Extracts GPU (NVENC) process data from server GPU info. Used for GPU encoding di
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Diagnostics/DiagnosticsService.php` | diagnostics methods |
-| `src/core/Logging/Logger.php` | writes logs |
-| `src/core/Config/AppConfig.php` | version metadata |
+| `src/Core/Diagnostics/DiagnosticsService.php` | diagnostics methods |
+| `src/Core/Logging/Logger.php` | writes logs |
+| `src/Core/Config/AppConfig.php` | version metadata |

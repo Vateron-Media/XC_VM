@@ -5,27 +5,13 @@ These systems are integrated into streaming authentication for access control, g
 
 ---
 
-## Navigation
-
-- [GeoIP Lookup](#geoip-lookup)
-- [ISP and ASN Detection](#isp-and-asn-detection)
-- [Device Detection](#device-detection)
-- [Access Control Checks](#access-control-checks)
-- [Geographic Routing](#geographic-routing)
-- [Database Updates](#database-updates)
-- [Activity Logging](#activity-logging)
-- [Configuration](#configuration)
-- [Related Files](#related-files)
-
----
-
 ## GeoIP Lookup
 
 Two classes provide GeoIP lookups:
 
 ### GeoIP (utility)
 
-File: `src/core/Util/GeoIP.php`
+File: `src/Core/Util/GeoIP.php`
 
 ```php
 GeoIP::getCountry($ip): array|false    // GeoLite2-City lookup
@@ -38,7 +24,7 @@ Results are cached as files at `CONS_TMP_PATH/{md5(ip)}_geo2` and `CONS_TMP_PATH
 
 ### GeoIPService (high-level)
 
-File: `src/core/GeoIP/GeoIPService.php`
+File: `src/Core/GeoIP/GeoIPService.php`
 
 ```php
 GeoIPService::getIPInfo($rIP): array|false      // city-level lookup
@@ -84,7 +70,7 @@ AND enable_isp_lock = 1
 
 ### Mobile_Detect
 
-File: `src/core/Device/MobileDetect.php`
+File: `src/Core/Device/MobileDetect.php`
 
 Library (v2.8.45) for user agent parsing:
 
@@ -99,11 +85,11 @@ Used in `src/bootstrap.php` to detect mobile devices for responsive admin UI.
 
 ### Set-Top Box Devices
 
-**EnigmaService** (`src/domain/Device/EnigmaService.php`):
+**EnigmaService** (`src/Domain/Device/EnigmaService.php`):
 
 Manages Enigma2 STB accounts. Lock fields: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
-**MagService** (`src/domain/Device/MagService.php`):
+**MagService** (`src/Domain/Device/MagService.php`):
 
 Manages MAG STB accounts. Lock fields: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
@@ -205,7 +191,7 @@ ProxySelector::availableProxy(
 
 ## Database Updates
 
-File: `src/core/GeoIP/MaxMindUpdater.php`
+File: `src/Core/GeoIP/MaxMindUpdater.php`
 
 ```php
 $updater = MaxMindUpdater::fromSettings($settings);
@@ -220,7 +206,7 @@ Supported editions:
 Downloads via MaxMind API using `maxmind_account_id` and `maxmind_license_key`.
 Extracts `.mmdb` files from tar.gz archives to `BIN_PATH/maxmind/`.
 
-Database file paths (defined in `src/core/Config/Binaries.php`):
+Database file paths (defined in `src/Core/Config/Binaries.php`):
 
 ```text
 GEOLITE2_BIN  = BIN_PATH/maxmind/GeoLite2-Country.mmdb
@@ -269,18 +255,18 @@ Periodically archived from `lines_live` to `lines_activity` by `ActivityCronJob`
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Util/GeoIP.php` | low-level GeoIP lookups with file caching |
-| `src/core/GeoIP/GeoIPService.php` | high-level GeoIP + CIDR matching |
-| `src/core/GeoIP/MaxMindUpdater.php` | MaxMind database downloader |
-| `src/core/Config/Binaries.php` | GeoIP database file path constants |
-| `src/core/Device/MobileDetect.php` | Mobile_Detect library |
-| `src/domain/Device/EnigmaService.php` | Enigma2 STB management |
-| `src/domain/Device/MagService.php` | MAG STB management |
-| `src/domain/User/UserRepository.php` | GeoIP enrichment on user records |
+| `src/Core/Util/GeoIP.php` | low-level GeoIP lookups with file caching |
+| `src/Core/GeoIP/GeoIPService.php` | high-level GeoIP + CIDR matching |
+| `src/Core/GeoIP/MaxMindUpdater.php` | MaxMind database downloader |
+| `src/Core/Config/Binaries.php` | GeoIP database file path constants |
+| `src/Core/Device/MobileDetect.php` | Mobile_Detect library |
+| `src/Domain/Device/EnigmaService.php` | Enigma2 STB management |
+| `src/Domain/Device/MagService.php` | MAG STB management |
+| `src/Domain/User/UserRepository.php` | GeoIP enrichment on user records |
 | `src/www/stream/auth.php` | streaming auth with all geo/device checks |
-| `src/streaming/Auth/StreamAuth.php` | GeoIP-aware server selection |
-| `src/streaming/Balancer/ProxySelector.php` | GeoIP-aware proxy selection |
+| `src/Streaming/Auth/StreamAuth.php` | GeoIP-aware server selection |
+| `src/Streaming/Balancer/ProxySelector.php` | GeoIP-aware proxy selection |

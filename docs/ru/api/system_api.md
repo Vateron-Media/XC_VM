@@ -9,10 +9,10 @@
 Системный API обрабатывается контроллером:
 
 ```text
-src/public/Controllers/Api/InternalApiController.php
+src/Public/Controllers/Api/InternalApiController.php
 ```
 
-HTTP entry-point: `/api.php` — маршрутизируется nginx на `public/index.php` с параметром `XC_API=internal`.
+HTTP entry-point: `/api.php` — маршрутизируется nginx на `Public/index.php` с параметром `XC_API=internal`.
 
 ## Обзор архитектуры API
 
