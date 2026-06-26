@@ -119,7 +119,7 @@ class PlexItem {
     }
 
     /**
-     * Получить сериал по Plex UUID или \TMDB ID.
+     * Получить сериал по Plex UUID или TMDB ID.
      *
      * @param string $rPlexID
      * @param int|null $rTMDBID
@@ -189,7 +189,7 @@ class PlexItem {
     }
 
     /**
-     * Получить фильм из кэша по Plex UUID или \TMDB ID.
+     * Получить фильм из кэша по Plex UUID или TMDB ID.
      *
      * @param string $rPlexID
      * @param int|null $rTMDBID
@@ -289,7 +289,7 @@ class PlexItem {
     }
 
     /**
-     * Универсальная функция поиска \TMDB ID из данных Plex.
+     * Универсальная функция поиска TMDB ID из данных Plex.
      *
      * @param array $rContent
      * @return array ['tmdb_id' => int|null, 'language' => string|null]
@@ -404,10 +404,10 @@ class PlexItem {
                 $rTMDBID = null;
                 $rFirstFile = null;
 
-                // \TMDB ID
+                // TMDB ID
                 $tmdb = self::getTmdbIdFromPlex($Video);
                 $rTMDBID = $tmdb['tmdb_id'];
-                echo $rTMDBID ? "LOG: \TMDB ID detected: $rTMDBID\n" : "LOG: \TMDB ID not found — will work without it\n";
+                echo $rTMDBID ? "LOG: TMDB ID detected: $rTMDBID\n" : "LOG: TMDB ID not found — will work without it\n";
 
                 $rFileArray = array('file' => null, 'size' => null, 'data' => null, 'key' => null);
 
@@ -667,7 +667,7 @@ class PlexItem {
                 $rShowData = $rContent['Directory'];
                 echo "Show title: {$rShowData['@attributes']['title']}\n";
 
-                // Get \TMDB ID and language
+                // Get TMDB ID and language
                 $tmdbInfo = self::getTmdbIdFromPlex($rShowData);
                 $rTMDBID = $tmdbInfo['tmdb_id'];
                 $rLanguage = $tmdbInfo['language'];

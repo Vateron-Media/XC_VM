@@ -154,11 +154,34 @@ class WatchItem {
         } else {
             $rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(str_replace('-', '_', $rRelease));
         }
-        return json_decode(shell_exec($rCommand), true);
+        $rResult = json_decode(shell_exec($rCommand), true);
+        if (!is_array($rResult)) {
+            $rResult = array();
+        }
+        // Явный шаблон "S01 E01" / "S01E01": парсеры (особенно PTN) ломаются на
+        // числовых названиях вроде "9-1-1" — берут цифру названия как сезон и
+        // выдают мусорный title. Если в исходной строке есть явный SxxExx,
+        // надёжно извлекаем сезон/эпизод/название регуляркой и переопределяем.
+        if (preg_match('/^(.+?)[\s._-]+[Ss](\d{1,3})[\s._-]*[Ee](\d{1,4})/', $rRelease, $rMatch)) {
+            $rCleanTitle = trim(preg_replace('/\s+/', ' ', preg_replace('/[._]+/', ' ', $rMatch[1])));
+            // Убираем год в конце названия ("Boston Blue (2025)" → "Boston Blue") —
+            // он ломает поиск в TMDB. Год сохраняем отдельно для поиска. Защита:
+            // не трогаем, если год — это всё название (например сериал "1923").
+            if (preg_match('/^(.*?)[\s._-]*\(?((?:19|20)\d{2})\)?$/', $rCleanTitle, $rYearMatch) && trim($rYearMatch[1]) !== '') {
+                $rResult['year'] = intval($rYearMatch[2]);
+                $rCleanTitle = trim($rYearMatch[1]);
+            }
+            if ($rCleanTitle !== '') {
+                $rResult['title'] = $rCleanTitle;
+                $rResult['season'] = intval($rMatch[2]);
+                $rResult['episode'] = intval($rMatch[3]);
+            }
+        }
+        return $rResult;
     }
 
     /**
-     * Получить фильм из кэша по \TMDB ID.
+     * Получить фильм из кэша по TMDB ID.
      *
      * @param int $rTMDBID
      * @return array|null
@@ -170,7 +193,7 @@ class WatchItem {
     }
 
     /**
-     * Получить эпизод из кэша по \TMDB ID, сезону и номеру.
+     * Получить эпизод из кэша по TMDB ID, сезону и номеру.
      *
      * @param int $rTMDBID
      * @param int $rSeason
@@ -193,7 +216,13 @@ class WatchItem {
      * @return string
      */
     public static function parseTitle($rTitle) {
-        return strtolower(preg_replace("/(?![.=\$'€%-])\\p{P}/u", '', $rTitle));
+        // Нормализуем разделители: дефис и подчёркивание → пробел, чтобы названия
+        // вроде "9-1-1" совпадали независимо от того, как парсер их выдал
+        // ("9-1-1" / "9_1_1" / "9 1 1"). Сравнение симметрично для обеих сторон,
+        // поэтому это не ломает существующие совпадения.
+        $rTitle = str_replace(array('-', '_'), ' ', $rTitle);
+        $rTitle = strtolower(preg_replace("/(?![.=\$'€%-])\\p{P}/u", '', $rTitle));
+        return trim(preg_replace('/\\s+/u', ' ', $rTitle));
     }
 
     /**
@@ -208,7 +237,7 @@ class WatchItem {
     }
 
     /**
-     * Получить сериал по \TMDB ID.
+     * Получить сериал по TMDB ID.
      *
      * @param int $rID
      * @return array|null
@@ -216,8 +245,8 @@ class WatchItem {
     public static function getSeriesByTMDB($rID) {
         $db = self::db();
         if (!(file_exists(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') && time() - filemtime(WATCH_TMP_PATH . 'series_' . intval($rID) . '.data') < 360)) {
-            $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ? ORDER BY `id` ASC LIMIT 1;', $rID);
-            if ($db->num_rows() >= 1) {
+            $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ?;', $rID);
+            if ($db->num_rows() == 1) {
                 return $db->get_row();
             }
             return null;
@@ -227,7 +256,7 @@ class WatchItem {
     }
 
     /**
-     * Получить URL трейлера сериала с \TMDB.
+     * Получить URL трейлера сериала с TMDB.
      *
      * @param int $rTMDBID
      * @param string|null $rLanguage
@@ -476,7 +505,7 @@ class WatchItem {
                                             }
                                         }
                                         if ($rThreadData['type'] == 'movie') {
-                                            print_r('Searching \Movie: ' . $rTitle . ' Year: ' . $rSearchYear . "\n");
+                                            print_r('Searching Movie: ' . $rTitle . ' Year: ' . $rSearchYear . "\n");
                                             $rResults = $rTMDB->searchMovie($rTitle, $rSearchYear);
                                         } else {
                                             print_r('Searching TV Show: ' . $rTitle . ' Year: ' . $rSearchYear . "\n");
@@ -935,7 +964,7 @@ class WatchItem {
                                         }
                                     }
                                     if (strlen($rImportArray['stream_display_name']) == 0) {
-                                        $rImportArray['stream_display_name'] = 'No \Episode Title';
+                                        $rImportArray['stream_display_name'] = 'No Episode Title';
                                     }
                                 }
                             }

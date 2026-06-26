@@ -25,7 +25,7 @@ class TmdbPopularCronJob implements CommandInterface {
     }
 
     public function getDescription(): string {
-        return 'Cron: update popular \TMDB movies';
+        return 'Cron: update popular TMDB movies';
     }
 
     public function execute(array $rArgs): int {

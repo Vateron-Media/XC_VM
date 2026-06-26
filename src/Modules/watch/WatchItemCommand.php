@@ -21,7 +21,7 @@ class WatchItemCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Process single Watch item (\TMDB search/update)';
+		return 'Process single Watch item (TMDB search/update)';
 	}
 
 	public function execute(array $rArgs): int {
