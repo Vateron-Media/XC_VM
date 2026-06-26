@@ -81,6 +81,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
+	verify_no_lfs_pointers \
 	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
 	check-vendor-prod-only dev-tools
@@ -189,10 +190,10 @@ generate_deleted_files:
 # ─── MAIN targets ────────────────────────────────────────────────
 # Single archive: used for both clean install and update.
 # The update script (src/update) filters out excluded dirs at runtime.
-main: main_copy_files delete_files_list set_permissions create_archive main_archive_move main_install_archive clean
+main: main_copy_files delete_files_list set_permissions verify_no_lfs_pointers create_archive main_archive_move main_install_archive clean
 
 # ─── LoadBalancer targets ────────────────────────────────────────
-lb: lb_copy_files lb_delete_files_list set_permissions create_archive lb_archive_move clean
+lb: lb_copy_files lb_delete_files_list set_permissions verify_no_lfs_pointers create_archive lb_archive_move clean
 
 lb_copy_files:
 	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
@@ -343,6 +344,21 @@ set_permissions:
 	# Sensitive config files
 	@chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
+
+# Fail the build if any staged file is still a Git LFS pointer instead of the
+# real binary. This happens when the checkout did not materialise LFS objects
+# (e.g. `actions/checkout` without `lfs: true`), which would otherwise ship
+# 130-byte text stubs in place of ffmpeg, redis, yt-dlp, etc.
+verify_no_lfs_pointers:
+	@echo "==> Verifying no Git LFS pointer files leaked into $(TEMP_DIR)"
+	@pointers=$$(grep -rlI '^version https://git-lfs.github.com/spec/v1' "$(TEMP_DIR)" 2>/dev/null || true); \
+	if [ -n "$$pointers" ]; then \
+		echo "ERROR: Git LFS pointer files found in the staged tree:"; \
+		echo "$$pointers" | sed 's|^$(TEMP_DIR)/|   - |'; \
+		echo "The checkout did not fetch LFS objects. Run 'git lfs pull' or set 'lfs: true' on the CI checkout."; \
+		exit 1; \
+	fi; \
+	echo "OK: no LFS pointers staged"
 
 create_archive:
 	@echo "==> Creating final archive: ${TEMP_ARCHIVE_NAME}"
