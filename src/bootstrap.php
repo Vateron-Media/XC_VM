@@ -500,12 +500,18 @@ class XC_Bootstrap {
         require_once MAIN_HOME . 'Core/Init/LegacyInitializer.php';
 
         DatabaseFactory::set($db);
+
+        // Wire $db into the domain service classes before initCore() runs,
+        // since initCore() calls ServerRepository::getAll() which requires it.
+        self::wireDomainDatabase($db);
+
         LegacyInitializer::initCore($cached);
 
         // If cache was used and is incomplete — reconnect to DB
         if ($cached && !SettingsManager::getAll()['enable_cache']) {
             $db = new DatabaseHandler();
             DatabaseFactory::set($db);
+            self::wireDomainDatabase($db);
         }
 
         self::$coreReady = true;

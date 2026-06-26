@@ -2,10 +2,18 @@
 # Auto-generated from: git diff 2.2.1..HEAD
 # One file per line. Lines starting with # are comments.
 #
+core/Config/ConfigLoader.php
+core/Events/EventInterface.php
+core/Http/Middleware/.gitkeep
+core/Module/CoreCodePatchableModuleInterface.php
+core/Module/CoreCodePatcher.php
+infrastructure/nginx/templates/.gitkeep
+infrastructure/service/.gitkeep
 modules/fingerprint/FingerprintModule.php
 modules/fingerprint/module.json
 modules/magscan/MagscanModule.php
 modules/magscan/module.json
+modules/plex/config/.gitkeep
 modules/theft-detection/TheftDetectionModule.php
 modules/theft-detection/module.json
 
@@ -1209,3 +1217,14 @@ Infrastructure/redis/RedisManager.php
 
 # PSR-4 final phase: legacy XC_Autoloader fallback removed (Composer-only autoload)
 autoload.php
+resources/libs/.gitkeep
+www/admin/index.php
+www/constants.php
+www/images/admin/index.html
+www/images/enigma2/index.html
+www/images/index.html
+www/index.html
+www/init.php
+www/progress.php
+www/stream/index.php
+www/stream/init.php
