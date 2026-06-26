@@ -180,6 +180,7 @@ class AuthRepository {
 		if ($db->num_rows() == 1) {
 			return $db->get_row();
 		}
+		return null;
 	}
 
 	// ──────────────────────────────────────────────

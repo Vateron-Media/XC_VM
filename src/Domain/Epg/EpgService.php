@@ -135,6 +135,7 @@ class EpgService {
 		if ($db->num_rows() == 1) {
 			return $db->get_row();
 		}
+		return null;
 	}
 
 	/**
@@ -225,6 +226,7 @@ class EpgService {
 		if (isset($rData[$rProgrammeID])) {
 			return $rData[$rProgrammeID];
 		}
+		return null;
 	}
 
 	/**

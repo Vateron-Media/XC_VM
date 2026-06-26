@@ -611,6 +611,7 @@ class BlocklistService {
 		} else {
 			return $db->get_row();
 		}
+		return null;
 	}
 
 	/**
@@ -627,6 +628,7 @@ class BlocklistService {
 		} else {
 			return $db->get_row();
 		}
+		return null;
 	}
 
 	/**
@@ -662,5 +664,6 @@ class BlocklistService {
 		} else {
 			return $db->get_row();
 		}
+		return null;
 	}
 }
