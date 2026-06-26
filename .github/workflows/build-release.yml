@@ -60,7 +60,6 @@ jobs:
         with:
           ref: ${{ steps.tag.outputs.name }}
           fetch-depth: 0
-          filter: blob:none
           lfs: true
 
       - name: Determine previous tag
