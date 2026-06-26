@@ -709,7 +709,19 @@ def install_distribution_binaries(dist_id, version):
         if os.path.exists(temp_tar_file):
             os.remove(temp_tar_file)
 
-        urllib.request.urlretrieve(remote_url, temp_tar_file)
+        # Retry on transient network/DNS failures (e.g. resolver not ready yet).
+        last_err = None
+        for attempt in range(1, 5):
+            try:
+                urllib.request.urlretrieve(remote_url, temp_tar_file)
+                last_err = None
+                break
+            except Exception as e:
+                last_err = e
+                printc(f"Download attempt {attempt}/4 failed: {e}", col.WARNING)
+                time.sleep(5)
+        if last_err is not None:
+            raise last_err
 
         if not (os.path.exists(temp_tar_file) and os.path.getsize(temp_tar_file) > 0):
             printc(f"Failed to download {display_name} binaries", col.FAIL)
@@ -2059,9 +2071,11 @@ if __name__ == "__main__":
         ):
             if not install_distribution_binaries(dist_id, version):
                 printc(
-                    f"Warning: Failed to install {dist_id} {version} specific binaries",
-                    col.WARNING,
+                    f"FATAL: failed to install {dist_id} {version} binaries — the panel "
+                    f"cannot run without them. Check network/DNS and re-run the installer.",
+                    col.FAIL,
                 )
+                sys.exit(1)
 
         # Debian: 11, 12, 13
         elif dist_id == "debian" and any(
@@ -2069,9 +2083,11 @@ if __name__ == "__main__":
         ):
             if not install_distribution_binaries(dist_id, version):
                 printc(
-                    f"Warning: Failed to install {dist_id} {version} specific binaries",
-                    col.WARNING,
+                    f"FATAL: failed to install {dist_id} {version} binaries — the panel "
+                    f"cannot run without them. Check network/DNS and re-run the installer.",
+                    col.FAIL,
                 )
+                sys.exit(1)
 
         else:
             printc(
@@ -2084,9 +2100,11 @@ if __name__ == "__main__":
         if major in ["8", "9"]:
             if not install_distribution_binaries(dist_id, version):
                 printc(
-                    f"Warning: Failed to install {dist_id} {version} specific binaries",
-                    col.WARNING,
+                    f"FATAL: failed to install {dist_id} {version} binaries — the panel "
+                    f"cannot run without them. Check network/DNS and re-run the installer.",
+                    col.FAIL,
                 )
+                sys.exit(1)
         else:
             printc(
                 f"No specific patches available for {dist_id} {version}, using default binaries",
