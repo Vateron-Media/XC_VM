@@ -7,6 +7,8 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'XcVm\\' => array($baseDir . '/'),
+    'Psr\\SimpleCache\\' => array($vendorDir . '/psr/simple-cache/src'),
     'M3uParser\\' => array($vendorDir . '/gemorroj/m3u-parser/src'),
+    'Detection\\' => array($vendorDir . '/mobiledetect/mobiledetectlib/src'),
     'Chrisyue\\PhpM3u8\\' => array($vendorDir . '/chrisyue/php-m3u8/src'),
 );
