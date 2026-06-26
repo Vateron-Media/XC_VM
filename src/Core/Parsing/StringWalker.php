@@ -112,7 +112,7 @@ class StringWalker implements ParserInterface {
 	/**
 	 * Extract XML compatible tag head and tail
 	 * @param  string $element XML element
-	 * @return string[] 0 => Opening tag, 1 => Closing tag
+	 * @return string[]|null 0 => Opening tag, 1 => Closing tag (null if no tag matches)
 	 */
 	protected function getEdges($element) {
 		foreach ($this->options['tags'] as $tag) {
@@ -122,6 +122,7 @@ class StringWalker implements ParserInterface {
 				return $tag;
 			}
 		}
+		return null;
 	}
 
 	/**

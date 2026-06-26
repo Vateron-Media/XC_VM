@@ -62,6 +62,7 @@ class UserRepository {
 				return $rRow;
 			}
 		}
+		return null;
 	}
 
 	/**
@@ -168,6 +169,7 @@ class UserRepository {
 		} else {
 			return $db->get_row();
 		}
+		return null;
 	}
 
 	/**
@@ -184,6 +186,7 @@ class UserRepository {
 		} else {
 			return $db->get_row();
 		}
+		return null;
 	}
 
 	/**

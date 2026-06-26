@@ -362,6 +362,7 @@ class Database {
 		if ($this->dbh) {
 			return $this->dbh->quote($string);
 		}
+		return null;
 	}
 
 	/**
@@ -389,6 +390,7 @@ class Database {
 			$mysql_insert_id = $this->dbh->lastInsertId();
 			return (empty($mysql_insert_id) ? 0 : $mysql_insert_id);
 		}
+		return null;
 	}
 
 	/**

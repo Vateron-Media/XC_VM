@@ -325,12 +325,6 @@ parameters:
 			path: src/Cli/migration_logic.php
 
 		-
-			message: '#^Method XcVm\\Core\\Auth\\AuthRepository\:\:getHMACById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Core/Auth/AuthRepository.php
-
-		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, array\<int, int\|string\> given\.$#'
 			identifier: argument.type
 			count: 1
@@ -353,18 +347,6 @@ parameters:
 			identifier: booleanOr.rightAlwaysTrue
 			count: 1
 			path: src/Core/Auth/Authenticator.php
-
-		-
-			message: '#^Method XcVm\\Core\\Database\\Database\:\:escape\(\) should return string\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Core/Database/Database.php
-
-		-
-			message: '#^Method XcVm\\Core\\Database\\Database\:\:last_insert_id\(\) should return int\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Core/Database/Database.php
 
 		-
 			message: '#^Negated boolean expression is always false\.$#'
@@ -405,12 +387,6 @@ parameters:
 		-
 			message: '#^Binary operation "\+\=" between int and string results in an error\.$#'
 			identifier: assignOp.invalid
-			count: 1
-			path: src/Core/Parsing/StringWalker.php
-
-		-
-			message: '#^Method XcVm\\Core\\Parsing\\StringWalker\:\:getEdges\(\) should return array\<string\> but return statement is missing\.$#'
-			identifier: return.missing
 			count: 1
 			path: src/Core/Parsing/StringWalker.php
 
@@ -565,39 +541,9 @@ parameters:
 			path: src/Domain/Epg/EPG.php
 
 		-
-			message: '#^Method XcVm\\Domain\\Epg\\EpgService\:\:getById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Domain/Epg/EpgService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Epg\\EpgService\:\:getProgramme\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Domain/Epg/EpgService.php
-
-		-
 			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:checkISP\(\) should return bool but returns int\.$#'
 			identifier: return.type
 			count: 2
-			path: src/Domain/Security/BlocklistService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:getISPById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Domain/Security/BlocklistService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:getRTMPIPById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Domain/Security/BlocklistService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Security\\BlocklistService\:\:getUserAgentById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
 			path: src/Domain/Security/BlocklistService.php
 
 		-
@@ -1069,26 +1015,8 @@ parameters:
 			path: src/Domain/User/TicketRepository.php
 
 		-
-			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getAuthUserByCredentials\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 2
-			path: src/Domain/User/UserRepository.php
-
-		-
 			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getE2Info\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
-			count: 1
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getLineById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
-			count: 1
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getRegisteredUserById\(\) should return array\|null but return statement is missing\.$#'
-			identifier: return.missing
 			count: 1
 			path: src/Domain/User/UserRepository.php
 
