@@ -111,8 +111,7 @@ if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', __DIR__ . '/');
 }
 
-// Composer PSR-4 autoloader — resolves every XcVm\* class. The legacy
-// XC_Autoloader fallback scanner has been retired and removed; modules load via
+// Composer PSR-4 autoloader — resolves every XcVm\* class; modules load via
 // ModuleLoader's PSR-4 resolver.
 require_once __DIR__ . '/vendor/autoload.php';
 // After this: MAIN_HOME is defined and the Composer autoloader is registered.
