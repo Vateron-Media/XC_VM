@@ -53,10 +53,11 @@ During `php console.php update post-update`, `MigrationRunner::runFileCleanup()`
 
 Before publishing, verify the build works:
 
-**PHP syntax check:**
+**Quality checks** (CI runs the same set on the tag — confirm it is green):
 
 ```bash
-make syntax_check
+make dev-tools && make phpstan && make cs && make gates
+php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
 ```
 
 **Docker test install** (see `tools/test-install/`):
@@ -70,12 +71,7 @@ This builds the image, starts the container with systemd, and runs the installer
 
 > ✅ Verify the panel loads at `http://localhost:8880` and admin login works.
 
-**Security scan** (runs automatically on push via `.github/workflows/security-scan.yml`):
-
-```bash
-tools/php_syntax_check.sh
-tools/run_scan.sh
-```
+**Security scan:** runs automatically on push/PR via `.github/workflows/security-scan.yml` (Semgrep) — no manual step.
 
 ---
 

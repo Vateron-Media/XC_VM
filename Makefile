@@ -82,13 +82,9 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
 	verify_no_lfs_pointers \
-	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
+	delete_files_list lb_delete_files_list generate_deleted_files \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
 	check-vendor-prod-only dev-tools
-
-# ─── Syntax check ───────────────────────────────────────────────
-syntax_check:
-	@bash ./tools/php_syntax_check.sh
 
 # ─── Dev tooling ────────────────────────────────────────────────
 # The committed src/vendor/ is PRODUCTION-ONLY (composer install --no-dev). The
