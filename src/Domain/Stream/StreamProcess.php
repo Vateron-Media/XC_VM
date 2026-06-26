@@ -1021,7 +1021,10 @@ class StreamProcess {
 				}
 
 				$rKeyFrames = ($rSettings['ignore_keyframes'] ? '+split_by_time' : '');
-				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval($rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
+				// Fast start: shorten the first segment so players can begin sooner.
+				// Capped at seg_time so a small seg_time never produces a longer first segment.
+				$rInitTime = min(2, intval($rSegmentSettings['seg_time']));
+				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_init_time ' . $rInitTime . ' -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval($rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
 
 				if ($rStream['stream_info']['rtmp_output'] == 1) {
 					$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode($rSettings['live_streaming_pass']) . ' ';
