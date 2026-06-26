@@ -1,5 +1,10 @@
 <?php
 
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Events\ListensTo;
 use PHPUnit\Framework\TestCase;
 
 final class ListensToTestEventAlpha {}
@@ -174,8 +179,8 @@ final class ListensToAttributeTest extends TestCase {
         file_put_contents($dir . '/' . $cls . '.php', <<<PHP
 <?php
 namespace {$ns};
-use BaseModule;
-use ListensTo;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Events\ListensTo;
 use ListensToTestEventAlpha;
 class {$cls} extends BaseModule {
     public function getName(): string    { return '{$name}'; }
@@ -195,7 +200,7 @@ PHP);
         file_put_contents($dir . '/' . $cls . '.php', <<<PHP
 <?php
 namespace {$ns};
-use BaseModule;
+use XcVm\Core\Module\BaseModule;
 class {$cls} extends BaseModule {
     public function getName(): string    { return '{$name}'; }
     public function getVersion(): string { return '1.0.0'; }
@@ -212,8 +217,8 @@ PHP);
         file_put_contents($dir . '/' . $cls . '.php', <<<PHP
 <?php
 namespace {$ns};
-use BaseModule;
-use ListensTo;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Events\ListensTo;
 use ListensToTestEventAlpha;
 use ListensToTestEventBeta;
 class {$cls} extends BaseModule {
@@ -237,8 +242,8 @@ PHP);
         file_put_contents($dir . '/' . $cls . '.php', <<<PHP
 <?php
 namespace {$ns};
-use BaseModule;
-use ListensTo;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Events\ListensTo;
 use ListensToTestEventAlpha;
 use ListensToTestEventBeta;
 class {$cls} extends BaseModule {
@@ -260,8 +265,8 @@ PHP);
         file_put_contents($dir . '/' . $cls . '.php', <<<PHP
 <?php
 namespace {$ns};
-use BaseModule;
-use ListensTo;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Events\ListensTo;
 class {$cls} extends BaseModule {
     public function getName(): string    { return '{$name}'; }
     public function getVersion(): string { return '1.0.0'; }

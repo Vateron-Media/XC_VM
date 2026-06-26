@@ -1,5 +1,23 @@
 <?php
 
+use XcVm\Module\Ministra\MinistraModule;
+use XcVm\Cli\CommandRegistry;
+use XcVm\Core\Boundary\BoundaryInterface;
+use XcVm\Core\Enum\ModuleState;
+use XcVm\Core\Events\ListensTo;
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
+use XcVm\Core\Module\Contract\ServiceProviderInterface;
+use XcVm\Core\Module\Contract\RouteProviderInterface;
+use XcVm\Core\Module\Contract\NavbarProviderInterface;
+use XcVm\Core\Module\Contract\CronProviderInterface;
+use XcVm\Core\Module\Contract\CommandProviderInterface;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\MigratableInterface;
+use XcVm\Core\Module\ModuleInterface;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -56,7 +74,7 @@ final class InterfaceContractTest extends TestCase {
 
     public function testServiceProviderInterfaceHasBoot(): void {
         $rc = new ReflectionClass(ServiceProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'boot', ['ServiceContainer'], 'void');
+        $this->assertInterfaceMethod($rc, 'boot', ['XcVm\Core\Container\ServiceContainer'], 'void');
     }
 
     public function testServiceProviderInterfaceHasGetEventSubscribers(): void {
@@ -68,21 +86,21 @@ final class InterfaceContractTest extends TestCase {
 
     public function testRouteProviderInterfaceHasRegisterRoutes(): void {
         $rc = new ReflectionClass(RouteProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'registerRoutes', ['Router'], 'void');
+        $this->assertInterfaceMethod($rc, 'registerRoutes', ['XcVm\\Core\\Http\\Router'], 'void');
     }
 
     // ── CommandProviderInterface ──────────────────────────────────
 
     public function testCommandProviderInterfaceHasRegisterCommands(): void {
         $rc = new ReflectionClass(CommandProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'registerCommands', ['CommandRegistry'], 'void');
+        $this->assertInterfaceMethod($rc, 'registerCommands', ['XcVm\Cli\CommandRegistry'], 'void');
     }
 
     // ── NavbarProviderInterface ───────────────────────────────────
 
     public function testNavbarProviderInterfaceHasRegisterNavbar(): void {
         $rc = new ReflectionClass(NavbarProviderInterface::class);
-        $this->assertInterfaceMethod($rc, 'registerNavbar', ['NavbarRegistry'], 'void');
+        $this->assertInterfaceMethod($rc, 'registerNavbar', ['XcVm\\Core\\Module\\NavbarRegistry'], 'void');
     }
 
     // ── StreamMiddlewareProviderInterface ─────────────────────────
@@ -247,8 +265,8 @@ final class InterfaceContractTest extends TestCase {
     public function testMinistraModuleImplementsBoundaryInterface(): void {
         if (!class_exists(\XcVm\Module\Ministra\MinistraModule::class)) {
             $file = defined('MAIN_HOME')
-                ? MAIN_HOME . 'modules/ministra/MinistraModule.php'
-                : __DIR__ . '/../../src/modules/ministra/MinistraModule.php';
+                ? MAIN_HOME . 'Modules/ministra/MinistraModule.php'
+                : __DIR__ . '/../../src/Modules/ministra/MinistraModule.php';
             require_once $file;
         }
         $rc = new ReflectionClass(\XcVm\Module\Ministra\MinistraModule::class);

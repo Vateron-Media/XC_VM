@@ -4,12 +4,12 @@ $projectRoot = dirname(__DIR__);
 $srcRoot = $projectRoot . '/src';
 $flatRoot = $projectRoot;
 
-if (file_exists($srcRoot . '/autoload.php')) {
+if (file_exists($srcRoot . '/vendor/autoload.php')) {
 	$appRoot = $srcRoot;
-} elseif (file_exists($flatRoot . '/autoload.php')) {
+} elseif (file_exists($flatRoot . '/vendor/autoload.php')) {
 	$appRoot = $flatRoot;
 } else {
-	throw new RuntimeException('Unable to locate autoload.php in expected project paths.');
+	throw new RuntimeException('Unable to locate vendor/autoload.php in expected project paths.');
 }
 
 $tmpRoot = __DIR__ . '/.tmp';
@@ -68,9 +68,7 @@ if (!function_exists('igbinary_unserialize')) {
 	}
 }
 
-require_once MAIN_HOME . 'autoload.php';
-require_once MAIN_HOME . 'core/Parsing/M3uParser/bootstrap.php';
-require_once MAIN_HOME . 'core/Parsing/PhpM3u8/bootstrap.php';
+require_once MAIN_HOME . 'vendor/autoload.php';
 require_once __DIR__ . '/Unit/M3uParser/ExtCustomTag.php';
 
 // Test support: in-memory SQLite harness for DB-touching repositories/services.

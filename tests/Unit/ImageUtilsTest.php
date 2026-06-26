@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\ImageUtils;
 use PHPUnit\Framework\TestCase;
 
 /**

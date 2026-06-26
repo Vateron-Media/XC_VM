@@ -15,7 +15,7 @@ Tree sources:
 
 1. `ModuleLoader::bootAll()` calls `CoreNavbarProvider::register()`.
 2. Then `registerNavbar()` is called for each loaded module.
-3. In `public/Views/admin/header.php`, the tree is rendered from `NavbarRegistry`.
+3. In `Public/Views/admin/header.php`, the tree is rendered from `NavbarRegistry`.
 
 ## Rendering in header
 
@@ -73,3 +73,12 @@ public function registerNavbar(): void {
 4. Use `label('translation_key')` for translatable text.
 5. Use `label('', 'Literal Text')` for fixed literal text.
 6. If the module has no menu items, keep `registerNavbar()` empty.
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/Core/Module/NavbarRegistry.php` | Collects navbar items from providers |
+| `src/Core/Module/NavbarItem.php` | Navbar item value object |
+| `src/Core/Module/CoreNavbarProvider.php` | Built-in core menu items |
+| `src/Public/Views/admin/header.php` | Renders the navbar tree |

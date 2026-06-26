@@ -14,11 +14,11 @@ Structured PHP monolith with a modular extension layer.
 
 | Path | Role |
 | ---- | ---- |
-| `src/core/` | Infrastructure primitives: DI container, events, HTTP, config, auth, logging |
-| `src/domain/` | Business contexts: Stream, VOD, Line, User, Server, Security, etc. |
-| `src/modules/` | Optional extension layer — loaded by `ModuleLoader` |
-| `src/public/` | Front controller, router, controllers, views, assets |
-| `src/cli/` | Console commands and cron entry points |
+| `src/Core/` | Infrastructure primitives: DI container, events, HTTP, config, auth, logging |
+| `src/Domain/` | Business contexts: Stream, VOD, Line, User, Server, Security, etc. |
+| `src/Modules/` | Optional extension layer — loaded by `ModuleLoader` |
+| `src/Public/` | Front controller, router, controllers, views, assets |
+| `src/Cli/` | Console commands and cron entry points |
 | `src/ministra/` | Stalker Portal — isolated subsystem (`BoundaryInterface`) |
 
 ---
@@ -28,7 +28,7 @@ Structured PHP monolith with a modular extension layer.
 Dependencies flow inward — modules may use core and domain, never the reverse.
 
 ```
-public/index.php
+Public/index.php
     └── XC_Bootstrap::boot(BootContext::ADMIN)
             └── ServiceContainer (DI)
                     ├── EventDispatcher (PSR-14)
@@ -43,11 +43,11 @@ Domain classes receive the database via `setDb()` injection (called from
 
 ## Module system
 
-Modules are isolated directories under `src/modules/` with a `module.json` manifest
+Modules are isolated directories under `src/Modules/` with a `module.json` manifest
 and a class extending `BaseModule`. See [Module System](modules.md) for the full reference.
 
 ```
-src/modules/my-module/
+src/Modules/my-module/
 ├── module.json          # metadata
 ├── MyModuleModule.php   # extends BaseModule, namespace XcVm\Module\MyModule
 └── ...
@@ -99,3 +99,15 @@ Controlled by `ServerEnvironment` enum and `module.json` `environment` field (`m
 3. Any module can be disabled via `config/modules.php` without touching core.
 4. Protected services (`db`, `settings`, `config`, `auth`) cannot be decorated.
 5. Keep EN and RU docs in sync in the same commit.
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/Core/` | Framework primitives (DI, events, HTTP, config, auth, logging) |
+| `src/Domain/` | Business contexts (Stream, VOD, Line, User, Server, Security) |
+| `src/Infrastructure/` | External adapters (DatabaseFactory, CacheReader, Redis) |
+| `src/Streaming/` | Streaming subsystem |
+| `src/Modules/` | Optional modules (loaded by ModuleLoader) |
+| `src/Public/` | Front controller, controllers, views |
+| `src/Cli/` | Console commands and cron jobs |

@@ -5,19 +5,6 @@ Backups are managed through the admin panel, CLI commands, and a cron job.
 
 ---
 
-## Navigation
-
-- [What Gets Backed Up](#what-gets-backed-up)
-- [Configuration](#configuration)
-- [Creating Backups](#creating-backups)
-- [Restoring Backups](#restoring-backups)
-- [Retention](#retention)
-- [Dropbox Integration](#dropbox-integration)
-- [CLI Commands](#cli-commands)
-- [Related Files](#related-files)
-
----
-
 ## What Gets Backed Up
 
 Backups contain the complete database structure and data, **except** the following tables:
@@ -143,7 +130,7 @@ Cleanup runs automatically after each backup via `BackupsCronJob`.
 
 ## Dropbox Integration
 
-File: `src/core/Storage/DropboxClient.php`
+File: `src/Core/Storage/DropboxClient.php`
 
 When `dropbox_remote` is enabled:
 
@@ -222,14 +209,14 @@ Action: `backup` (requires `adv:database` permission)
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Backup/BackupService.php` | backup/restore logic |
-| `src/core/Storage/DropboxClient.php` | Dropbox API client |
-| `src/cli/CronJobs/BackupsCronJob.php` | automated backup cron |
-| `src/cli/Commands/ToolsCommand.php` | CLI migration and database tools |
-| `src/public/Views/admin/backups.php` | admin panel UI |
-| `src/public/Views/admin/api.php` | API endpoint handler |
-| `src/public/Controllers/Admin/BackupsController.php` | admin controller |
+| `src/Core/Backup/BackupService.php` | backup/restore logic |
+| `src/Core/Storage/DropboxClient.php` | Dropbox API client |
+| `src/Cli/CronJobs/BackupsCronJob.php` | automated backup cron |
+| `src/Cli/Commands/ToolsCommand.php` | CLI migration and database tools |
+| `src/Public/Views/admin/backups.php` | admin panel UI |
+| `src/Public/Views/admin/api.php` | API endpoint handler |
+| `src/Public/Controllers/Admin/BackupsController.php` | admin controller |

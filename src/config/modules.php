@@ -1,9 +1,12 @@
 <?php
 
+use XcVm\Core\Module\ModuleInterface;
+use XcVm\Core\Module\ModuleLoader;
+
 /**
  * Overrides модулей
  *
- * ModuleLoader автоматически обнаруживает все модули из modules/&lt;name&gt;/module.json.
+ * ModuleLoader автоматически обнаруживает все модули из Modules/&lt;name&gt;/module.json.
  * По умолчанию все обнаруженные модули включены.
  *
  * Этот файл содержит только переопределения:

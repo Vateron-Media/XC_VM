@@ -1,5 +1,7 @@
 <?php
 
+use XcVm\Core\Enum\ServerEnvironment;
+use XcVm\Core\Enum\BootContext;
 use PHPUnit\Framework\TestCase;
 
 /**

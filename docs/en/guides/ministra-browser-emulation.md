@@ -125,4 +125,12 @@ Common causes:
 - Client parameters and API calls: `src/ministra/xpcom.common.js`
 - Debug/get parameter initialization: `src/ministra/index.html`
 - Server-side device checks and profile: `src/ministra/portal.php`
-- Handshake/get_profile orchestration: `src/modules/ministra/PortalHandler.php`
+- Handshake/get_profile orchestration: `src/Modules/ministra/PortalHandler.php`
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/ministra/portal.php` | Ministra portal entry point |
+| `src/ministra/index.html` | Emulated STB browser page |
+| `src/Modules/ministra/PortalHandler.php` | Portal request handler |

@@ -143,7 +143,7 @@ XC_VM использует соглашение `NAME[ID]` для именова
 
 | Файл                                   | Назначение                         |
 | -------------------------------------- | ---------------------------------- |
-| `src/core/Process/ProcessManager.php`  | Основной класс управления процессами |
-| `src/core/Process/Multithread.php`     | Многопоточное выполнение           |
-| `src/core/Process/Thread.php`          | Обёртка потока                     |
+| `src/Core/Process/ProcessManager.php`  | Основной класс управления процессами |
+| `src/Core/Process/Multithread.php`     | Многопоточное выполнение           |
+| `src/Core/Process/Thread.php`          | Обёртка потока                     |
 | `src/bootstrap.php`                    | `CONTEXT_CLI` устанавливает имя процесса |

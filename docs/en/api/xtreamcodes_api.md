@@ -1,19 +1,6 @@
-# 📡 XtreamCodes API
+# XtreamCodes API
 
 The API provides access to IPTV streams (Live TV, Radio), VOD (Movies), Series, and EPG (TV guide) for applications compatible with XtreamCodes. It is a core component for integration with XC_VM.
-
----
-
-## 📚 Navigation
-
-- [📂 File Location](#file-location)
-- [📑 Overview](#overview)
-- [🔑 Authorization](#authorization)
-- [📺 Live TV (TV & Radio)](#live-tv-tv--radio)
-- [🎬 VOD (Movies)](#vod-movies)
-- [📽 Series](#series)
-- [🎞 Media Access](#media-access)
-- [🧾 Notes](#notes)
 
 ---
 
@@ -22,13 +9,13 @@ The API provides access to IPTV streams (Live TV, Radio), VOD (Movies), Series, 
 The main API is handled by `PlayerApiController`:
 
 ```text
-src/public/Controllers/Api/PlayerApiController.php
+src/Public/Controllers/Api/PlayerApiController.php
 ```
 
 The EPG/XMLTV endpoint (`/xmltv.php`) is handled by `EpgApiController`:
 
 ```text
-src/public/Controllers/Api/EpgApiController.php
+src/Public/Controllers/Api/EpgApiController.php
 ```
 
 ---

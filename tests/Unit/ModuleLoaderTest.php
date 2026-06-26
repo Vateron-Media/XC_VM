@@ -1,5 +1,11 @@
 <?php
 
+use XcVm\Cli\CommandRegistry;
+use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\ModuleInterface;
+use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 final class ModuleLoaderTest extends TestCase {
@@ -80,16 +86,16 @@ final class ModuleLoaderTest extends TestCase {
 
 		$php = '<?php' . "\n"
 			. 'namespace ' . $namespace . ';' . "\n"
-			. 'use ModuleInterface;' . "\n"
-			. 'use ServiceContainer;' . "\n"
+			. 'use XcVm\Core\Module\ModuleInterface;' . "\n"
+			. 'use XcVm\Core\Container\ServiceContainer;' . "\n"
 			. 'use Router;' . "\n"
-			. 'use CommandRegistry;' . "\n"
-			. 'use NavbarRegistry;' . "\n"
+			. 'use XcVm\Cli\CommandRegistry;' . "\n"
+			. 'use XcVm\Core\Module\NavbarRegistry;' . "\n"
 			. 'class ' . $className . ' implements ModuleInterface {' . "\n"
 			. "\tpublic function getName(): string { return '{$name}'; }" . "\n"
 			. "\tpublic function getVersion(): string { return '1.0.0'; }" . "\n"
 			. "\tpublic function boot(ServiceContainer \$container): void {}" . "\n"
-			. "\tpublic function registerRoutes(Router \$router): void {}" . "\n"
+			. "\tpublic function registerRoutes(\\XcVm\\Core\\Http\\Router \$router): void {}" . "\n"
 			. "\tpublic function registerCommands(CommandRegistry \$registry): void {}" . "\n"
 			. "\tpublic function getEventSubscribers(): array { return []; }" . "\n"
 			. "\tpublic function install(): void {}" . "\n"

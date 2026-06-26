@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Validation\InputValidator;
 use PHPUnit\Framework\TestCase;
 
 final class InputValidatorTest extends TestCase {

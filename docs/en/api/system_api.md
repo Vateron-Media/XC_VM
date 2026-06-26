@@ -9,10 +9,10 @@ This API provides various system functionalities, including stream and VOD manag
 The System API is handled by the controller:
 
 ```text
-src/public/Controllers/Api/InternalApiController.php
+src/Public/Controllers/Api/InternalApiController.php
 ```
 
-HTTP entry-point: `/api.php` -> routed by nginx to `public/index.php` with `XC_API=internal`.
+HTTP entry-point: `/api.php` -> routed by nginx to `Public/index.php` with `XC_API=internal`.
 
 ## API Architecture Overview
 

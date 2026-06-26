@@ -193,3 +193,11 @@ final class ListensTo {
 - Размещается на публичных методах классов, расширяющих `BaseModule`
 - `IS_REPEATABLE` — несколько `#[ListensTo]` на одном методе регистрируются все
 - Если `eventClass` не существует во время выполнения — атрибут пропускается (не исключение)
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/Core/Events/EventDispatcher.php` | Диспетчер событий PSR-14 |
+| `src/Core/Events/ListensTo.php` | Атрибут слушателя |
+| `src/Core/Events/` | Классы событий (Auth, Module, Settings, Stream) |

@@ -22,36 +22,36 @@ EXCLUDES := \
 	.git
 
 # Directories to copy from MAIN to LB
-# NOTE: modules/ is intentionally excluded — all modules are MAIN-only.
+# NOTE: Modules/ is intentionally excluded — all modules are MAIN-only.
 # Modules: tmdb, plex, watch, ministra
-LB_DIRS := bin cli config content core domain modules\
-	infrastructure public resources signals streaming tmp www
+LB_DIRS := bin Cli config content Core Domain Modules\
+	Infrastructure Public resources signals Streaming tmp vendor www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
-LB_ROOT_FILES := autoload.php bootstrap.php console.php service update
+LB_ROOT_FILES := bootstrap.php console.php service update
 
 # Directories to remove from LB (admin-only content)
 LB_DIRS_TO_REMOVE := \
 	bin/install \
 	bin/redis \
 	bin/nginx/conf/codes \
-	domain/User \
-	domain/Device \
-	domain/Auth \
-	public/Controllers/Admin \
-	public/Controllers/Player \
-	public/Controllers/Reseller \
-	public/Views \
-	public/assets \
-	public/routes \
+	Domain/User \
+	Domain/Device \
+	Domain/Auth \
+	Public/Controllers/Admin \
+	Public/Controllers/Player \
+	Public/Controllers/Reseller \
+	Public/Views \
+	Public/assets \
+	Public/routes \
 	resources/langs \
 	resources/libs
 
 # Files to remove from LB
 LB_FILES_TO_REMOVE := \
 	bin/maxmind/GeoLite2-City.mmdb \
-	public/Controllers/Api/AdminApiController.php \
-	public/Controllers/Api/ResellerRestApiController.php \
+	Public/Controllers/Api/AdminApiController.php \
+	Public/Controllers/Api/ResellerRestApiController.php \
 	www/xplugin.php \
 	www/probe.php \
 	www/playlist.php \
@@ -62,53 +62,99 @@ LB_FILES_TO_REMOVE := \
 	www/admin/proxy_api.php \
 	www/admin/api.php \
 	config/rclone.conf \
-	cli/Commands/MigrateCommand.php \
-	cli/Commands/CacheHandlerCommand.php \
-	cli/Commands/ServerInstallCommand.php \
-	cli/Commands/LbInstallFlow.php \
-	cli/Commands/ProxyInstallFlow.php \
-	cli/CronJobs/RootMysqlCronJob.php \
-	cli/CronJobs/BackupsCronJob.php \
-	cli/CronJobs/CacheEngineCronJob.php \
-	cli/CronJobs/EpgCronJob.php \
-	cli/CronJobs/UpdateCronJob.php \
-	cli/CronJobs/ProvidersCronJob.php \
-	cli/CronJobs/SeriesCronJob.php \
-	domain/Epg/EPG.php \
+	Cli/Commands/MigrateCommand.php \
+	Cli/Commands/CacheHandlerCommand.php \
+	Cli/Commands/ServerInstallCommand.php \
+	Cli/Commands/LbInstallFlow.php \
+	Cli/Commands/ProxyInstallFlow.php \
+	Cli/CronJobs/RootMysqlCronJob.php \
+	Cli/CronJobs/BackupsCronJob.php \
+	Cli/CronJobs/CacheEngineCronJob.php \
+	Cli/CronJobs/EpgCronJob.php \
+	Cli/CronJobs/UpdateCronJob.php \
+	Cli/CronJobs/ProvidersCronJob.php \
+	Cli/CronJobs/SeriesCronJob.php \
+	Domain/Epg/EPG.php \
 	bin/nginx/conf/gzip.conf
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
+	verify_no_lfs_pointers \
 	delete_files_list lb_delete_files_list generate_deleted_files syntax_check \
-	phpstan phpstan-install phpstan-baseline
+	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
+	check-vendor-prod-only dev-tools
 
 # ─── Syntax check ───────────────────────────────────────────────
 syntax_check:
 	@bash ./tools/php_syntax_check.sh
 
-# ─── Static analysis (PHPStan) ──────────────────────────────────
-PHPSTAN := tools/phpstan/phpstan.phar
-PHPSTAN_VERSION := 2.1.17
+# ─── Dev tooling ────────────────────────────────────────────────
+# The committed src/vendor/ is PRODUCTION-ONLY (composer install --no-dev). The
+# dev tools below (PHPStan, PHP-CS-Fixer) are require-dev packages — install them
+# into src/vendor/ once with `make dev-tools` before running phpstan / cs. CI runs
+# the equivalent `composer install` step itself. They are never committed (the
+# committed vendor stays prod-only — see tools/ci/check-vendor-prod-only.sh).
+dev-tools:
+	@cd src && composer install --no-interaction
 
-# Download the PHPStan PHAR once (no Composer required).
-phpstan-install:
-	@if [ ! -f "$(PHPSTAN)" ]; then \
-		echo "==> Downloading PHPStan $(PHPSTAN_VERSION)"; \
-		curl -fSL "https://github.com/phpstan/phpstan/releases/download/$(PHPSTAN_VERSION)/phpstan.phar" -o "$(PHPSTAN)"; \
-		chmod +x "$(PHPSTAN)"; \
-	else \
-		echo "==> PHPStan already present: $(PHPSTAN)"; \
-	fi
+# ─── Static analysis (PHPStan) ──────────────────────────────────
+PHPSTAN := src/vendor/bin/phpstan
 
 # Run the analysis using phpstan.dist.neon.
-phpstan: phpstan-install
+phpstan:
+	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php "$(PHPSTAN)" analyse --memory-limit=2G
 
 # Freeze all current errors into phpstan-baseline.neon (run after a level bump).
-phpstan-baseline: phpstan-install
+phpstan-baseline:
+	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php "$(PHPSTAN)" analyse --memory-limit=2G --generate-baseline=phpstan-baseline.neon
+
+# ─── Code style (PHP-CS-Fixer) ──────────────────────────────────
+# Narrow ruleset — import/namespace hygiene only (no @PSR12 reformat). See
+# .php-cs-fixer.dist.php.
+CS_FIXER := src/vendor/bin/php-cs-fixer
+
+# short_open_tag=1 so the fixer analyses `<?`/`<?=` view templates as PHP (prod
+# runs with short tags on). Without it no_unused_imports cannot see class usage
+# inside short-tag blocks and would wrongly strip still-needed imports.
+CS_FLAGS := -d short_open_tag=1
+
+# Check only — fails (exit 8) on any diff. Used in CI.
+cs:
+	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
+	@php $(CS_FLAGS) "$(CS_FIXER)" fix --dry-run --diff --config=.php-cs-fixer.dist.php
+
+# Apply fixes in place.
+cs-fix:
+	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
+	@php $(CS_FLAGS) "$(CS_FIXER)" fix --config=.php-cs-fixer.dist.php
+
+# ─── PSR-4 regression gates ─────────────────────────────────────
+# Helper: print a variable's resolved value (consumed by CI gate scripts).
+print-%:
+	@echo '$($*)'
+
+# Procedural/view files must import every migrated class they use with a
+# top-of-file `use` (PHP `use` is positional outside the top scope).
+check-procedural-use:
+	@php -d short_open_tag=1 tools/ci/check_procedural_use.php
+
+# LB archive must never contain privileged code (security blocker 1).
+verify-lb-archive:
+	@bash tools/ci/verify-lb-archive.sh
+
+# Assert the committed src/vendor/ is production-only (no require-dev packages).
+# Dev tools (PHPStan, PHP-CS-Fixer) are installed locally via `composer install`
+# and must never be committed. Checks git-tracked files, so it is correct even
+# in a CI job that has already run `composer install`.
+check-vendor-prod-only:
+	@bash tools/ci/check-vendor-prod-only.sh
+
+# Run every fast PSR-4 gate.
+gates: check-procedural-use verify-lb-archive check-vendor-prod-only
 
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
@@ -144,10 +190,10 @@ generate_deleted_files:
 # ─── MAIN targets ────────────────────────────────────────────────
 # Single archive: used for both clean install and update.
 # The update script (src/update) filters out excluded dirs at runtime.
-main: main_copy_files delete_files_list set_permissions create_archive main_archive_move main_install_archive clean
+main: main_copy_files delete_files_list set_permissions verify_no_lfs_pointers create_archive main_archive_move main_install_archive clean
 
 # ─── LoadBalancer targets ────────────────────────────────────────
-lb: lb_copy_files lb_delete_files_list set_permissions create_archive lb_archive_move clean
+lb: lb_copy_files lb_delete_files_list set_permissions verify_no_lfs_pointers create_archive lb_archive_move clean
 
 lb_copy_files:
 	@echo "==> [LB] Creating distribution directory: $(DIST_DIR)"
@@ -298,6 +344,21 @@ set_permissions:
 	# Sensitive config files
 	@chmod 0640 $(TEMP_DIR)/config/modules.php 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/config/rclone.conf 2>/dev/null || true
+
+# Fail the build if any staged file is still a Git LFS pointer instead of the
+# real binary. This happens when the checkout did not materialise LFS objects
+# (e.g. `actions/checkout` without `lfs: true`), which would otherwise ship
+# 130-byte text stubs in place of ffmpeg, redis, yt-dlp, etc.
+verify_no_lfs_pointers:
+	@echo "==> Verifying no Git LFS pointer files leaked into $(TEMP_DIR)"
+	@pointers=$$(grep -rlI '^version https://git-lfs.github.com/spec/v1' "$(TEMP_DIR)" 2>/dev/null || true); \
+	if [ -n "$$pointers" ]; then \
+		echo "ERROR: Git LFS pointer files found in the staged tree:"; \
+		echo "$$pointers" | sed 's|^$(TEMP_DIR)/|   - |'; \
+		echo "The checkout did not fetch LFS objects. Run 'git lfs pull' or set 'lfs: true' on the CI checkout."; \
+		exit 1; \
+	fi; \
+	echo "OK: no LFS pointers staged"
 
 create_archive:
 	@echo "==> Creating final archive: ${TEMP_ARCHIVE_NAME}"

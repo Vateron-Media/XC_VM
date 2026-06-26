@@ -72,3 +72,11 @@ XDEBUG_MODE=coverage /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c test
 ## Заметка по безопасности
 
 Не храните `phpunit.phar` в git-репозитории. Оставляйте его локально (`tools/.bin`) и обновляйте отдельно.
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `tools/.bin/phpunit.phar` | Запиненный бинарь PHPUnit |
+| `tests/phpunit.xml.dist` | Конфигурация PHPUnit |
+| `tests/bootstrap.php` | Бутстрап тестов (автозагрузчик Composer + константы) |

@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\Encryption;
 use PHPUnit\Framework\TestCase;
 
 /**

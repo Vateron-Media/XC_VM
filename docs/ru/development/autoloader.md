@@ -1,144 +1,111 @@
-# Автозагрузчик — Регистрация классов
+# Автозагрузка (PSR-4)
 
-XC_VM использует собственный автозагрузчик (`src/autoload.php`) вместо Composer.
-Классы обнаруживаются **автоматически** — ручная регистрация не нужна.
+XC_VM загружает классы стандартным автозагрузчиком **Composer PSR-4**; namespace кодирует путь к файлу, поэтому разрешение — это прямой `file_exists` без сканирования и без кэша.
 
 ---
 
-## Как это работает
+## Обзор
 
+Каждый класс первого уровня живёт под корневым namespace `XcVm\`, отображённым на `src/`:
+
+```text
+XcVm\Core\Auth\Authenticator   ->  src/Core/Auth/Authenticator.php
+XcVm\Domain\Stream\StreamService ->  src/Domain/Stream/StreamService.php
+XcVm\Public\Controllers\Admin\UserController -> src/Public/Controllers/Admin/UserController.php
 ```
-Запрос → подключается autoload.php
-              │
-              ├── Файл кэша существует?
-              │       ДА  → загрузить igbinary кэш → O(1) поиск
-              │       НЕТ → warmCache(): сканировать все директории через token_get_all()
-              │                          → построить карту ClassName → filePath
-              │                          → сохранить в tmp/cache/autoload_map
-              │
-              └── PHP запрашивает класс
-                      │
-                      ├── 1. Явная карта (addClass())
-                      ├── 2. Кэш (файловый или из предыдущего поиска)
-                      └── 3. Живой поиск по директориям (fallback, кэшируется)
+
+Маппинг объявлен в `src/composer.json`:
+
+```json
+"autoload": {
+    "psr-4": {
+        "XcVm\\": "./",
+        "M3uParser\\": "Core/Parsing/M3uParser/src/",
+        "Chrisyue\\PhpM3u8\\": "Core/Parsing/PhpM3u8/src/"
+    }
+}
 ```
+
+`src/vendor/` (автозагрузчик Composer + продакшен-зависимости) закоммичен и
+поставляется как есть — на пути деплоя нет Composer и `composer install` не
+запускается. **Кэша карты классов нет** (без `optimize-autoloader`): промах по
+классу — это обычный поиск по пути, а не пересканирование каталогов.
 
 ## Добавление нового класса
 
-**Просто создайте файл.** Это всё.
-
-Поместите PHP-файл в любую зарегистрированную директорию (или её поддиректорию):
-
-| Директория | Назначение |
-|-----------|---------|
-| `src/core/` | Ядро фреймворка (Database, Cache, Auth, Http, Process и т.д.) |
-| `src/domain/` | Бизнес-логика (Services, Repositories) |
-| `src/infrastructure/` | Внешние адаптеры (DatabaseFactory, CacheReader, Redis) |
-| `src/streaming/` | Стриминг-подсистема (Auth, Delivery, Codec, Health) |
-| `src/modules/` | Опциональные модули (Plex, Watch, TMDB, Ministra и т.д.) |
-| `src/public/` | Контроллеры и Views |
-
-### Пример
+Создайте файл по пути, на который отображается его namespace — и всё; Composer разрешит его по требованию:
 
 ```php
-// src/domain/Billing/InvoiceService.php
+// src/Domain/Billing/InvoiceService.php
+namespace XcVm\Domain\Billing;
+
 class InvoiceService {
-    public static function generate($userId) { ... }
+    public static function generate(int $userId): string { /* ... */ }
 }
 ```
 
-После создания файла **удалите кэш**, чтобы автозагрузчик обнаружил новые классы:
-
-```bash
-rm -f /home/xc_vm/tmp/cache/autoload_map
-```
-
-При следующем запросе `warmCache()` запустится автоматически, найдёт `InvoiceService` и закэширует.
-
-## Инвалидация кэша
-
-Файл кэша `tmp/cache/autoload_map` — бинарный файл (формат igbinary).
-Его нужно удалять когда:
-
-- Добавлен новый файл с классом
-- Файл с классом переименован или перемещён
-- Файл с классом удалён
-
-```bash
-# Удалить вручную
-rm -f /home/xc_vm/tmp/cache/autoload_map
-
-# Или через PHP
-XC_Autoloader::clearCache();
-```
-
-> **Примечание:** Если запрошен класс, которого нет в кэше, автозагрузчик делает живой поиск по директориям и кэширует результат. Поэтому кэш нужно сбрасывать только при перемещении/переименовании/удалении — новые классы будут найдены через fallback.
-
-## Ручная регистрация (редко)
-
-Для особых случаев когда файл содержит несколько классов или имя файла не совпадает с именем класса:
+Ссылайтесь на него из другого namespaced-кода через `use` или по FQCN:
 
 ```php
-XC_Autoloader::addClass('DropboxClient', '/home/xc_vm/includes/libs/Dropbox.php');
-XC_Autoloader::addClass('DropboxException', '/home/xc_vm/includes/libs/Dropbox.php');
+use XcVm\Domain\Billing\InvoiceService;
 ```
 
-Это нужно в основном для legacy-библиотек с несколькими классами в одном файле (например, `iptables.php`, `m3u.php`).
-
-## Добавление новой директории
-
-Отредактируйте `registerDirectories()` в `src/autoload.php`:
-
-```php
-private static function registerDirectories() {
-    $base = self::$basePath;
-
-    self::addDirectory($base . 'core');
-    self::addDirectory($base . 'domain');
-    self::addDirectory($base . 'infrastructure');
-    self::addDirectory($base . 'streaming');
-    self::addDirectory($base . 'modules');
-    self::addDirectory($base . 'public');
-
-    // Добавьте новую директорию:
-    self::addDirectory($base . 'my_new_dir');
-}
-```
-
-Затем удалите кэш.
+Кэш чистить не нужно, реестр править не нужно. Новый под-namespace (например,
+`XcVm\Domain\Billing`) работает сразу, потому что отображается прямо на каталог.
 
 ## Правила именования
 
 | Правило | Пример |
-|---------|--------|
+| --- | --- |
 | Имя файла **должно** совпадать с именем класса | `InvoiceService.php` → `class InvoiceService` |
-| Один класс на файл (рекомендуется) | Файлы с несколькими классами требуют `addClass()` |
-| PascalCase | `StreamService`, `DatabaseHandler` |
-| Без namespace | `class StreamService { }` — без ключевого слова `namespace` |
-| Без `declare(strict_types=1)` | Конвенция проекта |
+| Один класс на файл | PSR-4 разрешает один класс на путь; multi-class файлы разделять |
+| Namespace **должен** совпадать с путём каталога (регистрозависимо) | `src/Domain/Billing/` → `namespace XcVm\Domain\Billing;` |
+| PascalCase для классов и каталогов | `StreamService`, `DatabaseHandler`, `Core/Auth/` |
+| Соглашение проекта: без `declare(strict_types=1)` | — |
 
-## Дублирование имён классов
+Поскольку namespace несёт расположение, одинаковые короткие имена в разных
+namespace больше не конфликтуют — `XcVm\Public\Controllers\Admin\PlexController` и
+`XcVm\Module\Plex\PlexController` различны.
 
-Если два файла определяют одинаковое имя класса, **побеждает первый найденный** по порядку сканирования директорий. Это хрупко — избегайте дубликатов. Используйте префиксы:
+## Процедурные и сторонние файлы
 
+Некоторые файлы намеренно **не** в namespace и подключаются явным `require`, а не
+автозагрузчиком:
+
+- процедурные точки входа, view и bootstrap-склейка (`Public/index.php`,
+  `Public/Views/**`, `Infrastructure/Bootstrap/*.php`);
+- глобальные константы и функции (`Core/Config/*`, обработчик ошибок);
+- ioncube-класс `XC_VM` и встроенный `Modules/tmdb/lib/*`.
+
+Вендорные пакеты `M3uParser` и `Chrisyue\PhpM3u8` имеют собственные PSR-4-префиксы
+(выше) и автозагружаются штатно.
+
+## Модули
+
+Классы модулей используют namespace `XcVm\Module\<Name>\…`, но **не**
+регистрируются в `composer.json` (slug-каталоги модулей/маркетплейса — `plex`,
+`watch-d2bho` — не укладываются в одно PSR-4-правило). Их разрешает собственный
+PSR-4-резолвер `ModuleLoader`: снимает базовый namespace модуля и отображает
+остаток на под-путь внутри каталога модуля. См. [Систему модулей](modules.md).
+
+## Инструменты разработки
+
+Закоммиченный `vendor/` — только продакшен. PHPStan и PHP-CS-Fixer — это
+`require-dev`-пакеты; ставьте их локально командой:
+
+```bash
+make dev-tools   # = cd src && composer install
 ```
-✗  public/Controllers/Admin/PlexController.php    ← конфликт
-✗  modules/plex/PlexController.php                ← конфликт
 
-✓  public/Controllers/Admin/AdminPlexController.php   ← уникально
-✓  modules/plex/PlexController.php                    ← уникально
-```
+Они никогда не коммитятся (CI-гейт требует прод-only закоммиченный vendor). См.
+[Рабочий процесс разработки](../guides/dev-workflow.md).
 
-## Отладка
+## Связанные файлы
 
-```php
-// Все зарегистрированные директории
-print_r(XC_Autoloader::getDirectories());
-
-// Явная карта классов
-print_r(XC_Autoloader::getClassMap());
-
-// Принудительный полный пересканирование
-XC_Autoloader::clearCache();
-XC_Autoloader::warmCache();
-```
+| Файл | Роль |
+| --- | --- |
+| `src/composer.json` | Карта PSR-4-префиксов + зависимости |
+| `src/composer.lock` | закоммиченный lock для воспроизводимого `composer install` |
+| `src/vendor/` | закоммиченный автозагрузчик Composer + прод-зависимости |
+| `src/bootstrap.php` | определяет `MAIN_HOME`, подключает `vendor/autoload.php` |
+| `src/Core/Module/ModuleLoader.php` | PSR-4-резолвер классов модулей |

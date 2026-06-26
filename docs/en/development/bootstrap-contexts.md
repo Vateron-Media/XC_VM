@@ -26,7 +26,7 @@ No database connection.
 
 Includes:
 
-- autoloader (`autoload.php`)
+- Composer PSR-4 autoloader (`vendor/autoload.php`)
 - path constants (`MAIN_HOME`, `INCLUDES_PATH`, ...)
 - logger (`Logger::init()`)
 - error helpers (`generateError()`, `generate404()`)
@@ -160,3 +160,11 @@ XC_Bootstrap::isCli(): bool
 XC_Bootstrap::getDatabase(): ?Database
 XC_Bootstrap::getContainer(): ServiceContainer
 ```
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/bootstrap.php` | Defines MAIN_HOME, requires the Composer autoloader, boots a context |
+| `src/Core/Enum/BootContext.php` | Boot context enum |
+| `src/Core/Init/LegacyInitializer.php` | Per-context legacy initialization |

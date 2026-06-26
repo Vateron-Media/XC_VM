@@ -89,3 +89,10 @@ php -r "var_dump(parse_ini_file('src/resources/langs/xx.ini', false, INI_SCANNER
 3. Отправьте Pull Request с новым `.ini` файлом.
 
 Убедитесь, что все ключи из `en.ini` присутствуют и переведены.
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/Core/Localization/Translator.php` | Поиск переводов |
+| `src/resources/langs/` | Файлы языков |

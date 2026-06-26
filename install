@@ -990,6 +990,37 @@ def run_command(cmd, shell=True, capture_output=False):
         return 1, None, str(e)
 
 
+def generate_self_signed_cert():
+    """Generate a fresh, per-install self-signed TLS certificate for nginx.
+
+    The archive ships a placeholder bin/nginx/conf/server.{crt,key}; reusing it
+    would mean every install shares the same private key. Here we overwrite it
+    with a freshly generated unique key/cert BEFORE nginx ever starts. Certbot
+    later replaces this with a real Let's Encrypt certificate (CertbotCronJob),
+    but until then nginx serves this self-signed pair.
+    """
+    conf_dir = "/home/xc_vm/bin/nginx/conf"
+    key_path = conf_dir + "/server.key"
+    crt_path = conf_dir + "/server.crt"
+    common_name = socket.gethostname() or "xc_vm"
+
+    printc("Generating a unique self-signed TLS certificate...", col.OKBLUE)
+    rc, _, err = run_command(
+        "openssl req -x509 -newkey rsa:2048 -nodes "
+        '-keyout "' + key_path + '" -out "' + crt_path + '" '
+        '-days 3650 -subj "/CN=' + common_name + '"',
+        capture_output=True,
+    )
+    if rc != 0 or not os.path.exists(key_path) or not os.path.exists(crt_path):
+        printc("Failed to generate self-signed certificate: " + str(err), col.FAIL)
+        sys.exit(1)
+
+    run_command('chown xc_vm:xc_vm "' + key_path + '" "' + crt_path + '"')
+    run_command('chmod 640 "' + key_path + '"')
+    run_command('chmod 644 "' + crt_path + '"')
+    printc("Self-signed certificate generated.", col.OKGREEN)
+
+
 def _safe_tar_members(tar, dest):
     """Filter tar members to prevent path traversal attacks (CVE-2007-4559)"""
     dest = os.path.realpath(dest)
@@ -2011,6 +2042,10 @@ if __name__ == "__main__":
         sys.exit(1)
     else:
         printc("XC_VM extracted successfully", col.OKGREEN)
+
+    # Replace the shipped placeholder cert with a unique per-install one
+    # (before nginx is started further below).
+    generate_self_signed_cert()
 
     # Install distribution-specific binaries for supported distros
     dist_id = dist_info["id"]

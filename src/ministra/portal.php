@@ -1,5 +1,15 @@
 <?php
 
+use XcVm\Core\GeoIP\GeoIPService;
+use XcVm\Core\Util\Encryption;
+use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Util\TimeUtils;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\StreamSorter;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Cache\CacheReader;
+use XcVm\Module\Ministra\PortalHandler;
+
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
@@ -7,13 +17,16 @@ header('Pragma: no-cache');
 $rReqType = (!empty($_REQUEST['type']) ? $_REQUEST['type'] : null);
 $rReqAction = (!empty($_REQUEST['action']) ? $_REQUEST['action'] : null);
 
-require __DIR__ . '/../modules/ministra/PortalHandler.php';
+require __DIR__ . '/../Modules/ministra/PortalHandler.php';
 
 // Phase 1: Pre-init stub responses (no DB needed)
 PortalHandler::handlePreInit($rReqType, $rReqAction);
 
 register_shutdown_function('shutdown');
-require_once dirname(__DIR__) . '/autoload.php';
+if (!defined('MAIN_HOME')) {
+	define('MAIN_HOME', dirname(__DIR__) . '/');
+}
+require_once dirname(__DIR__) . '/vendor/autoload.php';
 require_once dirname(__DIR__) . '/ministra/MinistraBootstrap.php';
 MinistraBootstrap::boot();
 

@@ -1,6 +1,18 @@
 <?php
 
 declare(strict_types=1);
+use XcVm\Core\Exception\Module\ModuleNotFoundException;
+use XcVm\Core\Exception\Module\ModuleManifestException;
+use XcVm\Core\Exception\Module\ModuleLoadException;
+use XcVm\Core\Exception\Module\ModuleCycleException;
+use XcVm\Core\Exception\Module\ModuleException;
+use XcVm\Core\Exception\Container\ServiceCreationException;
+use XcVm\Core\Exception\Container\CircularDependencyException;
+use XcVm\Core\Exception\Container\ContainerException;
+use XcVm\Core\Exception\XcVmException;
+use XcVm\Core\Container\Psr\NotFoundException;
+use XcVm\Core\Container\Psr\NotFoundExceptionInterface;
+use XcVm\Core\Container\Psr\ContainerExceptionInterface;
 
 use PHPUnit\Framework\TestCase;
 

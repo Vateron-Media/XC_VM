@@ -1,20 +1,20 @@
-# 📺 Get Playlist
+# Get Playlist
 
 This API provides authentication and playlist generation features for XC_VM. Clients can authenticate using a username/password or token, after which a personalized playlist is generated.
 
 ---
 
-## 📂 File Location
+## File Location
 
 The playlist API is handled by `PlaylistApiController`:
 
 ```text
-src/public/Controllers/Api/PlaylistApiController.php
+src/Public/Controllers/Api/PlaylistApiController.php
 ```
 
 ---
 
-## 🔑 Authentication
+## Authentication
 
 The API requires authentication either via username and password or via token.
 This ensures secure access to the content.
@@ -27,7 +27,7 @@ http://<your-domain>:80/playlist
 
 ---
 
-## 🚀 Endpoints
+## Endpoints
 
 ### 1. Authentication and Playlist Generation
 
@@ -67,7 +67,7 @@ curl -X GET "http://<your-domain>:80/playlist/token/type&output=hls&key=live"
 
 ---
 
-## ❌ Error Codes
+## Error Codes
 
 If an error occurs, the API returns the corresponding error codes for easier troubleshooting.
 
@@ -93,7 +93,7 @@ If an error occurs, the API returns the corresponding error codes for easier tro
 
 ---
 
-## 🧾 Notes
+## Notes
 
 - **Query Parameters:** Make sure all parameters are provided correctly to avoid authentication errors.
 - **Restrictions:** The API applies filters by user agent, IP address, and country to enhance security.
