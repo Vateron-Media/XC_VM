@@ -2,7 +2,7 @@
 
 XC_VM использует константы и флаги из настроек для управления поведением системы.
 
-Константы приложения хранятся в `src/core/Config/AppConfig.php`.
+Константы приложения хранятся в `src/Core/Config/AppConfig.php`.
 
 ---
 
@@ -81,7 +81,7 @@ define('MY_FEATURE_FLAG', false);
 
 | Файл                              | Назначение                              |
 | --------------------------------- | --------------------------------------- |
-| `src/core/Config/AppConfig.php`   | Статические флаги и константы           |
-| `src/core/Http/RequestGuard.php`  | Загружает `$rSettings` из кеша          |
-| `src/core/Error/ErrorHandler.php` | Использует `debug_show_errors`          |
-| `src/core/Logging/Logger.php`     | Использует `PHP_ERRORS`                 |
+| `src/Core/Config/AppConfig.php`   | Статические флаги и константы           |
+| `src/Core/Http/RequestGuard.php`  | Загружает `$rSettings` из кеша          |
+| `src/Core/Error/ErrorHandler.php` | Использует `debug_show_errors`          |
+| `src/Core/Logging/Logger.php`     | Использует `PHP_ERRORS`                 |

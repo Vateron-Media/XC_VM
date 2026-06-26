@@ -36,7 +36,7 @@
 
 ## Реестр кодов ошибок
 
-Все коды объявляются в `src/core/Error/ErrorCodes.php` как глобальный массив `$rErrorCodes`.
+Все коды объявляются в `src/Core/Error/ErrorCodes.php` как глобальный массив `$rErrorCodes`.
 
 Формат кода:
 
@@ -121,7 +121,7 @@
 
 ## Обработчики ошибок
 
-Определены в `src/core/Error/ErrorHandler.php`. Это обычные функции (а не методы класса), подключаемые рано в bootstrap.
+Определены в `src/Core/Error/ErrorHandler.php`. Это обычные функции (а не методы класса), подключаемые рано в bootstrap.
 
 ### `generateError(string $rError, bool $rKill = true, ?int $rCode = null)`
 
@@ -167,7 +167,7 @@ generate404(false);  // 404, выполнение продолжается
 
 ## Подсистема Logger
 
-Определена в `src/core/Logging/Logger.php`. Класс `final`, регистрирующий три глобальных PHP-обработчика для перехвата всех runtime-ошибок и записи их в файл.
+Определена в `src/Core/Logging/Logger.php`. Класс `final`, регистрирующий три глобальных PHP-обработчика для перехвата всех runtime-ошибок и записи их в файл.
 
 ### Инициализация
 
@@ -190,7 +190,7 @@ Logger инициализируется в двух местах в зависи
 | Путь входа | Файл | Как |
 | --- | --- | --- |
 | Bootstrap (все контексты) | `src/bootstrap.php` | `XC_Bootstrap::loadConstants()` вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` |
-| Стриминговые endpoint'ы | `src/core/Http/RequestGuard.php` | Загружает настройки из файлового кэша, определяет `PHP_ERRORS`, затем вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` |
+| Стриминговые endpoint'ы | `src/Core/Http/RequestGuard.php` | Загружает настройки из файлового кэша, определяет `PHP_ERRORS`, затем вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')` |
 
 В обоих случаях `PHP_ERRORS` отражает настройку `debug_show_errors` (по умолчанию `false`, когда настройки недоступны).
 
@@ -225,7 +225,7 @@ Logger инициализируется в двух местах в зависи
 {
     "type":        "WARNING",
     "log_message": "Undefined variable $foo",
-    "file":        "/home/xc_vm/domain/Stream/StreamService.php",
+    "file":        "/home/xc_vm/Domain/Stream/StreamService.php",
     "line":        142,
     "log_extra":   "#0 /home/xc_vm/...(line): function()\n#1 ...",
     "time":        1716220800,
@@ -263,9 +263,9 @@ Logger инициализируется в двух местах в зависи
 Logger пишет в `error_log.log` на диск. Отдельная подсистема читает этот файл и сохраняет записи в таблицу `panel_logs`:
 
 1. **Logger** пишет base64-encoded JSON-строки в `error_log.log`
-2. **FileLogger** (`src/core/Logging/FileLogger.php`) предоставляет вторичный логирующий интерфейс для кода приложения (ошибки PDO, ошибки EPG и т.д.), который пишет в тот же файл в том же формате
+2. **FileLogger** (`src/Core/Logging/FileLogger.php`) предоставляет вторичный логирующий интерфейс для кода приложения (ошибки PDO, ошибки EPG и т.д.), который пишет в тот же файл в том же формате
 3. Записи импортируются в таблицу `panel_logs`
-4. **DiagnosticsService** (`src/core/Diagnostics/DiagnosticsService.php`) читает из `panel_logs` для:
+4. **DiagnosticsService** (`src/Core/Diagnostics/DiagnosticsService.php`) читает из `panel_logs` для:
    - `downloadPanelLogs()` — получает до 1000 свежих не-EPG ошибок, затем truncate'ит таблицу
    - `submitPanelLogs()` — отправляет логи на центральный API-сервер для анализа
 5. Админ-панель показывает эти логи в **Management > Logs > Panel Errors**
@@ -281,7 +281,7 @@ Logger пишет в `error_log.log` на диск. Отдельная подс�
 
 ## Другие логгеры
 
-Директория `src/core/Logging/` содержит дополнительные специализированные логгеры:
+Директория `src/Core/Logging/` содержит дополнительные специализированные логгеры:
 
 | Класс | Файл | Назначение |
 | --- | --- | --- |
@@ -300,11 +300,11 @@ Logger пишет в `error_log.log` на диск. Отдельная подс�
 
 | Класс исключения | Базовый класс | Расположение |
 | --- | --- | --- |
-| `DropboxException` | `Exception` | `src/core/Storage/DropboxClient.php` |
-| `M3uParser\Exception` | `\Exception` | `src/core/Parsing/M3uParser/src/Exception.php` |
-| `DataBuildingException` | `\RuntimeException` | `src/core/Parsing/PhpM3u8/src/Parser/DataBuildingException.php` |
-| `DefinitionException` | `\RuntimeException` | `src/core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
-| `DumpingException` | `\RuntimeException` | `src/core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
+| `DropboxException` | `Exception` | `src/Core/Storage/DropboxClient.php` |
+| `M3uParser\Exception` | `\Exception` | `src/Core/Parsing/M3uParser/src/Exception.php` |
+| `DataBuildingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Parser/DataBuildingException.php` |
+| `DefinitionException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
+| `DumpingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
 
 Большая часть кода приложения использует выбросы обобщённого `Exception` или полагается на встроенную систему ошибок PHP. Exception-обработчик Logger принимает любой `Throwable`.
 
@@ -333,12 +333,12 @@ Logger пишет в `error_log.log` на диск. Отдельная подс�
 
 Инфраструктура обработки ошибок загружается рано в последовательности загрузки:
 
-1. Выполняется `autoload.php`, определяющий `MAIN_HOME`
+1. `bootstrap.php` определяет `MAIN_HOME` и регистрирует Composer-автозагрузчик
 2. `XC_Bootstrap::loadConstants()` загружает (в порядке):
-   - `core/Error/ErrorCodes.php` — заполняет `$rErrorCodes`
-   - `core/Error/ErrorHandler.php` — определяет `generateError()` и `generate404()`
+   - `Core/Error/ErrorCodes.php` — заполняет `$rErrorCodes`
+   - `Core/Error/ErrorHandler.php` — определяет `generateError()` и `generate404()`
    - Файлы путей и конфигурации
-   - `core/Logging/Logger.php` — определение класса
+   - `Core/Logging/Logger.php` — определение класса
 3. Вызывается `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`, регистрирующий три глобальных обработчика
 4. С этого момента все PHP-ошибки, необработанные исключения и фатальные сбои перехватываются
 
@@ -348,7 +348,7 @@ Logger пишет в `error_log.log` на диск. Отдельная подс�
 
 ## Добавление нового кода ошибки
 
-1. Добавьте новый ключ в `src/core/Error/ErrorCodes.php`:
+1. Добавьте новый ключ в `src/Core/Error/ErrorCodes.php`:
 
 ```php
 'MY_NEW_ERROR' => 'Human-readable description.',
@@ -368,13 +368,13 @@ generateError('MY_NEW_ERROR');
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Error/ErrorCodes.php` | Централизованная карта кодов ошибок (`$rErrorCodes`) |
-| `src/core/Error/ErrorHandler.php` | Функции `generateError()` и `generate404()` |
-| `src/core/Logging/Logger.php` | Глобальные обработчики PHP-ошибок, исключений и фатальных |
-| `src/core/Logging/LoggerInterface.php` | Интерфейс контракта логирования |
-| `src/core/Logging/FileLogger.php` | Файловое логирование уровня приложения (PDO, EPG и т.д.) |
-| `src/core/Logging/DatabaseLogger.php` | Логирование событий клиентских стриминговых запросов |
-| `src/core/Logging/UpdateLogger.php` | Логирование операций обновления системы |
-| `src/core/Http/RequestGuard.php` | Стриминговый путь: защита от флуда, проверка хоста, инициализация Logger |
-| `src/core/Diagnostics/DiagnosticsService.php` | Читает таблицу `panel_logs` для отображения в админке и отправки в API |
+| `src/Core/Error/ErrorCodes.php` | Централизованная карта кодов ошибок (`$rErrorCodes`) |
+| `src/Core/Error/ErrorHandler.php` | Функции `generateError()` и `generate404()` |
+| `src/Core/Logging/Logger.php` | Глобальные обработчики PHP-ошибок, исключений и фатальных |
+| `src/Core/Logging/LoggerInterface.php` | Интерфейс контракта логирования |
+| `src/Core/Logging/FileLogger.php` | Файловое логирование уровня приложения (PDO, EPG и т.д.) |
+| `src/Core/Logging/DatabaseLogger.php` | Логирование событий клиентских стриминговых запросов |
+| `src/Core/Logging/UpdateLogger.php` | Логирование операций обновления системы |
+| `src/Core/Http/RequestGuard.php` | Стриминговый путь: защита от флуда, проверка хоста, инициализация Logger |
+| `src/Core/Diagnostics/DiagnosticsService.php` | Читает таблицу `panel_logs` для отображения в админке и отправки в API |
 | `src/bootstrap.php` | Подключает слой ошибок и Logger во всех контекстах bootstrap |

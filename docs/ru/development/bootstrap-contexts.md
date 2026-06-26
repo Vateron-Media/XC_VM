@@ -25,7 +25,7 @@
 
 **Включает:**
 
-- Автозагрузчик классов (`autoload.php`)
+- Composer PSR-4 автозагрузчик (`vendor/autoload.php`)
 - Константы путей (`MAIN_HOME`, `INCLUDES_PATH`, `CONFIG_PATH`, …)
 - Logger (`Logger::init()`)
 - Функции ошибок (`generateError()`, `generate404()`)
@@ -172,3 +172,11 @@ XC_Bootstrap::isCli(): bool               // работает ли в CLI
 XC_Bootstrap::getDatabase(): ?Database
 XC_Bootstrap::getContainer(): ServiceContainer
 ```
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/bootstrap.php` | Определяет MAIN_HOME, подключает автозагрузчик Composer, бутит контекст |
+| `src/Core/Enum/BootContext.php` | Enum контекста загрузки |
+| `src/Core/Init/LegacyInitializer.php` | Инициализация под каждый контекст |

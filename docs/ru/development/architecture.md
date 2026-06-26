@@ -14,11 +14,11 @@
 
 | Путь | Роль |
 | ---- | ---- |
-| `src/core/` | Инфраструктурные примитивы: DI-контейнер, события, HTTP, конфиг, auth, логирование |
-| `src/domain/` | Бизнес-контексты: Stream, VOD, Line, User, Server, Security и др. |
-| `src/modules/` | Опциональный слой расширений — загружается `ModuleLoader` |
-| `src/public/` | Front controller, router, controllers, views, assets |
-| `src/cli/` | Консольные команды и точки входа для cron |
+| `src/Core/` | Инфраструктурные примитивы: DI-контейнер, события, HTTP, конфиг, auth, логирование |
+| `src/Domain/` | Бизнес-контексты: Stream, VOD, Line, User, Server, Security и др. |
+| `src/Modules/` | Опциональный слой расширений — загружается `ModuleLoader` |
+| `src/Public/` | Front controller, router, controllers, views, assets |
+| `src/Cli/` | Консольные команды и точки входа для cron |
 | `src/ministra/` | Stalker Portal — изолированная подсистема (`BoundaryInterface`) |
 
 ---
@@ -28,7 +28,7 @@
 Зависимости направлены внутрь — модули могут использовать core и domain, но не наоборот.
 
 ```
-public/index.php
+Public/index.php
     └── XC_Bootstrap::boot(BootContext::ADMIN)
             └── ServiceContainer (DI)
                     ├── EventDispatcher (PSR-14)
@@ -43,11 +43,11 @@ Domain-классы получают базу данных через инъек
 
 ## Система модулей
 
-Модули — изолированные директории в `src/modules/` с манифестом `module.json`
+Модули — изолированные директории в `src/Modules/` с манифестом `module.json`
 и классом, расширяющим `BaseModule`. Полный справочник: [Система модулей](modules.md).
 
 ```
-src/modules/my-module/
+src/Modules/my-module/
 ├── module.json           # метаданные
 ├── MyModuleModule.php    # extends BaseModule, namespace XcVm\Module\MyModule
 └── ...
@@ -99,3 +99,15 @@ src/modules/my-module/
 3. Любой модуль можно отключить через `config/modules.php` без изменений ядра.
 4. Защищённые сервисы (`db`, `settings`, `config`, `auth`) нельзя декорировать.
 5. EN и RU документация обновляются в одном коммите.
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/Core/` | Примитивы фреймворка (DI, события, HTTP, конфиг, auth, логирование) |
+| `src/Domain/` | Бизнес-контексты (Stream, VOD, Line, User, Server, Security) |
+| `src/Infrastructure/` | Внешние адаптеры (DatabaseFactory, CacheReader, Redis) |
+| `src/Streaming/` | Стриминг-подсистема |
+| `src/Modules/` | Опциональные модули (загружаются ModuleLoader) |
+| `src/Public/` | Front controller, контроллеры, view |
+| `src/Cli/` | Консольные команды и cron-задачи |

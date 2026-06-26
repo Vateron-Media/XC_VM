@@ -1,17 +1,17 @@
-# ❓ FAQ - Frequently Asked Questions
+# FAQ - Frequently Asked Questions
 
 Here you will find answers to the most common questions and issues when working with XC_VM.
 
 ---
 
-## ⚙️ Stream Issues
+## Stream Issues
 
 <details>
 <summary><b>❌ My stream doesn’t start on MAIN or LB</b></summary>
 
 ---
 
-### 🔍 Diagnostics
+### Diagnostics
 
 Connect to your server console and run the following command:
 
@@ -23,13 +23,13 @@ sudo -u xc_vm /home/xc_vm/console.php monitor 291
 
 ---
 
-### 📄 What the command does
+### What the command does
 
 The **monitor** command tries to start the stream manually and displays an error if it fails.
 
 ---
 
-### ⚠️ Possible causes
+### Possible causes
 
 #### 1️⃣ Missing system libraries
 
@@ -57,7 +57,7 @@ If the error is of another type — send its output so I can help diagnose it.
 
 ---
 
-### 🧾 Summary
+### Summary
 
 1. Run the diagnostic command.
 2. Check for any errors.
@@ -90,7 +90,7 @@ If this causes issues for legitimate users (e.g., mobile networks frequently rot
 
 ---
 
-## 🔐 Login & Access Issues
+## Login & Access Issues
 
 <details>
 <summary><b>❌ I'm locked out — IP keeps getting blocked</b></summary>
@@ -138,7 +138,7 @@ sudo /home/xc_vm/console.php tools rescue
 
 ---
 
-## 🗄 Database & Configuration
+## Database & Configuration
 
 <details>
 <summary><b>❌ "Couldn't connect to database" on startup</b></summary>
@@ -186,7 +186,7 @@ See [Database Migrations](en-us/development/cli-tools.md#database-migrations) fo
 
 ---
 
-## 🌐 SSL & Nginx
+## SSL & Nginx
 
 <details>
 <summary><b>❌ SSL certificate generation fails</b></summary>
@@ -242,7 +242,7 @@ sudo /home/xc_vm/console.php tools ports
 
 ---
 
-## 🔄 Updates & Service
+## Updates & Service
 
 <details>
 <summary><b>❌ Update download fails or checksum mismatch</b></summary>
@@ -291,7 +291,7 @@ Common causes: PHP transaction deadlock, infinite loop in stream processing, or 
 
 ---
 
-## 🛠 Permissions & System
+## Permissions & System
 
 <details>
 <summary><b>❌ Permission denied errors keep reappearing</b></summary>

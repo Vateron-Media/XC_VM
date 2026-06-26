@@ -72,3 +72,11 @@ XDEBUG_MODE=coverage /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c test
 ## Security note
 
 Do not commit `phpunit.phar` into the repository. Keep it local (`tools/.bin`) and update independently.
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `tools/.bin/phpunit.phar` | Pinned PHPUnit binary |
+| `tests/phpunit.xml.dist` | PHPUnit configuration |
+| `tests/bootstrap.php` | Test bootstrap (Composer autoloader + constants) |

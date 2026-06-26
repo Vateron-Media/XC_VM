@@ -5,22 +5,6 @@
 
 ---
 
-## Навигация
-
-- [Поток запроса](#поток-запроса)
-- [Структура каталогов](#структура-каталогов)
-- [Bootstrap-конвейер](#bootstrap-конвейер)
-- [Аутентификация по токену](#аутентификация-по-токену)
-- [Доставка потока](#доставка-потока)
-- [Управление подключениями](#управление-подключениями)
-- [Балансировка нагрузки](#балансировка-нагрузки)
-- [Rate limiting и защита от флуда](#rate-limiting-и-защита-от-флуда)
-- [Шифрование HLS](#шифрование-hls)
-- [Производительность](#производительность)
-- [Связанные файлы](#связанные-файлы)
-
----
-
 ## Поток запроса
 
 ```text
@@ -55,7 +39,7 @@ nginx переписывает все стриминговые URL на PHP-то
 ## Структура каталогов
 
 ```
-src/streaming/
+src/Streaming/
 ├── StreamingBootstrap.php
 ├── AsyncFileOperations.php
 ├── TimeshiftClient.php
@@ -100,7 +84,7 @@ src/www/stream/
 
 ### 1. StreamingRequestBootstrap::init()
 
-Файл: `src/infrastructure/bootstrap/StreamingRequestBootstrap.php`
+Файл: `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php`
 
 Действия по порядку:
 
@@ -114,7 +98,7 @@ src/www/stream/
 
 ### 2. StreamingBootstrap::bootstrap()
 
-Файл: `src/streaming/StreamingBootstrap.php`
+Файл: `src/Streaming/StreamingBootstrap.php`
 
 ```php
 public static function bootstrap($rFilename, $rSettings)
@@ -132,7 +116,7 @@ public static function bootstrap($rFilename, $rSettings)
 
 ### 3. LegacyInitializer::initStreaming()
 
-Файл: `src/core/Init/LegacyInitializer.php`
+Файл: `src/Core/Init/LegacyInitializer.php`
 
 Заполняет глобальные переменные из кэша:
 
@@ -149,7 +133,7 @@ public static function bootstrap($rFilename, $rSettings)
 
 ## Аутентификация по токену
 
-Файл: `src/streaming/Auth/StreamAuthMiddleware.php`
+Файл: `src/Streaming/Auth/StreamAuthMiddleware.php`
 
 ```php
 StreamAuthMiddleware::decryptToken($rToken, $rSettings, $rServers, $rIP): array
@@ -240,7 +224,7 @@ ConnectionTracker::getCapacity()
 
 ### ConnectionLimiter
 
-Файл: `src/streaming/Protection/ConnectionLimiter.php`
+Файл: `src/Streaming/Protection/ConnectionLimiter.php`
 
 Применяет ограничения подключений на пользователя при превышении `max_connections`:
 
@@ -258,7 +242,7 @@ ConnectionTracker::getCapacity()
 
 ### ShutdownHandler
 
-Файл: `src/streaming/Lifecycle/ShutdownHandler.php`
+Файл: `src/Streaming/Lifecycle/ShutdownHandler.php`
 
 Зарегистрирован через `register_shutdown_function()`. При завершении процесса PHP:
 
@@ -272,7 +256,7 @@ ConnectionTracker::getCapacity()
 
 ### Выбор сервера (StreamAuth::checkAccess)
 
-Файл: `src/streaming/Auth/StreamAuth.php`
+Файл: `src/Streaming/Auth/StreamAuth.php`
 
 ```php
 public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserISP = ''): int|false
@@ -291,7 +275,7 @@ public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserIS
 
 ### Выбор прокси (ProxySelector::availableProxy)
 
-Файл: `src/streaming/Balancer/ProxySelector.php`
+Файл: `src/Streaming/Balancer/ProxySelector.php`
 
 ```php
 public static function availableProxy($rProxies, $rCountryCode, $rUserISP = ''): int|null
@@ -333,7 +317,7 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 
 ## Шифрование HLS
 
-Файл: `src/streaming/Delivery/HLSGenerator.php`
+Файл: `src/Streaming/Delivery/HLSGenerator.php`
 
 ```php
 public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
@@ -386,16 +370,16 @@ VOD_PATH            = /home/xc_vm/www/vod/
 
 | Файл | Назначение |
 | --- | --- |
-| `src/streaming/StreamingBootstrap.php` | основной bootstrap стриминга |
-| `src/infrastructure/bootstrap/StreamingRequestBootstrap.php` | инициализация на HTTP-уровне |
-| `src/streaming/Auth/StreamAuth.php` | выбор сервера и валидация подключений |
-| `src/streaming/Auth/StreamAuthMiddleware.php` | расшифровка токена и заголовки ответа |
-| `src/streaming/Balancer/ProxySelector.php` | выбор прокси-сервера |
-| `src/streaming/Protection/ConnectionLimiter.php` | ограничения подключений на пользователя |
-| `src/streaming/Delivery/HLSGenerator.php` | генерация плейлиста M3U8 |
-| `src/streaming/Delivery/SegmentReader.php` | извлечение сегментов из плейлистов |
-| `src/streaming/Delivery/StreamRedirector.php` | доступность потока и маршрутизация серверов |
-| `src/streaming/AsyncFileOperations.php` | неблокирующие утилиты файловой системы |
-| `src/streaming/Lifecycle/ShutdownHandler.php` | очистка подключения при выходе |
-| `src/domain/Stream/ConnectionTracker.php` | состояние подключений в Redis/MySQL |
-| `src/core/Init/LegacyInitializer.php` | настройка глобальных переменных для стриминга |
+| `src/Streaming/StreamingBootstrap.php` | основной bootstrap стриминга |
+| `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | инициализация на HTTP-уровне |
+| `src/Streaming/Auth/StreamAuth.php` | выбор сервера и валидация подключений |
+| `src/Streaming/Auth/StreamAuthMiddleware.php` | расшифровка токена и заголовки ответа |
+| `src/Streaming/Balancer/ProxySelector.php` | выбор прокси-сервера |
+| `src/Streaming/Protection/ConnectionLimiter.php` | ограничения подключений на пользователя |
+| `src/Streaming/Delivery/HLSGenerator.php` | генерация плейлиста M3U8 |
+| `src/Streaming/Delivery/SegmentReader.php` | извлечение сегментов из плейлистов |
+| `src/Streaming/Delivery/StreamRedirector.php` | доступность потока и маршрутизация серверов |
+| `src/Streaming/AsyncFileOperations.php` | неблокирующие утилиты файловой системы |
+| `src/Streaming/Lifecycle/ShutdownHandler.php` | очистка подключения при выходе |
+| `src/Domain/Stream/ConnectionTracker.php` | состояние подключений в Redis/MySQL |
+| `src/Core/Init/LegacyInitializer.php` | настройка глобальных переменных для стриминга |

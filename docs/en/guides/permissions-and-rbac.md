@@ -60,7 +60,7 @@ Categories:
 
 ### `Authorization`
 
-File: `src/core/Auth/Authorization.php`
+File: `src/Core/Auth/Authorization.php`
 
 Primary method:
 
@@ -130,7 +130,7 @@ Returns whether `$rPermissions[$type]` is non-empty. Used for reseller-specific 
 
 ### `PageAuthorization`
 
-File: `src/core/Auth/PageAuthorization.php`
+File: `src/Core/Auth/PageAuthorization.php`
 
 Provides page-level gating for admin and reseller panels. Called during request dispatch to determine whether the current user can access a given page.
 
@@ -404,12 +404,12 @@ case 'my_entity':
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
 | `src/config/permissions.php` | Permission key registry (`$rPermissionKeys` array) |
-| `src/core/Auth/Authorization.php` | Object-level and advanced permission checks |
-| `src/core/Auth/PageAuthorization.php` | Page-level gating for admin and reseller panels |
-| `src/core/Auth/SessionManager.php` | Session context; populates `$rPermissions` and `$rUserInfo` |
-| `src/core/Auth/Authenticator.php` | Authentication (login, credential verification) |
+| `src/Core/Auth/Authorization.php` | Object-level and advanced permission checks |
+| `src/Core/Auth/PageAuthorization.php` | Page-level gating for admin and reseller panels |
+| `src/Core/Auth/SessionManager.php` | Session context; populates `$rPermissions` and `$rUserInfo` |
+| `src/Core/Auth/Authenticator.php` | Authentication (login, credential verification) |

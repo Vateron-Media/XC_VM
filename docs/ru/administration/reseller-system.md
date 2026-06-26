@@ -5,21 +5,6 @@
 
 ---
 
-## Навигация
-
-- [Обзор](#обзор)
-- [Кредитная система](#кредитная-система)
-- [Управление линиями](#управление-линиями)
-- [Управление устройствами](#управление-устройствами)
-- [Иерархия суб-реселлеров](#иерархия-суб-реселлеров)
-- [Права доступа](#права-доступа)
-- [REST API](#rest-api)
-- [Сессия и bootstrap](#сессия-и-bootstrap)
-- [Маршруты](#маршруты)
-- [Связанные файлы](#связанные-файлы)
-
----
-
 ## Обзор
 
 ```text
@@ -33,7 +18,7 @@ Admin
                     └── суб-реселлер имеет свои линии и кредиты
 ```
 
-Основная бизнес-логика находится в `src/domain/User/ResellerAPI.php`. Веб-контроллеры — в `src/public/Controllers/Reseller/`. REST API — в `src/public/Controllers/Api/ResellerRestApiController.php`.
+Основная бизнес-логика находится в `src/Domain/User/ResellerAPI.php`. Веб-контроллеры — в `src/Public/Controllers/Reseller/`. REST API — в `src/Public/Controllers/Api/ResellerRestApiController.php`.
 
 ---
 
@@ -115,12 +100,12 @@ if (isset($rOverride[$rPackage['id']]['official_credits'])) {
 
 ### Устройства MAG
 
-Управляются через `MagService` (`src/domain/Device/MagService.php`).
+Управляются через `MagService` (`src/Domain/Device/MagService.php`).
 Поля привязки: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
 ### Устройства Enigma2
 
-Управляются через `EnigmaService` (`src/domain/Device/EnigmaService.php`).
+Управляются через `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
 Поля привязки: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
 Оба типа устройств поддерживают `lock_device` (привязка к железу), `is_isplock` (привязка к ISP) и `forced_country`.
@@ -203,7 +188,7 @@ AuthRepository::getGroupPermissions()  // рекурсивно строит all_
 
 ## REST API
 
-Файл: `src/public/Controllers/Api/ResellerRestApiController.php`
+Файл: `src/Public/Controllers/Api/ResellerRestApiController.php`
 
 Аутентификация через API-ключ. Действия:
 
@@ -232,7 +217,7 @@ AuthRepository::getGroupPermissions()  // рекурсивно строит all_
 
 ### Сессия
 
-Файл: `src/infrastructure/bootstrap/reseller_session.php`
+Файл: `src/Infrastructure/Bootstrap/reseller_session.php`
 
 - Таймаут 60 минут с отслеживанием последней активности.
 - Детекция смены IP (если включена настройка `ip_logout`).
@@ -240,7 +225,7 @@ AuthRepository::getGroupPermissions()  // рекурсивно строит all_
 
 ### Bootstrap функций
 
-Файл: `src/infrastructure/bootstrap/reseller_functions.php`
+Файл: `src/Infrastructure/Bootstrap/reseller_functions.php`
 
 - Загружает базу данных и утилиты.
 - Инициализирует `$rUserInfo` и `$rPermissions`.
@@ -251,7 +236,7 @@ AuthRepository::getGroupPermissions()  // рекурсивно строит all_
 
 ## Маршруты
 
-Файл: `src/public/routes/reseller.php`
+Файл: `src/Public/routes/reseller.php`
 
 Ключевые маршруты:
 
@@ -283,14 +268,14 @@ GET  /tickets                 → ResellerTicketsController
 
 | Файл | Назначение |
 | --- | --- |
-| `src/domain/User/ResellerAPI.php` | основная бизнес-логика |
-| `src/public/Controllers/Api/ResellerRestApiController.php` | REST API |
-| `src/public/Controllers/Reseller/*.php` | веб-контроллеры |
-| `src/public/routes/reseller.php` | URL-маршрутизация |
-| `src/public/Views/reseller/*.php` | шаблоны представлений |
-| `src/infrastructure/ResellerApiDispatcher.php` | маршрутизация AJAX-действий |
-| `src/infrastructure/ResellerTableRenderer.php` | рендеринг DataTables |
-| `src/infrastructure/bootstrap/reseller_session.php` | управление сессией |
-| `src/infrastructure/bootstrap/reseller_functions.php` | инициализация |
-| `src/core/Auth/Authorization.php` | проверки владения |
-| `src/core/Auth/PageAuthorization.php` | контроль доступа на уровне страниц |
+| `src/Domain/User/ResellerAPI.php` | основная бизнес-логика |
+| `src/Public/Controllers/Api/ResellerRestApiController.php` | REST API |
+| `src/Public/Controllers/Reseller/*.php` | веб-контроллеры |
+| `src/Public/routes/reseller.php` | URL-маршрутизация |
+| `src/Public/Views/reseller/*.php` | шаблоны представлений |
+| `src/Infrastructure/ResellerApiDispatcher.php` | маршрутизация AJAX-действий |
+| `src/Infrastructure/ResellerTableRenderer.php` | рендеринг DataTables |
+| `src/Infrastructure/Bootstrap/reseller_session.php` | управление сессией |
+| `src/Infrastructure/Bootstrap/reseller_functions.php` | инициализация |
+| `src/Core/Auth/Authorization.php` | проверки владения |
+| `src/Core/Auth/PageAuthorization.php` | контроль доступа на уровне страниц |

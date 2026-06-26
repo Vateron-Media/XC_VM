@@ -1,4 +1,4 @@
-# ✅ Чеклист подготовки релиза XC_VM
+# Чеклист подготовки релиза XC_VM
 
 Пошаговое руководство по подготовке и публикации релиза XC_VM.
 
@@ -19,7 +19,7 @@ VERSION="X.Y.Z"
 
 ---
 
-## 🧹 2. Удалённые файлы
+## 2. Удалённые файлы
 
 Перед сборкой сгенерируйте список файлов для удаления при обновлении:
 
@@ -49,7 +49,7 @@ cat src/migrations/deleted_files.txt
 
 ---
 
-## 🧪 3. Предрелизная проверка
+## 3. Предрелизная проверка
 
 Перед публикацией убедитесь, что сборка работает:
 
@@ -79,7 +79,7 @@ tools/run_scan.sh
 
 ---
 
-## 📝 4. Changelog
+## 4. Changelog
 
 **Сгенерировать лог коммитов (только рабочие изменения):**
 
@@ -106,25 +106,25 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 
 ---
 
-## 🔢 5. Обновить версию и сделать единый release commit
+## 5. Обновить версию и сделать единый release commit
 
 Изменить константу версии и отключить флаг доступа к phpMiniAdmin в:
 
 ```text
-src/core/Config/AppConfig.php
+src/Core/Config/AppConfig.php
 ```
 
 **Быстрые команды:**
 
 ```bash
-sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/core/Config/AppConfig.php
-sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/core/Config/AppConfig.php
+sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/Core/Config/AppConfig.php
+sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/Core/Config/AppConfig.php
 ```
 
 **Сделать один финальный commit/push для релиза:**
 
 ```bash
-git add src/core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
+git add src/Core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
 git commit -m "Prepare release ${VERSION}"
 git push
 ```
@@ -133,7 +133,7 @@ git push
 
 ---
 
-## ⚙️ 6. Сборка архивов
+## 6. Сборка архивов
 
 > 🤖 **Production-сборки** выполняются через GitHub Actions (`.github/workflows/build-release.yml`) при публикации релиза. Файлы прикрепляются автоматически.
 
@@ -165,7 +165,7 @@ cd dist && md5sum -c hashes.md5
 
 ---
 
-## 🚀 7. GitHub релиз
+## 7. GitHub релиз
 
 1. Перейти на [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
 2. Создать новый релиз с тегом из первого шага
@@ -182,7 +182,7 @@ cd dist && md5sum -c hashes.md5
 
 ---
 
-## 📢 8. После релиза
+## 8. После релиза
 
 - [ ] Проверить, что все 4 файла прикреплены к релизу
 - [ ] Скачать и проверить `md5sum -c hashes.md5`

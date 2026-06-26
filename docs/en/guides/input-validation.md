@@ -2,13 +2,13 @@
 
 XC_VM uses a two-layer defense for incoming request data. First, a **global sanitization** pass strips dangerous content from all PHP superglobals during bootstrap, before any application code runs. Second, an **action-level validation** layer checks that required fields are present before business logic executes.
 
-Both layers are implemented in `src/core/Validation/InputValidator.php`.
+Both layers are implemented in `src/Core/Validation/InputValidator.php`.
 
 ---
 
 ## Global Sanitization Flow
 
-Sanitization runs automatically during bootstrap. When `LegacyInitializer::initCore()` is called (in `src/core/Init/LegacyInitializer.php`), it performs the following steps before any controller or service code:
+Sanitization runs automatically during bootstrap. When `LegacyInitializer::initCore()` is called (in `src/Core/Init/LegacyInitializer.php`), it performs the following steps before any controller or service code:
 
 ```
 LegacyInitializer::initCore()
@@ -293,7 +293,7 @@ The `validate()` method uses a small set of patterns consistently:
 
 ## Adding Validation for a New Action
 
-Add a `case` to the `switch` in `src/core/Validation/InputValidator.php`:
+Add a `case` to the `switch` in `src/Core/Validation/InputValidator.php`:
 
 ```php
 case 'myNewAction':
@@ -310,11 +310,11 @@ Guidelines:
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Validation/InputValidator.php` | All sanitization and validation logic |
-| `src/core/Init/LegacyInitializer.php` | Bootstrap caller that triggers sanitization via `initCore()` |
-| `src/core/Http/RequestManager.php` | Stores the sanitized, merged GET+POST data |
-| `src/public/Controllers/` | Controllers that call `validate()` / `validateOrFail()` before business logic |
+| `src/Core/Validation/InputValidator.php` | All sanitization and validation logic |
+| `src/Core/Init/LegacyInitializer.php` | Bootstrap caller that triggers sanitization via `initCore()` |
+| `src/Core/Http/RequestManager.php` | Stores the sanitized, merged GET+POST data |
+| `src/Public/Controllers/` | Controllers that call `validate()` / `validateOrFail()` before business logic |

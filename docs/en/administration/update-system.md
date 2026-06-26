@@ -1,18 +1,6 @@
-# ⚙️ Update Mechanism in XC_VM
+# Update Mechanism in XC_VM
 
 The XC_VM update system is implemented as a multi-layered process, from the web interface to system-level scripts. This approach ensures reliability, automation, and data integrity during panel updates.
-
----
-
-## Navigation
-
-- [1. Update Initiation](#1-update-initiation)
-- [2. CRON Trigger](#2-cron-trigger)
-- [3. Update Management (PHP Layer)](#3-update-management-php-layer)
-- [4. System-Level Update (Python Layer)](#4-system-level-update-python-layer)
-- [5. Update Completion](#5-update-completion)
-- [6. Full Workflow Diagram](#6-full-workflow-diagram)
-- [Key Features](#key-features)
 
 ---
 
@@ -47,7 +35,7 @@ When it detects an `update` signal, it launches:
 Core logic resides in the `UpdateCommand` class:
 
 ```text
-src/cli/Commands/UpdateCommand.php
+src/Cli/Commands/UpdateCommand.php
 ```
 
 At this stage the following actions are performed:

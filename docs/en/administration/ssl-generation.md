@@ -1,23 +1,16 @@
-# 🔒 Generating SSL Certificate for Nginx in XC_VM
+# Generating SSL Certificate for Nginx in XC_VM
 
 This guide explains how to create a self-signed SSL certificate to enable secure HTTPS connections for the built-in Nginx server in the XC_VM project.
 
----
-
-## Navigation
-
-- [Introduction](#introduction)
-- [Configuration Location](#configuration-location)
-- [Step 1. Generate Private Key](#step-1-generate-private-key)
-- [Step 2. Create server.cnf Configuration File](#step-2-create-servercnf-configuration-file)
-- [Step 3. Generate Self-Signed SSL Certificate](#step-3-generate-self-signed-ssl-certificate)
-- [Final Files](#final-files)
-- [Result](#result)
-- [Notes](#notes)
+> **Note:** A fresh install already generates a **unique** self-signed certificate
+> automatically (the installer runs `openssl` and writes `server.key`/`server.crt`
+> into `bin/nginx/conf/` before Nginx starts), and `CertbotCronJob` later replaces
+> it with a real Let's Encrypt certificate. Follow this guide only to **regenerate
+> or replace** the certificate manually.
 
 ---
 
-## Introduction
+## Overview
 
 **SSL (Secure Sockets Layer)** encrypts the connection between client and server, ensuring data confidentiality and user trust.  
 This tutorial shows how to create a **self-signed SSL certificate** for the embedded **Nginx** server in the **XC_VM** project.
@@ -138,7 +131,7 @@ Browsers will display a “not trusted” warning — this is expected behavior 
 
 - Self-signed certificates are suitable **for internal use or testing only**.
 - For public-facing domains, use certificates from trusted CAs (e.g., [Let's Encrypt](https://letsencrypt.org/)).
-- If you change the domain/hostname (`CN` or `DNS.1`), you **must regenerate** the certificate.
+- If you change the Domain/hostname (`CN` or `DNS.1`), you **must regenerate** the certificate.
 - To inspect the generated certificate:
 
 ```bash

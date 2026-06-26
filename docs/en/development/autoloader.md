@@ -1,144 +1,116 @@
-# Autoloader — Class Registration
+# Autoloading (PSR-4)
 
-XC_VM uses a custom autoloader (`src/autoload.php`) instead of Composer.
-Classes are discovered **automatically** — no manual registration required.
+XC_VM autoloads classes with a standard **Composer PSR-4** autoloader; the namespace encodes the file path, so resolution is a direct `file_exists` with no scan and no cache.
 
 ---
 
-## How It Works
+## Overview
 
-```
-Request → autoload.php included
-              │
-              ├── Cache file exists?
-              │       YES → load igbinary cache → O(1) lookups
-              │       NO  → warmCache(): scan all directories via token_get_all()
-              │                          → build ClassName → filePath map
-              │                          → persist to tmp/cache/autoload_map
-              │
-              └── Class requested by PHP
-                      │
-                      ├── 1. Explicit classMap (addClass())
-                      ├── 2. Resolved cache (from file or previous lookup)
-                      └── 3. Live directory scan (fallback, cached for next time)
+Every first-party class lives under the `XcVm\` root namespace, mapped to `src/`:
+
+```text
+XcVm\Core\Auth\Authenticator   ->  src/Core/Auth/Authenticator.php
+XcVm\Domain\Stream\StreamService ->  src/Domain/Stream/StreamService.php
+XcVm\Public\Controllers\Admin\UserController -> src/Public/Controllers/Admin/UserController.php
 ```
 
-## Adding a New Class
+The mapping is declared in `src/composer.json`:
 
-**Just create the file.** That's it.
+```json
+"autoload": {
+    "psr-4": {
+        "XcVm\\": "./",
+        "M3uParser\\": "Core/Parsing/M3uParser/src/",
+        "Chrisyue\\PhpM3u8\\": "Core/Parsing/PhpM3u8/src/"
+    }
+}
+```
 
-Place your PHP file in any registered directory (or its subdirectory):
+`src/vendor/` (the Composer autoloader + production dependencies) is committed and
+shipped — the deploy path has no Composer and never runs `composer install`. There
+is **no class-map cache** (no `optimize-autoloader`): a class miss is a plain path
+lookup, not a directory rescan.
 
-| Directory | Purpose |
-|-----------|---------|
-| `src/core/` | Framework core (Database, Cache, Auth, Http, Process, etc.) |
-| `src/domain/` | Business logic (Services, Repositories) |
-| `src/infrastructure/` | External adapters (DatabaseFactory, CacheReader, Redis) |
-| `src/streaming/` | Streaming subsystem (Auth, Delivery, Codec, Health) |
-| `src/modules/` | Optional modules (Plex, Watch, TMDB, Ministra, etc.) |
-| `src/public/` | Controllers and Views |
+> The legacy `XC_Autoloader` scanner (token-scanning, igbinary `tmp/cache/autoload_map`
+> cache, `registerDirectories()`) has been **removed**. There is nothing to warm,
+> clear, or invalidate.
 
-### Example
+## Adding a new class
+
+Create the file at the path its namespace maps to — that is all; Composer resolves it on demand:
 
 ```php
-// src/domain/Billing/InvoiceService.php
+// src/Domain/Billing/InvoiceService.php
+namespace XcVm\Domain\Billing;
+
 class InvoiceService {
-    public static function generate($userId) { ... }
+    public static function generate(int $userId): string { /* ... */ }
 }
 ```
 
-After creating the file, **delete the cache** so the autoloader rediscovers classes:
-
-```bash
-rm -f /home/xc_vm/tmp/cache/autoload_map
-```
-
-On the next request, `warmCache()` runs automatically, finds `InvoiceService`, and caches it.
-
-## Cache Invalidation
-
-The cache file `tmp/cache/autoload_map` is a binary file (igbinary format).
-It must be deleted whenever:
-
-- A new class file is added
-- A class file is renamed or moved
-- A class file is deleted
-
-```bash
-# Delete manually
-rm -f /home/xc_vm/tmp/cache/autoload_map
-
-# Or via PHP
-XC_Autoloader::clearCache();
-```
-
-> **Note:** If a class is requested that isn't in the cache, the autoloader falls back to a live directory scan and caches the result automatically. So the cache only needs to be cleared when files are moved/renamed/deleted — new classes will eventually be found via fallback.
-
-## Manual Registration (Rare)
-
-For special cases where a file contains multiple classes or the filename doesn't match the class name:
+Reference it from other namespaced code with a `use` import, or by its FQCN:
 
 ```php
-XC_Autoloader::addClass('DropboxClient', '/home/xc_vm/includes/libs/Dropbox.php');
-XC_Autoloader::addClass('DropboxException', '/home/xc_vm/includes/libs/Dropbox.php');
+use XcVm\Domain\Billing\InvoiceService;
 ```
 
-This is mainly needed for legacy library files that bundle multiple classes in one file (e.g., `iptables.php`, `m3u.php`).
+No cache to clear, no registry to edit. A brand-new sub-namespace (e.g.
+`XcVm\Domain\Billing`) works immediately because it maps straight onto the
+directory.
 
-## Adding a New Source Directory
-
-Edit `registerDirectories()` in `src/autoload.php`:
-
-```php
-private static function registerDirectories() {
-    $base = self::$basePath;
-
-    self::addDirectory($base . 'core');
-    self::addDirectory($base . 'domain');
-    self::addDirectory($base . 'infrastructure');
-    self::addDirectory($base . 'streaming');
-    self::addDirectory($base . 'modules');
-    self::addDirectory($base . 'public');
-
-    // Add your new directory here:
-    self::addDirectory($base . 'my_new_dir');
-}
-```
-
-Then delete the cache.
-
-## Naming Rules
+## Naming rules
 
 | Rule | Example |
-|------|---------|
-| File name **must** match class name | `InvoiceService.php` → `class InvoiceService` |
-| One class per file (recommended) | Multi-class files need `addClass()` |
-| PascalCase | `StreamService`, `DatabaseHandler` |
-| No namespaces | `class StreamService { }` — no `namespace` keyword |
-| No `declare(strict_types=1)` | Project convention |
+| --- | --- |
+| File name **must** match the class name | `InvoiceService.php` → `class InvoiceService` |
+| One class per file | PSR-4 resolves one class per path; split multi-class files |
+| Namespace **must** match the directory path (case-sensitive) | `src/Domain/Billing/` → `namespace XcVm\Domain\Billing;` |
+| PascalCase classes and directories | `StreamService`, `DatabaseHandler`, `Core/Auth/` |
+| Project convention: no `declare(strict_types=1)` | — |
 
-## Duplicate Class Names
+Because the namespace carries the location, duplicate short names in different
+namespaces no longer collide — `XcVm\Public\Controllers\Admin\PlexController` and
+`XcVm\Module\Plex\PlexController` are distinct.
 
-If two files define the same class name, **first-found wins** based on directory scan order. This is fragile — avoid duplicate names. Use prefixed names instead:
+## Procedural and third-party files
 
+Some files are intentionally **not** namespaced and are loaded by explicit
+`require`, not the autoloader:
+
+- procedural entry points, views and bootstrap glue (e.g. `Public/index.php`,
+  `Public/Views/**`, `Infrastructure/Bootstrap/*.php`);
+- global constants and functions (`Core/Config/*`, error handler);
+- the ioncube `XC_VM` class and bundled `Modules/tmdb/lib/*`.
+
+The vendored `M3uParser` and `Chrisyue\PhpM3u8` packages have their own PSR-4
+prefixes (above) and autoload normally.
+
+## Modules
+
+Module classes use the `XcVm\Module\<Name>\…` namespace but are **not** registered
+in `composer.json` (module/marketplace slug directories — `plex`, `watch-d2bho` —
+do not fit a single PSR-4 rule). They are resolved by `ModuleLoader`'s own PSR-4
+resolver: it strips the module's base namespace and maps the remainder onto a
+sub-path under the module directory. See [Module System](modules.md).
+
+## Dev tooling
+
+The committed `vendor/` is production-only. PHPStan and PHP-CS-Fixer are
+`require-dev` packages — install them locally with:
+
+```bash
+make dev-tools   # = cd src && composer install
 ```
-✗  public/Controllers/Admin/PlexController.php    ← conflict
-✗  modules/plex/PlexController.php                ← conflict
 
-✓  public/Controllers/Admin/AdminPlexController.php   ← unique
-✓  modules/plex/PlexController.php                    ← unique
-```
+They are never committed (a CI gate enforces a prod-only committed vendor). See
+[Development Workflow](../guides/dev-workflow.md).
 
-## Debugging
+## Related files
 
-```php
-// See all registered directories
-print_r(XC_Autoloader::getDirectories());
-
-// See explicit class map
-print_r(XC_Autoloader::getClassMap());
-
-// Force full rescan
-XC_Autoloader::clearCache();
-XC_Autoloader::warmCache();
-```
+| File | Role |
+| --- | --- |
+| `src/composer.json` | PSR-4 prefix map + dependencies |
+| `src/composer.lock` | committed lock for reproducible `composer install` |
+| `src/vendor/` | committed Composer autoloader + production deps |
+| `src/bootstrap.php` | defines `MAIN_HOME`, requires `vendor/autoload.php` |
+| `src/Core/Module/ModuleLoader.php` | PSR-4 resolver for module classes |
