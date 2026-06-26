@@ -7,12 +7,12 @@ parameters:
 
     # Entry points to analyze. Add/remove dirs as the audit progresses.
     paths:
-        - src/core
-        - src/domain
-        - src/infrastructure
-        - src/streaming
-        - src/modules
-        - src/cli
+        - src/Core
+        - src/Domain
+        - src/Infrastructure
+        - src/Streaming
+        - src/Modules
+        - src/Cli
 
     # No Composer + no namespaces. The bootstrap only defines global constants;
     # it does NOT run the project autoloader (that would force a live directory
@@ -28,7 +28,7 @@ parameters:
     # are findable) but NOT reported on directly. These cover every source dir
     # outside `paths` so cross-references always resolve.
     scanDirectories:
-        - src/public
+        - src/Public
         - src/signals
         - src/ministra
         - src/content
@@ -36,10 +36,9 @@ parameters:
         - src/config
         - src/migrations
 
-    # Root files holding global classes (XC_Bootstrap, XC_Autoloader) referenced
-    # across the codebase but living outside any scanned directory.
+    # Root file holding the global XC_Bootstrap class, referenced across the
+    # codebase but living outside any scanned directory.
     scanFiles:
-        - src/autoload.php
         - src/bootstrap.php
 
     excludePaths:
@@ -47,13 +46,15 @@ parameters:
             - src/*/tmp/*
             - src/tmp/*
             - src/backups/*
-            # Vendored third-party library shipped inside core
-            - src/core/Parsing/M3uParser/*
+            # Composer autoloader glue + third-party packages (committed +
+            # shipped). Symbols resolve via src/vendor/autoload.php, which the
+            # Composer-installed phpstan binary loads automatically.
+            - src/vendor/*
             # View templates: included into a controller's scope, so their
             # variables ($rSettings, $language, ...) are injected by the caller.
             # PHPStan analyses files standalone and would flag every such var as
             # undefined — not real bugs. (Still indexed via scanDirectories.)
-            - src/modules/*/views/*
+            - src/Modules/*/views/*
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
@@ -211,7 +212,7 @@ parameters:
         # (PHP manual), so the defensive check below is correct, not dead code.
         -
             message: '#=== between resource and false will always evaluate to false#'
-            path: src/streaming/AsyncFileOperations.php
+            path: src/Streaming/AsyncFileOperations.php
 
 includes:
     # Pre-existing errors frozen so CI is green and only NEW code is checked.

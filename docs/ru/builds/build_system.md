@@ -1,23 +1,10 @@
-# 📦 XC_VM Система сборки (MAIN vs LB)
+# XC_VM Система сборки (MAIN vs LB)
 
 Как XC_VM создаёт два варианта сборки из единой кодовой базы: полноценный MAIN-сервер и облегчённый сервер балансировки нагрузки (LB).
 
 ---
 
-## 📚 Навигация
-
-- 🏗 Варианты сборки
-- ⚙️ Цели Makefile
-- 📂 Что входит в каждую сборку
-- 🔀 MAIN vs LB - ключевые отличия
-- 🌐 Nginx-конфигурация LB
-- 🔧 Поведение LB в рантайме
-- ➕ Добавление нового кода в сборки
-- ✅ Проверка сборки
-
----
-
-## 🏗 Варианты сборки
+## Варианты сборки
 
 XC_VM поддерживает две роли развёртывания из единого исходного дерева:
 
@@ -32,7 +19,7 @@ XC_VM поддерживает две роли развёртывания из �
 
 ---
 
-## ⚙️ Цели Makefile
+## Цели Makefile
 
 | Цель | Результат | Описание |
 | --- | --- | --- |
@@ -49,7 +36,25 @@ XC_VM поддерживает две роли развёртывания из �
 
 ---
 
-## 📂 Что входит в каждую сборку
+## Composer-зависимости
+
+`src/vendor/` (автозагрузчик Composer PSR-4 плюс продакшен-зависимости)
+**закоммичен** и поставляется как есть — на пути деплоя нет Composer и
+`composer install` не запускается. Он держится прод-only через
+`composer install --no-dev`, поэтому оба варианта сборки несут лёгкий vendor без
+dev-инструментов.
+
+- `src/composer.lock` закоммичен, чтобы `composer install` был воспроизводим.
+- Dev-инструменты (PHPStan, PHP-CS-Fixer) — `require-dev` и **отсутствуют** в
+  закоммиченном vendor и в архивах. Разработчики и CI ставят их через
+  `make dev-tools` (`composer install`); гейт `check-vendor-prod-only` валит
+  сборку, если dev-пакет когда-либо закоммичен в `src/vendor/`.
+- Шага сборки vendor нет — `make main` / `make lb` копируют закоммиченный
+  `vendor/` прямо в архив.
+
+---
+
+## Что входит в каждую сборку
 
 ### Сборка MAIN
 
@@ -60,12 +65,12 @@ MAIN-сборка содержит **всю** директорию `src/` цел
 В LB-архив копируются только эти директории:
 
 ```text
-bin/        cli/        config/     content/    core/
-domain/     infrastructure/         public/     resources/
-signals/    streaming/  tmp/        www/
+bin/        Cli/        config/     content/    Core/
+Domain/     Infrastructure/         public/     resources/
+signals/    Streaming/  tmp/        www/
 ```
 
-Плюс корневые файлы: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`.
+Плюс корневые файлы: `bootstrap.php`, `console.php`, `service`, `update`.
 
 ### Сборка LB — исключённый контент
 
@@ -78,15 +83,15 @@ signals/    streaming/  tmp/        www/
 | `bin/install/` | Скрипты установки (не нужны на LB) |
 | `bin/redis/` | Бинарник Redis (LB не запускает свой Redis) |
 | `bin/nginx/conf/codes/` | Страницы кодов ошибок (админ UI) |
-| `public/Controllers/Admin/` | Контроллеры админ-панели |
-| `public/Controllers/Player/` | Контроллеры player-панели |
-| `public/Controllers/Reseller/` | Контроллеры reseller-панели |
-| `public/Views/` | Шаблоны панелей |
-| `public/assets/` | Статические ресурсы панелей |
-| `public/routes/` | Карты маршрутов панелей |
-| `domain/User/` | Управление пользователями |
-| `domain/Device/` | Регистрация устройств |
-| `domain/Auth/` | Авторизация (панельная) |
+| `Public/Controllers/Admin/` | Контроллеры админ-панели |
+| `Public/Controllers/Player/` | Контроллеры player-панели |
+| `Public/Controllers/Reseller/` | Контроллеры reseller-панели |
+| `Public/Views/` | Шаблоны панелей |
+| `Public/assets/` | Статические ресурсы панелей |
+| `Public/routes/` | Карты маршрутов панелей |
+| `Domain/User/` | Управление пользователями |
+| `Domain/Device/` | Регистрация устройств |
+| `Domain/Auth/` | Авторизация (панельная) |
 | `resources/langs/` | Языковые ресурсы |
 | `resources/libs/` | Библиотечные ресурсы |
 
@@ -94,39 +99,39 @@ signals/    streaming/  tmp/        www/
 
 | Файл | Причина |
 | --- | --- |
-| `public/Controllers/Api/AdminApiController.php` | Полный admin API удалён из LB |
-| `public/Controllers/Api/ResellerRestApiController.php` | Reseller API удалён из LB |
-| `infrastructure/legacy/reseller_api.php` | Legacy bootstrap reseller API не нужен на LB |
+| `Public/Controllers/Api/AdminApiController.php` | Полный admin API удалён из LB |
+| `Public/Controllers/Api/ResellerRestApiController.php` | Reseller API удалён из LB |
+| `Infrastructure/legacy/reseller_api.php` | Legacy bootstrap reseller API не нужен на LB |
 | `www/xplugin.php`, `www/probe.php`, `www/playlist.php` | Эндпоинты админки |
 | `www/player_api.php`, `www/epg.php`, `www/enigma2.php` | Клиентское API (обслуживается MAIN) |
 | `www/stream/auth.php` | Auth-эндпоинт удаляется из LB-пакета |
 | `www/admin/api.php`, `www/admin/proxy_api.php` | Админ API |
 | `bin/maxmind/GeoLite2-City.mmdb` | GeoIP-база поставляется отдельно |
 | `config/rclone.conf` | Конфиг бэкапов |
-| `domain/Epg/EPG.php` | Класс обработки EPG |
+| `Domain/Epg/EPG.php` | Класс обработки EPG |
 | `bin/nginx/conf/gzip.conf` | Gzip-конфиг (LB использует свой) |
 
 **Удаляемые CLI-команды:**
 
 | Файл | Причина |
 | --- | --- |
-| `cli/Commands/MigrateCommand.php` | Миграция только на MAIN |
-| `cli/Commands/CacheHandlerCommand.php` | Обработчик кеша только на MAIN |
-| `cli/Commands/ServerInstallCommand.php` | Установщик сервера (не нужен на самом LB) |
-| `cli/Commands/LbInstallFlow.php` | Помощник установки LB (не нужен на самом LB) |
-| `cli/Commands/ProxyInstallFlow.php` | Помощник установки Proxy (не нужен на самом LB) |
+| `Cli/Commands/MigrateCommand.php` | Миграция только на MAIN |
+| `Cli/Commands/CacheHandlerCommand.php` | Обработчик кеша только на MAIN |
+| `Cli/Commands/ServerInstallCommand.php` | Установщик сервера (не нужен на самом LB) |
+| `Cli/Commands/LbInstallFlow.php` | Помощник установки LB (не нужен на самом LB) |
+| `Cli/Commands/ProxyInstallFlow.php` | Помощник установки Proxy (не нужен на самом LB) |
 
 **Удаляемые крон-задачи:**
 
 | Файл | Причина |
 | --- | --- |
-| `cli/CronJobs/RootMysqlCronJob.php` | Обслуживание БД (только MAIN) |
-| `cli/CronJobs/BackupsCronJob.php` | Бэкапы (только MAIN) |
-| `cli/CronJobs/CacheEngineCronJob.php` | Полная перегенерация кеша (только MAIN) |
-| `cli/CronJobs/EpgCronJob.php` | Обработка EPG (только MAIN) |
-| `cli/CronJobs/UpdateCronJob.php` | Проверка обновлений (только MAIN) |
-| `cli/CronJobs/ProvidersCronJob.php` | Синхронизация провайдеров (только MAIN) |
-| `cli/CronJobs/SeriesCronJob.php` | Метаданные сериалов (только MAIN) |
+| `Cli/CronJobs/RootMysqlCronJob.php` | Обслуживание БД (только MAIN) |
+| `Cli/CronJobs/BackupsCronJob.php` | Бэкапы (только MAIN) |
+| `Cli/CronJobs/CacheEngineCronJob.php` | Полная перегенерация кеша (только MAIN) |
+| `Cli/CronJobs/EpgCronJob.php` | Обработка EPG (только MAIN) |
+| `Cli/CronJobs/UpdateCronJob.php` | Проверка обновлений (только MAIN) |
+| `Cli/CronJobs/ProvidersCronJob.php` | Синхронизация провайдеров (только MAIN) |
+| `Cli/CronJobs/SeriesCronJob.php` | Метаданные сериалов (только MAIN) |
 
 > **Примечание:** Кроны модулей (TMDB, Plex, Watch) теперь находятся в `modules/<name>/` и автоматически исключены из LB-сборок, так как `modules/` не входит в `LB_DIRS`.
 
@@ -141,7 +146,7 @@ signals/    streaming/  tmp/        www/
 
 ---
 
-## 🔀 MAIN vs LB — ключевые отличия
+## MAIN vs LB — ключевые отличия
 
 | Аспект | MAIN | LB |
 | --- | --- | --- |
@@ -160,7 +165,7 @@ signals/    streaming/  tmp/        www/
 
 ---
 
-## 🌐 Nginx-конфигурация LB
+## Nginx-конфигурация LB
 
 LB-сборка использует специальный nginx-конфиг, оптимизированный для высокопропускного стриминга:
 
@@ -185,14 +190,14 @@ on_play_done http://127.0.0.1:8080/stream/rtmp;
 
 ---
 
-## 🔧 Поведение LB в рантайме
+## Поведение LB в рантайме
 
 ### Условная загрузка команд
 
 `console.php` использует проверки `file_exists()` для команд, которых может не быть на LB-серверах:
 
 ```php
-if (file_exists(__DIR__ . '/cli/Commands/CacheHandlerCommand.php')) {
+if (file_exists(__DIR__ . '/Cli/Commands/CacheHandlerCommand.php')) {
     $rRegistry->register(new CacheHandlerCommand());
 }
 ```
@@ -206,18 +211,18 @@ LB-серверы сохраняют полный стриминг-пайпла�
 ```text
 www/stream/*.php
   ├── www/stream/init.php
-  ├── autoload.php
+  ├── vendor/autoload.php (Composer PSR-4 автозагрузчик)
   ├── bootstrap.php (облегчённый stream/bootstrap path)
-  ├── core/* (Config, Database, Cache, Auth, Http, Logging, Util)
-  ├── domain/Stream, domain/Server, domain/Vod, domain/Bouquet
-  ├── streaming/* (Auth, Delivery, Codec, Protection)
-  ├── infrastructure/redis, infrastructure/database
+  ├── Core/* (Config, Database, Cache, Auth, Http, Logging, Util)
+  ├── Domain/Stream, Domain/Server, Domain/Vod, Domain/Bouquet
+  ├── Streaming/* (Auth, Delivery, Codec, Protection)
+  ├── Infrastructure/Redis, Infrastructure/Database
   └── resources/data
 ```
 
 ---
 
-## ➕ Добавление нового кода в сборки
+## Добавление нового кода в сборки
 
 ### Новая директория под `src/`, нужная для стриминга
 
@@ -250,7 +255,7 @@ LB_FILES_TO_REMOVE = ... your_dir/admin_file.php
 
 ---
 
-## ✅ Проверка сборки
+## Проверка сборки
 
 После модификации сборки проверьте оба варианта:
 
@@ -259,7 +264,7 @@ LB_FILES_TO_REMOVE = ... your_dir/admin_file.php
 make new
 
 # Проверить, что LB содержит стриминг-код
-tar -tzf dist/loadbalancer.tar.gz | grep -cE "core/|domain/Stream|streaming/"
+tar -tzf dist/loadbalancer.tar.gz | grep -cE "Core/|Domain/Stream|Streaming/"
 # Ожидается: > 0
 
 # Проверить, что LB НЕ содержит админ-код

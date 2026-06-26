@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\TimeUtils;
 use PHPUnit\Framework\TestCase;
 
 /**

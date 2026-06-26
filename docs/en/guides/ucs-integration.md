@@ -59,10 +59,17 @@ if ($rUserID && strpos($rDomain, 'wildcard.') !== false) {
 }
 ```
 
-Called from `public/stream/auth.php` with `$rUserID = $rUserInfo['id']` for live, VOD, timeshift, and related redirects.
+Called from `Public/stream/auth.php` with `$rUserID = $rUserInfo['id']` for live, VOD, timeshift, and related redirects.
 
 ## Notes
 
 - Use the literal prefix **`wildcard.`** in the domain string; only that segment is replaced.
 - The line ID is the internal **lines** table ID (`users.id` in streaming auth), not the username.
 - Wildcard substitution applies to LB redirect URLs only; it does not change playlist or API hostnames unless those paths also call `getStreamingURL()` with a line ID.
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/Streaming/Delivery/StreamRedirector.php` | `getStreamingURL()` wildcard substitution |
+| `src/Public/stream/auth.php` | Calls the redirect builder with the line ID |

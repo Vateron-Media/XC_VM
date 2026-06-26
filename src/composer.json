@@ -1,0 +1,35 @@
+{
+    "name": "vateron-media/xc-vm",
+    "description": "XC_VM IPTV panel — Composer autoloader (PSR-4) deployed as /home/xc_vm/. Regenerate with `composer dump-autoload` from this directory; never run `composer install` on the deploy path (vendor/ is committed and shipped).",
+    "type": "project",
+    "license": "AGPL-3.0-or-later",
+    "require": {
+        "php": ">=8.1",
+        "gemorroj/m3u-parser": "6.0.1",
+        "chrisyue/php-m3u8": "^4"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "2.1.17",
+        "friendsofphp/php-cs-fixer": "^3.95"
+    },
+    "autoload": {
+        "psr-4": {
+            "XcVm\\": "./"
+        }
+    },
+    "config": {
+        "optimize-autoloader": false,
+        "classmap-authoritative": false,
+        "platform": {
+            "php": "8.1.33"
+        }
+    },
+    "scripts": {
+        "post-install-cmd": [
+            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ is committed and shipped. Use 'composer dump-autoload' to regenerate; do not run 'composer install' on the deploy path.\\n\\\");\""
+        ],
+        "post-update-cmd": [
+            "@php -r \"fwrite(STDERR, \\\"[xc_vm] NOTE: vendor/ + composer.lock are committed. After changing deps, commit composer.lock and re-commit a PRODUCTION-only vendor: composer install --no-dev.\\n\\\");\""
+        ]
+    }
+}

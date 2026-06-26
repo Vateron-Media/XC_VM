@@ -2,11 +2,11 @@
 
 ## Overview
 
-A module is an isolated directory under `src/modules/` with a known contract. The system
+A module is an isolated directory under `src/Modules/` with a known contract. The system
 is built on **Extensible Platform** principles:
 
-- Core (`core/`) has no knowledge of modules
-- Modules may depend on `core/` and `domain/`, never on each other (except via declared dependencies)
+- Core (`Core/`) has no knowledge of modules
+- Modules may depend on `Core/` and `Domain/`, never on each other (except via declared dependencies)
 - Any module can be disabled from `config/modules.php` without touching core
 - Removing a module directory causes no fatal errors
 
@@ -15,7 +15,7 @@ is built on **Extensible Platform** principles:
 ## Module directory structure
 
 ```text
-src/modules/my-module/
+src/Modules/my-module/
 ├── module.json          # Metadata and manifest
 ├── MyModule.php         # Module class (source of truth)
 ├── MyService.php        # Business logic
@@ -179,8 +179,8 @@ Every module lives in a dedicated PHP namespace: `XcVm\Module\{Pascal}`, where `
 the PascalCase conversion of the module directory name.
 
 ```
-src/modules/my-module/   →  namespace XcVm\Module\MyModule;
-src/modules/watch/       →  namespace XcVm\Module\Watch;
+src/Modules/my-module/   →  namespace XcVm\Module\MyModule;
+src/Modules/watch/       →  namespace XcVm\Module\Watch;
 ```
 
 The main module file must declare this namespace and extend `BaseModule`:
@@ -392,7 +392,7 @@ modules load.
 
 `ModuleLoader` follows these steps on every request:
 
-1. Scans `src/modules/*/module.json`
+1. Scans `src/Modules/*/module.json`
 2. Applies overrides from `config/modules.php`
 3. Filters by environment (`main` / `lb` / `any`)
 4. Resolves the load order:
@@ -402,7 +402,7 @@ modules load.
    - Missing optional dependencies are silently skipped
 5. Resolves class name: `my-module` → FQN `XcVm\Module\MyModule\MyModuleModule`
    (kebab-case → PascalCase; can be overridden via `class` key in config)
-6. Registers per-module autoloader via `XC_Autoloader`
+6. Registers the module's PSR-4 autoloader (maps `XcVm\Module\<Name>` onto the module directory)
 7. Instantiates the module class
 
 In web context:
@@ -473,8 +473,8 @@ class MyController {
 
     public function __construct() {
         $this->viewsPath = __DIR__ . '/views';
-        require_once MAIN_HOME . 'public/Views/layouts/admin.php';
-        require_once MAIN_HOME . 'public/Views/layouts/footer.php';
+        require_once MAIN_HOME . 'Public/Views/layouts/admin.php';
+        require_once MAIN_HOME . 'Public/Views/layouts/footer.php';
     }
 
     public function index(): void {
@@ -608,14 +608,14 @@ Modules can be distributed as Composer packages with `"type": "xcvm-module"`:
 
 `ModuleLoader` automatically scans `vendor/composer/installed.json` (Composer 1 and 2
 formats) and discovers any installed `xcvm-module` packages alongside the built-in
-`src/modules/` directory. Packages are deduplicated — a module in both `modules/` and
+`src/Modules/` directory. Packages are deduplicated — a module in both `modules/` and
 `vendor/` is loaded only once.
 
 ---
 
 ## Module checklist
 
-- [ ] Create `src/modules/<name>/`
+- [ ] Create `src/Modules/<name>/`
 - [ ] Add `namespace XcVm\Module\<PascalName>;` to every class file
 - [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
@@ -627,7 +627,7 @@ formats) and discovers any installed `xcvm-module` packages alongside the built-
 - [ ] (If migrations) Implement `MigratableInterface::getMigrations()`
 - [ ] (If pages) Create controller using `renderUnifiedLayoutHeader/Footer`
 - [ ] (If stream middleware) Implement `StreamMiddlewareProviderInterface` separately
-- [ ] Verify: `php -l src/modules/<name>/<PascalName>Module.php`
+- [ ] Verify: `php -l src/Modules/<name>/<PascalName>Module.php`
 - [ ] Verify: `php console.php --list` shows the module's commands
 - [ ] Verify: removing the module directory causes no fatal error
 
@@ -657,3 +657,12 @@ Yes. Create a plain class or extend `AbstractEvent` and call `EventDispatcher::d
 **Q: What is `StreamMiddlewareProviderInterface` for?**
 It lets the module inject a `StreamMiddlewareInterface` into the stream processing pipeline
 without modifying `StreamProcess.php`. Implement it alongside `ModuleInterface` when needed.
+
+## Related files
+
+| File | Role |
+| --- | --- |
+| `src/Core/Module/ModuleLoader.php` | Discovers, sorts and boots modules; PSR-4 class resolver |
+| `src/config/modules.php` | Module enable / class-override config |
+| `src/Modules/` | Module directories |
+| `src/Core/Module/Contract/` | Module sub-interfaces |

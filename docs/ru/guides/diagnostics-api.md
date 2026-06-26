@@ -135,6 +135,6 @@ if (DiagnosticsService::checkCompatibility($ffprobeData)) {
 
 | Файл                                   | Назначение                         |
 | -------------------------------------- | ---------------------------------- |
-| `src/core/Diagnostics/DiagnosticsService.php` | Основной класс диагностики  |
-| `src/core/Logging/Logger.php`          | Запись в `panel_logs`              |
-| `src/core/Config/AppConfig.php`        | Константа `XC_VM_VERSION`          |
+| `src/Core/Diagnostics/DiagnosticsService.php` | Основной класс диагностики  |
+| `src/Core/Logging/Logger.php`          | Запись в `panel_logs`              |
+| `src/Core/Config/AppConfig.php`        | Константа `XC_VM_VERSION`          |

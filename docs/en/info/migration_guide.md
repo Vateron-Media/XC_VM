@@ -1,23 +1,10 @@
-# 🧭 XC_VM Migration Guide
+# XC_VM Migration Guide
 
 Safely migrate from compatible IPTV systems using the built-in XC_VM migration tools.
 
 ---
 
-## 📚 Navigation
-
-- [⚠️ Critical Migration Notice](#️-critical-migration-notice)
-- [⚙️ Before You Start](#️-before-you-start)
-- [🚀 Migration Steps](#-migration-steps)
-- [🔑 Restoring Access After Migration](#-restoring-access-after-migration)
-- [🖥️ Load Balancer Preparation](#️-load-balancer-preparation)
-- [🧩 Post-Migration (Required)](#-post-migration-required)
-- [❗ Common Post-Migration Issues](#-common-post-migration-issues)
-- [✅ Summary](#-summary)
-
----
-
-## ⚠️ Critical Migration Notice
+## Critical Migration Notice
 
 > **Read this before starting the migration.**
 
@@ -39,7 +26,7 @@ Skipping reconfiguration will **break metadata fetching, stream title updates, a
 
 ---
 
-## ⚙️ Before You Start
+## Before You Start
 
 > 💡 **Recommendation:**
 > Perform migration on a **fresh XC_VM installation**.
@@ -55,7 +42,7 @@ If you choose to migrate into an **existing installation**, be aware:
 
 ---
 
-## 🚀 Migration Steps
+## Migration Steps
 
 ### 1. Upload Backup
 
@@ -85,13 +72,13 @@ Ensure the restore completes **without errors** before proceeding.
 
 Once the backup is restored, start the migration using one of the following methods.
 
-#### 🧩 Option 1 — Command Line (Recommended)
+#### Option 1 — Command Line (Recommended)
 
 ```bash
 /home/xc_vm/console.php migrate
 ```
 
-#### 🌐 Option 2 — Web Installer
+#### Option 2 — Web Installer
 
 - Return to the **web installer** (link shown during panel setup)
 - Select **Migration**
@@ -102,7 +89,7 @@ Once completed, the system will be accessible.
 
 ---
 
-## 🔑 Restoring Access After Migration
+## Restoring Access After Migration
 
 If login fails due to missing credentials or access code, use the rescue tools.
 
@@ -122,7 +109,7 @@ sudo php /home/xc_vm/console.php tools user
 
 ---
 
-## 🖥️ Load Balancer Preparation
+## Load Balancer Preparation
 
 Load balancers are **not migrated**.
 
@@ -132,7 +119,7 @@ Load balancers are **not migrated**.
 
 ---
 
-## 🧩 Post-Migration (Required)
+## Post-Migration (Required)
 
 After migration, the system is **not production-ready** until these steps are completed.
 
@@ -179,7 +166,7 @@ This is **expected behavior**.
 
 ---
 
-## ❗ Common Post-Migration Issues
+## Common Post-Migration Issues
 
 ### Metadata Is Not Fetching (TMDb)
 
@@ -191,7 +178,7 @@ Re-add the TMDb API key and enable the provider in main server settings.
 
 ---
 
-## ✅ Summary
+## Summary
 
 - Migration transfers **core application data only**
 - Configuration is **excluded by design**

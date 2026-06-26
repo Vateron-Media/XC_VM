@@ -10,23 +10,9 @@ The admin path reads from the database with optional short-lived cache.
 
 ---
 
-## Navigation
-
-- [Cache Interface](#cache-interface)
-- [FileCache](#filecache)
-- [RedisCache](#rediscache)
-- [Redis Connection Management](#redis-connection-management)
-- [Cache Population](#cache-population)
-- [Cache Key Conventions](#cache-key-conventions)
-- [Invalidation Patterns](#invalidation-patterns)
-- [Streaming vs Admin Path](#streaming-vs-admin-path)
-- [Related Files](#related-files)
-
----
-
 ## Cache Interface
 
-File: `src/core/Cache/CacheInterface.php`
+File: `src/Core/Cache/CacheInterface.php`
 
 ```php
 get($key, $maxAge = null)
@@ -43,7 +29,7 @@ flush()
 
 ## FileCache
 
-File: `src/core/Cache/FileCache.php`
+File: `src/Core/Cache/FileCache.php`
 
 Default cache implementation. Stores igbinary-serialized data as flat files.
 
@@ -71,7 +57,7 @@ Characteristics:
 
 ## RedisCache
 
-File: `src/core/Cache/RedisCache.php`
+File: `src/Core/Cache/RedisCache.php`
 
 Optional high-performance implementation.
 
@@ -89,7 +75,7 @@ $redis->getConnection();                 // raw phpredis for sorted sets, pipeli
 
 ## Redis Connection Management
 
-File: `src/infrastructure/redis/RedisManager.php`
+File: `src/Infrastructure/Redis/RedisManager.php`
 
 Singleton lifecycle:
 
@@ -211,7 +197,7 @@ A `cache_complete` file is written after each full cache build. The streaming pa
 - Raw igbinary deserialization: `igbinary_unserialize(file_get_contents(...))`.
 - If `cache_complete` missing: exit with error.
 
-### Admin path (`public/Controllers/Admin/*`)
+### Admin path (`Public/Controllers/Admin/*`)
 
 - `cached: false` by default.
 - Reads from database directly via domain services.
@@ -255,16 +241,16 @@ FileCache::setCache('bouquets', $rOutput);
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Cache/CacheInterface.php` | cache contract |
-| `src/core/Cache/FileCache.php` | file-based cache implementation |
-| `src/core/Cache/RedisCache.php` | Redis cache implementation |
-| `src/infrastructure/redis/RedisManager.php` | Redis connection singleton |
-| `src/infrastructure/cache/CacheReader.php` | legacy cache reader bridge |
-| `src/cli/CronJobs/CacheCronJob.php` | lightweight cache generation |
-| `src/cli/CronJobs/CacheEngineCronJob.php` | heavy cache generation (streams, lines, series) |
-| `src/domain/Bouquet/BouquetService.php` | example of admin-path caching |
-| `src/domain/Stream/ConnectionTracker.php` | Redis sorted sets for connection state |
+| `src/Core/Cache/CacheInterface.php` | cache contract |
+| `src/Core/Cache/FileCache.php` | file-based cache implementation |
+| `src/Core/Cache/RedisCache.php` | Redis cache implementation |
+| `src/Infrastructure/Redis/RedisManager.php` | Redis connection singleton |
+| `src/Infrastructure/Cache/CacheReader.php` | legacy cache reader bridge |
+| `src/Cli/CronJobs/CacheCronJob.php` | lightweight cache generation |
+| `src/Cli/CronJobs/CacheEngineCronJob.php` | heavy cache generation (streams, lines, series) |
+| `src/Domain/Bouquet/BouquetService.php` | example of admin-path caching |
+| `src/Domain/Stream/ConnectionTracker.php` | Redis sorted sets for connection state |

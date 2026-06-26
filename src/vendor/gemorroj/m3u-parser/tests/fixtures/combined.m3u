@@ -1,0 +1,5 @@
+#EXTM3U
+
+#EXTINF:1,TV SLO 1 HD
+#EXTTV: Slovenski,HD;slv;SLO1HD
+rtp://@232.2.201.53:5003

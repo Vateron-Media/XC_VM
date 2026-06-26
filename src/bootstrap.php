@@ -54,13 +54,67 @@
  */
 
 declare(strict_types=0);
+use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Database\Database;
+use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Core\Enum\BootContext;
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Init\LegacyInitializer;
+use XcVm\Core\Localization\Translator;
+use XcVm\Core\Logging\Logger;
+use XcVm\Core\Util\GeoIP;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Device\EnigmaService;
+use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Epg\EPG;
+use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Line\LineRepository;
+use XcVm\Domain\Line\LineService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Security\BlocklistService;
+use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Server\ServerService;
+use XcVm\Domain\Server\SettingsService;
+use XcVm\Domain\Stream\CategoryService;
+use XcVm\Domain\Stream\ChannelService;
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\PlaylistGenerator;
+use XcVm\Domain\Stream\ProfileService;
+use XcVm\Domain\Stream\ProviderService;
+use XcVm\Domain\Stream\RadioService;
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\StreamService;
+use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\ResellerAPI;
+use XcVm\Domain\User\TicketRepository;
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\User\UserService;
+use XcVm\Domain\Vod\EpisodeService;
+use XcVm\Domain\Vod\MovieService;
+use XcVm\Domain\Vod\SeriesService;
+use XcVm\Domain\Vod\TMDbService;
+use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Redis\RedisManager;
 
 // ─────────────────────────────────────────────────────────────────
 //  1. Class autoloader
 // ─────────────────────────────────────────────────────────────────
 
-require_once __DIR__ . '/autoload.php';
-// After this: MAIN_HOME is defined, XC_Autoloader is initialized
+// MAIN_HOME — the deploy root (src/ maps to /home/xc_vm/). Used by the runtime
+// require_once paths below. Defined here now that the legacy autoload.php (which
+// used to define it) has been removed.
+if (!defined('MAIN_HOME')) {
+	define('MAIN_HOME', __DIR__ . '/');
+}
+
+// Composer PSR-4 autoloader — resolves every XcVm\* class; modules load via
+// ModuleLoader's PSR-4 resolver.
+require_once __DIR__ . '/vendor/autoload.php';
+// After this: MAIN_HOME is defined and the Composer autoloader is registered.
 
 
 // ─────────────────────────────────────────────────────────────────
@@ -311,12 +365,12 @@ class XC_Bootstrap {
             return;
         }
 
-        require_once MAIN_HOME . 'core/Error/ErrorCodes.php';
-        require_once MAIN_HOME . 'core/Error/ErrorHandler.php';
-        require_once MAIN_HOME . 'core/Config/Paths.php';
-        require_once MAIN_HOME . 'core/Config/AppConfig.php';
-        require_once MAIN_HOME . 'core/Config/Binaries.php';
-        require_once MAIN_HOME . 'core/Logging/Logger.php';
+        require_once MAIN_HOME . 'Core/Error/ErrorCodes.php';
+        require_once MAIN_HOME . 'Core/Error/ErrorHandler.php';
+        require_once MAIN_HOME . 'Core/Config/Paths.php';
+        require_once MAIN_HOME . 'Core/Config/AppConfig.php';
+        require_once MAIN_HOME . 'Core/Config/Binaries.php';
+        require_once MAIN_HOME . 'Core/Logging/Logger.php';
 
         self::$devMode = DEV_MODE;
 
@@ -420,7 +474,7 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once MAIN_HOME . 'core/Database/DatabaseHandler.php';
+        require_once MAIN_HOME . 'Core/Database/DatabaseHandler.php';
 
         $db = new DatabaseHandler();
 
@@ -443,7 +497,7 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once MAIN_HOME . 'core/Init/LegacyInitializer.php';
+        require_once MAIN_HOME . 'Core/Init/LegacyInitializer.php';
 
         DatabaseFactory::set($db);
 
@@ -502,7 +556,7 @@ class XC_Bootstrap {
      * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
-        require_once MAIN_HOME . 'core/Localization/Translator.php';
+        require_once MAIN_HOME . 'Core/Localization/Translator.php';
 
         $language = Translator::class;
         $language::init(MAIN_HOME . 'resources/langs/');
@@ -562,7 +616,7 @@ class XC_Bootstrap {
         }
 
         // Translator
-        if (class_exists('Translator', false) && Translator::available()) {
+        if (class_exists(\XcVm\Core\Localization\Translator::class, false) && Translator::available()) {
             $container->set('translator', Translator::class);
         }
 
@@ -580,7 +634,7 @@ class XC_Bootstrap {
      * the injected instance; db() returns it. Calling this method removes the
      * need for the global $db fallback inside each db() helper.
      *
-     * @param \DatabaseHandler $db DatabaseHandler instance
+     * @param \XcVm\Core\Database\DatabaseHandler $db DatabaseHandler instance
      */
     private static function wireDomainDatabase(object $db): void {
         // Bouquet
@@ -698,8 +752,8 @@ class XC_Bootstrap {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));
         }
 
-        require_once MAIN_HOME . 'core/Util/MobileDetect.php';
-        $rDetect = new \Mobile_Detect();
+        require_once MAIN_HOME . 'Core/Util/MobileDetect.php';
+        $rDetect = new \XcVm\Core\Util\Mobile_Detect();
         $rMobile = $rDetect->isMobile();
 
         $rTimeout    = 15;
@@ -735,7 +789,7 @@ class XC_Bootstrap {
         // Some nginx configs and legacy routes expect public/assets/reseller to
         // point to public/assets/admin. Create the symlink if the target exists
         // and the link does not.
-        $assetsBase = MAIN_HOME . 'public/assets/';
+        $assetsBase = MAIN_HOME . 'Public/assets/';
         $adminAssets = $assetsBase . 'admin';
         $resellerLink = $assetsBase . 'reseller';
         if (is_dir($adminAssets) && !file_exists($resellerLink)) {

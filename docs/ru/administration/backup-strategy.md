@@ -5,19 +5,6 @@ XC_VM поддерживает автоматические и ручные ре
 
 ---
 
-## Навигация
-
-- [Что попадает в резервную копию](#что-попадает-в-резервную-копию)
-- [Конфигурация](#конфигурация)
-- [Создание резервных копий](#создание-резервных-копий)
-- [Восстановление резервных копий](#восстановление-резервных-копий)
-- [Хранение](#хранение)
-- [Интеграция с Dropbox](#интеграция-с-dropbox)
-- [CLI-команды](#cli-команды)
-- [Связанные файлы](#связанные-файлы)
-
----
-
 ## Что попадает в резервную копию
 
 Резервные копии содержат полную структуру и данные базы данных, **кроме** следующих таблиц:
@@ -143,7 +130,7 @@ sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 
 ## Интеграция с Dropbox
 
-Файл: `src/core/Storage/DropboxClient.php`
+Файл: `src/Core/Storage/DropboxClient.php`
 
 Когда `dropbox_remote` включён:
 
@@ -226,10 +213,10 @@ sudo /home/xc_vm/console.php tools mysql
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Backup/BackupService.php` | логика резервного копирования и восстановления |
-| `src/core/Storage/DropboxClient.php` | клиент Dropbox API |
-| `src/cli/CronJobs/BackupsCronJob.php` | cron автоматического резервного копирования |
-| `src/cli/Commands/ToolsCommand.php` | CLI-инструменты миграции и работы с БД |
-| `src/public/Views/admin/backups.php` | UI панели администратора |
-| `src/public/Views/admin/api.php` | обработчик API-эндпоинта |
-| `src/public/Controllers/Admin/BackupsController.php` | контроллер администратора |
+| `src/Core/Backup/BackupService.php` | логика резервного копирования и восстановления |
+| `src/Core/Storage/DropboxClient.php` | клиент Dropbox API |
+| `src/Cli/CronJobs/BackupsCronJob.php` | cron автоматического резервного копирования |
+| `src/Cli/Commands/ToolsCommand.php` | CLI-инструменты миграции и работы с БД |
+| `src/Public/Views/admin/backups.php` | UI панели администратора |
+| `src/Public/Views/admin/api.php` | обработчик API-эндпоинта |
+| `src/Public/Controllers/Admin/BackupsController.php` | контроллер администратора |

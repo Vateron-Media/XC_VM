@@ -1,5 +1,19 @@
 <?php
 
+use XcVm\Module\Tmdb\TmdbPopularCron;
+use XcVm\Module\Tmdb\TmdbCron;
+use XcVm\Module\Watch\WatchService;
+use XcVm\Module\Watch\WatchItemCommand;
+use XcVm\Module\Watch\WatchItem;
+use XcVm\Module\Watch\WatchCron;
+use XcVm\Module\Watch\RecordingService;
+use XcVm\Module\Plex\PlexService;
+use XcVm\Module\Plex\PlexRepository;
+use XcVm\Module\Plex\PlexItemCommand;
+use XcVm\Module\Plex\PlexItem;
+use XcVm\Module\Plex\PlexCron;
+use XcVm\Core\Boundary\BoundaryInterface;
+use XcVm\Core\Container\ServiceContainer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,7 +29,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ArchitectureTest extends TestCase {
 
-    private const MODULES_DIR = __DIR__ . '/../../src/modules';
+    private const MODULES_DIR = __DIR__ . '/../../src/Modules';
 
     /**
      * Files that still use `global $db` because they run under a separate CLI

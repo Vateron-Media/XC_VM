@@ -1,4 +1,4 @@
-# 🎬 Watch Folder — Automatic Media Import
+# Watch Folder — Automatic Media Import
 
 Watch Folder is an automated content import system. It monitors local directories (or rclone remotes) for new video files, parses their names to extract metadata (title, year, season, episode), looks up TMDB for cover art and descriptions, and creates movies/series records in the database — all without manual intervention.
 
@@ -135,14 +135,14 @@ Set the primary parser per watch folder. The `fallback_parser` global setting is
 
 PTN parser supports parsing movie and TV show files with typical naming patterns.
 
-### 🎥 Movies
+### Movies
 
 | File Example | Parsed Data |
 |-------------|-------------|
 | `San Andreas 2015 720p WEB-DL x264 AAC-JYK.mkv` | Title: *San Andreas*, Year: 2015, Resolution: 720p, Video: x264, Audio: AAC, Group: JYK |
 | `The Martian 2015 540p HDRip KORSUB x264 AAC2 0-FGT.mp4` | Title: *The Martian*, Year: 2015, Resolution: 540p, Video: x264, Audio: AAC2.0, Group: FGT |
 
-### 📺 TV Shows
+### TV Shows
 
 | File Example | Parsed Data |
 |-------------|-------------|
@@ -155,14 +155,14 @@ PTN parser supports parsing movie and TV show files with typical naming patterns
 
 Guessit supports more complex file naming, including dot separators and multilingual titles.
 
-### 🎥 Movies
+### Movies
 
 | File Example | Parsed Data |
 |-------------|-------------|
 | `The.Matrix.1999.1080p.BluRay.x264.DTS-FGT.mkv` | Title: *The Matrix*, Year: 1999, Resolution: 1080p, Video: x264, Audio: DTS, Group: FGT |
 | `Inception.2010.720p.BRRip.x264.AAC-ETRG.mkv` | Title: *Inception*, Year: 2010, Resolution: 720p, Video: x264, Audio: AAC, Group: ETRG |
 
-### 📺 TV Shows
+### TV Shows
 
 | File Example | Parsed Data |
 |-------------|-------------|
@@ -171,7 +171,7 @@ Guessit supports more complex file naming, including dot separators and multilin
 
 ---
 
-### 🔄 Fallback to Folder Name
+### Fallback to Folder Name
 
 If the file name does not contain the show title, enable **Fallback to Folder Name**:
 
@@ -180,7 +180,7 @@ If the file name does not contain the show title, enable **Fallback to Folder Na
 | `/path/to/Show Name/S01E01 720p WEB-DL.mkv` | Title: *Show Name*, Season: 1, Episode: 1 |
 | `/path/to/Show.Name/S01E01.720p.WEB-DL.mkv` | Title: *Show Name*, Season: 1, Episode: 1 |
 
-#### 🗂 Season Folder Structure
+#### Season Folder Structure
 
 If you want episodes sorted into season folders, the file name must contain the show title:
 
@@ -191,7 +191,7 @@ If you want episodes sorted into season folders, the file name must contain the 
 
 ---
 
-### 🌐 RTL Languages
+### RTL Languages
 
 For shows in RTL languages (Arabic, Hebrew, etc.):
 
@@ -207,7 +207,7 @@ For shows in RTL languages (Arabic, Hebrew, etc.):
 
 ---
 
-### ✅ Summary
+### Summary
 
 - **PTN Parser** — simple file names, local formats  
 - **guessit Parser** — supports dot-separated names, multilingual titles, Fallback to folder name  

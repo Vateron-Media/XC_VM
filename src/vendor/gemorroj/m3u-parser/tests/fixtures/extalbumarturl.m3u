@@ -1,0 +1,4 @@
+#EXTM3U
+
+#EXTALBUMARTURL:https://store.example.com/download/A32X5yz-1.jpg
+rtp://@127.0.0.1:5003

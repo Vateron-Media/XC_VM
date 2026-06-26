@@ -10,23 +10,23 @@ HTTP-уровень состоит из следующих основных ко
 
 | Компонент | Файл | Роль |
 | --- | --- | --- |
-| `RequestGuard` | `src/core/Http/RequestGuard.php` | Защита до маршрутизации: защита от флуда, проверка хоста, инициализация логгера |
-| `InputValidator` | `src/core/Validation/InputValidator.php` | Санитизация ввода (cleanGlobals, parseIncomingRecursively) |
-| `RequestManager` | `src/core/Http/RequestManager.php` | Статический фасад, хранящий объединённые данные GET+POST |
-| `Request` | `src/core/Http/Request.php` | Объектно-ориентированная обёртка запроса (существует, но не используется в основном продакшен-потоке) |
-| `Router` | `src/core/Http/Router.php` | Регистрация и диспетчеризация маршрутов страниц и API |
-| `Response` | `src/core/Http/Response.php` | Статические хелперы для ответов (JSON, redirect, CORS и т.д.) |
-| `LegacyInitializer` | `src/core/Init/LegacyInitializer.php` | Legacy-bootstrap, который связывает санитизацию с `RequestManager` |
-| `StreamingRequestBootstrap` | `src/infrastructure/bootstrap/StreamingRequestBootstrap.php` | Лёгкий bootstrap для стриминговых endpoint'ов |
+| `RequestGuard` | `src/Core/Http/RequestGuard.php` | Защита до маршрутизации: защита от флуда, проверка хоста, инициализация логгера |
+| `InputValidator` | `src/Core/Validation/InputValidator.php` | Санитизация ввода (cleanGlobals, parseIncomingRecursively) |
+| `RequestManager` | `src/Core/Http/RequestManager.php` | Статический фасад, хранящий объединённые данные GET+POST |
+| `Request` | `src/Core/Http/Request.php` | Объектно-ориентированная обёртка запроса (существует, но не используется в основном продакшен-потоке) |
+| `Router` | `src/Core/Http/Router.php` | Регистрация и диспетчеризация маршрутов страниц и API |
+| `Response` | `src/Core/Http/Response.php` | Статические хелперы для ответов (JSON, redirect, CORS и т.д.) |
+| `LegacyInitializer` | `src/Core/Init/LegacyInitializer.php` | Legacy-bootstrap, который связывает санитизацию с `RequestManager` |
+| `StreamingRequestBootstrap` | `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | Лёгкий bootstrap для стриминговых endpoint'ов |
 
 ---
 
 ## Поток запроса: страницы Admin/Panel
 
-Точка входа: `src/public/index.php`
+Точка входа: `src/Public/index.php`
 
 ```text
-nginx -> public/index.php
+nginx -> Public/index.php
   -> разбор URL (scope + pageName)
   -> XC_Bootstrap::boot(CONTEXT_ADMIN)
        -> floodProtection()          (блокировка забаненных IP)
@@ -41,8 +41,8 @@ nginx -> public/index.php
        -> initRedis()
        -> initAdminAPI()
        -> initTranslator()
-  -> Загрузка маршрутов из src/public/routes/{scope}.php
-  -> Загрузка маршрутов из src/public/routes/api.php
+  -> Загрузка маршрутов из src/Public/routes/{scope}.php
+  -> Загрузка маршрутов из src/Public/routes/api.php
   -> ModuleLoader::bootAll() (scope admin/reseller, с детекцией коллизий)
   -> Router::dispatchApi($action)  (проверяется первым для страницы "api")
   -> Router::dispatch($pageName, $method)
@@ -63,12 +63,12 @@ nginx -> public/index.php
 
 ## Поток запроса: REST API
 
-Точка входа: `src/public/index.php` (срабатывает до Router'а)
+Точка входа: `src/Public/index.php` (срабатывает до Router'а)
 
 Когда `XC_SCOPE` равно `includes/api/admin` или `includes/api/reseller`:
 
 ```text
-nginx -> public/index.php
+nginx -> Public/index.php
   -> XC_Bootstrap::boot(CONTEXT_ADMIN)
   -> new AdminApiController() или new ResellerRestApiController()
   -> $controller->index()
@@ -81,7 +81,7 @@ nginx -> public/index.php
 
 ## Поток запроса: стриминг
 
-Точка входа: endpoint'ы `www/stream/*.php` или `public/index.php` для `player_api`
+Точка входа: endpoint'ы `www/stream/*.php` или `Public/index.php` для `player_api`
 
 ```text
 nginx -> StreamingRequestBootstrap::init($filename)
@@ -103,7 +103,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 ## `RequestGuard`
 
-Файл: `src/core/Http/RequestGuard.php`
+Файл: `src/Core/Http/RequestGuard.php`
 
 Процедурный guard-скрипт, подключаемый рано в legacy-bootstrap. Выполняется только для HTTP-запросов (пропускается при наличии `$_SERVER['argc']`, что указывает на CLI).
 
@@ -121,7 +121,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 ## `InputValidator`
 
-Файл: `src/core/Validation/InputValidator.php`
+Файл: `src/Core/Validation/InputValidator.php`
 
 Предоставляет статические методы для санитизации ввода и валидации на уровне действий.
 
@@ -146,7 +146,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 ## `RequestManager`
 
-Файл: `src/core/Http/RequestManager.php`
+Файл: `src/Core/Http/RequestManager.php`
 
 Статический фасад, хранящий объединённые данные GET+POST. Это основной паттерн доступа к данным запроса, используемый по всему коду.
 
@@ -187,7 +187,7 @@ RequestManager::update('status', 'active');
 
 ## `Request`
 
-Файл: `src/core/Http/Request.php`
+Файл: `src/Core/Http/Request.php`
 
 Объектно-ориентированная обёртка запроса. Содержит статическую factory `capture()` и instance-методы для доступа к санитизированному вводу. Хотя класс существует и полностью функционален, основной продакшен-поток вместо этого использует `InputValidator` + `RequestManager`. Статические методы санитизации класса `Request` (`cleanGlobals`, `parseIncomingRecursively`) используются в `LegacyInitializer::initStreaming()` для обратной совместимости.
 
@@ -239,7 +239,7 @@ $request = new Request($_GET, $_POST, $_SERVER, $_COOKIE);
 
 ## `Router`
 
-Файл: `src/core/Http/Router.php`
+Файл: `src/Core/Http/Router.php`
 
 Singleton-роутер для диспетчеризации страниц и API. Заменяет legacy-паттерн `switch($rAction)`.
 
@@ -302,7 +302,7 @@ $router->group('watch', function (Router $r) {
 ### Диспетчеризация
 
 ```php
-// Диспетчеризация страницы (вызывается из public/index.php)
+// Диспетчеризация страницы (вызывается из Public/index.php)
 $router->dispatch($pageName, $method);    // возвращает true при совпадении
 
 // Диспетчеризация API (вызывается для параметра action=)
@@ -353,7 +353,7 @@ $collisions = $router->drainRouteCollisions();
 
 ## `Response`
 
-Файл: `src/core/Http/Response.php`
+Файл: `src/Core/Http/Response.php`
 
 Статический хелпер для отправки HTTP-ответов. Заменяет разрозненные паттерны `header()` + `echo` + `exit()`.
 
@@ -390,17 +390,17 @@ $collisions = $router->drainRouteCollisions();
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Http/RequestGuard.php` | Защита до маршрутизации и инициализация логгера (legacy include) |
-| `src/core/Http/Request.php` | OOP-обёртка запроса с методами санитизации |
-| `src/core/Http/Router.php` | Регистрация и диспетчеризация маршрутов |
-| `src/core/Http/RequestManager.php` | Статический фасад данных запроса (основной паттерн доступа) |
-| `src/core/Http/Response.php` | Хелперы вывода ответов |
-| `src/core/Validation/InputValidator.php` | Санитизация ввода и валидация действий |
-| `src/core/Init/LegacyInitializer.php` | Legacy core-инициализация (связывает санитизацию с RequestManager) |
-| `src/infrastructure/bootstrap/StreamingRequestBootstrap.php` | Лёгкий bootstrap стримингового endpoint'а |
-| `src/streaming/StreamingBootstrap.php` | Подключение к БД и legacy-инициализация стриминга |
+| `src/Core/Http/RequestGuard.php` | Защита до маршрутизации и инициализация логгера (legacy include) |
+| `src/Core/Http/Request.php` | OOP-обёртка запроса с методами санитизации |
+| `src/Core/Http/Router.php` | Регистрация и диспетчеризация маршрутов |
+| `src/Core/Http/RequestManager.php` | Статический фасад данных запроса (основной паттерн доступа) |
+| `src/Core/Http/Response.php` | Хелперы вывода ответов |
+| `src/Core/Validation/InputValidator.php` | Санитизация ввода и валидация действий |
+| `src/Core/Init/LegacyInitializer.php` | Legacy core-инициализация (связывает санитизацию с RequestManager) |
+| `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | Лёгкий bootstrap стримингового endpoint'а |
+| `src/Streaming/StreamingBootstrap.php` | Подключение к БД и legacy-инициализация стриминга |
 | `src/bootstrap.php` | Унифицированный bootstrap (класс `XC_Bootstrap`) |
-| `src/public/index.php` | Front-контроллер для admin/reseller/player/API |
-| `src/public/routes/admin.php` | Определения маршрутов admin-страниц |
-| `src/public/routes/reseller.php` | Определения маршрутов reseller-страниц |
-| `src/public/routes/player.php` | Определения маршрутов player-страниц |
+| `src/Public/index.php` | Front-контроллер для admin/reseller/player/API |
+| `src/Public/routes/admin.php` | Определения маршрутов admin-страниц |
+| `src/Public/routes/reseller.php` | Определения маршрутов reseller-страниц |
+| `src/Public/routes/player.php` | Определения маршрутов player-страниц |

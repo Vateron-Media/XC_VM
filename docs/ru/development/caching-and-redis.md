@@ -10,23 +10,9 @@ XC_VM использует двухуровневую стратегию кэш�
 
 ---
 
-## Навигация
-
-- [Интерфейс кэша](#интерфейс-кэша)
-- [FileCache](#filecache)
-- [RedisCache](#rediscache)
-- [Управление подключением к Redis](#управление-подключением-к-redis)
-- [Наполнение кэша](#наполнение-кэша)
-- [Соглашения о ключах кэша](#соглашения-о-ключах-кэша)
-- [Паттерны инвалидации](#паттерны-инвалидации)
-- [Стриминговый путь vs административный](#стриминговый-путь-vs-административный)
-- [Связанные файлы](#связанные-файлы)
-
----
-
 ## Интерфейс кэша
 
-Файл: `src/core/Cache/CacheInterface.php`
+Файл: `src/Core/Cache/CacheInterface.php`
 
 ```php
 get($key, $maxAge = null)
@@ -43,7 +29,7 @@ flush()
 
 ## FileCache
 
-Файл: `src/core/Cache/FileCache.php`
+Файл: `src/Core/Cache/FileCache.php`
 
 Реализация кэша по умолчанию. Хранит igbinary-сериализованные данные в виде плоских файлов.
 
@@ -71,7 +57,7 @@ FileCache::getCache($key, $maxAge = null)
 
 ## RedisCache
 
-Файл: `src/core/Cache/RedisCache.php`
+Файл: `src/Core/Cache/RedisCache.php`
 
 Опциональная высокопроизводительная реализация.
 
@@ -89,7 +75,7 @@ $redis->getConnection();                 // сырой phpredis для sorted se
 
 ## Управление подключением к Redis
 
-Файл: `src/infrastructure/redis/RedisManager.php`
+Файл: `src/Infrastructure/Redis/RedisManager.php`
 
 Жизненный цикл singleton:
 
@@ -211,7 +197,7 @@ RedisManager::closeInstance()            // отключение
 - Сырая igbinary-десериализация: `igbinary_unserialize(file_get_contents(...))`.
 - Если `cache_complete` отсутствует — выход с ошибкой.
 
-### Административный путь (`public/Controllers/Admin/*`)
+### Административный путь (`Public/Controllers/Admin/*`)
 
 - `cached: false` по умолчанию.
 - Читает напрямую из базы данных через доменные сервисы.
@@ -259,12 +245,12 @@ FileCache::setCache('bouquets', $rOutput);
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Cache/CacheInterface.php` | контракт кэша |
-| `src/core/Cache/FileCache.php` | реализация файлового кэша |
-| `src/core/Cache/RedisCache.php` | реализация Redis-кэша |
-| `src/infrastructure/redis/RedisManager.php` | singleton подключения к Redis |
-| `src/infrastructure/cache/CacheReader.php` | мост для legacy-чтения кэша |
-| `src/cli/CronJobs/CacheCronJob.php` | генерация лёгкого кэша |
-| `src/cli/CronJobs/CacheEngineCronJob.php` | генерация тяжёлого кэша (потоки, линии, сериалы) |
-| `src/domain/Bouquet/BouquetService.php` | пример кэширования на админ-пути |
-| `src/domain/Stream/ConnectionTracker.php` | Redis sorted sets для состояния подключений |
+| `src/Core/Cache/CacheInterface.php` | контракт кэша |
+| `src/Core/Cache/FileCache.php` | реализация файлового кэша |
+| `src/Core/Cache/RedisCache.php` | реализация Redis-кэша |
+| `src/Infrastructure/Redis/RedisManager.php` | singleton подключения к Redis |
+| `src/Infrastructure/Cache/CacheReader.php` | мост для legacy-чтения кэша |
+| `src/Cli/CronJobs/CacheCronJob.php` | генерация лёгкого кэша |
+| `src/Cli/CronJobs/CacheEngineCronJob.php` | генерация тяжёлого кэша (потоки, линии, сериалы) |
+| `src/Domain/Bouquet/BouquetService.php` | пример кэширования на админ-пути |
+| `src/Domain/Stream/ConnectionTracker.php` | Redis sorted sets для состояния подключений |

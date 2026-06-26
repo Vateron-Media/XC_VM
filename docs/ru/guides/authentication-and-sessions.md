@@ -38,7 +38,7 @@ POST-запрос с учётными данными
 
 ## Authenticator
 
-Файл: `src/core/Auth/Authenticator.php`
+Файл: `src/Core/Auth/Authenticator.php`
 
 ### `Authenticator::login(array $data, bool $bypassRecaptcha = false): array`
 
@@ -110,7 +110,7 @@ Authenticator::checkPassword(string $password, string $storedHash): string
 
 ## Аутентификация плеера
 
-Файл: `src/public/Controllers/Player/PlayerLoginController.php`
+Файл: `src/Public/Controllers/Player/PlayerLoginController.php`
 
 Процесс входа плеера принципиально отличается от admin/reseller. Он аутентифицирует «линии» конечных пользователей (IPTV-подписки), а не операторов панели.
 
@@ -163,7 +163,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ### Валидация admin-сессии
 
-Файл: `src/public/Views/admin/functions.php`
+Файл: `src/Public/Views/admin/functions.php`
 
 Когда `$_SESSION['hash']` установлен, при каждой загрузке страницы выполняются следующие проверки:
 
@@ -180,7 +180,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ### Валидация reseller-сессии
 
-Файл: `src/infrastructure/bootstrap/reseller_functions.php`
+Файл: `src/Infrastructure/Bootstrap/reseller_functions.php`
 
 Идентичная логика валидации admin, но использует ключи сессии реселлера:
 
@@ -193,7 +193,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ### Таймаут admin-сессии
 
-Файл: `src/public/Views/admin/session.php`
+Файл: `src/Public/Views/admin/session.php`
 
 Отдельная проверка таймаута сессии работает для admin-сессий. Если оба `$_SESSION['hash']` и `$_SESSION['last_activity']` установлены и с момента `last_activity` прошло более 60 минут, ключи сессии (`hash`, `ip`, `code`, `verify`, `last_activity`) сбрасываются. При каждом валидном запросе `$_SESSION['last_activity']` обновляется, а сессия закрывается для записи.
 
@@ -205,7 +205,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ## SessionManager
 
-Файл: `src/core/Auth/SessionManager.php`
+Файл: `src/Core/Auth/SessionManager.php`
 
 Унифицированное API сессий, абстрагирующее различные имена ключей сессий в разных контекстах. Предполагается как замена legacy-файлов `admin/session.php` и `reseller/session.php`.
 
@@ -277,7 +277,7 @@ $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password'
 
 ## BruteforceGuard
 
-Файл: `src/core/Auth/BruteforceGuard.php`
+Файл: `src/Core/Auth/BruteforceGuard.php`
 
 Централизованное rate-limiting и защита от брутфорса. Все методы используют файловое состояние в `FLOOD_TMP_PATH` (`/home/xc_vm/tmp/flood/`). Разрешённые IP (IP серверов) и IP из настройки `flood_ips_exclude` всегда исключаются.
 
@@ -387,7 +387,7 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 ### `Authorization`
 
-Файл: `src/core/Auth/Authorization.php`
+Файл: `src/Core/Auth/Authorization.php`
 
 Авторизация на уровне объекта. Проверяет, есть ли у текущего пользователя право на доступ к конкретному ресурсу (пользователь, поток и т.д.) на основе иерархии владения реселлера и прав группы.
 
@@ -396,7 +396,7 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 ### `PageAuthorization`
 
-Файл: `src/core/Auth/PageAuthorization.php`
+Файл: `src/Core/Auth/PageAuthorization.php`
 
 Контроль доступа на уровне страниц. Определяет, разрешает ли набор прав группы текущего пользователя доступ к конкретной странице админ- или reseller-панели.
 
@@ -408,15 +408,15 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 
 | Файл | Назначение |
 | --- | --- |
-| `src/core/Auth/Authenticator.php` | Логика входа admin и reseller, хеширование пароля |
-| `src/core/Auth/SessionManager.php` | Унифицированное API сессий с маппингом ключей контекстов |
-| `src/core/Auth/BruteforceGuard.php` | Rate-limiting и защита от брутфорса |
-| `src/core/Auth/Authorization.php` | Проверки авторизации на уровне объектов |
-| `src/core/Auth/PageAuthorization.php` | Контроль доступа на уровне страниц |
-| `src/public/Controllers/Player/PlayerLoginController.php` | Процесс входа плеера с проверками безопасности |
-| `src/public/Views/admin/functions.php` | Валидация admin-сессии при каждой загрузке страницы |
-| `src/public/Views/admin/session.php` | Таймаут admin-сессии и AJAX-проверка сессии |
-| `src/infrastructure/bootstrap/reseller_functions.php` | Валидация reseller-сессии при каждой загрузке страницы |
-| `src/domain/User/UserRepository.php` | Поиск учётных данных (`getAuthUserByCredentials`) |
+| `src/Core/Auth/Authenticator.php` | Логика входа admin и reseller, хеширование пароля |
+| `src/Core/Auth/SessionManager.php` | Унифицированное API сессий с маппингом ключей контекстов |
+| `src/Core/Auth/BruteforceGuard.php` | Rate-limiting и защита от брутфорса |
+| `src/Core/Auth/Authorization.php` | Проверки авторизации на уровне объектов |
+| `src/Core/Auth/PageAuthorization.php` | Контроль доступа на уровне страниц |
+| `src/Public/Controllers/Player/PlayerLoginController.php` | Процесс входа плеера с проверками безопасности |
+| `src/Public/Views/admin/functions.php` | Валидация admin-сессии при каждой загрузке страницы |
+| `src/Public/Views/admin/session.php` | Таймаут admin-сессии и AJAX-проверка сессии |
+| `src/Infrastructure/Bootstrap/reseller_functions.php` | Валидация reseller-сессии при каждой загрузке страницы |
+| `src/Domain/User/UserRepository.php` | Поиск учётных данных (`getAuthUserByCredentials`) |
 | `src/bootstrap.php` | Определения констант статуса, bootstrap-контексты |
-| `src/core/Config/Paths.php` | Определение `FLOOD_TMP_PATH` |
+| `src/Core/Config/Paths.php` | Определение `FLOOD_TMP_PATH` |

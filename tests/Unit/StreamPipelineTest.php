@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Http\Pipeline\StreamPipeline;
+use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
+use XcVm\Core\Http\Pipeline\StreamContext;
 use PHPUnit\Framework\TestCase;
 
 final class StreamPipelineTest extends TestCase {

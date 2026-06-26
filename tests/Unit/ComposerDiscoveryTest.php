@@ -1,5 +1,11 @@
 <?php
 
+use XcVm\Core\Events\EventDispatcher;
+use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Module\BaseModule;
+use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -194,7 +200,7 @@ final class ComposerDiscoveryTest extends TestCase {
 
         file_put_contents($dir . '/' . $cls . '.php', "<?php\n"
             . "namespace {$namespace};\n"
-            . "use BaseModule;\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
             . "class {$cls} extends BaseModule {\n"
             . "\tpublic function getName(): string    { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"

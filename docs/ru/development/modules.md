@@ -2,11 +2,11 @@
 
 ## Обзор
 
-Модуль — изолированная директория в `src/modules/` с известным контрактом. Удаление модуля **не ломает систему** — она продолжает работать, деградируя в функциональности.
+Модуль — изолированная директория в `src/Modules/` с известным контрактом. Удаление модуля **не ломает систему** — она продолжает работать, деградируя в функциональности.
 
 Система построена на принципах **Extensible Platform**:
 
-- Ядро (`core/`) ничего не знает о модулях
+- Ядро (`Core/`) ничего не знает о модулях
 - Модули расширяют ядро через интерфейсы-контракты
 - Никакой правки файлов ядра, никакого eval, никакого monkey patching
 - Любой модуль отключается через `config/modules.php` без последствий для ядра
@@ -118,7 +118,7 @@ StreamMiddlewareProviderInterface   getStreamMiddleware()
 
 ## Класс модуля
 
-Файл `src/modules/my-module/MyModule.php`.
+Файл `src/Modules/my-module/MyModule.php`.
 
 Расширяйте `BaseModule` — он предоставляет пустые реализации по умолчанию для всех
 необязательных методов. Обязательны только `getName()` и `getVersion()`.
@@ -204,8 +204,8 @@ class MyModuleModule extends BaseModule {
 PascalCase-вариант имени директории модуля.
 
 ```
-src/modules/my-module/   →  namespace XcVm\Module\MyModule;
-src/modules/watch/       →  namespace XcVm\Module\Watch;
+src/Modules/my-module/   →  namespace XcVm\Module\MyModule;
+src/Modules/watch/       →  namespace XcVm\Module\Watch;
 ```
 
 Главный файл модуля обязан объявлять это пространство имён и расширять `BaseModule`:
@@ -369,7 +369,7 @@ EventDispatcher::listen(StreamStartingEvent::class, function (StreamStartingEven
 | `StreamStoppedEvent` | Стрим остановлен | ❌ |
 | `SettingsChangedEvent` | Изменение настроек панели | ❌ |
 
-Все типизированные события находятся в `src/core/Events/`.
+Все типизированные события находятся в `src/Core/Events/`.
 
 ---
 
@@ -524,7 +524,7 @@ return [
 ```
 ModuleLoader::loadAll()
     │
-    ├── glob('modules/*/module.json')
+    ├── glob('Modules/*/module.json')
     ├── читает overrides из config/modules.php
     ├── фильтрует по environment (main/lb/any)
     ├── readManifest() → normalizes: dependencies, optional_dependencies, priority
@@ -613,8 +613,8 @@ class MyController {
 
     public function __construct() {
         $this->viewsPath = __DIR__ . '/views';
-        require_once MAIN_HOME . 'public/Views/layouts/admin.php';
-        require_once MAIN_HOME . 'public/Views/layouts/footer.php';
+        require_once MAIN_HOME . 'Public/Views/layouts/admin.php';
+        require_once MAIN_HOME . 'Public/Views/layouts/footer.php';
     }
 
     public function index(): void {
@@ -643,7 +643,7 @@ class MyController {
 ## Крон-задача (опционально)
 
 ```php
-// src/modules/my-module/MyCronJob.php
+// src/Modules/my-module/MyCronJob.php
 
 class MyCronJob implements CommandInterface {
     use CronTrait;
@@ -701,13 +701,13 @@ public function has(string $id): bool;
 
 `NotFoundException` реализует `NotFoundExceptionInterface` → `ContainerExceptionInterface`.
 
-Интерфейсы находятся в `src/core/Container/Psr/`. Composer не используется — файлы включены в проект напрямую.
+Интерфейсы находятся в `src/Core/Container/Psr/`. Composer не используется — файлы включены в проект напрямую.
 
 ---
 
 ## Чеклист добавления модуля
 
-- [ ] `mkdir -p src/modules/<name>/`
+- [ ] `mkdir -p src/Modules/<name>/`
 - [ ] Создать `module.json` (name, version, requires_core, priority, optional_dependencies)
 - [ ] Создать `<Name>Module.php` (extends `BaseModule`)
 - [ ] `boot()` — зарегистрировать сервисы через `$container->set()`
@@ -718,7 +718,7 @@ public function has(string $id): bool;
 - [ ] (опц.) `implements StreamMiddlewareProviderInterface` + `getStreamMiddleware()`
 - [ ] (опц.) Контроллер + views/
 - [ ] (опц.) CronJob + регистрация в StartupCommand
-- [ ] Проверить: `php -l src/modules/<name>/<Name>Module.php`
+- [ ] Проверить: `php -l src/Modules/<name>/<Name>Module.php`
 - [ ] Проверить: `php console.php --list` показывает команды модуля
 - [ ] Проверить: удаление директории не вызывает ошибок ядра
 
@@ -731,10 +731,10 @@ A: `src/config/modules.php` → `'my-module' => ['state' => 'disabled']`.
 Legacy-форма `'enabled' => false` тоже принимается для обратной совместимости.
 
 **Q: Нужна ли регистрация в конфиге для загрузки?**
-A: Нет. `ModuleLoader` сам находит все модули по `modules/*/module.json`.
+A: Нет. `ModuleLoader` сам находит все модули по `Modules/*/module.json`.
 
 **Q: Мой модуль зависит от другого. Как объявить?**
-A: В `module.json` через `dependencies` (обязательно) или `optional_dependencies` (мягко). Предпочитайте выносить общую логику в `core/` вместо межмодульных зависимостей.
+A: В `module.json` через `dependencies` (обязательно) или `optional_dependencies` (мягко). Предпочитайте выносить общую логику в `Core/` вместо межмодульных зависимостей.
 
 **Q: Как задекорировать сервис другого модуля?**
 A: `$container->decorate('service.id', MyDecorator::class, priority: 10)` в своём `boot()`.
@@ -753,3 +753,12 @@ A: Проверьте, что модуль реализует `StreamMiddlewareP
 
 **Q: Мой модуль MAIN-only — что делать?**
 A: Ничего. Все модули MAIN-only по умолчанию — `modules/` не входит в `LB_DIRS`. Для LB используйте `"environment": "lb"` или `"any"`.
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/Core/Module/ModuleLoader.php` | Обнаружение, сортировка и загрузка модулей; PSR-4-резолвер |
+| `src/config/modules.php` | Конфиг включения / переопределения класса модуля |
+| `src/Modules/` | Каталоги модулей |
+| `src/Core/Module/Contract/` | Под-интерфейсы модулей |

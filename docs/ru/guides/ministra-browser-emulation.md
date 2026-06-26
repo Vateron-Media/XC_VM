@@ -125,4 +125,12 @@ http://192.168.110.251/HgBjUjSI/
 - Клиентские параметры и вызовы API: `src/ministra/xpcom.common.js`
 - Инициализация debug/get-параметров: `src/ministra/index.html`
 - Серверная проверка устройства и профиль: `src/ministra/portal.php`
-- Handshake/get_profile orchestration: `src/modules/ministra/PortalHandler.php`
+- Handshake/get_profile orchestration: `src/Modules/ministra/PortalHandler.php`
+
+## Связанные файлы
+
+| Файл | Роль |
+| --- | --- |
+| `src/ministra/portal.php` | Точка входа портала Ministra |
+| `src/ministra/index.html` | Страница эмулируемого STB-браузера |
+| `src/Modules/ministra/PortalHandler.php` | Обработчик запросов портала |

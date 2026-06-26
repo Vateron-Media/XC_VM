@@ -1,8 +1,10 @@
 name: CI
 
 # Quality gate: runs on every push and pull request.
-# The project has no Composer — tests run via the committed PHAR
-# (tools/.bin/phpunit.phar) and a custom autoloader (src/autoload.php).
+# Tests run via the committed PHAR (tools/.bin/phpunit.phar). Class loading uses
+# the committed Composer PSR-4 autoloader (src/vendor/) first, with the legacy
+# src/autoload.php scanner as an end-of-queue fallback. The deploy path ships
+# vendor/ as-is and never runs `composer install`.
 
 on:
   push:
@@ -42,11 +44,90 @@ jobs:
           # Matches phpVersion (80300) the analysis targets.
           php-version: '8.3'
           coverage: none
+          tools: composer:v2
 
-      # Downloads the pinned PHPStan PHAR (no Composer) and analyses against the
-      # committed baseline — fails only on NEW issues introduced by the change.
+      # The committed src/vendor/ is production-only; PHPStan is a require-dev
+      # tool, so install it here (from the committed lock — reproducible).
+      - name: Install dev dependencies
+        run: composer install --no-interaction --working-dir=src
+
+      # Analyses against the committed baseline — fails only on NEW issues.
       - name: Run PHPStan
         run: make phpstan
+
+  code-style:
+    name: Code Style (PHP-CS-Fixer)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: composer:v2
+
+      # PHP-CS-Fixer is a require-dev tool; the committed src/vendor/ is
+      # production-only, so install it here (from the committed lock).
+      - name: Install dev dependencies
+        run: composer install --no-interaction --working-dir=src
+
+      # Narrow ruleset: import / namespace hygiene only (see .php-cs-fixer.dist.php).
+      # Dry-run fails on diff.
+      - name: Run PHP-CS-Fixer
+        run: make cs
+
+  psr4-gates:
+    name: PSR-4 Regression Gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        # Full history not needed, but git ls-files requires the working tree.
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+
+      # check-procedural-use: procedural/view files must import every migrated
+      #   class they use (top-of-file `use`; PHP imports are positional).
+      # verify-lb-archive: the LoadBalancer archive must exclude privileged code
+      #   (security blocker 1 — silent rm misses after the PascalCase rename).
+      - name: Run PSR-4 gates
+        run: make gates
+
+  composer-audit:
+    name: Composer Security Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer:v2
+
+      # Audits the committed install set (src/vendor/composer/installed.json)
+      # against the Packagist advisory database. Does NOT run `composer install`
+      # (vendor/ is committed and shipped) and does NOT use --locked
+      # (composer.lock is gitignored, never committed). A no-op while every
+      # dependency is path-mapped/vendored without metadata, but gates real
+      # installed packages the moment any are added.
+      - name: Composer audit
+        run: |
+          count=$(php -r '$f="src/vendor/composer/installed.json";$d=is_file($f)?json_decode(file_get_contents($f),true):[];echo is_array($d["packages"]??null)?count($d["packages"]):0;')
+          if [ "$count" -eq 0 ]; then
+            echo "No installed Composer packages — nothing to audit."
+          else
+            composer audit --no-interaction --working-dir=src
+          fi
 
   test:
     name: PHPUnit

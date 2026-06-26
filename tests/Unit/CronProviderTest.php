@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\Contract\CronProviderInterface;
+use XcVm\Core\Module\BaseModule;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -170,8 +173,8 @@ final class CronProviderTest extends TestCase {
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
-            . "use BaseModule;\n"
-            . "use ServiceContainer;\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
+            . "use XcVm\Core\Container\ServiceContainer;\n"
             . "class {$cls} extends BaseModule {\n"
             . "\tpublic function getName(): string    { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"
@@ -196,17 +199,17 @@ final class CronProviderTest extends TestCase {
 
         $code = "<?php\n"
             . "namespace {$ns};\n"
-            . "use ModuleInterface;\n"
-            . "use ServiceContainer;\n"
-            . "use Router;\n"
-            . "use CommandRegistry;\n"
-            . "use NavbarRegistry;\n"
+            . "use XcVm\Core\Module\ModuleInterface;\n"
+            . "use XcVm\Core\Container\ServiceContainer;\n"
+            . "use XcVm\\Core\\Http\\Router;\n"
+            . "use XcVm\Cli\CommandRegistry;\n"
+            . "use XcVm\Core\Module\NavbarRegistry;\n"
             . "class {$cls} implements ModuleInterface {\n"
             . "\tpublic function getName(): string    { return '{$name}'; }\n"
             . "\tpublic function getVersion(): string { return '1.0.0'; }\n"
             . "\tpublic function boot(ServiceContainer \$c): void {}\n"
             . "\tpublic function getEventSubscribers(): array { return []; }\n"
-            . "\tpublic function registerRoutes(Router \$r): void {}\n"
+            . "\tpublic function registerRoutes(\\XcVm\\Core\\Http\\Router \$r): void {}\n"
             . "\tpublic function registerCommands(CommandRegistry \$r): void {}\n"
             . "\tpublic function registerNavbar(NavbarRegistry \$registry): void {}\n"
             . "\tpublic function install(): void {}\n"

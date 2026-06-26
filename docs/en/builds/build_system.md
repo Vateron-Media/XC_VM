@@ -1,23 +1,10 @@
-# 📦 XC_VM Build System (MAIN vs LB)
+# XC_VM Build System (MAIN vs LB)
 
 How XC_VM produces two build variants from a single codebase: a full MAIN server and a lightweight Load Balancer (LB) server.
 
 ---
 
-## 📚 Navigation
-
-- 🏗 Build Variants
-- ⚙️ Makefile Targets
-- 📂 What Goes Into Each Build
-- 🔀 MAIN vs LB - Key Differences
-- 🌐 LB Nginx Configuration
-- 🔧 Runtime Behavior on LB
-- ➕ Adding New Code to Builds
-- ✅ Build Verification
-
----
-
-## 🏗 Build Variants
+## Build Variants
 
 XC_VM supports two deployment roles from a single source tree:
 
@@ -32,7 +19,7 @@ XC_VM supports two deployment roles from a single source tree:
 
 ---
 
-## ⚙️ Makefile Targets
+## Makefile Targets
 
 | Target | Output | Description |
 | --- | --- | --- |
@@ -49,7 +36,24 @@ Additional outputs:
 
 ---
 
-## 📂 What Goes Into Each Build
+## Composer Dependencies
+
+`src/vendor/` (the Composer PSR-4 autoloader plus the production dependencies) is
+**committed** and shipped as-is — the deploy path has no Composer and never runs
+`composer install`. It is kept production-only via `composer install --no-dev`, so
+both build variants ship a lean vendor with no dev tooling.
+
+- `src/composer.lock` is committed so `composer install` is reproducible.
+- Dev tools (PHPStan, PHP-CS-Fixer) are `require-dev` and are **not** in the
+  committed vendor or the archives. Developers and CI add them with `make dev-tools`
+  (`composer install`); the `check-vendor-prod-only` gate fails if a dev package is
+  ever committed under `src/vendor/`.
+- There is no build-time vendor step — `make main` / `make lb` copy the committed
+  `vendor/` directly into the archive.
+
+---
+
+## What Goes Into Each Build
 
 ### MAIN Build
 
@@ -60,12 +64,12 @@ The MAIN build contains the **entire** `src/` directory.
 Only these directories are copied into the LB archive:
 
 ```text
-bin/        cli/        config/     content/    core/
-domain/     infrastructure/         public/     resources/
-signals/    streaming/  tmp/        www/
+bin/        Cli/        config/     content/    Core/
+Domain/     Infrastructure/         public/     resources/
+signals/    Streaming/  tmp/        www/
 ```
 
-Plus root files: `autoload.php`, `bootstrap.php`, `console.php`, `service`, `update`.
+Plus root files: `bootstrap.php`, `console.php`, `service`, `update`.
 
 ### LB Build — Excluded Content
 
@@ -78,15 +82,15 @@ After copying, admin-specific content is **removed** from the LB build:
 | `bin/install/` | Installer scripts (not needed on LB) |
 | `bin/redis/` | Redis binary (LB doesn't run its own Redis) |
 | `bin/nginx/conf/codes/` | Error code pages (admin UI) |
-| `public/Controllers/Admin/` | Admin panel controllers |
-| `public/Controllers/Player/` | Player panel controllers |
-| `public/Controllers/Reseller/` | Reseller panel controllers |
-| `public/Views/` | Panel templates |
-| `public/assets/` | Panel static assets |
-| `public/routes/` | Panel route maps |
-| `domain/User/` | User management |
-| `domain/Device/` | Device registration |
-| `domain/Auth/` | Auth management (panel auth) |
+| `Public/Controllers/Admin/` | Admin panel controllers |
+| `Public/Controllers/Player/` | Player panel controllers |
+| `Public/Controllers/Reseller/` | Reseller panel controllers |
+| `Public/Views/` | Panel templates |
+| `Public/assets/` | Panel static assets |
+| `Public/routes/` | Panel route maps |
+| `Domain/User/` | User management |
+| `Domain/Device/` | Device registration |
+| `Domain/Auth/` | Auth management (panel auth) |
 | `resources/langs/` | Language resource files |
 | `resources/libs/` | Admin library resources |
 
@@ -94,39 +98,39 @@ After copying, admin-specific content is **removed** from the LB build:
 
 | File | Reason |
 | --- | --- |
-| `public/Controllers/Api/AdminApiController.php` | Full admin API removed from LB |
-| `public/Controllers/Api/ResellerRestApiController.php` | Reseller API removed from LB |
-| `infrastructure/legacy/reseller_api.php` | Legacy reseller API bootstrap not needed on LB |
+| `Public/Controllers/Api/AdminApiController.php` | Full admin API removed from LB |
+| `Public/Controllers/Api/ResellerRestApiController.php` | Reseller API removed from LB |
+| `Infrastructure/legacy/reseller_api.php` | Legacy reseller API bootstrap not needed on LB |
 | `www/xplugin.php`, `www/probe.php`, `www/playlist.php` | Admin endpoints |
 | `www/player_api.php`, `www/epg.php`, `www/enigma2.php` | Client API endpoints (served by MAIN) |
 | `www/stream/auth.php` | Auth endpoint removed from LB package |
 | `www/admin/api.php`, `www/admin/proxy_api.php` | Admin API |
 | `bin/maxmind/GeoLite2-City.mmdb` | GeoIP DB shipped separately |
 | `config/rclone.conf` | Backup config |
-| `domain/Epg/EPG.php` | EPG processing class |
+| `Domain/Epg/EPG.php` | EPG processing class |
 | `bin/nginx/conf/gzip.conf` | Gzip config (LB uses own) |
 
 **CLI commands removed:**
 
 | File | Reason |
 | --- | --- |
-| `cli/Commands/MigrateCommand.php` | Migration is MAIN-only |
-| `cli/Commands/CacheHandlerCommand.php` | Cache handler is MAIN-only |
-| `cli/Commands/ServerInstallCommand.php` | Server installer (not needed on LB itself) |
-| `cli/Commands/LbInstallFlow.php` | LB install helper (not needed on LB itself) |
-| `cli/Commands/ProxyInstallFlow.php` | Proxy install helper (not needed on LB itself) |
+| `Cli/Commands/MigrateCommand.php` | Migration is MAIN-only |
+| `Cli/Commands/CacheHandlerCommand.php` | Cache handler is MAIN-only |
+| `Cli/Commands/ServerInstallCommand.php` | Server installer (not needed on LB itself) |
+| `Cli/Commands/LbInstallFlow.php` | LB install helper (not needed on LB itself) |
+| `Cli/Commands/ProxyInstallFlow.php` | Proxy install helper (not needed on LB itself) |
 
 **Cron jobs removed:**
 
 | File | Reason |
 | --- | --- |
-| `cli/CronJobs/RootMysqlCronJob.php` | DB maintenance (MAIN-only) |
-| `cli/CronJobs/BackupsCronJob.php` | Backups (MAIN-only) |
-| `cli/CronJobs/CacheEngineCronJob.php` | Full cache rebuild (MAIN-only) |
-| `cli/CronJobs/EpgCronJob.php` | EPG processing (MAIN-only) |
-| `cli/CronJobs/UpdateCronJob.php` | Update check (MAIN-only) |
-| `cli/CronJobs/ProvidersCronJob.php` | Provider sync (MAIN-only) |
-| `cli/CronJobs/SeriesCronJob.php` | Series metadata (MAIN-only) |
+| `Cli/CronJobs/RootMysqlCronJob.php` | DB maintenance (MAIN-only) |
+| `Cli/CronJobs/BackupsCronJob.php` | Backups (MAIN-only) |
+| `Cli/CronJobs/CacheEngineCronJob.php` | Full cache rebuild (MAIN-only) |
+| `Cli/CronJobs/EpgCronJob.php` | EPG processing (MAIN-only) |
+| `Cli/CronJobs/UpdateCronJob.php` | Update check (MAIN-only) |
+| `Cli/CronJobs/ProvidersCronJob.php` | Provider sync (MAIN-only) |
+| `Cli/CronJobs/SeriesCronJob.php` | Series metadata (MAIN-only) |
 
 > **Note:** Module-related crons (TMDB, Plex, Watch) now live inside `modules/<name>/` and are excluded from LB builds automatically since `modules/` is not in `LB_DIRS`.
 
@@ -141,7 +145,7 @@ These files from `lb_configs/` **replace** the MAIN versions:
 
 ---
 
-## 🔀 MAIN vs LB — Key Differences
+## MAIN vs LB — Key Differences
 
 | Aspect | MAIN | LB |
 | --- | --- | --- |
@@ -160,7 +164,7 @@ These files from `lb_configs/` **replace** the MAIN versions:
 
 ---
 
-## 🌐 LB Nginx Configuration
+## LB Nginx Configuration
 
 The LB build uses a specialized nginx config optimized for high-throughput streaming:
 
@@ -185,14 +189,14 @@ on_play_done http://127.0.0.1:8080/stream/rtmp;
 
 ---
 
-## 🔧 Runtime Behavior on LB
+## Runtime Behavior on LB
 
 ### Conditional Command Loading
 
 `console.php` uses `file_exists()` guards for commands that may not exist on LB servers:
 
 ```php
-if (file_exists(__DIR__ . '/cli/Commands/CacheHandlerCommand.php')) {
+if (file_exists(__DIR__ . '/Cli/Commands/CacheHandlerCommand.php')) {
     $rRegistry->register(new CacheHandlerCommand());
 }
 ```
@@ -206,18 +210,18 @@ LB servers retain the full streaming pipeline:
 ```text
 www/stream/*.php
   ├── www/stream/init.php
-  ├── autoload.php
+  ├── vendor/autoload.php (Composer PSR-4 autoloader)
   ├── bootstrap.php (lightweight stream/bootstrap path)
-  ├── core/* (Config, Database, Cache, Auth, Http, Logging, Util)
-  ├── domain/Stream, domain/Server, domain/Vod, domain/Bouquet
-  ├── streaming/* (Auth, Delivery, Codec, Protection)
-  ├── infrastructure/redis, infrastructure/database
+  ├── Core/* (Config, Database, Cache, Auth, Http, Logging, Util)
+  ├── Domain/Stream, Domain/Server, Domain/Vod, Domain/Bouquet
+  ├── Streaming/* (Auth, Delivery, Codec, Protection)
+  ├── Infrastructure/Redis, Infrastructure/Database
   └── resources/data
 ```
 
 ---
 
-## ➕ Adding New Code to Builds
+## Adding New Code to Builds
 
 ### New streaming-relevant directory under `src/`
 
@@ -250,7 +254,7 @@ LB_FILES_TO_REMOVE = ... your_dir/admin_file.php
 
 ---
 
-## ✅ Build Verification
+## Build Verification
 
 After modifying the build, verify both variants:
 
@@ -259,7 +263,7 @@ After modifying the build, verify both variants:
 make new
 
 # Check LB contains streaming code
-tar -tzf dist/loadbalancer.tar.gz | grep -cE "core/|domain/Stream|streaming/"
+tar -tzf dist/loadbalancer.tar.gz | grep -cE "Core/|Domain/Stream|Streaming/"
 # Expected: > 0
 
 # Check LB does NOT contain admin code

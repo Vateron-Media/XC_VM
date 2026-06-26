@@ -2,7 +2,7 @@
 
 XC_VM uses constants and settings-driven flags to control environment behavior.
 
-Application constants are stored in `src/core/Config/AppConfig.php`.
+Application constants are stored in `src/Core/Config/AppConfig.php`.
 
 ---
 
@@ -48,7 +48,7 @@ These values are loaded from `CACHE_TMP_PATH/settings` by request guards.
 
 ## Static App Constants
 
-From `src/core/Config/AppConfig.php`:
+From `src/Core/Config/AppConfig.php`:
 
 ```php
 define('DB_ACCESS_ENABLED', false);
@@ -65,18 +65,18 @@ define('OPENSSL_EXTRA', '...');
 
 ## Adding New Flags
 
-Use static constants in `AppConfig.php` for fixed infrastructure/runtime constants.
+Use static constants in `AppConfig.php` for fixed Infrastructure/runtime constants.
 Use settings (`$rSettings`) for values that must be managed from panel UI.
 
 Avoid defining the same behavior in both places.
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Config/AppConfig.php` | static app constants |
-| `src/core/Http/RequestGuard.php` | loads `$rSettings`, sets `PHP_ERRORS` |
-| `src/core/Error/ErrorHandler.php` | uses `debug_show_errors` behavior |
-| `src/core/Logging/Logger.php` | debug/verbosity behavior |
+| `src/Core/Config/AppConfig.php` | static app constants |
+| `src/Core/Http/RequestGuard.php` | loads `$rSettings`, sets `PHP_ERRORS` |
+| `src/Core/Error/ErrorHandler.php` | uses `debug_show_errors` behavior |
+| `src/Core/Logging/Logger.php` | debug/verbosity behavior |

@@ -1,0 +1,73 @@
+<?php
+
+namespace XcVm\Module\Plex;
+
+use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronTrait;
+use XcVm\Core\Process\ProcessManager;
+
+/**
+ * PlexCronJob — plex cron job
+ *
+ * @package XC_VM_Module_Plex
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
+require_once MAIN_HOME . 'Cli/CronTrait.php';
+
+class PlexCronJob implements CommandInterface {
+    use CronTrait;
+
+    public function getName(): string {
+        return 'cron:plex';
+    }
+
+    public function getDescription(): string {
+        return 'Cron: Plex Sync — scan and synchronize media';
+    }
+
+    public function execute(array $rArgs): int {
+        if (!$this->assertRunAsXcVm()) {
+            return 1;
+        }
+
+        ini_set('memory_limit', -1);
+        setlocale(LC_ALL, 'en_US.UTF-8');
+        putenv('LC_ALL=en_US.UTF-8');
+
+        $this->registerShutdown();
+
+        ini_set('display_errors', 1);
+        ini_set('display_startup_errors', 1);
+        error_reporting(30711);
+
+        $rForce = null;
+        if (!empty($rArgs[0])) {
+            $rForce = intval($rArgs[0]);
+        }
+
+        if (!$rForce) {
+            if (file_exists(CACHE_TMP_PATH . 'plex_pid')) {
+                $rPrevPID = intval(file_get_contents(CACHE_TMP_PATH . 'plex_pid'));
+            } else {
+                $rPrevPID = null;
+            }
+            if ($rPrevPID && ProcessManager::isRunning($rPrevPID, 'php')) {
+                echo 'Plex Sync is already running. Please wait until it finishes.' . "\n";
+                return 0;
+            }
+        }
+
+        $this->rIdentifier = CACHE_TMP_PATH . 'plex_pid';
+        file_put_contents($this->rIdentifier, getmypid());
+        $this->setProcessTitle('XC_VM[Plex Sync]');
+
+        set_time_limit(0);
+        PlexCron::run($rForce);
+
+        return 0;
+    }
+}

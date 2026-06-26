@@ -38,7 +38,7 @@ POST request with credentials
 
 ## Authenticator
 
-File: `src/core/Auth/Authenticator.php`
+File: `src/Core/Auth/Authenticator.php`
 
 ### `Authenticator::login(array $data, bool $bypassRecaptcha = false): array`
 
@@ -110,7 +110,7 @@ Verifies a plaintext password against a stored hash using `crypt($password, $sto
 
 ## Player Authentication
 
-File: `src/public/Controllers/Player/PlayerLoginController.php`
+File: `src/Public/Controllers/Player/PlayerLoginController.php`
 
 The player login flow is fundamentally different from admin/reseller. It authenticates end-user "lines" (IPTV subscriptions) rather than panel operators.
 
@@ -163,7 +163,7 @@ After initial login, every authenticated page load re-validates the session. Thi
 
 ### Admin Session Validation
 
-File: `src/public/Views/admin/functions.php`
+File: `src/Public/Views/admin/functions.php`
 
 When `$_SESSION['hash']` is set, the following checks run on every page load:
 
@@ -180,7 +180,7 @@ If any check fails, the session is cleared via `SessionManager::clearContext('ad
 
 ### Reseller Session Validation
 
-File: `src/infrastructure/bootstrap/reseller_functions.php`
+File: `src/Infrastructure/Bootstrap/reseller_functions.php`
 
 Identical logic to admin validation, but uses the reseller session keys:
 
@@ -193,7 +193,7 @@ The IP subnet matching and IP logout behavior is the same as admin.
 
 ### Admin Session Timeout
 
-File: `src/public/Views/admin/session.php`
+File: `src/Public/Views/admin/session.php`
 
 A separate session timeout check runs for admin sessions. If `$_SESSION['hash']` and `$_SESSION['last_activity']` are both set and more than 60 minutes have elapsed since `last_activity`, the session keys (`hash`, `ip`, `code`, `verify`, `last_activity`) are unset. On every valid request, `$_SESSION['last_activity']` is updated and the session is closed for writing.
 
@@ -205,7 +205,7 @@ The player context does not perform IP verification, subnet matching, or activit
 
 ## SessionManager
 
-File: `src/core/Auth/SessionManager.php`
+File: `src/Core/Auth/SessionManager.php`
 
 Unified session API that abstracts the different session key names across contexts. Intended as a replacement for the legacy `admin/session.php` and `reseller/session.php` files.
 
@@ -277,7 +277,7 @@ Since the player context has no `activity` key in the key map, timeout checks do
 
 ## BruteforceGuard
 
-File: `src/core/Auth/BruteforceGuard.php`
+File: `src/Core/Auth/BruteforceGuard.php`
 
 Centralized rate-limiting and brute-force protection. All methods use file-based state stored at `FLOOD_TMP_PATH` (`/home/xc_vm/tmp/flood/`). Allowed IPs (server IPs) and IPs listed in the `flood_ips_exclude` setting are always exempted.
 
@@ -387,7 +387,7 @@ After authentication, two additional authorization layers control what a user ca
 
 ### `Authorization`
 
-File: `src/core/Auth/Authorization.php`
+File: `src/Core/Auth/Authorization.php`
 
 Object-level authorization. Checks whether the current user has permission to access a specific resource (user, stream, etc.) based on reseller ownership hierarchies and group permissions.
 
@@ -396,7 +396,7 @@ Object-level authorization. Checks whether the current user has permission to ac
 
 ### `PageAuthorization`
 
-File: `src/core/Auth/PageAuthorization.php`
+File: `src/Core/Auth/PageAuthorization.php`
 
 Page-level access control. Determines whether the current user's group permissions allow access to a specific admin or reseller panel page.
 
@@ -404,19 +404,19 @@ Page-level access control. Determines whether the current user's group permissio
 
 ---
 
-## Related Files
+## Related files
 
 | File | Purpose |
 | --- | --- |
-| `src/core/Auth/Authenticator.php` | Admin and reseller login logic, password hashing |
-| `src/core/Auth/SessionManager.php` | Unified session API with context key mapping |
-| `src/core/Auth/BruteforceGuard.php` | Rate-limiting and brute-force protection |
-| `src/core/Auth/Authorization.php` | Object-level authorization checks |
-| `src/core/Auth/PageAuthorization.php` | Page-level access control |
-| `src/public/Controllers/Player/PlayerLoginController.php` | Player login flow with security checks |
-| `src/public/Views/admin/functions.php` | Admin session validation on every page load |
-| `src/public/Views/admin/session.php` | Admin session timeout and AJAX session check |
-| `src/infrastructure/bootstrap/reseller_functions.php` | Reseller session validation on every page load |
-| `src/domain/User/UserRepository.php` | Credential lookup (`getAuthUserByCredentials`) |
+| `src/Core/Auth/Authenticator.php` | Admin and reseller login logic, password hashing |
+| `src/Core/Auth/SessionManager.php` | Unified session API with context key mapping |
+| `src/Core/Auth/BruteforceGuard.php` | Rate-limiting and brute-force protection |
+| `src/Core/Auth/Authorization.php` | Object-level authorization checks |
+| `src/Core/Auth/PageAuthorization.php` | Page-level access control |
+| `src/Public/Controllers/Player/PlayerLoginController.php` | Player login flow with security checks |
+| `src/Public/Views/admin/functions.php` | Admin session validation on every page load |
+| `src/Public/Views/admin/session.php` | Admin session timeout and AJAX session check |
+| `src/Infrastructure/Bootstrap/reseller_functions.php` | Reseller session validation on every page load |
+| `src/Domain/User/UserRepository.php` | Credential lookup (`getAuthUserByCredentials`) |
 | `src/bootstrap.php` | Status constant definitions, bootstrap contexts |
-| `src/core/Config/Paths.php` | `FLOOD_TMP_PATH` definition |
+| `src/Core/Config/Paths.php` | `FLOOD_TMP_PATH` definition |

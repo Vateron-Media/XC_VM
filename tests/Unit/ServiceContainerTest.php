@@ -1,5 +1,10 @@
 <?php
 
+use XcVm\Core\Container\Psr\NotFoundException;
+use XcVm\Core\Container\Psr\NotFoundExceptionInterface;
+use XcVm\Core\Container\Psr\ContainerExceptionInterface;
+use XcVm\Core\Container\Psr\ContainerInterface;
+use XcVm\Core\Container\ServiceContainer;
 use PHPUnit\Framework\TestCase;
 
 final class ServiceContainerTest extends TestCase {

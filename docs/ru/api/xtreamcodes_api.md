@@ -1,19 +1,6 @@
-# 📡 XtreamCodes API
+# XtreamCodes API
 
 API предоставляет доступ к IPTV-потокам (Live TV, Радио), VOD (фильмы), сериалам и EPG (телепрограмма) в приложениях, совместимых с XtreamCodes. Это ключевой компонент для интеграции с XC_VM.
-
----
-
-## 📚 Навигация
-
-- [📂 Расположение файлов](#расположение-файлов)
-- [📑 Содержание](#содержание)
-- [🔑 Авторизация](#авторизация)
-- [📺 Live TV (ТВ и Радио)](#live-tv-тв-и-радио)
-- [🎬 VOD (Фильмы)](#vod-фильмы)
-- [📽 Сериалы](#сериалы)
-- [🎞 Получение медиаконтента](#получение-медиаконтента)
-- [🧾 Примечания](#примечания)
 
 ---
 
@@ -22,13 +9,13 @@ API предоставляет доступ к IPTV-потокам (Live TV, Р�
 Основной API обрабатывается `PlayerApiController`:
 
 ```text
-src/public/Controllers/Api/PlayerApiController.php
+src/Public/Controllers/Api/PlayerApiController.php
 ```
 
 EPG/XMLTV эндпоинт (`/xmltv.php`) обрабатывается `EpgApiController`:
 
 ```text
-src/public/Controllers/Api/EpgApiController.php
+src/Public/Controllers/Api/EpgApiController.php
 ```
 
 ---

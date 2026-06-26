@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Util\StreamUtils;
 use PHPUnit\Framework\TestCase;
 
 /**

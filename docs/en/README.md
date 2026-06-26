@@ -1,4 +1,4 @@
-# 📺 XC_VM IPTV Panel
+# XC_VM IPTV Panel
 
 ![Vateron Media Logo](https://avatars.githubusercontent.com/u/149707645?s=400&v=4)
 
@@ -6,7 +6,7 @@ A modern, open-source IPTV panel inspired by Xtream Codes. Lightweight, fast, an
 
 ---
 
-## ❓ What Is It?
+## What Is It?
 
 **XC_VM** is a modern IPTV panel built on PHP, Nginx, FFmpeg, and MariaDB.
 
@@ -22,7 +22,7 @@ XC_VM helps you deploy a full IPTV infrastructure:
 
 ---
 
-## ⭐ Features
+## Features
 
 - 🚀 Modern IPTV panel architecture  
 - 🔀 Built-in load balancer support  
@@ -36,7 +36,7 @@ XC_VM helps you deploy a full IPTV infrastructure:
 
 ---
 
-## 🧰 Technologies
+## Technologies
 
 - **Nginx** — reverse proxy & web server  
 - **PHP 8.1** — core backend  
@@ -49,7 +49,7 @@ XC_VM officially supports Ubuntu 22.04 and is tested on 24.04.
 
 ---
 
-## 🌐 Community
+## Community
 
 XC_VM is a fully community-driven project.
 
@@ -62,7 +62,7 @@ If you want to contribute, read the:
 
 ---
 
-## 🛠 Installation
+## Installation
 
 Installation on Ubuntu 22.04+:
 
@@ -79,6 +79,6 @@ sudo python3 install
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 > You are fully responsible for your own use of this software.
