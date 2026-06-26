@@ -60,6 +60,7 @@ make phpstan       # static analysis (also catches syntax errors)
 make cs            # code style — import/namespace hygiene (PHP-CS-Fixer)
 make gates         # PSR-4 regression gates
 php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist   # unit tests
+make dev-clean     # done? remove the dev tools again, restoring prod-only vendor/
 ```
 
 Do not submit PRs that fail these — CI will reject them.

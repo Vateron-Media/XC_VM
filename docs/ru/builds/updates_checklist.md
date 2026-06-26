@@ -58,6 +58,7 @@ cat src/migrations/deleted_files.txt
 ```bash
 make dev-tools && make phpstan && make cs && make gates
 php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
+make dev-clean   # после проверок убрать dev-инструменты, вернув прод-only vendor/
 ```
 
 **Тестовая установка в Docker** (см. `tools/test-install/`):
@@ -184,3 +185,32 @@ cd dist && md5sum -c hashes.md5
 - [ ] Скачать и проверить `md5sum -c hashes.md5`
 - [ ] Убедиться, что Telegram-уведомление отправлено
 - [ ] Закрыть связанные GitHub issues/milestones
+
+---
+
+## Справочник команд
+
+Все `make`-цели, используемые при подготовке релиза, в одном месте.
+
+**Проверки качества** — сначала `make dev-tools`, в конце `make dev-clean`:
+
+| Команда | Назначение |
+| --- | --- |
+| `make dev-tools` | Установить dev-инструменты (PHPStan, PHP-CS-Fixer) через `composer install` |
+| `make phpstan` | Статический анализ (ловит и синтаксические ошибки) |
+| `make phpstan-baseline` | Перегенерировать baseline PHPStan |
+| `make cs` | Проверка стиля — гигиена импортов/namespace (PHP-CS-Fixer, dry-run) |
+| `make cs-fix` | Применить исправления стиля |
+| `make gates` | Регресс-гейты PSR-4 (procedural-use, LB-archive, vendor-prod-only) |
+| `make dev-clean` | Убрать dev-инструменты, вернув production-only `vendor/` |
+| `php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist` | Юнит-тесты |
+
+**Подготовка и сборка релиза:**
+
+| Команда | Назначение |
+| --- | --- |
+| `make generate_deleted_files` | Перегенерировать `src/migrations/deleted_files.txt` |
+| `make new` | Очистить выходной каталог `dist/` (перед сборкой) |
+| `make lb` | Собрать LoadBalancer-архив в `dist/` |
+| `make main` | Собрать MAIN-архив в `dist/` |
+| `bash tools/test-install/test_release.sh` | Docker-тест установки собранного релиза |
