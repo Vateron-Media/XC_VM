@@ -31,10 +31,6 @@ shipped — the deploy path has no Composer and never runs `composer install`. T
 is **no class-map cache** (no `optimize-autoloader`): a class miss is a plain path
 lookup, not a directory rescan.
 
-> The legacy `XC_Autoloader` scanner (token-scanning, igbinary `tmp/cache/autoload_map`
-> cache, `registerDirectories()`) has been **removed**. There is nothing to warm,
-> clear, or invalidate.
-
 ## Adding a new class
 
 Create the file at the path its namespace maps to — that is all; Composer resolves it on demand:

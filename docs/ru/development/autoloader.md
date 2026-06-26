@@ -31,10 +31,6 @@ XcVm\Public\Controllers\Admin\UserController -> src/Public/Controllers/Admin/Use
 запускается. **Кэша карты классов нет** (без `optimize-autoloader`): промах по
 классу — это обычный поиск по пути, а не пересканирование каталогов.
 
-> Легаси-сканер `XC_Autoloader` (сканирование токенов, igbinary-кэш
-> `tmp/cache/autoload_map`, `registerDirectories()`) **удалён**. Прогревать,
-> очищать или инвалидировать больше нечего.
-
 ## Добавление нового класса
 
 Создайте файл по пути, на который отображается его namespace — и всё; Composer разрешит его по требованию:
