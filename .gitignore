@@ -48,3 +48,4 @@ src/vendor/psr/*
 .phpstan.cache/
 .php-cs-fixer.cache
 tools/test-stream-generator/sample.mp4
+.understand-anything/*
