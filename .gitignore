@@ -47,3 +47,4 @@ src/vendor/psr/*
 # Static-analysis / style caches
 .phpstan.cache/
 .php-cs-fixer.cache
+tools/test-stream-generator/sample.mp4
