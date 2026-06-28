@@ -76,6 +76,20 @@ class StatusCommand implements CommandInterface {
 
 		if ($rServers[SERVER_ID]['is_main']) {
 			MigrationRunner::run($db);
+
+			// Provision bundled modules (create their tables via migrations) the
+			// first time after a fresh install/update. Idempotent and safe to
+			// re-run; failures are logged, not fatal.
+			try {
+				$rInstalled = (new \XcVm\Core\Module\ModuleManager(null, null, \XcVm\Core\Container\ServiceContainer::getInstance()))
+					->syncBundledModules();
+				if (!empty($rInstalled)) {
+					echo 'Installed bundled modules: ' . implode(', ', $rInstalled) . "\n";
+				}
+			} catch (\Throwable $e) {
+				error_log('Bundled module sync failed: ' . $e->getMessage());
+			}
+
 			shell_exec('sudo chmod 0775 ' . MAIN_HOME . 'bin/install');
 		}
 

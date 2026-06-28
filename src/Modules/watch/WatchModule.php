@@ -4,6 +4,9 @@ namespace XcVm\Module\Watch;
 
 use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Events\Bouquet\BouquetDeletedEvent;
+use XcVm\Core\Events\ListensTo;
+use XcVm\Core\Events\Stream\StreamsDeletedEvent;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\BaseModule;
 use XcVm\Core\Module\NavbarItem;
@@ -58,6 +61,22 @@ class WatchModule extends BaseModule {
 
     public function getVersion(): string {
         return '1.0.0';
+    }
+
+    /**
+     * Clean up watch folders when a bouquet is deleted (core fires the event).
+     */
+    #[ListensTo(BouquetDeletedEvent::class)]
+    public function onBouquetDeleted(BouquetDeletedEvent $rEvent): void {
+        WatchService::handleBouquetDeleted($rEvent->bouquetId);
+    }
+
+    /**
+     * Clean up watch scan logs/refresh rows when streams are deleted.
+     */
+    #[ListensTo(StreamsDeletedEvent::class)]
+    public function onStreamsDeleted(StreamsDeletedEvent $rEvent): void {
+        WatchService::handleStreamsDeleted($rEvent->streamIds);
     }
 
     public function boot(ServiceContainer $container): void {

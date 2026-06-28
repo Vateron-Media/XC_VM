@@ -8,6 +8,7 @@ use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Module\Tmdb\TmdbApiService;
 
 /**
  * WatchService — watch service
@@ -173,5 +174,111 @@ class WatchService {
 			$db->query('DELETE FROM `recordings` WHERE `id` = ?;', $rID);
 		}
 		return true;
+	}
+
+	/**
+	 * Sync TMDb movie/TV genres into the watch_categories table (types 1 & 2).
+	 *
+	 * Lives in the watch module because watch owns the watch_categories table
+	 * (previously TMDbService::updateCategories() in the core VOD domain).
+	 * Pulls the genre lists from the bundled TMDb client and inserts any that
+	 * are missing, de-duplicating existing rows by genre_id.
+	 *
+	 * @return void
+	 */
+	public static function updateCategories() {
+		$db = self::db();
+		$rTMDB = TmdbApiService::createClient(SettingsManager::getAll()['tmdb_api_key']);
+
+		$rCurrentCats = array(1 => array(), 2 => array());
+		$db->query('SELECT `id`, `type`, `genre_id` FROM `watch_categories`;');
+
+		if ($db->num_rows() > 0) {
+			foreach ($db->get_rows() as $rRow) {
+				if (array_key_exists($rRow['type'], $rCurrentCats)) {
+
+					if (in_array($rRow['genre_id'], $rCurrentCats[$rRow['type']])) {
+						$db->query('DELETE FROM `watch_categories` WHERE `id` = ?;', $rRow['id']);
+					}
+					$rCurrentCats[$rRow['type']][] = $rRow['genre_id'];
+				}
+			}
+		}
+
+		$rMovieGenres = $rTMDB->getMovieGenres();
+
+		foreach ($rMovieGenres as $rMovieGenre) {
+			if (!in_array($rMovieGenre->getID(), $rCurrentCats[1])) {
+				$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(1, ?, ?, 0, '[]');", $rMovieGenre->getID(), $rMovieGenre->getName());
+			}
+
+			if (!in_array($rMovieGenre->getID(), $rCurrentCats[2])) {
+				$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(2, ?, ?, 0, '[]');", $rMovieGenre->getID(), $rMovieGenre->getName());
+			}
+		}
+
+		$rTVGenres = $rTMDB->getTVGenres();
+
+		foreach ($rTVGenres as $rTVGenre) {
+			if (!in_array($rTVGenre->getID(), $rCurrentCats[1])) {
+				$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(1, ?, ?, 0, '[]');", $rTVGenre->getID(), $rTVGenre->getName());
+			}
+
+			if (!in_array($rTVGenre->getID(), $rCurrentCats[2])) {
+				$db->query("INSERT INTO `watch_categories`(`type`, `genre_id`, `genre`, `category_id`, `bouquets`) VALUES(2, ?, ?, 0, '[]');", $rTVGenre->getID(), $rTVGenre->getName());
+			}
+		}
+	}
+
+	/**
+	 * Remove a deleted bouquet from every watch folder that referenced it.
+	 *
+	 * Reacts to BouquetDeletedEvent so core bouquet deletion no longer needs to
+	 * touch the watch_folders table directly.
+	 *
+	 * @param int $rBouquetID Deleted bouquet id.
+	 * @return void
+	 */
+	public static function handleBouquetDeleted($rBouquetID) {
+		$db = self::db();
+		$db->query("SELECT `id`, `bouquets`, `fb_bouquets` FROM `watch_folders` WHERE JSON_CONTAINS(`bouquets`, ?, '\$') OR JSON_CONTAINS(`fb_bouquets`, ?, '\$');", $rBouquetID, $rBouquetID);
+
+		foreach ($db->get_rows() as $rRow) {
+			$rBouquets = json_decode($rRow['bouquets'], true) ?: array();
+			if (($rKey = array_search($rBouquetID, $rBouquets)) !== false) {
+				unset($rBouquets[$rKey]);
+			}
+
+			$rFbBouquets = json_decode($rRow['fb_bouquets'], true) ?: array();
+			if (($rKey = array_search($rBouquetID, $rFbBouquets)) !== false) {
+				unset($rFbBouquets[$rKey]);
+			}
+
+			$db->query(
+				"UPDATE `watch_folders` SET `bouquets` = ?, `fb_bouquets` = ? WHERE `id` = ?;",
+				'[' . implode(',', array_map('intval', $rBouquets)) . ']',
+				'[' . implode(',', array_map('intval', $rFbBouquets)) . ']',
+				$rRow['id']
+			);
+		}
+	}
+
+	/**
+	 * Drop watch scan logs / refresh-queue rows for deleted streams.
+	 *
+	 * Reacts to StreamsDeletedEvent so core stream deletion no longer needs to
+	 * touch the watch_refresh / watch_logs tables directly.
+	 *
+	 * @param int[] $rStreamIDs Deleted stream ids.
+	 * @return void
+	 */
+	public static function handleStreamsDeleted(array $rStreamIDs) {
+		if (empty($rStreamIDs)) {
+			return;
+		}
+		$rIn = implode(',', array_map('intval', $rStreamIDs));
+		$db = self::db();
+		$db->query('DELETE FROM `watch_refresh` WHERE `stream_id` IN (' . $rIn . ');');
+		$db->query('DELETE FROM `watch_logs` WHERE `stream_id` IN (' . $rIn . ');');
 	}
 }

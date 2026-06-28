@@ -4,7 +4,7 @@
     "version": "1.0.1",
     "requires_core": ">=2.0",
     "environment": "main",
-    "dependencies": [],
+    "dependencies": ["tmdb"],
     "optional_dependencies": [],
     "has_navbar": true,
     "has_settings": true,
