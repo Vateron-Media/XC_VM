@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Config\DomainResolver;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
 

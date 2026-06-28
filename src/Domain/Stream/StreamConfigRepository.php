@@ -2,8 +2,6 @@
 
 namespace XcVm\Domain\Stream;
 
-use XcVm\Core\Database\Database;
-
 /**
  * StreamConfigRepository — аргументы потоков и профили транскодирования.
  *

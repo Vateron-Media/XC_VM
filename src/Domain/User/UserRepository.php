@@ -3,7 +3,6 @@
 namespace XcVm\Domain\User;
 
 use XcVm\Core\Auth\Authenticator;
-use XcVm\Core\Database\Database;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Bouquet\BouquetService;

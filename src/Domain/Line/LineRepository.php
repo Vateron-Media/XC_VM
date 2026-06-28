@@ -2,7 +2,6 @@
 
 namespace XcVm\Domain\Line;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Util\AdminHelpers;
 
 /**

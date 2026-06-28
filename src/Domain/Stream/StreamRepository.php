@@ -2,7 +2,6 @@
 
 namespace XcVm\Domain\Stream;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;

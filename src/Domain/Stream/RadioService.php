@@ -4,7 +4,6 @@ namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
