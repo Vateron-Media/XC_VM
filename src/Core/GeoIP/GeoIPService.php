@@ -29,7 +29,7 @@ class GeoIPService {
 	public static function getIPInfo($rIP) {
 		if (!empty($rIP)) {
 			if (!file_exists(CONS_TMP_PATH . md5($rIP) . '_geo2')) {
-				$rGeoIP = new MaxMind\Db\Reader(GEOLITE2_BIN);
+				$rGeoIP = new \MaxMind\Db\Reader(GEOLITE2_BIN);
 				$rResponse = $rGeoIP->get($rIP);
 				$rGeoIP->close();
 				if ($rResponse) {
@@ -54,7 +54,7 @@ class GeoIPService {
 		if (!empty($rIP)) {
 			$rResponse = (file_exists(CONS_TMP_PATH . md5($rIP) . '_isp') ? json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_isp'), true) : null);
 			if (!is_array($rResponse)) {
-				$rGeoIP = new MaxMind\Db\Reader(GEOISP_BIN);
+				$rGeoIP = new \MaxMind\Db\Reader(GEOISP_BIN);
 				$rResponse = $rGeoIP->get($rIP);
 				$rGeoIP->close();
 				if (is_array($rResponse)) {

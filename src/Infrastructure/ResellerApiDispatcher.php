@@ -843,7 +843,7 @@ class ResellerApiDispatcher {
 	 */
 	private static function handleIpWhois(array $rUserInfo, array $rPermissions, $db): void {
 		$rIP = RequestManager::getAll()['ip'];
-		$rReader = new MaxMind\Db\Reader(GEOLITE2C_BIN);
+		$rReader = new \MaxMind\Db\Reader(GEOLITE2C_BIN);
 		$rResponse = $rReader->get($rIP);
 
 		if (isset($rResponse['location']['time_zone'])) {
@@ -854,7 +854,7 @@ class ResellerApiDispatcher {
 		$rReader->close();
 
 		if (isset(RequestManager::getAll()['isp'])) {
-			$rReader = new MaxMind\Db\Reader(GEOISP_BIN);
+			$rReader = new \MaxMind\Db\Reader(GEOISP_BIN);
 			$rResponse['isp'] = $rReader->get($rIP);
 			$rReader->close();
 		}
