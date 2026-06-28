@@ -96,13 +96,13 @@ sudo /home/xc_vm/console.php tools migration "/tmp/backup.sql"
 ### Создание резервного кода доступа
 
 ```bash
-php /home/xc_vm/console.php tools access
+/home/xc_vm/console.php tools access
 ```
 
 ### Создание администратора
 
 ```bash
-php /home/xc_vm/console.php tools user
+/home/xc_vm/console.php tools user
 ```
 
 > ⚠️ После восстановления доступа **немедленно смените** код доступа и учётные данные администратора.
