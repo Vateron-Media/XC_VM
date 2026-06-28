@@ -6,7 +6,13 @@ use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Api\AdminApiController;
+use XcVm\Public\Controllers\Api\Enigma2ApiController;
+use XcVm\Public\Controllers\Api\EpgApiController;
+use XcVm\Public\Controllers\Api\InternalApiController;
+use XcVm\Public\Controllers\Api\PlayerApiController;
+use XcVm\Public\Controllers\Api\PlaylistApiController;
 use XcVm\Public\Controllers\Api\ResellerRestApiController;
+use XcVm\Public\Controllers\Api\XPluginApiController;
 
 /**
  * Front Controller — единая точка входа для admin/reseller/player.
@@ -125,57 +131,53 @@ if (in_array($ext, ['css', 'js', 'png', 'jpg', 'jpeg', 'gif', 'svg', 'ico', 'wof
     exit;
 }
 
-// 6. Streaming API (XC_SCOPE=api, XC_API={endpoint})
+// 6. Streaming / web API (XC_SCOPE=api, XC_API={endpoint})
+// Each entry: [controller class, bootstrap kind]. `::class` yields the resolved
+// FQN, so `new $class()` works without a manual namespace prefix.
 if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
     $rApiName = $_SERVER['XC_API'];
-    $rApiControllerMap = [
-        'player_api' => 'PlayerApiController',
-        'enigma2'    => 'Enigma2ApiController',
-        'xplugin'    => 'XPluginApiController',
-        'epg'        => 'EpgApiController',
-        'playlist'   => 'PlaylistApiController',
-        'internal'   => 'InternalApiController',
+    $rApiEndpoints = [
+        'player_api' => [PlayerApiController::class,   'stream'],
+        'enigma2'    => [Enigma2ApiController::class,  'web'],
+        'xplugin'    => [XPluginApiController::class,  'web'],
+        'epg'        => [EpgApiController::class,      'web'],
+        'playlist'   => [PlaylistApiController::class, 'web'],
+        'internal'   => [InternalApiController::class, 'web'],
     ];
 
-    if (!isset($rApiControllerMap[$rApiName])) {
+    if (!isset($rApiEndpoints[$rApiName])) {
         http_response_code(404);
         exit;
     }
 
+    [$rControllerClass, $rBootstrapKind] = $rApiEndpoints[$rApiName];
     $rFilename = ($rApiName === 'internal') ? 'api' : $rApiName;
 
-    if ($rApiName === 'player_api') {
+    if ($rBootstrapKind === 'stream') {
         StreamingRequestBootstrap::init($rFilename);
     } else {
         WebApiBootstrap::init($rFilename);
     }
 
-    $rControllerClass = $rApiControllerMap[$rApiName];
     $controller = new $rControllerClass();
     register_shutdown_function([$controller, 'shutdown']);
     $controller->index();
     exit;
 }
 
-// 4. Bootstrap
-if ($scope === 'admin') {
-    $adminDir = MAIN_HOME . 'Public/Views/admin/';
-} else {
-    $adminDir = MAIN_HOME . $scope . '/';
-}
-$cwdTarget = is_dir($adminDir) ? $adminDir : MAIN_HOME;
-@chdir($cwdTarget);
+// 7. Scope bootstrap — working directory + session/functions files
+$adminDir = ($scope === 'admin') ? MAIN_HOME . 'Public/Views/admin/' : MAIN_HOME . $scope . '/';
+@chdir(is_dir($adminDir) ? $adminDir : MAIN_HOME);
 
-if ($scope === 'reseller') {
-    $sessionFile    = MAIN_HOME . 'Infrastructure/Bootstrap/reseller_session.php';
-    $functionsFile  = MAIN_HOME . 'Infrastructure/Bootstrap/reseller_functions.php';
-} elseif ($scope === 'player') {
-    $sessionFile    = MAIN_HOME . 'Infrastructure/Bootstrap/player_session.php';
-    $functionsFile  = MAIN_HOME . 'Infrastructure/Bootstrap/player_functions.php';
-} else {
-    $sessionFile    = MAIN_HOME . 'Infrastructure/Bootstrap/admin_session_fc.php';
-    $functionsFile  = MAIN_HOME . 'Infrastructure/Bootstrap/admin_functions_fc.php';
-}
+// scope → [session file, functions file]; unknown scopes (e.g. ministra) use admin.
+$rBootstrapFiles = [
+    'reseller' => ['reseller_session.php', 'reseller_functions.php'],
+    'player'   => ['player_session.php',   'player_functions.php'],
+    'admin'    => ['admin_session_fc.php', 'admin_functions_fc.php'],
+];
+[$rSessionName, $rFunctionsName] = $rBootstrapFiles[$scope] ?? $rBootstrapFiles['admin'];
+$sessionFile   = MAIN_HOME . 'Infrastructure/Bootstrap/' . $rSessionName;
+$functionsFile = MAIN_HOME . 'Infrastructure/Bootstrap/' . $rFunctionsName;
 
 if ($scope === 'player') {
     $noBootstrapPages = ['login'];
@@ -183,7 +185,7 @@ if ($scope === 'player') {
     $noBootstrapPages = ['login', 'setup', 'database', 'index', 'session'];
 }
 
-// 4a. Страницы без bootstrap (имеют свой)
+// 7a. Страницы без bootstrap (имеют свой)
 // ВАЖНО: НЕ загружаем includes/admin.php — require_once пропустит повторную
 // загрузку в legacy-файлах и переменные ($db и др.) не будут определены.
 if (in_array($pageName, $noBootstrapPages, true)) {
@@ -198,7 +200,7 @@ if (in_array($pageName, $noBootstrapPages, true)) {
     exit;
 }
 
-// 4b. Bootstrap (session → functions → includes/admin)
+// 7b. Bootstrap (session → functions → includes/admin)
 if (file_exists($sessionFile)) {
     require $sessionFile;
 }
@@ -207,7 +209,7 @@ if (file_exists($functionsFile)) {
     require $functionsFile;
 }
 
-// 5. Загрузка маршрутов
+// 8. Загрузка маршрутов
 $router = Router::getInstance();
 $routesDir = __DIR__ . '/routes/';
 
@@ -222,7 +224,7 @@ if (file_exists($apiRouteFile)) {
     require_once $apiRouteFile;
 }
 
-// 5b. Module web boot (M-1)
+// 9. Module web boot (M-1)
 if (in_array($scope, ['admin', 'reseller'], true) && class_exists(ModuleLoader::class)) {
     $moduleLoader = new ModuleLoader();
     $router->beginModuleRegistration();
@@ -247,7 +249,7 @@ if (in_array($scope, ['admin', 'reseller'], true) && class_exists(ModuleLoader::
     }
 }
 
-// 6. Dispatch
+// 10. Dispatch
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 // Module API routes take priority over legacy AjaxController.
@@ -263,7 +265,7 @@ if ($router->dispatch($pageName, $method)) {
     exit;
 }
 
-// 7. 404
+// 11. 404
 http_response_code(404);
 
 if (function_exists('generate404')) {

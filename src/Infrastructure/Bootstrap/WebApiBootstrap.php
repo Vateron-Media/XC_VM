@@ -55,11 +55,18 @@ class WebApiBootstrap {
 
 		$db = new DatabaseHandler();
 		DatabaseFactory::set($db);
+
+		// Wire $db into the domain service classes before initCore() runs,
+		// since initCore() calls ServerRepository::getAll() (via exportGlobals)
+		// which requires the static setDb() to have been called.
+		DomainDatabaseWiring::wire($db);
+
 		LegacyInitializer::initCore($rUseCache);
 
 		if ($rUseCache && !SettingsManager::getAll()['enable_cache']) {
 			$db = new DatabaseHandler();
 			DatabaseFactory::set($db);
+			DomainDatabaseWiring::wire($db);
 		}
 
 		// ── 6. GithubReleases ────────────────────────────────────
