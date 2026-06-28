@@ -278,8 +278,8 @@ class BruteforceGuard {
                 sleep(intval($settings['auth_flood_sleep']));
             }
 
-            $floodSeconds = $settings['auth_flood_seconds'];
-            $floodLimit = $settings['auth_flood_limit'];
+            $floodSeconds = intval($settings['auth_flood_seconds']);
+            $floodLimit = intval($settings['auth_flood_limit']);
             $floodRow['attempts'] = self::truncateAttempts($floodRow['attempts'], $floodSeconds, true);
 
             if (!($floodLimit > count($floodRow['attempts']))) {
