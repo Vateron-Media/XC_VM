@@ -13,7 +13,7 @@ namespace XcVm\Core\Util;
  *   - GEOISP_BIN constant    — path to GeoIP2-ISP.mmdb
  *   - GEOLITE2_BIN constant  — path to GeoLite2-City.mmdb
  *   - CONS_TMP_PATH constant — path for file cache
- *   - MaxMind\Db\Reader class (included in bin/maxmind/)
+ *   - MaxMind\Db\Reader class (Composer package maxmind-db/reader, pure PHP — no maxminddb extension required)
  *
  * @package XC_VM_Core_Util
  * @author  Divarion_D <https://github.com/Divarion-D>

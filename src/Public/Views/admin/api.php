@@ -2695,7 +2695,7 @@ if (RequestManager::getAll()['action'] == 'listdir') {
 		}
 		if (RequestManager::getAll()['action'] == 'ip_whois') {
 			$rIP = RequestManager::getAll()['ip'];
-			$rReader = new MaxMind\Db\Reader(GEOLITE2C_BIN);
+			$rReader = new \MaxMind\Db\Reader(GEOLITE2C_BIN);
 			$rResponse = $rReader->get($rIP);
 
 			if (!isset($rResponse['location']['time_zone'])) {
@@ -2708,7 +2708,7 @@ if (RequestManager::getAll()['action'] == 'listdir') {
 
 			if (!isset(RequestManager::getAll()['isp'])) {
 			} else {
-				$rReader = new MaxMind\Db\Reader(GEOISP_BIN);
+				$rReader = new \MaxMind\Db\Reader(GEOISP_BIN);
 				$rResponse['isp'] = $rReader->get($rIP);
 				$rReader->close();
 			}

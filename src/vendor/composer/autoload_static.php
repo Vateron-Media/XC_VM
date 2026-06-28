@@ -17,7 +17,14 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         ),
         'M' => 
         array (
+            'MaxMind\\WebService\\' => 19,
+            'MaxMind\\Exception\\' => 18,
+            'MaxMind\\Db\\' => 11,
             'M3uParser\\' => 10,
+        ),
+        'G' => 
+        array (
+            'GeoIp2\\' => 7,
         ),
         'D' => 
         array (
@@ -25,6 +32,7 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         ),
         'C' => 
         array (
+            'Composer\\CaBundle\\' => 18,
             'Chrisyue\\PhpM3u8\\' => 17,
         ),
     );
@@ -38,13 +46,33 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
         array (
             0 => __DIR__ . '/..' . '/psr/simple-cache/src',
         ),
+        'MaxMind\\WebService\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/WebService',
+        ),
+        'MaxMind\\Exception\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/Exception',
+        ),
+        'MaxMind\\Db\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/maxmind-db/reader/src/MaxMind/Db',
+        ),
         'M3uParser\\' => 
         array (
             0 => __DIR__ . '/..' . '/gemorroj/m3u-parser/src',
         ),
+        'GeoIp2\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/geoip2/geoip2/src',
+        ),
         'Detection\\' => 
         array (
             0 => __DIR__ . '/..' . '/mobiledetect/mobiledetectlib/src',
+        ),
+        'Composer\\CaBundle\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/composer/ca-bundle/src',
         ),
         'Chrisyue\\PhpM3u8\\' => 
         array (

@@ -8,7 +8,12 @@ $baseDir = dirname($vendorDir);
 return array(
     'XcVm\\' => array($baseDir . '/'),
     'Psr\\SimpleCache\\' => array($vendorDir . '/psr/simple-cache/src'),
+    'MaxMind\\WebService\\' => array($vendorDir . '/maxmind/web-service-common/src/WebService'),
+    'MaxMind\\Exception\\' => array($vendorDir . '/maxmind/web-service-common/src/Exception'),
+    'MaxMind\\Db\\' => array($vendorDir . '/maxmind-db/reader/src/MaxMind/Db'),
     'M3uParser\\' => array($vendorDir . '/gemorroj/m3u-parser/src'),
+    'GeoIp2\\' => array($vendorDir . '/geoip2/geoip2/src'),
     'Detection\\' => array($vendorDir . '/mobiledetect/mobiledetectlib/src'),
+    'Composer\\CaBundle\\' => array($vendorDir . '/composer/ca-bundle/src'),
     'Chrisyue\\PhpM3u8\\' => array($vendorDir . '/chrisyue/php-m3u8/src'),
 );
