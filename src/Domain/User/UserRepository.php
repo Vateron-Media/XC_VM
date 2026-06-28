@@ -20,30 +20,7 @@ use XcVm\Domain\Security\BlocklistService;
  */
 
 class UserRepository {
-	private static $db = null;
-
-	/**
-	 * Inject the database handler (dependency injection).
-	 *
-	 * @param \XcVm\Core\Database\DatabaseHandler $db Database handler.
-	 * @return void
-	 */
-	public static function setDb($db): void {
-		self::$db = $db;
-	}
-
-	/**
-	 * Get the injected database handler.
-	 *
-	 * @return object Database handler.
-	 * @throws \RuntimeException If setDb() was not called first.
-	 */
-	private static function db(): object {
-		if (self::$db === null) {
-			throw new \RuntimeException(static::class . '::setDb() must be called before use.');
-		}
-		return self::$db;
-	}
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Fetch an admin/reseller user matching the given login credentials.
 	 *
