@@ -148,14 +148,17 @@ class ServerInstallCommand implements CommandInterface {
 			LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID);
 		}
 
-		echo "Generating configuration file\n";
 		if ($rType == 1) {
+			echo "Generating configuration file\n";
 			$rNewConfig = ProxyInstallFlow::buildConfig($rServers, $rServerID, $rPrivateIP);
+			file_put_contents(TMP_PATH . 'config_' . $rServerID, $rNewConfig);
+			$this->sendFileSSH($rConn, TMP_PATH . 'config_' . $rServerID, CONFIG_PATH . 'config.ini');
 		} else {
-			$rNewConfig = LbInstallFlow::buildConfig($rServers, $rServerID);
+			// LB: secure provisioning — DB password never enters PHP (see LbInstallFlow::provisionConfig).
+			if (!LbInstallFlow::provisionConfig($rConn, $rRunSSH, $rSendFileSSH, $rServers, $rServerID, $db)) {
+				return 1;
+			}
 		}
-		file_put_contents(TMP_PATH . 'config_' . $rServerID, $rNewConfig);
-		$this->sendFileSSH($rConn, TMP_PATH . 'config_' . $rServerID, CONFIG_PATH . 'config.ini');
 
 		$this->installSystemdService($rConn, $rRunSSH, $rSendFileSSH, $rServerID);
 

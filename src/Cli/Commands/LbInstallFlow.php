@@ -105,8 +105,64 @@ class LbInstallFlow {
 		}
 	}
 
-	public static function buildConfig(array $rServers, int $rServerID): string {
-		return '; \XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[\XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'database    =   "xc_vm"' . "\n" . 'port        =   ' . intval(ConfigReader::get('port')) . "\n" . 'server_id   =   ' . $rServerID . "\n" . 'is_lb       =   1' . "\n\n" . '[Encrypted]' . "\n" . 'username    =   "' . ConfigReader::get('username') . '"' . "\n" . 'password    =   "' . ConfigReader::get('password') . '"';
+	/**
+	 * Securely provision config.enc onto a freshly-installed LB node.
+	 *
+	 * The DB password never enters PHP: we read the node's install_id over the
+	 * SSH channel, then \XC_VM::config_pack() pulls the credentials from MAIN's
+	 * own config.enc and returns a transport blob (XCVT) encrypted for that
+	 * install_id. The node re-encrypts it to its at-rest format on first read.
+	 *
+	 * Replaces the old config.ini flow, which wrote empty credentials because
+	 * the extension never exposes them to PHP — producing an unreadable
+	 * config.enc on the node ("failed to read config.enc").
+	 *
+	 * @return bool True on success; on failure marks the server as errored (status 4).
+	 */
+	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db): bool {
+		echo "Generating configuration file\n";
+
+		// Fetch the node's install_id. Run as root: the config dir may still be
+		// root-owned at this stage (chown to xc_vm happens later in the flow),
+		// and install_id() must be able to create config/install_id.
+		$rIdResult = call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg('echo XC_VM::install_id();'));
+		$rInstallId = trim($rIdResult['output'] ?? '');
+		if ($rInstallId === '') {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Failed to read install_id from node! Exiting\n";
+			return false;
+		}
+
+		// Pack config.enc targeted at the node's install_id. Credentials are
+		// read from MAIN's config.enc inside the extension, never exposed here.
+		$rBlob = \XC_VM::config_pack($rInstallId, array(
+			'hostname'  => $rServers[SERVER_ID]['server_ip'],
+			'database'  => 'xc_vm',
+			'port'      => intval(ConfigReader::get('port')),
+			'server_id' => $rServerID,
+			'is_lb'     => 1,
+		));
+		if (empty($rBlob)) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Failed to pack node configuration! Exiting\n";
+			return false;
+		}
+
+		// Ship the ready-to-use config.enc. Drop any stale config.ini first so the
+		// extension does not migrate it over our blob.
+		call_user_func($rRunSSH, $rConn, 'sudo rm -f ' . CONFIG_PATH . 'config.ini');
+		$rTmp = TMP_PATH . 'config_' . $rServerID . '.enc';
+		file_put_contents($rTmp, $rBlob);
+		$rOk = call_user_func($rSendFileSSH, $rConn, $rTmp, CONFIG_PATH . 'config.enc', false);
+		@unlink($rTmp);
+		if (!$rOk) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Failed to upload node configuration! Exiting\n";
+			return false;
+		}
+		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
+
+		return true;
 	}
 
 	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, int $rServerID): int {
