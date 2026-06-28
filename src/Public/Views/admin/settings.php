@@ -26,6 +26,21 @@ if (!isset($__settingsViewMode)):
 	$GeoISP   = $maxmindVersion["geoisp_version"];
 	$Nginx    = trim(shell_exec(BIN_PATH . "nginx/sbin/nginx -v 2>&1 | cut -d'/' -f2"));
 
+	$binVersionData = json_decode(@file_get_contents(BIN_PATH . "bin_version.json"), true) ?: [];
+	$BinVersion = $binVersionData["release"] ?? 'N/A';
+
+	$BinDist    = trim((string) ($binVersionData["distribution"] ?? ''));
+	$BinDistVer = trim((string) ($binVersionData["distribution_version"] ?? ''));
+	if ($BinDist !== '' && strcasecmp($BinDist, 'unknown') !== 0) {
+		$BinOS = ucfirst($BinDist) . ($BinDistVer !== '' && strcasecmp($BinDistVer, 'unknown') !== 0 ? ' ' . $BinDistVer : '');
+	} else {
+		$osRelease = @parse_ini_file('/etc/os-release');
+		$BinOS = is_array($osRelease)
+			? ($osRelease['PRETTY_NAME'] ?? trim((string) ($osRelease['NAME'] ?? '') . ' ' . (string) ($osRelease['VERSION_ID'] ?? '')))
+			: '';
+		$BinOS = $BinOS !== '' ? $BinOS : 'N/A';
+	}
+
 	$_TITLE = "Settings";
 
 	require_once __DIR__ . '/../layouts/admin.php';
@@ -2650,6 +2665,18 @@ $isAjaxRequest = (
 															<td class="text-center" style="font-size: 0.85rem;">Nginx</td>
 															<td class="text-center">
 																<button type="button" class="btn btn-danger btn-sm" style="font-size: 0.85rem;"><?= $Nginx ?></button>
+															</td>
+														</tr>
+
+														<tr>
+															<td class="text-center" style="font-size: 0.85rem;">Binaries</td>
+															<td class="text-center">
+																<button type="button" class="btn btn-success btn-sm" style="font-size: 0.85rem;"><?= $BinVersion ?? 'N/A' ?></button>
+															</td>
+
+															<td class="text-center" style="font-size: 0.85rem;">OS</td>
+															<td class="text-center">
+																<button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.85rem;"><?= $BinOS ?? 'N/A' ?></button>
 															</td>
 														</tr>
 													</tbody>

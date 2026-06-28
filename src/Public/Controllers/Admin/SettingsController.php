@@ -35,6 +35,10 @@ class SettingsController extends BaseAdminController {
         $Nginx    = trim(shell_exec(BIN_PATH . 'nginx/sbin/nginx -v 2>&1 | cut -d\'/\' -f2') ?: '');
         $rUpdate  = json_decode((string) ($rSettings['update_data'] ?? ''), true) ?: [];
 
+        $binVersionData = json_decode(@file_get_contents(BIN_PATH . 'bin_version.json'), true) ?: [];
+        $BinVersion = $binVersionData['release'] ?? 'N/A';
+        $BinOS = self::resolveOsLabel($binVersionData);
+
         // Global lookup arrays from includes/admin.php needed by settings view
         $rTMDBLanguages = $GLOBALS['rTMDBLanguages'] ?? [];
         $rGeoCountries  = $GLOBALS['rGeoCountries'] ?? [];
@@ -47,10 +51,44 @@ class SettingsController extends BaseAdminController {
             'GeoLite2',
             'GeoISP',
             'Nginx',
+            'BinVersion',
+            'BinOS',
             'rUpdate',
             'rTMDBLanguages',
             'rGeoCountries',
             'rMAGs'
         ));
+    }
+
+    /**
+     * Build the OS label for the Versions tab.
+     *
+     * Prefers the distribution recorded in bin_version.json (set by
+     * update_binaries.sh). When that metadata is missing or still holds the
+     * seed "unknown" placeholder, falls back to the running host's
+     * /etc/os-release so the tab never shows "unknown unknown".
+     *
+     * @param array<string,mixed> $binVersionData
+     */
+    private static function resolveOsLabel(array $binVersionData): string {
+        $dist    = trim((string) ($binVersionData['distribution'] ?? ''));
+        $version = trim((string) ($binVersionData['distribution_version'] ?? ''));
+
+        if ($dist !== '' && strcasecmp($dist, 'unknown') !== 0) {
+            return ucfirst($dist) . ($version !== '' && strcasecmp($version, 'unknown') !== 0 ? ' ' . $version : '');
+        }
+
+        $osRelease = @parse_ini_file('/etc/os-release');
+        if (is_array($osRelease)) {
+            if (!empty($osRelease['PRETTY_NAME'])) {
+                return (string) $osRelease['PRETTY_NAME'];
+            }
+            $label = trim((string) ($osRelease['NAME'] ?? '') . ' ' . (string) ($osRelease['VERSION_ID'] ?? ''));
+            if ($label !== '') {
+                return $label;
+            }
+        }
+
+        return 'N/A';
     }
 }
