@@ -308,6 +308,24 @@ def detect_lan_ip():
         s.close()
 
 
+class QuietThreadingHTTPServer(ThreadingHTTPServer):
+    """Threaded HTTP server that ignores expected client disconnects.
+
+    The panel's ffmpeg (probe/LLOD) reads part of a stream then resets the
+    connection — the stdlib server would otherwise print a full traceback per
+    disconnect. Those are normal, so swallow them and keep the log clean.
+    """
+
+    daemon_threads = True
+
+    def handle_error(self, request, client_address):
+        exc = sys.exc_info()[1]
+        if isinstance(exc, (ConnectionResetError, BrokenPipeError,
+                            ConnectionAbortedError, TimeoutError)):
+            return  # client (panel) disconnected mid-request — expected
+        super().handle_error(request, client_address)
+
+
 def main():
     args = parse_args()
 
@@ -332,8 +350,7 @@ def main():
     writer = HlsWriter(hls_dir)
     writer.start()
 
-    httpd = ThreadingHTTPServer((args.host, args.port), Handler)
-    httpd.daemon_threads = True
+    httpd = QuietThreadingHTTPServer((args.host, args.port), Handler)
 
     base = "http://%s:%d" % (CONFIG["advertise_host"], args.port)
     print("XC_VM test stream generator")
