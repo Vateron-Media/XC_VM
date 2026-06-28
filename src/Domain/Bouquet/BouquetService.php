@@ -385,26 +385,11 @@ class BouquetService {
 
 			$db->query("UPDATE `users_packages` SET `bouquets` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['bouquets'])) . ']', $rRow['id']);
 		}
-		$db->query("SELECT `id`, `bouquets` FROM `watch_folders` WHERE JSON_CONTAINS(`bouquets`, ?, '\$') OR JSON_CONTAINS(`fb_bouquets`, ?, '\$');", $rID, $rID);
-
-		foreach ($db->get_rows() as $rRow) {
-			$rRow['bouquets'] = json_decode($rRow['bouquets'], true);
-
-			if (($rKey = array_search($rID, $rRow['bouquets'])) === false) {
-			} else {
-				unset($rRow['bouquets'][$rKey]);
-			}
-
-			$rRow['fb_bouquets'] = json_decode($rRow['fb_bouquets'], true);
-
-			if (($rKey = array_search($rID, $rRow['fb_bouquets'])) === false) {
-			} else {
-				unset($rRow['fb_bouquets'][$rKey]);
-			}
-
-			$db->query("UPDATE `watch_folders` SET `bouquets` = ?, `fb_bouquets` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['bouquets'])) . ']', '[' . implode(',', array_map('intval', $rRow['fb_bouquets'])) . ']', $rRow['id']);
-		}
 		$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
+
+		// Notify modules (e.g. watch) so they drop the bouquet from their own
+		// data — keeps core bouquet deletion free of module-owned tables.
+		\XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Bouquet\BouquetDeletedEvent((int) $rID));
 		self::scan();
 
 		return true;

@@ -8,6 +8,7 @@ use XcVm\Core\Http\Router;
 use XcVm\Core\Module\BaseModule;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
  * Plex Module
@@ -61,6 +62,38 @@ class PlexModule extends BaseModule {
 
     public function getVersion(): string {
         return '1.0.0';
+    }
+
+    /**
+     * Remove plex-owned data.
+     *
+     * Plex declares a dependency on the watch module and REUSES its tables
+     * (watch_folders rows with type='plex', plus the movie/show categories in
+     * watch_categories). It therefore owns no tables of its own and drops none
+     * on uninstall — it deletes only the rows it created. The table-existence
+     * guards keep this safe even if watch has somehow already gone.
+     */
+    public function uninstall(): void {
+        $rDb = DatabaseFactory::get();
+        if ($rDb === null) {
+            return;
+        }
+        if (self::tableExists($rDb, 'watch_folders')) {
+            $rDb->query("DELETE FROM `watch_folders` WHERE `type` = 'plex';");
+        }
+        if (self::tableExists($rDb, 'watch_categories')) {
+            // Plex owns the movie (3) and show (4) category types in the shared table.
+            $rDb->query("DELETE FROM `watch_categories` WHERE `type` IN (3, 4);");
+        }
+    }
+
+    /**
+     * @param object $rDb    Database handler.
+     * @param string $rTable Table name.
+     */
+    private static function tableExists($rDb, string $rTable): bool {
+        $rDb->query("SHOW TABLES LIKE '" . $rTable . "';");
+        return method_exists($rDb, 'num_rows') ? ($rDb->num_rows() > 0) : true;
     }
 
     public function boot(ServiceContainer $container): void {

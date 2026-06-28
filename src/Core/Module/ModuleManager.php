@@ -68,6 +68,103 @@ class ModuleManager {
         return null;
     }
 
+    /** Absolute path of a module's directory on disk. */
+    private function modulePathFor(string $name): string {
+        return $this->modulesPath . '/' . $this->sanitizeModuleName($name);
+    }
+
+    /**
+     * Names of currently-installed modules that declare $name as a dependency.
+     *
+     * @return string[]
+     */
+    private function installedDependentsOf(string $name): array {
+        $out = [];
+        foreach ($this->list() as $module) {
+            if (($module['installed_version'] ?? '') === '') {
+                continue; // not installed — its requirements don't apply
+            }
+            if (in_array($name, $module['dependencies'] ?? [], true)) {
+                $out[] = $module['name'];
+            }
+        }
+        return $out;
+    }
+
+    /**
+     * Install any on-disk module that has never been installed.
+     *
+     * Bundled modules (watch, plex, …) are booted on every request but only get
+     * their install() / migrations run when explicitly installed. On a fresh
+     * panel nothing would create their tables, so this runs once during the
+     * migrate step (see StatusCommand) to provision them. It is idempotent:
+     * already-installed modules are skipped, and a module's up-migrations use
+     * CREATE TABLE IF NOT EXISTS so re-provisioning an existing panel is safe.
+     *
+     * Modules are installed in dependency order; admin-disabled or failed
+     * modules are left untouched.
+     *
+     * @return string[] Names of modules that were installed this pass.
+     */
+    public function syncBundledModules(): array {
+        $modules   = $this->list();
+        $installed = [];
+        foreach ($modules as $module) {
+            if (($module['installed_version'] ?? '') !== '') {
+                $installed[$module['name']] = true;
+            }
+        }
+
+        // Candidates: present on disk, not yet installed, not admin-disabled/failed.
+        $pending = [];
+        foreach ($modules as $module) {
+            $name = $module['name'];
+            if (isset($installed[$name])) {
+                continue;
+            }
+            $state = $module['state'] ?? null;
+            if ($state === \XcVm\Core\Enum\ModuleState::Disabled
+                || $state === \XcVm\Core\Enum\ModuleState::Failed) {
+                continue;
+            }
+            $pending[$name] = $module;
+        }
+
+        // Install in dependency order: a module installs once all its declared
+        // dependencies are themselves installed.
+        $done  = [];
+        $guard = 0;
+        while (!empty($pending) && $guard++ < 1000) {
+            $progressed = false;
+            foreach (array_keys($pending) as $name) {
+                $ready = true;
+                foreach ($pending[$name]['dependencies'] ?? [] as $dep) {
+                    if (!isset($installed[$dep])) {
+                        $ready = false;
+                        break;
+                    }
+                }
+                if (!$ready) {
+                    continue;
+                }
+                try {
+                    $this->installModule($name);
+                    $installed[$name] = true;
+                    $done[] = $name;
+                } catch (\Throwable $e) {
+                    error_log("syncBundledModules: install '{$name}' failed: " . $e->getMessage());
+                }
+                unset($pending[$name]);
+                $progressed = true;
+            }
+            if (!$progressed) {
+                break; // unmet or circular dependencies — stop
+            }
+        }
+
+        return $done;
+    }
+
     /**
      * List all installed modules with their metadata and status.
      *
@@ -126,17 +223,29 @@ class ModuleManager {
         $name = $this->sanitizeModuleName($name);
         $module = $this->loadModuleInstance($name);
 
+        // Version priority: explicit $version (platform installs pass the
+        // authoritative SaaS release version) → module.json manifest → the
+        // module's hardcoded getVersion() (which can drift from the manifest).
+        $targetVersion = $version ?? $this->manifestVersion($name) ?? $module->getVersion();
+        $modulePath = $this->modulePathFor($name);
+
         $this->setState($name, \XcVm\Core\Enum\ModuleState::Installing);
 
         try {
-            $db = $this->getDb();
-            if ($db !== null && method_exists($db, 'transactional')) {
-                // Wrap install() in a DB transaction so partial migrations are rolled back.
-                $db->transactional(function () use ($module) {
-                    $module->install();
-                });
-            } else {
+            $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
+            // Apply every up-migration up to the target version, then the
+            // module's own install() hook for any non-SQL setup.
+            $run = function () use ($module, $modulePath, $db, $targetVersion) {
+                if ($db !== null) {
+                    ModuleMigrator::up($modulePath, $db, null, (string) $targetVersion);
+                }
                 $module->install();
+            };
+            if ($db !== null && method_exists($db, 'transactional')) {
+                // Wrap install in a DB transaction so partial migrations are rolled back.
+                $db->transactional($run);
+            } else {
+                $run();
             }
         } catch (\Throwable $e) {
             $this->setState($name, \XcVm\Core\Enum\ModuleState::Failed);
@@ -144,13 +253,7 @@ class ModuleManager {
         }
 
         $this->setState($name, \XcVm\Core\Enum\ModuleState::Enabled);
-        // Version priority: explicit $version (platform installs pass the
-        // authoritative SaaS release version) → module.json manifest → the
-        // module's hardcoded getVersion() (which can drift from the manifest).
-        $this->recordInstalledVersion(
-            $name,
-            $version ?? $this->manifestVersion($name) ?? $module->getVersion()
-        );
+        $this->recordInstalledVersion($name, $targetVersion);
     }
 
     /**
@@ -164,8 +267,30 @@ class ModuleManager {
      */
     public function uninstallModule(string $name): void {
         $name = $this->sanitizeModuleName($name);
+
+        // Refuse to remove a module that still-installed dependents rely on
+        // (e.g. plex depends on watch — watch cannot be removed under it).
+        $dependents = $this->installedDependentsOf($name);
+        if (!empty($dependents)) {
+            throw new \RuntimeException(
+                "Cannot uninstall '{$name}': still required by " . implode(', ', $dependents)
+                . '. Uninstall ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
+            );
+        }
+
         $module = $this->loadModuleInstance($name);
+        $overrides = $this->readOverrides();
+        $installedVersion = $overrides[$name]['installed_version']
+            ?: ($this->manifestVersion($name) ?? $module->getVersion());
+
+        // The module's own uninstall() hook runs first (it clears the data/rows
+        // it created), then the schema migrations it owns are reversed (down).
         $module->uninstall();
+        $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
+        if ($db !== null) {
+            ModuleMigrator::down($this->modulePathFor($name), $db, (string) $installedVersion);
+        }
+
         $this->clearInstalledVersion($name);
         $this->setState($name, \XcVm\Core\Enum\ModuleState::Disabled);
     }
@@ -199,6 +324,13 @@ class ModuleManager {
             return;
         }
 
+        // File-based schema migrations: every up file in (fromVersion, toVersion].
+        $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
+        if ($db !== null) {
+            ModuleMigrator::up($this->modulePathFor($name), $db, $fromVersion, (string) $toVersion);
+        }
+
+        // Programmatic migrations (callables) — coexist with the file-based ones.
         if ($module instanceof MigratableInterface) {
             $this->runPendingMigrations($module->getMigrations(), $fromVersion, $toVersion);
         }

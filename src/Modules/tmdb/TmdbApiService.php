@@ -41,6 +41,8 @@ class TmdbApiService {
      * @return \TMDB
      */
     public static function createClient(string $apiKey, ?string $language = null): \TMDB {
+        self::requireLibrary();
+
         if ($language !== null && strlen($language) > 0) {
             return new \TMDB($apiKey, $language);
         }
