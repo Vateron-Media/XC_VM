@@ -182,7 +182,7 @@ generate_deleted_files:
 		echo '# Auto-generated from: git diff $(LAST_TAG)..HEAD'; \
 		echo '# One file per line. Lines starting with # are comments.'; \
 		echo '#'; \
-		git diff --name-status "$(LAST_TAG)"..HEAD -- src/ \
+		git diff --name-status --no-renames "$(LAST_TAG)"..HEAD -- src/ \
 			| awk '$$1 == "D" { sub(/^src\//, "", $$2); print $$2 }'; \
 	} > "$(MAIN_DIR)/migrations/deleted_files.txt"
 	@rCount=$$(grep -cv '^#\|^$$' "$(MAIN_DIR)/migrations/deleted_files.txt" 2>/dev/null || echo 0); \
