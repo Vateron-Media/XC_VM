@@ -24,18 +24,7 @@ use XcVm\Core\Config\SettingsManager;
  */
 
 class TmdbPopularCron {
-    private static $db = null;
-
-    public static function setDb($db): void {
-        self::$db = $db;
-    }
-
-    private static function db(): object {
-        if (self::$db === null) {
-            throw new \RuntimeException(static::class . '::setDb() must be called before use.');
-        }
-        return self::$db;
-    }
+    use \XcVm\Infrastructure\Database\DatabaseAware;
 
 
     /**

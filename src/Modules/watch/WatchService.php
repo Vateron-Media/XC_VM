@@ -21,21 +21,7 @@ use XcVm\Domain\Stream\StreamRepository;
 
 class WatchService {
 
-    private static $db = null;
-
-    // Called from WatchModule::boot() — wires the DI-provided db connection.
-    // Static methods fall back to global $db when boot() is not invoked (CLI cron context).
-    public static function setDb($db): void {
-        self::$db = $db;
-    }
-
-    private static function db() {
-        if (self::$db !== null) {
-            return self::$db;
-        }
-        global $db;
-        return $db;
-    }
+    use \XcVm\Infrastructure\Database\DatabaseAware;
 
 	public static function editWatchSettings($rData) {
 		$db = self::db();

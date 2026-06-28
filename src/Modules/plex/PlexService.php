@@ -20,19 +20,7 @@ use XcVm\Domain\Stream\StreamRepository;
 
 class PlexService {
 
-    private static $db = null;
-
-    public static function setDb($db): void {
-        self::$db = $db;
-    }
-
-    private static function db() {
-        if (self::$db !== null) {
-            return self::$db;
-        }
-        global $db;
-        return $db;
-    }
+    use \XcVm\Infrastructure\Database\DatabaseAware;
 
 	public static function editPlexSettings($rData) {
 		foreach ($rData as $rKey => $rValue) {
