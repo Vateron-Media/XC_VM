@@ -2,8 +2,6 @@
 
 namespace XcVm\Domain\User;
 
-use XcVm\Core\Database\Database;
-
 /**
  * TicketRepository — ticket repository
  *

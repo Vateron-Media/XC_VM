@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Epg;
 
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 

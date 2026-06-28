@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;

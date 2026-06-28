@@ -5,7 +5,6 @@ namespace XcVm\Domain\Line;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Validation\InputValidator;

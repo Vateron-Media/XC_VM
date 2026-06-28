@@ -2,7 +2,6 @@
 
 namespace XcVm\Domain\Epg;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Parsing\XmlStringStreamer;
 
