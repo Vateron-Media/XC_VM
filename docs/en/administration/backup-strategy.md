@@ -49,7 +49,7 @@ Settings are in the admin panel under **Backups**:
 Click **Create Backup Now** in the backups page. This runs the cron job in force mode:
 
 ```bash
-php /home/xc_vm/console.php cron:backups 1
+/home/xc_vm/console.php cron:backups 1
 ```
 
 ### Automatic (cron)
@@ -167,8 +167,8 @@ BackupService::getRemote()                     // list remote backups
 Automated backup cron job. Can be forced with argument `1`:
 
 ```bash
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:backups
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:backups 1  # force
+sudo -u xc_vm /home/xc_vm/console.php cron:backups
+sudo -u xc_vm /home/xc_vm/console.php cron:backups 1  # force
 ```
 
 ### tools migration

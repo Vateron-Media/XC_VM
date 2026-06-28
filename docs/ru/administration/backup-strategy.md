@@ -49,7 +49,7 @@ users_credits_logs, users_logs, watch_logs
 Нажмите **Create Backup Now** на странице резервных копий. Это запускает cron-задачу в принудительном режиме:
 
 ```bash
-php /home/xc_vm/console.php cron:backups 1
+/home/xc_vm/console.php cron:backups 1
 ```
 
 ### Автоматически (cron)
@@ -167,8 +167,8 @@ BackupService::getRemote()                     // список удалённы�
 Cron-задача автоматического резервного копирования. Может быть принудительно запущена с аргументом `1`:
 
 ```bash
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:backups
-sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:backups 1  # принудительно
+sudo -u xc_vm /home/xc_vm/console.php cron:backups
+sudo -u xc_vm /home/xc_vm/console.php cron:backups 1  # принудительно
 ```
 
 ### tools migration
