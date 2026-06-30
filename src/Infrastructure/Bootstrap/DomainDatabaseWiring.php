@@ -61,54 +61,62 @@ class DomainDatabaseWiring {
 	 * @return void
 	 */
 	public static function wire(object $db): void {
-		// Bouquet
-		BouquetService::setDb($db);
+		// Every domain service that uses the static setDb()/db() pattern, kept as a
+		// single flat list so the wiring cannot drift between bootstrap paths.
+		//
+		// Each entry is guarded by class_exists() below: the LB build strips whole
+		// MAIN-only domains (Domain/User, Domain/Device, Domain/Auth, …), so those
+		// classes are simply absent on load-balancer nodes. Wiring must skip a
+		// missing class instead of fataling during boot — a load-balancer only
+		// needs the streaming/server slice and never touches the MAIN-only ones.
+		$services = [
+			// Bouquet
+			BouquetService::class,
+			// Device (MAIN-only — absent on LB)
+			EnigmaService::class,
+			MagService::class,
+			// Epg
+			EPG::class,
+			EpgService::class,
+			// Line
+			LineRepository::class,
+			LineService::class,
+			PackageService::class,
+			// Security
+			BlocklistService::class,
+			// Server
+			ServerRepository::class,
+			ServerService::class,
+			SettingsService::class,
+			// Stream
+			CategoryService::class,
+			ChannelService::class,
+			ConnectionTracker::class,
+			PlaylistGenerator::class,
+			ProfileService::class,
+			ProviderService::class,
+			RadioService::class,
+			StreamConfigRepository::class,
+			StreamProcess::class,
+			StreamRepository::class,
+			StreamService::class,
+			// User (MAIN-only — absent on LB)
+			GroupService::class,
+			ResellerAPI::class,
+			TicketRepository::class,
+			UserRepository::class,
+			UserService::class,
+			// Vod
+			EpisodeService::class,
+			MovieService::class,
+			SeriesService::class,
+			TMDbService::class,
+		];
 
-		// Device
-		EnigmaService::setDb($db);
-		MagService::setDb($db);
-
-		// Epg
-		EPG::setDb($db);
-		EpgService::setDb($db);
-
-		// Line
-		LineRepository::setDb($db);
-		LineService::setDb($db);
-		PackageService::setDb($db);
-
-		// Security
-		BlocklistService::setDb($db);
-
-		// Server
-		ServerRepository::setDb($db);
-		ServerService::setDb($db);
-		SettingsService::setDb($db);
-
-		// Stream
-		CategoryService::setDb($db);
-		ChannelService::setDb($db);
-		ConnectionTracker::setDb($db);
-		PlaylistGenerator::setDb($db);
-		ProfileService::setDb($db);
-		ProviderService::setDb($db);
-		RadioService::setDb($db);
-		StreamConfigRepository::setDb($db);
-		StreamProcess::setDb($db);
-		StreamRepository::setDb($db);
-		StreamService::setDb($db);
-
-		// User
-		GroupService::setDb($db);
-		ResellerAPI::setDb($db);
-		TicketRepository::setDb($db);
-		UserRepository::setDb($db);
-		UserService::setDb($db);
-
-		// Vod
-		EpisodeService::setDb($db);
-		MovieService::setDb($db);
-		SeriesService::setDb($db);
-		TMDbService::setDb($db);
+		foreach ($services as $service) {
+			if (class_exists($service)) {
+				$service::setDb($db);
+			}
+		}
 	}
 }
