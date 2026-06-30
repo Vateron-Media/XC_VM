@@ -41,7 +41,7 @@ class EpgCronJob implements CommandInterface {
             $rEPGID = intval($rArgs[0]);
         }
 
-        $this->printLog("=== \XC_VM[EPG] Process started ===");
+        $this->printLog("=== XC_VM[EPG] Process started ===");
         $this->printLog("Mode: " . ($rEPGID ? "Single EPG ID: $rEPGID" : "Full update"));
 
         set_time_limit(0);
@@ -155,6 +155,13 @@ class EpgCronJob implements CommandInterface {
 
         $this->printLog("[EPG] Cleaning temporary XML files...");
         shell_exec('rm -f ' . TMP_PATH . '*.xml');
+
+        // Marks the start of recording files. Everything that is (re)recorded in this
+        // execution will have mtime >= $runStart; cleanup at the end only removes what doesn't
+        // was played in this round (orphans of old executions). Without this, the
+        // old "time () - 10" erased the caches written at the beginning of the loop
+        // (which takes well over 10s), leaving most channels without EPG.
+        $runStart = time();
 
         $this->printLog("[XMLTV] Starting XMLTV generation...");
         $ApiDependencyIdentifier = $this->getBouquetGroups();
@@ -273,17 +280,20 @@ class EpgCronJob implements CommandInterface {
             }
         }
 
-        $this->printLog("[CLEANUP] Removing old cache files...");
+        $this->printLog("[CLEANUP] Removing orphan cache files...");
         $deleted = 0;
+        clearstatcache();
         foreach (scandir(EPG_PATH) as $rFile) {
             if ($rFile === '.' || $rFile === '..') continue;
             $fullPath = EPG_PATH . $rFile;
-            if (filemtime($fullPath) < (time() - 10)) {
+            // Only removes files that were not rewritten in this run
+            // (mtime before the start of the Round = old execution orphan).
+            if (filemtime($fullPath) < $runStart) {
                 unlink($fullPath);
                 $deleted++;
             }
         }
-        $this->printLog("[CLEANUP] Deleted $deleted old cache files");
+        $this->printLog("[CLEANUP] Deleted $deleted orphan cache files");
 
         $this->printLog("=== EPG processing completed successfully! ===");
 
@@ -328,7 +338,7 @@ class EpgCronJob implements CommandInterface {
                 $this->printLog("[XMLTV] Skipping invalid/empty bouquet value: " . var_export($rBouquets, true));
                 continue;
             }
-            
+
             sort($rBouquets);
             $ApiDependencyIdentifier[implode('_', $rBouquets)] = [
                 'streams'  => [],
