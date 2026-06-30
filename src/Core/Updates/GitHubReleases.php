@@ -23,7 +23,8 @@ class GitHubReleases {
     private $repo;
     private $api_url;
     private $headers;
-    private $timeout = 5; // Request timeout in seconds
+    private $timeout = 30; // Total transfer timeout in seconds (the /releases list ships changelogs and is tens of KB; 5s was too tight during installs when the link is saturated by apt/wget)
+    private $connect_timeout = 10; // Connection-phase timeout in seconds — fail fast on an unreachable host without capping slow transfers
     private $cache_file = '/home/xc_vm/tmp/gitapi'; // Cache file path
     private string $channel = 'stable'; // 'stable' или 'unstable'
     private $hash_file = 'hashes.md5';
@@ -305,6 +306,7 @@ class GitHubReleases {
         $ch = curl_init($url);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connect_timeout);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
         curl_setopt($ch, CURLOPT_USERAGENT, 'Vateron-Media/\XC_VM');
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
