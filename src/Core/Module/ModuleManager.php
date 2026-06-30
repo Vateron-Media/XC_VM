@@ -80,7 +80,7 @@ class ModuleManager {
      */
     private function installedDependentsOf(string $name): array {
         $out = [];
-        foreach ($this->list() as $module) {
+        foreach ($this->listModules() as $module) {
             if (($module['installed_version'] ?? '') === '') {
                 continue; // not installed — its requirements don't apply
             }
@@ -107,7 +107,7 @@ class ModuleManager {
      * @return string[] Names of modules that were installed this pass.
      */
     public function syncBundledModules(): array {
-        $modules   = $this->list();
+        $modules   = $this->listModules();
         $installed = [];
         foreach ($modules as $module) {
             if (($module['installed_version'] ?? '') !== '') {
