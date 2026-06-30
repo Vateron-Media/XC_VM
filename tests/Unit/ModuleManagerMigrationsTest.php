@@ -137,8 +137,78 @@ final class ModuleManagerMigrationsTest extends TestCase {
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
+    // ── listModules() dependency diagnostics ──────────────────────────────
+
+    public function testListModulesFlagsDisabledRequiredDependency(): void {
+        // dep-consumer requires dep-base, which is present but disabled.
+        $this->createModuleWithDeps('dep-base', '1.0.0', []);
+        $this->createModuleWithDeps('dep-consumer', '1.0.0', ['dep-base']);
+        $this->writeOverrides(['dep-base' => ['state' => 'disabled']]);
+
+        $byName = $this->modulesByName();
+
+        $this->assertSame([], $byName['dep-base']['dependency_warnings']);
+        $this->assertCount(1, $byName['dep-consumer']['dependency_warnings']);
+        $this->assertStringContainsString('dep-base', $byName['dep-consumer']['dependency_warnings'][0]);
+        $this->assertStringContainsString('not enabled', $byName['dep-consumer']['dependency_warnings'][0]);
+    }
+
+    public function testListModulesFlagsMissingRequiredDependency(): void {
+        $this->createModuleWithDeps('needs-absent', '1.0.0', ['ghost-module']);
+
+        $byName = $this->modulesByName();
+
+        $this->assertCount(1, $byName['needs-absent']['dependency_warnings']);
+        $this->assertStringContainsString('missing', $byName['needs-absent']['dependency_warnings'][0]);
+    }
+
+    public function testListModulesNoWarningWhenDependencyEnabled(): void {
+        $this->createModuleWithDeps('ok-base', '1.0.0', []);
+        $this->createModuleWithDeps('ok-consumer', '1.0.0', ['ok-base']);
+
+        $byName = $this->modulesByName();
+
+        $this->assertSame([], $byName['ok-consumer']['dependency_warnings']);
+    }
+
     private function manager(): ModuleManager {
         return new ModuleManager($this->modulesPath, $this->overridesPath, ServiceContainer::getInstance());
+    }
+
+    /** @return array<string, array> listModules() keyed by module name. */
+    private function modulesByName(): array {
+        $byName = [];
+        foreach ($this->manager()->listModules() as $module) {
+            $byName[$module['name']] = $module;
+        }
+        return $byName;
+    }
+
+    /** Create a plain module whose manifest declares the given required dependencies. */
+    private function createModuleWithDeps(string $name, string $version, array $dependencies): void {
+        $dir       = $this->modulesPath . '/' . $name;
+        $pascal    = $this->pascal($name);
+        $className = $pascal . 'Module';
+        $namespace = 'XcVm\\Module\\' . $pascal;
+        mkdir($dir, 0775, true);
+
+        $manifest = $this->manifest($name, $version);
+        $manifest['dependencies'] = $dependencies;
+
+        file_put_contents(
+            $dir . '/module.json',
+            json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        file_put_contents($dir . '/' . $className . '.php',
+            "<?php\n"
+            . "namespace {$namespace};\n"
+            . "use XcVm\Core\Module\BaseModule;\n"
+            . "class {$className} extends BaseModule {\n"
+            . "\tpublic function getName(): string { return '{$name}'; }\n"
+            . "\tpublic function getVersion(): string { return '{$version}'; }\n"
+            . "}\n"
+        );
     }
 
     /** Create a plain module (no migrations) at the given version. */

@@ -1375,15 +1375,15 @@ if (isset($_SESSION['hash'])) {
 				$db->query('SELECT `server_id`, `time`, `cpu`, `iostat_info`, `total_mem_used_percent`, `connections`, `streams`, `users`, `total_users`, `bytes_received`, `bytes_sent` FROM `servers_stats` WHERE `server_id` IN (SELECT `id` FROM `servers` WHERE `server_type` = 0) AND `time` >= ? ORDER BY `time` DESC;', $rNearestRange);
 			}
 
-			if (0 >= $db->num_rows()) {
-			} else {
+			if ($db->num_rows() > 0) {
 				foreach ($db->get_rows() as $rRow) {
-					if (!$rServers[$rRow['server_id']]['server_online']) {
-					} else {
+					// servers_stats may reference a server_id absent from $rServers (orphan stat
+					// row from a deleted server); empty() skips the missing-key / null-offset
+					// case without a warning — same intent: unknown or offline server → skip.
+					if (!empty($rServers[$rRow['server_id']]['server_online'])) {
 						$rNearest = AdminHelpers::getNearest($rStatsRange, intval($rRow['time']));
 
-						if (isset($rStatsRange[$rNearest][intval($rRow['server_id'])])) {
-						} else {
+						if (!isset($rStatsRange[$rNearest][intval($rRow['server_id'])])) {
 							$rServerStats[$rNearest][intval($rRow['server_id'])] = $rRow;
 						}
 					}
@@ -2104,7 +2104,7 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
-if (RequestManager::getAll()['action'] == 'listdir') {
+		if (RequestManager::getAll()['action'] == 'listdir') {
 			if (Authorization::check('adv', 'add_episode') || Authorization::check('adv', 'edit_episode') || Authorization::check('adv', 'add_movie') || Authorization::check('adv', 'edit_movie') || Authorization::check('adv', 'create_channel') || Authorization::check('adv', 'edit_cchannel') || Authorization::check('adv', 'folder_watch_add')) {
 				if (RequestManager::getAll()['filter'] == 'video') {
 					$rFilter = array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts');
