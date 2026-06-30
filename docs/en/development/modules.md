@@ -56,15 +56,17 @@ src/Modules/my-module/
 | `requires_core` | `string` | — | Minimum core version (`>=2.0`) |
 | `environment` | `string` | `"main"` | `main`, `lb`, or `any` |
 | `priority` | `int` | `0` | Load priority — higher loads earlier |
-| `dependencies` | `array` | `[]` | Hard dependencies (must exist and be enabled) |
+| `dependencies` | `array` | `[]` | Hard dependencies; if unavailable, the dependent is skipped (see below) |
 | `optional_dependencies` | `array` | `[]` | Soft dependencies (loaded before if present) |
 | `has_navbar` | `bool` | `false` | Whether the module registers navbar items |
 | `has_settings` | `bool` | `false` | Whether the module has a settings page |
 
 **Hard vs soft dependencies:**
 
-- `dependencies` — if any is missing or disabled, `ModuleLoader` throws `RuntimeException`
+- `dependencies` — if any is unavailable (missing on disk, disabled, or in `failed` state), the dependent module is **skipped** with a logged warning — cascading (anything depending on it is skipped too). The rest of the modules, the admin panel, and the CLI keep working; a single unsatisfied dependency no longer aborts the whole load.
 - `optional_dependencies` — loaded before this module if present, silently skipped if absent
+
+> **Guard against drift.** A module that still-enabled modules depend on cannot be `disabled` via the panel / `ModuleManager::setState()` — the operation is rejected with the list of dependents (mirroring the `uninstallModule()` guard). This prevents the "`plex` enabled but its `watch` dependency disabled" state.
 
 **Priority:**
 
@@ -373,7 +375,9 @@ Available `state` values (backed by `ModuleState` enum):
 | `enabled` | Module loads and boots (default) |
 | `disabled` | Module is discovered but skipped |
 | `installing` | Transient state set by `ModuleManager` during install |
-| `failed` | Install failed; module skipped on next request |
+| `failed` | Install failed; module skipped (not loaded) |
+
+> **Panel diagnostics.** The **Modules** page shows a yellow **⚠ Dependency issue** badge next to a module's status when a required dependency is missing or not enabled (e.g. `plex` reads `Enabled` but `watch` is `failed`). The badge tooltip lists the concrete problems. This `dependency_warnings` field is computed by `ModuleManager::listModules()`.
 
 To override the class resolved for a module:
 
@@ -396,9 +400,10 @@ modules load.
 2. Applies overrides from `config/modules.php`
 3. Filters by environment (`main` / `lb` / `any`)
 4. Resolves the load order:
+   - `pruneUnsatisfiableModules()` drops modules whose required dependencies are unavailable (cascading, with a logged warning) so the load never aborts
    - Topological sort (DFS) over the dependency graph
    - Within the same dependency group, sorts by `priority` descending, then alphabetically
-   - Throws `RuntimeException` on cycles or missing hard dependencies
+   - Throws `RuntimeException` on cycles (cyclic dependencies remain fatal)
    - Missing optional dependencies are silently skipped
 5. Resolves class name: `my-module` → FQN `XcVm\Module\MyModule\MyModuleModule`
    (kebab-case → PascalCase; can be overridden via `class` key in config)
