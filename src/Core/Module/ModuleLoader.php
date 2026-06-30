@@ -523,6 +523,17 @@ class ModuleLoader {
     protected function resolveLoadOrder(array $discovered): array {
         $order = [];
         $state = [];  // 1 = visiting, 2 = visited
+
+        // Drop modules whose required dependencies are unavailable (missing on
+        // disk, disabled/uninstalled via config/modules.php, or filtered out by
+        // environment) before sorting. A single unsatisfiable module must not
+        // abort the whole load: we skip it — and, transitively, anything that
+        // requires it — with a warning, so the rest of the panel and the CLI keep
+        // working. Without this, e.g. disabling 'watch' while 'plex' (which
+        // requires it) stays enabled would throw ModuleNotFoundException out of
+        // loadAll() and brick both the admin panel and console.php.
+        $discovered = $this->pruneUnsatisfiableModules($discovered);
+
         $names = array_keys($discovered);
 
         // Sort by priority desc, then alphabetically for determinism within same priority
@@ -540,6 +551,44 @@ class ModuleLoader {
         }
 
         return $order;
+    }
+
+    /**
+     * Removes modules whose required dependencies are not present in the
+     * discovered set, cascading transitively.
+     *
+     * Discovery may legitimately exclude a module (disabled/uninstalled via
+     * config/modules.php, or filtered out for the current environment). When that
+     * module is a *required* dependency of another, the dependent cannot load —
+     * but that is not a fatal condition for the whole panel: we drop the dependent
+     * (and anything depending on it, in turn) and log a warning, leaving every
+     * still-satisfiable module loadable. This keeps the admin panel and CLI alive
+     * instead of throwing ModuleNotFoundException out of loadAll().
+     *
+     * Optional dependencies are ignored here — they are allowed to be absent.
+     *
+     * @param array $discovered Discovered modules (name => [path, manifest]).
+     * @return array Pruned discovered set containing only satisfiable modules.
+     */
+    protected function pruneUnsatisfiableModules(array $discovered): array {
+        do {
+            $removed = false;
+            foreach ($discovered as $name => $info) {
+                foreach ($info['manifest']['dependencies'] as $dependency) {
+                    if (!isset($discovered[$dependency])) {
+                        error_log(
+                            "ModuleLoader: skipping module '{$name}' — required dependency "
+                            . "'{$dependency}' is not available (missing, disabled, or wrong environment)"
+                        );
+                        unset($discovered[$name]);
+                        $removed = true;
+                        break;
+                    }
+                }
+            }
+        } while ($removed);
+
+        return $discovered;
     }
 
     /**

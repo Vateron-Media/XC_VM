@@ -92,6 +92,34 @@ class ModuleManager {
     }
 
     /**
+     * Names of currently-loadable (enabled) installed modules that declare $name
+     * as a required dependency.
+     *
+     * Used to guard disabling: a dependent that is itself disabled won't be loaded
+     * either, so disabling $name under it is harmless and must not be blocked.
+     * Only enabled dependents would be broken (ModuleLoader skips them on the next
+     * boot), so only those count.
+     *
+     * @return string[]
+     */
+    private function enabledDependentsOf(string $name): array {
+        $out = [];
+        foreach ($this->listModules() as $module) {
+            if (($module['installed_version'] ?? '') === '') {
+                continue; // not installed — its requirements don't apply
+            }
+            $state = $module['state'] ?? null;
+            if (!($state instanceof \XcVm\Core\Enum\ModuleState) || !$state->isLoadable()) {
+                continue; // already disabled/failed — disabling its dep won't break it
+            }
+            if (in_array($name, $module['dependencies'] ?? [], true)) {
+                $out[] = $module['name'];
+            }
+        }
+        return $out;
+    }
+
+    /**
      * Install any on-disk module that has never been installed.
      *
      * Bundled modules (watch, plex, …) are booted on every request but only get
@@ -171,17 +199,44 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: \XcVm\Core\Enum\ModuleState, path: string, installed_version: string, source: string, previous_version: string}> Module list.
+     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: \XcVm\Core\Enum\ModuleState, path: string, installed_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
         $items = [];
 
         $jsonFiles = glob($this->modulesPath . '/*/module.json') ?: [];
+
+        // Pre-resolve each module's state by name so the dependency diagnostics
+        // below can see the full set while building items.
+        $stateByName = [];
+        foreach ($jsonFiles as $jsonFile) {
+            $depName = basename(dirname($jsonFile));
+            $stateByName[$depName] = \XcVm\Core\Enum\ModuleState::fromRaw(
+                $overrides[$depName]['state'] ?? ($overrides[$depName]['enabled'] ?? null)
+            );
+        }
+
         foreach ($jsonFiles as $jsonFile) {
             $name  = basename(dirname($jsonFile));
             $meta  = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
-            $state = \XcVm\Core\Enum\ModuleState::fromRaw($overrides[$name]['state'] ?? ($overrides[$name]['enabled'] ?? null));
+            $state = $stateByName[$name];
+
+            $dependencies = is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [];
+
+            // Flag a module that is nominally Enabled but won't actually load:
+            // ModuleLoader skips it when a required dependency is missing or not
+            // loadable (e.g. plex is Enabled but watch is Failed/Disabled). Mirrors
+            // ModuleLoader::pruneUnsatisfiableModules().
+            $dependencyWarnings = [];
+            foreach ($dependencies as $dep) {
+                if (!isset($stateByName[$dep])) {
+                    $dependencyWarnings[] = "Required dependency '{$dep}' is missing.";
+                } elseif (!$stateByName[$dep]->isLoadable()) {
+                    $dependencyWarnings[] = "Required dependency '{$dep}' is not enabled ("
+                        . $stateByName[$dep]->value . ').';
+                }
+            }
 
             $items[] = [
                 'name'                  => $name,
@@ -190,7 +245,7 @@ class ModuleManager {
                 'requires_core'         => $meta['requires_core'] ?? '',
                 'environment'           => $meta['environment'] ?? 'main',
                 'priority'              => (int) ($meta['priority'] ?? 0),
-                'dependencies'          => is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [],
+                'dependencies'          => $dependencies,
                 'optional_dependencies' => is_array($meta['optional_dependencies'] ?? null) ? $meta['optional_dependencies'] : [],
                 'has_navbar'            => (bool) ($meta['has_navbar'] ?? false),
                 'has_settings'          => (bool) ($meta['has_settings'] ?? false),
@@ -200,6 +255,7 @@ class ModuleManager {
                 'installed_version'     => $overrides[$name]['installed_version'] ?? '',
                 'source'                => $overrides[$name]['source'] ?? '',
                 'previous_version'      => $overrides[$name]['previous_version'] ?? '',
+                'dependency_warnings'   => $dependencyWarnings,
             ];
         }
 
@@ -350,6 +406,23 @@ class ModuleManager {
      */
     public function setState(string $name, \XcVm\Core\Enum\ModuleState $state): void {
         $name      = $this->sanitizeModuleName($name);
+
+        // Refuse to disable a module that still-enabled dependents rely on
+        // (e.g. plex requires watch — watch cannot be disabled under it, or
+        // ModuleLoader would skip plex on the next boot). Mirrors the guard in
+        // uninstallModule(). Scoped strictly to a deliberate Disabled transition:
+        // the internal lifecycle states (Installing, Failed) are also non-loadable
+        // but are set by installModule() itself and must never be blocked.
+        if ($state === \XcVm\Core\Enum\ModuleState::Disabled) {
+            $dependents = $this->enabledDependentsOf($name);
+            if (!empty($dependents)) {
+                throw new \RuntimeException(
+                    "Cannot disable '{$name}': still required by " . implode(', ', $dependents)
+                    . '. Disable ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
+                );
+            }
+        }
+
         $overrides = $this->readOverrides();
 
         if (!isset($overrides[$name]) || !is_array($overrides[$name])) {

@@ -9,17 +9,37 @@ use XcVm\Core\Http\Router;
 use PHPUnit\Framework\TestCase;
 
 final class ModuleLoaderTest extends TestCase {
-	public function testLoadAllThrowsWhenDependencyMissing(): void {
+	public function testLoadAllSkipsModuleWithMissingDependencyInsteadOfThrowing(): void {
 		$root = $this->createModulesRoot();
+		// 'missing-alpha' requires a module that does not exist; a healthy sibling
+		// must still load. A missing required dependency must not abort the whole
+		// load (which would brick the panel and CLI).
 		$this->createModule($root, 'missing-alpha', [
 			'dependencies' => ['missing-module'],
 		]);
+		$this->createModule($root, 'healthy-beta');
 
 		$loader = new ModuleLoader();
-
-		$this->expectException(RuntimeException::class);
-		$this->expectExceptionMessage('requires missing dependency missing-module');
 		$loader->loadAll($root);
+
+		$this->assertFalse($loader->isLoaded('missing-alpha'));
+		$this->assertTrue($loader->isLoaded('healthy-beta'));
+	}
+
+	public function testLoadAllSkipsTransitiveDependentsOfMissingDependency(): void {
+		$root = $this->createModulesRoot();
+		// chain-gamma -> chain-beta -> missing-module (absent). Both gamma and beta
+		// must be skipped; an unrelated module must still load.
+		$this->createModule($root, 'chain-beta', ['dependencies' => ['missing-module']]);
+		$this->createModule($root, 'chain-gamma', ['dependencies' => ['chain-beta']]);
+		$this->createModule($root, 'chain-solo');
+
+		$loader = new ModuleLoader();
+		$loader->loadAll($root);
+
+		$this->assertFalse($loader->isLoaded('chain-beta'));
+		$this->assertFalse($loader->isLoaded('chain-gamma'));
+		$this->assertTrue($loader->isLoaded('chain-solo'));
 	}
 
 	public function testLoadAllThrowsWhenDependenciesAreCyclic(): void {

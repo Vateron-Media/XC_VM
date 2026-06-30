@@ -94,6 +94,13 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                         data-module="<?= htmlspecialchars($module['name']) ?>">
                                                         <?= !empty($module['enabled']) ? 'Enabled' : 'Disabled' ?>
                                                     </span>
+                                                    <?php if (!empty($module['dependency_warnings'])): ?>
+                                                        <span class="badge badge-warning module-dep-warning"
+                                                            data-module="<?= htmlspecialchars($module['name']) ?>"
+                                                            title="<?= htmlspecialchars(implode(' ', $module['dependency_warnings']), ENT_QUOTES) ?>">
+                                                            <i class="mdi mdi-alert-outline mr-1"></i><?= count($module['dependency_warnings']) === 1 ? 'Dependency issue' : 'Dependency issues' ?>
+                                                        </span>
+                                                    <?php endif; ?>
                                                 </td>
                                                 <td class="text-right">
                                                     <div class="btn-group" role="group">

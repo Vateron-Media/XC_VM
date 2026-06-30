@@ -85,15 +85,16 @@ final class ModuleLoaderPriorityTest extends TestCase {
         );
     }
 
-    public function testRequiredDependencyStillThrowsWhenMissing(): void {
+    public function testRequiredDependencyMissingSkipsDependentWithoutThrowing(): void {
         $root = $this->createModulesRoot();
         $this->createModule($root, 'needs-ghost', ['dependencies' => ['ghost-module']]);
 
         $loader = new ModuleLoader();
-
-        $this->expectException(RuntimeException::class);
-        $this->expectExceptionMessageMatches('/requires missing dependency/');
         $loader->loadAll($root);
+
+        // A missing required dependency must skip only the dependent, never abort
+        // the whole load.
+        $this->assertFalse($loader->isLoaded('needs-ghost'));
     }
 
     // ── Helpers ───────────────────────────────────────────────
