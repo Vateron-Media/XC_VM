@@ -1,20 +1,21 @@
 {
-    "version": "2.3.1",
+    "version": "2.3.2",
     "changes": [
-        "Migrated the project to Composer PSR-4 autoloading and removed the legacy XC_Autoloader",
-        "Integrated PHPStan into the CI pipeline with a frozen baseline and resolved hundreds of static analysis issues",
-        "Introduced production-only release builds to reduce package size by excluding development dependencies",
-        "Continued modernization of the Core, Domain, and Infrastructure architecture with dependency injection, EventDispatcher, enums, and strict typing",
-        "Added automatic generation of unique self-signed TLS certificates during installation",
-        "Enhanced the module system with versioning, migrations, BaseModule, and ListensTo attribute support",
-        "Added automatic GeoLite2 database downloads during installation and updates",
-        "Implemented module license renewal support",
-        "Improved HLS startup performance through optimized initial segment processing",
-        "Added missing Load Balancer administration routes",
-        "Fixed numerous PSR-4 autoloading, namespace, and path-related issues",
-        "Improved streaming stability, TMDB integration, installer reliability, and binary download handling",
-        "Removed obsolete development tools and legacy code",
-        "Improved documentation, migration guides, GitHub workflows, and release automation",
-        "Updated project dependencies and strengthened CI/CD security and stability"
+        "Added secure provisioning of config.enc for Load Balancer nodes",
+        "Enhanced the module system with migration-based schema management, uninstall support, and event decoupling",
+        "Replaced the MaxMindDB PHP extension with a Composer-based pure PHP implementation",
+        "Added binary version and operating system information to the Settings page",
+        "Added a test stream generator for HTTP-served MP4 streams",
+        "Improved stream server stability with QuietThreadingHTTPServer",
+        "Improved Load Balancer installation by resetting binary ownership before PHP-FPM startup",
+        "Fixed EPG cache cleanup to remove only orphaned cache files",
+        "Fixed module manager method calls and bootstrap initialization issues",
+        "Improved GitHub update reliability with increased API timeouts",
+        "Restored correct ownership of config.enc and install_id during provisioning",
+        "Optimized FFmpeg command generation for better streaming performance",
+        "Fixed BruteforceGuard integer handling and corrected documentation examples",
+        "Introduced centralized database access through DatabaseAware and dedicated wiring classes",
+        "Refactored multiple services for improved readability, maintainability, and cleaner architecture",
+        "Added a CLAUDE.md project guide and updated backup and migration documentation"
     ]
 }
