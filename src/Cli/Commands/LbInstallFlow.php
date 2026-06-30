@@ -122,14 +122,30 @@ class LbInstallFlow {
 	public static function provisionConfig($rConn, callable $rRunSSH, callable $rSendFileSSH, array $rServers, int $rServerID, $db): bool {
 		echo "Generating configuration file\n";
 
-		// Fetch the node's install_id. Run as root: the config dir may still be
-		// root-owned at this stage (chown to xc_vm happens later in the flow),
-		// and install_id() must be able to create config/install_id.
+		// Generate the node's install_id AS root. At this point in the flow the
+		// bundled PHP under bin/ is still root-owned (ownership is handed to
+		// xc_vm later in the install, after provisionConfig), so running php as
+		// xc_vm here cannot load the xcvm_core extension — XC_VM is undefined and
+		// install_id() prints nothing ("Failed to read install_id"). Root can
+		// always load the extension.
+		//
+		// install_id() creates config/install_id on its first call; the at-rest
+		// config.enc key is derived from its VALUE, not from the creating user
+		// (SHA-256("xcvm_cfg_v1" || install_id || machine_id)). So we create it as
+		// root and hand the whole config/ dir to xc_vm at the end, letting FPM
+		// (xc_vm) read both install_id and config.enc on boot. If install_id
+		// stayed root-owned, config.enc would fail to decrypt and the extension
+		// would silently fall back to a default config (server_id=1, is_lb=0).
+		call_user_func($rRunSSH, $rConn, 'sudo mkdir -p ' . CONFIG_PATH);
 		$rIdResult = call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg('echo XC_VM::install_id();'));
 		$rInstallId = trim($rIdResult['output'] ?? '');
 		if ($rInstallId === '') {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Failed to read install_id from node! Exiting\n";
+			$rIdErr = trim($rIdResult['error'] ?? '');
+			if ($rIdErr !== '') {
+				echo $rIdErr . "\n";
+			}
 			return false;
 		}
 
@@ -160,6 +176,10 @@ class LbInstallFlow {
 			echo "Failed to upload node configuration! Exiting\n";
 			return false;
 		}
+		// install_id was created by root above and SCP writes config.enc as root;
+		// hand the whole config/ dir to xc_vm so FPM can read install_id and
+		// re-encrypt the transport blob to at-rest format on first read.
+		call_user_func($rRunSSH, $rConn, 'sudo chown -R xc_vm:xc_vm ' . CONFIG_PATH);
 		call_user_func($rRunSSH, $rConn, 'sudo chmod 600 ' . CONFIG_PATH . 'config.enc');
 
 		return true;
@@ -200,8 +220,11 @@ class LbInstallFlow {
 	}
 
 	public static function runStartup($rConn, callable $rRunSSH): void {
-		call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
+		// Fix ownership BEFORE any PHP runs, so the extension never creates or reads
+		// install_id / config.enc as root. A root-owned install_id is unreadable by
+		// FPM (xc_vm) and makes config.enc decryption fall back to a default config.
 		call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1');
+		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php startup');
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:servers');
 	}
