@@ -82,7 +82,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 .PHONY: new lb main lb_copy_files main_copy_files set_permissions create_archive \
 	lb_archive_move main_archive_move main_install_archive clean \
 	verify_no_lfs_pointers \
-	delete_files_list lb_delete_files_list generate_deleted_files \
+	lb_delete_files_list generate_deleted_files \
 	phpstan phpstan-baseline cs cs-fix check-procedural-use verify-lb-archive gates \
 	check-vendor-prod-only dev-tools dev-clean
 
@@ -197,7 +197,7 @@ generate_deleted_files:
 # ─── MAIN targets ────────────────────────────────────────────────
 # Single archive: used for both clean install and update.
 # The update script (src/update) filters out excluded dirs at runtime.
-main: main_copy_files delete_files_list set_permissions verify_no_lfs_pointers create_archive main_archive_move main_install_archive clean
+main: main_copy_files set_permissions verify_no_lfs_pointers create_archive main_archive_move main_install_archive clean
 
 # ─── LoadBalancer targets ────────────────────────────────────────
 lb: lb_copy_files lb_delete_files_list set_permissions verify_no_lfs_pointers create_archive lb_archive_move clean
@@ -259,7 +259,7 @@ main_copy_files:
 	@echo "==> [MAIN] Copying tracked files from $(MAIN_DIR)"
 	@git ls-files src | while read -r file; do \
 		rel=$${file#src/}; \
-		printf "   → Copying: %s\n" "$$file"; \
+# 		printf "   → Copying: %s\n" "$$file"; \
 		mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
 		cp "$$file" "$(TEMP_DIR)/$$rel"; \
 	done
@@ -269,17 +269,6 @@ main_copy_files:
 		-not -path "*/.git/*" \
 		-delete
 	@echo "All files gitkeep deleted"
-
-delete_files_list:
-	@echo "[INFO] Checking for manual deleted files list"
-	@if [ -f "$(MAIN_DIR)/migrations/deleted_files.txt" ]; then \
-		mkdir -p "$(TEMP_DIR)/migrations"; \
-		cp "$(MAIN_DIR)/migrations/deleted_files.txt" "$(TEMP_DIR)/migrations/deleted_files.txt"; \
-		echo "[INFO] Files to delete on update:"; \
-		grep -v '^#' "$(TEMP_DIR)/migrations/deleted_files.txt" | grep -v '^$$' || true; \
-	else \
-		echo "[INFO] No deleted_files.txt found — skipping"; \
-	fi
 
 lb_delete_files_list:
 	@echo "[INFO] Checking for manual deleted files list (LB-scoped)"
