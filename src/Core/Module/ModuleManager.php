@@ -129,8 +129,11 @@ class ModuleManager {
      * already-installed modules are skipped, and a module's up-migrations use
      * CREATE TABLE IF NOT EXISTS so re-provisioning an existing panel is safe.
      *
-     * Modules are installed in dependency order; admin-disabled or failed
-     * modules are left untouched.
+     * Modules are installed in dependency order. Only admin-disabled modules are
+     * left untouched — a module whose previous install FAILED (or crashed mid-way,
+     * leaving it Installing) is retried here, so re-running `console.php status`
+     * self-heals once the root cause is fixed. Retrying is safe: the master schema
+     * uses CREATE TABLE IF NOT EXISTS.
      *
      * @return string[] Names of modules that were installed this pass.
      */
@@ -143,16 +146,15 @@ class ModuleManager {
             }
         }
 
-        // Candidates: present on disk, not yet installed, not admin-disabled/failed.
+        // Candidates: present on disk, not yet installed, not admin-disabled.
+        // Failed/Installing (a never-completed install) are retried, not skipped.
         $pending = [];
         foreach ($modules as $module) {
             $name = $module['name'];
             if (isset($installed[$name])) {
                 continue;
             }
-            $state = $module['state'] ?? null;
-            if ($state === \XcVm\Core\Enum\ModuleState::Disabled
-                || $state === \XcVm\Core\Enum\ModuleState::Failed) {
+            if (($module['state'] ?? null) === \XcVm\Core\Enum\ModuleState::Disabled) {
                 continue;
             }
             $pending[$name] = $module;
@@ -289,20 +291,17 @@ class ModuleManager {
 
         try {
             $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
-            // Apply every up-migration up to the target version, then the
-            // module's own install() hook for any non-SQL setup.
-            $run = function () use ($module, $modulePath, $db, $targetVersion) {
-                if ($db !== null) {
-                    ModuleMigrator::up($modulePath, $db, null, (string) $targetVersion);
-                }
-                $module->install();
-            };
-            if ($db !== null && method_exists($db, 'transactional')) {
-                // Wrap install in a DB transaction so partial migrations are rolled back.
-                $db->transactional($run);
-            } else {
-                $run();
+            // Apply the module's master schema, then its own install() hook for any
+            // non-SQL setup. NB: schema files are DDL (CREATE/ALTER), which
+            // MySQL/MariaDB implicitly commit — a wrapping transaction gives no
+            // rollback safety, and its rollback() on error throws "no active
+            // transaction", masking the real SQL error. So run directly and let the
+            // genuine failure propagate to the catch below (and into the logs).
+            if ($db !== null) {
+                // Fresh install applies the module's master schema (database.sql).
+                ModuleMigrator::install($modulePath, $db, (string) $targetVersion);
             }
+            $module->install();
         } catch (\Throwable $e) {
             $this->setState($name, \XcVm\Core\Enum\ModuleState::Failed);
             throw $e;
@@ -335,16 +334,14 @@ class ModuleManager {
         }
 
         $module = $this->loadModuleInstance($name);
-        $overrides = $this->readOverrides();
-        $installedVersion = $overrides[$name]['installed_version']
-            ?: ($this->manifestVersion($name) ?? $module->getVersion());
 
         // The module's own uninstall() hook runs first (it clears the data/rows
-        // it created), then the schema migrations it owns are reversed (down).
+        // it created), then the module's schema is torn down via its single
+        // teardown file (database_drop.sql).
         $module->uninstall();
         $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
         if ($db !== null) {
-            ModuleMigrator::down($this->modulePathFor($name), $db, (string) $installedVersion);
+            ModuleMigrator::uninstall($this->modulePathFor($name), $db);
         }
 
         $this->clearInstalledVersion($name);
