@@ -3,9 +3,7 @@
 - [Главная](ru-ru/)
 
 - **API Reference**
-  - [System API](ru-ru/api/system_api.md)
-  - [XtreamCodes API](ru-ru/api/xtreamcodes_api.md)
-  - [Плейлисты](ru-ru/api/playlist.md)
+  - [Интерактивный API (Swagger)](ru-ru/api/swagger.md)
 
 - **Справочник фреймворка**
   - [Обзор архитектуры](ru-ru/development/architecture.md)
