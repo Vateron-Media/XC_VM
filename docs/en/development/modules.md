@@ -22,10 +22,34 @@ src/Modules/my-module/
 ├── MyController.php     # Admin pages (optional)
 ├── MyCron.php           # Cron logic (optional)
 ├── MyCronJob.php        # CLI cron wrapper (optional)
+├── database.sql         # Master schema — full current CREATE/seed (optional)
+├── database_drop.sql    # Teardown — DROP every table the module owns (optional)
+├── migrations/          # Forward version deltas (optional)
+│   └── 1.1.0.sql        # Applied only when upgrading a panel past 1.1.0
 └── views/               # Page templates (optional)
     ├── my_page.php
     └── my_page_scripts.php
 ```
+
+A module owns its schema through **three roles that mirror core** (`bin/install/database.sql`
++ `migrations/`):
+
+| File | Role | Runs on |
+| ---- | ---- | ------- |
+| `database.sql` | **One** master schema — the full current `CREATE`/seed | fresh **install** |
+| `database_drop.sql` | **One** teardown — `DROP TABLE` for every table the module owns | **uninstall** |
+| `migrations/<semver>.sql` | **Folder** of forward deltas between versions | **update**, for versions in `(installed, current]` |
+
+Rules:
+
+- **Fresh install runs only `database.sql`**, so it must always reflect the LATEST
+  schema (every delta folded in). The recorded `installed_version` is the watermark —
+  deltas never replay on a fresh install.
+- **Deltas are forward-only** (`ALTER`/`INSERT`), named `<semver>.sql` — teardown is the
+  single `database_drop.sql`, so there are no per-version `.down` files.
+- Keep deltas **idempotent** (`ADD COLUMN IF NOT EXISTS`, `INSERT IGNORE`) so re-runs are safe.
+- A module with no schema ships none of these files. A delta-only module (no `database.sql`)
+  still installs by replaying every delta ≤ its version.
 
 ---
 
@@ -172,6 +196,16 @@ class MyModuleModule extends BaseModule {
 | `registerNavbar()` | `NavbarProviderInterface` | Register navbar items |
 | `install(): void` | `ModuleInterface` | Run on module install (migrations, seed) |
 | `uninstall(): void` | `ModuleInterface` | Run on module remove (cleanup) |
+
+> **Important — the version lives in two places.** A module declares its version
+> **twice**: the `"version"` field in `module.json` and the return value of
+> `getVersion()` in the module class. **Keep them identical and bump both before
+> publishing.** At runtime the manifest `version` takes precedence — install/update
+> and the `installed_version` watermark read `module.json` first and only fall back
+> to `getVersion()` — so a stale `getVersion()` silently drifts out of sync and is a
+> common source of "wrong migration ran / didn't run" bugs. If the module ships file
+> migrations, `database.sql` (master schema) and the highest `migrations/<semver>.sql`
+> delta should match this version too.
 
 ---
 
@@ -555,7 +589,15 @@ public function getCronEntries(): array {
 
 ## Versioned migrations (MigratableInterface)
 
-Modules that change their database schema over time implement `MigratableInterface`:
+> **Two mechanisms, both additive.** The **file-based schema** described under
+> [Module directory structure](#module-directory-structure) (`database.sql` master +
+> `database_drop.sql` teardown + `migrations/<semver>.sql` deltas) is the default for
+> plain DDL/seed. `MigratableInterface` below is the **programmatic** path for upgrade
+> steps that need PHP logic (data backfills, conditional changes). A module can use
+> either or both; `ModuleManager::updateModule()` runs the file deltas first, then the
+> callable migrations.
+
+Modules whose upgrades need PHP logic implement `MigratableInterface`:
 
 ```php
 namespace XcVm\Module\MyModule;
@@ -624,12 +666,14 @@ formats) and discovers any installed `xcvm-module` packages alongside the built-
 - [ ] Add `namespace XcVm\Module\<PascalName>;` to every class file
 - [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
+- [ ] Set the version in **both** `module.json` `"version"` and `getVersion()` — they must match (bump both before publishing)
 - [ ] Implement `boot()` for all services the module provides
 - [ ] Implement `registerRoutes()` for HTTP / API endpoints
 - [ ] Implement `registerNavbar()` for admin panel items (or leave empty)
 - [ ] (If crons) Create `MyCron.php` + `MyCronJob.php`, register in `registerCommands()`
 - [ ] (If crons) Override `getCronEntries()` in the module class (no core file changes)
-- [ ] (If migrations) Implement `MigratableInterface::getMigrations()`
+- [ ] (If schema) Ship `database.sql` (master), `database_drop.sql` (teardown), and `migrations/<semver>.sql` deltas
+- [ ] (If PHP-logic migrations) Implement `MigratableInterface::getMigrations()`
 - [ ] (If pages) Create controller using `renderUnifiedLayoutHeader/Footer`
 - [ ] (If stream middleware) Implement `StreamMiddlewareProviderInterface` separately
 - [ ] Verify: `php -l src/Modules/<name>/<PascalName>Module.php`

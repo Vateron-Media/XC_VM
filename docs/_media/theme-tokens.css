@@ -1,0 +1,38 @@
+/* ============================================================
+   XC_VM shared design tokens
+   Single source of truth for BOTH the docsify docs (index.html)
+   and the Swagger UI page (_media/swagger-ui.html).
+
+   Convention: :root = LIGHT (default), html[data-theme="dark"] = DARK.
+   Each page aliases its own local variables to these --xc-* tokens,
+   so the two pages can never drift apart.
+   ============================================================ */
+
+:root {
+  /* Light theme (matches Swagger light palette) */
+  --xc-bg: #ffffff;
+  --xc-panel: #f8f9fa;
+  --xc-header: #2c3e50;
+  --xc-text: #2c3e50;
+  --xc-text-2: #7f8c8d;
+  --xc-border: #e1e4e8;
+  --xc-accent: #3498db;
+  --xc-accent-hover: #2980b9;
+  --xc-code-bg: #f6f8fa;
+  --xc-code-text: #2c3e50;
+  --xc-font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html[data-theme="dark"] {
+  /* Dark theme (matches Swagger dark palette) */
+  --xc-bg: #1e1e1e;
+  --xc-panel: #2d2d2d;
+  --xc-header: #1a1a1a;
+  --xc-text: #e0e0e0;
+  --xc-text-2: #b0b0b0;
+  --xc-border: #3a3a3a;
+  --xc-accent: #4a9eff;
+  --xc-accent-hover: #357abd;
+  --xc-code-bg: #2d2d2d;
+  --xc-code-text: #e0e0e0;
+}

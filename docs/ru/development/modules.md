@@ -25,12 +25,34 @@ modules/
     ├── MyCron.php                 # Крон-логика
     ├── MyCronJob.php              # CLI-обёртка (implements CommandInterface)
     ├── MyStreamMiddleware.php     # Stream-middleware (опционально)
-    ├── views/
-    │   ├── my_page.php
-    │   └── my_page_scripts.php
-    └── migrations/
-        └── 001_create_table.sql
+    ├── database.sql               # Мастер-схема — полный текущий CREATE/seed (опц.)
+    ├── database_drop.sql          # Удаление — DROP всех таблиц модуля (опц.)
+    ├── migrations/                # Дельты между версиями (опц.)
+    │   └── 1.1.0.sql              # Применяется только при апгрейде выше 1.1.0
+    └── views/
+        ├── my_page.php
+        └── my_page_scripts.php
 ```
+
+Модуль владеет своей схемой через **три роли — зеркало ядра** (`bin/install/database.sql`
++ `migrations/`):
+
+| Файл | Роль | Когда выполняется |
+| ---- | ---- | ----------------- |
+| `database.sql` | **Одна** мастер-схема — полный текущий `CREATE`/seed | свежая **установка** |
+| `database_drop.sql` | **Один** файл удаления — `DROP TABLE` всех таблиц модуля | **удаление** |
+| `migrations/<semver>.sql` | **Папка** форвардных дельт между версиями | **обновление**, для версий в `(installed, current]` |
+
+Правила:
+
+- **Свежая установка выполняет только `database.sql`**, поэтому он всегда должен отражать
+  ПОСЛЕДНЮЮ схему (все дельты уже влиты). Watermark `installed_version` гарантирует, что
+  дельты не проигрываются повторно на свежей установке.
+- **Дельты только форвардные** (`ALTER`/`INSERT`), имя `<semver>.sql` — удаление одно
+  (`database_drop.sql`), поэтому пофайловых `.down` больше нет.
+- Держите дельты **идемпотентными** (`ADD COLUMN IF NOT EXISTS`, `INSERT IGNORE`).
+- Модуль без схемы не поставляет эти файлы. Модуль только с дельтами (без `database.sql`)
+  всё равно установится, проиграв все дельты ≤ своей версии.
 
 ---
 
@@ -197,6 +219,16 @@ class MyModuleModule extends BaseModule {
 | `registerRoutes(Router)` | `RouteProviderInterface` | HTTP-маршруты и API-экшены |
 | `registerCommands(CommandRegistry)` | `CommandProviderInterface` | Явная регистрация CLI-команд и крон-задач |
 | `registerNavbar(): void` | `NavbarProviderInterface` | Пункты меню в admin navbar |
+
+> **Важно — версия задаётся в двух местах.** Модуль объявляет свою версию **дважды**:
+> поле `"version"` в `module.json` и возвращаемое значение `getVersion()` в классе
+> модуля. **Держите их одинаковыми и повышайте обе перед публикацией.** В рантайме
+> приоритет у версии из манифеста — установка/обновление и watermark
+> `installed_version` сначала читают `module.json` и лишь потом откатываются к
+> `getVersion()`, поэтому устаревший `getVersion()` тихо рассинхронизируется и
+> становится частой причиной багов «не та миграция выполнилась / не выполнилась».
+> Если модуль поставляет файловую схему, `database.sql` (мастер) и старшая дельта
+> `migrations/<semver>.sql` тоже должны совпадать с этой версией.
 
 ---
 
@@ -715,6 +747,7 @@ public function has(string $id): bool;
 - [ ] `mkdir -p src/Modules/<name>/`
 - [ ] Создать `module.json` (name, version, requires_core, priority, optional_dependencies)
 - [ ] Создать `<Name>Module.php` (extends `BaseModule`)
+- [ ] Задать версию в **обоих** местах — `"version"` в `module.json` и `getVersion()` — они должны совпадать (повышать обе перед публикацией)
 - [ ] `boot()` — зарегистрировать сервисы через `$container->set()`
 - [ ] `getEventSubscribers()` — подписки на типизированные события
 - [ ] `registerRoutes()` — маршруты (или пустой метод)
@@ -723,6 +756,8 @@ public function has(string $id): bool;
 - [ ] (опц.) `implements StreamMiddlewareProviderInterface` + `getStreamMiddleware()`
 - [ ] (опц.) Контроллер + views/
 - [ ] (опц.) CronJob + регистрация в StartupCommand
+- [ ] (если своя схема) `database.sql` (мастер), `database_drop.sql` (удаление), `migrations/<semver>.sql` (дельты)
+- [ ] (если миграции с PHP-логикой) `implements MigratableInterface` + `getMigrations()`
 - [ ] Проверить: `php -l src/Modules/<name>/<Name>Module.php`
 - [ ] Проверить: `php console.php --list` показывает команды модуля
 - [ ] Проверить: удаление директории не вызывает ошибок ядра

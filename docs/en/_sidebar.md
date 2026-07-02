@@ -3,9 +3,7 @@
 - [Home](en-us/)
 
 - **API Reference**
-  - [System API](en-us/api/system_api.md)
-  - [XtreamCodes API](en-us/api/xtreamcodes_api.md)
-  - [Playlists](en-us/api/playlist.md)
+  - [Interactive API (Swagger)](en-us/api/swagger.md)
 
 - **Framework Reference**
   - [Architecture Overview](en-us/development/architecture.md)

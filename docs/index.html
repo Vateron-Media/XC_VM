@@ -9,167 +9,56 @@
   <meta name="description" content="XC_VM IPTV Panel Documentation">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
 
-  <link rel="stylesheet" href="//cdn.jsdelivr.net/npm/docsify@4/lib/themes/dark.css" title="dark">
+  <!-- docsify-themeable: Simple (light) + Simple Dark (dark).
+       Toggled at runtime by the theme button below (localStorage['theme']),
+       kept in sync with the Swagger page via the same key + theme-tokens.css. -->
+  <link rel="stylesheet" id="xc-theme-light" href="//cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple.css">
+  <link rel="stylesheet" id="xc-theme-dark" href="//cdn.jsdelivr.net/npm/docsify-themeable@0/dist/css/theme-simple-dark.css">
+  <link rel="stylesheet" href="_media/theme-tokens.css">
+  <script>
+    // Apply the saved theme before render (default dark) to avoid a flash.
+    (function () {
+      var t = localStorage.getItem('theme') === 'light' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+      var d = document.getElementById('xc-theme-dark');
+      var l = document.getElementById('xc-theme-light');
+      if (d) d.disabled = (t !== 'dark');
+      if (l) l.disabled = (t === 'dark');
+    })();
+  </script>
   <style>
+    /* Align docsify-themeable's accent + font with the Swagger page via the
+       shared --xc-* tokens; the Simple / Simple Dark themes handle the rest. */
     :root {
-      --base-background-color: #1a1a2e;
-      --sidebar-background: #16213e;
-      --theme-color: #e94560;
-      --text-color-base: #dcdcdc;
-      --sidebar-nav-link-color--active: #e94560;
+      --theme-color: var(--xc-accent);
+      --link-color: var(--xc-accent);
+      --base-font-family: var(--xc-font);
+      --content-max-width: 900px;
     }
 
-    body {
-      background-color: var(--base-background-color);
+    /* Light/dark toggle button (mirrors the Swagger page toggle) */
+    #xc-theme-toggle {
+      position: fixed;
+      bottom: 18px;
+      right: 18px;
+      z-index: 100;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: 1px solid var(--xc-border);
+      background: var(--xc-panel);
+      color: var(--xc-text);
+      font-size: 1.05rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     }
 
-    .sidebar {
-      padding-top: 0;
-      background-color: var(--sidebar-background);
-      border-right: 1px solid #0f3460;
-    }
-
-    /* Sidebar: top-level sections (categories) */
-    .sidebar-nav>ul>li>p,
-    .sidebar-nav>ul>li>a {
-      font-weight: 700;
-      font-size: 0.95em;
-      color: #e0e0f0;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      margin-top: 12px;
-    }
-
-    /* Sidebar: sub-items */
-    .sidebar-nav>ul>li>ul {
-      padding-left: 4px;
-      margin: 4px 0 8px 0;
-      border-left: 2px solid #0f3460;
-    }
-
-    .sidebar-nav>ul>li>ul>li>a {
-      font-weight: 500;
-      font-size: 0.88em;
-      color: #a8a8c0;
-      padding: 3px 0 3px 12px;
-      display: block;
-      border-left: 2px solid transparent;
-      margin-left: -2px;
-      transition: all 0.15s ease;
-    }
-
-    .sidebar-nav>ul>li>ul>li>a:hover {
-      color: #e94560;
-      border-left-color: #e94560;
-    }
-
-    .sidebar-nav>ul>li>ul>li>a.active {
-      color: #e94560;
-      font-weight: 600;
-      border-left-color: #e94560;
-    }
-
-    .sidebar-nav li {
-      line-height: 1.7;
-    }
-
-    .app-name.hide,
-    .sidebar-nav.hide {
-      display: none;
-    }
-
-    /* Navbar base */
-    nav.app-nav {
-      margin: 0;
-      padding: 10px 0;
-    }
-
-    nav.app-nav>ul>li>a {
-      color: #dcdcdc;
-      font-weight: 600;
-      text-transform: uppercase;
-      font-size: 0.85em;
-      letter-spacing: 0.5px;
-    }
-
-    /* Dropdown container */
-    nav.app-nav li ul {
-      min-width: 160px;
-      background-color: #16213e;
-      border: 1px solid #0f3460;
-      border-radius: 6px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      padding: 6px 0;
-      top: 100%;
-    }
-
-    /* Dropdown items */
-    nav.app-nav li ul li {
-      margin: 0;
-    }
-
-    nav.app-nav li ul li a {
-      color: #b8b8cc;
-      padding: 6px 16px;
-      display: block;
-      font-size: 0.9em;
-      border-left: 3px solid transparent;
-      transition: all 0.15s ease;
-    }
-
-    nav.app-nav li ul li a:hover {
-      color: #e94560;
-      background-color: rgba(233, 69, 96, 0.08);
-      border-left-color: #e94560;
-    }
-
-    .markdown-section {
-      max-width: 900px;
-    }
-
-    /* Code blocks */
-    .markdown-section pre {
-      padding: 12px;
-    }
-
-    .markdown-section code {
-      background-color: #0f3460;
-      color: #e2e2e2;
-    }
-
-    .markdown-section pre>code {
-      background-color: #0d1b2a;
-      color: #d4d4d4;
-    }
-
-    /* Search input */
-    .search input {
-      background-color: #0f3460;
-      color: #dcdcdc;
-      border-color: #1a1a40;
-    }
-
-    /* Links */
-    a {
-      color: #e94560;
-    }
-
-    a:hover {
-      color: #ff6b81;
-    }
-
-    /* Tables */
-    .markdown-section table {
-      border-collapse: collapse;
-    }
-
-    .markdown-section table td,
-    .markdown-section table th {
-      border-color: #0f3460;
-    }
-
-    .markdown-section table tr:nth-child(2n) {
-      background-color: #16213e;
+    #xc-theme-toggle:hover {
+      border-color: var(--xc-accent);
+      color: var(--xc-accent);
     }
   </style>
 </head>
@@ -223,6 +112,7 @@
     };
   </script>
   <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/docsify.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/docsify-themeable@0/dist/js/docsify-themeable.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/docsify@4/lib/plugins/search.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-bash.min.js"></script>
   <script src="//cdn.jsdelivr.net/npm/prismjs@1/components/prism-markdown.min.js"></script>
@@ -233,6 +123,32 @@
 
 
   <div class="progress" style="opacity: 0; width: 0%;"></div>
+
+  <button id="xc-theme-toggle" title="Toggle light / dark" aria-label="Toggle theme"></button>
+  <script>
+    // Light/dark toggle, synced with the Swagger page via localStorage['theme'].
+    // Switches between the docsify-themeable Simple (light) and Simple Dark themes.
+    (function () {
+      var btn = document.getElementById('xc-theme-toggle');
+      var darkCss = document.getElementById('xc-theme-dark');
+      var lightCss = document.getElementById('xc-theme-light');
+      function isDark() {
+        return document.documentElement.getAttribute('data-theme') !== 'light';
+      }
+      function apply(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        if (darkCss) darkCss.disabled = (theme !== 'dark');
+        if (lightCss) lightCss.disabled = (theme === 'dark');
+        btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+      }
+      apply(isDark() ? 'dark' : 'light');
+      btn.addEventListener('click', function () {
+        var next = isDark() ? 'light' : 'dark';
+        localStorage.setItem('theme', next);
+        apply(next);
+      });
+    })();
+  </script>
 </body>
 
 </html>
