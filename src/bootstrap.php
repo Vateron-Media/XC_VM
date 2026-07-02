@@ -709,18 +709,41 @@ class XC_Bootstrap {
             );
         }
 
-        // Ensure legacy 'reseller' assets alias exists as a symlink to 'admin'
-        // Some nginx configs and legacy routes expect public/assets/reseller to
-        // point to public/assets/admin. Create the symlink if the target exists
-        // and the link does not.
-        $assetsBase = MAIN_HOME . 'Public/assets/';
-        $adminAssets = $assetsBase . 'admin';
-        $resellerLink = $assetsBase . 'reseller';
-        if (is_dir($adminAssets) && !file_exists($resellerLink)) {
-            @symlink($adminAssets, $resellerLink);
-        }
+        // Ensure the legacy 'reseller' assets alias (Public/assets/reseller → admin).
+        self::ensureResellerAssetsSymlink();
 
         require_once MAIN_HOME . 'resources/data/admin_constants.php';
+    }
+
+    /**
+     * Ensure the legacy 'reseller' assets alias exists (Public/assets/reseller → admin).
+     *
+     * Reseller pages reuse the admin asset bundle, and some nginx configs / legacy
+     * routes expect Public/assets/reseller to resolve to Public/assets/admin. The
+     * link is not stored in git (an absolute-path symlink broke the build), so the
+     * panel recreates it here. Idempotent, and repairs a stale/broken link.
+     */
+    private static function ensureResellerAssetsSymlink(): void {
+        $assetsBase   = MAIN_HOME . 'Public/assets/';
+        $resellerLink = $assetsBase . 'reseller';
+
+        // Nothing to point at yet — skip.
+        if (!is_dir($assetsBase . 'admin')) {
+            return;
+        }
+
+        if (is_link($resellerLink)) {
+            // Correct, resolvable link → nothing to do.
+            if (readlink($resellerLink) === 'admin' && is_dir($resellerLink)) {
+                return;
+            }
+            @unlink($resellerLink); // stale/broken link — recreate below
+        } elseif (file_exists($resellerLink)) {
+            return; // a real directory/file lives here — leave it alone
+        }
+
+        // Relative link so it is independent of MAIN_HOME and path case.
+        @symlink('admin', $resellerLink);
     }
 
     /**

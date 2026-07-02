@@ -1685,6 +1685,28 @@ def _install_openssl3_compat(dist_id, major):
         printc("PHP binaries may not work without libssl.so.3", col.WARNING)
 
 
+def _apt_install_framed(packages):
+    """Install packages one at a time, each under its own frame.
+
+    For every package a printc frame names what is being installed, and apt's raw
+    log streams straight to the terminal below that frame (no capture_output), so
+    the operator sees which package is installing and its full output. Returns the
+    list of packages whose install returned a non-zero code.
+    """
+    failed = []
+    total = len(packages)
+    for idx, pkg in enumerate(packages, 1):
+        printc(f"Installing package {idx}/{total}: {pkg}", col.OKBLUE)
+        # No capture_output → apt's log is shown directly under the frame.
+        ret, _, _ = run_command(
+            f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {pkg}"
+        )
+        if ret != 0:
+            printc(f"Package failed: {pkg}", col.WARNING)
+            failed.append(pkg)
+    return failed
+
+
 def install_deb_packages(dist_info):
     """Install Debian/Ubuntu packages based on detected distribution."""
     dist_id = dist_info["id"]
@@ -1714,36 +1736,28 @@ def install_deb_packages(dist_info):
         db_packages = [p for p in packages if p in _mariadb_pkgs]
         other_packages = [p for p in packages if p not in _mariadb_pkgs]
 
-        # Install non-DB packages first
+        # Install non-DB packages one by one: a frame per package, log shown below.
         if other_packages:
-            other_str = " ".join(other_packages)
             printc(
                 f"Installing {label} system packages ({len(other_packages)})...",
                 col.OKBLUE,
             )
-            ret, _, _ = run_command(
-                f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {other_str}",
-                capture_output=True,
-            )
-            if ret != 0:
+            failed = _apt_install_framed(other_packages)
+            if failed:
                 printc(
-                    "Some system packages failed to install, retrying one by one...",
+                    "These packages failed to install: " + ", ".join(failed),
                     col.WARNING,
                 )
-                for pkg in other_packages:
-                    run_command(
-                        f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {pkg} || true"
-                    )
 
         # Install MariaDB packages separately with fallback
         if db_packages:
             db_str = " ".join(db_packages)
             printc(
-                f"Installing MariaDB packages ({len(db_packages)})...", col.OKBLUE
+                f"Installing MariaDB packages: {db_str}", col.OKBLUE
             )
-            ret, _, stderr = run_command(
-                f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {db_str}",
-                capture_output=True,
+            # No capture_output → apt's log is shown directly under the frame.
+            ret, _, _ = run_command(
+                f"DEBIAN_FRONTEND=noninteractive apt-get -yq install {db_str}"
             )
             if ret != 0:
                 printc(
@@ -2006,13 +2020,24 @@ if __name__ == "__main__":
             raise Exception("User not found")
     except Exception:
         printc("Creating user xc_vm", col.OKBLUE)
+        # capture_output=True keeps adduser/useradd's raw "info:" lines out of the
+        # terminal so the framed printc messages stay clean and consistent.
         if dist_info["family"] == "debian":
-            run_command(
-                "adduser --system --shell /bin/false --no-create-home --home /nonexistent --group --disabled-login xc_vm"
+            rc, _, err = run_command(
+                "adduser --system --shell /bin/false --no-create-home --home /nonexistent --group --disabled-login xc_vm",
+                capture_output=True,
             )
         else:  # redhat
-            run_command("groupadd -r xc_vm")
-            run_command("useradd -r -g xc_vm -s /bin/false -M -d /nonexistent xc_vm")
+            run_command("groupadd -r xc_vm", capture_output=True)
+            rc, _, err = run_command(
+                "useradd -r -g xc_vm -s /bin/false -M -d /nonexistent xc_vm",
+                capture_output=True,
+            )
+        if rc == 0:
+            printc("User xc_vm created", col.OKGREEN)
+        else:
+            printc("Failed to create user xc_vm: " + str(err), col.FAIL)
+            sys.exit(1)
 
     if not os.path.exists("/home/xc_vm"):
         os.makedirs("/home/xc_vm", exist_ok=True)
@@ -2499,7 +2524,6 @@ if __name__ == "__main__":
     printc(f"Total RAM: {total_ram_mb}MB", col.OKGREEN)
 
     printc("Credentials have been saved to:", col.OKBLUE)
-    printc("/root/credentials.txt", col.OKGREEN)
     printc(f"{local_creds_path}", col.OKGREEN)
 
     printc("IMPORTANT: Move the credentials file to a secure location!", col.WARNING)

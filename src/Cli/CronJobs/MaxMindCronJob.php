@@ -34,6 +34,8 @@ class MaxMindCronJob implements CommandInterface {
 			return 1;
 		}
 
+		echo "GeoIP (MaxMind)\n------------------------------\n";
+
 		// Only run on Tuesdays (MaxMind publishes updates on Tuesdays)
 		if (date('N') !== '2' && !in_array('--force', $rArgs)) {
 			echo "Skipping MaxMind update: not Tuesday (use --force to override)\n";
@@ -92,18 +94,26 @@ class MaxMindCronJob implements CommandInterface {
 						}
 						curl_close($ch);
 
-						if ($rData === false) {
+						if ($rData === false || $rData === '') {
+							// Only a real network failure blocks the update.
 							echo '[ERROR] ' . $rFile['path'] . ': download failed' . "\n";
 							$anyError = true;
-						} elseif ($rFile['md5'] == $rMD5) {
-							echo '[OK]    ' . $rFile['path'] . ': updated' . "\n";
-							file_put_contents($rFile['path'], $rData);
+						} else {
+							// GeoIP is non-critical and must download in any case:
+							// hashes.md5 can time out (SSL), leaving the expected md5
+							// empty, or lag a release. A successfully downloaded DB is
+							// ALWAYS saved; the checksum only sets the status line.
+							if (empty($rFile['md5'])) {
+								echo '[WARN]  ' . $rFile['path'] . ': saved without checksum (hash unavailable)' . "\n";
+							} elseif ($rFile['md5'] === $rMD5) {
+								echo '[OK]    ' . $rFile['path'] . ': updated' . "\n";
+							} else {
+								echo '[WARN]  ' . $rFile['path'] . ': checksum mismatch — saved anyway' . "\n";
+							}
 
+							file_put_contents($rFile['path'], $rData);
 							chown($rFile['path'], 'xc_vm');
 							chmod($rFile['path'], 0750);
-						} else {
-							echo '[ERROR] ' . $rFile['path'] . ': checksum mismatch' . "\n";
-							$anyError = true;
 						}
 					} else {
 						echo '[SKIP]  ' . $rFile['path'] . ': already up to date' . "\n";
