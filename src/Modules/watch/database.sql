@@ -1,6 +1,8 @@
--- watch module schema — version 1.0.0 (up)
--- Owns: watch_categories, watch_folders, watch_logs, watch_refresh.
--- plex depends on watch and reuses watch_categories + watch_folders.
+-- watch module — master schema (current version)
+-- Full CREATE + seed for a fresh install. Must always reflect the LATEST schema
+-- (every migrations/<semver>.sql delta folded in), mirroring core's
+-- bin/install/database.sql. Owns: watch_categories, watch_folders, watch_logs,
+-- watch_refresh. plex depends on watch and reuses watch_categories + watch_folders.
 
 CREATE TABLE IF NOT EXISTS `watch_categories` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS `watch_folders` (
   `bouquets` varchar(4096) COLLATE utf8_unicode_ci DEFAULT '[]',
   `last_run` int(32) DEFAULT '0',
   `active` int(1) DEFAULT '1',
+  `delete_missing` tinyint(1) DEFAULT '0',
   `disable_tmdb` int(1) DEFAULT '0',
   `ignore_no_match` int(1) DEFAULT '0',
   `auto_subtitles` int(1) DEFAULT '0',
