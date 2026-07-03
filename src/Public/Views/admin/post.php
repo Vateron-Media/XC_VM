@@ -39,6 +39,19 @@ use XcVm\Module\Watch\WatchService;
 $rICount = !empty($GLOBALS['__forcePostMode']) ? 1 : count(get_included_files());
 include 'session.php';
 include 'functions.php';
+
+// nginx serves an existing post.php directly (standalone), bypassing the front
+// controller — so the module web boot in index.php never runs and the module
+// service classes used by the POST handlers below (WatchService, PlexService,
+// RecordingService) would be unresolved. Load them here. Gated to the standalone
+// POST case only: the FC path (PostController) sets __forcePostMode and has
+// already booted modules, and the footer-render include has $rICount > 1.
+if ($rICount === 1 && empty($GLOBALS['__forcePostMode']) && class_exists(\XcVm\Core\Module\ModuleLoader::class)) {
+	$rModuleLoader = new \XcVm\Core\Module\ModuleLoader();
+	$rModuleLoader->loadAll();
+	$rModuleLoader->bootAll(\XC_Bootstrap::getContainer());
+}
+
 $_PAGE = AdminHelpers::getPageName();
 $_ERRORS = array();
 
