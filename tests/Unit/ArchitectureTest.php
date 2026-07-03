@@ -103,6 +103,32 @@ final class ArchitectureTest extends TestCase {
         }
     }
 
+    /**
+     * Resolve a module's on-disk directory basename by its canonical manifest name.
+     *
+     * Module directories use the `{name}_{hash5}` convention, so the basename is not
+     * the canonical name. Tests that need a specific module must resolve it via its
+     * module.json `name`, never by assuming the directory is named after the module.
+     */
+    private function moduleDirBasename(string $canonicalName): ?string {
+        $dirs = new FilesystemIterator(self::MODULES_DIR, FilesystemIterator::SKIP_DOTS);
+        foreach ($dirs as $entry) {
+            /** @var SplFileInfo $entry */
+            if (!$entry->isDir()) {
+                continue;
+            }
+            $manifest = $entry->getRealPath() . '/module.json';
+            if (!is_file($manifest)) {
+                continue;
+            }
+            $data = json_decode((string) file_get_contents($manifest), true);
+            if (is_array($data) && ($data['name'] ?? null) === $canonicalName) {
+                return $entry->getBasename();
+            }
+        }
+        return null;
+    }
+
     // ── tests ─────────────────────────────────────────────────────────────────
 
     /**
@@ -127,7 +153,10 @@ final class ArchitectureTest extends TestCase {
      * - CLI_GLOBAL_DB_EXEMPT — cron/CLI classes using admin.php bootstrap (temporary, see R4-3)
      */
     public function testNoWebContextModuleUsesGlobalDb(): void {
-        foreach ($this->moduleFiles(excludeModuleDirs: ['ministra']) as $relative => $content) {
+        $ministraDir = $this->moduleDirBasename('ministra');
+        $exclude     = $ministraDir !== null ? [$ministraDir] : [];
+
+        foreach ($this->moduleFiles(excludeModuleDirs: $exclude) as $relative => $content) {
             $basename = basename($relative);
 
             if (in_array($basename, self::CLI_GLOBAL_DB_EXEMPT, true)) {
@@ -149,7 +178,8 @@ final class ArchitectureTest extends TestCase {
     /**
      * Every module entry-point (*Module.php) must declare the canonical namespace.
      *
-     * Convention: XcVm\Module\{Pascal} where Pascal = PascalCase of the directory name.
+     * Convention: XcVm\Module\{Pascal} where Pascal = PascalCase of the canonical
+     * manifest name (module.json `name`), NOT the `{name}_{hash5}` directory basename.
      * Non-entry-point files (controllers, services, cron) are not yet required — see R4-3.
      */
     public function testModuleEntryPointsHaveCorrectNamespace(): void {
@@ -162,8 +192,17 @@ final class ArchitectureTest extends TestCase {
                 continue;
             }
 
-            $dirName = $entry->getBasename();
-            $pascal  = implode('', array_map('ucfirst', explode('-', $dirName)));
+            $manifest = $entry->getRealPath() . '/module.json';
+            if (!is_file($manifest)) {
+                continue;
+            }
+            $data = json_decode((string) file_get_contents($manifest), true);
+            $name = is_array($data) ? (string) ($data['name'] ?? '') : '';
+            if ($name === '') {
+                continue;
+            }
+
+            $pascal     = implode('', array_map('ucfirst', explode('-', $name)));
             $moduleFile = $entry->getRealPath() . '/' . $pascal . 'Module.php';
 
             if (!file_exists($moduleFile)) {

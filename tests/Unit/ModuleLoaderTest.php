@@ -26,6 +26,115 @@ final class ModuleLoaderTest extends TestCase {
 		$this->assertTrue($loader->isLoaded('healthy-beta'));
 	}
 
+	// ── update-source manifest block (P2) ─────────────────────────────────
+
+	public function testNormalizeUpdateBlockDefaultsToBundled(): void {
+		$u = ModuleLoader::normalizeUpdateBlock(['name' => 'watch'], 'watch');
+		$this->assertSame('bundled', $u['source']);
+		$this->assertSame('watch', $u['slug']);   // slug defaults to the module name
+		$this->assertSame('stable', $u['channel']);
+		$this->assertSame('', $u['repository']);
+	}
+
+	public function testNormalizeUpdateBlockReadsGitSource(): void {
+		$u = ModuleLoader::normalizeUpdateBlock([
+			'name'   => 'watch',
+			'update' => [
+				'source'     => 'GIT',
+				'repository' => 'https://github.com/Vateron-Media/xc_vm-module-watch',
+				'channel'    => 'Beta',
+			],
+		], 'watch');
+		$this->assertSame('git', $u['source']);
+		$this->assertSame('https://github.com/Vateron-Media/xc_vm-module-watch', $u['repository']);
+		$this->assertSame('beta', $u['channel']);
+		$this->assertSame('watch', $u['slug']);
+	}
+
+	public function testNormalizeUpdateBlockUnknownSourceFallsBackToBundled(): void {
+		$u = ModuleLoader::normalizeUpdateBlock(['name' => 'x', 'update' => ['source' => 'ftp']], 'x');
+		$this->assertSame('bundled', $u['source']);
+	}
+
+	// ── {name}_{hash5} directory convention ───────────────────────────────
+
+	public function testLoadsModuleFromHashSuffixedDirectory(): void {
+		$root = $this->createModulesRoot();
+		// Directory is {name}_{hash5}; the canonical name in the manifest is 'hashmod'.
+		$dir = $root . '/hashmod_ab123';
+		mkdir($dir, 0775, true);
+		file_put_contents($dir . '/module.json', json_encode([
+			'name'          => 'hashmod',
+			'hash_id'       => 'ab123def4567890ab123def4567890ff',
+			'version'       => '1.0.0',
+			'requires_core' => '>=2.0',
+			'environment'   => 'main',
+			'dependencies'  => [],
+		]));
+		file_put_contents($dir . '/HashmodModule.php',
+			"<?php\nnamespace XcVm\\Module\\Hashmod;\n"
+			. "use XcVm\\Core\\Module\\BaseModule;\n"
+			. "class HashmodModule extends BaseModule {\n"
+			. "\tpublic function getName(): string { return 'hashmod'; }\n"
+			. "\tpublic function getVersion(): string { return '1.0.0'; }\n"
+			. "}\n"
+		);
+
+		$loader = new ModuleLoader();
+		$loader->loadAll($root);
+
+		// Loaded under the canonical manifest name, not the hash-suffixed directory.
+		$this->assertTrue($loader->isLoaded('hashmod'));
+		$this->assertFalse($loader->isLoaded('hashmod_ab123'));
+	}
+
+	public function testLoadAllSkipsBrokenModuleInsteadOfBrickingThePanel(): void {
+		$root = $this->createModulesRoot();
+		// 'broken-mod' has a manifest but no class file → load() fails. A single
+		// broken/half-deployed module must NOT abort the whole load (which would
+		// brick the panel and CLI); a healthy sibling must still load.
+		$dir = $root . '/broken-mod';
+		mkdir($dir, 0775, true);
+		file_put_contents($dir . '/module.json', json_encode([
+			'name'          => 'broken-mod',
+			'version'       => '1.0.0',
+			'requires_core' => '>=2.0',
+			'environment'   => 'main',
+			'dependencies'  => [],
+		]));
+		// No BrokenModModule.php on disk → class cannot be loaded.
+		$this->createModule($root, 'healthy-sibling');
+
+		$loader = new ModuleLoader();
+		$loader->loadAll($root); // must not throw
+
+		$this->assertFalse($loader->isLoaded('broken-mod'));
+		$this->assertTrue($loader->isLoaded('healthy-sibling'));
+	}
+
+	public function testLoadAllSkipsDependentsOfBrokenModule(): void {
+		$root = $this->createModulesRoot();
+		// 'dependent' requires 'broken-base'; 'broken-base' fails to load (no class
+		// file). The dependent must be skipped too — booting it without its
+		// dependency present could fatal.
+		$dir = $root . '/broken-base';
+		mkdir($dir, 0775, true);
+		file_put_contents($dir . '/module.json', json_encode([
+			'name'          => 'broken-base',
+			'version'       => '1.0.0',
+			'requires_core' => '>=2.0',
+			'environment'   => 'main',
+			'dependencies'  => [],
+		]));
+		$this->createModule($root, 'dependent', ['dependencies' => ['broken-base']]);
+
+		$loader = new ModuleLoader();
+		$loader->loadAll($root);
+
+		$this->assertFalse($loader->isLoaded('broken-base'));
+		$this->assertFalse($loader->isLoaded('dependent'));
+	}
+
 	public function testLoadAllSkipsTransitiveDependentsOfMissingDependency(): void {
 		$root = $this->createModulesRoot();
 		// chain-gamma -> chain-beta -> missing-module (absent). Both gamma and beta

@@ -49,6 +49,38 @@ final class ModuleManagerMigrationsTest extends TestCase {
         $this->assertSame('1.0.0', $overrides['install-record']['installed_version'] ?? null);
     }
 
+    public function testInstallsModuleLivingInHashSuffixedDirectory(): void {
+        // Reproduces the upload flow: the module was placed in `{name}_{hash5}`,
+        // never a bare `{name}` dir. installModule() must resolve the real directory
+        // to load the class — otherwise the module unpacks but fails to install.
+        $name  = 'hashinstall';
+        $pascal = $this->pascal($name);
+        $dir   = $this->modulesPath . '/' . $name . '_ab123';
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/module.json', json_encode([
+            'name'          => $name,
+            'hash_id'       => 'ab123def4567890ab123def4567890cc',
+            'version'       => '2.1.0',
+            'requires_core' => '>=2.0',
+            'environment'   => 'main',
+            'dependencies'  => [],
+        ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        file_put_contents($dir . '/' . $pascal . "Module.php",
+            "<?php\nnamespace XcVm\\Module\\{$pascal};\n"
+            . "use XcVm\\Core\\Module\\BaseModule;\n"
+            . "class {$pascal}Module extends BaseModule {\n"
+            . "\tpublic function getName(): string { return '{$name}'; }\n"
+            . "\tpublic function getVersion(): string { return '2.1.0'; }\n"
+            . "}\n"
+        );
+
+        $this->manager()->installModule($name);
+
+        // Version comes from the manifest in the hashed dir (proves readModuleManifest
+        // resolved it too), and state is recorded under the canonical name.
+        $this->assertSame('2.1.0', $this->readOverrides()[$name]['installed_version'] ?? null);
+    }
+
     // ── uninstallModule() clears installed_version ────────────────────────
 
     public function testUninstallClearsInstalledVersion(): void {
@@ -60,6 +92,32 @@ final class ModuleManagerMigrationsTest extends TestCase {
 
         $overrides = $this->readOverrides();
         $this->assertArrayNotHasKey('installed_version', $overrides['uninstall-clear'] ?? []);
+    }
+
+    // ── deleteModule() — removes directory + override ────────────────────
+
+    public function testDeleteRemovesModuleDirectoryAndOverride(): void {
+        $this->createModule('delete-me', '1.0.0');
+        $this->writeOverrides(['delete-me' => ['installed_version' => '1.0.0']]);
+        $dir = $this->modulesPath . '/delete-me';
+        $this->assertDirectoryExists($dir);
+
+        $this->manager()->deleteModule('delete-me');
+
+        $this->assertDirectoryDoesNotExist($dir);
+        $this->assertArrayNotHasKey('delete-me', $this->readOverrides());
+    }
+
+    public function testDeleteBlockedByInstalledDependent(): void {
+        $this->createModuleWithDeps('del-base', '1.0.0', []);
+        $this->createModuleWithDeps('del-consumer', '1.0.0', ['del-base']);
+        $this->writeOverrides([
+            'del-base'     => ['installed_version' => '1.0.0'],
+            'del-consumer' => ['installed_version' => '1.0.0'],
+        ]);
+
+        $this->expectException(\RuntimeException::class);
+        $this->manager()->deleteModule('del-base');
     }
 
     // ── updateModule() — fallback to installModule() ──────────────────────
@@ -133,6 +191,108 @@ final class ModuleManagerMigrationsTest extends TestCase {
 
         $overrides = $this->readOverrides();
         $this->assertSame('3.0.0', $overrides['update-nomir']['installed_version'] ?? null);
+    }
+
+    // ── findModuleByHashId() — stable identity lookup (P5 foundation) ─────
+
+    public function testFindModuleByHashId(): void {
+        $dir = $this->modulesPath . '/id-mod';
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/module.json', json_encode([
+            'name'                  => 'id-mod',
+            'hash_id'               => 'abc123def4567890abc123def4567890',
+            'version'               => '1.0.0',
+            'environment'           => 'main',
+            'dependencies'          => [],
+            'optional_dependencies' => [],
+        ]));
+
+        $manager = $this->manager();
+        $this->assertSame('id-mod', $manager->findModuleByHashId('abc123def4567890abc123def4567890'));
+        $this->assertNull($manager->findModuleByHashId('does-not-exist'));
+        $this->assertNull($manager->findModuleByHashId(''));
+    }
+
+    // ── migrateLegacyModuleDirs() — bare {name} → {name}_{hash5} ──────────
+
+    public function testMigrateLegacyDirGeneratesHashAndRenames(): void {
+        // Legacy bare directory with NO hash_id in the manifest.
+        $dir = $this->modulesPath . '/legacy-mod';
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/module.json', json_encode([
+            'name'         => 'legacy-mod',
+            'version'      => '1.0.0',
+            'environment'  => 'main',
+            'dependencies' => [],
+        ]));
+
+        $migrated = $this->manager()->migrateLegacyModuleDirs();
+
+        $this->assertSame(['legacy-mod'], $migrated);
+        $this->assertDirectoryDoesNotExist($dir, 'bare directory must be gone');
+
+        $hashed = glob($this->modulesPath . '/legacy-mod_*');
+        $this->assertCount(1, $hashed, 'exactly one {name}_{hash5} directory must exist');
+
+        $meta = json_decode((string) file_get_contents($hashed[0] . '/module.json'), true);
+        $hash = (string) ($meta['hash_id'] ?? '');
+        $this->assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $hash, 'a 32-hex hash_id must be written');
+        $this->assertSame('legacy-mod_' . substr($hash, 0, 5), basename($hashed[0]), 'suffix = first 5 of hash_id');
+    }
+
+    public function testMigrateLegacyDirDropsStaleBareDuplicate(): void {
+        // Both a hashed copy (canonical, active) and a bare dup exist for the same
+        // module — the bare one must be removed, the hashed one kept untouched.
+        $hash = 'aa11bb22cc33dd44ee55ff6600778899';
+        $hash5 = substr($hash, 0, 5);
+
+        $bare = $this->modulesPath . '/dup-mod';
+        mkdir($bare, 0775, true);
+        file_put_contents($bare . '/module.json', json_encode([
+            'name' => 'dup-mod', 'hash_id' => $hash, 'version' => '1.0.0',
+            'environment' => 'main', 'dependencies' => [],
+        ]));
+
+        $hashed = $this->modulesPath . '/dup-mod_' . $hash5;
+        mkdir($hashed, 0775, true);
+        file_put_contents($hashed . '/module.json', json_encode([
+            'name' => 'dup-mod', 'hash_id' => $hash, 'version' => '1.0.0',
+            'environment' => 'main', 'dependencies' => [],
+        ]));
+
+        $migrated = $this->manager()->migrateLegacyModuleDirs();
+
+        $this->assertSame(['dup-mod'], $migrated);
+        $this->assertDirectoryDoesNotExist($bare, 'stale bare duplicate must be removed');
+        $this->assertDirectoryExists($hashed, 'canonical hashed directory must be kept');
+    }
+
+    public function testMigrateLegacyDirLeavesHashedDirsUntouched(): void {
+        // An already-canonical {name}_{hash5} directory must not be migrated again.
+        $hash = 'abc123def4567890abc123def4567890';
+        $dir  = $this->modulesPath . '/already_' . substr($hash, 0, 5);
+        mkdir($dir, 0775, true);
+        file_put_contents($dir . '/module.json', json_encode([
+            'name' => 'already', 'hash_id' => $hash, 'version' => '1.0.0',
+            'environment' => 'main', 'dependencies' => [],
+        ]));
+
+        $this->assertSame([], $this->manager()->migrateLegacyModuleDirs());
+        $this->assertDirectoryExists($dir);
+    }
+
+    // ── updateModuleFromSource() — bundled path (no network) ──────────────
+
+    public function testUpdateFromSourceBundledRunsMigrationsAndRecordsVersion(): void {
+        // No `update` block → source is `bundled`: files ship with the panel, so
+        // updateModuleFromSource() just runs the incremental migrations (no fetch).
+        $this->createMigratableModule('bundled-upd', '1.2.0', ['1.1.0', '1.2.0']);
+        $this->writeOverrides(['bundled-upd' => ['installed_version' => '1.0.0']]);
+
+        $this->manager()->updateModuleFromSource('bundled-upd');
+
+        $this->assertSame(['1.1.0', '1.2.0'], MigrationCallTracker::$calls);
+        $this->assertSame('1.2.0', $this->readOverrides()['bundled-upd']['installed_version'] ?? null);
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
