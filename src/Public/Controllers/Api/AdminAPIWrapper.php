@@ -849,6 +849,10 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function getWatchFolders() {
+        // watch is an optional module — report failure cleanly when it is absent.
+        if (!class_exists(WatchService::class)) {
+            return array('status' => 'STATUS_FAILURE');
+        }
         return array('status' => 'STATUS_SUCCESS', 'data' => WatchService::getWatchFolders());
     }
     public static function getWatchFolder($rID) {
@@ -858,6 +862,9 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_SUCCESS', 'data' => $rFolder);
     }
     public static function createWatchFolder($rData) {
+        if (!class_exists(WatchService::class)) {
+            return array('status' => 'STATUS_FAILURE');
+        }
         if (!isset($rData['edit'])) {
         } else {
             unset($rData['edit']);
@@ -870,6 +877,9 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function editWatchFolder($rID, $rData) {
+        if (!class_exists(WatchService::class)) {
+            return array('status' => 'STATUS_FAILURE');
+        }
         if (!(($rFolder = self::getWatchFolder($rID)) && isset($rFolder['data']))) {
             return array('status' => 'STATUS_FAILURE');
         }
@@ -892,6 +902,9 @@ class AdminAPIWrapper {
         return array('status' => 'STATUS_FAILURE');
     }
     public static function reloadWatchFolder($rServerID, $rID) {
+        if (!class_exists(WatchService::class)) {
+            return array('status' => 'STATUS_FAILURE');
+        }
         WatchService::forceWatch($rServerID, $rID);
         return array('status' => 'STATUS_SUCCESS');
     }

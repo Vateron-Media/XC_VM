@@ -39,7 +39,8 @@ class ArchiveController extends BaseAdminController {
 
             $rArchive = StreamService::getArchive($rStream['id']);
         } else {
-            $rRecordings = WatchService::getRecordings();
+            // Recordings are provided by the optional watch module; empty when absent.
+            $rRecordings = class_exists(WatchService::class) ? WatchService::getRecordings() : array();
         }
 
         $rTitle = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');

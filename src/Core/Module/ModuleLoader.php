@@ -13,8 +13,6 @@ use XcVm\Core\Module\Contract\NavbarProviderInterface;
 use XcVm\Core\Module\Contract\RouteProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;
 use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
-use XcVm\Module\Watch\WatchModule;
-use XcVm\Module\Watch\WatchService;
 
 /**
  * ModuleLoader — automatic system module loader and dependency resolver.

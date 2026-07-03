@@ -20,7 +20,8 @@ class AdminPlexController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
-        $rPlexServers = PlexRepository::getPlexServers();
+        // plex is an optional module (fetched from its own repo); empty list when absent.
+        $rPlexServers = class_exists(PlexRepository::class) ? PlexRepository::getPlexServers() : [];
         if (!is_array($rPlexServers)) {
             $rPlexServers = [];
         }

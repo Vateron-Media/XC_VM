@@ -1346,7 +1346,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'record':
-				$rReturn = RecordingService::schedule($rData);
+				$rReturn = class_exists(RecordingService::class) ? RecordingService::schedule($rData) : array('status' => STATUS_FAILURE, 'data' => null);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'archive?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1881,7 +1881,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings_plex':
-				$rReturn = PlexService::editPlexSettings($rData);
+				$rReturn = class_exists(PlexService::class) ? PlexService::editPlexSettings($rData) : array('status' => STATUS_FAILURE, 'data' => null);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1892,7 +1892,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'settings_watch':
-				$rReturn = WatchService::editWatchSettings($rData);
+				$rReturn = class_exists(WatchService::class) ? WatchService::editWatchSettings($rData) : array('status' => STATUS_FAILURE, 'data' => null);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'settings_watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1981,7 +1981,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'watch_add':
-				$rReturn = WatchService::processWatchFolder($rData);
+				$rReturn = class_exists(WatchService::class) ? WatchService::processWatchFolder($rData) : array('status' => STATUS_FAILURE, 'data' => null);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
@@ -1992,7 +1992,7 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'plex_add':
-				$rReturn = PlexService::processPlexSync($rData);
+				$rReturn = class_exists(PlexService::class) ? PlexService::processPlexSync($rData) : array('status' => STATUS_FAILURE, 'data' => null);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
