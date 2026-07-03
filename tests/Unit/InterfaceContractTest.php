@@ -264,9 +264,11 @@ final class InterfaceContractTest extends TestCase {
 
     public function testMinistraModuleImplementsBoundaryInterface(): void {
         if (!class_exists(\XcVm\Module\Ministra\MinistraModule::class)) {
-            $file = defined('MAIN_HOME')
-                ? MAIN_HOME . 'Modules/ministra/MinistraModule.php'
-                : __DIR__ . '/../../src/Modules/ministra/MinistraModule.php';
+            // Module directories use the `{name}_{hash5}` convention, so glob for the
+            // ministra dir rather than assuming a bare `Modules/ministra/` path.
+            $base    = defined('MAIN_HOME') ? MAIN_HOME . 'Modules' : __DIR__ . '/../../src/Modules';
+            $matches = glob($base . '/ministra*/MinistraModule.php');
+            $file    = $matches[0] ?? ($base . '/ministra/MinistraModule.php');
             require_once $file;
         }
         $rc = new ReflectionClass(\XcVm\Module\Ministra\MinistraModule::class);
