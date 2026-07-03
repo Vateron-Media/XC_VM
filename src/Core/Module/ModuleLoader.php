@@ -98,11 +98,26 @@ class ModuleLoader {
 
         $loadOrder = $this->resolveLoadOrder($discovered);
 
+        // A single broken module must NOT abort the whole load — that would brick the
+        // panel and CLI (see the philosophy: "removing a module causes no fatal
+        // errors"). Log the failure, mark the module failed, and carry on so healthy
+        // modules still load. loadOrder is topologically sorted, so a failed module's
+        // dependents (which come later) are skipped too — loading a module without its
+        // dependency present could fatal at boot.
+        $failed = [];
         foreach ($loadOrder as $name) {
-            $modulePath = $discovered[$name]['path'];
+            $deps      = $discovered[$name]['manifest']['dependencies'] ?? [];
+            $blockedBy = array_values(array_intersect($deps, $failed));
+            if ($blockedBy !== []) {
+                error_log("ModuleLoader: skipping module '{$name}' — dependency failed to load: " . implode(', ', $blockedBy));
+                $failed[] = $name;
+                continue;
+            }
 
-            if (!$this->load($name, $modulePath)) {
-                throw new \XcVm\Core\Exception\Module\ModuleLoadException("ModuleLoader: failed to load module '{$name}'");
+            if (!$this->load($name, $discovered[$name]['path'])) {
+                error_log("ModuleLoader: failed to load module '{$name}' — skipping (panel stays up)");
+                $failed[] = $name;
+                continue;
             }
 
             $this->manifests[$name] = $discovered[$name]['manifest'];
@@ -226,9 +241,16 @@ class ModuleLoader {
      * @return void
      */
     public function registerAllCommands(\XcVm\Cli\CommandRegistry $registry): void {
-        foreach ($this->modules as $module) {
-            if ($module instanceof CommandProviderInterface) {
+        foreach ($this->modules as $name => $module) {
+            if (!$module instanceof CommandProviderInterface) {
+                continue;
+            }
+            try {
                 $module->registerCommands($registry);
+            } catch (\Throwable $e) {
+                // A module with a missing/broken command class (e.g. a partial
+                // deploy) must not brick EVERY CLI command — skip it, keep the rest.
+                error_log("ModuleLoader: registerCommands failed for module '{$name}': " . $e->getMessage());
             }
         }
     }
@@ -497,6 +519,7 @@ class ModuleLoader {
 
         return [
             'name'                  => $manifest['name'] ?? $name,
+            'hash_id'               => (string) ($manifest['hash_id'] ?? ''),
             'description'           => $manifest['description'] ?? '',
             'version'               => $manifest['version'] ?? '',
             'requires_core'         => $manifest['requires_core'] ?? '',
@@ -506,6 +529,44 @@ class ModuleLoader {
             'has_navbar'            => (bool) ($manifest['has_navbar'] ?? false),
             'has_settings'          => (bool) ($manifest['has_settings'] ?? false),
             'priority'              => (int) ($manifest['priority'] ?? 0),
+            'update'                => self::normalizeUpdateBlock($manifest, $manifest['name'] ?? $name),
+        ];
+    }
+
+    /**
+     * Normalize the optional `update` manifest block — where the module gets its
+     * updates from. Part of the module-update-source plan (P2).
+     *
+     * Shape:
+     *   "update": {
+     *     "source": "bundled | platform | git | url",
+     *     "repository": "https://…",   // git
+     *     "channel": "stable | beta",
+     *     "slug": "…",                  // platform (defaults to name)
+     *     "url": "https://…"            // url
+     *   }
+     *
+     * Absent or unknown source → `bundled` (files ship with the panel), so every
+     * existing module keeps working unchanged. NO network is done here — this only
+     * shapes the declared source for the later fetch/apply phases.
+     *
+     * @param array  $manifest Raw module.json.
+     * @param string $name     Module name (fallback for slug).
+     * @return array{source:string,repository:string,channel:string,slug:string,url:string}
+     */
+    public static function normalizeUpdateBlock(array $manifest, string $name): array {
+        $raw    = is_array($manifest['update'] ?? null) ? $manifest['update'] : [];
+        $source = strtolower(trim((string) ($raw['source'] ?? 'bundled')));
+        if (!in_array($source, ['bundled', 'platform', 'git', 'url'], true)) {
+            $source = 'bundled';
+        }
+
+        return [
+            'source'     => $source,
+            'repository' => trim((string) ($raw['repository'] ?? '')),
+            'channel'    => strtolower(trim((string) ($raw['channel'] ?? 'stable'))) ?: 'stable',
+            'slug'       => trim((string) ($raw['slug'] ?? '')) ?: $name,
+            'url'        => trim((string) ($raw['url'] ?? '')),
         ];
     }
 

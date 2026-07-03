@@ -3,8 +3,10 @@
 namespace XcVm\Core\Module;
 
 use XcVm\Core\Config\ConfigReader;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\Database;
 use XcVm\Core\Http\Router;
+use XcVm\Core\Updates\GitHubReleases;
 
 /**
  * ModuleManager — administrative operations with modules.
@@ -68,9 +70,172 @@ class ModuleManager {
         return null;
     }
 
-    /** Absolute path of a module's directory on disk. */
+    /**
+     * Absolute path of a module's directory on disk, resolving the
+     * `{name}_{hash5}` directory convention.
+     *
+     * A module's logical name (config key, class namespace) never carries the hash
+     * — sanitizeModuleName() forbids `_`. The directory does: `{name}_{hash5}` (5
+     * hex chars of hash_id), so two modules that share a name don't clash on disk.
+     * Resolution order: exact `{name}` (legacy / back-compat) → the first
+     * `{name}_*` directory that has a module.json → fall back to exact.
+     */
     private function modulePathFor(string $name): string {
-        return $this->modulesPath . '/' . $this->sanitizeModuleName($name);
+        $name  = $this->sanitizeModuleName($name);
+        $exact = $this->modulesPath . '/' . $name;
+        if (is_dir($exact)) {
+            return $exact;
+        }
+        foreach (glob($this->modulesPath . '/' . $name . '_*', GLOB_ONLYDIR) ?: [] as $dir) {
+            if (is_file($dir . '/module.json')) {
+                return $dir;
+            }
+        }
+        return $exact;
+    }
+
+    /**
+     * Directory name for a module: `{name}_{hash5}` where hash5 is the first 5 hex
+     * chars of its permanent hash_id. The name itself never contains `_`.
+     *
+     * A hash_id is mandatory — callers must run the manifest through ensureHashId()
+     * first so no module is ever placed in a hash-less directory. Passing an empty
+     * hash_id is a programming error and throws.
+     */
+    private function moduleDirName(string $name, string $hashId): string {
+        $name   = $this->sanitizeModuleName($name);
+        $hashId = strtolower(preg_replace('/[^a-f0-9]/i', '', $hashId) ?? '');
+        if ($hashId === '') {
+            throw new \RuntimeException("module '{$name}' has no hash_id — cannot build directory name");
+        }
+        return $name . '_' . substr($hashId, 0, 5);
+    }
+
+    /**
+     * Ensure the module at $moduleDir has a permanent hash_id, generating and
+     * persisting one into its module.json when absent. Returns the 32-hex value.
+     *
+     * Every module must carry a hash_id: it forms the `{name}_{hash5}` directory
+     * suffix and is the module's stable identity. Uploaded or legacy modules that
+     * ship without one get a fresh random id written here (once, mirroring
+     * tools/gen-module-hashes.php); a valid existing id is immutable and left as-is.
+     */
+    private function ensureHashId(string $moduleDir): string {
+        $file = $moduleDir . '/module.json';
+        $meta = json_decode((string) @file_get_contents($file), true);
+        if (!is_array($meta)) {
+            $meta = [];
+        }
+        $hash = strtolower(preg_replace('/[^a-f0-9]/i', '', (string) ($meta['hash_id'] ?? '')) ?? '');
+
+        if (strlen($hash) < 32) {
+            $hash = bin2hex(random_bytes(16));
+            $meta = $this->withHashIdAfterName($meta, $hash);
+            @file_put_contents(
+                $file,
+                json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . "\n"
+            );
+        }
+        return $hash;
+    }
+
+    /**
+     * Return $meta with hash_id set immediately after the `name` key (or first when
+     * there is no name), dropping any pre-existing empty hash_id entry.
+     *
+     * @param array<string, mixed> $meta
+     * @return array<string, mixed>
+     */
+    private function withHashIdAfterName(array $meta, string $hash): array {
+        $out = [];
+        foreach ($meta as $k => $v) {
+            if ($k === 'hash_id') {
+                continue;
+            }
+            $out[$k] = $v;
+            if ($k === 'name') {
+                $out['hash_id'] = $hash;
+            }
+        }
+        if (!isset($out['hash_id'])) {
+            $out = ['hash_id' => $hash] + $out;
+        }
+        return $out;
+    }
+
+    /**
+     * Copy an extracted module directory into modulesPath as `{name}_{hash5}`,
+     * replacing any existing install of the same module (one per name is active).
+     *
+     * @param string $moduleDir Extracted directory containing module.json.
+     * @return string Canonical module name that was placed.
+     */
+    private function placeModuleFiles(string $moduleDir): string {
+        $name = $this->sanitizeModuleName($this->manifestNameFromDir($moduleDir));
+        // Guarantee a hash_id (generating + persisting one when the upload lacks it)
+        // so the module is always placed in a `{name}_{hash5}` directory, never bare.
+        $hash = $this->ensureHashId($moduleDir);
+
+        // Remove any current install of the same module (may live under a different
+        // {name}_{hash5} or a legacy {name} directory).
+        $existing = $this->modulePathFor($name);
+        if (is_dir($existing)) {
+            $this->deleteDirectory($existing);
+        }
+
+        $targetDir = $this->modulesPath . '/' . $this->moduleDirName($name, $hash);
+        if (is_dir($targetDir)) {
+            $this->deleteDirectory($targetDir);
+        }
+        $this->copyDirectory($moduleDir, $targetDir);
+
+        return $name;
+    }
+
+    /**
+     * Retire legacy hash-less module directories: rename every bare `{name}`
+     * directory to the canonical `{name}_{hash5}`, generating a hash_id when the
+     * manifest lacks one.
+     *
+     * Older deployments (and modules placed before the hash convention) live in a
+     * bare `{name}` directory. This one-shot, idempotent migration — run on every
+     * `status` pass before anything scans the modules folder — brings them onto the
+     * `{name}_{hash5}` scheme so the legacy layout can be dropped. Already-hashed
+     * directories and non-module directories are skipped. When both a bare and a
+     * hashed copy of the same module exist, the stale bare copy is removed.
+     *
+     * @return string[] Canonical names of modules migrated this pass.
+     */
+    public function migrateLegacyModuleDirs(): array {
+        $migrated = [];
+        foreach (glob($this->modulesPath . '/*', GLOB_ONLYDIR) ?: [] as $dir) {
+            if (!is_file($dir . '/module.json')) {
+                continue;
+            }
+            $name = $this->sanitizeModuleName($this->manifestNameFromDir($dir));
+            if ($name === '') {
+                continue;
+            }
+            // A canonical `{name}_{hash5}` directory has a basename different from the
+            // logical name; only a bare `{name}` directory is legacy.
+            if (basename($dir) !== $name) {
+                continue;
+            }
+
+            $hash   = $this->ensureHashId($dir);
+            $target = $this->modulesPath . '/' . $this->moduleDirName($name, $hash);
+            if ($target === $dir) {
+                continue;
+            }
+            if (is_dir($target)) {
+                // A hashed copy already exists — the bare directory is a stale dup.
+                $this->deleteDirectory($dir);
+            } else {
+                @rename($dir, $target);
+            }
+            $migrated[] = $name;
+        }
+        return $migrated;
     }
 
     /**
@@ -138,6 +303,16 @@ class ModuleManager {
      * @return string[] Names of modules that were installed this pass.
      */
     public function syncBundledModules(): array {
+        // Retire any legacy hash-less {name} directory before anything scans the
+        // modules folder, so every module ends up on the {name}_{hash5} scheme.
+        $this->migrateLegacyModuleDirs();
+
+        // Fetch any standard-set module that lives in a remote source (git/url/
+        // platform) and isn't on disk yet — a no-op while every standard module is
+        // bundled on-disk. Fetched modules are installed by provisionStandardSet(),
+        // so the on-disk pass below simply skips them.
+        $provisioned = $this->provisionStandardSet();
+
         $modules   = $this->listModules();
         $installed = [];
         foreach ($modules as $module) {
@@ -192,7 +367,173 @@ class ModuleManager {
             }
         }
 
+        return array_values(array_unique(array_merge($provisioned, $done)));
+    }
+
+    /**
+     * The standard module set the panel provisions by default (config/bundled_modules.php).
+     *
+     * Foundation for modules-in-separate-repos: each entry is keyed by the module's
+     * permanent `hash_id`. When the config file is absent, falls back to whatever
+     * is on disk (treated as `bundled`).
+     *
+     * @return array<int, array{hash_id?:string,name?:string,source?:string,repository?:string,channel?:string,slug?:string,url?:string}>
+     */
+    public function getStandardSet(): array {
+        $path = defined('CONFIG_PATH')
+            ? CONFIG_PATH . 'bundled_modules.php'
+            : dirname(__DIR__, 2) . '/config/bundled_modules.php';
+
+        if (is_file($path)) {
+            $data = require $path;
+            if (is_array($data)) {
+                return array_values(array_filter($data, 'is_array'));
+            }
+        }
+
+        // Fallback: derive from on-disk modules (all treated as bundled).
+        $out = [];
+        foreach ($this->listModules() as $m) {
+            $out[] = ['hash_id' => (string) ($m['hash_id'] ?? ''), 'name' => $m['name'], 'source' => 'bundled'];
+        }
+        return $out;
+    }
+
+    /**
+     * Resolve the on-disk module name that carries a given permanent `hash_id`.
+     *
+     * The stable identity lookup: lets the panel recognise "the same module" across
+     * a rename or a repo move, where `name` alone is unreliable.
+     *
+     * @param string $hashId Permanent module hash_id.
+     * @return string|null Module name, or null if no on-disk module has that hash_id.
+     */
+    public function findModuleByHashId(string $hashId): ?string {
+        $hashId = trim($hashId);
+        if ($hashId === '') {
+            return null;
+        }
+        foreach ($this->listModules() as $m) {
+            if (($m['hash_id'] ?? '') === $hashId) {
+                return $m['name'];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Provision the standard set: fetch+install any standard-set module that lives
+     * in a remote source (git/url/platform) and is not on disk yet.
+     *
+     * `bundled` entries and modules already present (matched by `hash_id`) are left
+     * to syncBundledModules()'s on-disk install. Per-entry failures are logged, not
+     * fatal. No-op today (every standard module is bundled on-disk).
+     *
+     * @return string[] Names/hash_ids of modules fetched this pass.
+     */
+    public function provisionStandardSet(): array {
+        $done = [];
+        foreach ($this->getStandardSet() as $entry) {
+            $hash = (string) ($entry['hash_id'] ?? '');
+            $name = (string) ($entry['name'] ?? '');
+
+            // Already on disk (bundled or previously fetched)? Nothing to fetch.
+            $onDisk = $hash !== '' ? $this->findModuleByHashId($hash) : null;
+            if ($onDisk === null && $name !== '' && is_dir($this->modulePathFor($name))) {
+                $onDisk = $name;
+            }
+            if ($onDisk !== null) {
+                continue;
+            }
+
+            $source = (string) ($entry['source'] ?? 'bundled');
+            if ($source === 'bundled') {
+                error_log("provisionStandardSet: '{$name}' is declared bundled but missing on disk — skipped.");
+                continue;
+            }
+
+            try {
+                $this->installModuleFromSource($entry);
+                $done[] = $name !== '' ? $name : $hash;
+            } catch (\Throwable $e) {
+                error_log("provisionStandardSet: fetch of '" . ($name !== '' ? $name : $hash) . "' failed: " . $e->getMessage());
+            }
+        }
         return $done;
+    }
+
+    /**
+     * Fetch a NOT-yet-present module from a standard-set entry's source and install it.
+     *
+     * Mirrors updateModuleFromSource() but for a first install (no local module.json
+     * to read the source from — it comes from the entry). Verifies the fetched
+     * `hash_id` against the entry so a repo/URL cannot supply a different module.
+     *
+     * @param array $entry A getStandardSet() entry (source/repository/…, hash_id).
+     * @return void
+     * @throws \RuntimeException on download/verify/install failure.
+     */
+    private function installModuleFromSource(array $entry): void {
+        $update = [
+            'source'     => (string) ($entry['source'] ?? 'bundled'),
+            'repository' => (string) ($entry['repository'] ?? ''),
+            'channel'    => (string) ($entry['channel'] ?? 'stable'),
+            'slug'       => (string) ($entry['slug'] ?? ($entry['name'] ?? '')),
+            'url'        => (string) ($entry['url'] ?? ''),
+        ];
+        $expectedHash = (string) ($entry['hash_id'] ?? '');
+
+        // platform — the store install flow handles download/decrypt/license/LB.
+        if ($update['source'] === 'platform') {
+            $apiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+            $slug   = $update['slug'] !== '' ? $update['slug'] : (string) ($entry['name'] ?? '');
+            $this->downloadFromPlatform($slug, '', $apiKey);
+            return;
+        }
+
+        $version = (new ModuleUpdateChecker())->latestAvailable([
+            'update'            => $update,
+            'version'           => '',
+            'installed_version' => '',
+        ]);
+        if ($version === null) {
+            throw new \RuntimeException('No installable version resolved from source.');
+        }
+
+        [$url, $md5] = $this->resolveSourceDownload($update, $version);
+        if ($url === '') {
+            throw new \RuntimeException('No download URL resolved from source.');
+        }
+
+        $archive  = (string) @tempnam(sys_get_temp_dir(), 'xc_modinst_');
+        $tempBase = rtrim(sys_get_temp_dir(), '/') . '/xc_modinst_' . bin2hex(random_bytes(8));
+        try {
+            $this->downloadToFile($url, $archive);
+            if ($md5 !== '' && !hash_equals(strtolower($md5), (string) md5_file($archive))) {
+                throw new \RuntimeException('Checksum mismatch on the downloaded module archive.');
+            }
+
+            $this->extractArchive($archive, $tempBase);
+            $moduleDir = $this->resolveExtractedModuleDir($tempBase);
+
+            $meta    = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
+            $gotHash = is_array($meta) ? (string) ($meta['hash_id'] ?? '') : '';
+            if ($expectedHash !== '' && $gotHash !== '' && !hash_equals($expectedHash, $gotHash)) {
+                throw new \RuntimeException('hash_id mismatch — fetched module is not the expected one.');
+            }
+
+            $name     = $this->placeModuleFiles($moduleDir);
+            $manifest = $this->readModuleManifest($name);
+            $ver      = (string) ($manifest['version'] ?? $version);
+
+            $this->storeModuleArchive($archive, $name, $ver);
+            $this->installModule($name, $ver);
+            $this->recordModuleSource($name, 'local');
+            $this->distributeToLoadBalancers($name, $manifest, 'local', $ver);
+        } finally {
+            @unlink($archive);
+            $this->deleteDirectory($tempBase);
+        }
     }
 
     /**
@@ -213,16 +554,19 @@ class ModuleManager {
         // below can see the full set while building items.
         $stateByName = [];
         foreach ($jsonFiles as $jsonFile) {
-            $depName = basename(dirname($jsonFile));
+            $meta    = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
+            // Key by the CANONICAL manifest name, not the `{name}_{hash5}` directory —
+            // config/modules.php and `dependencies` both reference the logical name.
+            $depName = (string) ($meta['name'] ?? basename(dirname($jsonFile)));
             $stateByName[$depName] = \XcVm\Core\Enum\ModuleState::fromRaw(
                 $overrides[$depName]['state'] ?? ($overrides[$depName]['enabled'] ?? null)
             );
         }
 
         foreach ($jsonFiles as $jsonFile) {
-            $name  = basename(dirname($jsonFile));
             $meta  = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
-            $state = $stateByName[$name];
+            $name  = (string) ($meta['name'] ?? basename(dirname($jsonFile))); // canonical name
+            $state = $stateByName[$name] ?? \XcVm\Core\Enum\ModuleState::fromRaw(null);
 
             $dependencies = is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [];
 
@@ -242,6 +586,8 @@ class ModuleManager {
 
             $items[] = [
                 'name'                  => $name,
+                'hash_id'               => (string) ($meta['hash_id'] ?? ''),
+                'update'                => ModuleLoader::normalizeUpdateBlock($meta, $name),
                 'description'           => $meta['description'] ?? '',
                 'version'               => $meta['version'] ?? '',
                 'requires_core'         => $meta['requires_core'] ?? '',
@@ -255,6 +601,7 @@ class ModuleManager {
                 'state'                 => $state,
                 'path'                  => dirname($jsonFile),
                 'installed_version'     => $overrides[$name]['installed_version'] ?? '',
+                'available_version'     => $overrides[$name]['available_version'] ?? '',
                 'source'                => $overrides[$name]['source'] ?? '',
                 'previous_version'      => $overrides[$name]['previous_version'] ?? '',
                 'dependency_warnings'   => $dependencyWarnings,
@@ -349,6 +696,133 @@ class ModuleManager {
     }
 
     /**
+     * Fully delete a module: uninstall it, then remove its directory from disk and
+     * its override entry from config/modules.php.
+     *
+     * Unlike uninstallModule() — which drops the tables and disables the module but
+     * leaves its files on disk so it stays listed and re-installable — this removes
+     * the module entirely. For a BUNDLED module (shipped in the deploy) the files
+     * come back on the next panel update; deletion is still honoured until then.
+     *
+     * Order matters: uninstall runs FIRST (drop tables + uninstall() hook) while the
+     * files are still on disk (the teardown SQL and the module class live there);
+     * only after a clean uninstall are the files removed, so no orphaned tables are
+     * left behind. A failing uninstall aborts the delete. The dependents guard is
+     * enforced up front.
+     *
+     * @param string $name Module name.
+     * @return void
+     * @throws \RuntimeException If an installed dependent still requires the module.
+     */
+    public function deleteModule(string $name): void {
+        $name = $this->sanitizeModuleName($name);
+
+        // Same guard as uninstall: refuse while an installed dependent needs it.
+        $dependents = $this->installedDependentsOf($name);
+        if (!empty($dependents)) {
+            throw new \RuntimeException(
+                "Cannot delete '{$name}': still required by " . implode(', ', $dependents)
+                . '. Delete ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
+            );
+        }
+
+        // Read the manifest (for LB propagation) BEFORE the files are removed.
+        $manifest = [];
+        try {
+            $manifest = $this->readModuleManifest($name);
+        } catch (\Throwable $e) {
+            // No readable manifest — LB propagation just skips below.
+        }
+
+        // Step 1 — uninstall FIRST, while the module's files are still on disk:
+        // run its uninstall() hook and drop its tables (teardown SQL + module class
+        // both live in the directory). A failure aborts the delete and propagates,
+        // so the files are never removed with orphaned tables left behind.
+        $this->uninstallModule($name);
+
+        // Step 2 — remove the files, stored archives and the config override.
+        $this->deleteModuleFilesOnly($name);
+
+        // Step 3 — propagate the deletion to every LB node that received this module.
+        $this->distributeDeletionToLoadBalancers($name, $manifest);
+    }
+
+    /**
+     * Remove a module's files WITHOUT touching the database.
+     *
+     * Used on LB nodes (which share MAIN's database — dropping tables there would
+     * delete MAIN's data) and as the file-removal step of deleteModule(). Removes
+     * the module directory, its stored archives, and its config/modules.php entry.
+     *
+     * @param string $name Module name.
+     * @return void
+     */
+    public function deleteModuleFilesOnly(string $name): void {
+        $name = $this->sanitizeModuleName($name);
+
+        $modulePath = $this->modulePathFor($name);
+        if (is_dir($modulePath)) {
+            $this->deleteDirectory($modulePath);
+        }
+
+        // Remove any stored marketplace archives (name_<version>.zip).
+        foreach (glob($this->archivesPath . '/' . $name . '_*.zip') ?: [] as $rArchive) {
+            @unlink($rArchive);
+        }
+
+        // Drop the config/modules.php override entry entirely.
+        $overrides = $this->readOverrides();
+        if (isset($overrides[$name])) {
+            unset($overrides[$name]);
+            $this->writeOverrides($overrides);
+        }
+    }
+
+    /**
+     * Tell every load balancer that received this module to delete it too.
+     *
+     * Mirrors distributeToLoadBalancers(): only MAIN dispatches, and only for
+     * modules that were distributed (environment lb/any). LB nodes act on the
+     * `delete_module` signal via RootSignalsCronJob → `console.php module:delete`
+     * (files-only — never a DB drop on the shared MAIN database).
+     *
+     * @param string $name     Module name.
+     * @param array  $manifest The module's manifest (read before deletion).
+     * @return void
+     */
+    private function distributeDeletionToLoadBalancers(string $name, array $manifest): void {
+        // Cheap manifest check first — a MAIN-only module was never on any LB, so
+        // return before touching config (isLoadBalancer() reads via the extension).
+        $environment = strtolower((string) ($manifest['environment'] ?? 'main'));
+        if (!in_array($environment, ['lb', 'any'], true)) {
+            return; // MAIN-only — LB never had it
+        }
+        if ($this->isLoadBalancer()) {
+            return;
+        }
+        $db = $this->getDb();
+        if ($db === null) {
+            return;
+        }
+
+        $payload = json_encode(['action' => 'delete_module', 'name' => $name]);
+
+        $db->query('SELECT `id` FROM `servers` WHERE `server_type` = 0 AND `is_main` = 0 AND `enabled` = 1;');
+        $rServerIDs = array();
+        foreach ($db->get_rows() as $rRow) {
+            $rServerIDs[] = intval($rRow['id']);
+        }
+        foreach ($rServerIDs as $rServerID) {
+            $db->query(
+                'INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);',
+                $rServerID,
+                time(),
+                $payload
+            );
+        }
+    }
+
+    /**
      * Update a module, running only the incremental migrations needed.
      *
      * Reads the recorded installed_version from config/modules.php.
@@ -389,6 +863,198 @@ class ModuleManager {
         }
 
         $this->recordInstalledVersion($name, $toVersion);
+    }
+
+    /**
+     * Update a module by fetching new files from its declared source, then running
+     * migrations. This is what the panel's "Update" button triggers (P4).
+     *
+     *  - bundled  : files already ship with the panel → migrations only (updateModule()).
+     *  - platform : delegated to the store flow (downloadFromPlatform — backup/restore/LB inside).
+     *  - git/url  : download archive → verify `hash_id` → backup → replace files → migrate →
+     *               restore on failure → distribute to LB.
+     *
+     * Identity pinning: for git/url the fetched module.json `hash_id` must equal the
+     * installed one — a repo/URL cannot impersonate another module or hijack a rename.
+     *
+     * @param string $name Module name.
+     * @return void
+     * @throws \RuntimeException on download/verify/apply failure (files rolled back).
+     */
+    public function updateModuleFromSource(string $name): void {
+        $name      = $this->sanitizeModuleName($name);
+        $manifest  = $this->readModuleManifest($name);
+        $overrides = $this->readOverrides();
+
+        $update    = ModuleLoader::normalizeUpdateBlock($manifest, $name);
+        $installed = (string) ($overrides[$name]['installed_version'] ?? '');
+        $source    = $update['source'];
+
+        // bundled — the panel already replaced the files; just catch the schema up.
+        if ($source === 'bundled') {
+            $this->updateModule($name);
+            $this->recordAvailableVersion($name, null);
+            return;
+        }
+
+        // platform — reuse the full store flow (self-contained rollback + LB fan-out).
+        if ($source === 'platform') {
+            $apiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+            $this->downloadFromPlatform(($update['slug'] !== '' ? $update['slug'] : $name), '', $apiKey);
+            $this->recordAvailableVersion($name, null);
+            return;
+        }
+
+        // git / url — fetch, verify, apply.
+        $version = (new ModuleUpdateChecker())->latestAvailable([
+            'update'            => $update,
+            'version'           => (string) ($manifest['version'] ?? ''),
+            'installed_version' => $installed,
+        ]);
+        if ($version === null || ($installed !== '' && version_compare($version, $installed, '<='))) {
+            return; // nothing newer than what is installed
+        }
+
+        [$downloadUrl, $expectedMd5] = $this->resolveSourceDownload($update, $version);
+        if ($downloadUrl === '') {
+            throw new \RuntimeException("No download URL resolved for module '{$name}' (source '{$source}').");
+        }
+
+        $archive = (string) @tempnam(sys_get_temp_dir(), 'xc_modupd_');
+        if ($archive === '') {
+            throw new \RuntimeException('Unable to create a temp file for the module download.');
+        }
+        $tempBase = rtrim(sys_get_temp_dir(), '/') . '/xc_modupd_' . bin2hex(random_bytes(8));
+
+        try {
+            $this->downloadToFile($downloadUrl, $archive);
+            if ($expectedMd5 !== '' && !hash_equals(strtolower($expectedMd5), (string) md5_file($archive))) {
+                throw new \RuntimeException('Checksum mismatch on the downloaded module archive.');
+            }
+
+            $this->extractArchive($archive, $tempBase);
+            $moduleDir = $this->resolveExtractedModuleDir($tempBase);
+
+            // Identity pinning — the fetched module must be the SAME module.
+            $newMeta = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
+            $newHash = is_array($newMeta) ? (string) ($newMeta['hash_id'] ?? '') : '';
+            $ownHash = (string) ($manifest['hash_id'] ?? '');
+            if ($ownHash !== '' && $newHash !== '' && !hash_equals($ownHash, $newHash)) {
+                throw new \RuntimeException("hash_id mismatch — refusing to overwrite '{$name}' with a different module.");
+            }
+
+            $targetDir = $this->modulePathFor($name);
+            $backupDir = $this->backupModuleDir($name, $targetDir);
+            try {
+                $this->copyDirectory($moduleDir, $targetDir);
+                $this->updateModule($name); // incremental migrations to the new manifest version
+
+                $fresh          = $this->readModuleManifest($name);
+                $resolvedVer    = (string) ($fresh['version'] ?? $version);
+                $this->recordAvailableVersion($name, null);
+
+                // Keep a local archive so LB nodes can pull it (getFile), then fan out.
+                $this->storeModuleArchive($archive, $name, $resolvedVer);
+                $this->distributeToLoadBalancers($name, $fresh, 'local', $resolvedVer);
+
+                if ($backupDir !== null) {
+                    $this->deleteDirectory($backupDir);
+                }
+            } catch (\Throwable $e) {
+                $this->restoreModuleBackup($name, $targetDir, $backupDir, $installed !== '' ? $installed : null);
+                throw new \RuntimeException("Update of '{$name}' failed — rolled back: " . $e->getMessage(), 0, $e);
+            }
+        } finally {
+            @unlink($archive);
+            $this->deleteDirectory($tempBase);
+        }
+    }
+
+    /**
+     * Resolve the download URL (+ optional expected md5) for a git/url source.
+     *
+     * git : release asset `module.tar.gz` at the tag == $version; md5 (if any)
+     *       comes from the release's `hashes.md5` via GitHubReleases::getAssetHash().
+     * url : re-fetch the `version.json` for its `download` (https) and optional `md5`.
+     *
+     * @return array{0:string,1:string} [downloadUrl, expectedMd5] — url '' if unresolved.
+     */
+    private function resolveSourceDownload(array $update, string $version): array {
+        if (($update['source'] ?? '') === 'git') {
+            if (!preg_match('~github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/?$~i', (string) ($update['repository'] ?? ''), $m)) {
+                return ['', ''];
+            }
+            $asset = 'module.tar.gz'; // convention: module repo release ships this asset
+            $url   = "https://github.com/{$m[1]}/{$m[2]}/releases/download/{$version}/{$asset}";
+            $md5   = '';
+            try {
+                $channel = in_array((string) ($update['channel'] ?? 'stable'), ['beta', 'unstable'], true) ? 'unstable' : 'stable';
+                $md5 = (string) ((new GitHubReleases($m[1], $m[2], $channel))->getAssetHash($version, $asset) ?? '');
+            } catch (\Throwable $e) {
+                // no hash available → download proceeds unverified
+            }
+            return [$url, $md5];
+        }
+
+        if (($update['source'] ?? '') === 'url') {
+            $data = json_decode($this->httpGetString((string) ($update['url'] ?? '')), true);
+            $dl   = is_array($data) ? trim((string) ($data['download'] ?? '')) : '';
+            $md5  = is_array($data) ? trim((string) ($data['md5'] ?? '')) : '';
+            if (stripos($dl, 'https://') !== 0) {
+                $dl = '';
+            }
+            return [$dl, $md5];
+        }
+
+        return ['', ''];
+    }
+
+    /** cURL GET a small https resource to a string ('' on failure/non-https). */
+    private function httpGetString(string $url): string {
+        if (stripos($url, 'https://') !== 0) {
+            return '';
+        }
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => 15,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT      => 'XC_VM-ModuleManager',
+        ]);
+        $body = curl_exec($ch);
+        curl_close($ch);
+        return is_string($body) ? $body : '';
+    }
+
+    /** Download an https URL straight to $dest; throws on non-https / HTTP error. */
+    private function downloadToFile(string $url, string $dest): void {
+        if (stripos($url, 'https://') !== 0) {
+            throw new \RuntimeException('Refusing a non-https module download URL.');
+        }
+        $fh = @fopen($dest, 'wb');
+        if ($fh === false) {
+            throw new \RuntimeException('Unable to open the temp file for the module download.');
+        }
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_FILE           => $fh,
+            CURLOPT_CONNECTTIMEOUT => 20,
+            CURLOPT_TIMEOUT        => 300,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_FAILONERROR    => true,
+            CURLOPT_USERAGENT      => 'XC_VM-ModuleManager',
+        ]);
+        $ok   = curl_exec($ch);
+        $err  = curl_error($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+        fclose($fh);
+
+        if ($ok === false || $code >= 400) {
+            @unlink($dest);
+            throw new \RuntimeException("Module download failed (HTTP {$code}) for {$url}: {$err}");
+        }
     }
 
     /**
@@ -467,10 +1133,6 @@ class ModuleManager {
      * @throws \InvalidArgumentException If the zip file is not found.
      */
     public function uploadAndInstall(string $zipFilePath): string {
-        if (!class_exists('ZipArchive')) {
-            throw new \RuntimeException('ZipArchive extension is not available.');
-        }
-
         if (!is_file($zipFilePath)) {
             throw new \InvalidArgumentException('Uploaded zip file not found.');
         }
@@ -481,18 +1143,10 @@ class ModuleManager {
         }
 
         try {
-            $this->extractZipSafely($zipFilePath, $tempBase);
+            $this->extractArchive($zipFilePath, $tempBase);
 
-            $moduleDir = $this->resolveExtractedModuleDir($tempBase);
-            $moduleName = basename($moduleDir);
-            $moduleName = $this->sanitizeModuleName($moduleName);
-
-            $targetDir = $this->modulesPath . '/' . $moduleName;
-            if (is_dir($targetDir)) {
-                $this->deleteDirectory($targetDir);
-            }
-
-            $this->copyDirectory($moduleDir, $targetDir);
+            $moduleDir  = $this->resolveExtractedModuleDir($tempBase);
+            $moduleName = $this->placeModuleFiles($moduleDir);
 
             $this->installModule($moduleName);
 
@@ -523,9 +1177,6 @@ class ModuleManager {
      * @return string Installed module name.
      */
     public function deployFromArchiveFilesOnly(string $zipFilePath): string {
-        if (!class_exists('ZipArchive')) {
-            throw new \RuntimeException('ZipArchive extension is not available.');
-        }
         if (!is_file($zipFilePath)) {
             throw new \InvalidArgumentException('Module archive not found.');
         }
@@ -536,16 +1187,11 @@ class ModuleManager {
         }
 
         try {
-            $this->extractZipSafely($zipFilePath, $tempBase);
+            $this->extractArchive($zipFilePath, $tempBase);
 
             $moduleDir  = $this->resolveExtractedModuleDir($tempBase);
-            $moduleName = $this->sanitizeModuleName(basename($moduleDir));
-
-            $targetDir = $this->modulesPath . '/' . $moduleName;
-            if (is_dir($targetDir)) {
-                $this->deleteDirectory($targetDir);
-            }
-            $this->copyDirectory($moduleDir, $targetDir);
+            $moduleName = $this->placeModuleFiles($moduleDir);
+            $targetDir  = $this->modulePathFor($moduleName);
 
             // Keep the archive locally too, so this LB can re-seed if needed.
             $manifest = $this->readModuleManifest($moduleName);
@@ -585,7 +1231,9 @@ class ModuleManager {
      */
     private function readModuleManifest(string $name): array {
         $name = $this->sanitizeModuleName($name);
-        $file = $this->modulesPath . '/' . $name . '/module.json';
+        // Resolve the real {name}_{hash5} (or legacy bare) directory — reading the
+        // bare path would miss the manifest for a hash-suffixed module.
+        $file = $this->modulePathFor($name) . '/module.json';
         if (!is_file($file)) {
             return [];
         }
@@ -1130,6 +1778,39 @@ class ModuleManager {
     }
 
     /**
+     * Record (or clear) the latest available version for a module in
+     * config/modules.php — written by the update-availability check
+     * (ModuleUpdatesCronJob) and read back by listModules()/the UI to show the
+     * Update button only when a newer version actually exists at the source.
+     *
+     * A null/empty version clears the flag (nothing newer, or not checkable).
+     *
+     * @param string      $name    Module name.
+     * @param string|null $version Latest available version, or null to clear.
+     * @return void
+     */
+    public function recordAvailableVersion(string $name, ?string $version): void {
+        $name    = $this->sanitizeModuleName($name);
+        $version = $version !== null ? trim($version) : '';
+
+        $overrides = $this->readOverrides();
+        $current   = (string) ($overrides[$name]['available_version'] ?? '');
+        if ($current === $version) {
+            return; // no change — avoid a needless config rewrite
+        }
+
+        if ($version === '') {
+            unset($overrides[$name]['available_version']);
+            if (isset($overrides[$name]) && empty($overrides[$name])) {
+                unset($overrides[$name]);
+            }
+        } else {
+            $overrides[$name]['available_version'] = $version;
+        }
+        $this->writeOverrides($overrides);
+    }
+
+    /**
      * Load and return a module instance by name.
      *
      * @param string $name Module name.
@@ -1139,7 +1820,10 @@ class ModuleManager {
     private function loadModuleInstance(string $name) {
         $name = $this->sanitizeModuleName($name);
         $loader = new ModuleLoader();
-        $ok = $loader->load($name, $this->modulesPath . '/' . $name);
+        // Resolve the real directory ({name}_{hash5}, or a legacy bare {name}) — the
+        // module rarely lives at the bare path, so passing that would fail to find
+        // the class file for a freshly-uploaded module and abort its install.
+        $ok = $loader->load($name, $this->modulePathFor($name));
         if (!$ok) {
             throw new \XcVm\Core\Exception\Module\ModuleNotFoundException('Cannot load module: ' . $name);
         }
@@ -1230,7 +1914,97 @@ class ModuleManager {
     }
 
     /**
-     * Safely extract a zip archive to the destination directory.
+     * Extract a module archive (.zip or .tar.gz/.tgz/.tar) into $destination.
+     *
+     * The type is detected by magic bytes (uploads arrive as an extension-less tmp
+     * file), then routed:
+     *   - tar.gz : PharData (bundled with PHP, no extension) → fallback to `tar` CLI
+     *   - zip    : ZipArchive (validated) → fallback to the `unzip` CLI
+     *
+     * $destination is always an isolated temp dir created by the caller, and the
+     * CLI tools refuse to write outside it (they strip `../`/absolute members), so
+     * extraction stays contained even without the per-entry PHP validation.
+     *
+     * @throws \RuntimeException If the archive cannot be extracted in this environment.
+     */
+    private function extractArchive(string $archivePath, string $destination): void {
+        if (!is_dir($destination) && !@mkdir($destination, 0755, true) && !is_dir($destination)) {
+            throw new \RuntimeException('Unable to create extraction directory.');
+        }
+
+        if ($this->looksLikeTar($archivePath)) {
+            $this->extractTarArchive($archivePath, $destination);
+            return;
+        }
+
+        // ZIP: prefer the validated PHP extension, else the `unzip` CLI.
+        if (class_exists('ZipArchive')) {
+            $this->extractZipViaZipArchive($archivePath, $destination);
+            return;
+        }
+        if ($this->hasBinary('unzip')) {
+            // unzip exit 1 = success with warnings (e.g. skipped unsafe paths).
+            $this->runExtractor('unzip -oqq ' . escapeshellarg($archivePath) . ' -d ' . escapeshellarg($destination), 1);
+            return;
+        }
+        throw new \RuntimeException('Cannot extract .zip: install the PHP zip extension or the `unzip` command (or upload a .tar.gz).');
+    }
+
+    /** Detect a tar/tar.gz archive by extension, or gzip magic bytes for tmp uploads. */
+    private function looksLikeTar(string $path): bool {
+        $lower = strtolower($path);
+        if (str_ends_with($lower, '.tar.gz') || str_ends_with($lower, '.tgz') || str_ends_with($lower, '.tar')) {
+            return true;
+        }
+        if (str_ends_with($lower, '.zip')) {
+            return false;
+        }
+        // Extension-less (uploaded tmp file): sniff magic. gzip = 1f 8b.
+        $fh = @fopen($path, 'rb');
+        if ($fh === false) {
+            return false;
+        }
+        $magic = fread($fh, 3);
+        fclose($fh);
+        return strlen($magic) >= 2 && ord($magic[0]) === 0x1f && ord($magic[1]) === 0x8b;
+    }
+
+    /** Extract .tar/.tar.gz via PharData (no PHP extension needed) or the `tar` CLI. */
+    private function extractTarArchive(string $archivePath, string $destination): void {
+        if (class_exists('PharData')) {
+            try {
+                (new \PharData($archivePath))->extractTo($destination, null, true);
+                return;
+            } catch (\Throwable $e) {
+                // fall through to the CLI
+            }
+        }
+        if ($this->hasBinary('tar')) {
+            // GNU tar auto-detects gzip and strips unsafe (../, absolute) members.
+            $this->runExtractor('tar -xf ' . escapeshellarg($archivePath) . ' -C ' . escapeshellarg($destination), 0);
+            return;
+        }
+        throw new \RuntimeException('Cannot extract .tar.gz: PharData is unavailable and the `tar` command is missing.');
+    }
+
+    /** True if $bin resolves on PATH. */
+    private function hasBinary(string $bin): bool {
+        $out = @shell_exec('command -v ' . escapeshellarg($bin) . ' 2>/dev/null');
+        return is_string($out) && trim($out) !== '';
+    }
+
+    /** Run a CLI extractor; treat exit codes above $maxOkCode as failures. */
+    private function runExtractor(string $cmd, int $maxOkCode): void {
+        $out  = [];
+        $code = 0;
+        @exec($cmd . ' 2>&1', $out, $code);
+        if ($code > $maxOkCode) {
+            throw new \RuntimeException('Archive extraction failed (exit ' . $code . '): ' . implode(' ', array_slice($out, -3)));
+        }
+    }
+
+    /**
+     * Safely extract a ZIP archive via the PHP zip extension.
      *
      * Validates each entry for path traversal attacks before extracting.
      *
@@ -1239,7 +2013,7 @@ class ModuleManager {
      * @return void
      * @throws \RuntimeException If extraction fails or unsafe entries are detected.
      */
-    private function extractZipSafely(string $zipFilePath, string $destination): void {
+    private function extractZipViaZipArchive(string $zipFilePath, string $destination): void {
         $zip = new \ZipArchive();
         if ($zip->open($zipFilePath) !== true) {
             throw new \RuntimeException('Unable to open zip archive.');
@@ -1315,10 +2089,23 @@ class ModuleManager {
 
         $jsonFiles = glob($tempBase . '/*/module.json') ?: [];
         if (count($jsonFiles) !== 1) {
-            throw new \RuntimeException('Zip must contain exactly one module with module.json.');
+            throw new \RuntimeException('Archive must contain exactly one module with module.json.');
         }
 
         return dirname($jsonFiles[0]);
+    }
+
+    /**
+     * The module's canonical name from its module.json ("name"), falling back to
+     * the directory basename. The manifest is authoritative: extracting a flat
+     * archive (module.json at the root) or a differently-named wrapper dir would
+     * otherwise yield the random temp-dir name (e.g. "xc_module_ab12"), which fails
+     * sanitizeModuleName() with "Invalid module name."
+     */
+    private function manifestNameFromDir(string $moduleDir): string {
+        $meta = json_decode((string) @file_get_contents($moduleDir . '/module.json'), true);
+        $name = is_array($meta) ? trim((string) ($meta['name'] ?? '')) : '';
+        return $name !== '' ? $name : basename($moduleDir);
     }
 
     /**
