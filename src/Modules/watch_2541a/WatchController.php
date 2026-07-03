@@ -6,6 +6,7 @@ use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
  * Watch Module Controller
@@ -80,6 +81,7 @@ class WatchController {
 
     public function settings() {
         global $rMobile, $rSettings;
+        $db = DatabaseFactory::get();
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Watch Settings';
 

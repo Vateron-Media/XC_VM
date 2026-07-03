@@ -1,6 +1,7 @@
 {
-    "name": "tmdb",
-    "description": "TMDB metadata integration module",
+    "name": "ministra",
+    "hash_id": "85a7d49c32231f2141ab697a946c3aed",
+    "description": "Ministra portal integration module",
     "version": "1.0.0",
     "requires_core": ">=2.0",
     "environment": "main",

@@ -60,7 +60,7 @@ class WatchModule extends BaseModule {
     }
 
     public function getVersion(): string {
-        return '1.0.1';
+        return '1.0.2';
     }
 
     /**

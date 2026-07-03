@@ -7,6 +7,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerService;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
  * Plex Module Controller
@@ -78,6 +79,7 @@ class PlexController {
 
     public function settings() {
         global $rMobile, $rSettings;
+        $db = DatabaseFactory::get();
         $rBouquets = BouquetService::getAllSimple();
         $_TITLE = 'Plex Settings';
 
