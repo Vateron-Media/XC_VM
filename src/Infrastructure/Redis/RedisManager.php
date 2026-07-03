@@ -121,6 +121,9 @@ class RedisManager {
 			}
 			$rRedis->setOption(\Redis::OPT_READ_TIMEOUT, 2.0);
 			$rRedis->setOption(\Redis::OPT_TCP_KEEPALIVE, 60);
+			// Validate the fresh connection: surfaces NOAUTH/WRONGPASS here
+			// instead of on the first real command at a call site.
+			$rRedis->ping();
 			return $rRedis;
 		} catch (\Exception $e) {
 			return null;

@@ -58,7 +58,8 @@ parameters:
             # Bundled third-party libraries (not our code): the php-tmdb client
             # and the Mobile-Detect library. Like the vendored packages above,
             # they are indexed for symbol resolution but not analysed.
-            - src/Modules/tmdb/lib/*
+            # (wildcard: module dirs carry install-hash suffixes, e.g. tmdb_f4e6e)
+            - src/Modules/tmdb*/lib/*
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
@@ -209,6 +210,10 @@ parameters:
         # Proprietary ioncube-encoded class, shipped only in licensed builds.
         # Every call site is guarded with class_exists('XC_VM').
         - '#unknown class XC_VM\.#'
+        # Same class: method_exists('XC_VM', ...) probes for APIs that exist
+        # only in licensed builds; PHPStan treats the unknown class as absent
+        # and calls the guard impossible.
+        - '#method_exists\(\) with .XC_VM.#'
         # External vendor library (maxmind-db/reader), installed at runtime and
         # not part of the source tree.
         - '#MaxMind\\Db\\Reader#'
