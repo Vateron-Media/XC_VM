@@ -8,7 +8,6 @@ use XcVm\Core\Container\Psr\NotFoundException;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\Request;
 use XcVm\Core\Module\ModuleInterface;
-use XcVm\Module\Plex\PlexModule;
 
 /**
  * Минимальный DI-контейнер (Service Container)

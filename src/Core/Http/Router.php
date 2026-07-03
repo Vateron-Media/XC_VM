@@ -4,9 +4,6 @@ namespace XcVm\Core\Http;
 
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleInterface;
-use XcVm\Module\Plex\PlexController;
-use XcVm\Module\Watch\WatchController;
-use XcVm\Module\Watch\WatchModule;
 
 /**
  * HTTP Router

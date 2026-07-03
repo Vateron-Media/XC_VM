@@ -4480,6 +4480,10 @@ if (isset($_SESSION['hash'])) {
 					exit();
 				}
 
+				if (!class_exists(WatchService::class)) {
+					echo json_encode(array('result' => false));
+					exit();
+				}
 				WatchService::deleteRecording(RequestManager::getAll()['id']);
 				echo json_encode(array('result' => true));
 
