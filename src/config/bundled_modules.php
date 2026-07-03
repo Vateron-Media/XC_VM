@@ -40,13 +40,17 @@ return [
         'source'  => 'bundled',
     ],
     [
-        'hash_id' => '2541abe329f151202d7a3c4ecfb17db4',
-        'name'    => 'watch',
-        'source'  => 'bundled',
+        'hash_id'    => '2541abe329f151202d7a3c4ecfb17db4',
+        'name'       => 'watch',
+        'source'     => 'git',
+        'repository' => 'https://github.com/Vateron-Media/Module_Watch',
+        'channel'    => 'stable',
     ],
     [
-        'hash_id' => '20cd9576a466f5c1d60cc32c971a571b',
-        'name'    => 'plex',
-        'source'  => 'bundled',
+        'hash_id'    => '20cd9576a466f5c1d60cc32c971a571b',
+        'name'       => 'plex',
+        'source'     => 'git',
+        'repository' => 'https://github.com/Vateron-Media/Module_Plex',
+        'channel'    => 'stable',
     ],
 ];
