@@ -540,6 +540,11 @@ class RootSignalsCronJob implements CommandInterface {
                             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'MODULE', 'Installing module distributed from MAIN...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
                             shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php module:install "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
                             break;
+                        case 'delete_module':
+                            echo 'Deleting module removed on MAIN...' . "\n";
+                            $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'MODULE', 'Deleting module removed on MAIN...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
+                            shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php module:delete "' . base64_encode(json_encode($rData)) . '" 2>&1 &');
+                            break;
                         case 'update':
                             echo 'Updating...' . "\n";
                             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', 'Updating \XC_VM...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
