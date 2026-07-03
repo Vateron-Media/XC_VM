@@ -61,9 +61,10 @@ class WatchdogCommand implements CommandInterface {
 		$rCPUAverage = ($rWatchdog['cpu_average_array'] ?? []);
 
 		while (true && $db && $db->ping()) {
-			if (!$this->checkRedisHealth()) {
-				break;
-			}
+			// The heartbeat (last_check_ago) is pure DB — a dead Redis must not
+			// stop it, or every node goes "offline" in the panel whenever the
+			// shared Redis blips. Degrade: skip Redis-dependent stats below.
+			$rRedisAlive = $this->checkRedisHealth();
 
 			if ($this->shouldRefreshSettings()) {
 				if (!ProcessManager::isNginxRunning()) {
@@ -140,24 +141,32 @@ class WatchdogCommand implements CommandInterface {
 			if ($rResult) {
 				if ($rServers[SERVER_ID]['is_main']) {
 					if (SettingsManager::getAll()['redis_handler']) {
-						$rMulti = RedisManager::instance()->multi();
-						foreach (array_keys($rServers) as $rServerID) {
-							if ($rServers[$rServerID]['server_online']) {
-								$rMulti->zCard('SERVER#' . $rServerID);
-								$rMulti->zRangeByScore('SERVER_LINES#' . $rServerID, '-inf', '+inf', array('withscores' => true));
+						// Redis down: keep the last known connections/users totals
+						// for this round instead of overwriting them with garbage.
+						if ($rRedisAlive) {
+							try {
+								$rMulti = RedisManager::instance()->multi();
+								foreach (array_keys($rServers) as $rServerID) {
+									if ($rServers[$rServerID]['server_online']) {
+										$rMulti->zCard('SERVER#' . $rServerID);
+										$rMulti->zRangeByScore('SERVER_LINES#' . $rServerID, '-inf', '+inf', array('withscores' => true));
+									}
+								}
+								$rResults = $rMulti->exec();
+								$rTotalUsers = array();
+								$i = 0;
+								foreach (array_keys($rServers) as $rServerID) {
+									if ($rServers[$rServerID]['server_online']) {
+										$db->query('UPDATE `servers` SET `connections` = ?, `users` = ? WHERE `id` = ?;', $rResults[$i * 2], count(array_unique(array_values($rResults[$i * 2 + 1]))), $rServerID);
+										$rTotalUsers = array_merge(array_values($rResults[$i * 2 + 1]), $rTotalUsers);
+										$i++;
+									}
+								}
+								$db->query('UPDATE `settings` SET `total_users` = ?;', count(array_unique($rTotalUsers)));
+							} catch (\RedisException $e) {
+								echo 'Redis connection lost: ' . $e->getMessage() . "\n";
 							}
 						}
-						$rResults = $rMulti->exec();
-						$rTotalUsers = array();
-						$i = 0;
-						foreach (array_keys($rServers) as $rServerID) {
-							if ($rServers[$rServerID]['server_online']) {
-								$db->query('UPDATE `servers` SET `connections` = ?, `users` = ? WHERE `id` = ?;', $rResults[$i * 2], count(array_unique(array_values($rResults[$i * 2 + 1]))), $rServerID);
-								$rTotalUsers = array_merge(array_values($rResults[$i * 2 + 1]), $rTotalUsers);
-								$i++;
-							}
-						}
-						$db->query('UPDATE `settings` SET `total_users` = ?;', count(array_unique($rTotalUsers)));
 					} else {
 						$db->query('SELECT `activity_id` FROM `lines_live` WHERE `hls_end` = 0 GROUP BY `user_id`;');
 						$rTotalUsers = $db->num_rows();

@@ -498,8 +498,10 @@ class XC_Bootstrap {
             return;
         }
 
-        RedisManager::ensureConnected();
-        self::$redisReady = true;
+        // $redisReady means "connected", not "attempted": assertContainerHealth()
+        // requires the 'redis' service only when this flag is set, so a failed
+        // connection must leave it false — the panel degrades instead of 500ing.
+        self::$redisReady = RedisManager::ensureConnected();
     }
 
     /**
