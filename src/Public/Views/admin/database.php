@@ -26,7 +26,11 @@ if (!$rPermissions["is_admin"]) {
     exit;
 }
 
-$ACCESS_PWD = ''; #!!!IMPORTANT!!! this is script access password, SET IT if you want to protect you DB from public access
+// phpMiniAdmin's own access password. Sourced from the DB_ACCESS_PWD constant
+// (config): when set, the login form below requires it; when empty, only trusted
+// local IPs (127.0.0.1/::1) may pass. This is a second layer — the page is already
+// behind the admin session + is_admin check above.
+$ACCESS_PWD = defined('DB_ACCESS_PWD') ? (string) DB_ACCESS_PWD : '';
 
 #DEFAULT db connection settings
 # --- WARNING! --- if you set defaults - it's recommended to set $ACCESS_PWD to protect your db!
