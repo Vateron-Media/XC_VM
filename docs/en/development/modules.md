@@ -14,8 +14,21 @@ is built on **Extensible Platform** principles:
 
 ## Module directory structure
 
+The directory name follows the **`{name}_{hash5}`** convention, where `hash5` is the
+first 5 characters of the module's `hash_id`. The logical module name (`module.json`
+`name`, which never contains `_`) is always resolved from the manifest — never from the
+directory basename. This lets two modules with the **same name** live in distinct
+directories (`watch_2541a`, `watch_9f1c0`) and install without a filesystem clash. The
+config, dependency graph, and namespace all key off the canonical `name`, so a directory
+rename needs no data migration. Every module **must** have a `hash_id`: uploads that ship
+without one get a fresh id generated and written into their `module.json` before placement,
+so a hash-less directory is never created. A legacy bare `Modules/{name}/` directory from an
+older deployment is still read, but is **auto-migrated** to `{name}_{hash5}` (generating a
+`hash_id` if missing) on the next `console.php status` — the hash-less layout is retired, not
+kept.
+
 ```text
-src/Modules/my-module/
+src/Modules/my-module_9f1c0/   # {name}_{hash5}; canonical name is "my-module"
 ├── module.json          # Metadata and manifest
 ├── MyModule.php         # Module class (source of truth)
 ├── MyService.php        # Business logic
@@ -58,6 +71,7 @@ Rules:
 ```json
 {
     "name": "my-module",
+    "hash_id": "9f1c0b7e4d2a6538c1e0a4b7d6f39e21",
     "description": "Short description",
     "version": "1.0.0",
     "requires_core": ">=2.0",
@@ -74,7 +88,8 @@ Rules:
 
 | Field | Type | Default | Description |
 | ------ | ----- | :---: | ------------ |
-| `name` | `string` | — | Unique module name (matches directory) |
+| `name` | `string` | — | Canonical module name (kebab-case, no `_`). The directory is `{name}_{hash5}`, but code always keys off this manifest value, not the directory basename. |
+| `hash_id` | `string` | generated | **Permanent** module identity — random 32-hex, generated ONCE and never changed on a version bump or rename. Its first 5 chars form the `{name}_{hash5}` directory suffix. Do not hand-edit. |
 | `description` | `string` | `""` | Human-readable description |
 | `version` | `string` | — | Semver version (`1.0.0`) |
 | `requires_core` | `string` | — | Minimum core version (`>=2.0`) |
@@ -84,6 +99,15 @@ Rules:
 | `optional_dependencies` | `array` | `[]` | Soft dependencies (loaded before if present) |
 | `has_navbar` | `bool` | `false` | Whether the module registers navbar items |
 | `has_settings` | `bool` | `false` | Whether the module has a settings page |
+
+> **`hash_id` — the module's permanent identity.** It is a random 32-hex value,
+> generated **once** and **never** changed afterwards — it must survive version bumps
+> and renames (so it is random, not derived from `name`/`version`). Generate it with
+> `make module-hashes` (or `php tools/gen-module-hashes.php`) after scaffolding a new
+> module — the target is idempotent and never touches a module that already has one.
+> Do not hand-write it. It gives modules a stable identity independent of `name`,
+> which is the groundwork for moving modules into separate repositories and for an
+> explicit per-module **update source** — the `update` manifest block (see below).
 
 **Hard vs soft dependencies:**
 
@@ -95,6 +119,34 @@ Rules:
 **Priority:**
 
 - Topological sort respects the dependency graph first, then within the same group sorts by `priority` descending (higher number = loaded earlier), then alphabetically
+
+**Update source (`update` block, optional):**
+
+Where a module gets its updates from. Absent → `bundled` (files ship with the panel and update with it).
+
+```json
+"update": {
+    "source": "bundled | platform | git | url",
+    "repository": "https://github.com/Vateron-Media/xc_vm-module-watch",
+    "channel": "stable",
+    "slug": "watch",
+    "url": "https://…/version.json"
+}
+```
+
+- `source` — `bundled` (with the panel), `platform` (SaaS store), `git` (repo releases), `url` (self-hosted). Unknown values fall back to `bundled`.
+- `repository` — git remote (for `git`); `slug` — store slug (for `platform`, defaults to `name`); `url` — version/archive URL (for `url`); `channel` — `stable`/`beta` (default `stable`).
+
+The block is normalized by `ModuleLoader` and exposed via `ModuleManager::listModules()`. A weekly cron (`cron:module_updates`) checks the `git`/`url` sources and records `available_version`, which drives the **Update to X** button (shown only when a newer version exists). Clicking Update runs `ModuleManager::updateModuleFromSource()`:
+
+- `bundled` — files arrive with the panel; Update just runs the pending migrations.
+- `platform` — delegated to the store install/update flow (rollback + LB fan-out inside).
+- `git` — downloads the release asset **`module.tar.gz`** at the tag == the new version (md5-verified via the release `hashes.md5` when present).
+- `url` — re-reads `version.json` for its `download` (https) + optional `md5`.
+
+For `git`/`url` the fetched `module.json` **`hash_id` must equal the installed one** (identity pinning — a repo/URL can't impersonate another module), then: backup → replace files → migrate → **roll back on any failure** → distribute to LB.
+
+**Standard set & provisioning.** The modules the panel installs by default are listed in `config/bundled_modules.php`, keyed by `hash_id` (stable across renames). Today all are `bundled` (their files are in the panel archive). When a module is extracted into its own repository, flip its entry to a `git`/`url`/`platform` source — `syncBundledModules()` then fetches + installs it automatically via `provisionStandardSet()` (a no-op while everything is bundled on-disk). `ModuleManager::findModuleByHashId()` resolves a module by its stable id regardless of directory/name.
 
 ---
 
@@ -665,6 +717,7 @@ formats) and discovers any installed `xcvm-module` packages alongside the built-
 - [ ] Create `src/Modules/<name>/`
 - [ ] Add `namespace XcVm\Module\<PascalName>;` to every class file
 - [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
+- [ ] Run `make module-hashes` to stamp a permanent `hash_id` (idempotent; never hand-write it)
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
 - [ ] Set the version in **both** `module.json` `"version"` and `getVersion()` — they must match (bump both before publishing)
 - [ ] Implement `boot()` for all services the module provides
