@@ -180,8 +180,13 @@ trait DaemonTrait {
 		if (!(SettingsManager::getAll()['redis_handler'] ?? false)) {
 			return true;
 		}
-		if (!RedisManager::instance() || !RedisManager::instance()->ping()) {
-			echo "Redis connection lost\n";
+		try {
+			if (!RedisManager::instance() || !RedisManager::instance()->ping()) {
+				echo "Redis connection lost\n";
+				return false;
+			}
+		} catch (\RedisException $e) {
+			echo 'Redis connection lost: ' . $e->getMessage() . "\n";
 			return false;
 		}
 		return true;
