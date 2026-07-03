@@ -52,12 +52,12 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                             <input type="hidden" name="module_action" value="upload_install" />
                             <div class="p-3 border border-dashed rounded text-center" id="module-drop-zone" style="border-style: dashed !important; border-width: 2px !important; cursor: pointer; transition: background-color 0.2s;">
                                 <i class="mdi mdi-cloud-upload-outline d-block mb-2" style="font-size: 2.5rem; color: #6c757d;"></i>
-                                <p class="text-muted mb-2">Drag & drop a <code>.zip</code> module here or click to browse</p>
+                                <p class="text-muted mb-2">Drag & drop a <code>.zip</code> or <code>.tar.gz</code> module here or click to browse</p>
                                 <div class="custom-file mx-auto" style="max-width: 400px;">
-                                    <input type="file" class="custom-file-input" name="module_zip" id="module_zip_input" accept=".zip" required>
+                                    <input type="file" class="custom-file-input" name="module_zip" id="module_zip_input" accept=".zip,.tar.gz,.tgz,.tar" required>
                                     <label class="custom-file-label" for="module_zip_input" data-browse="Browse"><?= $language::get('choose_file') ?></label>
                                 </div>
-                                <small class="text-muted d-block mt-2">Only <code>.zip</code> packages are accepted</small>
+                                <small class="text-muted d-block mt-2"><code>.zip</code> and <code>.tar.gz</code> packages are accepted</small>
                             </div>
                             <div class="text-right mt-3">
                                 <button type="submit" class="btn btn-primary" id="module_upload_btn" disabled>
@@ -104,17 +104,28 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                 </td>
                                                 <td class="text-right">
                                                     <div class="btn-group" role="group">
+                                                        <?php if (($module['installed_version'] ?? '') === ''): ?>
                                                         <form action="#" method="POST" class="mr-1 js-module-form">
                                                             <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
                                                             <input type="hidden" name="module_action" value="install">
-                                                            <button type="submit" class="btn btn-sm btn-primary"></i>Install</button>
+                                                            <button type="submit" class="btn btn-sm btn-primary">Install</button>
                                                         </form>
+                                                        <?php endif; ?>
 
+                                                        <?php
+                                                            // Latest available: the source-checked available_version (cron), or the
+                                                            // on-disk manifest version as a fallback (e.g. bundled just updated with the panel).
+                                                            $rAvailable = ($module['available_version'] ?? '') !== ''
+                                                                ? (string) $module['available_version']
+                                                                : (string) ($module['version'] ?? '');
+                                                        ?>
+                                                        <?php if (($module['installed_version'] ?? '') !== '' && version_compare($rAvailable, (string) $module['installed_version'], '>')): ?>
                                                         <form action="#" method="POST" class="mr-1 js-module-form">
                                                             <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
                                                             <input type="hidden" name="module_action" value="update">
-                                                            <button type="submit" class="btn btn-sm btn-info"></i>Update</button>
+                                                            <button type="submit" class="btn btn-sm btn-info" title="New version <?= htmlspecialchars($rAvailable) ?> available">Update to <?= htmlspecialchars($rAvailable) ?></button>
                                                         </form>
+                                                        <?php endif; ?>
 
                                                         <?php if (($module['source'] ?? '') === 'platform' && !empty($module['previous_version'])): ?>
                                                             <form action="#" method="POST" class="mr-1 js-module-form"
@@ -146,11 +157,20 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                             <?= !empty($module['enabled']) ? 'Disable' : 'Enable' ?>
                                                         </button>
 
+                                                        <?php if (($module['installed_version'] ?? '') !== ''): ?>
                                                         <form action="#" method="POST" class="js-module-form"
                                                               data-confirm="<?= htmlspecialchars($language::get('confirm_uninstall_module', [':name' => $module['name']]), ENT_QUOTES) ?>">
                                                             <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
                                                             <input type="hidden" name="module_action" value="uninstall">
-                                                            <button type="submit" class="btn btn-sm btn-danger"></i>Uninstall</button>
+                                                            <button type="submit" class="btn btn-sm btn-danger">Uninstall</button>
+                                                        </form>
+                                                        <?php endif; ?>
+
+                                                        <form action="#" method="POST" class="js-module-form"
+                                                              data-confirm="Delete module '<?= htmlspecialchars($module['name'], ENT_QUOTES) ?>' completely — remove its files and drop its tables? A bundled module returns on the next panel update.">
+                                                            <input type="hidden" name="module_name" value="<?= htmlspecialchars($module['name']) ?>">
+                                                            <input type="hidden" name="module_action" value="delete">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                                                         </form>
                                                     </div>
                                                 </td>

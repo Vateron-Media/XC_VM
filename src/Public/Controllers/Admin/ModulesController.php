@@ -39,6 +39,11 @@ class ModulesController extends BaseAdminController {
                         $flash = ['type' => 'warning', 'message' => 'Module uninstalled: ' . $name];
                         break;
 
+                    case 'delete':
+                        $manager->deleteModule($name);
+                        $flash = ['type' => 'warning', 'message' => 'Module deleted: ' . $name];
+                        break;
+
                     case 'enable':
                         $manager->setEnabled($name, true);
                         $flash = ['type' => 'success', 'message' => 'Module enabled: ' . $name];
@@ -50,7 +55,7 @@ class ModulesController extends BaseAdminController {
                         break;
 
                     case 'update':
-                        $manager->updateModule($name);
+                        $manager->updateModuleFromSource($name);
                         $flash = ['type' => 'success', 'message' => 'Module updated: ' . $name];
                         break;
 
