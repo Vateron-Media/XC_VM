@@ -62,6 +62,20 @@ class RedisManager {
 	}
 
 	/**
+	 * Drop the singleton and establish a fresh, authenticated connection.
+	 *
+	 * phpredis can transparently reconnect a broken socket without replaying
+	 * AUTH, so a previously healthy connection may suddenly answer NOAUTH.
+	 * A full reconnect through \XC_VM::redis_connect() re-authenticates.
+	 *
+	 * @return \Redis|null Fresh instance, or null when Redis is unreachable.
+	 */
+	public static function reconnect(): ?\Redis {
+		self::closeInstance();
+		return self::instance();
+	}
+
+	/**
 	 * Close the singleton connection.
 	 *
 	 * @return bool Always returns true.
