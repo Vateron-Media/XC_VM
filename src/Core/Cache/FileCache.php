@@ -99,9 +99,33 @@ class FileCache implements CacheInterface {
         $tmp = $file . '.' . getmypid() . '.tmp';
         if (@file_put_contents($tmp, $serialized, LOCK_EX) === false) {
             @unlink($tmp);
+            $this->warnWriteFailure($file);
             return false;
         }
-        return @rename($tmp, $file);
+        if (!@rename($tmp, $file)) {
+            @unlink($tmp);
+            $this->warnWriteFailure($file);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Report a failed cache write once per process.
+     *
+     * A silently stale cache (bad tmp/ ownership, full or missing tmpfs) keeps
+     * the panel running on outdated settings with no visible symptom, so the
+     * first failure must reach the panel log via the error handler.
+     *
+     * @param string $file Cache file path that could not be written.
+     */
+    protected function warnWriteFailure($file) {
+        static $warned = false;
+        if ($warned) {
+            return;
+        }
+        $warned = true;
+        trigger_error('FileCache: cache write failed for ' . $file . ' — serving stale cache', E_USER_WARNING);
     }
 
     /**
