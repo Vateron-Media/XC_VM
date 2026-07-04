@@ -141,8 +141,15 @@ class ConnectionTracker {
 				$rKeys = $rRedis->zRangeByScore('LIVE', '-inf', '+inf');
 			}
 
-			if (count($rKeys) > 0) {
-				return array($rKeys, array_map('igbinary_unserialize', $rRedis->mGet($rKeys)));
+			// zRangeByScore/mGet return false on a failed connection (e.g. an
+			// unauthenticated socket during a Redis restart) — degrade to empty.
+			if (is_array($rKeys) && count($rKeys) > 0) {
+				$rData = $rRedis->mGet($rKeys);
+				if (is_array($rData)) {
+					return array($rKeys, array_map(static function ($rItem) {
+						return is_string($rItem) ? igbinary_unserialize($rItem) : false;
+					}, $rData));
+				}
 			}
 			return array([], []);
 		}

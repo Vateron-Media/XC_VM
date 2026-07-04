@@ -57,8 +57,10 @@ class SignalsCommand implements CommandInterface {
 				$rServers = ServerRepository::getAll(true);
 			}
 
-			// Skip iteration if Redis required but dead
-			if ((SettingsManager::getAll()['redis_handler'] ?? false) && (!RedisManager::instance() || !RedisManager::instance()->ping())) {
+			// Stop if Redis required but dead. checkRedisHealth() catches
+			// RedisException (NOAUTH/timeouts during a restart window) — a raw
+			// ping here used to kill the daemon with an uncaught exception.
+			if (!$this->checkRedisHealth()) {
 				break;
 			}
 
