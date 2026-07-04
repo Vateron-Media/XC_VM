@@ -45,13 +45,24 @@ class ConnectionTracker {
 
 		if ($rSettings['redis_handler'] && $rRedis) {
 			$rRows = array();
-			$rMulti = $rRedis->multi();
-			foreach (array_keys($rServers) as $rServerID) {
-				if ($rServers[$rServerID]['server_online']) {
-					$rMulti->zCard((($rProxy ? 'PROXY#' : 'SERVER#')) . $rServerID);
+			$rResults = null;
+			// One reconnect+retry: phpredis may silently reconnect a broken
+			// socket without replaying AUTH, so a healthy-looking connection
+			// can suddenly throw NOAUTH (see RedisManager::reconnect()).
+			for ($rAttempt = 0; $rAttempt < 2 && $rRedis; $rAttempt++) {
+				try {
+					$rMulti = $rRedis->multi();
+					foreach (array_keys($rServers) as $rServerID) {
+						if ($rServers[$rServerID]['server_online']) {
+							$rMulti->zCard((($rProxy ? 'PROXY#' : 'SERVER#')) . $rServerID);
+						}
+					}
+					$rResults = $rMulti->exec();
+					break;
+				} catch (\RedisException $e) {
+					$rRedis = \XcVm\Infrastructure\Redis\RedisManager::reconnect();
 				}
 			}
-			$rResults = $rMulti->exec();
 			if (!is_array($rResults)) {
 				$rResults = [];
 			}
@@ -625,14 +636,12 @@ class ConnectionTracker {
 		if (!$rRedis) {
 			return [];
 		}
+		// zRangeByScore returns false on a failed connection — degrade to empty.
 		$rKeys = $rRedis->zRangeByScore((($rActive ? 'LINE#' : 'LINE_ALL#')) . $rUserID, '-inf', '+inf');
-		if ($rKeys) {
+		if (is_array($rKeys) && count($rKeys) > 0) {
 			return $rKeys;
 		}
-		if (0 >= count($rKeys)) {
-			return array();
-		}
-		return array_map('igbinary_unserialize', $rRedis->mGet($rKeys));
+		return array();
 	}
 
 	/**
@@ -647,11 +656,18 @@ class ConnectionTracker {
 		if (!$rRedis) {
 			return [];
 		}
+		// sMembers/mGet return false on a failed connection — degrade to empty.
 		$rKeys = $rRedis->sMembers('ENDED');
-		if (0 >= count($rKeys)) {
+		if (!is_array($rKeys) || 0 >= count($rKeys)) {
 			return array();
 		}
-		return array_map('igbinary_unserialize', $rRedis->mGet($rKeys));
+		$rData = $rRedis->mGet($rKeys);
+		if (!is_array($rData)) {
+			return array();
+		}
+		return array_map(static function ($rItem) {
+			return is_string($rItem) ? igbinary_unserialize($rItem) : false;
+		}, $rData);
 	}
 
 	/**
