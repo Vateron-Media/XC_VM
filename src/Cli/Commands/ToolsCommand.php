@@ -108,28 +108,40 @@ class ToolsCommand implements CommandInterface {
 	}
 
 	private function processMigration($db, array $rArgs, array $rServers): int {
+		// Re-join the argument tail so an unquoted path with spaces still resolves
+		$database = (count($rArgs) > 1 ? implode(' ', array_slice($rArgs, 1)) : null);
+
+		// Validate the backup file BEFORE wiping the migration database
+		if ($database !== null) {
+			if (!is_file($database)) {
+				echo "Error: File not found: {$database}\n";
+				echo "If the path contains spaces, wrap it in quotes.\n";
+				return 1;
+			}
+			if (strtolower(pathinfo($database, PATHINFO_EXTENSION)) !== 'sql') {
+				echo "Error: File must have .sql extension\n";
+				return 1;
+			}
+		}
+
 		$db->query('DROP DATABASE IF EXISTS `xc_vm_migrate`;');
 		$db->query('CREATE DATABASE IF NOT EXISTS `xc_vm_migrate`;');
 		echo "Migration database has been cleared.\n";
 
-		$database = (!empty($rArgs[1]) ? $rArgs[1] : null);
+		foreach ($rServers as $rServer) {
+			BackupService::grantPrivileges($rServer['server_ip']);
+		}
 
-		if ($database && file_exists($database)) {
-			$rExtension = strtolower(pathinfo($database, PATHINFO_EXTENSION));
-			if ($rExtension === 'sql') {
-				echo 'Restoring: ' . $database . "\n";
-				\XC_VM::db_restore($database, 'xc_vm_migrate');
-				echo "Restore started in the background.\n\n";
-			} else {
-				echo "Error: File must have .sql extension\n";
+		if ($database !== null) {
+			echo 'Restoring: ' . $database . "\n";
+			if (!\XC_VM::db_restore($database, 'xc_vm_migrate')) {
+				echo "Error: Restore failed. Check the SQL file and database credentials.\n";
+				return 1;
 			}
+			echo "Restore completed. You can now run: console.php migrate\n\n";
 		} else {
 			echo "You can restore a database to it using:\n";
 			echo "  mariadb -h 127.0.0.1 -P <port> -u <username> -p'<password>' xc_vm_migrate < backup.sql\n";
-		}
-
-		foreach ($rServers as $rServer) {
-			BackupService::grantPrivileges($rServer['server_ip']);
 		}
 
 		return 0;

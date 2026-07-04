@@ -2630,8 +2630,7 @@ if (isset($_SESSION['hash'])) {
 						}
 					}
 
-					BackupService::restore($rFilename);
-					echo json_encode(array('result' => true));
+					echo json_encode(array('result' => BackupService::restore($rFilename)));
 
 					exit();
 				}

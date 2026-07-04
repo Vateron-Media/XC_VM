@@ -41,13 +41,17 @@ class BackupService {
 
 	/**
 	 * Restore a database backup (drops + recreates DB, then imports).
-	 * After import the backup file is refreshed with a clean dump.
+	 * After a successful import the backup file is refreshed with a clean dump.
 	 *
 	 * @param string $filename SQL file path to restore
+	 * @return bool Whether the import succeeded
 	 */
 	public static function restore($filename) {
-		\XC_VM::db_restore($filename);
+		if (!\XC_VM::db_restore($filename)) {
+			return false;
+		}
 		\XC_VM::db_dump($filename, self::$ignoreTables);
+		return true;
 	}
 
 	/**
