@@ -137,7 +137,7 @@ class BruteforceGuard {
             return;
         }
 
-        $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'])));
+        $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? '')));
         if (in_array($ip, $floodExclude)) {
             return;
         }
@@ -204,7 +204,7 @@ class BruteforceGuard {
             return;
         }
 
-        $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'])));
+        $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? '')));
         if (in_array($ip, $floodExclude)) {
             return;
         }
@@ -265,7 +265,7 @@ class BruteforceGuard {
             return;
         }
 
-        $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'])));
+        $floodExclude = array_filter(array_unique(explode(',', $settings['flood_ips_exclude'] ?? '')));
         if (in_array($ip, $floodExclude)) {
             return;
         }
