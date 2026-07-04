@@ -82,8 +82,11 @@ bash tools/test-install/test_release.sh
 
 ```bash
 PREV_TAG=$(git describe --tags --abbrev=0)
+mkdir -p dist
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
+
+> ⚠️ `mkdir -p dist` обязателен: каталога `dist/` нет на свежем клоне, а `make new` его очищает — без него редирект упадёт с «No such file or directory».
 
 **Обновить `changelog.json`** в корне репозитория — этот файл содержит только изменения для предстоящего релиза:
 

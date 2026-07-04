@@ -82,8 +82,11 @@ This builds the image, starts the container with systemd, and runs the installer
 
 ```bash
 PREV_TAG=$(git describe --tags --abbrev=0)
+mkdir -p dist
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
+
+> ⚠️ `mkdir -p dist` is required: `dist/` does not exist on a fresh clone and `make new` wipes it — without it the redirect fails with "No such file or directory".
 
 **Update `changelog.json`** in the repository root — this file contains only the changes for the upcoming release:
 
