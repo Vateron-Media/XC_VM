@@ -141,7 +141,11 @@ class StartupCommand implements CommandInterface {
 	private function generateCacheIfNeeded(): void {
 		if (!file_exists(CACHE_TMP_PATH . 'cache_complete')) {
 			echo "Generating cache...\n";
-			exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine >/dev/null 2>/dev/null &');
+			// Drop to xc_vm when running as root (service boot / installer):
+			// cache files written by root cannot be refreshed later by the
+			// xc_vm daemons and crons.
+			$rPrefix = ((posix_getpwuid(posix_geteuid())['name'] ?? null) === 'root') ? 'sudo -u xc_vm ' : '';
+			exec($rPrefix . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine >/dev/null 2>/dev/null &');
 		}
 	}
 }

@@ -107,6 +107,13 @@ class FileCache implements CacheInterface {
             $this->warnWriteFailure($file);
             return false;
         }
+        // A root-context write (installer, `console.php status`) must stay
+        // owned by the panel user, or xc_vm daemons cannot refresh the file
+        // later. Same pattern as Logger.
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            @chown($file, 'xc_vm');
+            @chgrp($file, 'xc_vm');
+        }
         return true;
     }
 
