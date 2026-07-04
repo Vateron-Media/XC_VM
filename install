@@ -2480,9 +2480,12 @@ if __name__ == "__main__":
     printc("Starting XC_VM processes...", col.OKBLUE)
     time.sleep(10)
 
-    # Run status command
+    # Run status command as xc_vm — a root run would leave root-owned cache
+    # files in tmp/ that xc_vm daemons cannot overwrite afterwards.
     if os.path.exists("/home/xc_vm/console.php"):
-        run_command("/home/xc_vm/console.php status 1")
+        run_command(
+            "sudo -u xc_vm /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php status 1"
+        )
 
     # Set config permissions
     run_command("chown -R xc_vm:xc_vm /home/xc_vm/config/")
@@ -2491,7 +2494,7 @@ if __name__ == "__main__":
     startup_cmd = "/home/xc_vm/console.php"
     if os.path.exists(startup_cmd):
         run_command(
-            f"/home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"
+            f"sudo -u xc_vm /home/xc_vm/bin/php/bin/php {startup_cmd} startup >/dev/null 2>&1"
         )
 
     # Download GeoLite2 GeoIP databases (City/Country/ASN). They are no longer
@@ -2501,7 +2504,7 @@ if __name__ == "__main__":
     if os.path.exists(startup_cmd):
         printc("Downloading GeoLite2 GeoIP databases...", col.OKBLUE)
         run_command(
-            f"/home/xc_vm/bin/php/bin/php {startup_cmd} cron:maxmind --force"
+            f"sudo -u xc_vm /home/xc_vm/bin/php/bin/php {startup_cmd} cron:maxmind --force"
         )
 
     time.sleep(3)
