@@ -72,8 +72,10 @@ class CacheCronJob implements CommandInterface {
                         unlink($rTmpPath . $rFile);
                     }
                 }
-                exec('sudo rm -rf ' . TMP_PATH . '*');
-                exec('sudo rm -rf ' . SIGNALS_PATH . '*');
+                // No sudo: this runs as xc_vm (service boot chowns tmp/ first),
+                // and xc_vm has no sudoers entry — sudo here would fail silently.
+                exec('rm -rf ' . TMP_PATH . '*');
+                exec('rm -rf ' . SIGNALS_PATH . '*');
             }
         }
 
