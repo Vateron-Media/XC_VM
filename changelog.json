@@ -1,13 +1,14 @@
 {
-    "version": "2.3.2",
+    "version": "2.3.3",
     "changes": [
         "Added secure provisioning of config.enc for Load Balancer nodes",
-        "Enhanced the module system with migration-based schema management, uninstall support, and event decoupling",
+        "Enhanced the module system with migration-based schema management, dependency validation, uninstall support, and event decoupling",
         "Replaced the MaxMindDB PHP extension with a Composer-based pure PHP implementation",
         "Added binary version and operating system information to the Settings page",
         "Added a test stream generator for HTTP-served MP4 streams",
         "Improved stream server stability with QuietThreadingHTTPServer",
         "Improved Load Balancer installation by resetting binary ownership before PHP-FPM startup",
+        "Improved module dependency handling and diagnostics during module loading",
         "Fixed EPG cache cleanup to remove only orphaned cache files",
         "Fixed module manager method calls and bootstrap initialization issues",
         "Improved GitHub update reliability with increased API timeouts",
@@ -16,6 +17,7 @@
         "Fixed BruteforceGuard integer handling and corrected documentation examples",
         "Introduced centralized database access through DatabaseAware and dedicated wiring classes",
         "Refactored multiple services for improved readability, maintainability, and cleaner architecture",
-        "Added a CLAUDE.md project guide and updated backup and migration documentation"
+        "Added a CLAUDE.md project guide and updated backup and migration documentation",
+        "Improved installer reliability and completed release preparation for v2.3.3"
     ]
 }
