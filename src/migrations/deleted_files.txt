@@ -230,6 +230,7 @@ infrastructure/database/DatabaseFactory.php
 infrastructure/nginx/templates/.gitkeep
 infrastructure/redis/RedisManager.php
 infrastructure/service/.gitkeep
+migrations/004_add_watch_delete_missing.sql
 modules/ministra/MinistraModule.php
 modules/ministra/PortalHandler.php
 modules/ministra/PortalHelpers.php
