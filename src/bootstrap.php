@@ -745,7 +745,11 @@ class XC_Bootstrap {
         }
 
         // Relative link so it is independent of MAIN_HOME and path case.
-        @symlink('admin', $resellerLink);
+        if (!@symlink('admin', $resellerLink)) {
+            // Without the link every reseller access code serves pages with no
+            // CSS/JS (nginx aliases /CODE/assets/ to Public/assets/reseller/).
+            error_log('XC_Bootstrap: failed to create Public/assets/reseller -> admin symlink — check ownership of Public/assets/ (expected xc_vm).');
+        }
     }
 
     /**

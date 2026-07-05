@@ -120,6 +120,20 @@ if (
     exit;
 }
 
+// 4b. Player: /CODE (без завершающего слэша) → /CODE/ — страницы плеера ссылаются
+// на статику относительно ("css/main.css"), без слэша браузер резолвит её от
+// корня и весь CSS/JS уходит в 404.
+if (
+    $accessCode && $scope === 'player'
+    && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
+    && rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', '/') === '/' . $accessCode
+    && substr(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', -1) !== '/'
+) {
+    $query = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_QUERY);
+    header('Location: /' . $accessCode . '/' . ($query !== '' ? '?' . $query : ''));
+    exit;
+}
+
 if (!defined('PAGE_NAME')) {
     define('PAGE_NAME', $pageName);
 }
