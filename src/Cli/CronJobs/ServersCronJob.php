@@ -46,7 +46,7 @@ class ServersCronJob implements CommandInterface {
 
     private function pingServer(string $rIP, $rPort): int {
         $rStartTime = microtime(true);
-        $rSocket = fsockopen($rIP, $rPort, $rErrNo, $rErrStr, 3);
+        $rSocket = @fsockopen($rIP, $rPort, $rErrNo, $rErrStr, 3);
         $rStopTime = microtime(true);
         if (!$rSocket) {
             $rStatus = -1;
@@ -147,7 +147,7 @@ class ServersCronJob implements CommandInterface {
 
         $rHardware = array('total_ram' => $rStats['total_mem'], 'total_used' => $rStats['total_mem_used'], 'cores' => $rStats['cpu_cores'], 'threads' => $rStats['cpu_cores'], 'kernel' => $rStats['kernel'], 'total_running_streams' => $rStats['total_running_streams'], 'cpu_name' => $rStats['cpu_name'], 'cpu_usage' => $rStats['cpu'], 'network_speed' => $rStats['network_speed'], 'bytes_sent' => $rStats['bytes_sent'], 'bytes_received' => $rStats['bytes_received']);
 
-        if (fsockopen($rServers[SERVER_ID]['server_ip'], $rServers[SERVER_ID]['http_broadcast_port'], $rErrNo, $rErrStr, 3) || fsockopen($rServers[SERVER_ID]['server_ip'], $rServers[SERVER_ID]['https_broadcast_port'], $rErrNo, $rErrStr, 3)) {
+        if (@fsockopen($rServers[SERVER_ID]['server_ip'], $rServers[SERVER_ID]['http_broadcast_port'], $rErrNo, $rErrStr, 3) || @fsockopen($rServers[SERVER_ID]['server_ip'], $rServers[SERVER_ID]['https_broadcast_port'], $rErrNo, $rErrStr, 3)) {
             $rRemoteStatus = true;
         } else {
             $rRemoteStatus = false;

@@ -259,7 +259,7 @@ class BouquetService {
 
 		$rOutput = array();
 		$db->query('SELECT *, IF(`bouquet_order` > 0, `bouquet_order`, 999) AS `order` FROM `bouquets` ORDER BY `order` ASC;');
-		foreach ($db->get_rows(true, 'id') as $rID => $rChannels) {
+		foreach ($db->get_rows(true, 'id') ?: array() as $rID => $rChannels) {
 			$rChannelsList = json_decode($rChannels['bouquet_channels'], true);
 			$rMoviesList = json_decode($rChannels['bouquet_movies'], true);
 			$rRadiosList = json_decode($rChannels['bouquet_radios'], true);

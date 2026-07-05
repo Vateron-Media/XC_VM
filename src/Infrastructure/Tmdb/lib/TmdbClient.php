@@ -242,7 +242,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('discover/movie', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -259,7 +259,7 @@ class TMDB {
 		$tvShows = array();
 		$result = $this->_call('discover/tv', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$tvShows[] = new TVShow($data);
 		}
 
@@ -276,7 +276,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('discover/movie', 'page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -302,7 +302,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('movie/now_playing', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -319,7 +319,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('movie/popular', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -337,7 +337,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('movie/top_rated', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -355,7 +355,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('movie/upcoming', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -366,7 +366,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('movie/' . $id . '/similar', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -392,7 +392,7 @@ class TMDB {
 		$tvShows = array();
 		$result = $this->_call('tv/on_the_air', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$tvShows[] = new TVShow($data);
 		}
 
@@ -402,7 +402,7 @@ class TMDB {
 	public function getSimilarSeries($id, $page = 1) {
 		$result = $this->_call('tv/' . $id . '/similar', '&page=' . $page);
 
-		return $result['results'];
+		return $result['results'] ?? array();
 	}
 
 	/**
@@ -416,7 +416,7 @@ class TMDB {
 		$tvShows = array();
 		$result = $this->_call('tv/airing_today', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$tvShows[] = new TVShow($data);
 		}
 
@@ -433,7 +433,7 @@ class TMDB {
 		$tvShows = array();
 		$result = $this->_call('tv/top_rated', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$tvShows[] = new TVShow($data);
 		}
 
@@ -450,7 +450,7 @@ class TMDB {
 		$tvShows = array();
 		$result = $this->_call('tv/popular', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$tvShows[] = new TVShow($data);
 		}
 
@@ -475,7 +475,7 @@ class TMDB {
 		$persons = array();
 		$result = $this->_call('person/popular', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$persons[] = new Person($data);
 		}
 
@@ -619,7 +619,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('search/movie', '&query=' . urlencode($movieTitle) . ($rYear ? '&primary_release_year=' . intval($rYear) : ''));
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
@@ -636,7 +636,7 @@ class TMDB {
 		$tvShows = array();
 		$result = $this->_call('search/tv', '&query=' . urlencode($tvShowTitle) . ($rYear ? '&first_air_date_year=' . intval($rYear) : ''));
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$tvShows[] = new TVShow($data);
 		}
 
@@ -653,7 +653,7 @@ class TMDB {
 		$persons = array();
 		$result = $this->_call('search/person', '&query=' . urlencode($personName));
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$persons[] = new Person($data);
 		}
 
@@ -670,7 +670,7 @@ class TMDB {
 		$collections = array();
 		$result = $this->_call('search/collection', '&query=' . urlencode($collectionName));
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$collections[] = new Collection($data);
 		}
 
@@ -687,7 +687,7 @@ class TMDB {
 		$companies = array();
 		$result = $this->_call('search/company', '&query=' . urlencode($companyName));
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$companies[] = new Company($data);
 		}
 
@@ -788,7 +788,7 @@ class TMDB {
 		$movies = array();
 		$result = $this->_call('genre/' . $idGenre . '/movies', '&page=' . $page);
 
-		foreach ($result['results'] as $data) {
+		foreach ($result['results'] ?? array() as $data) {
 			$movies[] = new Movie($data);
 		}
 
