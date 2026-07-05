@@ -476,7 +476,7 @@ class SeriesService {
 	 * @return array Similar series.
 	 */
 	public static function getSimilar($rID, $rPage = 1) {
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		TMDbService::requireLibrary();
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
@@ -509,7 +509,7 @@ class SeriesService {
 	 */
 	public static function updateFromTMDB($rID) {
 		$db = self::db();
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		TMDbService::requireLibrary();
 		$db->query('SELECT `tmdb_id`, `tmdb_language` FROM `streams_series` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {

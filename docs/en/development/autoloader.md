@@ -76,7 +76,7 @@ Some files are intentionally **not** namespaced and are loaded by explicit
 - procedural entry points, views and bootstrap glue (e.g. `Public/index.php`,
   `Public/Views/**`, `Infrastructure/Bootstrap/*.php`);
 - global constants and functions (`Core/Config/*`, error handler);
-- the ioncube `XC_VM` class and bundled `Modules/tmdb/lib/*`.
+- the ioncube `XC_VM` class and bundled `Infrastructure/Tmdb/lib/*`.
 
 The vendored `M3uParser` and `Chrisyue\PhpM3u8` packages have their own PSR-4
 prefixes (above) and autoload normally.

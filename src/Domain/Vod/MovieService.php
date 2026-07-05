@@ -92,7 +92,7 @@ class MovieService {
 			$rImportStreams = array();
 
 			if (isset($rData['review'])) {
-				require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+				TMDbService::requireLibrary();
 
 				if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 					$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
@@ -972,7 +972,7 @@ class MovieService {
 	 * @return array Similar movies.
 	 */
 	public static function getSimilar($rID, $rPage = 1) {
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		TMDbService::requireLibrary();
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);

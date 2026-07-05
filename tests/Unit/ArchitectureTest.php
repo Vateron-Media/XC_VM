@@ -1,7 +1,5 @@
 <?php
 
-use XcVm\Module\Tmdb\TmdbPopularCron;
-use XcVm\Module\Tmdb\TmdbCron;
 use XcVm\Module\Watch\WatchService;
 use XcVm\Module\Watch\WatchItemCommand;
 use XcVm\Module\Watch\WatchItem;
@@ -43,8 +41,6 @@ final class ArchitectureTest extends TestCase {
         'WatchCron.php',
         'WatchItem.php',
         'WatchItemCommand.php',
-        'TmdbCron.php',
-        'TmdbPopularCron.php',
     ];
 
     /**
@@ -155,6 +151,10 @@ final class ArchitectureTest extends TestCase {
     public function testNoWebContextModuleUsesGlobalDb(): void {
         $ministraDir = $this->moduleDirBasename('ministra');
         $exclude     = $ministraDir !== null ? [$ministraDir] : [];
+
+        // May legitimately find nothing to check (every non-exempt module
+        // extracted to its own repo) — that is a pass, not a risky test.
+        $this->addToAssertionCount(1);
 
         foreach ($this->moduleFiles(excludeModuleDirs: $exclude) as $relative => $content) {
             $basename = basename($relative);

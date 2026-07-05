@@ -110,6 +110,7 @@ use XcVm\Public\Controllers\Admin\TheftDetectionController;
 use XcVm\Public\Controllers\Admin\TicketController;
 use XcVm\Public\Controllers\Admin\TicketsController;
 use XcVm\Public\Controllers\Admin\TicketViewController;
+use XcVm\Public\Controllers\Admin\TmdbController;
 use XcVm\Public\Controllers\Admin\UseragentController;
 use XcVm\Public\Controllers\Admin\UseragentsController;
 use XcVm\Public\Controllers\Admin\UserController;
@@ -290,6 +291,11 @@ $router->any('player', [PlayerEmbedController::class, 'index']);
 $router->any('post', [PostController::class, 'index']);
 $router->any('table', [TableController::class, 'index']);
 $router->any('api', [AjaxController::class, 'index']);
+
+// ─── Admin-ajax API actions (consumed via $router->dispatchApi() fallback) ───
+
+$router->api('tmdb_search', [TmdbController::class, 'search']);
+$router->api('tmdb',        [TmdbController::class, 'details']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 

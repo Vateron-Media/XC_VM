@@ -75,7 +75,7 @@ namespace больше не конфликтуют — `XcVm\Public\Controllers\
 - процедурные точки входа, view и bootstrap-склейка (`Public/index.php`,
   `Public/Views/**`, `Infrastructure/Bootstrap/*.php`);
 - глобальные константы и функции (`Core/Config/*`, обработчик ошибок);
-- ioncube-класс `XC_VM` и встроенный `Modules/tmdb/lib/*`.
+- ioncube-класс `XC_VM` и встроенный `Infrastructure/Tmdb/lib/*`.
 
 Вендорные пакеты `M3uParser` и `Chrisyue\PhpM3u8` имеют собственные PSR-4-префиксы
 (выше) и автозагружаются штатно.

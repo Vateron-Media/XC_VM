@@ -1,6 +1,6 @@
 <?php
 
-namespace XcVm\Module\Tmdb;
+namespace XcVm\Infrastructure\Tmdb;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\AdminHelpers;
@@ -24,7 +24,7 @@ use XcVm\Domain\Vod\TMDbService;
  *   - includes/libs/tmdb_release.php (parserelease)
  *   - includes/admin.php (getSeriesTrailer)
  *
- * @package XC_VM_Module_Tmdb
+ * @package XC_VM_Infrastructure_Tmdb
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM
@@ -173,12 +173,17 @@ class TmdbApiService {
     }
 
     /**
-     * Подключить библиотеку \TMDB (один раз)
+     * Подключить библиотеку \TMDB (один раз).
+     *
+     * Загружает клиент и парсер релизов (parserelease). Единственная точка,
+     * знающая путь до вендоренной библиотеки — весь остальной код обязан
+     * идти через этот метод, а не require'ить путь вручную.
      */
-    private static function requireLibrary(): void {
+    public static function requireLibrary(): void {
         static $loaded = false;
         if (!$loaded) {
-            require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+            require_once __DIR__ . '/lib/TmdbClient.php';
+            require_once __DIR__ . '/lib/Release.php';
             $loaded = true;
         }
     }

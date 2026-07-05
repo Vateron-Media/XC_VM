@@ -1,21 +1,19 @@
 <?php
 
-namespace XcVm\Module\Tmdb;
+namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Infrastructure\Tmdb\TmdbApiService;
 
 /**
- * \TMDB Module Controller
+ * \TMDB API Controller
  *
- * Обрабатывает API-маршруты модуля \TMDB:
+ * Обрабатывает API-маршруты \TMDB:
  *   - search()   — поиск фильмов/сериалов/эпизодов (action: tmdb_search)
  *   - details()  — детальная информация по \TMDB ID (action: tmdb)
  *
- * @see TmdbApiService
- * @see TmdbModule
- *
- * @package XC_VM_Module_Tmdb
+ * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM

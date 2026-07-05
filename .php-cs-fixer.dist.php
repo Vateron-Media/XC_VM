@@ -20,7 +20,7 @@ $finder = PhpCsFixer\Finder::create()
 	// Composer autoloader glue + third-party packages (committed + shipped).
 	->exclude('vendor')
 	// Bundled third-party TMDB client (vendored, kept global on purpose).
-	->exclude('Modules/tmdb/lib')
+	->exclude('Infrastructure/Tmdb/lib')
 	// Runtime/transient trees.
 	->exclude('tmp')
 	->exclude('backups')
