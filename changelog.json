@@ -1,23 +1,15 @@
 {
-    "version": "2.3.3",
+    "version": "2.3.4",
     "changes": [
-        "Added secure provisioning of config.enc for Load Balancer nodes",
-        "Enhanced the module system with migration-based schema management, dependency validation, uninstall support, and event decoupling",
-        "Replaced the MaxMindDB PHP extension with a Composer-based pure PHP implementation",
-        "Added binary version and operating system information to the Settings page",
-        "Added a test stream generator for HTTP-served MP4 streams",
-        "Improved stream server stability with QuietThreadingHTTPServer",
-        "Improved Load Balancer installation by resetting binary ownership before PHP-FPM startup",
-        "Improved module dependency handling and diagnostics during module loading",
-        "Fixed EPG cache cleanup to remove only orphaned cache files",
-        "Fixed module manager method calls and bootstrap initialization issues",
-        "Improved GitHub update reliability with increased API timeouts",
-        "Restored correct ownership of config.enc and install_id during provisioning",
-        "Optimized FFmpeg command generation for better streaming performance",
-        "Fixed BruteforceGuard integer handling and corrected documentation examples",
-        "Introduced centralized database access through DatabaseAware and dedicated wiring classes",
-        "Refactored multiple services for improved readability, maintainability, and cleaner architecture",
-        "Added a CLAUDE.md project guide and updated backup and migration documentation",
-        "Improved installer reliability and completed release preparation for v2.3.3"
+        "Integrated the TMDB module directly into the core architecture",
+        "Removed duplicated TMDB standard-set resources",
+        "Extracted player utility functions from the legacy bootstrap",
+        "Improved player stability by handling null values in movie properties",
+        "Enhanced image URL validation in the player",
+        "Improved resilience against temporary database and API failures",
+        "Switched internal error reporting to secure HTTPS communication",
+        "Improved backup restoration by validating migration arguments",
+        "Added proper handling of db_restore operation results",
+        "Continued internal refactoring to simplify the architecture and improve maintainability"
     ]
 }
