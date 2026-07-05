@@ -35,11 +35,6 @@ return [
         'source'  => 'bundled',
     ],
     [
-        'hash_id' => 'f4e6e76ad9b05f322c0c9a6a9027d089',
-        'name'    => 'tmdb',
-        'source'  => 'bundled',
-    ],
-    [
         'hash_id'    => '2541abe329f151202d7a3c4ecfb17db4',
         'name'       => 'watch',
         'source'     => 'git',

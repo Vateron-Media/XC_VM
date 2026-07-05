@@ -239,6 +239,38 @@ class ModuleManager {
     }
 
     /**
+     * Remove on-disk copies and recorded state of modules that are now part of
+     * the core codebase (ModuleLoader::CORE_PROVIDED_MODULES).
+     *
+     * Upgraded panels may still carry the old module directory (any hash
+     * suffix); left in place it would boot alongside the core implementation
+     * and its commands/routes would collide.
+     *
+     * @return string[] Names that were purged.
+     */
+    public function purgeCoreProvidedModules(): array {
+        $purged = [];
+        foreach (ModuleLoader::CORE_PROVIDED_MODULES as $name) {
+            $dir = $this->modulePathFor($name);
+            if (is_dir($dir) && is_file($dir . '/module.json')) {
+                $this->deleteDirectory($dir);
+                error_log("purgeCoreProvidedModules: removed stale module directory '" . basename($dir) . "' — '{$name}' now ships in core.");
+                $purged[] = $name;
+            }
+
+            $overrides = $this->readOverrides();
+            if (isset($overrides[$name])) {
+                unset($overrides[$name]);
+                $this->writeOverrides($overrides);
+                if (!in_array($name, $purged, true)) {
+                    $purged[] = $name;
+                }
+            }
+        }
+        return $purged;
+    }
+
+    /**
      * Names of currently-installed modules that declare $name as a dependency.
      *
      * @return string[]
@@ -306,6 +338,11 @@ class ModuleManager {
         // Retire any legacy hash-less {name} directory before anything scans the
         // modules folder, so every module ends up on the {name}_{hash5} scheme.
         $this->migrateLegacyModuleDirs();
+
+        // Drop leftovers of modules whose functionality moved into the core
+        // (e.g. tmdb): a stale on-disk copy would still boot and its commands
+        // would collide with the core-registered ones.
+        $this->purgeCoreProvidedModules();
 
         // Fetch any standard-set module that lives in a remote source (git/url/
         // platform) and isn't on disk yet — a no-op while every standard module is
@@ -438,9 +475,21 @@ class ModuleManager {
             $name = (string) ($entry['name'] ?? '');
 
             // Already on disk (bundled or previously fetched)? Nothing to fetch.
-            $onDisk = $hash !== '' ? $this->findModuleByHashId($hash) : null;
-            if ($onDisk === null && $name !== '' && is_dir($this->modulePathFor($name))) {
-                $onDisk = $name;
+            // A same-name directory whose identity does NOT match the pinned
+            // hash_id is a stale pre-pin copy (e.g. a legacy-migrated bundled
+            // module from an older release) — it must be replaced, not kept:
+            // otherwise the panel runs outdated module code forever.
+            $onDisk   = $hash !== '' ? $this->findModuleByHashId($hash) : null;
+            $staleDir = null;
+            if ($onDisk === null && $name !== '') {
+                $dir = $this->modulePathFor($name);
+                if (is_dir($dir) && is_file($dir . '/module.json')) {
+                    if ($hash === '') {
+                        $onDisk = $name; // no pin — any same-name copy counts
+                    } else {
+                        $staleDir = $dir;
+                    }
+                }
             }
             if ($onDisk !== null) {
                 continue;
@@ -453,6 +502,10 @@ class ModuleManager {
             }
 
             try {
+                if ($staleDir !== null) {
+                    error_log("provisionStandardSet: '{$name}' on disk (" . basename($staleDir) . ") does not match the pinned hash_id — replacing with the pinned release.");
+                    $this->deleteDirectory($staleDir);
+                }
                 $this->installModuleFromSource($entry);
                 $done[] = $name !== '' ? $name : $hash;
             } catch (\Throwable $e) {
@@ -527,7 +580,14 @@ class ModuleManager {
             $ver      = (string) ($manifest['version'] ?? $version);
 
             $this->storeModuleArchive($archive, $name, $ver);
-            $this->installModule($name, $ver);
+            if ((string) ($this->readOverrides()[$name]['installed_version'] ?? '') !== '') {
+                // Files were re-provisioned for an already-installed module (a
+                // stale copy was replaced) — catch the schema up incrementally
+                // instead of re-running the initial install migrations.
+                $this->updateModule($name);
+            } else {
+                $this->installModule($name, $ver);
+            }
             $this->recordModuleSource($name, 'local');
             $this->distributeToLoadBalancers($name, $manifest, 'local', $ver);
         } finally {
@@ -568,7 +628,9 @@ class ModuleManager {
             $name  = (string) ($meta['name'] ?? basename(dirname($jsonFile))); // canonical name
             $state = $stateByName[$name] ?? \XcVm\Core\Enum\ModuleState::fromRaw(null);
 
-            $dependencies = is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : [];
+            $dependencies = ModuleLoader::filterCoreProvidedDependencies(
+                is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : []
+            );
 
             // Flag a module that is nominally Enabled but won't actually load:
             // ModuleLoader skips it when a required dependency is missing or not

@@ -3,6 +3,7 @@
 namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Infrastructure\Tmdb\TmdbApiService;
 
 /**
  * TMDbService — TMDb API integration
@@ -16,6 +17,17 @@ use XcVm\Core\Config\SettingsManager;
 
 class TMDbService {
 	use \XcVm\Infrastructure\Database\DatabaseAware;
+
+	/**
+	 * Load the \TMDB client library (Infrastructure/Tmdb/lib).
+	 *
+	 * Thin alias for {@see TmdbApiService::requireLibrary()} so Domain call
+	 * sites don't need to know where the vendored client lives.
+	 */
+	public static function requireLibrary(): void {
+		TmdbApiService::requireLibrary();
+	}
+
 	/**
 	 * Fetch movie metadata from \TMDB.
 	 *
@@ -23,7 +35,7 @@ class TMDbService {
 	 * @return array|null Movie metadata, or null on failure.
 	 */
 	public static function getMovie($rID) {
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		self::requireLibrary();
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
@@ -41,7 +53,7 @@ class TMDbService {
 	 * @return array|null Series metadata, or null on failure.
 	 */
 	public static function getSeries($rID) {
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		self::requireLibrary();
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
@@ -60,7 +72,7 @@ class TMDbService {
 	 * @return array|null Season metadata, or null on failure.
 	 */
 	public static function getSeason($rID, $rSeason) {
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		self::requireLibrary();
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
@@ -128,7 +140,7 @@ class TMDbService {
 	 */
 	public static function addCategories() {
 		$db = self::db();
-		require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+		self::requireLibrary();
 
 		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
 			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);

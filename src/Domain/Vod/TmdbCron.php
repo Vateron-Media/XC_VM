@@ -1,13 +1,11 @@
 <?php
 
-namespace XcVm\Module\Tmdb;
+namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
-use XcVm\Domain\Vod\SeriesService;
-use XcVm\Domain\Vod\TMDbService;
 
 /**
  * TmdbCron
@@ -19,7 +17,7 @@ use XcVm\Domain\Vod\TMDbService;
  *   - Поиск совпадений в \TMDB API
  *   - Обновление метаданных в БД
  *
- * @package XC_VM_Module_Tmdb
+ * @package XC_VM_Domain_Vod
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM
@@ -614,8 +612,7 @@ class TmdbCron {
     public static function run(): void {
         $db = self::db();
 
-        require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-        require_once MAIN_HOME . 'Modules/tmdb/lib/Release.php';
+        TMDbService::requireLibrary();
 
         $rUpdateSeries = array();
 

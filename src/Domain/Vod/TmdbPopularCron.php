@@ -1,6 +1,6 @@
 <?php
 
-namespace XcVm\Module\Tmdb;
+namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Config\SettingsManager;
 
@@ -16,7 +16,7 @@ use XcVm\Core\Config\SettingsManager;
  *   - Сбор популярных live-потоков по активности
  *   - Запись результатов в файлы (tmdb_popular, live_popular)
  *
- * @package XC_VM_Module_Tmdb
+ * @package XC_VM_Domain_Vod
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM
@@ -180,7 +180,7 @@ class TmdbPopularCron {
     public static function run(): void {
         $db = self::db();
 
-        require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+        TMDbService::requireLibrary();
 
         if (strlen(SettingsManager::getAll()['tmdb_api_key'] ?? '') > 0) {
             $lang = SettingsManager::getAll()['tmdb_language'] ?? '';

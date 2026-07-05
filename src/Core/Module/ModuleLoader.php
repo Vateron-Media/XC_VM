@@ -37,6 +37,17 @@ use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
  */
 
 class ModuleLoader {
+    /**
+     * Former modules whose functionality now ships in the core codebase.
+     *
+     * Released module archives may still declare them in `dependencies`
+     * (e.g. watch/plex depend on 'tmdb'); such dependencies are considered
+     * always satisfied and are stripped during manifest normalization.
+     *
+     * @var string[]
+     */
+    public const CORE_PROVIDED_MODULES = ['tmdb'];
+
     /** @var ModuleInterface[] Loaded module instances, keyed by module name */
     private array $modules = [];
 
@@ -522,13 +533,23 @@ class ModuleLoader {
             'version'               => $manifest['version'] ?? '',
             'requires_core'         => $manifest['requires_core'] ?? '',
             'environment'           => strtolower((string) ($manifest['environment'] ?? 'main')),
-            'dependencies'          => $normalizeDepArray($manifest['dependencies'] ?? [], 'dependencies'),
-            'optional_dependencies' => $normalizeDepArray($manifest['optional_dependencies'] ?? [], 'optional_dependencies'),
+            'dependencies'          => self::filterCoreProvidedDependencies($normalizeDepArray($manifest['dependencies'] ?? [], 'dependencies')),
+            'optional_dependencies' => self::filterCoreProvidedDependencies($normalizeDepArray($manifest['optional_dependencies'] ?? [], 'optional_dependencies')),
             'has_navbar'            => (bool) ($manifest['has_navbar'] ?? false),
             'has_settings'          => (bool) ($manifest['has_settings'] ?? false),
             'priority'              => (int) ($manifest['priority'] ?? 0),
             'update'                => self::normalizeUpdateBlock($manifest, $manifest['name'] ?? $name),
         ];
+    }
+
+    /**
+     * Strip dependencies that are provided by the core codebase.
+     *
+     * @param string[] $dependencies Normalized dependency names.
+     * @return string[] Dependencies that still refer to real modules.
+     */
+    public static function filterCoreProvidedDependencies(array $dependencies): array {
+        return array_values(array_diff($dependencies, self::CORE_PROVIDED_MODULES));
     }
 
     /**

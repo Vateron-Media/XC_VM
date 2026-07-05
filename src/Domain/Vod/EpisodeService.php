@@ -94,7 +94,7 @@ class EpisodeService {
 		if (isset($rData['multi'])) {
 			if (Authorization::check('adv', 'import_episodes')) {
 				set_time_limit(0);
-				require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+				TMDbService::requireLibrary();
 				$rSeries = SeriesService::getById(intval($rData['series']));
 
 				if (0 < strlen($rSettings['tmdb_language'])) {

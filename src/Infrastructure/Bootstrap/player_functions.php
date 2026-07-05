@@ -4,7 +4,8 @@ use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Domain\User\UserRepository;/**
+use XcVm\Domain\User\UserRepository;
+use XcVm\Domain\Vod\TMDbService;/**
  * Player functions bootstrap.
  *
  * Loads core dependencies, verifies player session integrity,
@@ -30,7 +31,7 @@ if (!defined('MAIN_HOME')) {
 
 require_once MAIN_HOME . 'bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
-require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
+TMDbService::requireLibrary();
 
 if (!defined('SERVER_ID')) {
     define('SERVER_ID', ConnectionTracker::getMainID());

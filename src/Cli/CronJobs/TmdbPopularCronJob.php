@@ -1,21 +1,23 @@
 <?php
 
-namespace XcVm\Module\Tmdb;
+namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
+use XcVm\Domain\Vod\TmdbPopularCron;
+use XcVm\Infrastructure\Tmdb\TmdbApiService;
 
 /**
  * TmdbPopularCronJob — tmdb popular cron job
  *
- * @package XC_VM_Module_Tmdb
+ * @package XC_VM_CLI_CronJobs
  * @author  Divarion_D <https://github.com/Divarion-D>
  * @copyright 2025-2026 Vateron Media
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once MAIN_HOME . 'Cli/CronTrait.php';
+require_once __DIR__ . '/../CronTrait.php';
 
 class TmdbPopularCronJob implements CommandInterface {
     use CronTrait;
@@ -35,8 +37,7 @@ class TmdbPopularCronJob implements CommandInterface {
 
         $this->initCron('XC_VM[Popular]');
 
-        require_once MAIN_HOME . 'Modules/tmdb/lib/TmdbClient.php';
-        require_once __DIR__ . '/TmdbPopularCron.php';
+        TmdbApiService::requireLibrary();
 
         TmdbPopularCron::run();
 
