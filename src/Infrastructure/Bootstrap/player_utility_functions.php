@@ -299,10 +299,11 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 		foreach ($rRows as $rStream) {
 			$rStream['number'] = $rKey;
 
-			if (in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
+			$rStreamCategories = json_decode($rStream['category_id'], true) ?: array();
+			if (in_array($rCategoryID, $rStreamCategories)) {
 				$rStream['category_id'] = $rCategoryID;
 			} else {
-				list($rStream['category_id']) = json_decode($rStream['category_id'], true);
+				$rStream['category_id'] = $rStreamCategories[0] ?? null;
 			}
 
 			$rStream['stream_info'] = json_decode($rStream['stream_info'], true);
@@ -428,10 +429,11 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 		foreach ($rRows as $rStream) {
 			$rStream['number'] = $rKey;
 
-			if (in_array($rCategoryID, json_decode($rStream['category_id'], true))) {
+			$rStreamCategories = json_decode($rStream['category_id'], true) ?: array();
+			if (in_array($rCategoryID, $rStreamCategories)) {
 				$rStream['category_id'] = $rCategoryID;
 			} else {
-				list($rStream['category_id']) = json_decode($rStream['category_id'], true);
+				$rStream['category_id'] = $rStreamCategories[0] ?? null;
 			}
 
 			$rStreams['streams'][$rStream['id']] = $rStream;
