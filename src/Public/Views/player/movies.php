@@ -88,18 +88,18 @@ if ($rSearchBy): ?>
 <div class="catalog details<?= ($rPopular || $rSearchBy) ? ' top-margin-med' : '' ?>">
 	<div class="container">
 		<div class="row">
-			<?php foreach ($rStreams['streams'] as $rStreamID => $rStream): $rProperties = json_decode($rStream['movie_properties'], true); ?>
+			<?php foreach ($rStreams['streams'] as $rStreamID => $rStream): $rProperties = json_decode($rStream['movie_properties'] ?? '', true) ?: array(); ?>
 			<div class="col-6 col-sm-4 col-lg-3 col-xl-3">
 				<div class="card">
 					<div class="card__cover">
-						<img loading="lazy" src="resize.php?url=<?= urlencode(ImageUtils::validateURL($rProperties['movie_image']) ?: '') ?>&w=267&h=400" alt="">
+						<img loading="lazy" src="resize.php?url=<?= urlencode(ImageUtils::validateURL($rProperties['movie_image'] ?? '') ?: '') ?>&w=267&h=400" alt="">
 						<a href="movie.php?id=<?= $rStream['id'] ?>" class="card__play">
 							<i class="icon ion-ios-play"></i>
 						</a>
 					</div>
 					<div class="card__content">
-						<h3 class="card__title"><a href="movie.php?id=<?= $rStream['id'] ?>"><?= htmlspecialchars($rStream['title'] ?? $rStream['stream_display_name']) ?></a></h3>
-						<span class="card__rate"><?= $rStream['year'] ? intval($rStream['year']) . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= $rProperties['rating'] ? number_format($rProperties['rating'], 1) : 'N/A' ?></span>
+						<h3 class="card__title"><a href="movie.php?id=<?= $rStream['id'] ?>"><?= htmlspecialchars(($rStream['title'] ?? '') ?: ($rStream['stream_display_name'] ?? '')) ?></a></h3>
+						<span class="card__rate"><?= !empty($rStream['year']) ? intval($rStream['year']) . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= !empty($rProperties['rating']) ? number_format($rProperties['rating'], 1) : 'N/A' ?></span>
 					</div>
 				</div>
 			</div>
@@ -147,7 +147,7 @@ if (!$rPopular):
 		$rShuffle = $rStreams;
 		shuffle($rShuffle);
 		foreach ($rShuffle as $rStream) {
-			$rProperties = json_decode($rStream['movie_properties'], true);
+			$rProperties = json_decode($rStream['movie_properties'] ?? '', true) ?: array();
 			if (!empty($rProperties['backdrop_path'][0])) {
 				$rCover = ImageUtils::validateURL($rProperties['backdrop_path'][0]);
 				break;
@@ -161,18 +161,18 @@ if (!$rPopular):
 			<div class="col-12">
 				<h1 class="home__title bottom-margin-sml">POPULAR <b>THIS WEEK</b></h1>
 			</div>
-			<?php foreach ($rStreams as $rStream): $rProperties = json_decode($rStream['movie_properties'], true); ?>
+			<?php foreach ($rStreams as $rStream): $rProperties = json_decode($rStream['movie_properties'] ?? '', true) ?: array(); ?>
 			<div class="col-6 col-sm-4 col-lg-3 col-xl-2">
 				<div class="card">
 					<div class="card__cover">
-						<img loading="lazy" src="resize.php?url=<?= urlencode(ImageUtils::validateURL($rProperties['movie_image']) ?: '') ?>&w=267&h=400" alt="">
+						<img loading="lazy" src="resize.php?url=<?= urlencode(ImageUtils::validateURL($rProperties['movie_image'] ?? '') ?: '') ?>&w=267&h=400" alt="">
 						<a href="movie.php?id=<?= $rStream['id'] ?>" class="card__play">
 							<i class="icon ion-ios-play"></i>
 						</a>
 					</div>
 					<div class="card__content">
-						<h3 class="card__title"><a href="movie.php?id=<?= $rStream['id'] ?>"><?= htmlspecialchars($rStream['title'] ?: $rStream['stream_display_name']) ?></a></h3>
-						<span class="card__rate"><?= $rStream['year'] ? intval($rStream['year']) . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= $rProperties['rating'] ? number_format($rProperties['rating'], 1) : 'N/A' ?></span>
+						<h3 class="card__title"><a href="movie.php?id=<?= $rStream['id'] ?>"><?= htmlspecialchars(($rStream['title'] ?? '') ?: ($rStream['stream_display_name'] ?? '')) ?></a></h3>
+						<span class="card__rate"><?= !empty($rStream['year']) ? intval($rStream['year']) . ' &nbsp; ' : '' ?><i class="icon ion-ios-star"></i><?= !empty($rProperties['rating']) ? number_format($rProperties['rating'], 1) : 'N/A' ?></span>
 					</div>
 				</div>
 			</div>
