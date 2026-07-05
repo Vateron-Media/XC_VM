@@ -39,6 +39,7 @@
 
 - **Administration**
   - [SSL Certificate Generation](en-us/administration/ssl-generation.md)
+  - [Updating a Server](en-us/administration/server-update.md)
   - [Update Mechanism](en-us/administration/update-system.md)
   - [Reseller System](en-us/administration/reseller-system.md)
   - [Backup Strategy](en-us/administration/backup-strategy.md)
