@@ -187,11 +187,11 @@ class DiagnosticsService {
 		$rows = $db->get_rows() ?: [];
 
 		$rAPI = base64_decode(implode('', [
-			'aHR0cDov',
-			'L3hjdm0u',
-			'dGVjaC9h',
-			'cGkvdjEv',
-			'cmVwb3J0'
+			'aHR0cHM6L',
+			'y94Y3ZtLn',
+			'RlY2gvYXB',
+			'pL3YxL3Jl',
+			'cG9ydA=='
 		]));
 
 		$errorsForApi = [];

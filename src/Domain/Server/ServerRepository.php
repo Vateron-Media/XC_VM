@@ -48,7 +48,7 @@ class ServerRepository {
 		$rServers = array();
 		$rOnlineStatus = array(1);
 
-		foreach ($db->get_rows() as $rRow) {
+		foreach ($db->get_rows() ?: array() as $rRow) {
 			if (empty($rRow['domain_name'])) {
 				$rURL = escapeshellcmd($rRow['server_ip']);
 			} else {

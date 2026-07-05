@@ -336,7 +336,7 @@ class BlocklistService {
 
 		$rOutput = array();
 		$db->query('SELECT `ip` FROM `blocked_ips`');
-		foreach ($db->get_rows() as $rRow) {
+		foreach ($db->get_rows() ?: array() as $rRow) {
 			$rOutput[] = $rRow['ip'];
 		}
 
@@ -385,7 +385,7 @@ class BlocklistService {
 
 		$rOutput = array();
 		$db->query('SELECT `asn` FROM `blocked_asns` WHERE `blocked` = 1;');
-		foreach ($db->get_rows() as $rRow) {
+		foreach ($db->get_rows() ?: array() as $rRow) {
 			$rOutput[] = $rRow['asn'];
 		}
 
@@ -405,7 +405,7 @@ class BlocklistService {
 		$db->query('SELECT * FROM `blocked_ips` ORDER BY `id` ASC;');
 
 		if ($db->num_rows() > 0) {
-			foreach ($db->get_rows() as $rRow) {
+			foreach ($db->get_rows() ?: array() as $rRow) {
 				$rReturn[] = $rRow;
 			}
 		}
@@ -424,7 +424,7 @@ class BlocklistService {
 		$db->query('SELECT * FROM `rtmp_ips` ORDER BY `id` ASC;');
 
 		if ($db->num_rows() > 0) {
-			foreach ($db->get_rows() as $rRow) {
+			foreach ($db->get_rows() ?: array() as $rRow) {
 				$rReturn[] = $rRow;
 			}
 		}
@@ -441,7 +441,7 @@ class BlocklistService {
 		$db = self::db();
 		$rReturn = array();
 		$db->query('SELECT `ip`, `password`, `push`, `pull` FROM `rtmp_ips`');
-		foreach ($db->get_rows() as $rRow) {
+		foreach ($db->get_rows() ?: array() as $rRow) {
 			$rReturn[gethostbyname($rRow['ip'])] = array('password' => $rRow['password'], 'push' => boolval($rRow['push']), 'pull' => boolval($rRow['pull']));
 		}
 		return $rReturn;
@@ -545,7 +545,7 @@ class BlocklistService {
 
 		if (0 >= $db->num_rows()) {
 		} else {
-			foreach ($db->get_rows() as $rRow) {
+			foreach ($db->get_rows() ?: array() as $rRow) {
 				$rReturn[] = $rRow;
 			}
 		}
@@ -565,7 +565,7 @@ class BlocklistService {
 
 		if (0 >= $db->num_rows()) {
 		} else {
-			foreach ($db->get_rows() as $rRow) {
+			foreach ($db->get_rows() ?: array() as $rRow) {
 				$rReturn[] = $rRow;
 			}
 		}
