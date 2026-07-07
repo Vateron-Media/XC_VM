@@ -159,6 +159,12 @@ class ImageUtils {
 				$rData = curl_exec($rCurl);
 				if (strlen($rData) > 0) {
 					$rPath = IMAGES_PATH . $rFilename . '.' . $rExt;
+					// The images cache dir may not exist yet on a given node (e.g. an
+					// LB running the watch import), so file_put_contents would fail
+					// with ENOENT. Ensure the directory exists before writing.
+					if (!is_dir(IMAGES_PATH)) {
+						@mkdir(IMAGES_PATH, 0775, true);
+					}
 					file_put_contents($rPath, $rData);
 					if (file_exists($rPath)) {
 						return 's:' . SERVER_ID . ':/images/' . $rFilename . '.' . $rExt;
