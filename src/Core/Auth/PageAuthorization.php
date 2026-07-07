@@ -323,10 +323,6 @@ class PageAuthorization {
 			case 'setup':
 				return Authorization::check('adv', 'database');
 
-			case 'settings_watch':
-			case 'settings_plex':
-				return Authorization::check('adv', 'folder_watch_settings');
-
 			case 'stream':
 				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_stream')) {
 					return true;
@@ -418,17 +414,6 @@ class PageAuthorization {
 
 			case 'lines':
 				return Authorization::check('adv', 'users');
-
-			case 'plex':
-			case 'watch':
-				return Authorization::check('adv', 'folder_watch');
-
-			case 'plex_add':
-			case 'watch_add':
-				return Authorization::check('adv', 'folder_watch_add');
-
-			case 'watch_output':
-				return Authorization::check('adv', 'folder_watch_output');
 
 			case 'mysql_syslog':
 			case 'panel_logs':
