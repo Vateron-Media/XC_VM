@@ -34,11 +34,11 @@ class Authorization {
 	 * Scopes the check to the user's own id plus their report tree (for `user`
 	 * and `line`), or to advanced permissions (`adv`) for admins.
 	 *
-	 * @param string     $rType Entity type: 'user', 'line' or 'adv'.
-	 * @param string|int $rID   Target entity id.
+	 * @param string          $rType Entity type: 'user', 'line' or 'adv'.
+	 * @param string|int|null $rID   Target entity id (null for ungated actions, e.g. CSV export).
 	 * @return bool True if the current user may access the entity.
 	 */
-	public static function check(string $rType, string|int $rID): bool {
+	public static function check(string $rType, string|int|null $rID): bool {
 		global $rUserInfo;
 		global $db;
 		global $rPermissions;
