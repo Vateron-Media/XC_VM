@@ -23,7 +23,6 @@ EXCLUDES := \
 
 # Directories to copy from MAIN to LB
 # NOTE: Modules/ is intentionally excluded — all modules are MAIN-only.
-# Modules: tmdb, plex, watch, ministra
 LB_DIRS := bin Cli config content Core Domain Modules\
 	Infrastructure Public resources signals Streaming tmp vendor www
 

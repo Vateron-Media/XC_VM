@@ -319,7 +319,7 @@ class ModuleManager {
     /**
      * Install any on-disk module that has never been installed.
      *
-     * Bundled modules (watch, plex, …) are booted on every request but only get
+     * Bundled modules (e.g. ministra) are booted on every request but only get
      * their install() / migrations run when explicitly installed. On a fresh
      * panel nothing would create their tables, so this runs once during the
      * migrate step (see StatusCommand) to provision them. It is idempotent:
