@@ -375,7 +375,7 @@ switch ($rPage) {
 		}
 
 		if (!$rMobile && strlen($rSettings["tmdb_api_key"]) > 0) {
-			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">' . $language::get('import_tmdb_genres') . '</button>";
+			echo "<span class=\"gap\"></span><button type=\"button\" onclick=\"importTmdbCategories();\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . $language::get('import_tmdb_genres') . "</button>";
 		}
 
 		if (0 >= count(array_slice($rDropdownPage, ($rMobile ? 0 : 1), count($rDropdownPage)))) {

@@ -216,7 +216,11 @@ class StreamsCronJob implements CommandInterface {
                     }
                 }
 
-                if ($rHandle = opendir(CONS_TMP_PATH . $rStream['id'] . '/')) {
+                $rConDir = CONS_TMP_PATH . $rStream['id'] . '/';
+                // The per-stream connection dir only exists once a client connects,
+                // so its absence is normal — guard with is_dir() to avoid a bogus
+                // opendir() warning being logged every cron tick on idle streams.
+                if (is_dir($rConDir) && ($rHandle = opendir($rConDir))) {
                     while (false !== ($rFilename = readdir($rHandle))) {
                         if ($rFilename != '.' && $rFilename != '..') {
                             if (!in_array($rFilename, $rUUIDs)) {
