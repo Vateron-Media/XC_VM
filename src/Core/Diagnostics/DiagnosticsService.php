@@ -188,10 +188,10 @@ class DiagnosticsService {
 
 		$rAPI = base64_decode(implode('', [
 			'aHR0cHM6L',
-			'y94Y3ZtLn',
-			'RlY2gvYXB',
-			'pL3YxL3Jl',
-			'cG9ydA=='
+			'y93d3cueG',
+			'N2bS50ZWN',
+			'oL2FwaS92',
+			'MS9yZXBvcnQ='
 		]));
 
 		$errorsForApi = [];
