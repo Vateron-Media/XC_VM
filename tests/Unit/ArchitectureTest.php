@@ -1,17 +1,5 @@
 <?php
 
-use XcVm\Module\Watch\WatchService;
-use XcVm\Module\Watch\WatchItemCommand;
-use XcVm\Module\Watch\WatchItem;
-use XcVm\Module\Watch\WatchCron;
-use XcVm\Module\Watch\RecordingService;
-use XcVm\Module\Plex\PlexService;
-use XcVm\Module\Plex\PlexRepository;
-use XcVm\Module\Plex\PlexItemCommand;
-use XcVm\Module\Plex\PlexItem;
-use XcVm\Module\Plex\PlexCron;
-use XcVm\Core\Boundary\BoundaryInterface;
-use XcVm\Core\Container\ServiceContainer;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -28,33 +16,6 @@ use PHPUnit\Framework\TestCase;
 final class ArchitectureTest extends TestCase {
 
     private const MODULES_DIR = __DIR__ . '/../../src/Modules';
-
-    /**
-     * Files that still use `global $db` because they run under a separate CLI
-     * bootstrap (admin.php) and are not part of the web DI context.
-     * Will be removed after R4-3 (full global $db migration).
-     */
-    private const CLI_GLOBAL_DB_EXEMPT = [
-        'PlexCron.php',
-        'PlexItem.php',
-        'PlexItemCommand.php',
-        'WatchCron.php',
-        'WatchItem.php',
-        'WatchItemCommand.php',
-    ];
-
-    /**
-     * Files using the setDb()+db() DI migration pattern: they receive $db via
-     * boot() in web context but retain `global $db` as a fallback for the CLI
-     * cron path that bypasses the DI container.
-     * Will be removed after R4-3 completes the full migration.
-     */
-    private const MIGRATION_FALLBACK_EXEMPT = [
-        'PlexService.php',
-        'PlexRepository.php',
-        'WatchService.php',
-        'RecordingService.php',
-    ];
 
     // ── helpers ──────────────────────────────────────────────────────────────
 
@@ -146,7 +107,6 @@ final class ArchitectureTest extends TestCase {
      *
      * Exemptions:
      * - ministra/ — BoundaryInterface subsystem with its own portal bootstrap (permanent)
-     * - CLI_GLOBAL_DB_EXEMPT — cron/CLI classes using admin.php bootstrap (temporary, see R4-3)
      */
     public function testNoWebContextModuleUsesGlobalDb(): void {
         $ministraDir = $this->moduleDirBasename('ministra');
@@ -157,16 +117,6 @@ final class ArchitectureTest extends TestCase {
         $this->addToAssertionCount(1);
 
         foreach ($this->moduleFiles(excludeModuleDirs: $exclude) as $relative => $content) {
-            $basename = basename($relative);
-
-            if (in_array($basename, self::CLI_GLOBAL_DB_EXEMPT, true)) {
-                continue;
-            }
-
-            if (in_array($basename, self::MIGRATION_FALLBACK_EXEMPT, true)) {
-                continue;
-            }
-
             $this->assertStringNotContainsString(
                 'global $db',
                 $content,
