@@ -4,6 +4,11 @@ location = /#CODE# {
 
 location ^~ /#CODE#/assets/ {
     alias /home/xc_vm/Public/assets/#TYPE#/;
+    # Assets are unversioned, so force conditional revalidation (ETag/Last-Modified):
+    # unchanged files return a cheap 304, changed files are re-fetched immediately.
+    # Prevents stale JS/CSS (blank admin pages) after a panel update.
+    etag on;
+    add_header Cache-Control "no-cache";
 }
 
 location ^~ /#CODE#/ {
