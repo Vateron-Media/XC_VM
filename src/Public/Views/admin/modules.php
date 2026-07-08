@@ -65,6 +65,16 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                 </button>
                             </div>
                         </form>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h5 class="card-title mb-0"><i class="mdi mdi-view-module mr-1"></i> Installed modules</h5>
+                            <form action="#" method="POST" class="mb-0 js-module-form">
+                                <input type="hidden" name="module_action" value="check_updates" />
+                                <button type="submit" class="btn btn-sm btn-outline-primary"
+                                        title="Query each installed module's update source now and refresh the Update buttons (also runs weekly by cron)">
+                                    <i class="mdi mdi-refresh mr-1"></i> Check for updates
+                                </button>
+                            </form>
+                        </div>
                         <div class="table-responsive">
                             <table class="table table-striped table-borderless mb-0" id="modules-table">
                                 <thead>

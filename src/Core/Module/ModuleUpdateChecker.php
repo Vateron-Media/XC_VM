@@ -27,6 +27,18 @@ use XcVm\Core\Updates\GitHubReleases;
  */
 class ModuleUpdateChecker {
 
+    /** Why the last latestAvailable() call could not check its source (null = checked fine). */
+    private ?string $lastError = null;
+
+    /**
+     * Error message from the most recent latestAvailable() call, or null when the
+     * source was checked successfully. Lets callers distinguish "no update" from
+     * "could not check" (both return null from latestAvailable()).
+     */
+    public function lastError(): ?string {
+        return $this->lastError;
+    }
+
     /**
      * Latest available version for a module (a listModules() row), or null.
      *
@@ -34,6 +46,8 @@ class ModuleUpdateChecker {
      * @return string|null Version string, or null if nothing newer / not checkable.
      */
     public function latestAvailable(array $module): ?string {
+        $this->lastError = null;
+
         $update    = is_array($module['update'] ?? null) ? $module['update'] : [];
         $source    = (string) ($update['source'] ?? 'bundled');
         $installed = (string) ($module['installed_version'] ?? '');
@@ -51,6 +65,7 @@ class ModuleUpdateChecker {
         $repo = (string) ($update['repository'] ?? '');
         // https://github.com/OWNER/REPO(.git)  |  git@github.com:OWNER/REPO.git
         if (!preg_match('~github\.com[:/]+([^/]+)/([^/]+?)(?:\.git)?/?$~i', $repo, $m)) {
+            $this->lastError = 'update.repository is not a GitHub URL: ' . ($repo !== '' ? $repo : '(empty)');
             return null;
         }
         // Map the manifest channel onto GitHubReleases' stable/unstable.
@@ -61,6 +76,7 @@ class ModuleUpdateChecker {
             $gh = new GitHubReleases($m[1], $m[2], $channel);
             return $gh->getLatestVersion($installed !== '' ? $installed : '0.0.0');
         } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
             error_log('ModuleUpdateChecker(git): ' . $e->getMessage());
             return null;
         }
@@ -70,11 +86,16 @@ class ModuleUpdateChecker {
     private function fromUrl(array $update): ?string {
         $url = (string) ($update['url'] ?? '');
         if ($url === '' || stripos($url, 'https://') !== 0) {
-            return null; // https only — SSRF/downgrade guard
+            $this->lastError = 'update.url must be an https:// URL'; // https only — SSRF/downgrade guard
+            return null;
         }
         $data = json_decode($this->httpGet($url), true);
         $ver  = is_array($data) ? trim((string) ($data['version'] ?? '')) : '';
-        return $ver !== '' ? $ver : null;
+        if ($ver === '') {
+            $this->lastError = 'no valid version.json at ' . $url;
+            return null;
+        }
+        return $ver;
     }
 
     /** SaaS store latest version — best-effort; skipped if the extension has no such API. */
@@ -86,6 +107,7 @@ class ModuleUpdateChecker {
             $r = \XC_VM::module_latest((string) ($update['slug'] ?? ''));
             return is_array($r) && !empty($r['version']) ? (string) $r['version'] : null;
         } catch (\Throwable $e) {
+            $this->lastError = $e->getMessage();
             return null;
         }
     }

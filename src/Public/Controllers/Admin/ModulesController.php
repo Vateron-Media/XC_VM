@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Admin;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
+use XcVm\Core\Module\ModuleUpdateChecker;
 
 /**
  * ModulesController — admin module management page.
@@ -55,8 +56,10 @@ class ModulesController extends BaseAdminController {
                         break;
 
                     case 'update':
-                        $manager->updateModuleFromSource($name);
-                        $flash = ['type' => 'success', 'message' => 'Module updated: ' . $name];
+                        $newVersion = $manager->updateModuleFromSource($name);
+                        $flash = $newVersion !== null
+                            ? ['type' => 'success', 'message' => 'Module updated: ' . $name . ' -> ' . $newVersion]
+                            : ['type' => 'info', 'message' => 'Nothing newer at the source for ' . $name . ' — already up to date.'];
                         break;
 
                     case 'platform_install':
@@ -95,6 +98,59 @@ class ModulesController extends BaseAdminController {
                         } else {
                             $flash = ['type' => 'warning', 'message' => 'License not renewed for ' . $name . ' (platform licensing off, not entitled, or no server data).'];
                         }
+                        break;
+
+                    case 'check_updates':
+                        // Same pass as ModuleUpdatesCronJob, triggered on demand:
+                        // resolve the latest version from each installed module's
+                        // declared source and record/clear available_version.
+                        $checker = new ModuleUpdateChecker();
+                        $found = [];
+                        $failed = [];
+                        $skipped = 0;
+                        $checked = 0;
+
+                        foreach ($manager->listModules() as $module) {
+                            // Not installed → nothing to compare against; the table
+                            // shows Install for these, not Update.
+                            if (($module['installed_version'] ?? '') === '') {
+                                $skipped++;
+                                continue;
+                            }
+
+                            $checked++;
+                            $installed = (string) $module['installed_version'];
+                            $latest = $checker->latestAvailable($module);
+
+                            if ($latest !== null && version_compare($latest, $installed, '>')) {
+                                $manager->recordAvailableVersion($module['name'], $latest);
+                                $found[] = $module['name'] . ' (' . $installed . ' -> ' . $latest . ')';
+                            } elseif ($checker->lastError() !== null) {
+                                // Source unreachable (e.g. GitHub API rate limit) —
+                                // report it and keep any previously recorded flag
+                                // instead of wiping it on a transient failure.
+                                $failed[] = $module['name'] . ': ' . $checker->lastError();
+                            } else {
+                                $manager->recordAvailableVersion($module['name'], null);
+                            }
+                        }
+
+                        $parts = [];
+                        if ($found) {
+                            $parts[] = 'Updates available: ' . implode(', ', $found) . '.';
+                        }
+                        if ($failed) {
+                            $parts[] = 'Could not check ' . implode('; ', $failed) . '.';
+                        }
+                        if (!$parts) {
+                            $parts[] = 'All installed modules are up to date (' . $checked . ' checked'
+                                . ($skipped ? ', ' . $skipped . ' not installed — skipped' : '') . ').';
+                        }
+
+                        $flash = [
+                            'type'    => $found ? 'success' : ($failed ? 'warning' : 'info'),
+                            'message' => implode(' ', $parts),
+                        ];
                         break;
 
                     case 'upload_install':
