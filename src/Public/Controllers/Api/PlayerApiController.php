@@ -270,7 +270,17 @@ class PlayerApiController {
 		foreach ($rRows as $rSeason => $rEpisodes) {
 			foreach ($rEpisodes as $rEpisode) {
 				if ($rCached) {
-					$rEpisodeData = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rEpisode['stream_id'])))['info'];
+					$rEpisodeCache = STREAMS_TMP_PATH . 'stream_' . intval($rEpisode['stream_id']);
+
+					if (!file_exists($rEpisodeCache)) {
+						continue;
+					}
+
+					$rEpisodeData = igbinary_unserialize(file_get_contents($rEpisodeCache))['info'] ?? null;
+
+					if (!$rEpisodeData) {
+						continue;
+					}
 				} else {
 					$rEpisodeData = $rEpisode;
 				}
@@ -294,7 +304,7 @@ class PlayerApiController {
 					$rProperties['cover_big'] = $rProperties['movie_image'];
 				}
 
-				if (is_array($rProperties['backdrop_path']) && count($rProperties['backdrop_path']) > 0) {
+				if (is_array($rProperties['backdrop_path'] ?? null) && count($rProperties['backdrop_path']) > 0) {
 					foreach ($rProperties['backdrop_path'] as $key => $backdrop) {
 						if (!empty($backdrop)) {
 							$rProperties['backdrop_path'][$key] = ImageUtils::validateURL($backdrop);
@@ -304,7 +314,7 @@ class PlayerApiController {
 
 				$rSubtitles = array();
 
-				if (is_array($rProperties['subtitle'])) {
+				if (is_array($rProperties['subtitle'] ?? null)) {
 					$i = 0;
 
 					foreach ($rProperties['subtitle'] as $rSubtitle) {
@@ -783,11 +793,26 @@ class PlayerApiController {
 
 		foreach ($rChannels as $rChannel) {
 			if ($rCached) {
-				$rChannel = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannel)))['info'];
+				$rChannelCache = STREAMS_TMP_PATH . 'stream_' . intval($rChannel);
+
+				if (!file_exists($rChannelCache)) {
+					continue;
+				}
+
+				$rChannel = igbinary_unserialize(file_get_contents($rChannelCache))['info'] ?? null;
+
+				if (!$rChannel) {
+					continue;
+				}
 			}
 
 			if (in_array($rChannel['type_key'], array('movie'))) {
-				$rProperties = json_decode($rChannel['movie_properties'], true);
+				$rProperties = json_decode((string) $rChannel['movie_properties'], true);
+
+				if (!is_array($rProperties)) {
+					$rProperties = array();
+				}
+
 				$rCategoryIDs = json_decode($rChannel['category_id'], true);
 
 				foreach ($rCategoryIDs as $rCategoryID) {
@@ -800,8 +825,8 @@ class PlayerApiController {
 							$rURL = '';
 						}
 
-						$rating = is_numeric($rProperties['rating']) ? floatval($rProperties['rating']) : 0.0;
-						$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rChannel['stream_display_name'], $rChannel['year']), 'title' => $rChannel['stream_display_name'], 'year' => strval($rChannel['year']), 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => (ImageUtils::validateURL($rProperties['movie_image']) ?: ''), 'rating' => number_format($rating, 1) + 0, 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'added' => strval(($rChannel['added'] ?: '')), 'plot' => $rProperties['plot'], 'cast' => $rProperties['cast'], 'director' => $rProperties['director'], 'genre' => $rProperties['genre'], 'release_date' => $rProperties['release_date'], 'youtube_trailer' => $rProperties['youtube_trailer'], 'episode_run_time' => $rProperties['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'container_extension' => $rChannel['target_container'], 'custom_sid' => strval($rChannel['custom_sid']), 'direct_source' => $rURL);
+						$rating = is_numeric($rProperties['rating'] ?? null) ? floatval($rProperties['rating']) : 0.0;
+						$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rChannel['stream_display_name'], $rChannel['year']), 'title' => $rChannel['stream_display_name'], 'year' => strval($rChannel['year']), 'stream_type' => $rChannel['type_key'], 'stream_id' => (int) $rChannel['id'], 'stream_icon' => (ImageUtils::validateURL($rProperties['movie_image'] ?? '') ?: ''), 'rating' => number_format($rating, 1) + 0, 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'added' => strval(($rChannel['added'] ?: '')), 'plot' => $rProperties['plot'] ?? null, 'cast' => $rProperties['cast'] ?? null, 'director' => $rProperties['director'] ?? null, 'genre' => $rProperties['genre'] ?? null, 'release_date' => $rProperties['release_date'] ?? null, 'youtube_trailer' => $rProperties['youtube_trailer'] ?? null, 'episode_run_time' => $rProperties['episode_run_time'] ?? null, 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs, 'container_extension' => $rChannel['target_container'], 'custom_sid' => strval($rChannel['custom_sid']), 'direct_source' => $rURL);
 					}
 
 					if (!($rCategoryIDSearch || $rSettings['show_category_duplicates'])) {
