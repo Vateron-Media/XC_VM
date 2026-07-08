@@ -56,7 +56,7 @@ src/Cli/Commands/UpdateCommand.php
 sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH" > /dev/null 2>&1 &
 ```
 
-> 💡 После завершения Python-обновления вызывается `console.php update post-update`, который запускает [миграции базы данных](ru-ru/development/cli-tools.md#обновление-бд-после-обновления-версии) и post-update очистку.
+> 💡 После завершения Python-обновления вызывается `console.php update post-update`, который запускает [миграции базы данных](ru-ru/guides/cli-tools.md#обновление-бд-после-обновления-версии) и post-update очистку.
 
 ---
 

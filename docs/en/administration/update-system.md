@@ -54,7 +54,7 @@ At this stage the following actions are performed:
 sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH" > /dev/null 2>&1 &
 ```
 
-> 💡 After the Python updater finishes, it calls `console.php update post-update` which triggers [database migrations](en-us/development/cli-tools.md#database-migrations) and post-update cleanup.
+> 💡 After the Python updater finishes, it calls `console.php update post-update` which triggers [database migrations](en-us/guides/cli-tools.md#database-updates-after-version-upgrade) and post-update cleanup.
 
 ---
 
