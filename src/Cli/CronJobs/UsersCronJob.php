@@ -144,8 +144,10 @@ class UsersCronJob implements CommandInterface {
         $rTime = time();
 
         if (SettingsManager::getAll()['redis_handler']) {
-            if ($rDelete['count'] > 0) {
-                $rRedis = RedisManager::instance()->multi();
+            // Redis can die mid-run — postpone cleanup instead of crashing the
+            // cron; the entries stay in LIVE/ENDED and are re-detected next run.
+            if ($rDelete['count'] > 0 && ($rRedisInstance = RedisManager::instance())) {
+                $rRedis = $rRedisInstance->multi();
 
                 foreach ($rDelete['line'] as $rUserID => $rUUIDs) {
                     $rRedis->zRem('LINE#' . $rUserID, ...$rUUIDs);
@@ -173,6 +175,8 @@ class UsersCronJob implements CommandInterface {
                 }
 
                 $rRedis->exec();
+            } elseif ($rDelete['count'] > 0) {
+                echo "Redis unavailable, connection cleanup postponed until next run\n";
             }
         } else {
             foreach ($rDelete as $rServerID => $rConnections) {
@@ -210,6 +214,25 @@ class UsersCronJob implements CommandInterface {
         return array();
     }
 
+    /**
+     * Blob 'identity' may be absent (written by an external component or a
+     * pre-identity build) — derive it the same way the sync path does.
+     *
+     * @param array $rConnection Deserialized connection blob.
+     * @return int|string
+     */
+    private function connectionIdentity(array $rConnection) {
+        if (isset($rConnection['identity'])) {
+            return $rConnection['identity'];
+        }
+
+        if (empty($rConnection['hmac_id'])) {
+            return intval($rConnection['user_id'] ?? 0);
+        }
+
+        return $rConnection['hmac_id'] . '_' . ($rConnection['hmac_identifier'] ?? '');
+    }
+
     private function loadCron(): void {
         global $db;
 
@@ -238,6 +261,7 @@ class UsersCronJob implements CommandInterface {
                     $rConnection = $rConnections[$i];
 
                     if (is_array($rConnection)) {
+                        $rConnection['identity'] = $this->connectionIdentity($rConnection);
                         $rUsers[$rConnection['identity']][] = $rConnection;
                         $rLiveKeys[] = $rConnection['uuid'];
                     } else {
@@ -265,6 +289,7 @@ class UsersCronJob implements CommandInterface {
             if (SettingsManager::getAll()['redis_handler'] && $rServers[SERVER_ID]['is_main']) {
                 foreach (ConnectionTracker::getEnded() as $rConnection) {
                     if (is_array($rConnection)) {
+                        $rConnection['identity'] = $this->connectionIdentity($rConnection);
                         if (!in_array($rConnection['container'], array('ts', 'hls', 'rtmp')) && time() - $rConnection['hls_last_read'] < 300) {
                             $rClose = false;
                         } else {
@@ -294,8 +319,10 @@ class UsersCronJob implements CommandInterface {
 
             foreach ($rUsers as $rUserID => $rConnections) {
                 $rActiveCount = 0;
-                $rMaxConnections = $rMaxConnectionsArray[$rUserID];
-                $rIsRestreamer = ($rRestreamerArray[$rUserID] ?: false);
+                // HMAC identities and deleted lines have no row in `lines` —
+                // 0 disables the max-connections kick below.
+                $rMaxConnections = $rMaxConnectionsArray[$rUserID] ?? 0;
+                $rIsRestreamer = !empty($rRestreamerArray[$rUserID]);
 
                 foreach ($rConnections as $rKey => $rConnection) {
                     if ($rConnection['server_id'] == SERVER_ID || SettingsManager::getAll()['redis_handler']) {
