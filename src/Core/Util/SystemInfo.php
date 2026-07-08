@@ -208,7 +208,7 @@ class SystemInfo {
         $rReturn = array();
         if (file_exists(LOGS_TMP_PATH . 'network')) {
             $rNetwork = json_decode(file_get_contents(LOGS_TMP_PATH . 'network'), true);
-            foreach ($rNetwork as $rLine) {
+            foreach ((is_array($rNetwork) ? $rNetwork : array()) as $rLine) {
                 if (!($rInterface && $rLine[0] != $rInterface) && !($rLine[0] == 'lo' || !$rInterface && substr($rLine[0], 0, 4) == 'bond')) {
                     $rReturn[$rLine[0]] = array('in_bytes' => intval($rLine[1] / 2), 'in_packets' => $rLine[2], 'in_errors' => $rLine[3], 'out_bytes' => intval($rLine[4] / 2), 'out_packets' => $rLine[5], 'out_errors' => $rLine[6]);
                 }
