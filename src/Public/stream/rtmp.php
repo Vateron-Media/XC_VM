@@ -137,7 +137,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 																			exit();
 																		}
 
-																		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $db->error());
+																		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $rSettings['redis_handler'] ? 'redis unavailable: connection tracking write failed' : $db->error());
 																		http_response_code(404);
 
 																		exit();

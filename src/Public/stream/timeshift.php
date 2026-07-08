@@ -184,7 +184,7 @@ if ($rUserInfo) {
 
 			if ($rResult) {
 			} else {
-				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $db->error());
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $rSettings['redis_handler'] ? 'redis unavailable: connection tracking write failed' : $db->error());
 				generateError('LINE_CREATE_FAIL');
 			}
 
@@ -281,7 +281,7 @@ if ($rUserInfo) {
 
 			if ($rResult) {
 			} else {
-				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $db->error());
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $rSettings['redis_handler'] ? 'redis unavailable: connection tracking write failed' : $db->error());
 				generateError('LINE_CREATE_FAIL');
 			}
 
