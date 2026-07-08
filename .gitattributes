@@ -12,7 +12,8 @@ src/bin/maxmind/GeoIP2-ISP.mmdb filter=lfs diff=lfs merge=lfs -text
 src/bin/maxmind/cidr.db filter=lfs diff=lfs merge=lfs -text
 # Other large bundled binaries (pending maintainer confirmation — see H4-D).
 src/bin/redis/redis-server filter=lfs diff=lfs merge=lfs -text
-src/bin/install/proxy.tar.gz filter=lfs diff=lfs merge=lfs -text
+# proxy.tar.gz is no longer bundled — fetched from XC_VM_Proxy releases at install
+# time (see ProxyArchiveUpdater / cron:proxy), like the GeoLite2 databases.
 src/bin/install/database.sql filter=lfs diff=lfs merge=lfs -text
 src/bin/guess filter=lfs diff=lfs merge=lfs -text
 src/bin/yt-dlp filter=lfs diff=lfs merge=lfs -text
