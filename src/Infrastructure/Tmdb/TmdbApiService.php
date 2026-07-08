@@ -182,8 +182,14 @@ class TmdbApiService {
     public static function requireLibrary(): void {
         static $loaded = false;
         if (!$loaded) {
-            require_once __DIR__ . '/lib/TmdbClient.php';
-            require_once __DIR__ . '/lib/Release.php';
+            // class_exists-защита: сторонние модули могут возить собственную
+            // копию библиотеки — повторное объявление \TMDB/\Release фатально.
+            if (!class_exists('TMDB', false)) {
+                require_once __DIR__ . '/lib/TmdbClient.php';
+            }
+            if (!class_exists('Release', false)) {
+                require_once __DIR__ . '/lib/Release.php';
+            }
             $loaded = true;
         }
     }
