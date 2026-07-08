@@ -2505,6 +2505,17 @@ if __name__ == "__main__":
             f"/home/xc_vm/bin/php/bin/php {startup_cmd} cron:maxmind --force"
         )
 
+    # Download the proxy-node archive (proxy.tar.gz). Like GeoLite2 it is no longer
+    # bundled in the release archive — fetch it from the XC_VM_Proxy release on
+    # install so the first proxy-node install runs from a local copy, and write the
+    # bin/install/proxy_version.json index. Runs as xc_vm (owner of bin/install/);
+    # non-fatal — run_command never raises, so a download failure won't abort install.
+    if os.path.exists(startup_cmd):
+        printc("Downloading proxy node archive...", col.OKBLUE)
+        run_command(
+            f"sudo -u xc_vm /home/xc_vm/bin/php/bin/php {startup_cmd} cron:proxy --force"
+        )
+
     time.sleep(3)
 
     # Final restart
