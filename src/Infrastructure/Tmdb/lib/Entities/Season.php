@@ -106,7 +106,7 @@ class Season {
 	 * 	@return mixed
 	 */
 	public function get($item = '') {
-		return empty($item) ? $this->_data : $this->_data[$item];
+		return empty($item) ? $this->_data : ($this->_data[$item] ?? null);
 	}
 	/**
 	 * 	Get the JSON representation of the Season
