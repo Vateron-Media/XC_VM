@@ -83,25 +83,8 @@ class StartupCommand implements CommandInterface {
 			}
 		}
 
-		if (!$rFixCron) {
-			$this->prefetchProxyArchive();
-		}
-
 		echo "\n";
 		return 0;
-	}
-
-	/**
-	 * Kick off a background refresh of the proxy-node archive (cron:proxy).
-	 *
-	 * proxy.tar.gz is fetched from XC_VM_Proxy releases rather than shipped in the
-	 * tree, so priming it at startup means the first proxy-node install already has
-	 * a local copy. Backgrounded so a large download never blocks boot; the cron is
-	 * idempotent and SKIPs when the cache is already current.
-	 */
-	private function prefetchProxyArchive(): void {
-		$rPrefix = ((posix_getpwuid(posix_geteuid())['name'] ?? null) === 'root') ? 'sudo -u xc_vm ' : '';
-		exec($rPrefix . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:proxy >/dev/null 2>/dev/null &');
 	}
 
 	private function installRootCrontab(): void {

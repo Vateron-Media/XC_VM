@@ -245,10 +245,13 @@ MAIN-сервер — единый источник свежести: ProxyArchi
 
 **Хуки установки/установки-ноды:**
 
-- [x] **При установке/старте панели**: `StartupCommand::prefetchProxyArchive()` —
-      фоновый `console.php cron:proxy` (под `sudo -u xc_vm` если root), идемпотентный
-      (SKIP если свежо), не блокирует загрузку. `bin/install/` получает proxy.tar.gz
-      проактивно.
+- [x] **При установке панели**: строка в инсталляторе `install` рядом с
+      `cron:maxmind --force` (подтверждено `install:2505`, тот же паттерн «no longer
+      bundled — fetch on install»): `sudo -u xc_vm … console.php cron:proxy --force`
+      (синхронно, `sudo -u xc_vm` т.к. `cron:proxy` требует xc_vm; non-fatal). Так
+      `bin/install/proxy.tar.gz` + индекс появляются сразу при установке. Ежедневный
+      `cron:proxy` (crontab-строка) поддерживает свежесть — как у maxmind; фонового
+      startup-prefetch нет (избыточен).
 - [x] **`ServerInstallCommand`, ветка `$rType==1`**: перед `installArchive()` —
       `ensure()` self-heal; при `error` и отсутствии файла → **`servers.status=4`**
       с внятным текстом (detached-команда иначе висит «installing»).
