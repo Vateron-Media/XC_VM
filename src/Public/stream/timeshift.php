@@ -184,7 +184,7 @@ if ($rUserInfo) {
 
 			if ($rResult) {
 			} else {
-				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $db->error());
 				generateError('LINE_CREATE_FAIL');
 			}
 
@@ -281,7 +281,7 @@ if ($rUserInfo) {
 
 			if ($rResult) {
 			} else {
-				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
+				DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $db->error());
 				generateError('LINE_CREATE_FAIL');
 			}
 
