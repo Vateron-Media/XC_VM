@@ -143,7 +143,7 @@ class MonitorCommand implements CommandInterface {
 			}
 			$db->close_mysql();
 			$rStartedTime = $rDurationChecked = $rAudioChecked = $rCheckedTime = $rBackupsChecked = time();
-			$rMD5 = md5_file($rPlaylist);
+			$rMD5 = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
 			$D97a4f098a8d1bf8 = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
 			$b4015d24aedaf0db = null;
 			goto label592;
@@ -538,7 +538,7 @@ class MonitorCommand implements CommandInterface {
 			$rAudioChecked = time();
 			label617:
 			if ((($rSegmentTime * 6) <= time() - $rCheckedTime)) {
-				$Fcfb63b23cad3c6e = md5_file($rPlaylist);
+				$Fcfb63b23cad3c6e = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
 				if ($rMD5 != $Fcfb63b23cad3c6e) {
 					$rMD5 = $Fcfb63b23cad3c6e;
 					$rCheckedTime = time();
