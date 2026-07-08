@@ -61,8 +61,13 @@ class ModuleUpdatesCronJob implements CommandInterface {
             if ($rLatest !== null && version_compare($rLatest, $rInstalled, '>')) {
                 $rManager->recordAvailableVersion($rModule['name'], $rLatest);
                 echo '[UPDATE] ' . $rModule['name'] . ': ' . $rInstalled . ' -> ' . $rLatest . "\n";
+            } elseif ($rChecker->lastError() !== null) {
+                // Source unreachable (rate limit, network) — keep any previously
+                // recorded flag; clearing here would hide a real update until the
+                // next successful check.
+                echo '[SKIP] ' . $rModule['name'] . ': ' . $rChecker->lastError() . "\n";
             } else {
-                // Nothing newer / not checkable — clear any stale flag.
+                // Nothing newer — clear any stale flag.
                 $rManager->recordAvailableVersion($rModule['name'], null);
             }
         }

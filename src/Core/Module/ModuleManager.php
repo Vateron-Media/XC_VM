@@ -940,10 +940,11 @@ class ModuleManager {
      * installed one — a repo/URL cannot impersonate another module or hijack a rename.
      *
      * @param string $name Module name.
-     * @return void
+     * @return string|null Version now on disk after the update, or null when the
+     *                     source had nothing newer (stale available_version cleared).
      * @throws \RuntimeException on download/verify/apply failure (files rolled back).
      */
-    public function updateModuleFromSource(string $name): void {
+    public function updateModuleFromSource(string $name): ?string {
         $name      = $this->sanitizeModuleName($name);
         $manifest  = $this->readModuleManifest($name);
         $overrides = $this->readOverrides();
@@ -956,7 +957,7 @@ class ModuleManager {
         if ($source === 'bundled') {
             $this->updateModule($name);
             $this->recordAvailableVersion($name, null);
-            return;
+            return $this->manifestVersion($name);
         }
 
         // platform — reuse the full store flow (self-contained rollback + LB fan-out).
@@ -964,17 +965,29 @@ class ModuleManager {
             $apiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
             $this->downloadFromPlatform(($update['slug'] !== '' ? $update['slug'] : $name), '', $apiKey);
             $this->recordAvailableVersion($name, null);
-            return;
+            return $this->manifestVersion($name);
         }
 
         // git / url — fetch, verify, apply.
-        $version = (new ModuleUpdateChecker())->latestAvailable([
+        $checker = new ModuleUpdateChecker();
+        $version = $checker->latestAvailable([
             'update'            => $update,
             'version'           => (string) ($manifest['version'] ?? ''),
             'installed_version' => $installed,
         ]);
+        if ($version === null && $checker->lastError() !== null) {
+            // Source unreachable (e.g. GitHub API rate limit) — fail loudly instead
+            // of silently doing nothing while the caller reports "updated".
+            throw new \RuntimeException(
+                "Cannot resolve the latest version of '{$name}' from its {$source} source: " . $checker->lastError()
+            );
+        }
         if ($version === null || ($installed !== '' && version_compare($version, $installed, '<='))) {
-            return; // nothing newer than what is installed
+            // Nothing newer at the source — the recorded available_version is stale
+            // (already updated, or the release was pulled). Clear it so the Update
+            // button disappears instead of reappearing forever.
+            $this->recordAvailableVersion($name, null);
+            return null;
         }
 
         [$downloadUrl, $expectedMd5] = $this->resolveSourceDownload($update, $version);
@@ -1022,6 +1035,8 @@ class ModuleManager {
                 if ($backupDir !== null) {
                     $this->deleteDirectory($backupDir);
                 }
+
+                return $resolvedVer;
             } catch (\Throwable $e) {
                 $this->restoreModuleBackup($name, $targetDir, $backupDir, $installed !== '' ? $installed : null);
                 throw new \RuntimeException("Update of '{$name}' failed — rolled back: " . $e->getMessage(), 0, $e);
