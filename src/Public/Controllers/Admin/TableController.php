@@ -3693,10 +3693,10 @@ class TableController extends BaseAdminController {
 		}
 		$rWhere = $rWhereV = [];
 		if (0 < strlen(RequestManager::getAll()["search"]["value"])) {
-			foreach (range(1, 7) as $rInt) {
+			foreach (range(1, 8) as $rInt) {
 				$rWhereV[] = "%" . RequestManager::getAll()["search"]["value"] . "%";
 			}
-			$rWhere[] = "(`lines_logs`.`client_status` LIKE ? OR `lines_logs`.`query_string` LIKE ? OR FROM_UNIXTIME(`date`) LIKE ? OR `lines_logs`.`user_agent` LIKE ? OR `lines_logs`.`ip` LIKE ? OR `streams`.`stream_display_name` LIKE ? OR `lines`.`username` LIKE ?)";
+			$rWhere[] = "(`lines_logs`.`client_status` LIKE ? OR `lines_logs`.`query_string` LIKE ? OR FROM_UNIXTIME(`date`) LIKE ? OR `lines_logs`.`user_agent` LIKE ? OR `lines_logs`.`ip` LIKE ? OR `lines_logs`.`extra_data` LIKE ? OR `streams`.`stream_display_name` LIKE ? OR `lines`.`username` LIKE ?)";
 		}
 		if (0 < strlen(RequestManager::getAll()["range"] ?? '')) {
 			$rStartTime = substr(RequestManager::getAll()["range"], 0, 10);
@@ -3735,7 +3735,7 @@ class TableController extends BaseAdminController {
 		}
 		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
 		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`query_string`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, FROM_UNIXTIME(`lines_logs`.`date`) AS `date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+			$rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`query_string`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, `lines_logs`.`extra_data`, FROM_UNIXTIME(`lines_logs`.`date`) AS `date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
 			if (0 < $db->num_rows()) {
 				$rClientFilters = (isset($rClientFilters) && is_array($rClientFilters) ? $rClientFilters : []);
@@ -3764,6 +3764,10 @@ class TableController extends BaseAdminController {
 						$rExplode = explode(":", $rRow["ip"]);
 						$rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
 						$rClientStatus = ($rClientFilters[$rRow["client_status"]] ?? $rRow["client_status"] ?? "");
+						$rExtraData = trim(strval($rRow["extra_data"] ?? ""));
+						if ($rExtraData !== "") {
+							$rClientStatus .= " <i class=\"mdi mdi-information-outline text-primary tooltip\" title=\"" . htmlspecialchars(mb_substr($rExtraData, 0, 500), ENT_QUOTES) . "\"></i>";
+						}
 						$rReturn["data"][] = [$rRow["id"], $rUsername, $rChannel, $rClientStatus, $rRow["user_agent"], $rIP, $rRow["date"]];
 					}
 				}
