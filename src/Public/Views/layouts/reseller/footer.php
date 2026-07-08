@@ -304,7 +304,7 @@ function callbackForm(rData) {
 							echo "\t\t\t\t" . 'order: [[ ';
 							echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 							echo ', "';
-							echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
+							echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 							echo '" ]],' . "\r\n\t\t\t\t";
 						} else {
 							echo "\t\t\t\t" . 'order: [[ ';
@@ -519,7 +519,7 @@ function callbackForm(rData) {
 											echo "\t\t\t\t" . 'order: [[ ';
 											echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 											echo ', "';
-											echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
+											echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 											echo '" ]],' . "\r\n\t\t\t\t";
 										} else {
 											echo "\t\t\t\t" . 'order: [[ ';
@@ -557,7 +557,7 @@ function callbackForm(rData) {
 												echo "\t\t\t\t" . 'order: [[ ';
 												echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 												echo ', "';
-												echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
+												echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 												echo '" ]],' . "\r\n\t\t\t\t";
 											} else {
 												echo "\t\t\t\t" . 'order: [[ ';
@@ -624,7 +624,7 @@ function callbackForm(rData) {
 																	echo "\t\t\t\t" . 'order: [[ ';
 																	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 																	echo ', "';
-																	echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
+																	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 																	echo '" ]],' . "\r\n\t\t\t\t";
 																} else {
 																	echo "\t\t\t\t" . 'order: [[ ';
@@ -662,7 +662,7 @@ function callbackForm(rData) {
 																		echo "\t\t\t\t" . 'order: [[ ';
 																		echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 																		echo ', "';
-																		echo (in_array(strtolower(RequestManager::getAll()['dir']), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
+																		echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), array('asc', 'desc')) ? strtolower(RequestManager::getAll()['dir']) : 'asc');
 																		echo '" ]],' . "\r\n\t\t\t\t";
 																	} else {
 																		echo "\t\t\t\t" . 'order: [[ ';

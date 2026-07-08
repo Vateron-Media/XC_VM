@@ -189,7 +189,7 @@ class ResellerAPI {
 					}
 
 					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true))) {
-						if ($rData['trial']) {
+						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
 								$rCost = intval($rPackage['trial_credits']);
 							} else {
@@ -206,7 +206,7 @@ class ResellerAPI {
 						}
 
 						if ($rCost <= intval(self::$rUserInfo['credits'])) {
-							if ($rData['trial']) {
+							if (!empty($rData['trial'])) {
 								$rUserArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rUserArray['is_trial'] = 1;
 							} else {
@@ -250,7 +250,7 @@ class ResellerAPI {
 							$rUserArray['forced_country'] = $rPackage['forced_country'];
 							$rUserArray['is_isplock'] = $rPackage['is_isplock'];
 							$rOutputs = array();
-							$rAccessOutput = json_decode($rPackage['output_formats'], true);
+							$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: array();
 
 							foreach ($rAccessOutput as $rOutputID) {
 								$rOutputs[] = $rOutputID;
@@ -475,7 +475,7 @@ class ResellerAPI {
 					}
 
 					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true))) {
-						if ($rData['trial']) {
+						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
 								$rCost = intval($rPackage['trial_credits']);
 							} else {
@@ -492,7 +492,7 @@ class ResellerAPI {
 						}
 
 						if ($rCost <= intval(self::$rUserInfo['credits'])) {
-							if ($rData['trial']) {
+							if (!empty($rData['trial'])) {
 								$rUserArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rUserArray['is_trial'] = 1;
 							} else {
@@ -536,7 +536,7 @@ class ResellerAPI {
 							$rUserArray['forced_country'] = $rPackage['forced_country'];
 							$rUserArray['is_isplock'] = $rPackage['is_isplock'];
 							$rOutputs = array();
-							$rAccessOutput = json_decode($rPackage['output_formats'], true);
+							$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: array();
 
 							foreach ($rAccessOutput as $rOutputID) {
 								$rOutputs[] = $rOutputID;
@@ -767,7 +767,7 @@ class ResellerAPI {
 				if (strlen($rData['password']) >= self::$rPermissions['minimum_password_length'] || (isset($rData['edit']) && strlen($rData['password']) == 0)) {
 
 
-					if (!QueryHelper::checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'])) {
+					if (!QueryHelper::checkExists('users', 'username', $rArray['username'], 'id', $rData['edit'] ?? null)) {
 
 
 						$rArray['username'] = $rData['username'];
@@ -949,7 +949,7 @@ class ResellerAPI {
 					}
 
 					if ($rPackage && in_array(self::$rUserInfo['member_group_id'], json_decode($rPackage['groups'], true))) {
-						if ($rData['trial']) {
+						if (!empty($rData['trial'])) {
 							if ($rGenTrials) {
 								$rCost = intval($rPackage['trial_credits']);
 							} else {
@@ -966,7 +966,7 @@ class ResellerAPI {
 						}
 
 						if ($rCost <= intval(self::$rUserInfo['credits'])) {
-							if ($rData['trial']) {
+							if (!empty($rData['trial'])) {
 								$rArray['exp_date'] = strtotime('+' . intval($rPackage['trial_duration']) . ' ' . $rPackage['trial_duration_in']);
 								$rArray['is_trial'] = 1;
 							} else {
@@ -1121,7 +1121,7 @@ class ResellerAPI {
 				$rArray['password'] = $rData['password'];
 			}
 
-			if (!QueryHelper::checkExists('lines', 'username', $rArray['username'], 'id', $rData['edit'])) {
+			if (!QueryHelper::checkExists('lines', 'username', $rArray['username'], 'id', $rData['edit'] ?? null)) {
 
 
 				if (!self::$rPermissions['allow_restrictions']) {
@@ -1170,7 +1170,7 @@ class ResellerAPI {
 				if (!isset($rPackage)) {
 				} else {
 					$rOutputs = array();
-					$rAccessOutput = json_decode($rPackage['output_formats'], true);
+					$rAccessOutput = json_decode($rPackage['output_formats'], true) ?: array();
 
 					foreach ($rAccessOutput as $rOutputID) {
 						$rOutputs[] = $rOutputID;
