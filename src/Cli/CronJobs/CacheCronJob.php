@@ -62,6 +62,11 @@ class CacheCronJob implements CommandInterface {
             exit();
         }
 
+        // Atomic tmp+rename writes: a direct file_put_contents cannot replace a
+        // cache file left behind by a root-context run (Permission denied spam),
+        // while rename() only needs a writable directory.
+        $rCache = new FileCache(CACHE_TMP_PATH);
+
         if ($rStartup && file_exists(CACHE_TMP_PATH . 'settings')) {
             echo 'Checking cache readability...' . "\n";
             $rSerialize = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
@@ -121,27 +126,21 @@ class CacheCronJob implements CommandInterface {
         foreach ($db->get_rows() as $rRow) {
             $rOutputFormats[] = $rRow;
         }
-        if (is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
-            file_put_contents(CACHE_TMP_PATH . 'output_formats', igbinary_serialize($rOutputFormats), LOCK_EX);
-        }
+        $rCache->set('output_formats', $rOutputFormats);
 
         $rHMACKeys = array();
         $db->query('SELECT `id`, `key` FROM `hmac_keys` WHERE `enabled` = 1;');
         foreach ($db->get_rows() as $rRow) {
             $rHMACKeys[] = $rRow;
         }
-        if (is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
-            file_put_contents(CACHE_TMP_PATH . 'hmac_keys', igbinary_serialize($rHMACKeys), LOCK_EX);
-        }
+        $rCache->set('hmac_keys', $rHMACKeys);
 
         $rRTMPIPs = array();
         $db->query('SELECT `ip`, `password`, `push`, `pull` FROM `rtmp_ips`');
         foreach ($db->get_rows() as $rRow) {
             $rRTMPIPs[gethostbyname($rRow['ip'])] = array('password' => $rRow['password'], 'push' => boolval($rRow['push']), 'pull' => boolval($rRow['pull']));
         }
-        if (is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
-            file_put_contents(CACHE_TMP_PATH . 'rtmp_ips', igbinary_serialize($rRTMPIPs), LOCK_EX);
-        }
+        $rCache->set('rtmp_ips', $rRTMPIPs);
 
         if (file_exists(BIN_PATH . 'maxmind/cidr.db')) {
             exec('ls ' . CIDR_TMP_PATH . ' | wc -l', $rOutput);
@@ -267,7 +266,7 @@ class CacheCronJob implements CommandInterface {
                 foreach ($db->get_rows() as $rRow) {
                     $rSeriesOrder[] = intval($rRow['id']);
                 }
-                file_put_contents(CACHE_TMP_PATH . 'series_order', igbinary_serialize($rSeriesOrder));
+                $rCache->set('series_order', $rSeriesOrder);
             }
 
             foreach (array('channels', 'radios', 'movies', 'episodes') as $rKey) {
@@ -294,11 +293,11 @@ class CacheCronJob implements CommandInterface {
             $rResellerDomains[] = strtolower($rRow['reseller_dns']);
         }
 
-        file_put_contents(CACHE_TMP_PATH . 'reseller_domains', igbinary_serialize($rResellerDomains));
-        file_put_contents(CACHE_TMP_PATH . 'channel_order', igbinary_serialize($rChannelOrder));
-        file_put_contents(CACHE_TMP_PATH . 'bouquet_map', igbinary_serialize($rBouquetMap));
-        file_put_contents(CACHE_TMP_PATH . 'category_map', igbinary_serialize($rCategoryMap));
-        file_put_contents(STREAMS_TMP_PATH . 'channels_categories', igbinary_serialize($rCategoryChannels));
+        $rCache->set('reseller_domains', $rResellerDomains);
+        $rCache->set('channel_order', $rChannelOrder);
+        $rCache->set('bouquet_map', $rBouquetMap);
+        $rCache->set('category_map', $rCategoryMap);
+        (new FileCache(STREAMS_TMP_PATH))->set('channels_categories', $rCategoryChannels);
         @touch($rHeavyMarker);
     }
 }

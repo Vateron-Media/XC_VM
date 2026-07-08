@@ -53,6 +53,13 @@ class FileCache implements CacheInterface {
         if (!is_dir($this->basePath)) {
             @mkdir($this->basePath, 0755, true);
         }
+        // A root-context boot (installer, `console.php status`) must leave the
+        // cache dir owned by the panel user, or xc_vm processes cannot create
+        // cache files in it afterwards. Same pattern as set().
+        if (function_exists('posix_geteuid') && posix_geteuid() === 0) {
+            @chown($this->basePath, 'xc_vm');
+            @chgrp($this->basePath, 'xc_vm');
+        }
     }
 
     /**
