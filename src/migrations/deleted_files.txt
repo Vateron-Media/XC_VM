@@ -1,29 +1,16 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.3.3..HEAD
+# Auto-generated from: git diff 2.3.4..HEAD
 # One file per line. Lines starting with # are comments.
 #
-Modules/tmdb_f4e6e/TmdbApiService.php
-Modules/tmdb_f4e6e/TmdbController.php
-Modules/tmdb_f4e6e/TmdbCron.php
-Modules/tmdb_f4e6e/TmdbCronJob.php
-Modules/tmdb_f4e6e/TmdbModule.php
-Modules/tmdb_f4e6e/TmdbPopularCron.php
-Modules/tmdb_f4e6e/TmdbPopularCronJob.php
-Modules/tmdb_f4e6e/lib.php
-Modules/tmdb_f4e6e/lib/Entities/Collection.php
-Modules/tmdb_f4e6e/lib/Entities/Company.php
-Modules/tmdb_f4e6e/lib/Entities/Episode.php
-Modules/tmdb_f4e6e/lib/Entities/Genre.php
-Modules/tmdb_f4e6e/lib/Entities/Movie.php
-Modules/tmdb_f4e6e/lib/Entities/Person.php
-Modules/tmdb_f4e6e/lib/Entities/Review.php
-Modules/tmdb_f4e6e/lib/Entities/Role.php
-Modules/tmdb_f4e6e/lib/Entities/Season.php
-Modules/tmdb_f4e6e/lib/Entities/TVShow.php
-Modules/tmdb_f4e6e/lib/Release.php
-Modules/tmdb_f4e6e/lib/TmdbClient.php
-Modules/tmdb_f4e6e/lib/config/APIConfiguration.php
-Modules/tmdb_f4e6e/lib/config/config.php
-Modules/tmdb_f4e6e/lib/roles/MovieRole.php
-Modules/tmdb_f4e6e/lib/roles/TVShowRole.php
-Modules/tmdb_f4e6e/module.json
+Public/Controllers/Admin/AdminPlexController.php
+Public/Controllers/Admin/AdminWatchController.php
+Public/Controllers/Admin/SettingsWatchController.php
+Public/Controllers/Admin/WatchAddController.php
+Public/Controllers/Admin/WatchOutputController.php
+Public/Views/admin/plex.php
+Public/Views/admin/plex_add.php
+Public/Views/admin/settings_plex.php
+Public/Views/admin/settings_watch.php
+Public/Views/admin/watch.php
+Public/Views/admin/watch_add.php
+Public/Views/admin/watch_output.php

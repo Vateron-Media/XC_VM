@@ -1,15 +1,23 @@
 {
-    "version": "2.3.4",
+    "version": "2.3.5",
     "changes": [
-        "Integrated the TMDB module directly into the core architecture",
-        "Removed duplicated TMDB standard-set resources",
-        "Extracted player utility functions from the legacy bootstrap",
-        "Improved player stability by handling null values in movie properties",
-        "Enhanced image URL validation in the player",
-        "Improved resilience against temporary database and API failures",
-        "Switched internal error reporting to secure HTTPS communication",
-        "Improved backup restoration by validating migration arguments",
-        "Added proper handling of db_restore operation results",
-        "Continued internal refactoring to simplify the architecture and improve maintainability"
+        "Added a manual update checker for installed modules in the admin interface",
+        "Added a server update guide and integrated it into the update mechanism",
+        "Added documentation describing the planned migration of Ministra into a standalone module",
+        "Improved PortalHandler module resolution and missing module error reporting",
+        "Enhanced LINE_CREATE_FAIL diagnostics by exposing underlying database errors",
+        "Improved reseller processing by safely handling optional POST fields and package output formats",
+        "Fixed file cache creation when temporary cache directories are owned by root",
+        "Improved network detection by handling invalid cached network data",
+        "Hardened admin views against undefined array access and null values",
+        "Improved TMDB stability with null-safe entity handling and duplicate library protection",
+        "Improved Player API and streaming stability through additional null-safety and cache validation",
+        "Automatically create image cache directories when required",
+        "Improved cron cleanup logic for connection directories",
+        "Updated diagnostics log submission to use the correct HTTPS endpoint",
+        "Forced browser cache refresh for JavaScript and CSS assets after updates",
+        "Removed obsolete Watch and Plex authentication code and cleaned up legacy components",
+        "Improved TMDB title normalization and simplified architecture tests",
+        "Continued stability, diagnostics, and maintainability improvements across the platform"
     ]
 }
