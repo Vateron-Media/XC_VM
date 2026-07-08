@@ -17,7 +17,19 @@ header('Pragma: no-cache');
 $rReqType = (!empty($_REQUEST['type']) ? $_REQUEST['type'] : null);
 $rReqAction = (!empty($_REQUEST['action']) ? $_REQUEST['action'] : null);
 
-require __DIR__ . '/../Modules/ministra/PortalHandler.php';
+// Module dirs are `{name}_{hash5}` since the module migration (a legacy bare
+// `ministra` dir is still possible) — resolve PortalHandler in either layout.
+// This runs before composer autoload on purpose: pre-init stubs need no DB/vendor.
+$rPortalHandlerFile = __DIR__ . '/../Modules/ministra/PortalHandler.php';
+if (!is_file($rPortalHandlerFile)) {
+	$rPortalHandlerGlob = glob(__DIR__ . '/../Modules/ministra_*/PortalHandler.php');
+	if (empty($rPortalHandlerGlob)) {
+		http_response_code(503);
+		exit('// ministra module files are missing');
+	}
+	$rPortalHandlerFile = $rPortalHandlerGlob[0];
+}
+require $rPortalHandlerFile;
 
 // Phase 1: Pre-init stub responses (no DB needed)
 PortalHandler::handlePreInit($rReqType, $rReqAction);
