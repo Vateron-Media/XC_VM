@@ -2122,10 +2122,13 @@ class TableController extends BaseAdminController {
 						unset($rReturn["source"]);
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::getAll()["show_columns"] ?? '', RequestManager::getAll()["hide_columns"] ?? '');
 					} else {
-						$rCategoryIDs = json_decode($rRow["category_id"], true);
-						$rProperties = json_decode($rRow["movie_properties"], true);
+						$rCategoryIDs = json_decode((string) $rRow["category_id"], true) ?: [];
+						$rProperties = json_decode((string) $rRow["movie_properties"], true);
+						if (!is_array($rProperties)) {
+							$rProperties = [];
+						}
 						$rRatingText = "";
-						if ($rProperties["rating"]) {
+						if (!empty($rProperties["rating"])) {
 							$rStarRating = round($rProperties["rating"]) / 2;
 							$rFullStars = floor($rStarRating);
 							$rHalfStar = 0 < $rStarRating - $rFullStars;
@@ -2440,8 +2443,11 @@ class TableController extends BaseAdminController {
 							$rServerName = "No Server Selected";
 						}
 						$rImage = "";
-						$rProperties = json_decode($rRow["movie_properties"], true);
-						if (0 < strlen($rProperties["movie_image"]) && SettingsManager::getAll()["show_images"]) {
+						$rProperties = json_decode((string) $rRow["movie_properties"], true);
+						if (!is_array($rProperties)) {
+							$rProperties = [];
+						}
+						if (0 < strlen($rProperties["movie_image"] ?? '') && SettingsManager::getAll()["show_images"]) {
 							$rImage = "<a href='javascript: void(0);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties["movie_image"] . "'><img loading='lazy' src='resize?maxh=32&maxw=64&url=" . $rProperties["movie_image"] . "' /></a>";
 						}
 						$rReturn["data"][] = [$rRow["id"], $rImage, $rStreamName, $rServerName, $rVODStatusArray[$rActualStatus]];
@@ -2933,7 +2939,7 @@ class TableController extends BaseAdminController {
 					$rPlayer = trim(explode("(", $rRow["user_agent"])[0]);
 					$rDuration = (int) time() - (int) $rRow["date_start"];
 					$rColour = "success";
-					if ($rRow["hls_end"]) {
+					if (!empty($rRow["hls_end"])) {
 						$rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>" . $language::get('closed') . "</button>";
 					} else {
 						if (86400 <= $rDuration) {
@@ -3286,9 +3292,12 @@ class TableController extends BaseAdminController {
 						if (1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rProperties = json_decode($rRow["movie_properties"], true);
+						$rProperties = json_decode((string) $rRow["movie_properties"], true);
+						if (!is_array($rProperties)) {
+							$rProperties = [];
+						}
 						$rRatingText = "";
-						if ($rProperties["rating"]) {
+						if (!empty($rProperties["rating"])) {
 							$rStarRating = round($rProperties["rating"]) / 2;
 							$rFullStars = floor($rStarRating);
 							$rHalfStar = 0 < $rStarRating - $rFullStars;

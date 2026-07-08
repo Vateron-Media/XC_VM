@@ -282,7 +282,7 @@ switch ($rPage) {
 	case 'episodes':
 		echo '<div class="btn-group">';
 
-		if (!(!$rMobile && Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
+		if (!(!$rMobile && (($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] ?? '') === '' || Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
 		} else {
 			if ($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0]) {
 				echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
@@ -341,7 +341,7 @@ switch ($rPage) {
 			}
 		}
 
-		if (!(!$rMobile && Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
+		if (!(!$rMobile && (($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] ?? '') === '' || Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0]))) {
 		} else {
 			echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
 		}
@@ -370,7 +370,7 @@ switch ($rPage) {
 	case 'stream_categories':
 		echo '<div class="btn-group">';
 
-		if (!$rMobile && Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1]) && 0 < strlen(array_keys($rDropdown[$rPage])[0])) {
+		if (!$rMobile && (($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1] ?? '') === '' || Authorization::check('adv', $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][1])) && 0 < strlen(array_keys($rDropdown[$rPage])[0])) {
 			echo "<button type=\"button\" onClick=\"navigate('" . $rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]][0] . "');\" class=\"btn btn-sm btn-info waves-effect waves-light\">" . array_keys($rDropdown[$rPage])[0] . '</button>';
 		}
 

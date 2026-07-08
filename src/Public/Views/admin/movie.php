@@ -290,7 +290,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="backdrop_path"><?php echo $language::get('backdrop_url'); ?></label>
 													<div class="col-md-8 input-group">
 														<input type="text" class="form-control" id="backdrop_path" name="backdrop_path" value="<?php if (isset($rMovie)) {
-																																					echo htmlspecialchars($rMovie['properties']['backdrop_path'][0]);
+																																					echo htmlspecialchars($rMovie['properties']['backdrop_path'][0] ?? '');
 																																				} ?>">
 														<div class="input-group-append">
 															<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>

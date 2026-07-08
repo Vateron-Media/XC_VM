@@ -2317,16 +2317,16 @@ if (isset($_SESSION['hash'])) {
 
 					if (StreamUtils::detectXC_VM($rURL) && SettingsManager::getAll()['api_probe']) {
 						$rURLInfo = parse_url($rURL);
-						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . (($rURLInfo['port'] ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path']);
+						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ((isset($rURLInfo['port']) ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path'] ?? '');
 
 
 						if ($rAPIInfo = json_decode(CurlClient::getURL($rProbeURL), true)) {
 							$rStreamInfo = array();
 
-							foreach ($rAPIInfo['codecs'] as $rType => $rCodec) {
+							foreach (($rAPIInfo['codecs'] ?? array()) as $rType => $rCodec) {
 								$rStreamInfo['streams'][] = $rCodec;
 							}
-							$rStreamInfo['container'] = $rAPIInfo['container'];
+							$rStreamInfo['container'] = $rAPIInfo['container'] ?? '';
 						}
 					}
 
@@ -2442,13 +2442,13 @@ if (isset($_SESSION['hash'])) {
 					if (!(StreamUtils::detectXC_VM($rURL) && SettingsManager::getAll()['api_probe'])) {
 					} else {
 						$rURLInfo = parse_url($rURL);
-						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . (($rURLInfo['port'] ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path']);
+						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ((isset($rURLInfo['port']) ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path'] ?? '');
 
 						if (!($rAPIInfo = json_decode(CurlClient::getURL($rProbeURL), true))) {
 						} else {
 							$rStreamInfo = array();
 
-							foreach ($rAPIInfo['codecs'] as $rType => $rCodec) {
+							foreach (($rAPIInfo['codecs'] ?? array()) as $rType => $rCodec) {
 								$rStreamInfo['streams'][] = $rCodec;
 							}
 						}
