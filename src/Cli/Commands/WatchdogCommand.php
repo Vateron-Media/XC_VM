@@ -65,6 +65,9 @@ class WatchdogCommand implements CommandInterface {
 			// stop it, or every node goes "offline" in the panel whenever the
 			// shared Redis blips. Degrade: skip Redis-dependent stats below.
 			$rRedisAlive = $this->checkRedisHealth();
+			if (!$rRedisAlive) {
+				$this->attemptRedisRestart();
+			}
 
 			if ($this->shouldRefreshSettings()) {
 				if (!ProcessManager::isNginxRunning()) {
@@ -183,5 +186,45 @@ class WatchdogCommand implements CommandInterface {
 
 		$this->restartDaemon('watchdog');
 		return 0;
+	}
+
+	/**
+	 * Restart the local Redis (KeyDB) when the health check fails and the
+	 * process is actually dead. In Redis mode every playback request dies
+	 * with LINE_CREATE_FAIL until Redis is back, so waiting for a human is
+	 * not an option.
+	 *
+	 * No-op on LB nodes (bin/redis is stripped from the LB build — Redis
+	 * lives on MAIN). A live-but-unreachable process (auth/config drift)
+	 * is left alone: a restart would not fix it. Attempts are rate-limited
+	 * to one per 60 seconds across watchdog respawns via a stamp file.
+	 */
+	private function attemptRedisRestart(): void {
+		$rBinary = MAIN_HOME . 'bin/redis/redis-server';
+		if (!file_exists($rBinary)) {
+			return;
+		}
+
+		$rPid = intval(trim(@file_get_contents(MAIN_HOME . 'bin/redis/redis-server.pid') ?: ''));
+		if (0 < $rPid && ProcessManager::isRunning($rPid)) {
+			echo "Redis process is alive but unreachable, not restarting\n";
+			return;
+		}
+
+		$rStamp = TMP_PATH . 'redis_restart_attempt';
+		if (file_exists($rStamp) && 60 > time() - intval(@file_get_contents($rStamp) ?: '0')) {
+			return;
+		}
+		file_put_contents($rStamp, time());
+
+		echo "Redis process is dead, restarting\n";
+		exec(escapeshellarg($rBinary) . ' ' . escapeshellarg(MAIN_HOME . 'bin/redis/redis.conf') . ' >/dev/null 2>/dev/null');
+		sleep(1);
+
+		if (RedisManager::reconnect()) {
+			echo "Redis restarted successfully\n";
+		} else {
+			echo "Redis restart attempted, connection still unavailable\n";
+		}
 	}
 }
