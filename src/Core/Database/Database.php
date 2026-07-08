@@ -20,6 +20,9 @@ class Database {
 	public $dbh = null;
 	public $connected = false;
 
+	/** Last PDO error message (empty when the last query succeeded). */
+	protected $lastError = '';
+
 	protected $dbuser = null;
 	protected $dbpassword = null;
 	protected $dbname = null;
@@ -221,12 +224,27 @@ class Database {
 				$actual_query = $query;
 			}
 
+			// Keep the raw driver message so callers can surface the real cause
+			// of a failed write (e.g. LINE_CREATE_FAIL) even when FileLogger's
+			// noise filter drops the 'pdo' entry (duplicate entry / timeouts).
+			$this->lastError = $e->getMessage();
+
 			FileLogger::log('pdo', $e->getMessage(), $actual_query, (int) $e->getLine());
 
 			return false;
 		}
 
+		$this->lastError = '';
 		return true;
+	}
+
+	/**
+	 * Return the driver message from the most recent failed query.
+	 *
+	 * @return string Empty string when the last query succeeded.
+	 */
+	public function error(): string {
+		return $this->lastError;
 	}
 
 	/**

@@ -169,7 +169,7 @@ if ($rChannelInfo) {
 	}
 
 	if (!$rResult) {
-		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP);
+		DatabaseLogger::clientLog($rStreamID, $rUserInfo['id'], 'LINE_CREATE_FAIL', $rIP, $db->error());
 		generateError('LINE_CREATE_FAIL');
 	}
 
