@@ -262,13 +262,12 @@ MAIN-сервер — единый источник свежести: ProxyArchi
 
 ### Этап 3 — XC_VM: удаление LFS-объекта
 
-- [ ] `git rm src/bin/install/proxy.tar.gz` + убрать паттерн из `.gitattributes`.
-      Проверено: строка 15 — **точечный** `src/bin/install/proxy.tar.gz`, не маска,
-      другие файлы не заденет; `git lfs ls-files` до/после для подтверждения.
-- [ ] Проверить `Makefile`/сборку: `verify_no_lfs_pointers`; `LB_DIRS_TO_REMOVE`
-      уже содержит `bin/install` (Makefile:34) → из LB-архива файл и так уходит;
-      `make main`/`lb` копируют только `git ls-files` → после `git rm` файл
-      исчезнет и из панельного архива (это и есть цель). Упоминания в `install/`.
+- [x] `git rm src/bin/install/proxy.tar.gz` + убрана строка из `.gitattributes`
+      (коммит `06b1a31b`). Подтверждено: не в `git ls-files`, не в LFS HEAD
+      (осталось 13 LFS-объектов, ~309 МБ).
+- [x] `make gates` зелёный (LB-манифест 632 файла); `getInstallFile()` — рантайм-путь,
+      не build-зависимость; `LB_DIRS_TO_REMOVE` содержит `bin/install`; `make main`
+      копирует `git ls-files` → файла в архиве больше нет.
 - [x] ~~Проверить, что распаковка апдейта не затирает кэш.~~ **Подтверждено кодом**
       (`src/update`, вызывается `UpdateCommand`): апдейт распаковывает во временный
       каталог, удаляет `bin/install` (в `UPDATE_EXCLUDE_DIRS`) из временной копии и
