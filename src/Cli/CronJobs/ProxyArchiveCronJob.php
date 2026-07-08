@@ -54,8 +54,12 @@ class ProxyArchiveCronJob implements CommandInterface {
 		$rForceLocal = !empty($rSettings['proxy_force_local']);
 		$rForce      = in_array('--force', $rArgs, true);
 
-		$rRepo    = new GitHubReleases(GIT_OWNER, GIT_REPO_PROXY, $rSettings['update_channel']);
-		$rResult  = (new ProxyArchiveUpdater($rRepo))->ensure($rForce, $rForceLocal);
+		$rRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_PROXY, $rSettings['update_channel']);
+		if ($rForce) {
+			// Drop the 30-min releases cache so a just-published release is seen now.
+			$rRepo->clearCache();
+		}
+		$rResult = (new ProxyArchiveUpdater($rRepo))->ensure($rForce, $rForceLocal);
 
 		switch ($rResult['action']) {
 			case 'download':
@@ -65,6 +69,8 @@ class ProxyArchiveCronJob implements CommandInterface {
 				echo '[SKIP]  proxy.tar.gz: already up to date (' . $rResult['version'] . ")\n";
 				return 0;
 			case 'local':
+				echo '[INFO]  proxy.tar.gz: ' . ($rResult['error'] ?? 'using existing archive') . "\n";
+				return 0;
 			case 'stale-fallback':
 				echo '[WARN]  proxy.tar.gz: ' . ($rResult['error'] ?? 'using local copy') . "\n";
 				return 0;

@@ -78,23 +78,39 @@ class ProxyArchiveUpdater {
 			return $this->result(null, 'error', 'force-local is set but no valid local ' . self::ASSET);
 		}
 
-		// Resolve the latest eligible release for the channel.
-		$rVersion = null;
+		// Resolve the latest eligible release for the channel. Track whether the
+		// releases request itself succeeded — an empty list ("no release published
+		// yet") must not be reported as "GitHub unreachable".
+		$rVersion   = null;
+		$rReachable = true;
 		try {
 			$rReleases = $this->repo->getReleases();
 			if (!empty($rReleases) && GitHubReleases::isValidVersion((string) $rReleases[0])) {
 				$rVersion = (string) $rReleases[0];
 			}
 		} catch (\Throwable $e) {
-			$rVersion = null; // network / API failure — handled by the fallback below
+			$rReachable = false; // network / API failure
 		}
 
-		// GitHub unreachable or no eligible release → fall back to the cached copy.
 		if ($rVersion === null) {
-			if ($this->localValid($rIndex)) {
-				return $this->result($rIndex['version'] ?? null, 'stale-fallback', 'GitHub unavailable — using local copy, freshness not verified');
+			// Request worked, but the channel has no eligible release yet.
+			if ($rReachable) {
+				if (is_file($this->archivePath)) {
+					// Nothing newer to fetch — keep the existing archive. Adopt it into
+					// the index (trust-on-first-use) so later runs have a watermark; a
+					// real release will supersede it by version mismatch.
+					if (!$this->localValid($rIndex)) {
+						$this->writeIndex($rIndex['version'] ?? '0.0.0', (string) md5_file($this->archivePath));
+					}
+					return $this->result($rIndex['version'] ?? null, 'local', 'no release published in channel yet — keeping existing archive');
+				}
+				return $this->result(null, 'error', 'no release published in channel and no local ' . $this->archivePath);
 			}
-			return $this->result(null, 'error', 'GitHub unavailable and no valid local ' . $this->archivePath);
+			// GitHub genuinely unreachable → last-known-good if valid.
+			if ($this->localValid($rIndex)) {
+				return $this->result($rIndex['version'] ?? null, 'stale-fallback', 'GitHub unreachable — using local copy, freshness not verified');
+			}
+			return $this->result(null, 'error', 'GitHub unreachable and no valid local ' . $this->archivePath);
 		}
 
 		// Cache hit: same version and the file still matches its recorded md5.
