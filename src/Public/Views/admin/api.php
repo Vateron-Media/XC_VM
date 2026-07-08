@@ -3067,8 +3067,8 @@ if (isset($_SESSION['hash'])) {
 			exit();
 		}
 		if (RequestManager::getAll()['action'] == 'clear_redis') {
-			if (Authorization::check('adv', 'backups')) {
-				RedisManager::instance()->flushAll();
+			if (Authorization::check('adv', 'backups') && ($rRedis = RedisManager::instance())) {
+				$rRedis->flushAll();
 				echo json_encode(array('result' => true));
 
 				exit();
