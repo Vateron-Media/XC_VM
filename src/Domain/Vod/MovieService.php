@@ -57,7 +57,7 @@ class MovieService {
 				}
 			}
 
-			if (0 < strlen($rData['movie_subtitles'])) {
+			if (0 < strlen($rData['movie_subtitles'] ?? '')) {
 				$rSplit = explode(':', $rData['movie_subtitles']);
 				$rArray['movie_subtitles'] = array('files' => array($rSplit[2]), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => intval($rSplit[1]));
 			} else {
