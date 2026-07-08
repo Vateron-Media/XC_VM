@@ -87,7 +87,7 @@ class ServerInstallCommand implements CommandInterface {
 			// run the cron yet still gets a valid local archive before shipping it to the node.
 			$rProxyRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_PROXY, SettingsManager::getAll()['update_channel']);
 			$rProxyResult = (new ProxyArchiveUpdater($rProxyRepo))->ensure(false, !empty(SettingsManager::getAll()['proxy_force_local']));
-			if ($rProxyResult['error'] !== null && !is_file($rInstallDir . $rInstallFiles)) {
+			if ($rProxyResult['action'] === 'error' && !is_file($rInstallDir . $rInstallFiles)) {
 				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 				echo 'Failed to prepare proxy archive: ' . $rProxyResult['error'] . "\n";
 				return 1;
