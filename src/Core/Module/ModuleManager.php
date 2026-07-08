@@ -5,6 +5,7 @@ namespace XcVm\Core\Module;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\Database;
+use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Updates\GitHubReleases;
 
@@ -1106,32 +1107,9 @@ class ModuleManager {
 
     /** Download an https URL straight to $dest; throws on non-https / HTTP error. */
     private function downloadToFile(string $url, string $dest): void {
-        if (stripos($url, 'https://') !== 0) {
-            throw new \RuntimeException('Refusing a non-https module download URL.');
-        }
-        $fh = @fopen($dest, 'wb');
-        if ($fh === false) {
-            throw new \RuntimeException('Unable to open the temp file for the module download.');
-        }
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_FILE           => $fh,
-            CURLOPT_CONNECTTIMEOUT => 20,
-            CURLOPT_TIMEOUT        => 300,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_FAILONERROR    => true,
-            CURLOPT_USERAGENT      => 'XC_VM-ModuleManager',
-        ]);
-        $ok   = curl_exec($ch);
-        $err  = curl_error($ch);
-        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
-        fclose($fh);
-
-        if ($ok === false || $code >= 400) {
-            @unlink($dest);
-            throw new \RuntimeException("Module download failed (HTTP {$code}) for {$url}: {$err}");
-        }
+        // Shared streaming primitive (see CurlClient::downloadToFile); kept as a
+        // thin wrapper so existing call sites and error text stay stable.
+        CurlClient::downloadToFile($url, $dest);
     }
 
     /**

@@ -5,6 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Server\ServerService;
@@ -80,6 +81,17 @@ class ServerInstallCommand implements CommandInterface {
 			$rPackages = ProxyInstallFlow::getPackages();
 			$rInstallFiles = ProxyInstallFlow::getInstallFile();
 			ProxyInstallFlow::writeInstallMetadata($rInstallDir, $rServerID, $rUsername, $rPassword, $rPort, $rHTTPPort, $rHTTPSPort, $rParentIDs);
+
+			// proxy.tar.gz is fetched from XC_VM_Proxy releases (not shipped in LFS) and
+			// kept fresh by cron:proxy. Self-heal here so a brand-new panel that has not
+			// run the cron yet still gets a valid local archive before shipping it to the node.
+			$rProxyRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_PROXY, SettingsManager::getAll()['update_channel']);
+			$rProxyResult = (new ProxyArchiveUpdater($rProxyRepo))->ensure(false, !empty(SettingsManager::getAll()['proxy_force_local']));
+			if ($rProxyResult['error'] !== null && !is_file($rInstallDir . $rInstallFiles)) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo 'Failed to prepare proxy archive: ' . $rProxyResult['error'] . "\n";
+				return 1;
+			}
 		} elseif ($rType == 2) {
 			$rUpdateData = LbInstallFlow::resolveUpdateData($gitRelease);
 			$rInstallFiles = $rUpdateData['url'];
