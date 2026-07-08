@@ -874,7 +874,7 @@ class StreamProcess {
 
 					if (!($rStream['server_info']['on_demand'] && $rLLOD)) {
 						if ($rIsXC_VM && $rSettings['api_probe']) {
-							$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ':' . $rURLInfo['port'] . '/probe/' . base64_encode($rURLInfo['path']);
+							$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . (isset($rURLInfo['port']) ? ':' . $rURLInfo['port'] : '') . '/probe/' . base64_encode($rURLInfo['path'] ?? '');
 							$rFFProbeOutput = json_decode(CurlClient::getURL($rProbeURL), true);
 
 							if ($rFFProbeOutput && isset($rFFProbeOutput['codecs'])) {
@@ -957,9 +957,9 @@ class StreamProcess {
 
 					if (!$rStream['server_info']['parent_id'] && $rStream['stream_info']['enable_transcode'] == 1 && $rStream['stream_info']['type_key'] != 'created_live') {
 						if ($rStream['stream_info']['transcode_profile_id'] == -1) {
-							$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode($rStream['stream_info']['transcode_attributes'], true));
+							$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode((string) $rStream['stream_info']['transcode_attributes'], true) ?: array());
 						} else {
-							$rStream['stream_info']['transcode_attributes'] = json_decode($rStream['stream_info']['profile_options'], true);
+							$rStream['stream_info']['transcode_attributes'] = json_decode((string) $rStream['stream_info']['profile_options'], true) ?: array();
 						}
 					} else {
 						$rStream['stream_info']['transcode_attributes'] = array();
