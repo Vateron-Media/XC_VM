@@ -303,7 +303,7 @@ class ResellerAPI {
 				$rArray[$rKey] = $rData[$rKey];
 			}
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
-			$rOwner = $rData['member_id'];
+			$rOwner = $rData['member_id'] ?? null;
 
 			if (Authorization::check('user', $rOwner)) {
 				$rUserArray['member_id'] = $rOwner;
@@ -589,7 +589,7 @@ class ResellerAPI {
 				$rArray[$rKey] = $rData[$rKey];
 			}
 			$rUserArray['reseller_notes'] = $rData['reseller_notes'];
-			$rOwner = $rData['member_id'];
+			$rOwner = $rData['member_id'] ?? null;
 
 			if (Authorization::check('user', $rOwner)) {
 				$rUserArray['member_id'] = $rOwner;
@@ -1053,7 +1053,7 @@ class ResellerAPI {
 
 			$rArray['contact'] = $rData['contact'];
 			$rArray['reseller_notes'] = $rData['reseller_notes'];
-			$rOwner = $rData['member_id'];
+			$rOwner = $rData['member_id'] ?? null;
 
 			if (Authorization::check('user', $rOwner)) {
 				$rArray['member_id'] = $rOwner;
