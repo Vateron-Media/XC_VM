@@ -153,4 +153,44 @@ class CurlClient {
 
 		return $rOutput;
 	}
+
+	/**
+	 * Stream an https URL straight to a file (no in-memory buffering).
+	 *
+	 * Suitable for large release assets. HTTPS is mandatory; the partial file is
+	 * removed on any failure so a caller never sees a truncated download.
+	 *
+	 * @param string $rURL  Source URL (must be https://).
+	 * @param string $rDest Destination path (opened for writing).
+	 * @return void
+	 * @throws \RuntimeException On a non-https URL, an unwritable target, or an HTTP error.
+	 */
+	public static function downloadToFile(string $rURL, string $rDest): void {
+		if (stripos($rURL, 'https://') !== 0) {
+			throw new \RuntimeException('Refusing a non-https download URL.');
+		}
+		$rHandle = @fopen($rDest, 'wb');
+		if ($rHandle === false) {
+			throw new \RuntimeException('Unable to open the destination file for download: ' . $rDest);
+		}
+		$ch = curl_init($rURL);
+		curl_setopt_array($ch, [
+			CURLOPT_FILE           => $rHandle,
+			CURLOPT_CONNECTTIMEOUT => 20,
+			CURLOPT_TIMEOUT        => 300,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_FAILONERROR    => true,
+			CURLOPT_USERAGENT      => 'XC_VM/' . XC_VM_VERSION,
+		]);
+		$rOk   = curl_exec($ch);
+		$rErr  = curl_error($ch);
+		$rCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+		fclose($rHandle);
+
+		if ($rOk === false || $rCode >= 400) {
+			@unlink($rDest);
+			throw new \RuntimeException("Download failed (HTTP {$rCode}) for {$rURL}: {$rErr}");
+		}
+	}
 }
