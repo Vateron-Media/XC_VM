@@ -38,7 +38,7 @@ The probe combinations map to causes:
 - **No ICMP + port closed** — node powered off, network-partitioned, or fully firewalled.
 - **ICMP replies but the port is dropped** — the classic: the node's own iptables blocked the main's IP (RootSignals flood/block false-positive), or nginx/the service is down. Run the local mode on the node for the exact cause.
 - **Port open but `/api` silent** — nginx is up, PHP is not: check php-fpm on the node.
-- **`/api` answers but the heartbeat is stale** — the node reaches the main but its `cron:servers` is not running or cannot write to the panel DB.
+- **`/api` answers but the heartbeat is stale** — the node's watchdog daemon (the heartbeat writer) is not running, or it cannot write to the panel DB. Run the local mode on the node.
 
 ### Mode B — local self-diagnosis ON the node
 
@@ -52,8 +52,12 @@ Run this **on the silent LB/proxy node itself** — the causes usually live ther
 2. **Can I reach the MAIN** — DB connectivity (implicitly proven), ICMP, and TCP to the main's broadcast port.
 3. **Did I firewall the main?** — scans this node's `iptables INPUT` chain for a `DROP` of the main's IP, plus the flood-block marker file. This is the classic "node went silent for no reason" cause: the flood protection drops public IPs silently, and the main's callbacks stop landing.
 4. **Service / nginx** — `systemctl is-active xc_vm` and a local TCP check on the node's own broadcast port.
-5. **Reporting cron** — is `cron:servers` present in the crontab (it refreshes the heartbeat the main watches; if missing, re-run `console.php startup`).
-6. **Clock skew** — `time_offset` vs the panel.
+5. **Watchdog daemon** — the actual heartbeat writer: the `watchdog` daemon updates `last_check_ago` every few seconds. When its MySQL connection to the main drops it **waits for the database to come back** (retrying every 5 s) and resumes the heartbeat immediately. Older builds exited instead — which made **all nodes go offline at the same moment** on any MySQL restart/blip on the main, until `cron:servers` revived them.
+6. **Babysitter cron** — three sub-checks, because a dead watchdog stays dead only when the babysitter chain is broken:
+   - is `cron:servers` present in the **`xc_vm` user's crontab** (if missing, regenerate with `rm -f /home/xc_vm/tmp/crontab` and restart the service);
+   - is the system **cron service** active (no cron → the crontab never fires);
+   - is a previous `cron:servers` instance **hung on its cron lock** — a hung instance blocks every subsequent run for up to 30 minutes (`acquireCronLock` stale timeout), which is exactly how one DB blip keeps a node offline for half an hour. The command prints the holding PID and the kill command.
+7. **Clock skew** — `time_offset` vs the panel.
 
 > **Note:** the iptables check requires passwordless sudo (`sudo -n`). Without it the check reports `cannot check (need sudo iptables)` instead of failing — run the command as `root` for a full picture.
 
@@ -83,7 +87,8 @@ Self-diagnosis on node #3 — LB-Frankfurt (type 1)
 [WARN] Main in iptables DROP present (+flood marker)
 [OK]   Service xc_vm    active
 [OK]   nginx :8080      listening
-[OK]   cron:servers     in crontab
+[OK]   watchdog daemon  running
+[OK]   cron:servers     in xc_vm crontab
 [OK]   Clock offset     2s vs panel
 ----------------------------------------------------------------
 Probable cause(s):
@@ -100,8 +105,9 @@ Probable cause(s):
 | Pings, port dropped | Node's iptables blocked the main's IP | `sudo iptables -D INPUT -s <main_ip> -j DROP` + remove the `block_<ip>` marker (the command prints the exact line) |
 | No ping, no port | Host down / network partition / external firewall | Check hosting console, routes, provider firewall |
 | Port open, `/api` dead | php-fpm down | Restart the `xc_vm` service on the node |
-| `/api` fine, heartbeat stale | `cron:servers` missing or DB write failure | `console.php startup` on the node; check DB grants (`tools mysql` on the main) |
-| Node flaps online/offline | Clock skew > 30 s | Sync NTP on the node |
+| `/api` fine, heartbeat stale | Watchdog daemon dead (exits on DB connection loss) | `sudo -u xc_vm console.php watchdog` on the node; check DB grants (`tools mysql` on the main) |
+| **All nodes drop at the same moment** | A MySQL restart/blip on the main hit every node's watchdog at once (fatal for pre-fix builds; current builds wait it out) | Check the main's MySQL error log around the drop time; update the nodes so the watchdog survives outages |
+| Node flaps online/offline | Clock skew > 30 s (or recurring MySQL blips) | Sync NTP on the node; check MySQL stability on the main |
 | Status = 4 | Install/provision errored | Re-run `server:install` from the main |
 
 ---
@@ -111,7 +117,8 @@ Probable cause(s):
 | File | Role |
 | --- | --- |
 | `src/Cli/Commands/ServerDiagnoseCommand.php` | The diagnostic command (both modes) |
-| `src/Cli/CronJobs/ServersCronJob.php` | The heartbeat this command reasons about |
+| `src/Cli/Commands/WatchdogCommand.php` | The watchdog daemon — writes the heartbeat (`last_check_ago`) |
+| `src/Cli/CronJobs/ServersCronJob.php` | Babysitter cron — relaunches a dead watchdog |
 | `src/Cli/CronJobs/RootSignalsCronJob.php` | Applies iptables blocks (the false-positive source) |
 | `src/Domain/Server/ServerRepository.php` | `servers` table access |
 
