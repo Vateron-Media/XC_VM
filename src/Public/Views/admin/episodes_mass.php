@@ -89,6 +89,15 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                 </select>
                                             </div>
                                             <div class="col-md-1 col-6">
+                                                <select id="show_entries" class="form-control" data-toggle="select2">
+                                                    <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) : ?>
+                                                        <option value="<?= $rShow ?>"
+                                                            <?= $rSettings['default_entries'] == $rShow ? ' selected' : '' ?>>
+                                                            <?= $rShow ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-1 col-6">
                                                 <button type="button" class="btn btn-info waves-effect waves-light" onClick="toggleStreams()" style="width: 100%">
                                                     <i class="mdi mdi-selection"></i>
                                                 </button>
