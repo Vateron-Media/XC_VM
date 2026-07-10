@@ -40,6 +40,7 @@
 - **Администрирование**
   - [Генерация SSL-сертификата](ru-ru/administration/ssl-generation.md)
   - [Обновление сервера](ru-ru/administration/server-update.md)
+  - [Диагностика серверов](ru-ru/administration/server-diagnostics.md)
   - [Механизм обновления](ru-ru/administration/update-system.md)
   - [Система реселлеров](ru-ru/administration/reseller-system.md)
   - [Стратегия резервного копирования](ru-ru/administration/backup-strategy.md)

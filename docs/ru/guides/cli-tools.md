@@ -16,7 +16,7 @@
 
 | Тип | Кол-во | Описание |
 | --- | --- | --- |
-| **Commands** | 27 | Разовые операции (update, status, tools и др.) |
+| **Commands** | 28 | Разовые операции (update, status, tools и др.) |
 | **CronJobs** | 25 | Запланированные задачи (автозапуск через crontab) |
 | **Daemons** | 8 | Фоновые процессы-демоны (Commands, использующие `DaemonTrait`) |
 
@@ -50,6 +50,7 @@
 | `migrate` | `MigrateCommand` | Перенос данных из БД `xc_vm_migrate` | xc_vm |
 | `db:migrate` | `DbMigrateCommand` | Применить ожидающие миграции БД из каталога `migrations/` | xc_vm |
 | `server:install` | `ServerInstallCommand` | Установка/настройка сервера (Proxy/LB) по SSH | root |
+| `server:diagnose` | `ServerDiagnoseCommand` | Диагностика причины «молчания» proxy/LB-ноды (heartbeat, доступность, iptables, сервис) | root |
 
 > Команды, отмеченные как **опциональные**, условно регистрируются через `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
 
@@ -472,6 +473,18 @@ sudo -u xc_vm /home/xc_vm/console.php monitor <stream_id>
 ```
 
 Запускает стрим вручную и отображает ошибки. Полезно для диагностики проблем запуска стримов.
+
+### Диагностика сервера (ноды)
+
+```bash
+# На MAIN — удалённая проверка ноды по её server id
+sudo /home/xc_vm/console.php server:diagnose <server_id>
+
+# На самой LB/proxy-ноде — локальная самодиагностика (без аргументов)
+sudo /home/xc_vm/console.php server:diagnose
+```
+
+Выясняет, **почему** proxy/LB-нода отображается офлайн в панели: проверяет heartbeat, доступность (ICMP/TCP/HTTP `/api`), расхождение часов, очередь сигналов, а локально на ноде — не заблокировала ли нода IP главного сервера в собственном iptables, запущены ли сервис `xc_vm`/nginx и есть ли `cron:servers` в crontab. Только чтение; код выхода `0` — проблем не найдено, `2` — выведены вероятные причины. Подробности — в [руководстве по диагностике серверов](ru-ru/administration/server-diagnostics.md).
 
 ### SSL-сертификат
 
