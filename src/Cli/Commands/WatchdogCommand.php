@@ -60,7 +60,16 @@ class WatchdogCommand implements CommandInterface {
 		$rWatchdog = json_decode($rServers[SERVER_ID]['watchdog_data'] ?? '{}', true) ?: [];
 		$rCPUAverage = ($rWatchdog['cpu_average_array'] ?? []);
 
-		while (true && $db && $db->ping()) {
+		while (true) {
+			// Survive a MariaDB outage on the main: WAIT for the DB instead of
+			// exiting. A respawned process dies in bootstrap while the DB is
+			// down, which used to break the heartbeat chain on every node
+			// simultaneously until cron:servers revived it a minute later.
+			if (!$db || !$db->ping()) {
+				$this->waitForDatabase($db);
+				break; // respawn with a fresh process now that the DB is back
+			}
+
 			// The heartbeat (last_check_ago) is pure DB — a dead Redis must not
 			// stop it, or every node goes "offline" in the panel whenever the
 			// shared Redis blips. Degrade: skip Redis-dependent stats below.
@@ -179,13 +188,40 @@ class WatchdogCommand implements CommandInterface {
 				echo "Stats updated\n";
 				sleep(2);
 			} else {
-				echo "Failed, break.\n";
+				echo "DB write failed - waiting for database...\n";
+				$this->waitForDatabase($db);
 			}
 			break;
 		}
 
 		$this->restartDaemon('watchdog');
 		return 0;
+	}
+
+	/**
+	 * Block until the panel database accepts connections again.
+	 *
+	 * db_connect(true) returns false instead of exit()ing on failure, so the
+	 * watchdog can sit out a MariaDB restart/outage on the main and resume the
+	 * heartbeat the moment the DB is back, instead of dying and leaving the
+	 * node "offline" until cron:servers revives it.
+	 *
+	 * @param object|null $db The global Database wrapper.
+	 */
+	private function waitForDatabase($db): void {
+		if (!is_object($db)) {
+			return;
+		}
+		echo "Database unavailable - waiting for it to come back...\n";
+		$rAttempt = 0;
+		while (!$db->db_connect(true)) {
+			$rAttempt++;
+			if ($rAttempt % 12 === 0) {
+				echo 'Still waiting for the database (' . ($rAttempt * 5) . "s)...\n";
+			}
+			sleep(5);
+		}
+		echo "Database is back - resuming.\n";
 	}
 
 	/**
