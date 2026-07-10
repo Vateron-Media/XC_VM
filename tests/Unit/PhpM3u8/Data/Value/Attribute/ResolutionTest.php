@@ -25,7 +25,7 @@ class ResolutionTest extends TestCase
         $this->assertEquals($string, (string) $resolution);
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             ['800x600', new Resolution(800, 600)],

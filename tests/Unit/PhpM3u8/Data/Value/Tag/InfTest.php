@@ -25,7 +25,7 @@ class InfTest extends TestCase
         $this->assertEquals($string, (string) $inf);
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             ['0.000,', new Inf(0)],

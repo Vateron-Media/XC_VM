@@ -25,7 +25,7 @@ class ByterangeTest extends TestCase
         $this->assertEquals($string, (string) $byterange);
     }
 
-    public function dataProvider(): array
+    public static function dataProvider(): array
     {
         return [
             ['2000', new Byterange(2000)],

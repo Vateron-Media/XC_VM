@@ -1,37 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
-    defaultTestSuite="XC_VM Unit"
-    bootstrap="bootstrap.php"
-    cacheDirectory=".cache/phpunit"
-    colors="true"
-    failOnRisky="true"
-    failOnWarning="true"
->
-    <testsuites>
-        <testsuite name="XC_VM Unit">
-            <directory>Unit</directory>
-        </testsuite>
-    </testsuites>
-
-    <coverage>
-        <include>
-            <directory suffix=".php">../src/Core</directory>
-            <directory suffix=".php">../src/Domain</directory>
-            <directory suffix=".php">../src/Infrastructure</directory>
-            <directory suffix=".php">../src/Modules</directory>
-            <directory suffix=".php">../src/Streaming</directory>
-            <directory suffix=".php">../src/Cli</directory>
-            <file>../src/autoload.php</file>
-            <file>../src/bootstrap.php</file>
-        </include>
-        <exclude>
-            <directory suffix=".php">../src/Public/Views</directory>
-            <directory suffix=".php">../src/resources</directory>
-            <directory suffix=".php">../src/config</directory>
-            <directory suffix=".php">../src/ministra</directory>
-            <directory suffix=".php">../src/content</directory>
-        </exclude>
-    </coverage>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd" defaultTestSuite="XC_VM Unit" bootstrap="bootstrap.php" cacheDirectory=".cache/phpunit" colors="true" failOnRisky="true" failOnWarning="true">
+  <testsuites>
+    <testsuite name="XC_VM Unit">
+      <directory>Unit</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory suffix=".php">../src/Core</directory>
+      <directory suffix=".php">../src/Domain</directory>
+      <directory suffix=".php">../src/Infrastructure</directory>
+      <directory suffix=".php">../src/Modules</directory>
+      <directory suffix=".php">../src/Streaming</directory>
+      <directory suffix=".php">../src/Cli</directory>
+      <file>../src/autoload.php</file>
+      <file>../src/bootstrap.php</file>
+    </include>
+    <exclude>
+      <directory suffix=".php">../src/Public/Views</directory>
+      <directory suffix=".php">../src/resources</directory>
+      <directory suffix=".php">../src/config</directory>
+      <directory suffix=".php">../src/ministra</directory>
+      <directory suffix=".php">../src/content</directory>
+    </exclude>
+  </source>
 </phpunit>
