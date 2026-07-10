@@ -55,29 +55,34 @@ switch ($rAction) {
 
 		break;
 
+	// Movies and episodes are VOD content and start/stop through the node's
+	// `action=vod` endpoint. The admin UI sends action=movie / action=episode with
+	// a singular stream_id/server_id; other callers use action=vod with
+	// stream_ids[]/servers[]. Accept every combination here (movie/episode used to
+	// fall through to `default` and return an empty 200 — the streams never started).
+	case 'movie':
+	case 'episode':
 	case 'vod':
 		switch ($rSubAction) {
 			case 'start':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
-				$rForce = (RequestManager::getAll()['force'] ?? false);
-				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
-				$rURLs = array();
-
-				foreach ($rServerIDs as $rServerID) {
-					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs, 'force' => $rForce));
-				}
-				CurlClient::getMultiCURL($rURLs);
-				echo json_encode(array('result' => true));
-
-				exit();
-
 			case 'stop':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
-				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rReq = RequestManager::getAll();
+				$rStreamIDs = !empty($rReq['stream_ids'])
+					? array_map('intval', $rReq['stream_ids'])
+					: array(intval($rReq['stream_id'] ?? 0));
+				$rServerID = intval($rReq['server_id'] ?? -1);
+				$rServerIDs = !empty($rReq['servers'])
+					? array_map('intval', $rReq['servers'])
+					: ($rServerID > 0 ? array($rServerID) : array_keys($rAllServers));
+				$rForce = ($rReq['force'] ?? false);
 				$rURLs = array();
 
 				foreach ($rServerIDs as $rServerID) {
-					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => array('function' => $rSubAction, 'stream_ids' => $rStreamIDs));
+					$rPostData = array('function' => $rSubAction, 'stream_ids' => $rStreamIDs);
+					if ($rSubAction === 'start') {
+						$rPostData['force'] = $rForce;
+					}
+					$rURLs[$rServerID] = array('url' => $rAllServers[$rServerID]['api_url_ip'] . '&action=vod', 'postdata' => $rPostData);
 				}
 				CurlClient::getMultiCURL($rURLs);
 				echo json_encode(array('result' => true));
