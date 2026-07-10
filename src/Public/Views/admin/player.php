@@ -59,6 +59,16 @@ if (isset(RequestManager::getAll()['id'])) {
 
             $rURL = $rProtocol . '://' . (($rServers[$rServerID]['domain_name'] ? explode(',', $rServers[$rServerID]['domain_name'])[0] : $rServers[$rServerID]['server_ip'])) . ':' . ((AdminHelpers::issecure() ? $rServers[$rServerID]['https_broadcast_port'] : $rServers[$rServerID]['http_broadcast_port'])) . '/admin/' . ((RequestManager::getAll()['type'] == 'live' ? 'live' : (RequestManager::getAll()['type'] == 'timeshift' ? 'timeshift' : 'vod'))) . '?uitoken=' . $rUIToken . ((RequestManager::getAll()['type'] == 'live' ? '&extension=.m3u8' : ''));
 
+            // canPlayType() rejects made-up MIMEs like video/mkv, so unknown containers
+            // are declared as video/mp4 — the browser sniffs the real container itself.
+            $rMimeMap = array(
+                'mp4'  => 'video/mp4',  'm4v' => 'video/mp4', 'mov' => 'video/mp4',
+                'webm' => 'video/webm', 'ogg' => 'video/ogg', 'ogv' => 'video/ogg',
+            );
+            $rMime = ($streamType === 'hls')
+                ? 'application/x-mpegURL'
+                : ($rMimeMap[strtolower($streamType)] ?? 'video/mp4');
+
 ?>
             <html>
 
@@ -83,7 +93,7 @@ if (isset(RequestManager::getAll()['id'])) {
                 <script>
                     $(document).ready(function() {
                         var rPlayer = videojs("now__playing__player", { autoplay: true, fill: true, liveui: true, controls: true });
-                        rPlayer.src({ src: "<?php echo $rURL; ?>", type: "<?php echo ($streamType === 'hls' ? 'application/x-mpegURL' : 'video/' . $streamType); ?>" });
+                        rPlayer.src({ src: "<?php echo $rURL; ?>", type: "<?php echo $rMime; ?>" });
                     });
                 </script>
             </body>
