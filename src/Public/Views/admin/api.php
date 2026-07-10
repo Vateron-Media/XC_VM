@@ -4063,7 +4063,12 @@ if (isset($_SESSION['hash'])) {
 								if ($rActualStatus == 6) {
 									$rSources = json_decode($rItem['stream_source'], true);
 									$rLeft = count(array_diff($rSources, json_decode($rServerItem['cchannel_rsources'], true)));
-									$rPercent = intval((count($rSources) - $rLeft) / count($rSources) * 100);
+									$rPercent = (count($rSources) - $rLeft) / count($rSources) * 100;
+									$rEncodeInfo = json_decode($rServerItem['progress_info'] ?? '', true);
+									if (0 < $rLeft && isset($rEncodeInfo['cc_encode']['pct'])) {
+										$rPercent += floatval($rEncodeInfo['cc_encode']['pct']) / count($rSources);
+									}
+									$rPercent = intval($rPercent);
 									$rUptime = "<button type='button' class='btn bg-animate-primary btn-xs waves-effect waves-light no-border btn-fixed-xl'>" . $rPercent . '% DONE</button>';
 								} else {
 									$rUptime = $rSearchStatusArray[$rActualStatus];

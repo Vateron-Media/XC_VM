@@ -172,7 +172,7 @@ class ChannelService {
 					} else {
 						$rServerID = intval($rServer['id']);
 						$rStreamsAdded[] = $rServerID;
-						$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
+						$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?? array())));
 
 						if ($rServer['parent'] == 'source') {
 							$rParent = null;
@@ -344,7 +344,7 @@ class ChannelService {
 
 							if (in_array($rData['server_type'], array('ADD', 'SET'))) {
 								$rStreamsAdded[] = $rServerID;
-								$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?: array())));
+								$rOD = intval(in_array($rServerID, ($rData['on_demand'] ?? array())));
 
 								if ($rServer['parent'] == 'source') {
 									$rParent = null;

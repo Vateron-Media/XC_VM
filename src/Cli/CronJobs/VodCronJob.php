@@ -54,8 +54,9 @@ class VodCronJob implements CommandInterface {
             $rStreams = $db->get_rows();
             foreach ($rStreams as $rStream) {
                 echo "\n\n" . '[*] Checking Stream ' . $rStream['stream_display_name'] . "\n";
-                $rPID = intval(file_get_contents(CREATED_PATH . $rStream['id'] . '_.create'));
-                if ($rPID && ProcessChecker::isPIDRunning(SERVER_ID, $rPID, PHP_BIN)) {
+                $rCreateFile = CREATED_PATH . $rStream['id'] . '_.create';
+                $rPID = is_file($rCreateFile) ? intval(file_get_contents($rCreateFile)) : 0;
+                if ($rPID && ProcessChecker::checkPID($rPID, 'XC_VMCreate[' . intval($rStream['id']) . ']')) {
                     echo "\t" . 'Build Is Still Going!' . "\n";
                 } else {
                     $rSourcesLeft = array_diff(json_decode($rStream['stream_source'], true), json_decode($rStream['cchannel_rsources'], true));

@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Streaming\Health\ProcessChecker;
 
 /**
  * QueueCommand — queue command
@@ -102,16 +103,28 @@ class QueueCommand implements CommandInterface {
 						if ($db->query("SELECT `id`, `stream_id` FROM `queue` WHERE `server_id` = ? AND `pid` IS NULL AND `type` = 'channel' ORDER BY `added` ASC LIMIT " . $rFreeSlots . ';', SERVER_ID)) {
 							if ($db->num_rows() > 0) {
 								foreach ($db->get_rows() as $rRow) {
-									if (file_exists(CREATED_PATH . $rRow['stream_id'] . '_.create')) {
-										unlink(CREATED_PATH . $rRow['stream_id'] . '_.create');
+									$rCreateFile = CREATED_PATH . $rRow['stream_id'] . '_.create';
+									// A build for this stream may already be running (e.g. the
+									// queue row was re-added while the previous launch is still
+									// encoding). Killing it and starting over would reset the
+									// build to 0% every time — adopt the live PID instead.
+									$rExistingPID = (file_exists($rCreateFile) ? intval(file_get_contents($rCreateFile)) : 0);
+									if ($rExistingPID && ProcessChecker::checkPID($rExistingPID, 'XC_VMCreate[' . intval($rRow['stream_id']) . ']')) {
+										$db->query('UPDATE `queue` SET `pid` = ? WHERE `id` = ?;', $rExistingPID, $rRow['id']);
+										continue;
+									}
+									if (file_exists($rCreateFile)) {
+										unlink($rCreateFile);
 									}
 									shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php created ' . intval($rRow['stream_id']) . ' >/dev/null 2>/dev/null &');
 									$rPID = null;
-									foreach (range(1, 3) as $i) {
-										if (!file_exists(CREATED_PATH . $rRow['stream_id'] . '_.create')) {
-											usleep(100000);
+									// console.php bootstrap takes well over the old 300ms window;
+									// give the spawned process up to 5s to write its PID file.
+									foreach (range(1, 20) as $i) {
+										if (!file_exists($rCreateFile)) {
+											usleep(250000);
 										} else {
-											$rPID = intval(file_get_contents(CREATED_PATH . $rRow['stream_id'] . '_.create'));
+											$rPID = intval(file_get_contents($rCreateFile));
 											break;
 										}
 									}
