@@ -2298,7 +2298,7 @@ class TableController extends BaseAdminController {
 								if ($rRow["bitrate"] == 0) {
 									$rRow["bitrate"] = "?";
 								}
-								$rDuration = empty($rStreamInfo["duration"]) ? "--" : substr($rStreamInfo["duration"], 0, 5);
+								$rDuration = empty($rStreamInfo["duration"]) ? "--" : $rStreamInfo["duration"];
 								$rStreamInfoText = "<table class='table-data nowrap table-data-120 text-center' align='center'>\r\n\t\t\t\t\t\t\t<tbody>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td class='double'>" . number_format($rRow["bitrate"], 0) . " Kbps</td>\r\n\t\t\t\t\t\t\t\t\t<td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td>\r\n\t\t\t\t\t\t\t\t\t<td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>\r\n\t\t\t\t\t\t\t\t\t<td class='text-success'><i class='mdi mdi-clock' data-name='mdi-clock'></i></td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t\t<tr>\r\n\t\t\t\t\t\t\t\t\t<td class='double'>" . $rStreamInfo["codecs"]["video"]["width"] . " x " . $rStreamInfo["codecs"]["video"]["height"] . "</td>\r\n\t\t\t\t\t\t\t\t\t<td>" . $rStreamInfo["codecs"]["video"]["codec_name"] . "</td>\r\n\t\t\t\t\t\t\t\t\t<td>" . $rStreamInfo["codecs"]["audio"]["codec_name"] . "</td>\r\n\t\t\t\t\t\t\t\t\t<td>" . $rDuration . "</td>\r\n\t\t\t\t\t\t\t\t</tr>\r\n\t\t\t\t\t\t\t</tbody>\r\n\t\t\t\t\t\t</table>";
 							}
 						}
