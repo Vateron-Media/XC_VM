@@ -247,7 +247,7 @@ class StreamProcess {
 						}
 					}
 
-					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
+					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -progress "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress" {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
@@ -695,7 +695,7 @@ class StreamProcess {
 						if ($rStartPos > 0) {
 							$rCCOutput = array();
 							$rCCDuration = array();
-							$rCCInfo = json_decode($rStream['server_info']['cc_info'], true);
+							$rCCInfo = json_decode($rStream['server_info']['cc_info'], true) ?: array();
 
 							foreach ($rCCInfo as $rItem) {
 								$rCCDuration[$rItem['path']] = intval(explode('.', $rItem['seconds'])[0]);
@@ -704,10 +704,14 @@ class StreamProcess {
 							$rValid = true;
 
 							foreach (explode("\n", file_get_contents(CREATED_PATH . $rStreamID . '_.list')) as $rItem) {
-								list($rPath) = explode("'", explode("file '", $rItem)[1]);
+								$rItemParts = explode("file '", $rItem);
+								if (!isset($rItemParts[1])) {
+									continue;
+								}
+								list($rPath) = explode("'", $rItemParts[1]);
 
 								if ($rPath) {
-									if ($rCCDuration[$rPath]) {
+									if (!empty($rCCDuration[$rPath])) {
 										$rDuration = $rCCDuration[$rPath];
 
 										if ($rTimer <= $rStartPos && $rStartPos < $rTimer + $rDuration) {

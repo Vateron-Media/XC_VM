@@ -3,11 +3,11 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Streaming\Codec\FFmpegCommand;
 use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Codec\FFprobeRunner;
-use XcVm\Streaming\Health\ProcessChecker;
 
 /**
  * CreatedCommand — created command
@@ -77,35 +77,84 @@ class CreatedCommand implements CommandInterface {
 		$rSourcesLeft = array_diff($rStreamInfo['stream_source'], $rServerInfo['cchannel_rsources']);
 
 		if (empty($rSourcesLeft) && $rStreamInfo['stream_source'] === $rServerInfo['cchannel_rsources']) {
+			echo 'Nothing to build - all sources are already encoded.' . "\n";
+			@unlink(CREATED_PATH . $rStreamID . '_.create');
 			return 0;
 		}
 
+		$rTotal = count($rStreamInfo['stream_source']);
+		$rDone = $rTotal - count($rSourcesLeft);
+		echo 'Building channel ' . $rStreamID . ' (' . $rStreamInfo['stream_display_name'] . '): ' . count($rSourcesLeft) . ' of ' . $rTotal . ' source(s) left' . "\n";
+
 		foreach ($rSourcesLeft as $rSource) {
 			$rMD5 = md5($rSource);
+			$rProgressFile = CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress';
 
 			if (file_exists(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid')) {
 				$rCurrentPID = intval(file_get_contents(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid'));
 
-				if (ProcessChecker::isPIDRunning(SERVER_ID, $rCurrentPID, FfmpegPaths::cpu())) {
+				if (ProcessManager::isRunning($rCurrentPID, FfmpegPaths::cpu())) {
 					exec('kill -9 ' . $rCurrentPID);
 				}
 			}
-			echo 'Processing source: ' . $rSource . '...' . "\n";
+			@unlink($rProgressFile);
+			echo 'Processing source [' . ($rDone + 1) . '/' . $rTotal . ']: ' . $rSource . '...' . "\n";
+
+			// Source duration (best effort, local sources only) — needed to turn
+			// ffmpeg's out_time into a percentage.
+			if (substr($rSource, 0, 2) == 's:') {
+				$rSplit = explode(':', $rSource, 3);
+				$rProbePath = (intval($rSplit[1]) == SERVER_ID ? $rSplit[2] : null);
+			} else {
+				$rProbePath = $rSource;
+			}
+			$rDuration = 0;
+			if ($rProbePath && ($rProbe = FFprobeRunner::probeStream($rProbePath))) {
+				$rDuration = floatval($rProbe['of_duration'] ?? 0);
+			}
 
 			$rItemPID = FFmpegCommand::createChannelItem($rStreamID, $rSource);
 			$db->close_mysql();
 			if ($rItemPID > 0) {
-				while (ProcessChecker::isPIDRunning(SERVER_ID, $rItemPID, FfmpegPaths::cpu())) {
+				$rLastUpdate = 0;
+				while (ProcessManager::isRunning($rItemPID, FfmpegPaths::cpu())) {
 					sleep(1);
+					if (time() - $rLastUpdate < 10) {
+						continue;
+					}
+					$rLastUpdate = time();
+
+					$rEncode = $this->readEncodeProgress($rProgressFile);
+					$rOutSecs = (isset($rEncode['out_time_us']) ? intval($rEncode['out_time_us']) / 1000000 : 0);
+					$rPct = ($rDuration > 0 ? min(99.9, round($rOutSecs / $rDuration * 100, 1)) : null);
+
+					echo "\t" . 'Encoding ' . gmdate('H:i:s', (int) $rOutSecs)
+						. ($rDuration > 0 ? ' / ' . gmdate('H:i:s', (int) $rDuration) . ' (' . $rPct . '%)' : '')
+						. (isset($rEncode['speed']) ? ' @ ' . $rEncode['speed'] : '') . "\n";
+
+					$db->db_connect();
+					$db->query('UPDATE `streams_servers` SET `progress_info` = ? WHERE `server_stream_id` = ?', json_encode(array('cc_encode' => array(
+						'source'   => $rDone + 1,
+						'total'    => $rTotal,
+						'pct'      => $rPct,
+						'out_time' => gmdate('H:i:s', (int) $rOutSecs),
+						'speed'    => ($rEncode['speed'] ?? null),
+					))), $rServerInfo['server_stream_id']);
+					$db->close_mysql();
 				}
 			}
 			$db->db_connect();
 			@unlink(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.pid');
 			@unlink(CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.errors');
+			@unlink($rProgressFile);
 
+			$rDone++;
+			echo "\t" . 'Source finished (' . $rDone . '/' . $rTotal . ')' . "\n";
 			$rServerInfo['cchannel_rsources'][] = $rSource;
 			$db->query('UPDATE `streams_servers` SET `cchannel_rsources` = ? WHERE `server_stream_id` = ?', json_encode($rServerInfo['cchannel_rsources']), $rServerInfo['server_stream_id']);
 		}
+
+		$db->query("UPDATE `streams_servers` SET `progress_info` = '' WHERE `server_stream_id` = ?", $rServerInfo['server_stream_id']);
 
 		$rOutputList = '';
 		foreach ($rStreamInfo['stream_source'] as $rSource) {
@@ -169,6 +218,36 @@ class CreatedCommand implements CommandInterface {
 		@unlink(CREATED_PATH . $rStreamID . '_.create');
 
 		return 0;
+	}
+
+	/**
+	 * Parse the tail of an ffmpeg -progress file into key => value pairs.
+	 * Later blocks overwrite earlier keys, so the result reflects the
+	 * most recent progress snapshot.
+	 */
+	private function readEncodeProgress(string $rFile): array {
+		if (!is_file($rFile)) {
+			return array();
+		}
+
+		$rHandle = @fopen($rFile, 'r');
+		if (!$rHandle) {
+			return array();
+		}
+		if (filesize($rFile) > 4096) {
+			fseek($rHandle, -4096, SEEK_END);
+		}
+		$rTail = stream_get_contents($rHandle);
+		fclose($rHandle);
+
+		$rOutput = array();
+		foreach (array_filter(array_map('trim', explode("\n", (string) $rTail))) as $rRow) {
+			$rParts = explode('=', $rRow, 2);
+			if (count($rParts) == 2) {
+				$rOutput[trim($rParts[0])] = trim($rParts[1]);
+			}
+		}
+		return $rOutput;
 	}
 
 	private function checkRunning($rStreamID): void {

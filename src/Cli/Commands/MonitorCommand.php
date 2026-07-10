@@ -463,7 +463,10 @@ class MonitorCommand implements CommandInterface {
 			if ((0 < $rStreamInfo['parent_id']) && SettingsManager::getAll()['php_loopback']) {
 				goto label1127;
 			}
-			if ((0 < $rStreamInfo['llod']) && $rStreamInfo['on_demand'] && $rFirstRun) {
+			// LLOD/on-demand shortcut is for regular live streams only: created
+			// channels (type 3) must always start through the concat playlist
+			// path below — LLOD cannot consume raw "s:<server>:<path>" sources.
+			if ((0 < $rStreamInfo['llod']) && $rStreamInfo['on_demand'] && $rFirstRun && $rStreamInfo['type'] != 3) {
 				goto label933;
 			}
 			if ($rStreamInfo['type'] == 3) {
@@ -474,6 +477,10 @@ class MonitorCommand implements CommandInterface {
 					}
 				}
 				$rData = StreamProcess::startStream($rStreamID, false, $rForceSource, false, $rOffset);
+				// Without this jump execution would fall through into label933
+				// and start LLOD/a second ffmpeg on top of the stream launched
+				// above (the non-type-3 branch below has the same jump).
+				goto label644;
 				label933:
 				if ($rStreamInfo['llod'] == 1) {
 					goto label1512;
