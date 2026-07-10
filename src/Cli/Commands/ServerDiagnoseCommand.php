@@ -3,6 +3,9 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\CronJobs\ServersCronJob;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
@@ -20,7 +23,10 @@ use XcVm\Domain\Server\ServerRepository;
  *     the causes usually live here. Checks the node's own view from the panel DB,
  *     whether it can reach the MAIN, whether the node firewalled the main's IP in
  *     its own iptables (the classic "silent for no reason"), and whether its
- *     service / nginx / reporting cron are actually up.
+ *     service / nginx / watchdog heartbeat daemon / babysitter cron are up.
+ *     (The heartbeat is written by the `watchdog` DAEMON every few seconds — it
+ *     exits when its DB connection drops; `cron:servers` in the xc_vm crontab
+ *     relaunches it. A MySQL blip on the main therefore drops ALL nodes at once.)
  *
  * Read-only: only ping/curl/fsockopen, `SELECT`s, and `sudo -n iptables -nL`.
  *
@@ -105,7 +111,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 		} elseif ($rTcp === true && !$rHttpOk) {
 			$rProblems[] = "Port {$rPort} is open but /api did not answer (" . ($rCode ? "HTTP {$rCode}" : $rCurlErr) . "): nginx is up but PHP/the app is not responding — check php-fpm on the node.";
 		} elseif ($rHttpOk && $rBeatStale) {
-			$rProblems[] = "The node answers /api yet its heartbeat is stale: it reaches the main but its own cron:servers is not running or cannot WRITE to the panel DB.";
+			$rProblems[] = "The node answers /api yet its heartbeat is stale: its watchdog daemon (the heartbeat writer) is not running — it exits when its DB connection to the main drops — or it cannot WRITE to the panel DB. Run `server:diagnose` ON the node.";
 		}
 
 		$this->clockSection($rServer, $rProblems);
@@ -118,7 +124,6 @@ class ServerDiagnoseCommand implements CommandInterface {
 	// ─────────────────────────────────────────────────────────────────────────
 	private function diagnoseLocal(array $rMe, array $rMeRow): int {
 		// Note: $rMe is the full server map; $rMeRow is this node's row.
-		global $db;
 		$rServers = $rMe;
 		$rMe      = $rMeRow;
 		$rNow     = time();
@@ -170,14 +175,50 @@ class ServerDiagnoseCommand implements CommandInterface {
 			$rProblems[] = "nginx is not listening on {$rMyPort} locally — `sudo " . BIN_PATH . "nginx/sbin/nginx -t` then restart the service.";
 		}
 
-		// 5. Reporting cron present? (updates the heartbeat the main watches)
-		$rCronOk = $this->crontabHas('cron:servers');
-		$this->line('cron:servers', $rCronOk ? 'in crontab' : 'MISSING from crontab', $rCronOk);
-		if (!$rCronOk) {
-			$rProblems[] = 'cron:servers is not in this node\'s crontab — the heartbeat never refreshes, so the main always sees it offline. Re-run `console.php startup`.';
+		// 5. The heartbeat writer: the watchdog daemon self-respawns every few
+		// seconds via `(sleep 1; console.php 'watchdog') &`, so a single pgrep
+		// can land in the ~1s window where only the sleeping subshell exists.
+		// Match the quoted subshell form ('?) AND re-sample across a full
+		// respawn cycle before declaring the chain dead.
+		$rWatchdogPattern = "XC_VM\\[Watchdog\\]|console\\.php '?watchdog";
+		$rWatchdog = $this->processRunning($rWatchdogPattern);
+		for ($rTry = 0; $rTry < 3 && !$rWatchdog; $rTry++) {
+			sleep(1);
+			$rWatchdog = $this->processRunning($rWatchdogPattern);
+		}
+		$this->line('watchdog daemon', $rWatchdog ? 'running' : 'NOT running', $rWatchdog);
+		if (!$rWatchdog) {
+			$rProblems[] = 'The watchdog daemon — the process that writes this node\'s heartbeat — is not running (killed/OOM, or an older build that died when the MySQL connection dropped; current builds wait the outage out). cron:servers relaunches it within a minute; start it now: `sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php watchdog`.';
 		}
 
-		// 6. Clock.
+		// 6. The babysitter cron: relaunches the watchdog if it died.
+		$rCronOk = $this->crontabHas('cron:servers');
+		$this->line('cron:servers', $rCronOk ? 'in xc_vm crontab' : 'MISSING from xc_vm crontab', $rCronOk);
+		if (!$rCronOk) {
+			$rProblems[] = 'cron:servers is missing from the xc_vm user\'s crontab — nothing relaunches the watchdog (heartbeat writer) when it dies. Regenerate it: `rm -f ' . TMP_PATH . 'crontab` then run any console command or restart the service.';
+		}
+
+		// 6b. The cron daemon itself: no cron → the xc_vm crontab never fires.
+		$rCronSvc = $this->svcActive('cron') || $this->svcActive('crond') || $this->svcActive('cronie');
+		$this->line('cron service', $rCronSvc ? 'active' : 'NOT active', $rCronSvc);
+		if (!$rCronSvc) {
+			$rProblems[] = 'The system cron service is not running — the xc_vm crontab (including cron:servers) never fires, so a dead watchdog stays dead. `sudo systemctl start cron`.';
+		}
+
+		// 6c. A hung cron:servers holds its lock and blocks every relaunch for up
+		// to 30 min (ProcessManager::acquireCronLock stale timeout is 1800s).
+		$rLock = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass'] ?? '') . ServersCronJob::class);
+		if (file_exists($rLock)) {
+			$rLockPID = intval(trim((string) @file_get_contents($rLock)));
+			$rLockAge = time() - filemtime($rLock);
+			$rHung    = $rLockPID > 0 && file_exists('/proc/' . $rLockPID) && $rLockAge > 120;
+			$this->line('servers cron lock', "held by PID {$rLockPID} for {$rLockAge}s", !$rHung);
+			if ($rHung) {
+				$rProblems[] = "A cron:servers instance (PID {$rLockPID}) has been holding its cron lock for {$rLockAge}s — it is hung (likely since the same DB/network blip that killed the watchdog) and blocks every babysitter run for up to 30 minutes. Kill it: `sudo kill -9 {$rLockPID}`; the next cron minute will relaunch the watchdog.";
+			}
+		}
+
+		// 7. Clock.
 		$this->clockSection($rMe, $rProblems);
 
 		return $this->summary($rProblems);
@@ -310,13 +351,26 @@ class ServerDiagnoseCommand implements CommandInterface {
 	}
 
 	private function crontabHas(string $rNeedle): bool {
+		// Panel crons live in the xc_vm USER's crontab (LegacyInitializer::generateCron),
+		// not root's. `-u xc_vm` needs root; fall back to the caller's own crontab.
 		$rOut = array();
 		$rCode = 1;
-		exec('crontab -l 2>/dev/null', $rOut, $rCode);
+		exec('crontab -u xc_vm -l 2>/dev/null', $rOut, $rCode);
+		if ($rCode !== 0) {
+			exec('crontab -l 2>/dev/null', $rOut, $rCode);
+		}
 		if ($rCode !== 0) {
 			return true; // cannot read crontab → do not raise a false alarm
 		}
 		return strpos(implode("\n", $rOut), $rNeedle) !== false;
+	}
+
+	/** Whether a process whose command line matches the ERE $rPattern is running. */
+	private function processRunning(string $rPattern): bool {
+		$rOut = array();
+		$rCode = 1;
+		exec('pgrep -f ' . escapeshellarg($rPattern) . ' 2>/dev/null', $rOut, $rCode);
+		return $rCode === 0 && count($rOut) > 0;
 	}
 
 	/** One aligned status line: "[OK]/[WARN] <label> <value>". */
