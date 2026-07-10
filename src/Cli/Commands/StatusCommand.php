@@ -309,7 +309,7 @@ class StatusCommand implements CommandInterface {
 		// \XC_VM::redis_connect() reads its credentials from config.enc only —
 		// without this sync a rotated requirepass leaves the stored auth stale
 		// and every panel Redis connection fails with NOAUTH.
-		if (method_exists('\XC_VM', 'config_set_redis')) {
+		if (method_exists('XC_VM', 'config_set_redis')) {
 			if (!\XC_VM::config_set_redis('127.0.0.1', 6379, $rPassword)) {
 				echo "WARNING: failed to sync the Redis password into config.enc\n";
 			}
