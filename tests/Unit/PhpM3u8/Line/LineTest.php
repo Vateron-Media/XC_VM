@@ -33,7 +33,7 @@ class LineTest extends TestCase
         $this->assertEquals($string, (string) $line);
     }
 
-    public function stringTransformationSamples(): array
+    public static function stringTransformationSamples(): array
     {
         return [
             ['#foo:bar', null],
@@ -52,7 +52,7 @@ class LineTest extends TestCase
         $this->assertTrue($line->isType($type));
     }
 
-    public function typeSamples(): array
+    public static function typeSamples(): array
     {
         return [
             [new Line('foo', 'bar'), Line::TYPE_TAG],

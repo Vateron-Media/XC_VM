@@ -201,10 +201,11 @@ class AdminHelpers {
 	 * @return string e.g. "02d 03h 04m" or "03h 04m 05s".
 	 */
 	public static function formatUptime($rUptime) {
+		$rUptime = (int) $rUptime;
 		if (86400 <= $rUptime) {
-			$rUptime = sprintf('%02dd %02dh %02dm', $rUptime / 86400, ($rUptime / 3600) % 24, ($rUptime / 60) % 60);
+			$rUptime = sprintf('%02dd %02dh %02dm', intdiv($rUptime, 86400), intdiv($rUptime, 3600) % 24, intdiv($rUptime, 60) % 60);
 		} else {
-			$rUptime = sprintf('%02dh %02dm %02ds', $rUptime / 3600, ($rUptime / 60) % 60, $rUptime % 60);
+			$rUptime = sprintf('%02dh %02dm %02ds', intdiv($rUptime, 3600), intdiv($rUptime, 60) % 60, $rUptime % 60);
 		}
 
 		return $rUptime;
