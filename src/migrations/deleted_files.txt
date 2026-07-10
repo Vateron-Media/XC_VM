@@ -1,16 +1,4 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.3.4..HEAD
+# Auto-generated from: git diff 2.3.5..HEAD
 # One file per line. Lines starting with # are comments.
 #
-Public/Controllers/Admin/AdminPlexController.php
-Public/Controllers/Admin/AdminWatchController.php
-Public/Controllers/Admin/SettingsWatchController.php
-Public/Controllers/Admin/WatchAddController.php
-Public/Controllers/Admin/WatchOutputController.php
-Public/Views/admin/plex.php
-Public/Views/admin/plex_add.php
-Public/Views/admin/settings_plex.php
-Public/Views/admin/settings_watch.php
-Public/Views/admin/watch.php
-Public/Views/admin/watch_add.php
-Public/Views/admin/watch_output.php
