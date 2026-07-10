@@ -226,7 +226,10 @@ class SystemInfo {
         $rReturn = array();
         $rID = 0;
         try {
-            $rDevices = array_values(array_filter(explode("\n", @shell_exec('v4l2-ctl --list-devices') ?? '')));
+            // 2>/dev/null: with no camera present v4l2-ctl prints
+            // "Cannot open device /dev/video0, exiting." to stderr, polluting
+            // the output of every command that collects stats (watchdog, crons).
+            $rDevices = array_values(array_filter(explode("\n", @shell_exec('v4l2-ctl --list-devices 2>/dev/null') ?? '')));
             if (is_array($rDevices)) {
                 foreach ($rDevices as $rKey => $rValue) {
                     if ($rKey % 2 == 0) {
