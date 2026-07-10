@@ -493,20 +493,71 @@ class ProcessManager {
     }
 
     /**
-     * Check if nginx master process is running under xc_vm user
+     * Check if an nginx master process is running.
      *
      * Replaces CoreUtilities::isRunning().
+     *
+     * The master is owned by root on typical installs (workers run as
+     * xc_vm), so the scan must not be restricted to the xc_vm user —
+     * a false negative here makes cron:servers/cron:streams bail out
+     * every run and no daemon ever gets revived.
      *
      * @return bool
      */
     public static function isNginxRunning() {
-        $rOutput = [];
-        @exec('pgrep -u xc_vm -a 2>/dev/null', $rOutput);
-        foreach ($rOutput as $rProcess) {
-            if (preg_match('/nginx:\s+master/', $rProcess)) {
+        foreach (glob('/proc/*/cmdline') ?: [] as $rCmdFile) {
+            $rRaw = @file_get_contents($rCmdFile);
+            if ($rRaw && strpos(str_replace("\0", ' ', $rRaw), 'nginx: master') !== false) {
                 return true;
             }
         }
         return false;
+    }
+
+    /**
+     * Find PIDs of processes whose command line contains one of the given
+     * substrings. Reads /proc directly instead of ps|grep pipelines, which
+     * match unrelated processes (e.g. ffmpeg's -thread_queue_size satisfied
+     * the "queue" daemon check, so the encode queue was never revived).
+     *
+     * @param array $rTerms Cmdline substrings to match (exact, case-sensitive)
+     * @param int   $rLimit Stop after this many matches (0 = no limit)
+     * @return array<int> Matching PIDs (own PID excluded)
+     */
+    public static function findProcessPIDs(array $rTerms, $rLimit = 0) {
+        $rPIDs = array();
+        $rSelf = getmypid();
+        foreach (glob('/proc/[0-9]*/cmdline') ?: [] as $rCmdFile) {
+            $rPID = intval(basename(dirname($rCmdFile)));
+            if ($rPID == $rSelf) {
+                continue;
+            }
+            $rRaw = @file_get_contents($rCmdFile);
+            if (!$rRaw) {
+                continue;
+            }
+            $rCmd = str_replace("\0", ' ', $rRaw);
+            foreach ($rTerms as $rTerm) {
+                if (strpos($rCmd, $rTerm) !== false) {
+                    $rPIDs[] = $rPID;
+                    if ($rLimit > 0 && count($rPIDs) >= $rLimit) {
+                        return $rPIDs;
+                    }
+                    break;
+                }
+            }
+        }
+        return $rPIDs;
+    }
+
+    /**
+     * Check whether any process (any user) matches one of the given
+     * cmdline substrings.
+     *
+     * @param array $rTerms Cmdline substrings to match
+     * @return bool
+     */
+    public static function isAnyProcessRunning(array $rTerms) {
+        return count(self::findProcessPIDs($rTerms, 1)) > 0;
     }
 }
