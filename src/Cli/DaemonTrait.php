@@ -117,7 +117,23 @@ trait DaemonTrait {
 		if (is_object($db)) {
 			$db->close_mysql();
 		}
-		@shell_exec('(sleep 1; ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . escapeshellarg($rCommandName) . ') > /dev/null 2>/dev/null &');
+		// Release the daemon flock BEFORE spawning the successor: the spawned
+		// shell (and the next generation) inherit this process's open fds, so
+		// an inherited still-held lock makes the successor fail its own
+		// acquireDaemonLock with "lock busy" — the respawn chain then dies
+		// after every single pass and the heartbeat only refreshes when
+		// cron:servers revives it once a minute.
+		if (isset($this->rDaemonLockHandle) && is_resource($this->rDaemonLockHandle)) {
+			@flock($this->rDaemonLockHandle, LOCK_UN);
+			@fclose($this->rDaemonLockHandle);
+			$this->rDaemonLockHandle = null;
+		}
+		// `>` (truncate) — the log always holds ONLY the last generation's
+		// output, so when the respawn chain dies its final words survive in
+		// tmp/daemon_<name>.log without the file ever growing.
+		$rLog = (defined('TMP_PATH') ? TMP_PATH : MAIN_HOME . 'tmp/')
+			. 'daemon_' . preg_replace('/[^a-z0-9_\-]/i', '_', $rCommandName) . '.log';
+		@shell_exec('(sleep 1; ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php ' . escapeshellarg($rCommandName) . ') > ' . escapeshellarg($rLog) . ' 2>&1 &');
 	}
 
 	/**
