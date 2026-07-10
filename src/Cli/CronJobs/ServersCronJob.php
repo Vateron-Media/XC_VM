@@ -77,64 +77,55 @@ class ServersCronJob implements CommandInterface {
             }
         }
 
-        $rSignals = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "signals|\XC_VM\\[Signals\\]" | grep -v grep | grep -v pgrep | wc -l')));
-        if ($rSignals == 0) {
+        // Daemon liveness checks read /proc via ProcessManager: the old
+        // "ps | grep <word>" pipelines matched unrelated processes — e.g.
+        // ffmpeg's -thread_queue_size satisfied the "queue" check, so the
+        // encode queue daemon was never revived while any stream was up.
+        if (!ProcessManager::isAnyProcessRunning(array('XC_VM[Signals]', 'console.php signals'))) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php signals > /dev/null 2>/dev/null &');
         }
 
         if ($rServers[SERVER_ID]['is_main']) {
-            $rCache = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "cache_handler|\XC_VM\\[CacheHandler\\]" | grep -v grep | grep -v pgrep | wc -l')));
-            if (SettingsManager::getAll()['enable_cache'] && $rCache == 0) {
+            $rCachePIDs = ProcessManager::findProcessPIDs(array('XC_VM[CacheHandler]', 'console.php cache_handler'));
+            if (SettingsManager::getAll()['enable_cache'] && count($rCachePIDs) == 0) {
                 shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cache_handler > /dev/null 2>/dev/null &');
-            } elseif (!SettingsManager::getAll()['enable_cache'] && $rCache > 0) {
+            } elseif (!SettingsManager::getAll()['enable_cache'] && count($rCachePIDs) > 0) {
                 echo 'Killing Cache Handler' . "\n";
-                exec("pgrep -U xc_vm | xargs ps | grep -E 'cache_handler|\XC_VM\\[CacheHandler\\]' | awk '{print \$1}'", $rPIDs);
-                foreach ($rPIDs as $rPID) {
-                    if (intval($rPID) > 0) {
-                        shell_exec('kill -9 ' . intval($rPID));
-                    }
+                foreach ($rCachePIDs as $rPID) {
+                    shell_exec('kill -9 ' . intval($rPID));
                 }
             }
         }
 
-        $rNetwork = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep network | grep -v grep | grep -v pgrep | wc -l')));
-        if ($rNetwork == 0) {
+        if (!ProcessManager::isAnyProcessRunning(array(BIN_PATH . 'network'))) {
             shell_exec(BIN_PATH . 'network > /dev/null 2>/dev/null &');
         }
 
-        $rWatchdog = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "watchdog|\XC_VM\\[Watchdog\\]" | grep -v grep | grep -v pgrep | wc -l')));
-        if ($rWatchdog == 0) {
+        if (!ProcessManager::isAnyProcessRunning(array('XC_VM[Watchdog]', 'console.php watchdog'))) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php watchdog > /dev/null 2>/dev/null &');
         }
 
-        $rQueue = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep -E "queue|\XC_VM\\[Queue\\]" | grep -v grep | grep -v pgrep | wc -l')));
-        if ($rQueue == 0) {
+        if (!ProcessManager::isAnyProcessRunning(array('XC_VM[Queue]', 'console.php queue'))) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php queue > /dev/null 2>/dev/null &');
         }
 
-        $rOnDemand = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep ondemand | grep -v grep | grep -v pgrep | wc -l')));
-        if (SettingsManager::getAll()['on_demand_instant_off'] && $rOnDemand == 0) {
+        $rOnDemandPIDs = ProcessManager::findProcessPIDs(array('console.php ondemand'));
+        if (SettingsManager::getAll()['on_demand_instant_off'] && count($rOnDemandPIDs) == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php ondemand > /dev/null 2>/dev/null &');
-        } elseif (!SettingsManager::getAll()['on_demand_instant_off'] && $rOnDemand > 0) {
+        } elseif (!SettingsManager::getAll()['on_demand_instant_off'] && count($rOnDemandPIDs) > 0) {
             echo 'Killing On-Demand Instant-Off' . "\n";
-            exec("pgrep -U xc_vm | xargs ps | grep ondemand | awk '{print \$1}'", $rPIDs);
-            foreach ($rPIDs as $rPID) {
-                if (intval($rPID) > 0) {
-                    shell_exec('kill -9 ' . intval($rPID));
-                }
+            foreach ($rOnDemandPIDs as $rPID) {
+                shell_exec('kill -9 ' . intval($rPID));
             }
         }
 
-        $rScanner = intval(trim(shell_exec('pgrep -U xc_vm | xargs ps -f -p | grep scanner | grep -v grep | grep -v pgrep | wc -l')));
-        if (SettingsManager::getAll()['on_demand_checker'] && $rScanner == 0) {
+        $rScannerPIDs = ProcessManager::findProcessPIDs(array('XC_VM[Scanner]', 'console.php scanner'));
+        if (SettingsManager::getAll()['on_demand_checker'] && count($rScannerPIDs) == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php scanner > /dev/null 2>/dev/null &');
-        } elseif (!SettingsManager::getAll()['on_demand_checker'] && $rScanner > 0) {
+        } elseif (!SettingsManager::getAll()['on_demand_checker'] && count($rScannerPIDs) > 0) {
             echo 'Killing On-Demand Scanner' . "\n";
-            exec("pgrep -U xc_vm | xargs ps | grep scanner | awk '{print \$1}'", $rPIDs);
-            foreach ($rPIDs as $rPID) {
-                if (intval($rPID) > 0) {
-                    shell_exec('kill -9 ' . intval($rPID));
-                }
+            foreach ($rScannerPIDs as $rPID) {
+                shell_exec('kill -9 ' . intval($rPID));
             }
         }
 
