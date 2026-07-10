@@ -19,6 +19,21 @@ on:
         required: true
       TELEGRAM_TOPIC_ID:
         required: true
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.2.3)'
+        required: true
+        type: string
+      release_name:
+        description: 'Release name shown in the message'
+        required: true
+        type: string
+      is_prerelease:
+        description: 'Mark as prerelease (BETA badge)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   notify-telegram:
