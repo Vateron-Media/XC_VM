@@ -16,7 +16,7 @@ The console supports three types of commands:
 
 | Type | Count | Description |
 | --- | --- | --- |
-| **Commands** | 27 | One-time operations (update, status, tools, etc.) |
+| **Commands** | 28 | One-time operations (update, status, tools, etc.) |
 | **CronJobs** | 25 | Scheduled tasks (auto-invoked by crontab) |
 | **Daemons** | 8 | Long-running background processes (Commands using `DaemonTrait`) |
 
@@ -50,6 +50,7 @@ To see all available commands:
 | `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |
 | `db:migrate` | `DbMigrateCommand` | Apply pending database migrations from the `migrations/` directory | xc_vm |
 | `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
+| `server:diagnose` | `ServerDiagnoseCommand` | Diagnose why a proxy/LB node is silent to the main (heartbeat, reachability, iptables, service) | root |
 
 > Commands marked **optional** are conditionally registered via `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
 
@@ -472,6 +473,18 @@ sudo -u xc_vm /home/xc_vm/console.php monitor <stream_id>
 ```
 
 Starts a stream manually and displays any errors. Useful for diagnosing stream startup failures.
+
+### Server (Node) Diagnostics
+
+```bash
+# On the MAIN — remote-probe a node by its server id
+sudo /home/xc_vm/console.php server:diagnose <server_id>
+
+# On the LB/proxy node itself — local self-diagnosis (no arguments)
+sudo /home/xc_vm/console.php server:diagnose
+```
+
+Finds out **why** a proxy/LB node shows offline in the panel: checks the heartbeat, reachability (ICMP/TCP/HTTP `/api`), clock skew, the signal queue, and — locally on the node — whether the node firewalled the main's IP in its own iptables, whether the `xc_vm` service/nginx are up, and whether `cron:servers` is in the crontab. Read-only; exit code `0` = no problems found, `2` = probable causes printed. See the [Server Diagnostics guide](en-us/administration/server-diagnostics.md) for details.
 
 ### SSL Certificate
 
