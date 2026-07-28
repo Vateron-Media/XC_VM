@@ -1,0 +1,27 @@
+name: Add to project board
+
+# Auto-adds newly opened issues and pull requests to the org Kanban board
+# (https://github.com/orgs/Vateron-Media/projects/5) so nothing skips triage.
+#
+# Requires a repo/org secret ADD_TO_PROJECT_PAT — a token with write access to
+# Projects v2: classic PAT with `project` + `repo` scopes, OR a fine-grained PAT
+# with organization "Projects: read and write". The default GITHUB_TOKEN cannot
+# write to org-level Projects v2, so a dedicated token is mandatory.
+
+on:
+  issues:
+    types: [opened, reopened, transferred]
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions: {}
+
+jobs:
+  add-to-project:
+    name: Add issue/PR to board
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/Vateron-Media/projects/5
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
