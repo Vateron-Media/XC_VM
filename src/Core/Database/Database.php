@@ -129,8 +129,33 @@ class Database {
 
 		$this->dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 		$this->connected = true;
+		$this->applySessionTimeouts();
 
 		return true;
+	}
+
+	/**
+	 * Force a short session idle-timeout so orphaned connections self-expire.
+	 *
+	 * A worker killed with SIGKILL (or OOM) cannot close its socket, leaving the
+	 * connection idle on MASTER for the global wait_timeout (8h). Capping the
+	 * *session* wait_timeout at 60s means any orphan is reaped within a minute.
+	 * This only counts idle time between queries — long-running queries are not
+	 * affected. A daemon idle > 60s gets 'gone away' on its next query, which
+	 * DatabaseHandler::query() transparently recovers via reconnect-on-failure.
+	 *
+	 * @return void
+	 */
+	protected function applySessionTimeouts() {
+		if (!$this->dbh) {
+			return;
+		}
+
+		try {
+			$this->dbh->exec('SET SESSION wait_timeout=60, interactive_timeout=60');
+		} catch (\Exception $e) {
+			// Non-fatal: a missing idle cap is a degradation, not a failure.
+		}
 	}
 
 	/**
@@ -156,6 +181,7 @@ class Database {
 
 		$this->dbh->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 		$this->connected = true;
+		$this->applySessionTimeouts();
 
 		return true;
 	}
@@ -186,6 +212,10 @@ class Database {
 	 * @param mixed  $buffered First bind value, or boolean true to disable
 	 *                         buffered query mode (legacy positional overload;
 	 *                         all args from index 1 are collected as binds).
+	 *                         NOTE: because `=== true` toggles unbuffered mode,
+	 *                         a literal boolean true cannot be bound as the first
+	 *                         parameter. This ambiguous overload is a candidate
+	 *                         for extraction into a dedicated unbuffered_query().
 	 * @return bool True on success, false on failure.
 	 */
 	public function query($query, $buffered = false) {
@@ -232,6 +262,12 @@ class Database {
 			FileLogger::log('pdo', $e->getMessage(), $actual_query, (int) $e->getLine());
 
 			return false;
+		} finally {
+			// Restore buffered mode so the next query on this connection is not
+			// left in a sticky unbuffered state ('Commands out of sync').
+			if ($buffered === true) {
+				$this->dbh->setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, true);
+			}
 		}
 
 		$this->lastError = '';
@@ -361,7 +397,9 @@ class Database {
 	public function get_column() {
 		$col = [];
 		if ($this->result) {
-			while ($val = $this->result->fetchColumn(0)) {
+			// fetchColumn() returns false only when the rowset is exhausted;
+			// compare strictly so falsy values (0, '', '0') are not truncated.
+			while (($val = $this->result->fetchColumn(0)) !== false) {
 				$col[] = $val;
 			}
 			$this->result->closeCursor();

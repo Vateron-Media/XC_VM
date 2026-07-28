@@ -109,7 +109,7 @@ class ServersCronJob implements CommandInterface {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php queue > /dev/null 2>/dev/null &');
         }
 
-        $rOnDemandPIDs = ProcessManager::findProcessPIDs(array('console.php ondemand'));
+        $rOnDemandPIDs = ProcessManager::findProcessPIDs(array('XC_VM[Ondemand]', 'console.php ondemand'));
         if (SettingsManager::getAll()['on_demand_instant_off'] && count($rOnDemandPIDs) == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php ondemand > /dev/null 2>/dev/null &');
         } elseif (!SettingsManager::getAll()['on_demand_instant_off'] && count($rOnDemandPIDs) > 0) {
