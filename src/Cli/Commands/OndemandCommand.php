@@ -38,9 +38,21 @@ class OndemandCommand implements CommandInterface {
 
 		set_time_limit(0);
 
+		// Distinctive process title so singleton checks can actually find this
+		// daemon. Without it the process runs under the generic 'XC_VM[Console]'
+		// title (bootstrap.php), so both the self-dedupe below and
+		// ServersCronJob's liveness check miss it and spawn a new
+		// connection-holding daemon on every tick — exhausting max_connections.
+		cli_set_process_title('XC_VM[Ondemand]');
+
 		global $db;
 
-		shell_exec('kill -9 $(ps aux | grep -E "ondemand\.php" | grep -v grep | grep -v ' . getmypid() . ' | awk \'{print $2}\')');
+		// Kill any OTHER running ondemand instance (dedupe). findProcessPIDs()
+		// skips our own PID and matches both the retitled process and the raw
+		// command line (covers the window before a sibling sets its title).
+		foreach (ProcessManager::findProcessPIDs(array('XC_VM[Ondemand]', 'console.php ondemand')) as $rOtherPID) {
+			@posix_kill($rOtherPID, 9);
+		}
 
 		if (!SettingsManager::getAll()['on_demand_instant_off']) {
 			echo 'On-Demand - Instant Off setting is disabled.' . "\n";
