@@ -1,0 +1,106 @@
+name: Production Incident
+description: Track a production incident (outage, degradation) and its postmortem
+title: "[INCIDENT]: "
+labels: [incident, "awaiting triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Production incident
+        Use this for a live or recent production incident (outage, degradation, data risk).
+        Fill what you know now — the timeline and root cause can be completed later.
+        After resolution, link a postmortem in `docs/ru/development/postmortems/`.
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      description: Impact level of the incident.
+      options:
+        - "SEV1 — full outage / data loss / security breach"
+        - "SEV2 — major degradation, many users affected"
+        - "SEV3 — partial degradation, workaround exists"
+        - "SEV4 — minor / internal only"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: status
+    attributes:
+      label: Status
+      description: Current state of the incident.
+      options:
+        - "Investigating"
+        - "Identified"
+        - "Mitigated"
+        - "Resolved"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: products
+    attributes:
+      label: Affected products
+      options:
+        - label: "XC_VM panel (MAIN)"
+        - label: "Load Balancer nodes"
+        - label: "Binaries / installer"
+        - label: "Marketplace modules"
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: Symptom
+      description: What is observed? Include the exact error clients/operators see.
+      placeholder: "e.g. clients get {\"error\":\"MySQL: Too many connections\"}"
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact
+      description: Who/what is affected and how much (scope, duration so far).
+    validations:
+      required: true
+
+  - type: textarea
+    id: detection
+    attributes:
+      label: Detection
+      description: How was this found? (alert, client report, monitoring, manual)
+    validations:
+      required: true
+
+  - type: textarea
+    id: timeline
+    attributes:
+      label: Timeline
+      description: Timestamped key events (detection, mitigation, resolution).
+      placeholder: |
+        2026-07-28 18:00 — first client reports
+        2026-07-28 18:20 — 600/600 connections confirmed on MASTER
+        2026-07-28 19:30 — duplicates killed, connections back to normal
+      render: text
+
+  - type: textarea
+    id: root_cause
+    attributes:
+      label: Root cause
+      description: The confirmed underlying cause (fill once known).
+
+  - type: textarea
+    id: resolution
+    attributes:
+      label: Resolution / mitigation
+      description: What restored service and what fixes the root cause.
+
+  - type: textarea
+    id: followups
+    attributes:
+      label: Follow-up actions
+      description: Checklist of preventive work; link separate issues where relevant.
+      placeholder: |
+        - [ ] Regression test for the root cause (#___)
+        - [ ] Alert on the leading indicator (#___)
+        - [ ] Postmortem written and linked
