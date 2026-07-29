@@ -73,6 +73,37 @@ class NavbarRegistry {
     }
 
     /**
+     * Collapse dividers in an already visibility-filtered item list.
+     *
+     * Removes leading and trailing dividers and squashes consecutive ones
+     * into a single divider. Used when rendering flat dropdowns (e.g. the
+     * admin profile menu) whose items — core and module — may be hidden by
+     * permission checks, which would otherwise leave orphan separators.
+     *
+     * @param NavbarItem[] $items Visible items in render order
+     * @return NavbarItem[] Items with orphan dividers removed
+     */
+    public static function collapseDividers(array $items): array {
+        $result = [];
+        $prevDivider = true; // treat the start as a divider so a leading one drops
+        foreach ($items as $item) {
+            if ($item->divider) {
+                if ($prevDivider) {
+                    continue;
+                }
+                $prevDivider = true;
+            } else {
+                $prevDivider = false;
+            }
+            $result[] = $item;
+        }
+        while (!empty($result) && end($result)->divider) {
+            array_pop($result);
+        }
+        return $result;
+    }
+
+    /**
      * Reset the registry by clearing all registered items.
      *
      * Primarily useful for unit testing to ensure a clean state

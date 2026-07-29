@@ -82,6 +82,43 @@ if (count(get_included_files()) != 1 || TRUE):
                         </div>
 
                         <?php if (!isset($_SETUP)): ?>
+                            <?php
+                            /**
+                             * Shared navbar helpers, defined once before both the profile
+                             * dropdown (below) and the main navigation (further down) consume
+                             * them. All nav items — core and module — are registered via
+                             * NavbarRegistry::add(NavbarItem) in CoreNavbarProvider and modules'
+                             * registerNavbar().
+                             */
+                            if (!function_exists('_xc_nav_visible')) {
+                                function _xc_nav_visible(NavbarItem $item, bool $mobile, array $settings): bool {
+                                    if ($item->desktopOnly && $mobile) return false;
+                                    if ($item->settingDisabled !== '' && !empty($settings[$item->settingDisabled])) return false;
+                                    if ($item->divider) return true;
+                                    if (!empty($item->permissions)) {
+                                        foreach ($item->permissions as $_p) {
+                                            if (Authorization::check('adv', $_p)) return true;
+                                        }
+                                        return false;
+                                    }
+                                    if ($item->url === '#') {
+                                        foreach (NavbarRegistry::getChildren($item->key) as $_child) {
+                                            if (_xc_nav_visible($_child, $mobile, $settings)) return true;
+                                        }
+                                        return false;
+                                    }
+                                    return true;
+                                }
+                            }
+
+                            if (!function_exists('_xc_nav_label')) {
+                                function _xc_nav_label(NavbarItem $item, string $language): string {
+                                    return $item->translationKey
+                                        ? $language::get($item->translationKey)
+                                        : htmlspecialchars($item->fallbackTitle, ENT_QUOTES);
+                                }
+                            }
+                            ?>
                             <?php if (!$rMobile && $rSettings['header_stats']): ?>
                                 <ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%" id="header_stats">
                                     <li class="dropdown notification-list">
@@ -155,42 +192,30 @@ if (count(get_included_files()) != 1 || TRUE):
                                         </span>
                                     </a>
                                     <div class="dropdown-menu dropdown-menu-right profile-dropdown">
-                                        <a href="edit_profile" class="dropdown-item notify-item">
-                                            <span><?= $language::get('user_profile'); ?></span>
-                                        </a>
-                                        <?php if (Authorization::check('adv', 'settings')): ?>
-                                            <a href="settings" class="dropdown-item notify-item">
-                                                <span><?= $language::get('general_settings'); ?></span>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (Authorization::check('adv', 'database')): ?>
-                                            <a href="backups" class="dropdown-item notify-item">
-                                                <span><?= $language::get('backup_settings'); ?></span>
-                                            </a>
-                                            <a href="cache" class="dropdown-item notify-item">
-                                                <span><?= $language::get('cache_redis'); ?></span>
-                                            </a>
-                                        <?php endif; ?>
-                                        <?php if (Authorization::check('adv', 'settings')): ?>
-                                            <a href="modules" class="dropdown-item notify-item">
-                                                <span>Modules</span>
-                                            </a>
-                                        <?php endif; ?>
-
-                                        <?php if (Authorization::check('adv', 'folder_watch_settings')): ?>
-                                            <div class="dropdown-divider"></div>
-                                            <a href="settings_plex" class="dropdown-item notify-item">
-                                                <span><?= $language::get('plex_settings'); ?></span>
-                                            </a>
-                                            <a href="settings_watch" class="dropdown-item notify-item">
-                                                <span><?= $language::get('watch_settings'); ?></span>
-                                            </a>
-                                        <?php endif; ?>
-
-                                        <div class="dropdown-divider"></div>
-                                        <a href="logout" class="dropdown-item notify-item">
-                                            <span><?= $language::get('logout'); ?></span>
-                                        </a>
+                                        <?php
+                                        /**
+                                         * Profile dropdown is registry-driven. Core items live in
+                                         * CoreNavbarProvider::_profile() under the 'profile' parent;
+                                         * modules add their own links (plex/watch settings, etc.) via
+                                         * NavbarRegistry::add((new NavbarItem('profile.x'))->parent('profile')...).
+                                         * Permission/setting gating reuses the same _xc_nav_visible() as
+                                         * the main navigation.
+                                         */
+                                        $_profileItems = [];
+                                        foreach (NavbarRegistry::getChildren('profile') as $_pi) {
+                                            if (_xc_nav_visible($_pi, $rMobile, $rSettings)) $_profileItems[] = $_pi;
+                                        }
+                                        // Drop orphan dividers left behind by permission-hidden items.
+                                        $_profileClean = NavbarRegistry::collapseDividers($_profileItems);
+                                        foreach ($_profileClean as $_pi):
+                                            if ($_pi->divider): ?>
+                                                <div class="dropdown-divider"></div>
+                                            <?php else: ?>
+                                                <a href="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>" class="dropdown-item notify-item">
+                                                    <span><?= _xc_nav_label($_pi, $language); ?></span>
+                                                </a>
+                                            <?php endif;
+                                        endforeach; ?>
                                     </div>
                                 </li>
 
@@ -285,9 +310,11 @@ if (count(get_included_files()) != 1 || TRUE):
                             <div id="navigation">
                                 <?php
                                 /**
-                                 * Nav rendering helpers.
+                                 * Main navigation rendering.
                                  * All nav items are registered in CoreNavbarProvider (and modules'
-                                 * registerNavbar()) via NavbarRegistry::add(NavbarItem).
+                                 * registerNavbar()) via NavbarRegistry::add(NavbarItem). The
+                                 * _xc_nav_visible()/_xc_nav_label() helpers are defined once near
+                                 * the top of the header (shared with the profile dropdown).
                                  *
                                  * To inject a button anywhere, add a NavbarItem with the desired
                                  * parent key and order, e.g.:
@@ -296,35 +323,6 @@ if (count(get_included_files()) != 1 || TRUE):
                                  *       ->url('watch')->label('folder_watch')
                                  *       ->permissions(['folder_watch'])->order(60));
                                  */
-                                if (!function_exists('_xc_nav_visible')) {
-                                    function _xc_nav_visible(NavbarItem $item, bool $mobile, array $settings): bool {
-                                        if ($item->desktopOnly && $mobile) return false;
-                                        if ($item->settingDisabled !== '' && !empty($settings[$item->settingDisabled])) return false;
-                                        if ($item->divider) return true;
-                                        if (!empty($item->permissions)) {
-                                            foreach ($item->permissions as $_p) {
-                                                if (Authorization::check('adv', $_p)) return true;
-                                            }
-                                            return false;
-                                        }
-                                        if ($item->url === '#') {
-                                            foreach (NavbarRegistry::getChildren($item->key) as $_child) {
-                                                if (_xc_nav_visible($_child, $mobile, $settings)) return true;
-                                            }
-                                            return false;
-                                        }
-                                        return true;
-                                    }
-                                }
-
-                                if (!function_exists('_xc_nav_label')) {
-                                    function _xc_nav_label(NavbarItem $item, string $language): string {
-                                        return $item->translationKey
-                                            ? $language::get($item->translationKey)
-                                            : htmlspecialchars($item->fallbackTitle, ENT_QUOTES);
-                                    }
-                                }
-
                                 if (!function_exists('_xc_nav_children')) {
                                     function _xc_nav_children(NavbarItem $parent, bool $mobile, array $settings, string $language): void {
                                         $visible = [];
