@@ -254,6 +254,40 @@ class ProcessManager {
         return getmypid();
     }
 
+    /**
+     * Get the age of a process in seconds (how long it has been running).
+     *
+     * On Linux the mtime of the /proc/PID directory is fixed to the
+     * process start time, so `time() - filemtime()` yields the same figure
+     * as `ps -o etimes` without shelling out to ps — consistent with the
+     * rest of this class reading /proc directly.
+     *
+     * Used to detect daemons that are still present but wedged (e.g. a
+     * watchdog blocked in poll() on a half-open MariaDB socket): a normally
+     * short-lived generation that has been alive far too long is stale.
+     *
+     * @param int $pid Process ID
+     * @return int Age in seconds, or -1 if it cannot be determined
+     */
+    public static function getProcessAge($pid) {
+        $pid = (int)$pid;
+
+        if ($pid <= 0 || !self::procExists($pid)) {
+            return -1;
+        }
+
+        clearstatcache(true, '/proc/' . $pid);
+        $rStart = @filemtime('/proc/' . $pid);
+
+        if ($rStart === false) {
+            return -1;
+        }
+
+        $rAge = time() - $rStart;
+
+        return $rAge > 0 ? $rAge : 0;
+    }
+
     // ───────────────────────────────────────────────────────────
     //  Cron Lock Management
     // ───────────────────────────────────────────────────────────
