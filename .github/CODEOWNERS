@@ -1,7 +1,7 @@
 # Code owners for XC_VM.
 # These owners are automatically requested for review on matching files.
-# CONTRIBUTING.md requires review by at least 2 maintainers — enforce the count
-# via branch protection settings on `main`.
+# Each PR gets 1 maintainer review (human approval, enforced via branch
+# protection on `main`) plus automated review by Sourcery.
 #
 # Add co-maintainer handles below as the team grows.
 
@@ -13,7 +13,7 @@
 /Makefile               @Divarion-D
 
 # Core infrastructure (DI, events, database, auth, module loader)
-/src/core/              @Divarion-D
+/src/Core/              @Divarion-D
 
 # Build & install tooling
 /src/bin/install/       @Divarion-D
