@@ -101,7 +101,22 @@ class ServersCronJob implements CommandInterface {
             shell_exec(BIN_PATH . 'network > /dev/null 2>/dev/null &');
         }
 
-        if (!ProcessManager::isAnyProcessRunning(array('XC_VM[Watchdog]', 'console.php watchdog'))) {
+        // A watchdog generation lives only a few seconds. If one is still
+        // present but far older it is wedged — typically blocked in poll()
+        // on a half-open MariaDB socket (CLOSE_WAIT) inside its DB ping — and
+        // will never refresh last_check_ago, so the panel marks the node
+        // offline while nginx/php/redis/streams are all fine. Kill the stale
+        // process and start a fresh generation; a plain presence check alone
+        // would keep trusting the wedged one forever.
+        $rWatchdogAlive = false;
+        foreach (ProcessManager::findProcessPIDs(array('XC_VM[Watchdog]', 'console.php watchdog')) as $rWatchdogPID) {
+            if (ProcessManager::getProcessAge($rWatchdogPID) > 90) {
+                ProcessManager::kill($rWatchdogPID);
+                continue;
+            }
+            $rWatchdogAlive = true;
+        }
+        if (!$rWatchdogAlive) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php watchdog > /dev/null 2>/dev/null &');
         }
 
