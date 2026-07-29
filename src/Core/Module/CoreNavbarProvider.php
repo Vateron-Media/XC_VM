@@ -40,6 +40,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         self::_bouquets();
         self::_management();
         self::_suppliers();
+        self::_profile();
     }
 
     // ── Dashboard ─────────────────────────────────────────────────
@@ -484,5 +485,55 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('suppliers.manage'))
             ->parent('suppliers')->url('providers')
             ->label('stream_providers')->permissions(['streams'])->order(20));
+    }
+
+    // ── Profile dropdown ──────────────────────────────────────────
+
+    /**
+     * Register the top-right user/profile dropdown items.
+     *
+     * These live under the reserved 'profile' parent key. There is
+     * intentionally no top-level 'profile' NavbarItem, so these never leak
+     * into the main navigation (NavbarRegistry::getTopLevel()); the admin
+     * header renders them explicitly via NavbarRegistry::getChildren('profile').
+     *
+     * Modules inject their own entries (e.g. the plex/watch "settings" links
+     * that used to be hard-coded in header.php) at order 100+, keeping logout
+     * pinned to the bottom:
+     *   NavbarRegistry::add((new NavbarItem('profile.watch_settings'))
+     *       ->parent('profile')->url('settings_watch')
+     *       ->label('watch_settings')->permissions(['folder_watch_settings'])->order(110));
+     *
+     * @return void
+     */
+    private static function _profile(): void {
+        NavbarRegistry::add((new NavbarItem('profile.edit'))
+            ->parent('profile')->url('edit_profile')
+            ->label('user_profile')->order(10));
+
+        NavbarRegistry::add((new NavbarItem('profile.settings'))
+            ->parent('profile')->url('settings')
+            ->label('general_settings')->permissions(['settings'])->order(20));
+
+        NavbarRegistry::add((new NavbarItem('profile.backups'))
+            ->parent('profile')->url('backups')
+            ->label('backup_settings')->permissions(['database'])->order(30));
+
+        NavbarRegistry::add((new NavbarItem('profile.cache'))
+            ->parent('profile')->url('cache')
+            ->label('cache_redis')->permissions(['database'])->order(40));
+
+        NavbarRegistry::add((new NavbarItem('profile.modules'))
+            ->parent('profile')->url('modules')
+            ->label('', 'Modules')->permissions(['settings'])->order(50));
+
+        // Reserved slot 100–980 for module-provided profile links.
+
+        NavbarRegistry::add((new NavbarItem('profile.logout_divider'))
+            ->parent('profile')->makeDivider()->order(990));
+
+        NavbarRegistry::add((new NavbarItem('profile.logout'))
+            ->parent('profile')->url('logout')
+            ->label('logout')->order(1000));
     }
 }
