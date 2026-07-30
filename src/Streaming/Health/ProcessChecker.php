@@ -46,7 +46,7 @@ class ProcessChecker {
 			if (!($rOutput = self::isPIDsRunning($rServerID, array($rPID), $rEXE))) {
 				return false;
 			}
-			return $rOutput[$rServerID][$rPID];
+			return $rOutput[$rServerID][$rPID] ?? false;
 		}
 		return false;
 	}

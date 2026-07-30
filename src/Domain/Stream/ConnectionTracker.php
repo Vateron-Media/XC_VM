@@ -727,7 +727,7 @@ class ConnectionTracker {
 				}
 			}
 			if (is_array($rActivityInfo)) {
-				if ($rActivityInfo['container'] == 'rtmp') {
+				if (($rActivityInfo['container'] ?? '') == 'rtmp') {
 					if ($rActivityInfo['server_id'] == SERVER_ID) {
 						shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rActivityInfo['pid']) . '" >/dev/null 2>/dev/null &');
 					} else {
@@ -738,7 +738,7 @@ class ConnectionTracker {
 						}
 					}
 				} else {
-					if ($rActivityInfo['container'] == 'hls') {
+					if (($rActivityInfo['container'] ?? '') == 'hls') {
 						if (!(!$rRemove && $rEnd && $rActivityInfo['hls_end'] == 0)) {
 						} else {
 							if ($rSettings['redis_handler']) {
@@ -791,7 +791,7 @@ class ConnectionTracker {
 						$db->query('DELETE FROM `lines_live` WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
 					}
 				}
-				self::writeOfflineActivity($rSettings, $rActivityInfo['server_id'], intval($rActivityInfo['proxy_id'] ?? 0), $rActivityInfo['user_id'], $rActivityInfo['stream_id'], $rActivityInfo['date_start'], $rActivityInfo['user_agent'], $rActivityInfo['user_ip'], $rActivityInfo['container'], $rActivityInfo['geoip_country_code'], strval($rActivityInfo['isp'] ?? ''), $rActivityInfo['external_device'] ?? '', $rActivityInfo['divergence'] ?? 0, $rActivityInfo['hmac_id'] ?? null, $rActivityInfo['hmac_identifier'] ?? '');
+				self::writeOfflineActivity($rSettings, $rActivityInfo['server_id'] ?? 0, intval($rActivityInfo['proxy_id'] ?? 0), $rActivityInfo['user_id'] ?? 0, $rActivityInfo['stream_id'] ?? 0, $rActivityInfo['date_start'] ?? 0, $rActivityInfo['user_agent'] ?? '', $rActivityInfo['user_ip'] ?? '', $rActivityInfo['container'] ?? '', $rActivityInfo['geoip_country_code'] ?? '', strval($rActivityInfo['isp'] ?? ''), $rActivityInfo['external_device'] ?? '', $rActivityInfo['divergence'] ?? 0, $rActivityInfo['hmac_id'] ?? null, $rActivityInfo['hmac_identifier'] ?? '');
 				return true;
 			}
 			return false;

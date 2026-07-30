@@ -619,7 +619,9 @@ class StreamService {
 					}
 
 					if ($rData['server_type'] == 'SET') {
-						foreach ($rStreamExists[$rStreamID] as $rServerID => $rDBID) {
+						// A stream with no existing streams_servers rows is absent from
+						// the map; ?? [] avoids the undefined-key + foreach-on-null warnings.
+						foreach (($rStreamExists[$rStreamID] ?? []) as $rServerID => $rDBID) {
 							if (!in_array($rServerID, $rStreamsAdded)) {
 								$rDeleteServers[$rServerID][] = $rStreamID;
 							}
