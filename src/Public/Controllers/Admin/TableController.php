@@ -1311,7 +1311,7 @@ class TableController extends BaseAdminController {
 							if ($rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
 								$rServerName .= " &nbsp; <button title=\"View All Servers\" onClick=\"viewSources('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', " . (int) $rRow["id"] . ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCount[$rRow["id"]] - 1) . "</button>";
 							}
-							if ($rServers[$rRow["server_id"]]["last_status"] != 1) {
+							if (($rServers[$rRow["server_id"]]["last_status"] ?? null) != 1) {
 								$rServerName .= " &nbsp; <button title=\"Server Offline!<br/>Uptime cannot be confirmed.\" type='button' class='tooltip btn btn-danger btn-xs waves-effect waves-light'><i class='mdi mdi-alert'></i></button>";
 							}
 						} else {
@@ -1796,7 +1796,7 @@ class TableController extends BaseAdminController {
 							if ($rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
 								$rServerName .= " &nbsp; <button title=\"View All Servers\" onClick=\"viewSources('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', " . (int) $rRow["id"] . ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCount[$rRow["id"]] - 1) . "</button>";
 							}
-							if ($rServers[$rRow["server_id"]]["last_status"] != 1) {
+							if (($rServers[$rRow["server_id"]]["last_status"] ?? null) != 1) {
 								$rServerName .= " &nbsp; <button title=\"Server Offline!<br/>Uptime cannot be confirmed.\" type='button' class='tooltip btn btn-danger btn-xs waves-effect waves-light'><i class='mdi mdi-alert'></i></button>";
 							}
 						} else {
@@ -2172,7 +2172,7 @@ class TableController extends BaseAdminController {
 							if ($rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
 								$rServerName .= " &nbsp; <button title=\"View All Servers\" onClick=\"viewSources('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', " . (int) $rRow["id"] . ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCount[$rRow["id"]] - 1) . "</button>";
 							}
-							if ($rServers[$rRow["server_id"]]["last_status"] != 1) {
+							if (($rServers[$rRow["server_id"]]["last_status"] ?? null) != 1) {
 								$rServerName .= " &nbsp; <button title=\"Server Offline!<br/>Uptime cannot be confirmed.\" type='button' class='tooltip btn btn-danger btn-xs waves-effect waves-light'><i class='mdi mdi-alert'></i></button>";
 							}
 						} else {
@@ -2797,11 +2797,11 @@ class TableController extends BaseAdminController {
 				}
 			}
 			for ($i = 0; $i < count($rRows); $i++) {
-				$rRows[$i]["divergence"] = $rDivergenceMap[$rRows[$i]["uuid"]] ?: 0;
-				$rRows[$i]["series_no"] = $rSeriesMap[$rRows[$i]["stream_id"]] ?: NULL;
-				$rRows[$i]["stream_display_name"] = $rStreamNames[$rRows[$i]["stream_id"]][0] ?: "";
-				$rRows[$i]["type"] = $rStreamNames[$rRows[$i]["stream_id"]][1] ?: 1;
-				$rRows[$i] = array_merge($rRows[$i], $rUserMap[$rRows[$i]["user_id"]] ?: []);
+				$rRows[$i]["divergence"] = $rDivergenceMap[$rRows[$i]["uuid"]] ?? 0;
+				$rRows[$i]["series_no"] = $rSeriesMap[$rRows[$i]["stream_id"]] ?? NULL;
+				$rRows[$i]["stream_display_name"] = $rStreamNames[$rRows[$i]["stream_id"]][0] ?? "";
+				$rRows[$i]["type"] = $rStreamNames[$rRows[$i]["stream_id"]][1] ?? 1;
+				$rRows[$i] = array_merge($rRows[$i], $rUserMap[$rRows[$i]["user_id"]] ?? []);
 			}
 			$rReturn["recordsTotal"] = $rKeyCount;
 			$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
@@ -4697,7 +4697,7 @@ class TableController extends BaseAdminController {
 							if ($rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
 								$rServerName .= " &nbsp; <button title=\"View All Servers\" onClick=\"viewSources('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', " . (int) $rRow["id"] . ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCount[$rRow["id"]] - 1) . "</button>";
 							}
-							if ($rServers[$rRow["server_id"]]["last_status"] != 1) {
+							if (($rServers[$rRow["server_id"]]["last_status"] ?? null) != 1) {
 								$rServerName .= " &nbsp; <button title=\"Server Offline!<br/>Uptime cannot be confirmed.\" type='button' class='tooltip btn btn-danger btn-xs waves-effect waves-light'><i class='mdi mdi-alert'></i></button>";
 							}
 						} else {
