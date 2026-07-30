@@ -102,11 +102,15 @@ class ProvidersCronJob implements CommandInterface {
 
             $rCategories = array();
             $rCategoriesURL = $rURL . '&action=get_live_categories';
-            foreach ($this->readURL($rCategoriesURL) as $rCategory) {
+            $rLiveCategories = $this->readURL($rCategoriesURL);
+            if (!is_array($rLiveCategories)) $rLiveCategories = [];
+            foreach ($rLiveCategories as $rCategory) {
                 $rCategories[$rCategory['category_id']] = $rCategory['category_name'];
             }
             $rCategoriesURL = $rURL . '&action=get_vod_categories';
-            foreach ($this->readURL($rCategoriesURL) as $rCategory) {
+            $rVodCategories = $this->readURL($rCategoriesURL);
+            if (!is_array($rVodCategories)) $rVodCategories = [];
+            foreach ($rVodCategories as $rCategory) {
                 $rCategories[$rCategory['category_id']] = $rCategory['category_name'];
             }
 
@@ -141,7 +145,9 @@ class ProvidersCronJob implements CommandInterface {
                     $rCategoryIDs = (isset($rStream['category_ids']) ? (is_array($rStream['category_ids']) ? $rStream['category_ids'] : array()) : array($rStream['category_id']));
                     $rCategoryArray = array();
                     foreach ($rCategoryIDs as $rCategoryID) {
-                        $rCategoryArray[] = $rCategories[$rCategoryID];
+                        // The provider may reference a category id absent from the
+                        // categories feed; default to '' instead of warning.
+                        $rCategoryArray[] = $rCategories[$rCategoryID] ?? '';
                     }
                     $rCategoryIDs = '[' . implode(',', array_map('intval', $rCategoryIDs)) . ']';
                     if (isset($rExistingIDs[$rStream['stream_id']])) {

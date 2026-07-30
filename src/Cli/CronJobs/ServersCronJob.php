@@ -69,6 +69,14 @@ class ServersCronJob implements CommandInterface {
 
         $rServers = ServerRepository::getAll(true);
 
+        // The current server must be present in the map; if it isn't (row not
+        // yet inserted, or a transient load failure) every $rServers[SERVER_ID]
+        // access below would raise offset-on-null warnings and do nothing useful.
+        if (!isset($rServers[SERVER_ID])) {
+            echo 'Server ' . SERVER_ID . ' not found in servers list...' . "\n";
+            return;
+        }
+
         if ($rServers[SERVER_ID]['is_main'] && SettingsManager::getAll()['redis_handler']) {
             exec('pgrep -u xc_vm redis-server', $rRedis);
             if (count($rRedis) == 0) {

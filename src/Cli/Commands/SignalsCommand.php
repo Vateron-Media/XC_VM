@@ -117,7 +117,10 @@ class SignalsCommand implements CommandInterface {
 									}
 									break;
 								case 'delete_con':
-									unlink(CONS_TMP_PATH . $rCustomData['uuid']);
+									// The connection file may already be gone (the stream
+									// closed between the signal being queued and processed);
+									// suppress the harmless "No such file" warning.
+									@unlink(CONS_TMP_PATH . $rCustomData['uuid']);
 									break;
 								case 'delete_vod':
 									exec('rm ' . MAIN_HOME . 'content/vod/' . intval($rCustomData['id']) . '.*');

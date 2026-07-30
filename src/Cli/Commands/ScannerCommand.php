@@ -166,7 +166,7 @@ class ScannerCommand implements CommandInterface {
 					if (!$rErrors && $rSourceID == 0) {
 						$rErrors = file_get_contents(STREAMS_TMP_PATH . $rRow['id'] . '._errors');
 					}
-					unlink(STREAMS_TMP_PATH . $rRow['id'] . '._errors');
+					@unlink(STREAMS_TMP_PATH . $rRow['id'] . '._errors');
 				}
 
 				if ($rFFProbeOutput && isset($rFFProbeOutput['streams'])) {
