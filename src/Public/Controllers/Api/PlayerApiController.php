@@ -30,6 +30,30 @@ class PlayerApiController {
 	private $offset = 0;
 	private $limit = 0;
 
+	/**
+	 * Read and igbinary-unserialize a stream cache file.
+	 *
+	 * Cache files under STREAMS_TMP_PATH are transient — a stream can be
+	 * deleted, or not yet warmed, while a client is requesting it — so a
+	 * missing or corrupt file is expected and must not raise
+	 * file_get_contents()/"offset on bool" warnings. Returns null when the
+	 * file is absent or does not unserialize to an array.
+	 *
+	 * @param string $rPath Absolute cache file path
+	 * @return array|null Decoded cache payload, or null when unavailable
+	 */
+	private static function readStreamCache(string $rPath): ?array {
+		if (!is_file($rPath)) {
+			return null;
+		}
+		$rRaw = @file_get_contents($rPath);
+		if ($rRaw === false) {
+			return null;
+		}
+		$rData = @igbinary_unserialize($rRaw);
+		return is_array($rData) ? $rData : null;
+	}
+
 	public function index() {
 		global $rSettings, $rCached, $rRequest, $rServers, $db;
 
@@ -238,14 +262,29 @@ class PlayerApiController {
 		$output = array();
 
 		if ($rCached) {
-			$rSeriesInfo = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'series_' . $rSeriesID));
-			$rRows = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'episodes_' . $rSeriesID));
+			$rSeriesInfo = self::readStreamCache(SERIES_TMP_PATH . 'series_' . $rSeriesID);
+			$rRows = self::readStreamCache(SERIES_TMP_PATH . 'episodes_' . $rSeriesID);
 		} else {
 			$db->query('SELECT * FROM `streams_episodes` t1 INNER JOIN `streams` t2 ON t2.id=t1.stream_id WHERE t1.series_id = ? ORDER BY t1.season_num ASC, t1.episode_num ASC', $rSeriesID);
 			$rRows = $db->get_rows(true, 'season_num', false);
 			$db->query('SELECT * FROM `streams_series` WHERE `id` = ?', $rSeriesID);
 			$rSeriesInfo = $db->get_row();
 		}
+
+		// Series not found / cache not warmed: return an empty payload instead of
+		// building it from a missing value, which cascaded into undefined-key /
+		// offset-on-bool / foreach-on-null warnings. A valid series is unaffected.
+		if (empty($rSeriesInfo)) {
+			return $output;
+		}
+		if (!is_array($rRows)) {
+			$rRows = array();
+		}
+
+		// Older cache entries / DB rows may lack newer columns; default them so
+		// the info block below does not raise undefined-key warnings. += only
+		// fills absent keys, leaving present values untouched.
+		$rSeriesInfo += array('title' => '', 'year' => '', 'cover' => '', 'plot' => '', 'cast' => '', 'director' => '', 'genre' => '', 'release_date' => '', 'last_modified' => '', 'youtube_trailer' => '', 'episode_run_time' => '', 'rating' => 0, 'seasons' => '', 'backdrop_path' => '', 'category_id' => '[]');
 
 		$output['seasons'] = array();
 
@@ -265,7 +304,7 @@ class PlayerApiController {
 
 		$rating = is_numeric($rSeriesInfo['rating']) ? floatval($rSeriesInfo['rating']) : 0.0;
 
-		$output['info'] = array('name' => StreamSorter::formatTitle($rSeriesInfo['title'], $rSeriesInfo['year']), 'title' => $rSeriesInfo['title'], 'year' => strval($rSeriesInfo['year']), 'cover' => ImageUtils::validateURL($rSeriesInfo['cover']), 'plot' => $rSeriesInfo['plot'], 'cast' => $rSeriesInfo['cast'], 'director' => $rSeriesInfo['director'], 'genre' => $rSeriesInfo['genre'], 'release_date' => $rSeriesInfo['release_date'], 'releaseDate' => $rSeriesInfo['release_date'], 'last_modified' => $rSeriesInfo['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesInfo['youtube_trailer'], 'episode_run_time' => strval($rSeriesInfo['episode_run_time']), 'category_id' => strval(json_decode($rSeriesInfo['category_id'], true)[0]), 'category_ids' => json_decode($rSeriesInfo['category_id'], true));
+		$output['info'] = array('name' => StreamSorter::formatTitle($rSeriesInfo['title'], $rSeriesInfo['year']), 'title' => $rSeriesInfo['title'], 'year' => strval($rSeriesInfo['year']), 'cover' => ImageUtils::validateURL($rSeriesInfo['cover']), 'plot' => $rSeriesInfo['plot'], 'cast' => $rSeriesInfo['cast'], 'director' => $rSeriesInfo['director'], 'genre' => $rSeriesInfo['genre'], 'release_date' => $rSeriesInfo['release_date'], 'releaseDate' => $rSeriesInfo['release_date'], 'last_modified' => $rSeriesInfo['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesInfo['youtube_trailer'], 'episode_run_time' => strval($rSeriesInfo['episode_run_time']), 'category_id' => strval(json_decode($rSeriesInfo['category_id'], true)[0] ?? ''), 'category_ids' => json_decode($rSeriesInfo['category_id'], true));
 
 		foreach ($rRows as $rSeason => $rEpisodes) {
 			foreach ($rEpisodes as $rEpisode) {
@@ -350,7 +389,12 @@ class PlayerApiController {
 				}
 
 				foreach ($this->userInfo['series_ids'] as $rSeriesID) {
-					$rSeriesItem = igbinary_unserialize(file_get_contents(SERIES_TMP_PATH . 'series_' . $rSeriesID));
+					$rSeriesItem = self::readStreamCache(SERIES_TMP_PATH . 'series_' . $rSeriesID);
+					if ($rSeriesItem === null) {
+						// Cache not warmed for this series — it would contribute
+						// nothing (foreach over a null category_id), so skip it.
+						continue;
+					}
 					$rBackdrops = json_decode($rSeriesItem['backdrop_path'], true);
 
 					if (is_array($rBackdrops)) {
@@ -638,7 +682,14 @@ class PlayerApiController {
 
 		foreach ($rChannels as $rChannel) {
 			if ($rCached) {
-				$rChannel = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rChannel)))['info'];
+				$rChannelData = self::readStreamCache(STREAMS_TMP_PATH . 'stream_' . intval($rChannel));
+				if ($rChannelData === null) {
+					continue;
+				}
+				$rChannel = $rChannelData['info'] ?? null;
+				if (!is_array($rChannel)) {
+					continue;
+				}
 			}
 
 			if (in_array($rChannel['type_key'], array('live', 'created_live', 'radio_streams'))) {
@@ -696,7 +747,8 @@ class PlayerApiController {
 			$rVODID = intval($rRequest['vod_id']);
 
 			if ($rCached) {
-				$rRow = igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . intval($rVODID)))['info'];
+				$rRowData = self::readStreamCache(STREAMS_TMP_PATH . 'stream_' . intval($rVODID));
+				$rRow = $rRowData !== null ? ($rRowData['info'] ?? null) : null;
 			} else {
 				$db->query('SELECT * FROM `streams` WHERE `id` = ?', $rVODID);
 				$rRow = $db->get_row();
