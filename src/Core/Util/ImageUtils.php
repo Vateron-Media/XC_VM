@@ -165,7 +165,7 @@ class ImageUtils {
 					if (!is_dir(IMAGES_PATH)) {
 						@mkdir(IMAGES_PATH, 0775, true);
 					}
-					file_put_contents($rPath, $rData);
+					@file_put_contents($rPath, $rData);
 					if (file_exists($rPath)) {
 						return 's:' . SERVER_ID . ':/images/' . $rFilename . '.' . $rExt;
 					}

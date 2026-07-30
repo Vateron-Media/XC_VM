@@ -136,7 +136,7 @@ class ImageResizeService {
 							$rImageSize['width'], $rImageSize['height'],
 							$rImageInfo[0], $rImageInfo[1]
 						);
-						imagepng($rImageP, $rImagePath);
+						@imagepng($rImageP, $rImagePath);
 					}
 				}
 			}
