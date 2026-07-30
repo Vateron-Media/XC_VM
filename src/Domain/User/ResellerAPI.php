@@ -1185,7 +1185,11 @@ class ResellerAPI {
 					$rInsertID = $db->last_insert_id();
 					MagService::syncLineDevices($rInsertID);
 					if (isset($rPackage)) {
-						$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost);
+						// $rCost is only set on the charge paths above (package accepted
+						// for this reseller group); on edits / non-charge paths it stays
+						// unset. intval($rCost ?? 0) == intval(null), so the credit math
+						// is unchanged — this only removes the "undefined variable" warning.
+						$rNewCredits = intval(self::$rUserInfo['credits']) - intval($rCost ?? 0);
 						$db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $rNewCredits, self::$rUserInfo['id']);
 
 						if (isset($rArray['id'])) {
@@ -1199,7 +1203,7 @@ class ResellerAPI {
 						}
 
 						$rData = UserRepository::getLineById($rInsertID);
-						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost, $rNewCredits, time(), json_encode($rData));
+						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, ?, ?, ?, ?, ?);", self::$rUserInfo['id'], $rType, $rInsertID, $rPackage['id'], $rCost ?? 0, $rNewCredits, time(), json_encode($rData));
 					} else {
 						$db->query("INSERT INTO `users_logs`(`owner`, `type`, `action`, `log_id`, `package_id`, `cost`, `credits_after`, `date`, `deleted_info`) VALUES(?, 'line', ?, ?, null, ?, ?, ?, ?);", self::$rUserInfo['id'], 'edit', $rInsertID, 0, self::$rUserInfo['credits'], time(), json_encode($rData));
 					}
