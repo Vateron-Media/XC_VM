@@ -489,7 +489,10 @@ class ServerRepository {
 			if (isset($_SERVER['SERVER_PORT']) && $rSettings['keep_protocol']) {
 				$rProtocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443 ? 'https' : 'http');
 			} else {
-				$rProtocol = $rServers[$rServerID]['server_protocol'];
+				// ?? 'http': $rServerID may not be present in the map (handled by
+				// the !$rServers[$rServerID] check below) — avoid the undefined-key
+				// / offset-on-null warning while it is still being read here.
+				$rProtocol = $rServers[$rServerID]['server_protocol'] ?? 'http';
 			}
 		}
 		if (!$rServers[$rServerID]) {

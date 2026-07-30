@@ -133,7 +133,7 @@ class StreamProcess {
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
-			if ($db->get_row()['count'] != 0) {
+			if (($db->get_row()['count'] ?? 0) != 0) {
 			} else {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
 			}
@@ -154,7 +154,7 @@ class StreamProcess {
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
-			if ($db->get_row()['count'] != 0) {
+			if (($db->get_row()['count'] ?? 0) != 0) {
 			} else {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
 			}
@@ -658,9 +658,7 @@ class StreamProcess {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
 		$db = self::db();
 		$rSegmentSettings = array('seg_time' => intval($rSettings['seg_time']), 'seg_list_size' => intval($rSettings['seg_list_size']), 'seg_delete_threshold' => intval($rSettings['seg_delete_threshold']));
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			unlink(STREAMS_PATH . $rStreamID . '_.pid');
-		}
+		@unlink(STREAMS_PATH . $rStreamID . '_.pid');
 
 		$rStream = array();
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 1 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
