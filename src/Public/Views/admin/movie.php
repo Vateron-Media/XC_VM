@@ -91,7 +91,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							<?php if (isset($rMovie['id'])): ?>
 								<input type="hidden" name="edit" value="<?php echo $rMovie['id']; ?>" />
 							<?php endif; ?>
-							<input type="hidden" id="tmdb_id" name="tmdb_id" value="<?php if (isset($rMovie)): ?><?php echo htmlspecialchars(($rMovie['tmdb_id'] ?: $rMovie['properties']['tmdb_id'])); ?><?php endif; ?>" />
+							<input type="hidden" id="tmdb_id" name="tmdb_id" value="<?php if (isset($rMovie)): ?><?php echo htmlspecialchars(($rMovie['tmdb_id'] ?: ($rMovie['properties']['tmdb_id'] ?? ''))); ?><?php endif; ?>" />
 							<input type="hidden" name="server_tree_data" id="server_tree_data" value="" />
 							<input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="" />
 							<input type="hidden" name="category_create_list" id="category_create_list" value="" />
@@ -279,7 +279,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="movie_image"><?php echo $language::get('poster_url'); ?></label>
 													<div class="col-md-8 input-group">
 														<input type="text" class="form-control" id="movie_image" name="movie_image" value="<?php if (isset($rMovie)) {
-																																				echo htmlspecialchars($rMovie['properties']['movie_image']);
+																																				echo htmlspecialchars($rMovie['properties']['movie_image'] ?? '');
 																																			} ?>">
 														<div class="input-group-append">
 															<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
@@ -301,7 +301,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="plot"><?php echo $language::get('plot'); ?></label>
 													<div class="col-md-8">
 														<textarea rows="6" class="form-control" id="plot" name="plot"><?php if (isset($rMovie)) {
-																															echo htmlspecialchars($rMovie['properties']['plot']);
+																															echo htmlspecialchars($rMovie['properties']['plot'] ?? '');
 																														} ?></textarea>
 													</div>
 												</div>
@@ -309,7 +309,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="cast"><?php echo $language::get('cast'); ?></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="cast" name="cast" value="<?php if (isset($rMovie)) {
-																																	echo htmlspecialchars($rMovie['properties']['cast']);
+																																	echo htmlspecialchars($rMovie['properties']['cast'] ?? '');
 																																} ?>">
 													</div>
 												</div>
@@ -317,13 +317,13 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="director"><?php echo $language::get('director'); ?></label>
 													<div class="col-md-3">
 														<input type="text" class="form-control" id="director" name="director" value="<?php if (isset($rMovie)) {
-																																			echo htmlspecialchars($rMovie['properties']['director']);
+																																			echo htmlspecialchars($rMovie['properties']['director'] ?? '');
 																																		} ?>">
 													</div>
 													<label class="col-md-2 col-form-label" for="genre"><?php echo $language::get('genres'); ?></label>
 													<div class="col-md-3">
 														<input type="text" class="form-control" id="genre" name="genre" value="<?php if (isset($rMovie)) {
-																																	echo htmlspecialchars($rMovie['properties']['genre']);
+																																	echo htmlspecialchars($rMovie['properties']['genre'] ?? '');
 																																} ?>">
 													</div>
 												</div>
@@ -331,13 +331,13 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="release_date"><?php echo $language::get('release_date'); ?></label>
 													<div class="col-md-3">
 														<input type="text" class="form-control text-center" id="release_date" name="release_date" value="<?php if (isset($rMovie)) {
-																																								echo htmlspecialchars($rMovie['properties']['release_date']);
+																																								echo htmlspecialchars($rMovie['properties']['release_date'] ?? '');
 																																							} ?>">
 													</div>
 													<label class="col-md-2 col-form-label" for="episode_run_time"><?php echo $language::get('runtime'); ?></label>
 													<div class="col-md-3">
 														<input type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="<?php if (isset($rMovie)) {
-																																										echo htmlspecialchars($rMovie['properties']['episode_run_time']);
+																																										echo htmlspecialchars($rMovie['properties']['episode_run_time'] ?? '');
 																																									} ?>">
 													</div>
 												</div>
@@ -345,7 +345,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="youtube_trailer"><?php echo $language::get('youtube_trailer'); ?></label>
 													<div class="col-md-3 input-group">
 														<input type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="<?php if (isset($rMovie)) {
-																																									echo htmlspecialchars($rMovie['properties']['youtube_trailer']);
+																																									echo htmlspecialchars($rMovie['properties']['youtube_trailer'] ?? '');
 																																								} ?>">
 														<div class="input-group-append">
 															<a href="javascript:void(0)" onClick="openYouTube(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
@@ -354,7 +354,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-2 col-form-label" for="rating"><?php echo $language::get('rating'); ?></label>
 													<div class="col-md-3">
 														<input type="text" class="form-control text-center" id="rating" name="rating" value="<?php if (isset($rMovie)) {
-																																					echo htmlspecialchars($rMovie['properties']['rating']);
+																																					echo htmlspecialchars($rMovie['properties']['rating'] ?? '');
 																																				} ?>">
 													</div>
 												</div>
@@ -362,7 +362,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<label class="col-md-4 col-form-label" for="country"><?php echo $language::get('country'); ?></label>
 													<div class="col-md-8">
 														<input type="text" class="form-control" id="country" name="country" value="<?php if (isset($rMovie)) {
-																																		echo htmlspecialchars($rMovie['properties']['country']);
+																																		echo htmlspecialchars($rMovie['properties']['country'] ?? '');
 																																	} ?>">
 													</div>
 												</div>

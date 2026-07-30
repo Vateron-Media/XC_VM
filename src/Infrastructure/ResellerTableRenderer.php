@@ -1568,11 +1568,13 @@ class ResellerTableRenderer {
 			}
 			$i = 0;
 			while ($i < count($rRows)) {
-				$rRows[$i]['divergence'] = ($rDivergenceMap[$rRows[$i]['uuid']] ?: 0);
-				$rRows[$i]['series_no'] = ($rSeriesMap[$rRows[$i]['stream_id']] ?: null);
-				$rRows[$i]['stream_display_name'] = ($rStreamNames[$rRows[$i]['stream_id']][0] ?: '');
-				$rRows[$i]['type'] = ($rStreamNames[$rRows[$i]['stream_id']][1] ?: 1);
-				$rRows[$i] = array_merge($rRows[$i], ($rUserMap[$rRows[$i]['user_id']] ?: array()));
+				// ?? (not ?:) so a row whose uuid/stream_id/user_id is absent from
+				// the lookup maps falls back to the default without an undefined-key warning.
+				$rRows[$i]['divergence'] = ($rDivergenceMap[$rRows[$i]['uuid']] ?? 0);
+				$rRows[$i]['series_no'] = ($rSeriesMap[$rRows[$i]['stream_id']] ?? null);
+				$rRows[$i]['stream_display_name'] = ($rStreamNames[$rRows[$i]['stream_id']][0] ?? '');
+				$rRows[$i]['type'] = ($rStreamNames[$rRows[$i]['stream_id']][1] ?? 1);
+				$rRows[$i] = array_merge($rRows[$i], ($rUserMap[$rRows[$i]['user_id']] ?? array()));
 				$i++;
 			}
 			$rReturn['recordsTotal'] = $rKeyCount;
