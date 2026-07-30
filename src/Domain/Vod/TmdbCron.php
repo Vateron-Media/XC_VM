@@ -239,7 +239,7 @@ class TmdbCron {
             }
 
             $rCast = array();
-            foreach ($rMovieData['credits']['cast'] as $rMember) {
+            foreach (($rMovieData['credits']['cast'] ?? []) as $rMember) {
                 if (count($rCast) >= 5) {
                 } else {
                     $rCast[] = $rMember['name'];
@@ -247,7 +247,7 @@ class TmdbCron {
             }
 
             $rDirectors = array();
-            foreach ($rMovieData['credits']['crew'] as $rMember) {
+            foreach (($rMovieData['credits']['crew'] ?? []) as $rMember) {
                 if (
                     !(count($rDirectors) < 5
                         && ($rMember['department'] == 'Directing' || $rMember['known_for_department'] == 'Directing'))
