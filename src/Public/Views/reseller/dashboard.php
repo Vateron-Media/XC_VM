@@ -119,7 +119,7 @@
                                     <?php foreach ($rActivityRows as $rRow): ?>
                                         <tr>
                                             <td class="text-center"><a class="text-dark" href="user?id=<?= intval($rRow['owner_id']) ?>"><?= htmlspecialchars($rRow['username']) ?></a></td>
-                                            <td class="text-center"></td>
+                                            <td class="text-center"><?= $rRow['target_html'] ?? '<span class="text-secondary">-</span>' ?></td>
                                             <td><?= $rRow['text'] ?></td>
                                             <td class="text-center"><?= date($rSettings['date_format'] . ' H:i', $rRow['date']) ?></td>
                                         </tr>

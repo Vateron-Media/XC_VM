@@ -18,9 +18,14 @@
 if (!function_exists('renderUnifiedLayoutFooter')) {
     function renderUnifiedLayoutFooter($scope = 'admin', array $vars = []) {
         foreach ($vars as $key => $value) {
-            if (!array_key_exists($key, $GLOBALS)) {
-                $GLOBALS[$key] = $value;
+            if (!is_string($key) || $key === '') {
+                continue;
             }
+
+            // Explicit page data must win over stale globals and remain in the
+            // local scope used by the legacy footer required below.
+            $GLOBALS[$key] = $value;
+            ${$key} = $value;
         }
 
         // Legacy footer.php expects these variables in file scope.
