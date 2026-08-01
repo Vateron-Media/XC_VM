@@ -49,7 +49,7 @@ class ResellerDashboardController extends BaseResellerController
         $rPackages = PackageService::getAll();
         global $db;
         $rAllReports = array_merge(array($rUserInfo['id']), $rPermissions['all_reports'] ?? []);
-        $db->query('SELECT * FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` WHERE `users_logs`.`owner` IN (' . implode(',', array_map('intval', $rAllReports)) . ') ORDER BY `date` DESC LIMIT 250;');
+        $db->query('SELECT `users`.`username`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` WHERE `users_logs`.`owner` IN (' . implode(',', array_map('intval', $rAllReports)) . ') ORDER BY `users_logs`.`date` DESC LIMIT 250;');
         $rActivityRows = [];
         $rDeviceMap = ['line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller'];
         foreach ($db->get_rows() as $rRow) {
@@ -84,11 +84,49 @@ class ResellerDashboardController extends BaseResellerController
                     $rText = 'Adjusted Credits by ' . $rRow['cost'];
                     break;
             }
+            $rTargetHtml = '';
+            $rTargetId = intval($rRow['log_id'] ?? 0);
+            switch ($rRow['type']) {
+                case 'line':
+                    $rTarget = UserRepository::getLineById($rTargetId);
+                    if ($rTarget) {
+                        $rTargetHtml = "<a class='text-dark' href='line?id=" . $rTargetId . "'>" . htmlspecialchars((string) $rTarget['username'], ENT_QUOTES, 'UTF-8') . '</a>';
+                    }
+                    break;
+                case 'user':
+                    $rTarget = UserRepository::getRegisteredUserById($rTargetId);
+                    if ($rTarget) {
+                        $rTargetHtml = "<a class='text-dark' href='user?id=" . $rTargetId . "'>" . htmlspecialchars((string) $rTarget['username'], ENT_QUOTES, 'UTF-8') . '</a>';
+                    }
+                    break;
+                case 'mag':
+                    $rTarget = \XcVm\Domain\Device\MagService::getById($rTargetId);
+                    if ($rTarget) {
+                        $rTargetHtml = "<a class='text-dark' href='mag?id=" . $rTargetId . "'>" . htmlspecialchars((string) $rTarget['mac'], ENT_QUOTES, 'UTF-8') . '</a>';
+                    }
+                    break;
+                case 'enigma':
+                    $rTarget = \XcVm\Domain\Device\EnigmaService::getById($rTargetId);
+                    if ($rTarget) {
+                        $rTargetHtml = "<a class='text-dark' href='enigma?id=" . $rTargetId . "'>" . htmlspecialchars((string) $rTarget['mac'], ENT_QUOTES, 'UTF-8') . '</a>';
+                    }
+                    break;
+            }
+            if ($rTargetHtml === '') {
+                $rDeletedInfo = json_decode((string) ($rRow['deleted_info'] ?? ''), true);
+                $rTargetName = is_array($rDeletedInfo)
+                    ? (string) ($rDeletedInfo['mac'] ?? $rDeletedInfo['username'] ?? '')
+                    : '';
+                $rTargetHtml = $rTargetName !== ''
+                    ? "<span class='text-secondary'>" . htmlspecialchars($rTargetName, ENT_QUOTES, 'UTF-8') . '</span>'
+                    : "<span class='text-secondary'>-</span>";
+            }
             $rActivityRows[] = [
                 'owner_id'  => $rRow['owner'],
                 'username'  => $rRow['username'],
-                'text'      => $rText,
-                'date'      => $rRow['date'],
+                'text'        => $rText,
+                'target_html' => $rTargetHtml,
+                'date'        => $rRow['date'],
             ];
         }
 

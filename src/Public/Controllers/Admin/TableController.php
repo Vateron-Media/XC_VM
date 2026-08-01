@@ -4357,9 +4357,9 @@ class TableController extends BaseAdminController {
 						}
 						$rButtons .= "</div>";
 						if ($rRow["blocked"]) {
-							$rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">' . $language::get('blocked_btn') . '</button>";
+							$rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">" . $language::get('blocked_btn') . "</button>";
 						} else {
-							$rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">' . $language::get('allowed') . '</button>";
+							$rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">" . $language::get('allowed') . "</button>";
 						}
 						$rType = strtoupper($rRow["type"]);
 						$rReturn["data"][] = [$rRow["asn"], $rRow["isp"], $rRow["domain"], "<img loading=\"lazy\" src=\"assets/images/countries/" . strtolower($rRow["country"]) . ".png\">", number_format($rRow["num_ips"], 0), $rType, $rStatus, $rButtons];

@@ -360,5 +360,9 @@ use XcVm\Domain\User\UserRepository;/**
 </div>
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('reseller');
+renderUnifiedLayoutFooter('reseller', [
+    'rLine' => $rLine,
+    'rOrigPackage' => $rOrigPackage,
+    'rPackages' => $rPackages,
+]);
 ?>
