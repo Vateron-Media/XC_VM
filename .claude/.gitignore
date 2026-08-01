@@ -1,0 +1,7 @@
+# Keep only shared subagent definitions under version control.
+# Everything else in .claude is local assistant state (memory, agent notes,
+# machine-specific settings) and must not be published to the public repo.
+*
+!.gitignore
+!agents/
+!agents/**
