@@ -106,17 +106,31 @@ class LlodCommand implements CommandInterface {
 		$rSegListSize = $rSettings['seg_list_size'];
 		$rSegDeleteThreshold = $rSettings['seg_delete_threshold'];
 		$rRequestPrebuffer = $rSettings['request_prebuffer'];
+		// Real target segment duration (seconds) — same knob the ffmpeg path uses.
+		// Falls back to the compiled default when the setting is absent.
+		$rSegTime = intval($rSettings['seg_time'] ?? 0) ?: SEGMENT_DURATION;
 
 		echo "Starting LLOD processing...\n\n";
 
-		$this->startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegmentStatus, $rFP, $rSegmentFile);
+		$this->startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegTime, $rSegmentStatus, $rFP, $rSegmentFile);
 
 		return 0;
 	}
 
-	private function startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, &$rSegmentStatus, &$rFP, &$rSegmentFile): void {
-		$segmentDuration = SEGMENT_DURATION;
-		$segmentStart = microtime(true);
+	private function startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegTime, &$rSegmentStatus, &$rFP, &$rSegmentFile): void {
+		// Keyframe-aligned segmentation. The previous version cut segments on a
+		// fixed wall-clock timer (SEGMENT_DURATION) at an arbitrary TS-packet
+		// boundary, so a segment frequently started mid-GOP (no IDR keyframe) or
+		// without PAT/PMT — the player could not decode it until the next
+		// keyframe, producing the "plays a few seconds, stalls, recovers" cycle.
+		//
+		// Now segments are cut at a random-access point on the video PID (a
+		// keyframe) once at least seg_time has elapsed, each segment is prefixed
+		// with the last-seen PAT + PMT so it is self-contained, and playback only
+		// starts on the first keyframe. A hard ceiling (2×seg_time) falls back to
+		// a time-based cut so sources that never flag random access still advance.
+		$segTime    = $rSegTime > 0 ? $rSegTime : SEGMENT_DURATION;
+		$maxSegTime = $segTime * 2;
 
 		if (!file_exists(CONS_TMP_PATH . $rStreamID)) {
 			if (!@mkdir(CONS_TMP_PATH . $rStreamID, 0777, true)) {
@@ -148,25 +162,20 @@ class LlodCommand implements CommandInterface {
 
 		shell_exec('rm -f ' . STREAMS_PATH . escapeshellarg($rStreamID) . '_*.ts');
 
-		$segment = 0;
-		$rSegmentFile = fopen(STREAMS_PATH . $rStreamID . "_{$segment}.ts", 'wb');
+		// ── MPEG-TS demux state ──────────────────────────────────────────
+		$patPacket = null;   // last-seen raw PAT packet (PID 0)
+		$pmtPacket = null;   // last-seen raw PMT packet
+		$pmtPid    = null;   // PID carrying the PMT (parsed from the PAT)
+		$videoPid  = null;   // elementary PID of the first video stream (from PMT)
 
-		if (!$rSegmentFile) {
-			$this->writeError($rStreamID, '[LLOD] Failed to create initial segment file');
-			fclose($rFP);
-			return;
-		}
+		$segment           = 0;
+		$segmentOpen       = false;
+		$segmentStart      = microtime(true);
+		$rSegmentDurations = array();
 
-		$rSegmentStatus[$segment] = true;
-
-		echo "Segment #{$segment} opened\n";
-
-		// Enable write buffering for better I/O performance
-		stream_set_write_buffer($rSegmentFile, 8192);
-
-		$buffer = '';
-		$bufferOffset = 0;
-		$lastData = time();
+		$lastData    = time();
+		$firstDataAt = microtime(true);
+		$buffer      = '';
 
 		while (!feof($rFP)) {
 			$data = fread($rFP, BUFFER_SIZE);
@@ -181,44 +190,97 @@ class LlodCommand implements CommandInterface {
 			}
 
 			$lastData = time();
-			$buffer .= $data;
+			$buffer  .= $data;
 
-			$bufferLen = strlen($buffer);
-			$packets = intdiv($bufferLen - $bufferOffset, PACKET_SIZE);
-			if ($packets > 0) {
-				$writeSize = $packets * PACKET_SIZE;
-				fwrite($rSegmentFile, substr($buffer, $bufferOffset, $writeSize));
-				$bufferOffset += $writeSize;
+			$len = strlen($buffer);
+			$off = 0;
 
-				// Free consumed buffer memory periodically
-				if ($bufferOffset > 65536) {
-					$buffer = substr($buffer, $bufferOffset);
-					$bufferOffset = 0;
-				}
-			}
-
-			if ((microtime(true) - $segmentStart) >= $segmentDuration) {
-				fclose($rSegmentFile);
-				echo "Segment #{$segment} closed\n";
-
-				$segment++;
-				$segmentStart = microtime(true);
-
-				$rSegmentFile = fopen(STREAMS_PATH . $rStreamID . "_{$segment}.ts", 'wb');
-
-				if (!$rSegmentFile) {
-					$this->writeError($rStreamID, '[LLOD] Failed to create segment file #' . $segment);
-					fclose($rFP);
-					return;
+			// Process only whole 188-byte TS packets; keep any remainder buffered.
+			while ($len - $off >= PACKET_SIZE) {
+				// Re-sync to the TS sync byte (0x47) if alignment was lost.
+				if ($buffer[$off] !== "\x47") {
+					$sync = strpos($buffer, "\x47", $off);
+					if ($sync === false) {
+						$off = $len; // no sync byte in buffer — drop it
+						break;
+					}
+					if ($len - $sync < PACKET_SIZE) {
+						$off = $sync; // partial packet — keep it for the next read
+						break;
+					}
+					$off = $sync;
+					continue;
 				}
 
-				$rSegmentStatus[$segment] = true;
+				$pkt = substr($buffer, $off, PACKET_SIZE);
+				$off += PACKET_SIZE;
 
-				echo "Segment #{$segment} opened\n";
+				$hdr = $this->parseTsHeader($pkt);
+				$pid = $hdr['pid'];
 
-				$remain = $this->deleteOldSegments($rStreamID, $rSegListSize, $rSegDeleteThreshold, $rSegmentStatus);
-				$this->updateSegments($rStreamID, $remain);
+				// Capture PSI so each new segment can be made self-contained.
+				if ($pid === 0) {
+					$patPacket = $pkt;
+					$newPmtPid = $this->parsePat($pkt, $hdr['payload_offset']);
+					if ($newPmtPid !== null) {
+						$pmtPid = $newPmtPid;
+					}
+				} elseif ($pmtPid !== null && $pid === $pmtPid) {
+					$pmtPacket = $pkt;
+					$newVideoPid = $this->parsePmt($pkt, $hdr['payload_offset']);
+					if ($newVideoPid !== null) {
+						$videoPid = $newVideoPid;
+					}
+				}
+
+				// A random-access point on the video PID = a safe segment start.
+				$isRAP   = ($videoPid !== null && $pid === $videoPid && $hdr['pusi'] && $hdr['random_access']);
+				$elapsed = microtime(true) - $segmentStart;
+
+				if (!$segmentOpen) {
+					// Hold segment #0 until the first keyframe so playback never
+					// begins mid-GOP. Start anyway if no RAP is seen in time.
+					$forceStart = (microtime(true) - $firstDataAt) >= $maxSegTime;
+					if (!$isRAP && !$forceStart) {
+						continue; // still waiting for a clean start point
+					}
+					$rSegmentFile = $this->openSegment($rStreamID, $segment, $patPacket, $pmtPacket);
+					if (!$rSegmentFile) {
+						$this->writeError($rStreamID, '[LLOD] Failed to create initial segment file');
+						fclose($rFP);
+						return;
+					}
+					$rSegmentStatus[$segment] = true;
+					$segmentOpen  = true;
+					$segmentStart = microtime(true);
+					echo "Segment #{$segment} opened\n";
+				} elseif (($isRAP && $elapsed >= $segTime) || $elapsed >= $maxSegTime) {
+					// Cut on a keyframe once seg_time has elapsed; the hard ceiling
+					// guarantees progress on sources that never flag random access.
+					fclose($rSegmentFile);
+					$rSegmentDurations[$segment] = $elapsed;
+					echo "Segment #{$segment} closed (" . round($elapsed, 3) . "s)\n";
+
+					$segment++;
+					$rSegmentFile = $this->openSegment($rStreamID, $segment, $patPacket, $pmtPacket);
+					if (!$rSegmentFile) {
+						$this->writeError($rStreamID, '[LLOD] Failed to create segment file #' . $segment);
+						fclose($rFP);
+						return;
+					}
+					$rSegmentStatus[$segment] = true;
+					$segmentStart = microtime(true);
+					echo "Segment #{$segment} opened\n";
+
+					$remain = $this->deleteOldSegments($rStreamID, $rSegListSize, $rSegDeleteThreshold, $rSegmentStatus, $rSegmentDurations);
+					$this->updateSegments($rStreamID, $remain, $rSegmentDurations, $segTime);
+				}
+
+				fwrite($rSegmentFile, $pkt);
 			}
+
+			// Retain the partial trailing packet for the next read.
+			$buffer = ($off >= $len) ? '' : substr($buffer, $off);
 		}
 
 		if (is_resource($rSegmentFile)) {
@@ -227,6 +289,138 @@ class LlodCommand implements CommandInterface {
 		if (is_resource($rFP)) {
 			fclose($rFP);
 		}
+	}
+
+	/**
+	 * Open a new segment file and prefix it with the last-seen PAT + PMT so the
+	 * segment is self-contained (a player can start decoding it from scratch).
+	 *
+	 * @param int|string  $rStreamID Stream id.
+	 * @param int         $segment   Segment index.
+	 * @param string|null $patPacket Raw 188-byte PAT packet, or null if not seen yet.
+	 * @param string|null $pmtPacket Raw 188-byte PMT packet, or null if not seen yet.
+	 * @return resource|false The open file handle, or false on failure.
+	 */
+	private function openSegment($rStreamID, $segment, $patPacket, $pmtPacket) {
+		$file = fopen(STREAMS_PATH . $rStreamID . "_{$segment}.ts", 'wb');
+		if (!$file) {
+			return false;
+		}
+		stream_set_write_buffer($file, 8192);
+		if ($patPacket !== null) {
+			fwrite($file, $patPacket);
+		}
+		if ($pmtPacket !== null) {
+			fwrite($file, $pmtPacket);
+		}
+		return $file;
+	}
+
+	/**
+	 * Parse the 4-byte TS header (and adaptation-field flags) of a packet.
+	 *
+	 * @param string $pkt A 188-byte TS packet.
+	 * @return array{pid:int,pusi:bool,random_access:bool,payload_offset:int}
+	 */
+	private function parseTsHeader($pkt) {
+		$b1 = ord($pkt[1]);
+		$b2 = ord($pkt[2]);
+		$b3 = ord($pkt[3]);
+
+		$pusi = ($b1 & 0x40) !== 0;
+		$pid  = (($b1 & 0x1F) << 8) | $b2;
+		$afc  = ($b3 & 0x30) >> 4; // 1=payload only, 2=adaptation only, 3=both
+
+		$randomAccess  = false;
+		$payloadOffset = 4;
+
+		if ($afc === 2 || $afc === 3) {
+			$afLen = ord($pkt[4]);
+			if ($afLen > 0) {
+				$flags        = ord($pkt[5]);
+				$randomAccess = ($flags & 0x40) !== 0; // random_access_indicator
+			}
+			$payloadOffset = 5 + $afLen;
+		}
+		// No payload (adaptation-only or reserved) — mark payload as absent.
+		if ($afc === 0 || $afc === 2 || $payloadOffset >= PACKET_SIZE) {
+			$payloadOffset = PACKET_SIZE;
+		}
+
+		return [
+			'pid'            => $pid,
+			'pusi'           => $pusi,
+			'random_access'  => $randomAccess,
+			'payload_offset' => $payloadOffset,
+		];
+	}
+
+	/**
+	 * Parse a PAT packet and return the PID of the first program's PMT.
+	 *
+	 * @param string $pkt           A 188-byte TS packet on PID 0.
+	 * @param int    $payloadOffset Offset of the payload within the packet.
+	 * @return int|null program_map_PID, or null if not resolvable in this packet.
+	 */
+	private function parsePat($pkt, $payloadOffset) {
+		if ($payloadOffset >= PACKET_SIZE) {
+			return null;
+		}
+		$ptr = ord($pkt[$payloadOffset]);          // pointer_field
+		$p   = $payloadOffset + 1 + $ptr;          // start of the PAT section
+		if ($p + 8 > PACKET_SIZE || ord($pkt[$p]) !== 0x00) {
+			return null;                           // not a PAT section start
+		}
+		$sectionLength = ((ord($pkt[$p + 1]) & 0x0F) << 8) | ord($pkt[$p + 2]);
+		$progStart     = $p + 8;                   // after the fixed section header
+		$progEnd       = min($p + 3 + $sectionLength - 4, PACKET_SIZE); // exclude CRC32
+
+		for ($i = $progStart; $i + 4 <= $progEnd; $i += 4) {
+			$programNumber = (ord($pkt[$i]) << 8) | ord($pkt[$i + 1]);
+			$pid           = ((ord($pkt[$i + 2]) & 0x1F) << 8) | ord($pkt[$i + 3]);
+			if ($programNumber !== 0) {            // skip the network PID (prog 0)
+				return $pid;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Parse a PMT packet and return the PID of the first video elementary stream
+	 * (falling back to the PCR PID when no known video stream type is present).
+	 *
+	 * @param string $pkt           A 188-byte TS packet on the PMT PID.
+	 * @param int    $payloadOffset Offset of the payload within the packet.
+	 * @return int|null Video/PCR PID, or null if not resolvable in this packet.
+	 */
+	private function parsePmt($pkt, $payloadOffset) {
+		if ($payloadOffset >= PACKET_SIZE) {
+			return null;
+		}
+		$ptr = ord($pkt[$payloadOffset]);
+		$p   = $payloadOffset + 1 + $ptr;
+		if ($p + 12 > PACKET_SIZE || ord($pkt[$p]) !== 0x02) {
+			return null;                           // not a PMT section start
+		}
+		$sectionLength     = ((ord($pkt[$p + 1]) & 0x0F) << 8) | ord($pkt[$p + 2]);
+		$sectionEnd        = min($p + 3 + $sectionLength - 4, PACKET_SIZE); // exclude CRC32
+		$pcrPid            = ((ord($pkt[$p + 8]) & 0x1F) << 8) | ord($pkt[$p + 9]);
+		$programInfoLength = ((ord($pkt[$p + 10]) & 0x0F) << 8) | ord($pkt[$p + 11]);
+
+		// Known video stream_types: MPEG-1/2, H.264, HEVC, VC-1.
+		$videoTypes = [0x01, 0x02, 0x1B, 0x24, 0xEA];
+		$i = $p + 12 + $programInfoLength;         // first ES loop entry
+		while ($i + 5 <= $sectionEnd) {
+			$streamType   = ord($pkt[$i]);
+			$elemPid      = ((ord($pkt[$i + 1]) & 0x1F) << 8) | ord($pkt[$i + 2]);
+			$esInfoLength = ((ord($pkt[$i + 3]) & 0x0F) << 8) | ord($pkt[$i + 4]);
+			if (in_array($streamType, $videoTypes, true)) {
+				return $elemPid;
+			}
+			$i += 5 + $esInfoLength;
+		}
+		// No recognised video stream — align cuts to the PCR clock instead.
+		return $pcrPid !== 0x1FFF ? $pcrPid : null;
 	}
 
 	private function getActiveStream($rStreamID, $rURLs, $rContext) {
@@ -298,7 +492,7 @@ class LlodCommand implements CommandInterface {
 		return false;
 	}
 
-	private function deleteOldSegments($rStreamID, $rKeep, $rThreshold, &$rSegmentStatus): array {
+	private function deleteOldSegments($rStreamID, $rKeep, $rThreshold, &$rSegmentStatus, &$rSegmentDurations = array()): array {
 		echo "Stream ID: $rStreamID\n";
 		echo "Keep segments: $rKeep\n";
 		echo "Delete threshold: $rThreshold\n";
@@ -319,6 +513,7 @@ class LlodCommand implements CommandInterface {
 				if ($rSegmentID < $rCurrentSegment - ($rKeep + $rThreshold) + 1) {
 					echo "Marking segment $rSegmentID for deletion\n";
 					$rSegmentStatus[$rSegmentID] = false;
+					unset($rSegmentDurations[$rSegmentID]);
 					$deleted = @unlink(STREAMS_PATH . $rStreamID . '_' . $rSegmentID . '.ts');
 					@unlink(STREAMS_PATH . $rStreamID . '_' . $rSegmentID . '.m4s');
 					echo "Unlink result for segment $rSegmentID: " . ($deleted ? "success" : "failed") . "\n";
@@ -342,20 +537,31 @@ class LlodCommand implements CommandInterface {
 		return $rReturn;
 	}
 
-	private function updateSegments($rStreamID, $segments): void {
+	private function updateSegments($rStreamID, $segments, $rSegmentDurations = array(), $rSegTime = SEGMENT_DURATION): void {
 		if (empty($segments)) {
 			return;
 		}
 
-		$duration = SEGMENT_DURATION;
+		// EXT-X-TARGETDURATION must be >= the longest segment (rounded up), or
+		// players reject the playlist. Derive it from the real durations.
+		$target = max(1, intval($rSegTime));
+		foreach ($segments as $seg) {
+			$d = isset($rSegmentDurations[$seg]) ? (int) ceil($rSegmentDurations[$seg]) : intval($rSegTime);
+			if ($d > $target) {
+				$target = $d;
+			}
+		}
 
 		$m3u8  = "#EXTM3U\n";
 		$m3u8 .= "#EXT-X-VERSION:3\n";
-		$m3u8 .= "#EXT-X-TARGETDURATION:{$duration}\n";
+		$m3u8 .= "#EXT-X-TARGETDURATION:{$target}\n";
 		$m3u8 .= "#EXT-X-MEDIA-SEQUENCE:" . reset($segments) . "\n";
 
 		foreach ($segments as $seg) {
-			$m3u8 .= "#EXTINF:{$duration}.000000,\n";
+			// Real measured duration keeps the player's clock from drifting
+			// (the old hardcoded 4.000000 caused periodic re-buffering).
+			$dur = isset($rSegmentDurations[$seg]) ? (float) $rSegmentDurations[$seg] : (float) $rSegTime;
+			$m3u8 .= '#EXTINF:' . number_format($dur, 6, '.', '') . ",\n";
 			$m3u8 .= "{$rStreamID}_{$seg}.ts\n";
 		}
 
