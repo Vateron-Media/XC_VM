@@ -139,9 +139,47 @@ class StreamsCronJob implements CommandInterface {
                     if (ProcessManager::isStreamRunning($rPID, $rStream['stream_id']) && file_exists($rPlaylist)) {
                         echo 'Update Stream Information...' . "\n";
                         $rBitrate = StreamUtils::getStreamBitrate('live', STREAMS_PATH . $rStream['stream_id'] . '_.m3u8');
-                        if (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.progress')) {
-                            $rProgress = file_get_contents(STREAMS_PATH . $rStream['stream_id'] . '_.progress');
-                            unlink(STREAMS_PATH . $rStream['stream_id'] . '_.progress');
+                        $rProgressPath = STREAMS_PATH . $rStream['stream_id'] . '_.progress';
+                        if (file_exists($rProgressPath)) {
+                            // ffmpeg appends key=value progress reports to this file
+                            // for the stream's whole life. Read only the tail, keep
+                            // the last COMPLETE report block (terminated by a
+                            // "progress=" line) and re-encode it as the JSON the rest
+                            // of the panel expects. Then truncate so the file stays
+                            // tiny on disk (ffmpeg keeps its write offset, so the
+                            // hole left behind is sparse).
+                            $rTail = '';
+                            $rFp = fopen($rProgressPath, 'rb');
+                            if ($rFp !== false) {
+                                fseek($rFp, 0, SEEK_END);
+                                if (ftell($rFp) > 16384) {
+                                    fseek($rFp, -16384, SEEK_END);
+                                } else {
+                                    rewind($rFp);
+                                }
+                                $rTail = stream_get_contents($rFp);
+                                fclose($rFp);
+                            }
+                            $rReport = array();
+                            $rCurrentReport = array();
+                            foreach (explode("\n", (string) $rTail) as $rLine) {
+                                $rLine = trim($rLine);
+                                if ($rLine === '') {
+                                    continue;
+                                }
+                                $rKV = explode('=', $rLine, 2);
+                                if (count($rKV) !== 2) {
+                                    continue;
+                                }
+                                $rReportKey = trim($rKV[0]);
+                                $rCurrentReport[$rReportKey] = trim($rKV[1]);
+                                if ($rReportKey === 'progress') {
+                                    $rReport = $rCurrentReport;
+                                    $rCurrentReport = array();
+                                }
+                            }
+                            $rProgress = $rReport ? json_encode($rReport) : ($rStream['progress_info'] ?: json_encode(array()));
+                            file_put_contents($rProgressPath, '');
                             if ($rStream['fps_restart']) {
                                 file_put_contents(STREAMS_PATH . $rStream['stream_id'] . '_.progress_check', $rProgress);
                             }
