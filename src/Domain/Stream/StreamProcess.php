@@ -914,7 +914,10 @@ class StreamProcess {
 
 				$externalPushJson = $rStream['stream_info']['external_push'] ?? '[]';
 				$rExternalPush = json_decode($externalPushJson, true);
-				$rProgressURL = 'http://127.0.0.1:' . intval($rServers[SERVER_ID]['http_broadcast_port']) . '/progress?stream_id=' . intval($rStreamID);
+				// ffmpeg writes progress reports to this local file; StreamsCronJob tails it.
+// (PHP-FPM cannot read ffmpeg's open-ended chunked progress POST, so the HTTP
+// /progress endpoint only ever ran at stream end -> speed was stuck at "1x".)
+$rProgressFile = STREAMS_PATH . intval($rStreamID) . '_.progress';
 				$rLLODInputFlags = ($rLLOD && !$rLoopback ? '-fflags +discardcorrupt ' : '');
 
 				if (empty($rStream['stream_info']['custom_ffmpeg'])) {
@@ -967,7 +970,7 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -thread_queue_size 1024 ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressURL . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} -max_muxing_queue_size 1024 ';
+					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -thread_queue_size 1024 ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressFile . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} -max_muxing_queue_size 1024 ';
 
 					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
@@ -982,7 +985,7 @@ class StreamProcess {
 					}
 				} else {
 					$rStream['stream_info']['transcode_attributes'] = array();
-					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressURL . '" ' . $rStream['stream_info']['custom_ffmpeg'];
+					$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressFile . '" ' . $rStream['stream_info']['custom_ffmpeg'];
 				}
 
 				$rLLODOptions = ($rLLOD && !$rLoopback ? '-tune zerolatency -fflags nobuffer -flags low_delay -strict experimental -threads 0' : '');

@@ -1578,7 +1578,7 @@ class TableController extends BaseAdminController {
 									$rSpeedValue = (float) $rSpeedMatch[1];
 								}
 								if ($rSpeedValue !== null) {
-									$rSpeed = floor($rSpeedValue * 100) / 100 . "x";
+									$rSpeed = round($rSpeedValue, 2) . "x"; // round(), not floor($v*100)/100 — the latter drops e.g. 1.01 to "1x" (1.01*100 is 100.9999… in float)
 								} else {
 									$rSpeed = "1x";
 								}
@@ -1942,7 +1942,7 @@ class TableController extends BaseAdminController {
 								$rRow["bitrate"] = "?";
 							}
 							if (isset($rProgressInfo["speed"])) {
-								$rSpeed = floor($rProgressInfo["speed"] * 100) / 100 . "x";
+								$rSpeed = preg_match('/([0-9]+(?:\.[0-9]+)?)/', (string) $rProgressInfo["speed"], $rSpeedMatch) ? round((float) $rSpeedMatch[1], 2) . "x" : "1x";
 							} else {
 								$rSpeed = "1x";
 							}
