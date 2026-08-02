@@ -17,12 +17,12 @@
 
 // phpMiniAdmin — direct MySQL access from the admin panel. Disabled by default:
 // it exposes raw database access, so enable it per-install only when needed.
-define('DB_ACCESS_ENABLED', true); // Set to true to allow phpMiniAdmin access; false disables it
+define('DB_ACCESS_ENABLED', false); // Set to true to allow phpMiniAdmin access; false disables it
 
 // Password phpMiniAdmin requires (on top of the admin session). Keep EMPTY in the
 // repo — a committed password is public and protects nothing; set a strong one on
 // the specific install. When empty, only local IPs (127.0.0.1/::1) may pass.
-define('DB_ACCESS_PWD', "aesrdtfyguhij"); // Set a strong password to protect database access
+define('DB_ACCESS_PWD', ""); // Set a strong password to protect database access
 
 // Forces error display on-screen regardless of the DB setting (debug_show_errors).
 // Set to true locally for development; must be false in production.
@@ -30,7 +30,7 @@ define('DEV_MODE', false);
 
 // ── Version & Git Configuration ────────────────────────────────
 
-define('XC_VM_VERSION', '2.3.6');
+define('XC_VM_VERSION', '2.3.7');
 
 define('GIT_OWNER',       'Vateron-Media');
 define('GIT_REPO_MAIN',   'XC_VM');
