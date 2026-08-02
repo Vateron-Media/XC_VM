@@ -4,79 +4,7 @@ Step-by-step guide for preparing and publishing an XC_VM release.
 
 ---
 
-## 1. Prepare Release Baseline
-
-First, finish all feature/fix/docs work and make sure it is already in `main`.
-
-Set the version variable once and reuse it in all commands below:
-
-```bash
-VERSION="X.Y.Z"
-```
-
-> ⚠️ Do not create a separate version-bump commit/push at this step.
-> Otherwise `dist/changes.md` will include extra release commits and force additional edits.
-
----
-
-## 2. Deleted Files
-
-Before building, generate the list of files to delete on update:
-
-```bash
-make generate_deleted_files
-```
-
-This runs `git diff` between `LAST_TAG` and `HEAD`, extracts deleted files under `src/`, strips the `src/` prefix, and writes the result to `src/migrations/deleted_files.txt`.
-
-If `LAST_TAG` cannot be auto-detected (no network / no releases), pass it explicitly:
-
-```bash
-make generate_deleted_files LAST_TAG=1.2.16
-```
-
-**Review the generated file** — verify no critical files are listed by mistake:
-
-```bash
-cat src/migrations/deleted_files.txt
-```
-
-After validation, `make main` / `make lb` will pack the file into the archive via `delete_files_list` / `lb_delete_files_list`.
-
-During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically.
-
-> ⚠️ Lines starting with `#` are comments and will be ignored. You can comment out files you want to keep.
-
----
-
-## 3. Pre-Release Validation
-
-Before publishing, verify the build works:
-
-**Quality checks** (CI runs the same set on the tag — confirm it is green):
-
-```bash
-make dev-tools && make phpstan && make cs && make gates
-php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
-make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
-```
-
-**Docker test install** (see `tools/test-install/`):
-
-```bash
-bash tools/test-install/test_release.sh
-```
-
-This builds the image, starts the container with systemd, and runs the installer automatically.
-`dist/XC_VM.zip` is mounted into the container as a read-only volume.
-
-> ✅ Verify the panel loads at `http://localhost:8880` and admin login works.
-
-**Security scan:** runs automatically on push/PR via `.github/workflows/security-scan.yml` (Semgrep) — no manual step.
-
----
-
-## 4. Changelog
+## 1. Changelog
 
 **Generate commit log (work commits only):**
 
@@ -106,9 +34,72 @@ The panel fetches this file from the release tag automatically via `GithubReleas
 
 ---
 
+## 2. Prepare Release Baseline
+
+First, finish all feature/fix/docs work and make sure it is already in `main`.
+
+Set the version variable once and reuse it in all commands below:
+
+```bash
+VERSION="X.Y.Z"
+```
+
+> ⚠️ Do not create a separate version-bump commit/push at this step.
+> Otherwise `dist/changes.md` will include extra release commits and force additional edits.
+
+---
+
+## 3. Deleted Files
+
+Before building, generate the list of files to delete on update:
+
+```bash
+make generate_deleted_files
+```
+
+This runs `git diff` between `LAST_TAG` and `HEAD`, extracts deleted files under `src/`, strips the `src/` prefix, and writes the result to `src/migrations/deleted_files.txt`.
+
+If `LAST_TAG` cannot be auto-detected (no network / no releases), pass it explicitly:
+
+```bash
+make generate_deleted_files LAST_TAG=1.2.16
+```
+
+**Review the generated file** — verify no critical files are listed by mistake:
+
+```bash
+cat src/migrations/deleted_files.txt
+```
+
+After validation, `make main` / `make lb` will pack the file into the archive via `delete_files_list` / `lb_delete_files_list`.
+
+During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically.
+
+> ⚠️ Lines starting with `#` are comments and will be ignored. You can comment out files you want to keep.
+
+---
+
+## 4. Pre-Release Validation
+
+Before publishing, verify the build works:
+
+**Quality checks** (CI runs the same set on the tag — confirm it is green):
+
+```bash
+make dev-tools && make phpstan && make cs && make gates
+php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
+make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
+```
+
+> ℹ️ The Docker test install moved to step 6 — it requires a built `dist/XC_VM.zip`.
+
+**Security scan:** runs automatically on push/PR via `.github/workflows/security-scan.yml` (Semgrep) — no manual step.
+
+---
+
 ## 5. Update Version and Create a Single Release Commit
 
-Edit the version constant and disable phpMiniAdmin access flag in:
+Edit the version constant, disable the phpMiniAdmin access flag, and clear its password in:
 
 ```text
 src/Core/Config/AppConfig.php
@@ -118,6 +109,7 @@ src/Core/Config/AppConfig.php
 
 ```bash
 sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/Core/Config/AppConfig.php
+sed -i "s/define('DB_ACCESS_PWD', *\"[^\"]*\");/define('DB_ACCESS_PWD', \"\");/" src/Core/Config/AppConfig.php
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/Core/Config/AppConfig.php
 ```
 
@@ -162,6 +154,17 @@ After building, `dist/` should contain:
 ```bash
 cd dist && md5sum -c hashes.md5
 ```
+
+**Docker test install** (see `tools/test-install/`) — only after building, since it needs `dist/XC_VM.zip`:
+
+```bash
+bash tools/test-install/test_release.sh
+```
+
+This builds the image, starts the container with systemd, and runs the installer automatically.
+`dist/XC_VM.zip` is mounted into the container as a read-only volume.
+
+> ✅ Verify the panel loads at `http://localhost:8880` and admin login works.
 
 ---
 

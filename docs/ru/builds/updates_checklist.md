@@ -61,16 +61,7 @@ php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
 make dev-clean   # после проверок убрать dev-инструменты, вернув прод-only vendor/
 ```
 
-**Тестовая установка в Docker** (см. `tools/test-install/`):
-
-```bash
-bash tools/test-install/test_release.sh
-```
-
-Скрипт собирает образ, запускает контейнер с systemd и автоматически выполняет установку.
-`dist/XC_VM.zip` монтируется в контейнер как read-only volume.
-
-> ✅ Убедитесь, что панель открывается по `http://localhost:8880` и вход в админку работает.
+> ℹ️ Тестовая установка в Docker вынесена в шаг 6 — она требует собранного `dist/XC_VM.zip`.
 
 **Security-сканирование:** запускается автоматически при push/PR через `.github/workflows/security-scan.yml` (Semgrep) — вручную ничего делать не нужно.
 
@@ -108,7 +99,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 
 ## 5. Обновить версию и сделать единый release commit
 
-Изменить константу версии и отключить флаг доступа к phpMiniAdmin в:
+Изменить константу версии, отключить флаг доступа к phpMiniAdmin и очистить его пароль в:
 
 ```text
 src/Core/Config/AppConfig.php
@@ -118,6 +109,7 @@ src/Core/Config/AppConfig.php
 
 ```bash
 sed -i "s/define('DB_ACCESS_ENABLED', true);/define('DB_ACCESS_ENABLED', false);/" src/Core/Config/AppConfig.php
+sed -i "s/define('DB_ACCESS_PWD', *\"[^\"]*\");/define('DB_ACCESS_PWD', \"\");/" src/Core/Config/AppConfig.php
 sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VERSION', '${VERSION}');/" src/Core/Config/AppConfig.php
 ```
 
@@ -162,6 +154,17 @@ make main
 ```bash
 cd dist && md5sum -c hashes.md5
 ```
+
+**Тестовая установка в Docker** (см. `tools/test-install/`) — только после сборки, т.к. нужен `dist/XC_VM.zip`:
+
+```bash
+bash tools/test-install/test_release.sh
+```
+
+Скрипт собирает образ, запускает контейнер с systemd и автоматически выполняет установку.
+`dist/XC_VM.zip` монтируется в контейнер как read-only volume.
+
+> ✅ Убедитесь, что панель открывается по `http://localhost:8880` и вход в админку работает.
 
 ---
 
