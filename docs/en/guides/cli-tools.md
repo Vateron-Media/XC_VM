@@ -96,7 +96,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:epg` | `EpgCronJob` | EPG download and processing (optional) |
 | `cron:errors` | `ErrorsCronJob` | Process error logs |
 | `cron:lines_logs` | `LinesLogsCronJob` | Import client request logs into DB |
-| `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases |
+| `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases (Tuesdays only; `--force` to run manually) |
 | `cron:providers` | `ProvidersCronJob` | Update providers (optional) |
 | `cron:root_mysql` | `RootMysqlCronJob` | Database maintenance (root, optional) |
 | `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management (root) |

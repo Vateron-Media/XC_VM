@@ -96,7 +96,7 @@
 | `cron:epg` | `EpgCronJob` | Загрузка и обработка EPG (опционально) |
 | `cron:errors` | `ErrorsCronJob` | Обработка логов ошибок |
 | `cron:lines_logs` | `LinesLogsCronJob` | Импорт логов клиентских запросов в БД |
-| `cron:maxmind` | `MaxMindCronJob` | Обновление баз MaxMind GeoIP |
+| `cron:maxmind` | `MaxMindCronJob` | Обновление баз MaxMind GeoIP (только по вторникам; `--force` для ручного запуска) |
 | `cron:providers` | `ProvidersCronJob` | Обновление провайдеров (опционально) |
 | `cron:root_mysql` | `RootMysqlCronJob` | Обслуживание БД (root, опционально) |
 | `cron:root_signals` | `RootSignalsCronJob` | Обработка сигналов, iptables, nginx, управление сервисом (root) |

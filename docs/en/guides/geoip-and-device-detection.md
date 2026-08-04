@@ -214,6 +214,30 @@ GEOLITE2C_BIN = BIN_PATH/maxmind/GeoLite2-City.mmdb
 GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 ```
 
+### Automatic update
+
+The databases are updated by the `cron:maxmind` cron job (`src/Cli/CronJobs/MaxMindCronJob.php`).
+It runs **only on Tuesdays** — the day MaxMind publishes new releases. The logic branches on panel settings:
+
+- if `maxmind_account_id` + `maxmind_license_key` + `maxmind_editions` are set, databases are pulled straight from the MaxMind API (`MaxMindUpdater`, only the configured editions are downloaded);
+- if MaxMind credentials are **not** set, it falls back to the GitHub GeoLite2 releases (free databases).
+
+### Manual (forced) update
+
+To refresh the `.mmdb` databases immediately on a running panel, run the cron job by hand **as root** with the `--force` flag (it lifts the "Tuesday only" restriction):
+
+```bash
+/home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:maxmind --force
+```
+
+Output statuses:
+
+- `[OK]` — database updated;
+- `[SKIP]` — already up to date;
+- `[WARN]` / `[ERROR]` — with details (bad credentials, HTTP error, network unavailable).
+
+> ⚠️ The MaxMind API path sends an `If-Modified-Since` header, so an already-fresh database returns HTTP 304 and a `[SKIP]` status. To force a re-download, first delete (or rename) the corresponding `.mmdb` in `BIN_PATH/maxmind/` so the header is not sent. The GitHub fallback has no such behavior — it compares md5 and re-downloads on mismatch.
+
 ---
 
 ## Activity Logging
