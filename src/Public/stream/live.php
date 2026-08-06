@@ -553,20 +553,29 @@ if ($rChannelInfo) {
                     $rTimeStart = time();
                     $rFP = fopen(STREAMS_PATH . $rSegmentFile, "r");
 
-                    // Send segment data to the client with adaptive delays
+                    // Stream segment data to the client, keeping pace with ffmpeg.
+                    //
+                    // While data is available we loop WITHOUT sleeping, draining
+                    // everything ffmpeg has written so far. Only when we catch up
+                    // to the write head (no data) do we pause ~1s and tick the
+                    // stall counter. Previously a 1s sleep ran after EVERY read,
+                    // capping throughput at read_buffer_size per second (e.g.
+                    // 8 KB/s), which starved the client and then dumped the rest
+                    // of the segment in a single burst. Draining without
+                    // throttling paces delivery to the real bitrate regardless of
+                    // read_buffer_size or channel bitrate.
                     while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
                         $rData = stream_get_line($rFP, $rSettings["read_buffer_size"]);
                         if (!empty($rData)) {
                             echo $rData;
                             $rData = "";
                             $rFails = 0;
-                        } else {
-                            // No data read (EOF or blocking) - avoid tight-loop, add small delay
-                            AsyncFileOperations::efficientSleep(100000); // 100ms to reduce CPU spinning
+                            continue; // drain available data without throttling
                         }
 
+                        // No data yet: caught up to ffmpeg's write head, or it stalled.
                         if (ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
-                            AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
+                            AsyncFileOperations::efficientSleep(1000000); // 1s: await more data / stall-timeout tick
                             $rFails++;
                         } else {
                             // Stream process died - don't spin, add small backoff delay
