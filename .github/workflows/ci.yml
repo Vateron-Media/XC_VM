@@ -1,15 +1,23 @@
 name: CI
 
-# Quality gate: runs on every push and pull request.
+# Quality gate: runs on pushes to main and on every pull request.
 # Tests run via the committed PHAR (tools/.bin/phpunit.phar). Class loading uses
 # the committed Composer PSR-4 autoloader (src/vendor/) first, with the legacy
 # src/autoload.php scanner as an end-of-queue fallback. The deploy path ships
 # vendor/ as-is and never runs `composer install`.
 
+# `push` is scoped to main so a commit on a PR branch does NOT run the workflow
+# twice (once for push, once for pull_request); PR branches are covered by the
+# pull_request trigger. The concurrency group cancels superseded in-flight runs
+# on rapid re-pushes / new commits to the same ref.
 on:
   push:
-    branches: ['**']
+    branches: [main]
   pull_request:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
