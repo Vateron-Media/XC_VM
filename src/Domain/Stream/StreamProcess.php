@@ -1029,7 +1029,10 @@ class StreamProcess {
 					}
 
 					if ($rFromCache && file_exists(CACHE_TMP_PATH . md5($rSource)) && time() - filemtime(CACHE_TMP_PATH . md5($rSource)) <= 300) {
-						$rFFProbeOutput = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . md5($rStreamSource)));
+						// Cache key must match the write below and the existence check
+						// above (both md5($rSource)); reading md5($rStreamSource) here
+						// fetched a different file, so the cache always missed.
+						$rFFProbeOutput = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . md5($rSource)));
 
 						if ($rFFProbeOutput && (isset($rFFProbeOutput['streams']) || isset($rFFProbeOutput['codecs']))) {
 							echo 'Got stream information via cache' . "\n";
