@@ -322,4 +322,33 @@ final class StreamProcessMovieOutputTest extends TestCase {
 		$this->assertSame(1080, $out['codecs']['video']['height']);
 		$this->assertSame('aac', $out['codecs']['audio']['codec_name']);
 	}
+
+	// ── resolveDelaySegmentStart / resolveDelaySleepTime (delay) ─
+
+	public function testDelaySegmentStartFromLastLine(): void {
+		// last line is this stream's segment: _4.ts -> resume at 5.
+		$this->assertSame(5, $this->call('resolveDelaySegmentStart', ['#EXTINF:6,', '77_4.ts'], 77));
+	}
+
+	public function testDelaySegmentStartFromPrevLineWhenLastNotOwn(): void {
+		// last line isn't a segment of this stream -> fall back to prev line.
+		$this->assertSame(9, $this->call('resolveDelaySegmentStart', ['77_8.ts', '#EXTINF:6,'], 77));
+	}
+
+	public function testDelaySegmentStartZeroWhenNoTsIndex(): void {
+		$this->assertSame(0, $this->call('resolveDelaySegmentStart', ['#EXTM3U', '#EXT-X-VERSION:3'], 77));
+	}
+
+	public function testDelaySleepTimeFullWhenFresh(): void {
+		$this->assertSame(300, $this->call('resolveDelaySleepTime', 5, 0));
+	}
+
+	public function testDelaySleepTimeReducedPerSegment(): void {
+		$this->assertSame(270, $this->call('resolveDelaySleepTime', 5, 4)); // 300 - (4-1)*10
+		$this->assertSame(300, $this->call('resolveDelaySleepTime', 5, 1)); // (1-1)*10 = 0
+	}
+
+	public function testDelaySleepTimeClampedToZero(): void {
+		$this->assertSame(0, $this->call('resolveDelaySleepTime', 1, 100)); // 60 - 990 -> 0
+	}
 }

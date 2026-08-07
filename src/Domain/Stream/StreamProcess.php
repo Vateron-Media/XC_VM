@@ -540,6 +540,44 @@ class StreamProcess {
 		);
 	}
 
+	/**
+	 * Resume segment number for a delayed HLS stream, parsed from the existing
+	 * delay playlist lines. Reads the last (or previous) line's "_<n>.ts" index
+	 * and returns n+1; 0 when no index is found. Extracted from startStream.
+	 *
+	 * @param array $rLines    Playlist lines (>= 2, newest last).
+	 * @param mixed $rStreamID Stream id; its "<id>_" marks the stream's own segment line.
+	 * @return int Next segment number, or 0.
+	 */
+	private static function resolveDelaySegmentStart($rLines, $rStreamID) {
+		$rLast = $rLines[count($rLines) - 1];
+		$rPrev = $rLines[count($rLines) - 2];
+		$rTarget = stristr($rLast, $rStreamID . '_') ? $rLast : $rPrev;
+		if (preg_match('/_(.*?)\.ts/', $rTarget, $rMatches)) {
+			return intval($rMatches[1]) + 1;
+		}
+		return 0;
+	}
+
+	/**
+	 * Delay sleep seconds for a stream: delay_minutes*60, reduced by ~10s per
+	 * already-produced segment (never below 0). Extracted from startStream.
+	 *
+	 * @param mixed $rDelayMinutes Configured delay in minutes.
+	 * @param int   $rSegmentStart Resume segment number (0 = fresh).
+	 * @return int Seconds to sleep.
+	 */
+	private static function resolveDelaySleepTime($rDelayMinutes, $rSegmentStart) {
+		$rSleepTime = $rDelayMinutes * 60;
+		if ($rSegmentStart > 0) {
+			$rSleepTime -= ($rSegmentStart - 1) * 10;
+			if ($rSleepTime <= 0) {
+				$rSleepTime = 0;
+			}
+		}
+		return $rSleepTime;
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -1257,18 +1295,7 @@ class StreamProcess {
 							return;
 						}
 
-						$lastLine = $rFile[count($rFile) - 1];
-						$prevLine = $rFile[count($rFile) - 2];
-
-						if (stristr($lastLine, $rStreamID . '_')) {
-							if (preg_match('/_(.*?)\.ts/', $lastLine, $rMatches)) {
-								$rSegmentStart = intval($rMatches[1]) + 1;
-							}
-						} else {
-							if (preg_match('/_(.*?)\.ts/', $prevLine, $rMatches)) {
-								$rSegmentStart = intval($rMatches[1]) + 1;
-							}
-						}
+						$rSegmentStart = self::resolveDelaySegmentStart($rFile, $rStreamID);
 
 						if (file_exists($oldM3u8File)) {
 							file_put_contents($oldM3u8File, file_get_contents($oldM3u8File) . file_get_contents($m3u8File));
@@ -1281,15 +1308,7 @@ class StreamProcess {
 					$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
 					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 
-					$rSleepTime = $rStream['stream_info']['delay_minutes'] * 60;
-
-					if ($rSegmentStart > 0) {
-						$rSleepTime -= ($rSegmentStart - 1) * 10;
-
-						if ($rSleepTime <= 0) {
-							$rSleepTime = 0;
-						}
-					}
+					$rSleepTime = self::resolveDelaySleepTime($rStream['stream_info']['delay_minutes'], $rSegmentStart);
 				}
 
 				$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
