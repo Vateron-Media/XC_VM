@@ -22,7 +22,7 @@ Usage:
 
 Examples:
     stream_queue_check.py "http://host/live/stream.m3u8" --duration 60
-    stream_queue_check.py "http://45.90.13.217/play/<token>/ts" --json
+    stream_queue_check.py "http://host/play/<token>/ts" --json
 
 @package XC_VM_Tools
 @license AGPL-3.0
