@@ -468,6 +468,33 @@ class StreamProcess {
 		return $rArguments;
 	}
 
+	/**
+	 * Derive the codec metadata persisted for a started live stream from its
+	 * ffprobe output: player compatibility, audio/video codec names and the
+	 * resolution snapped to the nearest standard height. Extracted from startStream.
+	 *
+	 * @param mixed $rFFProbeOutput ffprobe result (array with a 'codecs' entry) or anything else.
+	 * @param mixed $rAllowHevc     player_allow_hevc setting, passed to the compatibility check.
+	 * @return array{0:int,1:?string,2:?string,3:mixed} [compatible, audioCodec, videoCodec, resolution]
+	 */
+	private static function resolveStreamCodecMeta($rFFProbeOutput, $rAllowHevc) {
+		$rCompatible = 0;
+		$rAudioCodec = $rVideoCodec = $rResolution = null;
+
+		if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
+			$rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, $rAllowHevc));
+			$rAudioCodec = isset($rFFProbeOutput['codecs']['audio']['codec_name']) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : null;
+			$rVideoCodec = isset($rFFProbeOutput['codecs']['video']['codec_name']) ? $rFFProbeOutput['codecs']['video']['codec_name'] : null;
+			$rResolution = isset($rFFProbeOutput['codecs']['video']['height']) ? $rFFProbeOutput['codecs']['video']['height'] : null;
+
+			if ($rResolution) {
+				$rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+			}
+		}
+
+		return array($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution);
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -1290,19 +1317,7 @@ class StreamProcess {
 					$rFFProbeOutput = array();
 				}
 
-				$rCompatible = 0;
-				$rAudioCodec = $rVideoCodec = $rResolution = null;
-
-				if (isset($rFFProbeOutput) && is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
-					$rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']));
-					$rAudioCodec = isset($rFFProbeOutput['codecs']['audio']['codec_name']) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : null;
-					$rVideoCodec = isset($rFFProbeOutput['codecs']['video']['codec_name']) ? $rFFProbeOutput['codecs']['video']['codec_name'] : null;
-					$rResolution = isset($rFFProbeOutput['codecs']['video']['height']) ? $rFFProbeOutput['codecs']['video']['height'] : null;
-
-					if ($rResolution) {
-						$rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
-					}
-				}
+				list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']);
 
 				$rFFProbeOutputSafe = isset($rFFProbeOutput) && is_array($rFFProbeOutput) ? $rFFProbeOutput : [];
 				$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`audio_codec` = ?, `video_codec` = ?, `resolution` = ?,`compatible` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDelayStartAt, time(), json_encode($rFFProbeOutputSafe), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rPID, json_encode(array()), $rSource, $rStreamID, SERVER_ID);

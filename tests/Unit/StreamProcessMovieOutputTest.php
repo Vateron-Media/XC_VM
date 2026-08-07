@@ -228,4 +228,54 @@ final class StreamProcessMovieOutputTest extends TestCase {
 		$this->assertSame('headers', $out[0]['argument_key']);
 		$this->assertSame('X:1', $out[0]['value']);
 	}
+
+	// ── resolveStreamCodecMeta (startStream codec metadata) ────
+
+	public function testCodecMetaNonArrayReturnsDefaults(): void {
+		$this->assertSame([0, null, null, null], $this->call('resolveStreamCodecMeta', null, false));
+		$this->assertSame([0, null, null, null], $this->call('resolveStreamCodecMeta', 'not-json', false));
+	}
+
+	public function testCodecMetaWithoutCodecsKey(): void {
+		$this->assertSame([0, null, null, null], $this->call('resolveStreamCodecMeta', ['container' => 'mpegts'], false));
+	}
+
+	public function testCodecMetaCompatibleH264Aac(): void {
+		$probe = ['codecs' => [
+			'video' => ['codec_name' => 'h264', 'height' => 1080],
+			'audio' => ['codec_name' => 'aac'],
+		]];
+		[$compat, $audio, $video, $res] = $this->call('resolveStreamCodecMeta', $probe, false);
+		$this->assertSame(1, $compat);
+		$this->assertSame('aac', $audio);
+		$this->assertSame('h264', $video);
+		$this->assertSame(1080, $res);
+	}
+
+	public function testCodecMetaResolutionSnapsToNearest(): void {
+		$probe = ['codecs' => ['video' => ['codec_name' => 'h264', 'height' => 700]]];
+		[, , , $res] = $this->call('resolveStreamCodecMeta', $probe, false);
+		$this->assertSame(720, $res); // 700 -> nearest of 240..2160
+	}
+
+	public function testCodecMetaHevcGatedByAllowFlag(): void {
+		$probe = ['codecs' => [
+			'video' => ['codec_name' => 'hevc', 'height' => 2160],
+			'audio' => ['codec_name' => 'ac3'],
+		]];
+		$this->assertSame(0, $this->call('resolveStreamCodecMeta', $probe, false)[0]); // hevc not allowed
+		$this->assertSame(1, $this->call('resolveStreamCodecMeta', $probe, true)[0]);  // hevc allowed
+	}
+
+	public function testCodecMetaIncompatibleStillReportsCodecs(): void {
+		$probe = ['codecs' => [
+			'video' => ['codec_name' => 'mpeg2video', 'height' => 576],
+			'audio' => ['codec_name' => 'aac'],
+		]];
+		[$compat, $audio, $video, $res] = $this->call('resolveStreamCodecMeta', $probe, false);
+		$this->assertSame(0, $compat);        // mpeg2video not whitelisted
+		$this->assertSame('mpeg2video', $video);
+		$this->assertSame('aac', $audio);
+		$this->assertSame(576, $res);
+	}
 }
