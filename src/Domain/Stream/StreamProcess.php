@@ -915,10 +915,20 @@ class StreamProcess {
 				$externalPushJson = $rStream['stream_info']['external_push'] ?? '[]';
 				$rExternalPush = json_decode($externalPushJson, true);
 				// ffmpeg writes progress reports to this local file; StreamsCronJob tails it.
-// (PHP-FPM cannot read ffmpeg's open-ended chunked progress POST, so the HTTP
-// /progress endpoint only ever ran at stream end -> speed was stuck at "1x".)
-$rProgressFile = STREAMS_PATH . intval($rStreamID) . '_.progress';
-				$rLLODInputFlags = ($rLLOD && !$rLoopback ? '-fflags +discardcorrupt ' : '');
+				// (PHP-FPM cannot read ffmpeg's open-ended chunked progress POST, so the HTTP
+				// /progress endpoint only ever ran at stream end -> speed was stuck at "1x".)
+				$rProgressFile = STREAMS_PATH . intval($rStreamID) . '_.progress';
+				// LLOD input resilience: an on-demand HTTP source that drops the
+				// connection makes ffmpeg exit ("Stream ends prematurely"), which the
+				// watchdog then restarts — turning a brief upstream hiccup into a
+				// multi-second re-probe gap and client re-buffering. Reconnecting keeps
+				// ffmpeg alive across drops instead of dying. Guarded to HTTP(S): these
+				// options are http-protocol-only and are a fatal "Option not found"
+				// error on udp/rtmp/file inputs.
+				$rLLODReconnect = ($rLLOD && !$rLoopback && is_string($rSource) && preg_match('#^https?://#i', $rSource))
+					? '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 '
+					: '';
+				$rLLODInputFlags = ($rLLOD && !$rLoopback ? $rLLODReconnect . '-fflags +discardcorrupt ' : '');
 
 				if (empty($rStream['stream_info']['custom_ffmpeg'])) {
 					if ($rLoopback) {
