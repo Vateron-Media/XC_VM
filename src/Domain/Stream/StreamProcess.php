@@ -164,6 +164,84 @@ class StreamProcess {
 	}
 
 	/**
+	 * Build the `-filter_complex` logo/overlay input from transcode attributes.
+	 *
+	 * Attribute 16 carries the logo (val/pos), 17 enables deinterlace (yadif) and
+	 * 9 an optional scale. Attribute 16 is consumed (unset in place) so it is not
+	 * also emitted as a plain ffmpeg flag. Shared by createChannelItem, startMovie
+	 * and startStream, which previously inlined this block verbatim.
+	 *
+	 * @param array $rTranscodeAttributes Transcode attributes (attr 16 unset in place).
+	 * @param bool  $rLoopback            Loopback streams never overlay a logo.
+	 * @return string `-i <logo> -filter_complex "..."`, or '' when no logo applies.
+	 */
+	private static function buildLogoFilterOptions(array &$rTranscodeAttributes, $rLoopback) {
+		if (!isset($rTranscodeAttributes[16]) || $rLoopback) {
+			return '';
+		}
+		$rAttr = $rTranscodeAttributes;
+		$rLogoPath = $rAttr[16]['val'];
+		$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
+
+		$rChain = array();
+		$rBase = '[0:v]';
+		$rVideoFilters = array();
+		if (isset($rAttr[17])) {
+			$rVideoFilters[] = 'yadif';
+		}
+		if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
+			$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
+		}
+
+		if (!empty($rVideoFilters)) {
+			$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
+			$rBase = '[bg]';
+		}
+
+		$rChain[] = '[1:v]scale=250:-1[logo]';
+		$rChain[] = $rBase . '[logo]overlay=' . $rPos;
+
+		unset($rTranscodeAttributes[16]);
+		return '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
+	}
+
+	/**
+	 * Detect a CUVID hardware decoder for the source when GPU transcoding is on.
+	 *
+	 * Returns `-c:v <codec>_cuvid` for a known GPU-decodable codec, otherwise ''.
+	 * Shared by createChannelItem and startMovie.
+	 *
+	 * @param string $rGpuOptions GPU command from the profile ('' = CPU path).
+	 * @param string $rSourcePath Source URL/path to probe.
+	 * @return string CUVID input-codec flag, or ''.
+	 */
+	private static function resolveGpuInputCodec($rGpuOptions, $rSourcePath) {
+		if (empty($rGpuOptions)) {
+			return '';
+		}
+		$rFFProbeOutput = \XcVm\Streaming\Codec\FFprobeRunner::probeStream($rSourcePath);
+		if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
+			return '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
+		}
+		return '';
+	}
+
+	/**
+	 * Default audio and video codecs to stream copy when the profile left them unset.
+	 * Shared by createChannelItem, startMovie and startStream.
+	 *
+	 * @param array $rTranscodeAttributes Transcode attributes (modified in place).
+	 */
+	private static function applyDefaultCopyCodecs(array &$rTranscodeAttributes) {
+		if (!array_key_exists('-acodec', $rTranscodeAttributes)) {
+			$rTranscodeAttributes['-acodec'] = 'copy';
+		}
+		if (!array_key_exists('-vcodec', $rTranscodeAttributes)) {
+			$rTranscodeAttributes['-vcodec'] = 'copy';
+		}
+	}
+
+	/**
 	 * Build the runtime channel item (ffmpeg command/config) for a source.
 	 *
 	 * @param int   $rStreamID Stream id.
@@ -210,51 +288,14 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rLogoOptions = '';
-					if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-						$rAttr = $rStream['stream_info']['transcode_attributes'];
-						$rLogoPath = $rAttr[16]['val'];
-						$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
-
-						$rChain = array();
-						$rBase = '[0:v]';
-						$rVideoFilters = array();
-						if (isset($rAttr[17])) {
-							$rVideoFilters[] = 'yadif';
-						}
-						if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
-							$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
-						}
-
-						if (!empty($rVideoFilters)) {
-							$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
-							$rBase = '[bg]';
-						}
-
-						$rChain[] = '[1:v]scale=250:-1[logo]';
-						$rChain[] = $rBase . '[logo]overlay=' . $rPos;
-
-						$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
-						unset($rStream['stream_info']['transcode_attributes'][16]);
-					}
+					$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
 
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
-					$rInputCodec = '';
-					if (!empty($rGPUOptions)) {
-						$rFFProbeOutput = \XcVm\Streaming\Codec\FFprobeRunner::probeStream($rSourcePath);
-						if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
-							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
-						}
-					}
+					$rInputCodec = self::resolveGpuInputCodec($rGPUOptions, $rSourcePath);
 
 					$rCommand = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -progress "' . CREATED_PATH . intval($rStreamID) . '_' . $rMD5 . '.progress" {GPU} -fflags +genpts -async 1 -i {STREAM_SOURCE} {LOGO} ';
 
-					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
-					}
-					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
-					}
+					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
 					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
 						$rCommand .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
 					}
@@ -489,41 +530,9 @@ class StreamProcess {
 						$rStream['stream_info']['transcode_attributes'] = array();
 					}
 
-					$rLogoOptions = '';
-					if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-						$rAttr = $rStream['stream_info']['transcode_attributes'];
-						$rLogoPath = $rAttr[16]['val'];
-						$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
-
-						$rChain = array();
-						$rBase = '[0:v]';
-						$rVideoFilters = array();
-						if (isset($rAttr[17])) {
-							$rVideoFilters[] = 'yadif';
-						}
-						if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
-							$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
-						}
-
-						if (!empty($rVideoFilters)) {
-							$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
-							$rBase = '[bg]';
-						}
-
-						$rChain[] = '[1:v]scale=250:-1[logo]';
-						$rChain[] = $rBase . '[logo]overlay=' . $rPos;
-
-						$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
-						unset($rStream['stream_info']['transcode_attributes'][16]);
-					}
+					$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
-					$rInputCodec = '';
-					if (!empty($rGPUOptions)) {
-						$rFFProbeOutput = \XcVm\Streaming\Codec\FFprobeRunner::probeStream($rMoviePath);
-						if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
-							$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
-						}
-					}
+					$rInputCodec = self::resolveGpuInputCodec($rGPUOptions, $rMoviePath);
 					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} ' . $rSubtitlesImport;
 					$rMap = '-map 0 -copy_unknown ';
 					if (!empty($rStream['stream_info']['custom_map'])) {
@@ -533,12 +542,7 @@ class StreamProcess {
 							$rMap = '-map 0:a -map 0:v';
 						}
 					}
-					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
-					}
-					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
-					}
+					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
 					if ($rStream['stream_info']['target_container'] == 'mp4') {
 						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'mov_text';
 					} elseif ($rStream['stream_info']['target_container'] == 'mkv') {
@@ -982,13 +986,7 @@ class StreamProcess {
 
 					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -thread_queue_size 1024 ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressFile . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} -max_muxing_queue_size 1024 ';
 
-					if (!array_key_exists('-acodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-acodec'] = 'copy';
-					}
-
-					if (!array_key_exists('-vcodec', $rStream['stream_info']['transcode_attributes'])) {
-						$rStream['stream_info']['transcode_attributes']['-vcodec'] = 'copy';
-					}
+					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
 
 					if (!array_key_exists('-scodec', $rStream['stream_info']['transcode_attributes'])) {
 						$rStream['stream_info']['transcode_attributes']['-sn'] = '';
@@ -1026,33 +1024,7 @@ class StreamProcess {
 					}
 				}
 
-				$rLogoOptions = '';
-				if (isset($rStream['stream_info']['transcode_attributes'][16]) && !$rLoopback) {
-					$rAttr = $rStream['stream_info']['transcode_attributes'];
-					$rLogoPath = $rAttr[16]['val'];
-					$rPos = (isset($rAttr[16]['pos']) && $rAttr[16]['pos'] !== '10:10') ? $rAttr[16]['pos'] : '10:main_h-overlay_h-10';
-
-					$rChain = array();
-					$rBase = '[0:v]';
-					$rVideoFilters = array();
-					if (isset($rAttr[17])) {
-						$rVideoFilters[] = 'yadif';
-					}
-					if (isset($rAttr[9]['val']) && strlen($rAttr[9]['val']) > 0) {
-						$rVideoFilters[] = 'scale=' . $rAttr[9]['val'];
-					}
-
-					if (!empty($rVideoFilters)) {
-						$rChain[] = $rBase . implode(',', $rVideoFilters) . '[bg]';
-						$rBase = '[bg]';
-					}
-
-					$rChain[] = '[1:v]scale=250:-1[logo]';
-					$rChain[] = $rBase . '[logo]overlay=' . $rPos;
-
-					$rLogoOptions = '-i ' . escapeshellarg($rLogoPath) . ' -filter_complex "' . implode('; ', $rChain) . '"';
-					unset($rStream['stream_info']['transcode_attributes'][16]);
-				}
+				$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
 
 				$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 				$rInputCodec = '';
