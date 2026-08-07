@@ -102,10 +102,9 @@ Rules:
 
 > **`hash_id` — the module's permanent identity.** It is a random 32-hex value,
 > generated **once** and **never** changed afterwards — it must survive version bumps
-> and renames (so it is random, not derived from `name`/`version`). Generate it with
-> `make module-hashes` (or `php tools/gen-module-hashes.php`) after scaffolding a new
-> module — the target is idempotent and never touches a module that already has one.
-> Do not hand-write it. It gives modules a stable identity independent of `name`,
+> and renames (so it is random, not derived from `name`/`version`). Generate one with
+> `php -r 'echo bin2hex(random_bytes(16));'` and paste it into `module.json` when
+> scaffolding a new module. Do not hand-write it or reuse another module's. It gives modules a stable identity independent of `name`,
 > which is the groundwork for moving modules into separate repositories and for an
 > explicit per-module **update source** — the `update` manifest block (see below).
 
@@ -717,7 +716,7 @@ formats) and discovers any installed `xcvm-module` packages alongside the built-
 - [ ] Create `src/Modules/<name>/`
 - [ ] Add `namespace XcVm\Module\<PascalName>;` to every class file
 - [ ] Create `module.json` with `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
-- [ ] Run `make module-hashes` to stamp a permanent `hash_id` (idempotent; never hand-write it)
+- [ ] Stamp a permanent `hash_id` (`php -r 'echo bin2hex(random_bytes(16));'`; never hand-write it)
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
 - [ ] Set the version in **both** `module.json` `"version"` and `getVersion()` — they must match (bump both before publishing)
 - [ ] Implement `boot()` for all services the module provides
