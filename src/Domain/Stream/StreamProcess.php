@@ -286,6 +286,111 @@ class StreamProcess {
 		return array($rSubtitlesImport, $rSubtitlesMetadata);
 	}
 
+	/**
+	 * Resolve the ffmpeg `-map` selection for a VOD transcode.
+	 *
+	 * A custom map (when set) wins; otherwise strip subtitles on request, else
+	 * copy everything. Extracted from startMovie.
+	 *
+	 * @param string|null $rCustomMap       Admin custom map, or empty for the default.
+	 * @param mixed       $rRemoveSubtitles Truthy (== 1) to drop subtitle streams.
+	 * @return string The `-map ...` fragment.
+	 */
+	private static function resolveOutputMap($rCustomMap, $rRemoveSubtitles) {
+		if (!empty($rCustomMap)) {
+			return escapeshellcmd($rCustomMap) . ' -copy_unknown ';
+		}
+		if ($rRemoveSubtitles == 1) {
+			return '-map 0:a -map 0:v';
+		}
+		return '-map 0 -copy_unknown ';
+	}
+
+	/**
+	 * Pick the subtitle codec for a VOD target container. Extracted from startMovie.
+	 *
+	 * @param string $rContainer Target container (mp4/mkv/…).
+	 * @return string ffmpeg subtitle codec: mov_text (mp4), srt (mkv), else copy.
+	 */
+	private static function subtitleCodecForContainer($rContainer) {
+		if ($rContainer == 'mp4') {
+			return 'mov_text';
+		}
+		if ($rContainer == 'mkv') {
+			return 'srt';
+		}
+		return 'copy';
+	}
+
+	/**
+	 * Resolve a created-channel source string into [serverId, sourcePath].
+	 *
+	 * A plain string is a local path on this server. An `s:<serverId>:<path>`
+	 * string references a file on another server; when that server is known it is
+	 * rewritten to its getFile API URL, otherwise the raw path is kept. Extracted
+	 * from createChannelItem. The `explode(':', …, 3)` limit keeps colons in the
+	 * path intact.
+	 *
+	 * @param string $rSource  Source string (`path` or `s:<serverId>:<path>`).
+	 * @param mixed  $rServers Server registry (array keyed by server id).
+	 * @return array{0:int,1:string} [serverId, sourcePath]
+	 */
+	private static function resolveChannelSource($rSource, $rServers) {
+		if (substr($rSource, 0, 2) == 's:') {
+			$rSplit = explode(':', $rSource, 3);
+			$rServerID = intval($rSplit[1]);
+			$rSourcePath = $rSplit[2];
+			if ($rServerID != SERVER_ID) {
+				if (is_array($rServers) && isset($rServers[$rServerID])) {
+					$rSourcePath = $rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
+				} else {
+					$rSourcePath = $rSplit[2];
+				}
+			}
+		} else {
+			$rServerID = SERVER_ID;
+			$rSourcePath = $rSource;
+		}
+		return array($rServerID, $rSourcePath);
+	}
+
+	/**
+	 * Assemble the HLS/mpegts segmenter output arguments for a live stream.
+	 *
+	 * Pure string builder extracted from startStream. The caller still computes
+	 * the conditional $rOptions, $rKeyFrames and $rInitTime and passes them in, so
+	 * the control flow is unchanged.
+	 *
+	 * @param string $rOptions         Leading option placeholders ({MAP} {LLOD}).
+	 * @param array  $rSegmentSettings seg_time / seg_list_size / seg_delete_threshold.
+	 * @param string $rKeyFrames       Extra hls_flags (e.g. '+split_by_time') or ''.
+	 * @param int    $rInitTime        hls_init_time seconds.
+	 * @param int    $rStreamID        Stream id (segment/playlist filenames).
+	 * @return string The `-f hls …` output fragment.
+	 */
+	private static function buildHlsMpegtsOutput($rOptions, $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID) {
+		return $rOptions . ' -individual_header_trailer 0 -f hls -hls_init_time ' . $rInitTime
+			. ' -hls_time ' . intval($rSegmentSettings['seg_time'])
+			. ' -hls_list_size ' . intval($rSegmentSettings['seg_list_size'])
+			. ' -hls_delete_threshold ' . intval($rSegmentSettings['seg_delete_threshold'])
+			. ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames
+			. ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "'
+			. STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
+	}
+
+	/**
+	 * Wrap an FLV output target (local RTMP relay or external push URL) with the
+	 * shared `-f flv -flvflags no_duration_filesize` options. Extracted from the
+	 * two identical FLV output lines in startStream.
+	 *
+	 * @param string $rFLVOptions Leading option placeholders ({MAP} {AAC_FILTER}).
+	 * @param string $rTarget     The rtmp:// URL or escaped push URL.
+	 * @return string The `… -f flv … <target> ` output fragment.
+	 */
+	private static function buildFlvOutput($rFLVOptions, $rTarget) {
+		return $rFLVOptions . ' -f flv -flvflags no_duration_filesize ' . $rTarget . ' ';
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -298,21 +403,7 @@ class StreamProcess {
 			if ($db->num_rows() > 0) {
 				$rStream['server_info'] = $db->get_row();
 				$rMD5 = md5($rSource);
-				if (substr($rSource, 0, 2) == 's:') {
-					$rSplit = explode(':', $rSource, 3);
-					$rServerID = intval($rSplit[1]);
-					$rSourcePath = $rSplit[2];
-					if ($rServerID != SERVER_ID) {
-						if (is_array($rServers) && isset($rServers[$rServerID])) {
-							$rSourcePath = $rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
-						} else {
-							$rSourcePath = $rSplit[2];
-						}
-					}
-				} else {
-					$rServerID = SERVER_ID;
-					$rSourcePath = $rSource;
-				}
+				list($rServerID, $rSourcePath) = self::resolveChannelSource($rSource, $rServers);
 
 				if ($rServerID == SERVER_ID && intval($rStream['stream_info']['movie_symlink']) == 1) {
 					$rExtension = pathinfo($rSource)['extension'];
@@ -556,22 +647,9 @@ class StreamProcess {
 					$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
 					$rInputCodec = self::resolveGpuInputCodec($rGPUOptions, $rMoviePath);
 					$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err {GPU} {FETCH_OPTIONS} -fflags +genpts -async 1 {READ_NATIVE} -i {STREAM_SOURCE} {LOGO} ' . $rSubtitlesImport;
-					$rMap = '-map 0 -copy_unknown ';
-					if (!empty($rStream['stream_info']['custom_map'])) {
-						$rMap = escapeshellcmd($rStream['stream_info']['custom_map']) . ' -copy_unknown ';
-					} else {
-						if ($rStream['stream_info']['remove_subtitles'] == 1) {
-							$rMap = '-map 0:a -map 0:v';
-						}
-					}
+					$rMap = self::resolveOutputMap($rStream['stream_info']['custom_map'], $rStream['stream_info']['remove_subtitles']);
 					self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
-					if ($rStream['stream_info']['target_container'] == 'mp4') {
-						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'mov_text';
-					} elseif ($rStream['stream_info']['target_container'] == 'mkv') {
-						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'srt';
-					} else {
-						$rStream['stream_info']['transcode_attributes']['-scodec'] = 'copy';
-					}
+					$rStream['stream_info']['transcode_attributes']['-scodec'] = self::subtitleCodecForContainer($rStream['stream_info']['target_container']);
 					$rOutputs = array();
 					$rOutputs[$rStream['stream_info']['target_container']] = '-movflags +faststart -dn ' . $rMap . ' -ignore_unknown ' . $rSubtitlesMetadata . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd($rStream['stream_info']['target_container']);
 					foreach ($rOutputs as $rOutputCommand) {
@@ -1034,15 +1112,15 @@ class StreamProcess {
 				// Fast start: shorten the first segment so players can begin sooner.
 				// Capped at seg_time so a small seg_time never produces a longer first segment.
 				$rInitTime = min(2, intval($rSegmentSettings['seg_time']));
-				$rOutputs['mpegts'][] = $rOptions . ' -individual_header_trailer 0 -f hls -hls_init_time ' . $rInitTime . ' -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rSegmentSettings['seg_list_size']) . ' -hls_delete_threshold ' . intval($rSegmentSettings['seg_delete_threshold']) . ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames . ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "' . STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
+				$rOutputs['mpegts'][] = self::buildHlsMpegtsOutput($rOptions, $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID);
 
 				if ($rStream['stream_info']['rtmp_output'] == 1) {
-					$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode($rSettings['live_streaming_pass']) . ' ';
+					$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, 'rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode($rSettings['live_streaming_pass']));
 				}
 
 				if (!empty($rExternalPush[SERVER_ID])) {
 					foreach ($rExternalPush[SERVER_ID] as $rPushURL) {
-						$rOutputs['flv'][] = $rFLVOptions . ' -f flv -flvflags no_duration_filesize ' . escapeshellarg($rPushURL) . ' ';
+						$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, escapeshellarg($rPushURL));
 					}
 				}
 
