@@ -118,6 +118,13 @@ phpstan-baseline:
 	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php "$(PHPSTAN)" analyse --memory-limit=2G --generate-baseline=phpstan-baseline.neon
 
+# Regenerate tools/phpstan/constants.stub.php from the current src/ define()s.
+# Run when runtime-defined constants change so the stub PHPStan reads stays
+# accurate (constants.stub.php is a bootstrapFile in phpstan.dist.neon).
+phpstan-stub:
+	@php tools/phpstan/gen-constants-stub.php > tools/phpstan/constants.stub.php
+	@echo "regenerated tools/phpstan/constants.stub.php ($$(grep -c 'define(' tools/phpstan/constants.stub.php) constants)"
+
 # ─── Code style (PHP-CS-Fixer) ──────────────────────────────────
 # Narrow ruleset — import/namespace hygiene only (no @PSR12 reformat). See
 # .php-cs-fixer.dist.php.
