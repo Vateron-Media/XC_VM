@@ -578,6 +578,212 @@ class StreamProcess {
 		return $rSleepTime;
 	}
 
+	/**
+	 * Assemble the live ffmpeg command string from prepared state. PURE: no
+	 * probe/DB/shell/file I/O — a byte-faithful copy of the startStream assembly,
+	 * fed from $data instead of loop-local variables. The delay-playlist I/O and
+	 * the segment-start/sleep computation stay in startStream and arrive via
+	 * $data['segmentStart']/['delayActive']. Run in shadow (diff-logged) before it
+	 * replaces the inline assembly.
+	 *
+	 * @param array $data Prepared assembly inputs (see startStream call site).
+	 * @return string The full shell command (ffmpeg + outputs + redirects + pid).
+	 */
+	private static function buildLive(array $data): string {
+		$rStream = $data['stream'];
+		$rSettings = $data['settings'];
+		$rServers = $data['servers'];
+		$rStreamID = $data['streamID'];
+		$rStreamSource = $data['streamSource'];
+		$rFetchOptions = $data['fetchOptions'];
+		$rFFProbeOutput = $data['ffprobe'];
+		$rProtocol = $data['protocol'];
+		$rSource = $data['source'];
+		$rSegmentSettings = $data['segmentSettings'];
+		$rExternalPush = $data['externalPush'];
+		$rProbesize = $data['probesize'];
+		$rAnalyseDuration = $data['analyseDuration'];
+		$rLLOD = $data['llod'];
+		$rLoopback = $data['loopback'];
+		$rSegmentStart = $data['segmentStart'];
+		$rDelayActive = $data['delayActive'];
+		$rFFMPEG_CPU = $data['ffmpegCpu'];
+		$rFFMPEG_GPU = $data['ffmpegGpu'];
+
+		$externalPushJson = $rStream['stream_info']['external_push'] ?? '[]';
+		$rExternalPush = json_decode($externalPushJson, true);
+		// ffmpeg writes progress reports to this local file; StreamsCronJob tails it.
+		// (PHP-FPM cannot read ffmpeg's open-ended chunked progress POST, so the HTTP
+		// /progress endpoint only ever ran at stream end -> speed was stuck at "1x".)
+		$rProgressFile = STREAMS_PATH . intval($rStreamID) . '_.progress';
+		// LLOD input resilience: an on-demand HTTP source that drops the
+		// connection makes ffmpeg exit ("Stream ends prematurely"), which the
+		// watchdog then restarts — turning a brief upstream hiccup into a
+		// multi-second re-probe gap and client re-buffering. Reconnecting keeps
+		// ffmpeg alive across drops instead of dying. Guarded to HTTP(S): these
+		// options are http-protocol-only and are a fatal "Option not found"
+		// error on udp/rtmp/file inputs.
+		$rLLODReconnect = ($rLLOD && !$rLoopback && is_string($rSource) && preg_match('#^https?://#i', $rSource))
+			? '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 '
+			: '';
+		$rLLODInputFlags = ($rLLOD && !$rLoopback ? $rLLODReconnect . '-fflags +discardcorrupt ' : '');
+
+		// Command-template defaults: only the non-custom_ffmpeg branch below
+		// assigns these, yet the {MAP}/{GEN_PTS}/{READ_NATIVE} substitution and
+		// the delay sleep read them unconditionally. Default them so the
+		// custom_ffmpeg path (which skips the branch) stays defined.
+		$rMap = '';
+		$rGenPTS = '';
+		$rReadNative = '';
+		$rSleepTime = 0;
+		if (empty($rStream['stream_info']['custom_ffmpeg'])) {
+			if ($rLoopback) {
+				$rOptions = '{FETCH_OPTIONS}';
+			} else {
+				$rOptions = '{GPU} {FETCH_OPTIONS}';
+			}
+
+			if ($rStream['stream_info']['stream_all'] == 1) {
+				$rMap = '-map 0 -copy_unknown ';
+			} else {
+				if (!empty($rStream['stream_info']['custom_map'])) {
+					$rMap = escapeshellcmd($rStream['stream_info']['custom_map']) . ' -copy_unknown ';
+				} else {
+					if ($rStream['stream_info']['type_key'] == 'radio_streams') {
+						$rMap = '-map 0:a? ';
+					} else {
+						$rMap = '';
+					}
+				}
+			}
+
+			if (($rStream['stream_info']['gen_timestamps'] == 1 || empty($rProtocol)) && $rStream['stream_info']['type_key'] != 'created_live') {
+				$rGenPTS = '-fflags +genpts -async 1';
+			} else {
+				if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']['audio']['codec_name']) && in_array($rFFProbeOutput['codecs']['audio']['codec_name'], array('ac3', 'eac3')) && $rSettings['dts_legacy_ffmpeg']) {
+					$rFFMPEG_CPU = FFMPEG_BIN_40;
+				}
+
+				$rNoFix = ($rFFMPEG_CPU == FFMPEG_BIN_40 ? '-nofix_dts' : '');
+				$rGenPTS = $rNoFix . ' -start_at_zero -copyts -vsync 0 -correct_ts_overflow 0 -avoid_negative_ts disabled -max_interleave_delta 0';
+			}
+
+			$container = (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) ? ($rFFProbeOutput['container'] ?? null) : null;
+			if (empty($rStream['server_info']['parent_id']) && (($rStream['stream_info']['read_native'] == 1) || ($container && stristr($container, 'hls') && $rSettings['read_native_hls']) || empty($rProtocol) || ($container && stristr($container, 'mp4')) || ($container && stristr($container, 'matroska')))) {
+				$rReadNative = '-re';
+			} else {
+				$rReadNative = '';
+			}
+
+			if (!$rStream['server_info']['parent_id'] && $rStream['stream_info']['enable_transcode'] == 1 && $rStream['stream_info']['type_key'] != 'created_live') {
+				if ($rStream['stream_info']['transcode_profile_id'] == -1) {
+					$rStream['stream_info']['transcode_attributes'] = array_merge(StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'transcode'), json_decode((string) $rStream['stream_info']['transcode_attributes'], true) ?: array());
+				} else {
+					$rStream['stream_info']['transcode_attributes'] = json_decode((string) $rStream['stream_info']['profile_options'], true) ?: array();
+				}
+			} else {
+				$rStream['stream_info']['transcode_attributes'] = array();
+			}
+
+			$rFFMPEG = ((isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -err_detect ignore_err -thread_queue_size 1024 ' . $rOptions . ' {GEN_PTS} {READ_NATIVE} ' . $rLLODInputFlags . '-probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -progress "' . $rProgressFile . '" {CONCAT} -i {STREAM_SOURCE} {LOGO} -max_muxing_queue_size 1024 ';
+
+			self::applyDefaultCopyCodecs($rStream['stream_info']['transcode_attributes']);
+
+			if (!array_key_exists('-scodec', $rStream['stream_info']['transcode_attributes'])) {
+				$rStream['stream_info']['transcode_attributes']['-sn'] = '';
+			}
+		} else {
+			$rStream['stream_info']['transcode_attributes'] = array();
+			$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressFile . '" ' . $rStream['stream_info']['custom_ffmpeg'];
+		}
+
+		$rLLODOptions = ($rLLOD && !$rLoopback ? '-tune zerolatency -fflags nobuffer -flags low_delay -strict experimental -threads 0' : '');
+		$rOutputs = array();
+
+		if ($rLoopback) {
+			$rOptions = '{MAP}';
+			$rFLVOptions = '{MAP}';
+			$rMap = '-map 0 -copy_unknown ';
+		} else {
+			$rOptions = '{MAP} {LLOD}';
+			$rFLVOptions = '{MAP} {AAC_FILTER}';
+		}
+
+		$rKeyFrames = ($rSettings['ignore_keyframes'] ? '+split_by_time' : '');
+		// Fast start: shorten the first segment so players can begin sooner.
+		// Capped at seg_time so a small seg_time never produces a longer first segment.
+		$rInitTime = min(2, intval($rSegmentSettings['seg_time']));
+		$rOutputs['mpegts'][] = self::buildHlsMpegtsOutput($rOptions, $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID);
+
+		if ($rStream['stream_info']['rtmp_output'] == 1) {
+			$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, 'rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode($rSettings['live_streaming_pass']));
+		}
+
+		if (!empty($rExternalPush[SERVER_ID])) {
+			foreach ($rExternalPush[SERVER_ID] as $rPushURL) {
+				$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, escapeshellarg($rPushURL));
+			}
+		}
+
+		$rLogoOptions = self::buildLogoFilterOptions($rStream['stream_info']['transcode_attributes'], $rLoopback);
+
+		$rGPUOptions = (isset($rStream['stream_info']['transcode_attributes']['gpu']) ? $rStream['stream_info']['transcode_attributes']['gpu']['cmd'] : '');
+		$rInputCodec = '';
+
+		$supportedCodecs = ['h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'];
+		$videoCodec = null;
+		if (isset($rFFProbeOutput) && is_array($rFFProbeOutput)) {
+			$videoCodec = $rFFProbeOutput['codecs']['video']['codec_name'] ?? null;
+		}
+
+		if (!empty($rGPUOptions) && in_array($videoCodec, $supportedCodecs)) {
+			$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
+		}
+
+
+		if (!$rDelayActive) {
+			foreach ($rOutputs as $rOutputCommands) {
+				foreach ($rOutputCommands as $rOutputCommand) {
+					if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
+						$rFFMPEG .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
+					}
+
+					$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+					$rFFMPEG .= $rOutputCommand;
+				}
+			}
+		} else {
+			$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+			$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
+		}
+
+		$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
+
+		$ffprobeContainer = (isset($rFFProbeOutput['container']) && is_string($rFFProbeOutput['container'])) ? $rFFProbeOutput['container'] : '';
+
+		$audioCodec = (isset($rFFProbeOutput['codecs']['audio']['codec_name']) && is_array($rFFProbeOutput['codecs']['audio'])) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : '';
+
+		$rFFMPEG = str_replace(
+			['{FETCH_OPTIONS}', '{GEN_PTS}', '{STREAM_SOURCE}', '{MAP}', '{READ_NATIVE}', '{CONCAT}', '{AAC_FILTER}', '{GPU}', '{INPUT_CODEC}', '{LOGO}', '{LLOD}'],
+			[
+				empty($rStream['stream_info']['custom_ffmpeg']) ? $rFetchOptions : '',
+				empty($rStream['stream_info']['custom_ffmpeg']) ? $rGenPTS : '',
+				escapeshellarg($rStreamSource),
+				empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : '',
+				empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '',
+				($rStream['stream_info']['type_key'] == 'created_live' && empty($rStream['server_info']['parent_id']) ? '-safe 0 -f concat' : ''),
+				self::aacBitstreamFilter($ffprobeContainer, $audioCodec, $rStream['stream_info']['transcode_attributes']['-acodec'] ?? ''),
+				$rGPUOptions,
+				$rInputCodec,
+				$rLogoOptions,
+				$rLLODOptions
+			],
+			$rFFMPEG
+		);
+
+		return $rFFMPEG;
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -1336,6 +1542,24 @@ class StreamProcess {
 					],
 					$rFFMPEG
 				);
+
+				// SHADOW: compute the pure buildLive() output alongside the inline
+				// assembly and log any divergence. The inline $rFFMPEG still runs —
+				// no flip yet (see FFmpegCommand::buildLive migration).
+				$rShadow = self::buildLive(array(
+					'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,
+					'streamID' => $rStreamID, 'streamSource' => $rStreamSource,
+					'fetchOptions' => $rFetchOptions, 'ffprobe' => $rFFProbeOutput,
+					'protocol' => $rProtocol, 'source' => $rSource,
+					'segmentSettings' => $rSegmentSettings, 'externalPush' => $rExternalPush,
+					'probesize' => $rProbesize, 'analyseDuration' => $rAnalyseDuration,
+					'llod' => $rLLOD, 'loopback' => $rLoopback,
+					'segmentStart' => $rSegmentStart, 'delayActive' => $rDelayActive,
+					'ffmpegCpu' => $rFFMPEG_CPU, 'ffmpegGpu' => $rFFMPEG_GPU,
+				));
+				if ($rShadow !== $rFFMPEG) {
+					error_log('[XC_VM] FFMPEG-SHADOW-DIFF stream ' . $rStreamID . "\nOLD: " . $rFFMPEG . "\nNEW: " . $rShadow);
+				}
 
 				shell_exec($rFFMPEG);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
