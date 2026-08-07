@@ -45,8 +45,7 @@ class StreamProcess {
 	public static function deleteCache($rSources) {
 		if (!empty($rSources)) {
 			foreach ($rSources as $rSource) {
-				if (!file_exists(CACHE_TMP_PATH . md5($rSource))) {
-				} else {
+				if (file_exists(CACHE_TMP_PATH . md5($rSource))) {
 					unlink(CACHE_TMP_PATH . md5($rSource));
 				}
 			}
@@ -64,13 +63,11 @@ class StreamProcess {
 	 */
 	public static function queueChannel($rStreamID, $rServerID = null) {
 		$db = self::db();
-		if ($rServerID) {
-		} else {
+		if (!$rServerID) {
 			$rServerID = SERVER_ID;
 		}
 		$db->query('SELECT `id` FROM `queue` WHERE `stream_id` = ? AND `server_id` = ?;', $rStreamID, $rServerID);
-		if ($db->num_rows() != 0) {
-		} else {
+		if ($db->num_rows() == 0) {
 			$db->query("INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES('channel', ?, ?, ?);", $rStreamID, $rServerID, time());
 		}
 	}
@@ -133,8 +130,7 @@ class StreamProcess {
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
-			if (($db->get_row()['count'] ?? 0) != 0) {
-			} else {
+			if (($db->get_row()['count'] ?? 0) == 0) {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
 			}
 			return true;
@@ -154,8 +150,7 @@ class StreamProcess {
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
-			if (($db->get_row()['count'] ?? 0) != 0) {
-			} else {
+			if (($db->get_row()['count'] ?? 0) == 0) {
 				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
 			}
 			return;
@@ -391,6 +386,63 @@ class StreamProcess {
 		return $rFLVOptions . ' -f flv -flvflags no_duration_filesize ' . $rTarget . ' ';
 	}
 
+	/**
+	 * Resolve ffprobe/analysis timing for a live stream start.
+	 *
+	 * On-demand streams use a small (LLOD) or medium analysis window and the
+	 * per-stream probesize; everything else uses the global settings. The read
+	 * timeout is derived from the analysis window plus the configured slack.
+	 * Extracted from startStream.
+	 *
+	 * @param mixed $rOnDemand          server_info on_demand flag (== 1 → on-demand).
+	 * @param mixed $rProbesizeOndemand Per-stream on-demand probesize (0 → default).
+	 * @param bool  $rLLOD              Live-on-demand (shorter analysis window).
+	 * @param array $rSettings          Global settings (analyze/probesize/slack).
+	 * @return array{0:int,1:int|string,2:int} [probesize, analyzeDuration, timeout]
+	 */
+	private static function resolveProbeSettings($rOnDemand, $rProbesizeOndemand, $rLLOD, $rSettings) {
+		if ($rOnDemand == 1) {
+			$rProbesize = intval($rProbesizeOndemand) ?: 1000000;
+			$rAnalyseDuration = ($rLLOD ? '500000' : '10000000');
+		} else {
+			$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
+			$rProbesize = abs(intval($rSettings['probesize']));
+		}
+		$rTimeout = intval($rAnalyseDuration / 1000000) + $rSettings['probe_extra_wait'];
+		return array($rProbesize, $rAnalyseDuration, $rTimeout);
+	}
+
+	/**
+	 * Failover ordering for a stream's source list.
+	 *
+	 * Unless priority-backup mode is on, and when the last-used source is still
+	 * in the list, rotate every source up to and including it to the end so the
+	 * NEXT untried source leads (already-tried sources become fallbacks).
+	 * Extracted from startStream.
+	 *
+	 * @param array  $rSources        Ordered source list.
+	 * @param mixed  $rPriorityBackup priority_backup setting (== 1 → keep order).
+	 * @param mixed  $rCurrentSource  Last-used source, or empty.
+	 * @return array The (possibly) reordered source list, re-indexed.
+	 */
+	private static function rotateSourcesPastCurrent($rSources, $rPriorityBackup, $rCurrentSource) {
+		if ($rPriorityBackup == 1 || empty($rCurrentSource)) {
+			return $rSources;
+		}
+		$k = array_search($rCurrentSource, $rSources);
+		if ($k === false) {
+			return $rSources;
+		}
+		$i = 0;
+		while ($i <= $k) {
+			$rTemp = $rSources[$i];
+			unset($rSources[$i]);
+			array_push($rSources, $rTemp);
+			$i++;
+		}
+		return array_values($rSources);
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -517,8 +569,7 @@ class StreamProcess {
 	 */
 	public static function queueMovie($rStreamID, $rServerID = null) {
 		$db = self::db();
-		if ($rServerID) {
-		} else {
+		if (!$rServerID) {
 			$rServerID = SERVER_ID;
 		}
 		$db->query('DELETE FROM `queue` WHERE `stream_id` = ? AND `server_id` = ?;', $rStreamID, $rServerID);
@@ -534,22 +585,18 @@ class StreamProcess {
 	 */
 	public static function queueMovies($rStreamIDs, $rServerID = null) {
 		$db = self::db();
-		if ($rServerID) {
-		} else {
+		if (!$rServerID) {
 			$rServerID = SERVER_ID;
 		}
-		if (0 >= count($rStreamIDs)) {
-		} else {
+		if (0 < count($rStreamIDs)) {
 			$db->query('DELETE FROM `queue` WHERE `stream_id` IN (' . implode(',', array_map('intval', $rStreamIDs)) . ') AND `server_id` = ?;', $rServerID);
 			$rQuery = '';
 			foreach ($rStreamIDs as $rStreamID) {
-				if (0 >= $rStreamID) {
-				} else {
+				if (0 < $rStreamID) {
 					$rQuery .= "('movie', " . intval($rStreamID) . ', ' . intval($rServerID) . ', ' . time() . '),';
 				}
 			}
-			if (empty($rQuery)) {
-			} else {
+			if (!empty($rQuery)) {
 				$rQuery = rtrim($rQuery, ',');
 				$db->query('INSERT INTO `queue`(`type`, `stream_id`, `server_id`, `added`) VALUES ' . $rQuery . ';');
 			}
@@ -565,18 +612,15 @@ class StreamProcess {
 	 */
 	public static function refreshMovies($rIDs, $rType = 1) {
 		$db = self::db();
-		if (0 >= count($rIDs)) {
-		} else {
+		if (0 < count($rIDs)) {
 			$db->query('DELETE FROM `watch_refresh` WHERE `type` = ? AND `stream_id` IN (' . implode(',', array_map('intval', $rIDs)) . ');', $rType);
 			$rQuery = '';
 			foreach ($rIDs as $rID) {
-				if (0 >= $rID) {
-				} else {
+				if (0 < $rID) {
 					$rQuery .= '(' . intval($rType) . ', ' . intval($rID) . ', 0),';
 				}
 			}
-			if (empty($rQuery)) {
-			} else {
+			if (!empty($rQuery)) {
 				$rQuery = rtrim($rQuery, ',');
 				$db->query('INSERT INTO `watch_refresh`(`type`, `stream_id`, `status`) VALUES ' . $rQuery . ';');
 			}
@@ -682,8 +726,7 @@ class StreamProcess {
 		global $rSettings, $rServers;
 		$db = self::db();
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
-		if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-		} else {
+		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 			unlink(STREAMS_PATH . $rStreamID . '_.pid');
 		}
 		$rStream = array();
@@ -776,15 +819,7 @@ class StreamProcess {
 				$db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
 				$rStream['stream_arguments'] = $db->get_rows();
 
-				if ($rStream['server_info']['on_demand'] == 1) {
-					$rProbesize = intval($rStream['stream_info']['probesize_ondemand']) ?: 1000000;
-					$rAnalyseDuration = ($rLLOD ? '500000' : '10000000');
-				} else {
-					$rAnalyseDuration = abs(intval($rSettings['stream_max_analyze']));
-					$rProbesize = abs(intval($rSettings['probesize']));
-				}
-
-				$rTimeout = intval($rAnalyseDuration / 1000000) + $rSettings['probe_extra_wait'];
+				list($rProbesize, $rAnalyseDuration, $rTimeout) = self::resolveProbeSettings($rStream['server_info']['on_demand'], $rStream['stream_info']['probesize_ondemand'], $rLLOD, $rSettings);
 				$rFFProbee = 'timeout ' . $rTimeout . ' ' . $rFFPROBE . ' {FETCH_OPTIONS} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' {CONCAT} -i {STREAM_SOURCE} -v quiet -print_format json -show_streams -show_format';
 				$rFetchOptions = '';
 				$rLoopback = false;
@@ -850,23 +885,7 @@ class StreamProcess {
 						if (!empty($rForceSource)) {
 							$rSources = array($rForceSource);
 						} else {
-							if ($rSettings['priority_backup'] != 1) {
-								if (!empty($rStream['server_info']['current_source'])) {
-									$k = array_search($rStream['server_info']['current_source'], $rSources);
-
-									if ($k !== false) {
-										$i = 0;
-
-										while ($i <= $k) {
-											$rTemp = $rSources[$i];
-											unset($rSources[$i]);
-											array_push($rSources, $rTemp);
-											$i++;
-										}
-										$rSources = array_values($rSources);
-									}
-								}
-							}
+							$rSources = self::rotateSourcesPastCurrent($rSources, $rSettings['priority_backup'], $rStream['server_info']['current_source']);
 						}
 					}
 				} else {
@@ -888,6 +907,14 @@ class StreamProcess {
 					self::deleteCache($rSources);
 				}
 
+				// Loop-scoped state read again after the loop (final DB update,
+				// command substitution). Default it so an empty $rSources list can
+				// never surface an undefined variable downstream.
+				$rSource = '';
+				$rRealSource = '';
+				$rStreamSource = '';
+				$rProtocol = '';
+				$rFFProbeOutput = array();
 				foreach ($rSources as $rSource) {
 					$rProcessed = false;
 					$rRealSource = $rSource;
@@ -1034,6 +1061,14 @@ class StreamProcess {
 					: '';
 				$rLLODInputFlags = ($rLLOD && !$rLoopback ? $rLLODReconnect . '-fflags +discardcorrupt ' : '');
 
+				// Command-template defaults: only the non-custom_ffmpeg branch below
+				// assigns these, yet the {MAP}/{GEN_PTS}/{READ_NATIVE} substitution and
+				// the delay sleep read them unconditionally. Default them so the
+				// custom_ffmpeg path (which skips the branch) stays defined.
+				$rMap = '';
+				$rGenPTS = '';
+				$rReadNative = '';
+				$rSleepTime = 0;
 				if (empty($rStream['stream_info']['custom_ffmpeg'])) {
 					if ($rLoopback) {
 						$rOptions = '{FETCH_OPTIONS}';
@@ -1191,8 +1226,7 @@ class StreamProcess {
 					if ($rSegmentStart > 0) {
 						$rSleepTime -= ($rSegmentStart - 1) * 10;
 
-						if ($rSleepTime > 0) {
-						} else {
+						if ($rSleepTime <= 0) {
 							$rSleepTime = 0;
 						}
 					}

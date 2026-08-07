@@ -133,4 +133,56 @@ final class StreamProcessMovieOutputTest extends TestCase {
 			$out
 		);
 	}
+
+	// ── resolveProbeSettings (first startStream extraction) ────
+
+	private const PROBE_SETTINGS = ['stream_max_analyze' => 5000000, 'probesize' => 3000000, 'probe_extra_wait' => 5];
+
+	public function testProbeSettingsOnDemandLlod(): void {
+		[$probe, $analyze, $timeout] = $this->call('resolveProbeSettings', 1, 2000000, true, self::PROBE_SETTINGS);
+		$this->assertSame(2000000, $probe);
+		$this->assertSame('500000', $analyze);
+		$this->assertSame(5, $timeout); // intval(500000/1e6)=0 + 5
+	}
+
+	public function testProbeSettingsOnDemandDefaultProbesize(): void {
+		[$probe, $analyze, $timeout] = $this->call('resolveProbeSettings', 1, 0, false, self::PROBE_SETTINGS);
+		$this->assertSame(1000000, $probe); // intval(0) ?: 1000000
+		$this->assertSame('10000000', $analyze);
+		$this->assertSame(15, $timeout); // intval(1e7/1e6)=10 + 5
+	}
+
+	public function testProbeSettingsGlobalWhenNotOnDemand(): void {
+		[$probe, $analyze, $timeout] = $this->call('resolveProbeSettings', 0, 999, true, self::PROBE_SETTINGS);
+		$this->assertSame(3000000, $probe);
+		$this->assertSame(5000000, $analyze); // abs(intval(...))
+		$this->assertSame(10, $timeout); // intval(5e6/1e6)=5 + 5
+	}
+
+	// ── rotateSourcesPastCurrent (source failover ordering) ────
+
+	public function testPriorityBackupKeepsOrder(): void {
+		$this->assertSame(['a', 'b', 'c'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c'], 1, 'b'));
+	}
+
+	public function testEmptyCurrentKeepsOrder(): void {
+		$this->assertSame(['a', 'b', 'c'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c'], 0, ''));
+	}
+
+	public function testUnknownCurrentKeepsOrder(): void {
+		$this->assertSame(['a', 'b', 'c'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c'], 0, 'zzz'));
+	}
+
+	public function testCurrentInMiddleRotatesTriedToEnd(): void {
+		// current 'b' (idx 1): 'c','d' lead, tried 'a','b' become fallbacks.
+		$this->assertSame(['c', 'd', 'a', 'b'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c', 'd'], 0, 'b'));
+	}
+
+	public function testCurrentFirstMovesItLast(): void {
+		$this->assertSame(['b', 'c', 'd', 'a'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c', 'd'], 0, 'a'));
+	}
+
+	public function testCurrentLastLeavesOrderUnchanged(): void {
+		$this->assertSame(['a', 'b', 'c', 'd'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c', 'd'], 0, 'd'));
+	}
 }
