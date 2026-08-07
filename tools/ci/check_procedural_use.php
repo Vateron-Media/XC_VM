@@ -15,7 +15,7 @@
  */
 
 $root = dirname(__DIR__, 2) . '/src/';
-$skipDir = ['/vendor/', '/tmp/', '/backups/', '/Modules/tmdb/lib/'];
+$skipDir = ['/vendor/', '/tmp/', '/backups/', '/Infrastructure/Tmdb/lib/'];
 
 /** Recursively yield every .php under src/, skipping vendored/runtime trees. */
 function phpFiles(string $root, array $skipDir): Generator {
