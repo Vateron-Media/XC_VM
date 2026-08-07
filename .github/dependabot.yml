@@ -1,7 +1,6 @@
 version: 2
 updates:
-  # The project has no Composer/npm manifests committed, so only GitHub Actions
-  # versions are tracked here. Add more ecosystems if package manifests are added.
+  # GitHub Actions pinned in .github/workflows/*.
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
@@ -11,3 +10,23 @@ updates:
     labels:
       - "dependencies"
       - "github-actions"
+
+  # Composer dependencies. The manifest and lockfile are committed at src/
+  # (composer.json + composer.lock). NOTE: vendor/ is committed and
+  # PRODUCTION-ONLY — after merging a bump you must re-commit a production
+  # vendor with `composer install --no-dev` (and `composer dump-autoload`);
+  # never run `composer install` on a deploy path. See CLAUDE.md.
+  # Grouped so each run opens a single PR instead of one per package.
+  - package-ecosystem: "composer"
+    directory: "/src"
+    schedule:
+      interval: "weekly"
+    commit-message:
+      prefix: "deps"
+    labels:
+      - "dependencies"
+      - "composer"
+    groups:
+      composer:
+        patterns:
+          - "*"
