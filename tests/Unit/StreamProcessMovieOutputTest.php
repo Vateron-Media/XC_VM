@@ -278,4 +278,22 @@ final class StreamProcessMovieOutputTest extends TestCase {
 		$this->assertSame('aac', $audio);
 		$this->assertSame(576, $res);
 	}
+
+	// ── aacBitstreamFilter (ADTS-to-ASC gating) ────────────────
+
+	public function testAacFilterAppliedForCopiedAacInMpegts(): void {
+		$this->assertSame('-bsf:a aac_adtstoasc', $this->call('aacBitstreamFilter', 'mpegts', 'aac', 'copy'));
+		// empty container still counts as non-FLV.
+		$this->assertSame('-bsf:a aac_adtstoasc', $this->call('aacBitstreamFilter', '', 'aac', 'copy'));
+	}
+
+	public function testAacFilterSkippedForFlv(): void {
+		$this->assertSame('', $this->call('aacBitstreamFilter', 'flv', 'aac', 'copy'));
+	}
+
+	public function testAacFilterSkippedWhenNotAacOrNotCopy(): void {
+		$this->assertSame('', $this->call('aacBitstreamFilter', 'mpegts', 'ac3', 'copy'));
+		$this->assertSame('', $this->call('aacBitstreamFilter', 'mpegts', 'aac', 'aac'));
+		$this->assertSame('', $this->call('aacBitstreamFilter', 'mpegts', 'aac', ''));
+	}
 }

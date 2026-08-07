@@ -495,6 +495,19 @@ class StreamProcess {
 		return array($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution);
 	}
 
+	/**
+	 * The AAC ADTS-to-ASC bitstream filter, required when a copied AAC audio
+	 * stream is muxed into a non-FLV container. Extracted from startStream.
+	 *
+	 * @param mixed $rContainer  ffprobe container name.
+	 * @param mixed $rAudioCodec ffprobe audio codec name.
+	 * @param mixed $rACodec     resolved output -acodec ('' when absent).
+	 * @return string '-bsf:a aac_adtstoasc' when applicable, otherwise ''.
+	 */
+	private static function aacBitstreamFilter($rContainer, $rAudioCodec, $rACodec) {
+		return (!stristr($rContainer, 'flv') && $rAudioCodec === 'aac' && $rACodec === 'copy') ? '-bsf:a aac_adtstoasc' : '';
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -1271,7 +1284,7 @@ class StreamProcess {
 						empty($rStream['stream_info']['custom_ffmpeg']) ? $rMap : '',
 						empty($rStream['stream_info']['custom_ffmpeg']) ? $rReadNative : '',
 						($rStream['stream_info']['type_key'] == 'created_live' && empty($rStream['server_info']['parent_id']) ? '-safe 0 -f concat' : ''),
-						(!stristr($ffprobeContainer, 'flv') && $audioCodec === 'aac' && ($rStream['stream_info']['transcode_attributes']['-acodec'] ?? '') === 'copy' ? '-bsf:a aac_adtstoasc' : ''),
+						self::aacBitstreamFilter($ffprobeContainer, $audioCodec, $rStream['stream_info']['transcode_attributes']['-acodec'] ?? ''),
 						$rGPUOptions,
 						$rInputCodec,
 						$rLogoOptions,
