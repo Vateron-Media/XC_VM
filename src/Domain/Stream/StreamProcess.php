@@ -443,6 +443,31 @@ class StreamProcess {
 		return array_values($rSources);
 	}
 
+	/**
+	 * Append an extra HTTP header line to a stream's ffmpeg argument list.
+	 *
+	 * If the list already carries a 'headers' entry, the line is appended to it
+	 * (CRLF-separated); otherwise a new 'headers' fetch argument is added. Mirrors
+	 * the X-XC_VM-* header injection repeated in startStream.
+	 *
+	 * @param array  $rArguments  Argument list (each entry an assoc array).
+	 * @param string $rHeaderLine e.g. 'X-XC_VM-Detect:1'.
+	 * @return array The argument list with the header applied.
+	 */
+	private static function appendHeaderArgument($rArguments, $rHeaderLine) {
+		$rApplied = false;
+		foreach (array_keys($rArguments) as $rID) {
+			if ($rArguments[$rID]['argument_key'] == 'headers') {
+				$rArguments[$rID]['value'] .= "\r\n" . $rHeaderLine;
+				$rApplied = true;
+			}
+		}
+		if (!$rApplied) {
+			$rArguments[] = array('value' => $rHeaderLine, 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
+		}
+		return $rArguments;
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -916,7 +941,6 @@ class StreamProcess {
 				$rProtocol = '';
 				$rFFProbeOutput = array();
 				foreach ($rSources as $rSource) {
-					$rProcessed = false;
 					$rRealSource = $rSource;
 					$rStreamSource = StreamUtils::parseStreamURL($rSource);
 					echo 'Checking source: ' . $rSource . "\n";
@@ -924,43 +948,16 @@ class StreamProcess {
 					$rIsXC_VM = ($rLoopback ? true : StreamUtils::detectXC_VM($rStreamSource));
 
 					if ($rIsXC_VM && !$rLoopback && $rSettings['send_xc_vm_header']) {
-						foreach (array_keys($rStream['stream_arguments']) as $rID) {
-							if ($rStream['stream_arguments'][$rID]['argument_key'] == 'headers') {
-								$rStream['stream_arguments'][$rID]['value'] .= "\r\n" . 'X-XC_VM-Detect:1';
-								$rProcessed = true;
-							}
-						}
-
-						if (!$rProcessed) {
-							$rStream['stream_arguments'][] = array('value' => 'X-XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
-						}
+						$rStream['stream_arguments'] = self::appendHeaderArgument($rStream['stream_arguments'], 'X-XC_VM-Detect:1');
 					}
 
 					$rProbeArguments = $rStream['stream_arguments'];
 
 					if ($rIsXC_VM && $rStream['server_info']['on_demand'] == 1 && $rSettings['request_prebuffer'] == 1) {
-						foreach (array_keys($rStream['stream_arguments']) as $rID) {
-							if ($rStream['stream_arguments'][$rID]['argument_key'] == 'headers') {
-								$rStream['stream_arguments'][$rID]['value'] .= "\r\n" . 'X-XC_VM-Prebuffer:1';
-								$rProcessed = true;
-							}
-						}
-
-						if (!$rProcessed) {
-							$rStream['stream_arguments'][] = array('value' => 'X-XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
-						}
+						$rStream['stream_arguments'] = self::appendHeaderArgument($rStream['stream_arguments'], 'X-XC_VM-Prebuffer:1');
 					}
 
-					foreach (array_keys($rProbeArguments) as $rID) {
-						if ($rProbeArguments[$rID]['argument_key'] == 'headers') {
-							$rProbeArguments[$rID]['value'] .= "\r\n" . 'X-XC_VM-Prebuffer:1';
-							$rProcessed = true;
-						}
-					}
-
-					if (!$rProcessed) {
-						$rProbeArguments[] = array('value' => 'X-XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
-					}
+					$rProbeArguments = self::appendHeaderArgument($rProbeArguments, 'X-XC_VM-Prebuffer:1');
 
 					$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
 					$rProbeOptions = implode(' ', StreamUtils::getArguments($rProbeArguments, $rProtocol, 'fetch'));

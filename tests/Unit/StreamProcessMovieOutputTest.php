@@ -185,4 +185,47 @@ final class StreamProcessMovieOutputTest extends TestCase {
 	public function testCurrentLastLeavesOrderUnchanged(): void {
 		$this->assertSame(['a', 'b', 'c', 'd'], $this->call('rotateSourcesPastCurrent', ['a', 'b', 'c', 'd'], 0, 'd'));
 	}
+
+	// ── appendHeaderArgument (startStream header injection) ─────
+
+	public function testHeaderAppendedToExistingHeadersArg(): void {
+		$args = [
+			['argument_key' => 'user_agent', 'value' => 'VLC'],
+			['argument_key' => 'headers', 'value' => 'X-A:1'],
+		];
+		$out = $this->call('appendHeaderArgument', $args, 'X-XC_VM-Detect:1');
+		$this->assertCount(2, $out, 'appended, not added');
+		$this->assertSame("X-A:1\r\nX-XC_VM-Detect:1", $out[1]['value']);
+		$this->assertSame('VLC', $out[0]['value'], 'other args untouched');
+	}
+
+	public function testHeaderArgCreatedWhenAbsent(): void {
+		$args = [['argument_key' => 'user_agent', 'value' => 'VLC']];
+		$out = $this->call('appendHeaderArgument', $args, 'X-XC_VM-Prebuffer:1');
+		$this->assertCount(2, $out);
+		$new = $out[array_key_last($out)];
+		$this->assertSame('headers', $new['argument_key']);
+		$this->assertSame('X-XC_VM-Prebuffer:1', $new['value']);
+		$this->assertSame('fetch', $new['argument_cat']);
+		$this->assertSame("-headers '%s\r\n'", $new['argument_cmd']);
+	}
+
+	public function testHeaderAppendedToEveryHeadersArg(): void {
+		// mirrors the original loop: every 'headers' entry receives the line.
+		$args = [
+			['argument_key' => 'headers', 'value' => 'A'],
+			['argument_key' => 'headers', 'value' => 'B'],
+		];
+		$out = $this->call('appendHeaderArgument', $args, 'X:1');
+		$this->assertSame("A\r\nX:1", $out[0]['value']);
+		$this->assertSame("B\r\nX:1", $out[1]['value']);
+		$this->assertCount(2, $out, 'no new arg added');
+	}
+
+	public function testEmptyArgumentsGetsNewHeaderArg(): void {
+		$out = $this->call('appendHeaderArgument', [], 'X:1');
+		$this->assertCount(1, $out);
+		$this->assertSame('headers', $out[0]['argument_key']);
+		$this->assertSame('X:1', $out[0]['value']);
+	}
 }
