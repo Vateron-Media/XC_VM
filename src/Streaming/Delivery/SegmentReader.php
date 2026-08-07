@@ -48,28 +48,83 @@ class SegmentReader {
 	}
 
 	public static function getPlaylistSegments($rPlaylist, $rPrebuffer = 0, $rSegmentDuration = 10) {
-		if (file_exists($rPlaylist)) {
-			$rSource = file_get_contents($rPlaylist);
-			$rSource = str_replace(array("\r\n", "\r"), "\n", $rSource);
+		if (!file_exists($rPlaylist)) {
+			return null;
+		}
+		return self::selectSegments(file_get_contents($rPlaylist), $rPrebuffer, $rSegmentDuration);
+	}
 
-			if (preg_match('/#EXT-X-MAP:URI="(.*?)"/', $rSource, $rInitMatch)) {
-				$rInitSegment = $rInitMatch[1];
-			}
+	/**
+	 * Select segments from raw playlist content. Pure (no I/O) — unit testable.
+	 *
+	 * - $rPrebuffer > 0  : the newest segments whose #EXTINF durations sum to at
+	 *   least $rPrebuffer seconds. Duration-based, so the buffer holds the
+	 *   requested seconds even when segments are shorter than the nominal
+	 *   $rSegmentDuration — e.g. the 2s fast-start segments an on-demand stream
+	 *   emits before it ramps up to seg_time, which the old
+	 *   intval($rPrebuffer / $rSegmentDuration) collapsed to a single ~2s
+	 *   segment. Falls back to the nominal count when there are no #EXTINF lines.
+	 * - $rPrebuffer == -1: every segment.
+	 * - $rPrebuffer == 0 : the current (last) segment index only.
+	 *
+	 * @param string $rSource          Raw playlist text.
+	 * @param int    $rPrebuffer       Seconds of prebuffer, -1 (all) or 0 (index).
+	 * @param int    $rSegmentDuration Nominal segment length (count fallback).
+	 * @return array<int,string>|string|null
+	 */
+	public static function selectSegments($rSource, $rPrebuffer = 0, $rSegmentDuration = 10) {
+		$rSource = str_replace(array("\r\n", "\r"), "\n", $rSource);
 
-			if (preg_match_all('/(.*?)\.(ts|m4s)/', $rSource, $rMatches)) {
-				if (0 < $rPrebuffer) {
-					$rTotalSegments = intval($rPrebuffer / $rSegmentDuration);
-					if (!$rTotalSegments) {
-						$rTotalSegments = 1;
+		if (!preg_match_all('/(.*?)\.(ts|m4s)/', $rSource, $rMatches)) {
+			return null;
+		}
+
+		if ($rPrebuffer == -1) {
+			return $rMatches[0];
+		}
+
+		if (0 < $rPrebuffer) {
+			if (strpos($rSource, '#EXTINF:') !== false) {
+				$rPairs = self::parseSegmentDurations($rSource);
+				$rAccum = 0.0;
+				$rPicked = array();
+				for ($i = count($rPairs) - 1; $i >= 0; $i--) {
+					array_unshift($rPicked, $rPairs[$i][1]);
+					$rAccum += $rPairs[$i][0];
+					if ($rAccum >= $rPrebuffer) {
+						break;
 					}
-					return array_slice($rMatches[0], 0 - $rTotalSegments);
 				}
-				if ($rPrebuffer == -1) {
-					return $rMatches[0];
-				}
-				preg_match('/_(.*)\\./', array_pop($rMatches[0]), $rCurrentSegment);
-				return $rCurrentSegment[1];
+				return $rPicked;
+			}
+			// No #EXTINF durations: fall back to the nominal segment count.
+			$rTotalSegments = intval($rPrebuffer / $rSegmentDuration) ?: 1;
+			return array_slice($rMatches[0], 0 - $rTotalSegments);
+		}
+
+		preg_match('/_(.*)\./', array_pop($rMatches[0]), $rCurrentSegment);
+		return $rCurrentSegment[1] ?? null;
+	}
+
+	/**
+	 * Parse [duration, segment] pairs from playlist content, oldest first. A
+	 * segment inherits the most recent preceding #EXTINF (0.0 when absent).
+	 *
+	 * @param string $rSource Raw playlist text (newline-normalised).
+	 * @return array<int,array{0:float,1:string}>
+	 */
+	private static function parseSegmentDurations($rSource) {
+		$rPairs = array();
+		$rDuration = null;
+		foreach (explode("\n", $rSource) as $rLine) {
+			$rLine = trim($rLine);
+			if (strncmp($rLine, '#EXTINF:', 8) === 0) {
+				$rDuration = (float) substr($rLine, 8);
+			} elseif ($rLine !== '' && $rLine[0] !== '#' && preg_match('/\.(ts|m4s)$/', $rLine)) {
+				$rPairs[] = array($rDuration !== null ? $rDuration : 0.0, $rLine);
+				$rDuration = null;
 			}
 		}
+		return $rPairs;
 	}
 }
