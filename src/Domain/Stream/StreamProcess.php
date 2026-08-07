@@ -508,6 +508,38 @@ class StreamProcess {
 		return (!stristr($rContainer, 'flv') && $rAudioCodec === 'aac' && $rACodec === 'copy') ? '-bsf:a aac_adtstoasc' : '';
 	}
 
+	/**
+	 * Whether the stream's arguments request skipping ffprobe (skip_ffprobe == 1).
+	 * Extracted from startStream.
+	 *
+	 * @param array $rArguments Stream arguments (each an assoc array).
+	 * @return bool
+	 */
+	private static function hasSkipFFProbe($rArguments) {
+		foreach ($rArguments as $rArg) {
+			if ($rArg['argument_key'] == 'skip_ffprobe' && $rArg['value'] == 1) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * The assumed ffprobe result used when ffprobe is skipped: a plain h264/aac
+	 * mpegts stream. Extracted from startStream.
+	 *
+	 * @return array
+	 */
+	private static function skipFFProbeOutput() {
+		return array(
+			'codecs' => array(
+				'video' => array('codec_name' => 'h264', 'codec_type' => 'video', 'height' => 1080),
+				'audio' => array('codec_name' => 'aac', 'codec_type' => 'audio')
+			),
+			'container' => 'mpegts'
+		);
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -1003,22 +1035,10 @@ class StreamProcess {
 					$rProbeOptions = implode(' ', StreamUtils::getArguments($rProbeArguments, $rProtocol, 'fetch'));
 					$rFetchOptions = implode(' ', StreamUtils::getArguments($rStream['stream_arguments'], $rProtocol, 'fetch'));
 
-					$rSkipFFProbe = false;
-					foreach ($rStream['stream_arguments'] as $rArg) {
-						if ($rArg['argument_key'] == 'skip_ffprobe' && $rArg['value'] == 1) {
-							$rSkipFFProbe = true;
-							break;
-						}
-					}
+					$rSkipFFProbe = self::hasSkipFFProbe($rStream['stream_arguments']);
 
 					if ($rSkipFFProbe) {
-						$rFFProbeOutput = array(
-							'codecs' => array(
-								'video' => array('codec_name' => 'h264', 'codec_type' => 'video', 'height' => 1080),
-								'audio' => array('codec_name' => 'aac', 'codec_type' => 'audio')
-							),
-							'container' => 'mpegts'
-						);
+						$rFFProbeOutput = self::skipFFProbeOutput();
 						error_log('[XC_VM] Stream ' . $rStreamID . ': FFProbe skipped');
 						echo 'Got stream information via skip_ffprobe (assumed h264/aac)' . "\n";
 

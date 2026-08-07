@@ -296,4 +296,30 @@ final class StreamProcessMovieOutputTest extends TestCase {
 		$this->assertSame('', $this->call('aacBitstreamFilter', 'mpegts', 'aac', 'aac'));
 		$this->assertSame('', $this->call('aacBitstreamFilter', 'mpegts', 'aac', ''));
 	}
+
+	// ── hasSkipFFProbe / skipFFProbeOutput (ffprobe skip) ──────
+
+	public function testHasSkipFFProbeTrueWhenFlagSet(): void {
+		$args = [
+			['argument_key' => 'headers', 'value' => 'x'],
+			['argument_key' => 'skip_ffprobe', 'value' => 1],
+		];
+		$this->assertTrue($this->call('hasSkipFFProbe', $args));
+		// loose == 1 also matches the string '1'.
+		$this->assertTrue($this->call('hasSkipFFProbe', [['argument_key' => 'skip_ffprobe', 'value' => '1']]));
+	}
+
+	public function testHasSkipFFProbeFalseWhenAbsentOrNotOne(): void {
+		$this->assertFalse($this->call('hasSkipFFProbe', []));
+		$this->assertFalse($this->call('hasSkipFFProbe', [['argument_key' => 'headers', 'value' => 'x']]));
+		$this->assertFalse($this->call('hasSkipFFProbe', [['argument_key' => 'skip_ffprobe', 'value' => 0]]));
+	}
+
+	public function testSkipFFProbeOutputShape(): void {
+		$out = $this->call('skipFFProbeOutput');
+		$this->assertSame('mpegts', $out['container']);
+		$this->assertSame('h264', $out['codecs']['video']['codec_name']);
+		$this->assertSame(1080, $out['codecs']['video']['height']);
+		$this->assertSame('aac', $out['codecs']['audio']['codec_name']);
+	}
 }
