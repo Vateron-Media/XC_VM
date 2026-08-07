@@ -251,10 +251,14 @@ class StreamProcess {
 	/**
 	 * Build the ffmpeg subtitle import + metadata options for a VOD movie.
 	 *
-	 * Extracted verbatim from startMovie to shrink it. Behaviour is preserved
-	 * exactly, INCLUDING the pre-existing inner-loop reuse of $i (the metadata
-	 * loop clobbers the outer import loop's counter). Do not "fix" that here — it
-	 * changes the emitted command; treat it as a separate bug.
+	 * Imports every configured subtitle as an extra input and maps each one into
+	 * the output. Inputs are 0 = main source and 1..N = subtitles, so metadata
+	 * targets `-map <i+1>`.
+	 *
+	 * Previously the metadata loop was nested inside the import loop and reused
+	 * the same `$i`, which made the import loop run only once (first subtitle) yet
+	 * still emit `-map` for every file — so multi-subtitle movies imported one
+	 * track but mapped non-existent inputs. The two loops are now siblings.
 	 *
 	 * @param string $rSubtitlesJson `movie_subtitles` JSON from the stream row.
 	 * @param array  $rServers       Server registry (for remote subtitle fetch).
@@ -265,7 +269,8 @@ class StreamProcess {
 		$rSubtitlesImport = '';
 		$rSubtitlesMetadata = '';
 		if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
-			for ($i = 0; $i < count($rSubtitles['files']); $i++) {
+			$rCount = count($rSubtitles['files']);
+			for ($i = 0; $i < $rCount; $i++) {
 				$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
 				$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
 				if ($rSubtitles['location'] == SERVER_ID) {
@@ -273,9 +278,9 @@ class StreamProcess {
 				} else {
 					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . $rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
 				}
-				for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-					$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
-				}
+			}
+			for ($i = 0; $i < $rCount; $i++) {
+				$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
 			}
 		}
 		return array($rSubtitlesImport, $rSubtitlesMetadata);
