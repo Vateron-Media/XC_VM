@@ -248,6 +248,39 @@ class StreamProcess {
 	 * @param mixed $rSource   Source definition.
 	 * @return mixed The constructed channel item.
 	 */
+	/**
+	 * Build the ffmpeg subtitle import + metadata options for a VOD movie.
+	 *
+	 * Extracted verbatim from startMovie to shrink it. Behaviour is preserved
+	 * exactly, INCLUDING the pre-existing inner-loop reuse of $i (the metadata
+	 * loop clobbers the outer import loop's counter). Do not "fix" that here — it
+	 * changes the emitted command; treat it as a separate bug.
+	 *
+	 * @param string $rSubtitlesJson `movie_subtitles` JSON from the stream row.
+	 * @param array  $rServers       Server registry (for remote subtitle fetch).
+	 * @return array{0:string,1:string} [$rSubtitlesImport, $rSubtitlesMetadata].
+	 */
+	private static function buildSubtitleImport($rSubtitlesJson, $rServers) {
+		$rSubtitles = json_decode($rSubtitlesJson, true);
+		$rSubtitlesImport = '';
+		$rSubtitlesMetadata = '';
+		if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
+			for ($i = 0; $i < count($rSubtitles['files']); $i++) {
+				$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
+				$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
+				if ($rSubtitles['location'] == SERVER_ID) {
+					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . $rSubtitleFile . ' ';
+				} else {
+					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . $rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
+				}
+				for ($i = 0; $i < count($rSubtitles['files']); $i++) {
+					$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
+				}
+			}
+		}
+		return array($rSubtitlesImport, $rSubtitlesMetadata);
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -499,23 +532,7 @@ class StreamProcess {
 				if ((isset($rMovieServerID) && $rMovieServerID == SERVER_ID || file_exists($rMoviePath)) && $rStream['stream_info']['movie_symlink'] == 1) {
 					$rFFMPEG = 'ln -sfn ' . escapeshellarg($rMoviePath) . ' ' . VOD_PATH . intval($rStreamID) . '.' . escapeshellcmd(pathinfo($rMoviePath)['extension']) . ' >/dev/null 2>/dev/null & echo $! > ' . VOD_PATH . intval($rStreamID) . '_.pid';
 				} else {
-					$rSubtitles = json_decode($rStream['stream_info']['movie_subtitles'], true);
-					$rSubtitlesImport = '';
-					$rSubtitlesMetadata = '';
-					if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
-						for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-							$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
-							$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
-							if ($rSubtitles['location'] == SERVER_ID) {
-								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . $rSubtitleFile . ' ';
-							} else {
-								$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . $rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
-							}
-							for ($i = 0; $i < count($rSubtitles['files']); $i++) {
-								$rSubtitlesMetadata .= '-map ' . ($i + 1) . ' -metadata:s:s:' . $i . ' title=' . escapeshellcmd($rSubtitles['names'][$i]) . ' -metadata:s:s:' . $i . ' language=' . escapeshellcmd($rSubtitles['names'][$i]) . ' ';
-							}
-						}
-					}
+					list($rSubtitlesImport, $rSubtitlesMetadata) = self::buildSubtitleImport($rStream['stream_info']['movie_subtitles'], $rServers);
 
 					$rReadNative = ($rStream['stream_info']['read_native'] == 1 ? '-re' : '');
 					if ($rStream['stream_info']['enable_transcode'] == 1) {
