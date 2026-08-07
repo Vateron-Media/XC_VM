@@ -10,10 +10,24 @@ name: CI
 # twice (once for push, once for pull_request); PR branches are covered by the
 # pull_request trigger. The concurrency group cancels superseded in-flight runs
 # on rapid re-pushes / new commits to the same ref.
+#
+# `paths-ignore` (blocklist, NOT an allowlist) skips CI only when EVERY changed
+# file is documentation. Any commit that also touches code still runs the full
+# gate — so this can never silently disable checks for a real source change. Do
+# not switch this to a `src/**` allowlist: the result also depends on tools/,
+# tests/, Makefile, composer.json/lock, .php-cs-fixer.dist.php and phpstan.dist.neon.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
   pull_request:
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE'
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
