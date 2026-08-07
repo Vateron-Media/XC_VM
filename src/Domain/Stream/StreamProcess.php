@@ -1272,19 +1272,9 @@ class StreamProcess {
 					$rInputCodec = '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
 				}
 
-				if (0 >= $rStream['stream_info']['delay_minutes'] || $rStream['server_info']['parent_id']) {
-					foreach ($rOutputs as $rOutputCommands) {
-						foreach ($rOutputCommands as $rOutputCommand) {
-							if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
-								$rFFMPEG .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
-							}
-
-							$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
-							$rFFMPEG .= $rOutputCommand;
-						}
-					}
-				} else {
-					$rSegmentStart = 0;
+				$rSegmentStart = 0;
+				$rDelayActive = !(0 >= $rStream['stream_info']['delay_minutes'] || $rStream['server_info']['parent_id']);
+				if ($rDelayActive) {
 					$m3u8File = DELAY_PATH . $rStreamID . '_.m3u8';
 					$oldM3u8File = DELAY_PATH . intval($rStreamID) . '_.m3u8_old';
 
@@ -1304,11 +1294,23 @@ class StreamProcess {
 							copy($m3u8File, $oldM3u8File);
 						}
 					}
+					$rSleepTime = self::resolveDelaySleepTime($rStream['stream_info']['delay_minutes'], $rSegmentStart);
+				}
 
+				if (!$rDelayActive) {
+					foreach ($rOutputs as $rOutputCommands) {
+						foreach ($rOutputCommands as $rOutputCommand) {
+							if (isset($rStream['stream_info']['transcode_attributes']['gpu'])) {
+								$rFFMPEG .= '-gpu ' . intval($rStream['stream_info']['transcode_attributes']['gpu']['device']) . ' ';
+							}
+
+							$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
+							$rFFMPEG .= $rOutputCommand;
+						}
+					}
+				} else {
 					$rFFMPEG .= implode(' ', StreamUtils::parseTranscode($rStream['stream_info']['transcode_attributes'])) . ' ';
 					$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
-
-					$rSleepTime = self::resolveDelaySleepTime($rStream['stream_info']['delay_minutes'], $rSegmentStart);
 				}
 
 				$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
