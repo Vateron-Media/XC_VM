@@ -69,3 +69,13 @@ All of these create the DI container and (for admin/CLI) call `ModuleLoader::boo
 - Outbound HTTPS from PHP-FPM must use cURL — `file_get_contents()` over https does not work in this environment.
 - The TMDb client is the legacy global `\TMDB` class (vendored in `src/Infrastructure/Tmdb/lib/`, not PSR-4). Build it through `XcVm\Infrastructure\Tmdb\TmdbApiService::createClient($apiKey, $language)` (or load via `TmdbApiService::requireLibrary()`), which loads the library itself — do not `require_once` the lib path manually.
 - Config: `config.ini` (DB creds, `server_id`), the `settings` DB table via `SettingsManager`, and `config/modules.php` for module enable/disable/version state.
+
+## Agent skills
+
+### Issue tracker
+
+Issues and specs live as GitHub issues in `Vateron-Media/XC_VM` (via the `gh` CLI). See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context — one `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
