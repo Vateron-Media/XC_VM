@@ -3,15 +3,12 @@
 /**
  * PHPStan bootstrap for XC_VM.
  *
- * The project has no Composer and no PSR-4 namespaces. We deliberately do NOT
- * include src/autoload.php here: registering the runtime class-map autoloader
- * makes PHPStan execute a full live directory rescan on every class miss
- * (the igbinary cache is unavailable on a plain CLI), which exhausts memory
- * and crashes the parallel workers.
- *
- * Instead, PHPStan discovers every class/interface/function on its own by
- * statically scanning the directories listed under `paths` and
- * `scanDirectories` in phpstan.dist.neon — no project code is executed.
+ * The project uses Composer PSR-4, but this bootstrap deliberately does NOT wire
+ * a project autoloader. PHPStan discovers every class/interface/function itself
+ * by statically scanning the directories listed under `paths` and
+ * `scanDirectories` in phpstan.dist.neon — no project code is executed. (The
+ * Composer-installed phpstan binary loads src/vendor/autoload.php for its own
+ * dependencies.)
  *
  * This file only defines the global constants the codebase references so that
  * analysis of constant-dependent expressions stays accurate.

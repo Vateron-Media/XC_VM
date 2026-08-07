@@ -14,10 +14,9 @@ parameters:
         - src/Modules
         - src/Cli
 
-    # No Composer + no namespaces. The bootstrap only defines global constants;
-    # it does NOT run the project autoloader (that would force a live directory
-    # rescan per class miss and crash the workers). PHPStan resolves every
-    # symbol statically from `paths` + `scanDirectories` below.
+    # The bootstrap only defines global constants; it does NOT wire a project
+    # autoloader. PHPStan resolves every symbol statically from `paths` +
+    # `scanDirectories` below (no project code is executed).
     bootstrapFiles:
         - tools/phpstan/phpstan-bootstrap.php
         # Listed directly (not just require'd from the bootstrap) so PHPStan
