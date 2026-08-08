@@ -20,6 +20,25 @@ use XcVm\Domain\Security\BlocklistService;
 
 class UserRepository {
 	use \XcVm\Infrastructure\Database\DatabaseAware;
+
+	/**
+	 * Whether a freshly looked-up ISP should be written back to the line: only
+	 * when an ISP was actually detected ($rConIspName non-empty) and it differs
+	 * from the stored isp_desc while the line is not already flagged in
+	 * violation. Guards the persist step against a GeoIP lookup miss, which
+	 * would otherwise read the undefined isp_asn key and store a null ISP.
+	 *
+	 * @param string|null $rConIspName Detected ISP name (null/'' on a miss).
+	 * @param int         $rIspViolate Current isp_violate flag.
+	 * @param string|null $rIspDesc    ISP currently stored on the line.
+	 * @return bool
+	 */
+	public static function ispChanged($rConIspName, $rIspViolate, $rIspDesc): bool {
+		return !empty($rConIspName)
+			&& $rIspViolate == 0
+			&& strtolower((string) $rConIspName) != strtolower((string) $rIspDesc);
+	}
+
 	/**
 	 * Fetch an admin/reseller user matching the given login credentials.
 	 *
@@ -342,7 +361,7 @@ class UserRepository {
 				$rUserInfo['isp_violate'] = 1;
 			}
 
-			if (!empty($rUserInfo['con_isp_name']) && $rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc'])) {
+			if (self::ispChanged($rUserInfo['con_isp_name'], $rUserInfo['isp_violate'], $rUserInfo['isp_desc'])) {
 				if ($rCached) {
 					$rSignalKey = 'isp/' . $rUserInfo['id'];
 					file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rSignalKey), json_encode(array($rSignalKey, json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])))));
@@ -521,25 +540,20 @@ class UserRepository {
 		$rUserInfo['con_isp_name'] = null;
 		$rUserInfo['isp_violate'] = 0;
 		$rUserInfo['isp_is_server'] = 0;
-		if ($rSettings['show_isps'] != 1 || empty($rIP)) {
-		} else {
+		if ($rSettings['show_isps'] == 1 && !empty($rIP)) {
 			$rISPLock = GeoIP::getISP($rIP);
-			if (is_array($rISPLock)) {
-				if (!empty($rISPLock['isp'])) {
-					$rUserInfo['con_isp_name'] = $rISPLock['isp'];
-					$rUserInfo['isp_asn'] = $rISPLock['autonomous_system_number'];
-					$rUserInfo['isp_violate'] = GeoIP::isISPBlocked($rUserInfo['con_isp_name'], BlocklistService::getBlockedISP());
-					if ($rSettings['block_svp'] == 1) {
-						$rUserInfo['isp_is_server'] = intval(GeoIP::isASNBlocked($rUserInfo['isp_asn'], BlocklistService::getBlockedServers()));
-					}
+			if (is_array($rISPLock) && !empty($rISPLock['isp'])) {
+				$rUserInfo['con_isp_name'] = $rISPLock['isp'];
+				$rUserInfo['isp_asn'] = $rISPLock['autonomous_system_number'];
+				$rUserInfo['isp_violate'] = GeoIP::isISPBlocked($rUserInfo['con_isp_name'], BlocklistService::getBlockedISP());
+				if ($rSettings['block_svp'] == 1) {
+					$rUserInfo['isp_is_server'] = intval(GeoIP::isASNBlocked($rUserInfo['isp_asn'], BlocklistService::getBlockedServers()));
 				}
 			}
-			if (!(!empty($rUserInfo['con_isp_name']) && $rSettings['enable_isp_lock'] == 1 && $rUserInfo['is_stalker'] == 0 && $rUserInfo['is_isplock'] == 1 && !empty($rUserInfo['isp_desc']) && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc']))) {
-			} else {
+			if (!empty($rUserInfo['con_isp_name']) && $rSettings['enable_isp_lock'] == 1 && $rUserInfo['is_stalker'] == 0 && $rUserInfo['is_isplock'] == 1 && !empty($rUserInfo['isp_desc']) && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc'])) {
 				$rUserInfo['isp_violate'] = 1;
 			}
-			if (!($rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc']))) {
-			} else {
+			if (self::ispChanged($rUserInfo['con_isp_name'], $rUserInfo['isp_violate'], $rUserInfo['isp_desc'])) {
 				if ($rCached) {
 					\XcVm\Infrastructure\Redis\RedisManager::setSignal('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
 				} else {
@@ -606,25 +620,21 @@ class UserRepository {
 		if (0 >= $db->num_rows()) {
 			return false;
 		}
-		$rReturn = array();
-		$rReturn['enigma2'] = $db->get_row();
-		$rReturn['user_info'] = array();
-		if (!($rUserInfo = self::getUserInfo($rReturn['enigma2']['user_id'], null, null, $rGetChannelIDs, $rGetConnections))) {
-		} else {
+		$rReturn = array(
+			'enigma2' => $db->get_row(),
+			'user_info' => array(),
+			'pair_line_info' => array(),
+		);
+
+		if ($rUserInfo = self::getUserInfo($rReturn['enigma2']['user_id'], null, null, $rGetChannelIDs, $rGetConnections)) {
 			$rReturn['user_info'] = $rUserInfo;
-		}
-		$rReturn['pair_line_info'] = array();
-		if (empty($rReturn['user_info'])) {
-		} else {
-			$rReturn['pair_line_info'] = array();
-			if (is_null($rReturn['user_info']['pair_id'])) {
-			} else {
-				if (!($rUserInfo = self::getUserInfo($rReturn['user_info']['pair_id'], null, null, $rGetChannelIDs, $rGetConnections))) {
-				} else {
-					$rReturn['pair_line_info'] = $rUserInfo;
-				}
+
+			if (!is_null($rReturn['user_info']['pair_id'])
+				&& ($rUserInfo = self::getUserInfo($rReturn['user_info']['pair_id'], null, null, $rGetChannelIDs, $rGetConnections))) {
+				$rReturn['pair_line_info'] = $rUserInfo;
 			}
 		}
+
 		return $rReturn;
 	}
 }
