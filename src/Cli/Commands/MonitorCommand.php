@@ -139,13 +139,13 @@ class MonitorCommand implements CommandInterface {
 				$db->close_mysql();
 				$rStartedTime = $rDurationChecked = $rAudioChecked = $rCheckedTime = $rBackupsChecked = time();
 				$rMD5 = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
-				$D97a4f098a8d1bf8 = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
-				$b4015d24aedaf0db = null;
+				$rStreamFailed = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
+				$rBaselineFps = null;
 				while (ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist)) {
 					if (self::isAutoRestartDue($rAutoRestart)) {
 						echo "Auto-restart\n";
 						StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
-						$D97a4f098a8d1bf8 = false;
+						$rStreamFailed = false;
 						break;
 					}
 					if (($rStreamProbe || (!file_exists(STREAMS_PATH . $rStreamID . '_.dur') && (300 < (time() - $rDurationChecked))))) {
@@ -157,10 +157,10 @@ class MonitorCommand implements CommandInterface {
 								break;
 							}
 							$rLastSegment = $rSegment;
-							$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-							list($E02429d2ee600884, $rSegmentTime) = self::persistSegmentDuration($E02429d2ee600884, $rStreamID, $rSegmentTime);
-							file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE));
-							$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
+							$rProbe = FFprobeRunner::probeStream($rFolder . $rSegment);
+							list($rProbe, $rSegmentTime) = self::persistSegmentDuration($rProbe, $rStreamID, $rSegmentTime);
+							file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($rProbe, JSON_UNESCAPED_UNICODE));
+							$rStreamInfo['stream_info'] = json_encode($rProbe, JSON_UNESCAPED_UNICODE);
 						}
 						$rStreamProbe = false;
 						$rDurationChecked = time();
@@ -173,25 +173,25 @@ class MonitorCommand implements CommandInterface {
 					}
 					if (($rStreamInfo['fps_restart'] == 1) && (SettingsManager::getAll()['fps_delay'] < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check')) {
 						echo "Checking FPS...\n";
-						$d75674a646265e7b = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
-						if (0 < $d75674a646265e7b) {
-							if (!$b4015d24aedaf0db) {
+						$rFps = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
+						if (0 < $rFps) {
+							if (!$rBaselineFps) {
 								if (SettingsManager::getAll()['fps_check_type'] == 1) {
 									$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
 									if (!empty($rSegment)) {
-										$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-										if (isset($E02429d2ee600884['codecs']['video']['avg_frame_rate']) || isset($E02429d2ee600884['codecs']['video']['r_frame_rate'])) {
-											$d75674a646265e7b = $E02429d2ee600884['codecs']['video']['avg_frame_rate'] ?: $E02429d2ee600884['codecs']['video']['r_frame_rate'];
-											$d75674a646265e7b = self::parseFrameRate($d75674a646265e7b);
-											if (0 < $d75674a646265e7b) {
-												$b4015d24aedaf0db = $d75674a646265e7b;
+										$rProbe = FFprobeRunner::probeStream($rFolder . $rSegment);
+										if (isset($rProbe['codecs']['video']['avg_frame_rate']) || isset($rProbe['codecs']['video']['r_frame_rate'])) {
+											$rFps = $rProbe['codecs']['video']['avg_frame_rate'] ?: $rProbe['codecs']['video']['r_frame_rate'];
+											$rFps = self::parseFrameRate($rFps);
+											if (0 < $rFps) {
+												$rBaselineFps = $rFps;
 											}
 										}
 									}
 								} else {
-									$b4015d24aedaf0db = $d75674a646265e7b;
+									$rBaselineFps = $rFps;
 								}
-							} elseif ($b4015d24aedaf0db && (($d75674a646265e7b * ($rStreamInfo['fps_threshold'] ?: 100)) < $b4015d24aedaf0db)) {
+							} elseif ($rBaselineFps && (($rFps * ($rStreamInfo['fps_threshold'] ?: 100)) < $rBaselineFps)) {
 								echo "FPS dropped below threshold! Break\n";
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
 								break;
@@ -203,8 +203,8 @@ class MonitorCommand implements CommandInterface {
 						echo "Checking audio...\n";
 						$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
 						if (!empty($rSegment)) {
-							$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-							if ((!isset($E02429d2ee600884['codecs']['audio']) || empty($E02429d2ee600884['codecs']['audio']))) {
+							$rProbe = FFprobeRunner::probeStream($rFolder . $rSegment);
+							if ((!isset($rProbe['codecs']['audio']) || empty($rProbe['codecs']['audio']))) {
 								echo "Lost audio! Break\n";
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUDIO_LOSS', $rCurrentSource);
 								break;
@@ -214,17 +214,17 @@ class MonitorCommand implements CommandInterface {
 							break;
 						}
 					}
-					if ((($rSegmentTime * 6) <= time() - $rCheckedTime)) {
-						$Fcfb63b23cad3c6e = md5_file($rPlaylist);
-						if ($rMD5 != $Fcfb63b23cad3c6e) {
-							$rMD5 = $Fcfb63b23cad3c6e;
+					if (($rSegmentTime * 6) <= time() - $rCheckedTime) {
+						$rNewMd5 = md5_file($rPlaylist);
+						if ($rMD5 != $rNewMd5) {
+							$rMD5 = $rNewMd5;
 							$rCheckedTime = time();
 							if (SettingsManager::getAll()['encrypt_hls']) {
-							foreach (glob(STREAMS_PATH . $rStreamID . '_*.ts.enc') as $rFile) {
-							if (!file_exists(rtrim($rFile, '.enc'))) {
-							unlink($rFile);
-							}
-							}
+								foreach (glob(STREAMS_PATH . $rStreamID . '_*.ts.enc') as $rFile) {
+									if (!file_exists(rtrim($rFile, '.enc'))) {
+										unlink($rFile);
+									}
+								}
 							}
 							if ((!is_array(json_decode($rStreamInfo['stream_info'], true)) || count(json_decode($rStreamInfo['stream_info'], true)) == 0)) {
 								$rStreamProbe = true;
@@ -244,12 +244,12 @@ class MonitorCommand implements CommandInterface {
 									$rStreamSource = StreamUtils::parseStreamURL($rSource);
 									$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
 									$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
-									if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
+									if (($rProbe = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
 										echo "Switch priority\n";
 										StreamProcess::streamLog($rStreamID, SERVER_ID, 'PRIORITY_SWITCH', $rSource);
 										$rForceSource = $rSource;
 										$rPrioritySwitch = true;
-										$D97a4f098a8d1bf8 = false;
+										$rStreamFailed = false;
 										break 2;
 									}
 								}
@@ -262,12 +262,12 @@ class MonitorCommand implements CommandInterface {
 						if (($rSources[$rForceID] != $rCurrentSource)) {
 							$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
 							$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
-							if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
+							if (($rProbe = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
 								echo "Force new source\n";
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'FORCE_SOURCE', $rSources[$rForceID]);
 								$rForceSource = $rSources[$rForceID];
 								unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
-								$D97a4f098a8d1bf8 = false;
+								$rStreamFailed = false;
 								break;
 							}
 						}
@@ -280,7 +280,7 @@ class MonitorCommand implements CommandInterface {
 					}
 					sleep(1);
 				}
-				if ($D97a4f098a8d1bf8) {
+				if ($rStreamFailed) {
 					StreamProcess::streamLog($rStreamID, SERVER_ID, 'STREAM_FAILED', $rCurrentSource);
 					echo "Stream failed!\n";
 				}
@@ -302,7 +302,7 @@ class MonitorCommand implements CommandInterface {
 			}
 			if (!ProcessManager::isStreamRunning($rPID, $rStreamID)) {
 				while (true) {
-					$E9d347a502b13abd = false;
+					$rStartFailed = false;
 					echo "Restarting...\n";
 					shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
 					file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
@@ -313,11 +313,11 @@ class MonitorCommand implements CommandInterface {
 					} elseif ((0 < $rStreamInfo['llod']) && $rStreamInfo['on_demand'] && $rFirstRun && $rStreamInfo['type'] != 3) {
 						if ($rStreamInfo['llod'] == 1) {
 							if ($rForceSource) {
-								$Ea84d0933a1ef2f0 = $rForceSource;
+								$rStartSource = $rForceSource;
 							} else {
-								$Ea84d0933a1ef2f0 = json_decode($rStreamInfo['stream_source'], true)[0];
+								$rStartSource = json_decode($rStreamInfo['stream_source'], true)[0];
 							}
-							$rData = StreamProcess::startStream($rStreamID, false, $Ea84d0933a1ef2f0, true);
+							$rData = StreamProcess::startStream($rStreamID, false, $rStartSource, true);
 						} else {
 							if ($rStreamInfo['parent_id']) {
 								$rForceSource = (!is_null(ServerRepository::getAll()[SERVER_ID]['private_url_ip']) && !is_null(ServerRepository::getAll()[$rStreamInfo['parent_id']]['private_url_ip']) ? ServerRepository::getAll()[$rStreamInfo['parent_id']]['private_url_ip'] : ServerRepository::getAll()[$rStreamInfo['parent_id']]['public_url_ip']) . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(SettingsManager::getAll()['live_streaming_pass']) . '&extension=ts';
@@ -336,7 +336,7 @@ class MonitorCommand implements CommandInterface {
 						$rData = StreamProcess::startStream($rStreamID, $rTotalCalls < MONITOR_CALLS, $rForceSource);
 					}
 					if ((is_numeric($rData) && ($rData == 0))) {
-						$E9d347a502b13abd = true;
+						$rStartFailed = true;
 						$rMaxFails++;
 						if (((0 < SettingsManager::getAll()['stop_failures']) && ($rMaxFails >= SettingsManager::getAll()['stop_failures']))) {
 							echo "Failure limit reached, exiting.\n";
@@ -351,7 +351,7 @@ class MonitorCommand implements CommandInterface {
 				if (!$rData) {
 					return 0;
 				}
-				if (!$E9d347a502b13abd) {
+				if (!$rStartFailed) {
 					$rPID = intval($rData['main_pid']);
 					if ($rPID) {
 						file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
@@ -378,30 +378,30 @@ class MonitorCommand implements CommandInterface {
 					} else {
 						$rFolder = DELAY_PATH;
 					}
-					$e1bc98ce34937596 = $rFolder . $rStreamID . '_0.ts';
-					$ea6de21e70c530a9 = false;
+					$rFirstSegment = $rFolder . $rStreamID . '_0.ts';
+					$rSegmentSeen = false;
 					$rChecks = 0;
-					$A63c815f93524582 = max(20, min($rSegmentTime * 3, 30));
+					$rMaxChecks = max(20, min($rSegmentTime * 3, 30));
 					while (true) {
-						echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $A63c815f93524582 . "...\n";
+						echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $rMaxChecks . "...\n";
 						if (!ProcessManager::isStreamRunning($rPID, $rStreamID)) {
 							echo "Ffmpeg stopped running\n";
-							$E9d347a502b13abd = true;
+							$rStartFailed = true;
 							break;
 						}
 						if (file_exists($rPlaylist)) {
 							echo "Playlist exists!\n";
 							break;
 						}
-						if ((file_exists($e1bc98ce34937596) && !$ea6de21e70c530a9 && $rStreamInfo['on_demand'])) {
+						if ((file_exists($rFirstSegment) && !$rSegmentSeen && $rStreamInfo['on_demand'])) {
 							echo "Segment exists!\n";
-							$ea6de21e70c530a9 = true;
+							$rSegmentSeen = true;
 							$rChecks = 0;
 							$db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
 						}
-						if (($rChecks == $A63c815f93524582)) {
+						if (($rChecks == $rMaxChecks)) {
 							echo "Reached max failures\n";
-							$E9d347a502b13abd = true;
+							$rStartFailed = true;
 							break;
 						}
 						$rChecks++;
@@ -409,7 +409,7 @@ class MonitorCommand implements CommandInterface {
 					}
 				}
 				SettingsManager::set(SettingsRepository::getAll());
-				if (ProcessManager::isStreamRunning($rPID, $rStreamID) && !$E9d347a502b13abd) {
+				if (ProcessManager::isStreamRunning($rPID, $rStreamID) && !$rStartFailed) {
 					echo "Started! Probe Stream\n";
 					if ($rFirstRun) {
 						$rFirstRun = false;
@@ -420,10 +420,10 @@ class MonitorCommand implements CommandInterface {
 					$rSegment = $rFolder . StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
 					$rStreamInfo['stream_info'] = null;
 					if (file_exists($rSegment)) {
-						$E02429d2ee600884 = FFprobeRunner::probeStream($rSegment);
-						list($E02429d2ee600884, $rSegmentTime) = self::persistSegmentDuration($E02429d2ee600884, $rStreamID, $rSegmentTime);
-						if ($E02429d2ee600884) {
-							$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
+						$rProbe = FFprobeRunner::probeStream($rSegment);
+						list($rProbe, $rSegmentTime) = self::persistSegmentDuration($rProbe, $rStreamID, $rSegmentTime);
+						if ($rProbe) {
+							$rStreamInfo['stream_info'] = json_encode($rProbe, JSON_UNESCAPED_UNICODE);
 							$rBitrate = StreamUtils::getStreamBitrate('live', STREAMS_PATH . $rStreamID . '_.m3u8');
 							$rStreamProbe = false;
 							$rDurationChecked = time();
@@ -433,7 +433,7 @@ class MonitorCommand implements CommandInterface {
 					// Defining video/Audio parameters
 					list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rStreamInfo['stream_info'], SettingsManager::getAll()['player_allow_hevc']);
 
-					if (!$ea6de21e70c530a9 && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
+					if (!$rSegmentSeen && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
 						if ($rStreamInfo['stream_info']) {
 							$db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), time() - $rOffset, $rStreamInfo['server_stream_id']);
 						} else {
