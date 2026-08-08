@@ -135,7 +135,6 @@ class MonitorCommand implements CommandInterface {
 
 		// ── Main monitoring loop (goto-based control flow) ───
 		// ПРИМЕЧАНИЕ: goto/label — следы обфускации. Рефакторинг запланирован в Phase 14.
-		goto label235;
 		label235:
 		if (!(0 < $rPID)) {
 			goto label471;
@@ -145,7 +144,6 @@ class MonitorCommand implements CommandInterface {
 		$rMD5 = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
 		$D97a4f098a8d1bf8 = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
 		$b4015d24aedaf0db = null;
-		goto label592;
 		label592: //while
 		if ((ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist))) {
 			if (!(!empty($rAutoRestart['days']) && !empty($rAutoRestart['at']))) {
@@ -221,7 +219,6 @@ class MonitorCommand implements CommandInterface {
 			$D97a4f098a8d1bf8 = false;
 			goto label1186;
 		}
-		goto label1631;
 		label1631:
 		unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
 		label496:
@@ -241,7 +238,6 @@ class MonitorCommand implements CommandInterface {
 		}
 		sleep(1);
 		goto label592;
-		goto label1880;
 		label1:
 		if (!$rStreamInfo['parent_id']) {
 			goto label49;
@@ -313,7 +309,6 @@ class MonitorCommand implements CommandInterface {
 			goto label998;
 		}
 		$A63c815f93524582 = 20;
-		goto label998;
 		label998:
 		echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $A63c815f93524582 . "...\n";
 		if (ProcessManager::isStreamRunning($rPID, $rStreamID)) {
@@ -338,10 +333,7 @@ class MonitorCommand implements CommandInterface {
 		}
 		echo "Ffmpeg stopped running\n";
 		$E9d347a502b13abd = true;
-		goto label1064;
-		goto label1064;
 		label1064:
-		goto label562;
 		label562:
 		SettingsManager::set(SettingsRepository::getAll());
 		if (ProcessManager::isStreamRunning($rPID, $rStreamID) && !$E9d347a502b13abd) {
@@ -426,7 +418,6 @@ class MonitorCommand implements CommandInterface {
 			echo "Stream failed!\n";
 		}
 		$db->db_connect();
-		goto label471;
 		label471:
 		if (ProcessManager::isStreamRunning($rPID, $rStreamID)) {
 			echo "Killing stream...\n";
@@ -447,7 +438,6 @@ class MonitorCommand implements CommandInterface {
 		if ((MONITOR_CALLS <= $rTotalCalls)) {
 			$rTotalCalls = 0;
 		}
-		goto label76;
 		label76:
 		if (!ProcessManager::isStreamRunning($rPID, $rStreamID)) {
 			$E9d347a502b13abd = false;
@@ -503,7 +493,6 @@ class MonitorCommand implements CommandInterface {
 			goto label1847;
 		}
 		$d75674a646265e7b = $E02429d2ee600884['codecs']['video']['avg_frame_rate'] ?: $E02429d2ee600884['codecs']['video']['r_frame_rate'];
-		goto label768;
 		label768:
 		$d75674a646265e7b = self::parseFrameRate($d75674a646265e7b);
 		if (0 < $d75674a646265e7b) {
