@@ -61,4 +61,36 @@ final class MonitorCommandTest extends TestCase {
 		$this->assertFalse($this->call('isAutoRestartDue', ['days' => [], 'at' => '14:30'], $now), 'empty days');
 		$this->assertFalse($this->call('isAutoRestartDue', ['days' => ['Saturday']], $now), 'no time');
 	}
+
+	// ── resolveStreamCodecMeta (label562 codec block) ──────────
+
+	public function testCodecMetaEmptyOrNonArrayJson(): void {
+		$this->assertSame([0, null, null, null], $this->call('resolveStreamCodecMeta', '', false));
+		$this->assertSame([0, null, null, null], $this->call('resolveStreamCodecMeta', null, false));
+		$this->assertSame([0, null, null, null], $this->call('resolveStreamCodecMeta', '"not-an-array"', false));
+	}
+
+	public function testCodecMetaCompatibleH264Aac(): void {
+		$json = json_encode(['codecs' => [
+			'video' => ['codec_name' => 'h264', 'height' => 1080],
+			'audio' => ['codec_name' => 'aac'],
+		]]);
+		[$compat, $audio, $video, $res] = $this->call('resolveStreamCodecMeta', $json, false);
+		$this->assertSame(1, $compat);
+		$this->assertSame('aac', $audio);
+		$this->assertSame('h264', $video);
+		$this->assertSame(1080, $res);
+	}
+
+	public function testCodecMetaResolutionSnapsAndHevcGated(): void {
+		$json = json_encode(['codecs' => [
+			'video' => ['codec_name' => 'h264', 'height' => 700],
+			'audio' => ['codec_name' => 'aac'],
+		]]);
+		$this->assertSame(720, $this->call('resolveStreamCodecMeta', $json, false)[3], '700 -> nearest 720');
+
+		$hevc = json_encode(['codecs' => ['video' => ['codec_name' => 'hevc', 'height' => 2160], 'audio' => ['codec_name' => 'ac3']]]);
+		$this->assertSame(0, $this->call('resolveStreamCodecMeta', $hevc, false)[0], 'hevc not allowed');
+		$this->assertSame(1, $this->call('resolveStreamCodecMeta', $hevc, true)[0], 'hevc allowed');
+	}
 }

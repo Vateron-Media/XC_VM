@@ -357,20 +357,7 @@ class MonitorCommand implements CommandInterface {
 			}
 
 			// Defining video/Audio parameters
-			$rCompatible = 0;
-			$rAudioCodec = $rVideoCodec = $rResolution = null;
-			if ($rStreamInfo['stream_info']) {
-				$rStreamJSON = json_decode($rStreamInfo['stream_info'], true);
-				$rCompatible = is_array($rStreamJSON) ? intval(DiagnosticsService::checkCompatibility($rStreamJSON, SettingsManager::getAll()['player_allow_hevc'])) : 0;
-				if (is_array($rStreamJSON) && isset($rStreamJSON['codecs']) && is_array($rStreamJSON['codecs'])) {
-					$rAudioCodec = isset($rStreamJSON['codecs']['audio']['codec_name']) ? $rStreamJSON['codecs']['audio']['codec_name'] : null;
-					$rVideoCodec = isset($rStreamJSON['codecs']['video']['codec_name']) ? $rStreamJSON['codecs']['video']['codec_name'] : null;
-					$rResolution = isset($rStreamJSON['codecs']['video']['height']) ? $rStreamJSON['codecs']['video']['height'] : null;
-				}
-				if ($rResolution) {
-					$rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
-				}
-			}
+			list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rStreamInfo['stream_info'], SettingsManager::getAll()['player_allow_hevc']);
 
 			if (!$ea6de21e70c530a9 && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
 				if ($rStreamInfo['stream_info']) {
@@ -596,6 +583,33 @@ class MonitorCommand implements CommandInterface {
 		return in_array(date('l', $rNow), $rAutoRestart['days'])
 			&& date('H', $rNow) == $rHour
 			&& date('i', $rNow) == $rMinutes;
+	}
+
+	/**
+	 * Derive codec metadata persisted for a running stream from its stream_info
+	 * JSON: player compatibility, audio/video codec names and the resolution
+	 * snapped to the nearest standard height. Extracted from the label562 block.
+	 *
+	 * @param mixed $rStreamInfoJson stream_info JSON string (or falsy).
+	 * @param mixed $rAllowHevc      player_allow_hevc setting.
+	 * @return array{0:int,1:?string,2:?string,3:mixed} [compatible, audio, video, resolution]
+	 */
+	private static function resolveStreamCodecMeta($rStreamInfoJson, $rAllowHevc): array {
+		$rCompatible = 0;
+		$rAudioCodec = $rVideoCodec = $rResolution = null;
+		if ($rStreamInfoJson) {
+			$rStreamJSON = json_decode($rStreamInfoJson, true);
+			$rCompatible = is_array($rStreamJSON) ? intval(DiagnosticsService::checkCompatibility($rStreamJSON, $rAllowHevc)) : 0;
+			if (is_array($rStreamJSON) && isset($rStreamJSON['codecs']) && is_array($rStreamJSON['codecs'])) {
+				$rAudioCodec = isset($rStreamJSON['codecs']['audio']['codec_name']) ? $rStreamJSON['codecs']['audio']['codec_name'] : null;
+				$rVideoCodec = isset($rStreamJSON['codecs']['video']['codec_name']) ? $rStreamJSON['codecs']['video']['codec_name'] : null;
+				$rResolution = isset($rStreamJSON['codecs']['video']['height']) ? $rStreamJSON['codecs']['video']['height'] : null;
+			}
+			if ($rResolution) {
+				$rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
+			}
+		}
+		return array($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution);
 	}
 
 	private function checkRunning(int $rStreamID): void {
