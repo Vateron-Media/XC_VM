@@ -10,6 +10,15 @@ use XcVm\Cli\Commands\MonitorCommand;
  */
 final class MonitorCommandTest extends TestCase {
 
+	public static function setUpBeforeClass(): void {
+		if (!defined('STREAMS_PATH')) {
+			define('STREAMS_PATH', sys_get_temp_dir() . '/xcvm-mon-test/');
+		}
+		if (!is_dir(STREAMS_PATH)) {
+			mkdir(STREAMS_PATH, 0777, true);
+		}
+	}
+
 	/** Invoke a private static MonitorCommand method via reflection. */
 	private function call(string $method, ...$args) {
 		$m = new ReflectionMethod(MonitorCommand::class, $method);
@@ -92,5 +101,23 @@ final class MonitorCommandTest extends TestCase {
 		$hevc = json_encode(['codecs' => ['video' => ['codec_name' => 'hevc', 'height' => 2160], 'audio' => ['codec_name' => 'ac3']]]);
 		$this->assertSame(0, $this->call('resolveStreamCodecMeta', $hevc, false)[0], 'hevc not allowed');
 		$this->assertSame(1, $this->call('resolveStreamCodecMeta', $hevc, true)[0], 'hevc allowed');
+	}
+
+	// ── persistSegmentDuration (label195/label562 probe core) ──
+
+	public function testPersistSegmentDurationClampsAndBumps(): void {
+		[$probe, $seg] = $this->call('persistSegmentDuration', ['of_duration' => 15], 4242, 4);
+		$this->assertSame(10, $probe['of_duration'], 'clamped to 10');
+		$this->assertSame(10, $seg, 'segTime bumped to clamped duration');
+		$this->assertSame('10', file_get_contents(STREAMS_PATH . '4242_.dur'));
+	}
+
+	public function testPersistSegmentDurationShortSegmentBumpsOrKeeps(): void {
+		[$probe, $seg] = $this->call('persistSegmentDuration', ['of_duration' => 6], 4243, 4);
+		$this->assertSame(6, $probe['of_duration'], 'not clamped');
+		$this->assertSame(6, $seg, 'segTime bumped 4 -> 6');
+
+		[, $seg2] = $this->call('persistSegmentDuration', ['of_duration' => 6], 4243, 8);
+		$this->assertSame(8, $seg2, 'segTime kept (already larger)');
 	}
 }

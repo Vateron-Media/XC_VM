@@ -166,13 +166,7 @@ class MonitorCommand implements CommandInterface {
 				}
 				$rLastSegment = $rSegment;
 				$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-				if ((10 < intval($E02429d2ee600884['of_duration']))) {
-					$E02429d2ee600884['of_duration'] = 10;
-				}
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($E02429d2ee600884['of_duration']));
-				if (($rSegmentTime < intval($E02429d2ee600884['of_duration']))) {
-					$rSegmentTime = intval($E02429d2ee600884['of_duration']);
-				}
+				list($E02429d2ee600884, $rSegmentTime) = self::persistSegmentDuration($E02429d2ee600884, $rStreamID, $rSegmentTime);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE));
 				$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
 			}
@@ -341,13 +335,7 @@ class MonitorCommand implements CommandInterface {
 			$rStreamInfo['stream_info'] = null;
 			if (file_exists($rSegment)) {
 				$E02429d2ee600884 = FFprobeRunner::probeStream($rSegment);
-				if ((10 < intval($E02429d2ee600884['of_duration']))) {
-					$E02429d2ee600884['of_duration'] = 10;
-				}
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($E02429d2ee600884['of_duration']));
-				if (($rSegmentTime < intval($E02429d2ee600884['of_duration']))) {
-					$rSegmentTime = intval($E02429d2ee600884['of_duration']);
-				}
+				list($E02429d2ee600884, $rSegmentTime) = self::persistSegmentDuration($E02429d2ee600884, $rStreamID, $rSegmentTime);
 				if ($E02429d2ee600884) {
 					$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
 					$rBitrate = StreamUtils::getStreamBitrate('live', STREAMS_PATH . $rStreamID . '_.m3u8');
@@ -610,6 +598,27 @@ class MonitorCommand implements CommandInterface {
 			}
 		}
 		return array($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution);
+	}
+
+	/**
+	 * Clamp a probed segment's of_duration to <= 10s, persist it to the stream's
+	 * _.dur file, and raise $rSegmentTime to it when the segment is longer.
+	 * Shared by the label195 and label562 probe blocks.
+	 *
+	 * @param mixed $rProbe       FFprobeRunner::probeStream() result.
+	 * @param mixed $rStreamID    Stream id (for the _.dur path).
+	 * @param mixed $rSegmentTime Current segment time.
+	 * @return array{0:mixed,1:mixed} [clamped probe, updated segment time]
+	 */
+	private static function persistSegmentDuration($rProbe, $rStreamID, $rSegmentTime): array {
+		if (10 < intval($rProbe['of_duration'])) {
+			$rProbe['of_duration'] = 10;
+		}
+		file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($rProbe['of_duration']));
+		if ($rSegmentTime < intval($rProbe['of_duration'])) {
+			$rSegmentTime = intval($rProbe['of_duration']);
+		}
+		return array($rProbe, $rSegmentTime);
 	}
 
 	private function checkRunning(int $rStreamID): void {
