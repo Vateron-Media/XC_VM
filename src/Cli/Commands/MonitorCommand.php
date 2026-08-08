@@ -146,7 +146,7 @@ class MonitorCommand implements CommandInterface {
 						echo "Auto-restart\n";
 						StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
 						$D97a4f098a8d1bf8 = false;
-						goto label1186;
+						break;
 					}
 					if (($rStreamProbe || (!file_exists(STREAMS_PATH . $rStreamID . '_.dur') && (300 < (time() - $rDurationChecked))))) {
 						echo "Probe Stream\n";
@@ -154,7 +154,7 @@ class MonitorCommand implements CommandInterface {
 						if (!empty($rSegment)) {
 							if (((300 < (time() - $rDurationChecked)) && ($rSegment == $rLastSegment))) {
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'FFMPEG_ERROR', $rCurrentSource);
-								goto label1186;
+								break;
 							}
 							$rLastSegment = $rSegment;
 							$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
@@ -194,7 +194,7 @@ class MonitorCommand implements CommandInterface {
 							} elseif ($b4015d24aedaf0db && (($d75674a646265e7b * ($rStreamInfo['fps_threshold'] ?: 100)) < $b4015d24aedaf0db)) {
 								echo "FPS dropped below threshold! Break\n";
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
-								goto label1186;
+								break;
 							}
 						}
 						unlink(STREAMS_PATH . $rStreamID . '_.progress_check');
@@ -207,11 +207,11 @@ class MonitorCommand implements CommandInterface {
 							if ((!isset($E02429d2ee600884['codecs']['audio']) || empty($E02429d2ee600884['codecs']['audio']))) {
 								echo "Lost audio! Break\n";
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUDIO_LOSS', $rCurrentSource);
-								goto label1186;
+								break;
 							}
 							$rAudioChecked = time();
 						} else {
-							goto label1186;
+							break;
 						}
 					}
 					if ((($rSegmentTime * 6) <= time() - $rCheckedTime)) {
@@ -231,7 +231,7 @@ class MonitorCommand implements CommandInterface {
 							}
 							$rCheckedTime = time();
 						} else {
-							goto label1186;
+							break;
 						}
 					}
 					if (((SettingsManager::getAll()['priority_backup'] == 1) && (1 < count($rSources)) && ($rParentID == 0) && (300 < (time() - $rBackupsChecked)))) {
@@ -250,7 +250,7 @@ class MonitorCommand implements CommandInterface {
 										$rForceSource = $rSource;
 										$rPrioritySwitch = true;
 										$D97a4f098a8d1bf8 = false;
-										goto label1186;
+										break 2;
 									}
 								}
 							}
@@ -268,7 +268,7 @@ class MonitorCommand implements CommandInterface {
 								$rForceSource = $rSources[$rForceID];
 								unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
 								$D97a4f098a8d1bf8 = false;
-								goto label1186;
+								break;
 							}
 						}
 						unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
@@ -280,7 +280,6 @@ class MonitorCommand implements CommandInterface {
 					}
 					sleep(1);
 				}
-				label1186:
 				if ($D97a4f098a8d1bf8) {
 					StreamProcess::streamLog($rStreamID, SERVER_ID, 'STREAM_FAILED', $rCurrentSource);
 					echo "Stream failed!\n";
