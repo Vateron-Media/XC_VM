@@ -146,20 +146,13 @@ class MonitorCommand implements CommandInterface {
 		$b4015d24aedaf0db = null;
 		label592: //while
 		if ((ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist))) {
-			if (!(!empty($rAutoRestart['days']) && !empty($rAutoRestart['at']))) {
-				goto label195;
+			if (self::isAutoRestartDue($rAutoRestart)) {
+				echo "Auto-restart\n";
+				StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
+				$D97a4f098a8d1bf8 = false;
+				goto label1186;
 			}
-			list($rHour, $rMinutes) = explode(':', $rAutoRestart['at']);
-			if (!(in_array(date('l'), $rAutoRestart['days']) && (date('H') == $rHour))) {
-				goto label195;
-			}
-			if (!($rMinutes == date('i'))) {
-				goto label195;
-			}
-			echo "Auto-restart\n";
-			StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
-			$D97a4f098a8d1bf8 = false;
-			goto label1186;
+			goto label195;
 		}
 		goto label1186;
 		label195:
@@ -583,6 +576,26 @@ class MonitorCommand implements CommandInterface {
 			return $rDen != 0.0 ? (float) ($rNum / $rDen) : 0.0;
 		}
 		return (float) $rRate;
+	}
+
+	/**
+	 * Whether a stream's scheduled auto-restart is due now: the config carries
+	 * days + a HH:MM time, and the current weekday/hour/minute all match.
+	 * Extracted from the label195 goto chain.
+	 *
+	 * @param mixed    $rAutoRestart Decoded auto_restart config (['days'=>[...],'at'=>'HH:MM']).
+	 * @param int|null $rNow         Timestamp to test against (defaults to now).
+	 * @return bool
+	 */
+	private static function isAutoRestartDue($rAutoRestart, $rNow = null): bool {
+		if (empty($rAutoRestart['days']) || empty($rAutoRestart['at'])) {
+			return false;
+		}
+		$rNow = $rNow ?? time();
+		list($rHour, $rMinutes) = explode(':', $rAutoRestart['at']);
+		return in_array(date('l', $rNow), $rAutoRestart['days'])
+			&& date('H', $rNow) == $rHour
+			&& date('i', $rNow) == $rMinutes;
 	}
 
 	private function checkRunning(int $rStreamID): void {
