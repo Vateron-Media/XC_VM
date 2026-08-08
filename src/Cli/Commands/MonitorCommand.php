@@ -14,13 +14,16 @@ use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Streaming\Codec\FFprobeRunner;
 
 /**
- * Мониторинг одного стрима (из cli/monitor.php).
+ * `monitor <stream_id> [restart]` — the per-stream watchdog.
  *
- * Запуск: php console.php monitor <stream_id> [restart]
+ * Runs one long-lived supervisor loop per stream (as the `xc_vm` user): it
+ * (re)starts the stream's ffmpeg, waits for the HLS playlist to appear, probes
+ * the first segment for codec/duration metadata, then watches the running
+ * stream and restarts it on ffmpeg death, an FPS drop, audio loss, a stale
+ * playlist, a scheduled auto-restart, or a priority/forced source switch.
  *
- * ВНИМАНИЕ: Этот файл содержит goto/label flow-control — следы обфускации.
- * Планируется рефакторинг в Phase 14 (→ domain/Stream/StreamMonitor.php).
- * На данном этапе логика перенесена as-is.
+ * Once an obfuscated goto/label state machine; since untangled into structured
+ * while-loops backed by the small probe/codec/fps helpers at the bottom.
  *
  * @package XC_VM_CLI_Commands
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -31,14 +34,27 @@ use XcVm\Streaming\Codec\FFprobeRunner;
 
 class MonitorCommand implements CommandInterface {
 
+	/** {@inheritDoc} */
 	public function getName(): string {
 		return 'monitor';
 	}
 
+	/** {@inheritDoc} */
 	public function getDescription(): string {
 		return 'Monitor stream by ID (start/restart/track)';
 	}
 
+	/**
+	 * Supervise stream `$rArgs[0]`: load its config, then loop forever —
+	 * start/restart the ffmpeg process, wait for its playlist, probe it, and
+	 * monitor health — until an exit condition (failure limit, missing stream,
+	 * on-demand give-up) returns.
+	 *
+	 * Must run as the `xc_vm` user.
+	 *
+	 * @param array $rArgs [0 => stream id, 1 => optional truthy "restart" flag].
+	 * @return int Exit code: 0 = clean stop, 1 = wrong user.
+	 */
 	public function execute(array $rArgs): int {
 		if (posix_getpwuid(posix_geteuid())['name'] != 'xc_vm') {
 			echo "Please run as \XC_VM!\n";
@@ -474,7 +490,7 @@ class MonitorCommand implements CommandInterface {
 
 	/**
 	 * Parse an ffprobe frame-rate field ("30", "30000/1001", "25/1") into fps.
-	 * Extracted from the FPS-check goto cluster (label768/780/1047/1052/1057).
+	 * Used by the in-loop FPS-drop check.
 	 *
 	 * @param mixed $rRate Raw avg_frame_rate / r_frame_rate value.
 	 * @return float Frames per second; 0.0 for empty/zero/malformed input.
@@ -491,7 +507,6 @@ class MonitorCommand implements CommandInterface {
 	/**
 	 * Whether a stream's scheduled auto-restart is due now: the config carries
 	 * days + a HH:MM time, and the current weekday/hour/minute all match.
-	 * Extracted from the label195 goto chain.
 	 *
 	 * @param mixed    $rAutoRestart Decoded auto_restart config (['days'=>[...],'at'=>'HH:MM']).
 	 * @param int|null $rNow         Timestamp to test against (defaults to now).
@@ -511,7 +526,7 @@ class MonitorCommand implements CommandInterface {
 	/**
 	 * Derive codec metadata persisted for a running stream from its stream_info
 	 * JSON: player compatibility, audio/video codec names and the resolution
-	 * snapped to the nearest standard height. Extracted from the label562 block.
+	 * snapped to the nearest standard height.
 	 *
 	 * @param mixed $rStreamInfoJson stream_info JSON string (or falsy).
 	 * @param mixed $rAllowHevc      player_allow_hevc setting.
@@ -538,7 +553,7 @@ class MonitorCommand implements CommandInterface {
 	/**
 	 * Clamp a probed segment's of_duration to <= 10s, persist it to the stream's
 	 * _.dur file, and raise $rSegmentTime to it when the segment is longer.
-	 * Shared by the label195 and label562 probe blocks.
+	 * Shared by the in-loop probe and the post-start probe.
 	 *
 	 * @param mixed $rProbe       FFprobeRunner::probeStream() result.
 	 * @param mixed $rStreamID    Stream id (for the _.dur path).
@@ -556,6 +571,13 @@ class MonitorCommand implements CommandInterface {
 		return array($rProbe, $rSegmentTime);
 	}
 
+	/**
+	 * Ensure only one watchdog runs for this stream by killing any monitor
+	 * already running for it: prefers the pid stored in the `_.monitor` file,
+	 * falling back to matching the `XC_VM[<id>]` process title.
+	 *
+	 * @param int $rStreamID Stream id being monitored.
+	 */
 	private function checkRunning(int $rStreamID): void {
 		clearstatcache(true);
 		$rPID = 0;
