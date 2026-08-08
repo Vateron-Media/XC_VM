@@ -509,22 +509,10 @@ class MonitorCommand implements CommandInterface {
 		$d75674a646265e7b = $E02429d2ee600884['codecs']['video']['avg_frame_rate'] ?: $E02429d2ee600884['codecs']['video']['r_frame_rate'];
 		goto label768;
 		label768:
-		if (stripos($d75674a646265e7b, '/') !== false) {
-			goto label780;
+		$d75674a646265e7b = self::parseFrameRate($d75674a646265e7b);
+		if (0 < $d75674a646265e7b) {
+			$b4015d24aedaf0db = $d75674a646265e7b;
 		}
-		$d75674a646265e7b = floatval($d75674a646265e7b);
-		goto label1052;
-		label780:
-		list($Be71401a913607c0, $Cd98e5a46a318d0a) = array_map('floatval', explode('/', $d75674a646265e7b));
-		goto label1047;
-		label1047:
-		$d75674a646265e7b = floatval($Be71401a913607c0 / $Cd98e5a46a318d0a);
-		label1052:
-		if (!(0 < $d75674a646265e7b)) {
-			goto label1057;
-		}
-		$b4015d24aedaf0db = $d75674a646265e7b;
-		label1057:
 		goto label1847;
 
 		label1847:
@@ -594,6 +582,22 @@ class MonitorCommand implements CommandInterface {
 		label1880:
 
 		return 0;
+	}
+
+	/**
+	 * Parse an ffprobe frame-rate field ("30", "30000/1001", "25/1") into fps.
+	 * Extracted from the FPS-check goto cluster (label768/780/1047/1052/1057).
+	 *
+	 * @param mixed $rRate Raw avg_frame_rate / r_frame_rate value.
+	 * @return float Frames per second; 0.0 for empty/zero/malformed input.
+	 */
+	private static function parseFrameRate($rRate): float {
+		$rRate = (string) $rRate;
+		if (strpos($rRate, '/') !== false) {
+			list($rNum, $rDen) = array_map('floatval', explode('/', $rRate));
+			return $rDen != 0.0 ? (float) ($rNum / $rDen) : 0.0;
+		}
+		return (float) $rRate;
 	}
 
 	private function checkRunning(int $rStreamID): void {
