@@ -49,6 +49,12 @@ parameters:
 			path: src/Cli/Commands/MonitorCommand.php
 
 		-
+			message: '#^Static method XcVm\\Cli\\Commands\\MonitorCommand\:\:parseFrameRate\(\) is unused\.$#'
+			identifier: method.unused
+			count: 1
+			path: src/Cli/Commands/MonitorCommand.php
+
+		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
