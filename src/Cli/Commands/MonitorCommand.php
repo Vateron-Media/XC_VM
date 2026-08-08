@@ -144,87 +144,146 @@ class MonitorCommand implements CommandInterface {
 		$rMD5 = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
 		$D97a4f098a8d1bf8 = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
 		$b4015d24aedaf0db = null;
-		label592: //while
-		if ((ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist))) {
+		while (ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist)) {
 			if (self::isAutoRestartDue($rAutoRestart)) {
 				echo "Auto-restart\n";
 				StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
 				$D97a4f098a8d1bf8 = false;
 				goto label1186;
 			}
-			goto label195;
-		}
-		goto label1186;
-		label195:
-		if (($rStreamProbe || (!file_exists(STREAMS_PATH . $rStreamID . '_.dur') && (300 < (time() - $rDurationChecked))))) {
-			echo "Probe Stream\n";
-			$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
-			if (!empty($rSegment)) {
-				if (((300 < (time() - $rDurationChecked)) && ($rSegment == $rLastSegment))) {
-					StreamProcess::streamLog($rStreamID, SERVER_ID, 'FFMPEG_ERROR', $rCurrentSource);
+			if (($rStreamProbe || (!file_exists(STREAMS_PATH . $rStreamID . '_.dur') && (300 < (time() - $rDurationChecked))))) {
+				echo "Probe Stream\n";
+				$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
+				if (!empty($rSegment)) {
+					if (((300 < (time() - $rDurationChecked)) && ($rSegment == $rLastSegment))) {
+						StreamProcess::streamLog($rStreamID, SERVER_ID, 'FFMPEG_ERROR', $rCurrentSource);
+						goto label1186;
+					}
+					$rLastSegment = $rSegment;
+					$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
+					list($E02429d2ee600884, $rSegmentTime) = self::persistSegmentDuration($E02429d2ee600884, $rStreamID, $rSegmentTime);
+					file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE));
+					$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
+				}
+				$rStreamProbe = false;
+				$rDurationChecked = time();
+				if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
+					file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
+				}
+				if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
+					file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
+				}
+			}
+			if (($rStreamInfo['fps_restart'] == 1) && (SettingsManager::getAll()['fps_delay'] < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check')) {
+				echo "Checking FPS...\n";
+				$d75674a646265e7b = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
+				if (0 < $d75674a646265e7b) {
+					if (!$b4015d24aedaf0db) {
+						if (SettingsManager::getAll()['fps_check_type'] == 1) {
+							$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
+							if (!empty($rSegment)) {
+								$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
+								if (isset($E02429d2ee600884['codecs']['video']['avg_frame_rate']) || isset($E02429d2ee600884['codecs']['video']['r_frame_rate'])) {
+									$d75674a646265e7b = $E02429d2ee600884['codecs']['video']['avg_frame_rate'] ?: $E02429d2ee600884['codecs']['video']['r_frame_rate'];
+									$d75674a646265e7b = self::parseFrameRate($d75674a646265e7b);
+									if (0 < $d75674a646265e7b) {
+										$b4015d24aedaf0db = $d75674a646265e7b;
+									}
+								}
+							}
+						} else {
+							$b4015d24aedaf0db = $d75674a646265e7b;
+						}
+					} elseif ($b4015d24aedaf0db && (($d75674a646265e7b * ($rStreamInfo['fps_threshold'] ?: 100)) < $b4015d24aedaf0db)) {
+						echo "FPS dropped below threshold! Break\n";
+						StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
+						goto label1186;
+					}
+				}
+				unlink(STREAMS_PATH . $rStreamID . '_.progress_check');
+			}
+			if ((SettingsManager::getAll()['audio_restart_loss'] == 1) && (300 < (time() - $rAudioChecked))) {
+				echo "Checking audio...\n";
+				$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
+				if (!empty($rSegment)) {
+					$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
+					if ((!isset($E02429d2ee600884['codecs']['audio']) || empty($E02429d2ee600884['codecs']['audio']))) {
+						echo "Lost audio! Break\n";
+						StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUDIO_LOSS', $rCurrentSource);
+						goto label1186;
+					}
+					$rAudioChecked = time();
+				} else {
 					goto label1186;
 				}
-				$rLastSegment = $rSegment;
-				$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-				list($E02429d2ee600884, $rSegmentTime) = self::persistSegmentDuration($E02429d2ee600884, $rStreamID, $rSegmentTime);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE));
-				$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
 			}
-			$rStreamProbe = false;
-			$rDurationChecked = time();
-			if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
+			if ((($rSegmentTime * 6) <= time() - $rCheckedTime)) {
+				$Fcfb63b23cad3c6e = md5_file($rPlaylist);
+				if ($rMD5 != $Fcfb63b23cad3c6e) {
+					$rMD5 = $Fcfb63b23cad3c6e;
+					$rCheckedTime = time();
+					if (SettingsManager::getAll()['encrypt_hls']) {
+					foreach (glob(STREAMS_PATH . $rStreamID . '_*.ts.enc') as $rFile) {
+					if (!file_exists(rtrim($rFile, '.enc'))) {
+					unlink($rFile);
+					}
+					}
+					}
+					if ((!is_array(json_decode($rStreamInfo['stream_info'], true)) || count(json_decode($rStreamInfo['stream_info'], true)) == 0)) {
+						$rStreamProbe = true;
+					}
+					$rCheckedTime = time();
+				} else {
+					goto label1186;
+				}
 			}
-			if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
+			if (((SettingsManager::getAll()['priority_backup'] == 1) && (1 < count($rSources)) && ($rParentID == 0) && (300 < (time() - $rBackupsChecked)))) {
+				echo "Checking backups...\n";
+				$rBackupsChecked = time();
+				$rKey = array_search($rCurrentSource, $rSources);
+				if ((!is_numeric($rKey) || (0 < $rKey))) {
+					foreach ($rSources as $rSource) {
+						if (!(($rSource == $rCurrentSource) || ($rSource == $rForceSource))) {
+							$rStreamSource = StreamUtils::parseStreamURL($rSource);
+							$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
+							$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
+							if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
+								echo "Switch priority\n";
+								StreamProcess::streamLog($rStreamID, SERVER_ID, 'PRIORITY_SWITCH', $rSource);
+								$rForceSource = $rSource;
+								$rPrioritySwitch = true;
+								$D97a4f098a8d1bf8 = false;
+								goto label1186;
+							}
+						}
+					}
+				}
 			}
+			if ((file_exists(SIGNALS_TMP_PATH . $rStreamID . '.force') && ($rParentID == 0))) {
+				$rForceID = intval(file_get_contents(SIGNALS_TMP_PATH . $rStreamID . '.force'));
+				$rStreamSource = StreamUtils::parseStreamURL($rSources[$rForceID]);
+				if (($rSources[$rForceID] != $rCurrentSource)) {
+					$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
+					$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
+					if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
+						echo "Force new source\n";
+						StreamProcess::streamLog($rStreamID, SERVER_ID, 'FORCE_SOURCE', $rSources[$rForceID]);
+						$rForceSource = $rSources[$rForceID];
+						unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
+						$D97a4f098a8d1bf8 = false;
+						goto label1186;
+					}
+				}
+				unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
+			}
+			if (($rDelay && ($rStreamInfo['delay_available_at'] <= time()) && !ProcessManager::isNamedProcessRunning($rDelayPID, 'XC_VMDelay', $rStreamID))) {
+				echo "Start Delay\n";
+				StreamProcess::streamLog($rStreamID, SERVER_ID, 'DELAY_START');
+				$rDelayPID = intval(shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php delay ' . intval($rStreamID) . ' ' . intval($rStreamInfo['delay_minutes']) . ' >/dev/null 2>/dev/null & echo $!'));
+			}
+			sleep(1);
 		}
-		if (!(($rStreamInfo['fps_restart'] == 1) && (SettingsManager::getAll()['fps_delay'] < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check'))) {
-			goto label298;
-		}
-		echo "Checking FPS...\n";
-		$d75674a646265e7b = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
-		if (!(0 < $d75674a646265e7b)) {
-			goto label1847;
-		}
-		if (!$b4015d24aedaf0db) {
-			goto label1087;
-		}
-		if (!($b4015d24aedaf0db && (($d75674a646265e7b * ($rStreamInfo['fps_threshold'] ?: 100)) < $b4015d24aedaf0db))) {
-			goto label1847;
-		}
-		echo "FPS dropped below threshold! Break\n";
-		StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
 		goto label1186;
-		label884:
-		$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
-		if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
-			echo "Force new source\n";
-			StreamProcess::streamLog($rStreamID, SERVER_ID, 'FORCE_SOURCE', $rSources[$rForceID]);
-			$rForceSource = $rSources[$rForceID];
-			unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
-			$D97a4f098a8d1bf8 = false;
-			goto label1186;
-		}
-		label1631:
-		unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
-		label496:
-		if ((file_exists(SIGNALS_TMP_PATH . $rStreamID . '.force') && ($rParentID == 0))) {
-			$rForceID = intval(file_get_contents(SIGNALS_TMP_PATH . $rStreamID . '.force'));
-			$rStreamSource = StreamUtils::parseStreamURL($rSources[$rForceID]);
-			if (($rSources[$rForceID] != $rCurrentSource)) {
-				$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
-				goto label884;
-			}
-			goto label1631;
-		}
-		if (($rDelay && ($rStreamInfo['delay_available_at'] <= time()) && !ProcessManager::isNamedProcessRunning($rDelayPID, 'XC_VMDelay', $rStreamID))) {
-			echo "Start Delay\n";
-			StreamProcess::streamLog($rStreamID, SERVER_ID, 'DELAY_START');
-			$rDelayPID = intval(shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php delay ' . intval($rStreamID) . ' ' . intval($rStreamInfo['delay_minutes']) . ' >/dev/null 2>/dev/null & echo $!'));
-		}
-		sleep(1);
-		goto label592;
 		label1:
 		if (!$rStreamInfo['parent_id']) {
 			goto label49;
@@ -441,93 +500,6 @@ class MonitorCommand implements CommandInterface {
 			goto label644;
 		}
 		goto label235;
-		label1087:
-		if (SettingsManager::getAll()['fps_check_type'] == 1) {
-			goto label1094;
-		}
-		$b4015d24aedaf0db = $d75674a646265e7b;
-		goto label1847;
-		label1094:
-		$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
-		if (empty($rSegment)) {
-			goto label1847;
-		}
-		$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-		if (!(isset($E02429d2ee600884['codecs']['video']['avg_frame_rate']) || isset($E02429d2ee600884['codecs']['video']['r_frame_rate']))) {
-			goto label1847;
-		}
-		$d75674a646265e7b = $E02429d2ee600884['codecs']['video']['avg_frame_rate'] ?: $E02429d2ee600884['codecs']['video']['r_frame_rate'];
-		label768:
-		$d75674a646265e7b = self::parseFrameRate($d75674a646265e7b);
-		if (0 < $d75674a646265e7b) {
-			$b4015d24aedaf0db = $d75674a646265e7b;
-		}
-		goto label1847;
-
-		label1847:
-		unlink(STREAMS_PATH . $rStreamID . '_.progress_check');
-		label298:
-		if (!((SettingsManager::getAll()['audio_restart_loss'] == 1) && (300 < (time() - $rAudioChecked)))) {
-			goto label617;
-		}
-		echo "Checking audio...\n";
-		$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
-		if (!empty($rSegment)) {
-			$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-			if ((!isset($E02429d2ee600884['codecs']['audio']) || empty($E02429d2ee600884['codecs']['audio']))) {
-				echo "Lost audio! Break\n";
-				StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUDIO_LOSS', $rCurrentSource);
-				goto label1186;
-			}
-			$rAudioChecked = time();
-			label617:
-			if ((($rSegmentTime * 6) <= time() - $rCheckedTime)) {
-				$Fcfb63b23cad3c6e = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
-				if ($rMD5 != $Fcfb63b23cad3c6e) {
-					$rMD5 = $Fcfb63b23cad3c6e;
-					$rCheckedTime = time();
-					label1851:
-					if (SettingsManager::getAll()['encrypt_hls']) {
-						foreach (glob(STREAMS_PATH . $rStreamID . '_*.ts.enc') as $rFile) {
-							if (!file_exists(rtrim($rFile, '.enc'))) {
-								unlink($rFile);
-							}
-						}
-					}
-					if ((!is_array(json_decode($rStreamInfo['stream_info'], true)) || count(json_decode($rStreamInfo['stream_info'], true)) == 0)) {
-						$rStreamProbe = true;
-					}
-					$rCheckedTime = time();
-					goto label1095;
-				}
-				goto label1186;
-			}
-			label1095:
-			if (((SettingsManager::getAll()['priority_backup'] == 1) && (1 < count($rSources)) && ($rParentID == 0) && (300 < (time() - $rBackupsChecked)))) {
-				echo "Checking backups...\n";
-				$rBackupsChecked = time();
-				$rKey = array_search($rCurrentSource, $rSources);
-				if ((!is_numeric($rKey) || (0 < $rKey))) {
-					foreach ($rSources as $rSource) {
-						if (!(($rSource == $rCurrentSource) || ($rSource == $rForceSource))) {
-							$rStreamSource = StreamUtils::parseStreamURL($rSource);
-							$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
-							$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
-							if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
-								echo "Switch priority\n";
-								StreamProcess::streamLog($rStreamID, SERVER_ID, 'PRIORITY_SWITCH', $rSource);
-								$rForceSource = $rSource;
-								$rPrioritySwitch = true;
-								$D97a4f098a8d1bf8 = false;
-								goto label1186;
-							}
-						}
-					}
-				}
-			}
-			goto label496;
-		}
-		goto label1186;
 		label1880:
 
 		return 0;
