@@ -291,17 +291,17 @@ class MonitorCommand implements CommandInterface {
 		$e1bc98ce34937596 = $rFolder . $rStreamID . '_0.ts';
 		$ea6de21e70c530a9 = false;
 		$rChecks = 0;
-		$A63c815f93524582 = (($rSegmentTime * 3) <= 30 ? $rSegmentTime * 3 : 30);
-		if (!($A63c815f93524582 < 20)) {
-			goto label998;
-		}
-		$A63c815f93524582 = 20;
-		label998:
-		echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $A63c815f93524582 . "...\n";
-		if (ProcessManager::isStreamRunning($rPID, $rStreamID)) {
+		$A63c815f93524582 = max(20, min($rSegmentTime * 3, 30));
+		while (true) {
+			echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $A63c815f93524582 . "...\n";
+			if (!ProcessManager::isStreamRunning($rPID, $rStreamID)) {
+				echo "Ffmpeg stopped running\n";
+				$E9d347a502b13abd = true;
+				break;
+			}
 			if (file_exists($rPlaylist)) {
 				echo "Playlist exists!\n";
-				goto label1064;
+				break;
 			}
 			if ((file_exists($e1bc98ce34937596) && !$ea6de21e70c530a9 && $rStreamInfo['on_demand'])) {
 				echo "Segment exists!\n";
@@ -312,15 +312,11 @@ class MonitorCommand implements CommandInterface {
 			if (($rChecks == $A63c815f93524582)) {
 				echo "Reached max failures\n";
 				$E9d347a502b13abd = true;
-				goto label1064;
+				break;
 			}
 			$rChecks++;
 			sleep(1);
-			goto label998;
 		}
-		echo "Ffmpeg stopped running\n";
-		$E9d347a502b13abd = true;
-		label1064:
 		label562:
 		SettingsManager::set(SettingsRepository::getAll());
 		if (ProcessManager::isStreamRunning($rPID, $rStreamID) && !$E9d347a502b13abd) {
