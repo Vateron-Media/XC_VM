@@ -137,112 +137,110 @@ class MonitorCommand implements CommandInterface {
 		// ПРИМЕЧАНИЕ: goto/label — следы обфускации. Рефакторинг запланирован в Phase 14.
 		goto label235;
 		label235:
-		if (true) {
-			if (!(0 < $rPID)) {
-				goto label471;
+		if (!(0 < $rPID)) {
+			goto label471;
+		}
+		$db->close_mysql();
+		$rStartedTime = $rDurationChecked = $rAudioChecked = $rCheckedTime = $rBackupsChecked = time();
+		$rMD5 = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
+		$D97a4f098a8d1bf8 = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
+		$b4015d24aedaf0db = null;
+		goto label592;
+		label592: //while
+		if ((ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist))) {
+			if (!(!empty($rAutoRestart['days']) && !empty($rAutoRestart['at']))) {
+				goto label195;
 			}
-			$db->close_mysql();
-			$rStartedTime = $rDurationChecked = $rAudioChecked = $rCheckedTime = $rBackupsChecked = time();
-			$rMD5 = file_exists($rPlaylist) ? md5_file($rPlaylist) : false;
-			$D97a4f098a8d1bf8 = ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
-			$b4015d24aedaf0db = null;
-			goto label592;
-			label592: //while
-			if ((ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist))) {
-				if (!(!empty($rAutoRestart['days']) && !empty($rAutoRestart['at']))) {
-					goto label195;
-				}
-				list($rHour, $rMinutes) = explode(':', $rAutoRestart['at']);
-				if (!(in_array(date('l'), $rAutoRestart['days']) && (date('H') == $rHour))) {
-					goto label195;
-				}
-				if (!($rMinutes == date('i'))) {
-					goto label195;
-				}
-				echo "Auto-restart\n";
-				StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
-				$D97a4f098a8d1bf8 = false;
-				goto label1186;
+			list($rHour, $rMinutes) = explode(':', $rAutoRestart['at']);
+			if (!(in_array(date('l'), $rAutoRestart['days']) && (date('H') == $rHour))) {
+				goto label195;
 			}
+			if (!($rMinutes == date('i'))) {
+				goto label195;
+			}
+			echo "Auto-restart\n";
+			StreamProcess::streamLog($rStreamID, SERVER_ID, 'AUTO_RESTART', $rCurrentSource);
+			$D97a4f098a8d1bf8 = false;
 			goto label1186;
-			label195:
-			if (($rStreamProbe || (!file_exists(STREAMS_PATH . $rStreamID . '_.dur') && (300 < (time() - $rDurationChecked))))) {
-				echo "Probe Stream\n";
-				$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
-				if (!empty($rSegment)) {
-					if (((300 < (time() - $rDurationChecked)) && ($rSegment == $rLastSegment))) {
-						StreamProcess::streamLog($rStreamID, SERVER_ID, 'FFMPEG_ERROR', $rCurrentSource);
-						goto label1186;
-					}
-					$rLastSegment = $rSegment;
-					$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
-					if ((10 < intval($E02429d2ee600884['of_duration']))) {
-						$E02429d2ee600884['of_duration'] = 10;
-					}
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($E02429d2ee600884['of_duration']));
-					if (($rSegmentTime < intval($E02429d2ee600884['of_duration']))) {
-						$rSegmentTime = intval($E02429d2ee600884['of_duration']);
-					}
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE));
-					$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
+		}
+		goto label1186;
+		label195:
+		if (($rStreamProbe || (!file_exists(STREAMS_PATH . $rStreamID . '_.dur') && (300 < (time() - $rDurationChecked))))) {
+			echo "Probe Stream\n";
+			$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
+			if (!empty($rSegment)) {
+				if (((300 < (time() - $rDurationChecked)) && ($rSegment == $rLastSegment))) {
+					StreamProcess::streamLog($rStreamID, SERVER_ID, 'FFMPEG_ERROR', $rCurrentSource);
+					goto label1186;
 				}
-				$rStreamProbe = false;
-				$rDurationChecked = time();
-				if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
+				$rLastSegment = $rSegment;
+				$E02429d2ee600884 = FFprobeRunner::probeStream($rFolder . $rSegment);
+				if ((10 < intval($E02429d2ee600884['of_duration']))) {
+					$E02429d2ee600884['of_duration'] = 10;
 				}
-				if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.dur', intval($E02429d2ee600884['of_duration']));
+				if (($rSegmentTime < intval($E02429d2ee600884['of_duration']))) {
+					$rSegmentTime = intval($E02429d2ee600884['of_duration']);
 				}
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.stream_info', json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE));
+				$rStreamInfo['stream_info'] = json_encode($E02429d2ee600884, JSON_UNESCAPED_UNICODE);
 			}
-			if (!(($rStreamInfo['fps_restart'] == 1) && (SettingsManager::getAll()['fps_delay'] < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check'))) {
-				goto label298;
+			$rStreamProbe = false;
+			$rDurationChecked = time();
+			if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
 			}
-			echo "Checking FPS...\n";
-			$d75674a646265e7b = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
-			if (!(0 < $d75674a646265e7b)) {
-				goto label1847;
+			if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
 			}
-			if (!$b4015d24aedaf0db) {
-				goto label1087;
-			}
-			if (!($b4015d24aedaf0db && (($d75674a646265e7b * ($rStreamInfo['fps_threshold'] ?: 100)) < $b4015d24aedaf0db))) {
-				goto label1847;
-			}
-			echo "FPS dropped below threshold! Break\n";
-			StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
+		}
+		if (!(($rStreamInfo['fps_restart'] == 1) && (SettingsManager::getAll()['fps_delay'] < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check'))) {
+			goto label298;
+		}
+		echo "Checking FPS...\n";
+		$d75674a646265e7b = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
+		if (!(0 < $d75674a646265e7b)) {
+			goto label1847;
+		}
+		if (!$b4015d24aedaf0db) {
+			goto label1087;
+		}
+		if (!($b4015d24aedaf0db && (($d75674a646265e7b * ($rStreamInfo['fps_threshold'] ?: 100)) < $b4015d24aedaf0db))) {
+			goto label1847;
+		}
+		echo "FPS dropped below threshold! Break\n";
+		StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
+		goto label1186;
+		label884:
+		$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
+		if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
+			echo "Force new source\n";
+			StreamProcess::streamLog($rStreamID, SERVER_ID, 'FORCE_SOURCE', $rSources[$rForceID]);
+			$rForceSource = $rSources[$rForceID];
+			unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
+			$D97a4f098a8d1bf8 = false;
 			goto label1186;
-			label884:
-			$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
-			if (($E02429d2ee600884 = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
-				echo "Force new source\n";
-				StreamProcess::streamLog($rStreamID, SERVER_ID, 'FORCE_SOURCE', $rSources[$rForceID]);
-				$rForceSource = $rSources[$rForceID];
-				unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
-				$D97a4f098a8d1bf8 = false;
-				goto label1186;
+		}
+		goto label1631;
+		label1631:
+		unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
+		label496:
+		if ((file_exists(SIGNALS_TMP_PATH . $rStreamID . '.force') && ($rParentID == 0))) {
+			$rForceID = intval(file_get_contents(SIGNALS_TMP_PATH . $rStreamID . '.force'));
+			$rStreamSource = StreamUtils::parseStreamURL($rSources[$rForceID]);
+			if (($rSources[$rForceID] != $rCurrentSource)) {
+				$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
+				goto label884;
 			}
 			goto label1631;
-			label1631:
-			unlink(SIGNALS_TMP_PATH . $rStreamID . '.force');
-			label496:
-			if ((file_exists(SIGNALS_TMP_PATH . $rStreamID . '.force') && ($rParentID == 0))) {
-				$rForceID = intval(file_get_contents(SIGNALS_TMP_PATH . $rStreamID . '.force'));
-				$rStreamSource = StreamUtils::parseStreamURL($rSources[$rForceID]);
-				if (($rSources[$rForceID] != $rCurrentSource)) {
-					$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
-					goto label884;
-				}
-				goto label1631;
-			}
-			if (($rDelay && ($rStreamInfo['delay_available_at'] <= time()) && !ProcessManager::isNamedProcessRunning($rDelayPID, 'XC_VMDelay', $rStreamID))) {
-				echo "Start Delay\n";
-				StreamProcess::streamLog($rStreamID, SERVER_ID, 'DELAY_START');
-				$rDelayPID = intval(shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php delay ' . intval($rStreamID) . ' ' . intval($rStreamInfo['delay_minutes']) . ' >/dev/null 2>/dev/null & echo $!'));
-			}
-			sleep(1);
-			goto label592;
 		}
+		if (($rDelay && ($rStreamInfo['delay_available_at'] <= time()) && !ProcessManager::isNamedProcessRunning($rDelayPID, 'XC_VMDelay', $rStreamID))) {
+			echo "Start Delay\n";
+			StreamProcess::streamLog($rStreamID, SERVER_ID, 'DELAY_START');
+			$rDelayPID = intval(shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php delay ' . intval($rStreamID) . ' ' . intval($rStreamInfo['delay_minutes']) . ' >/dev/null 2>/dev/null & echo $!'));
+		}
+		sleep(1);
+		goto label592;
 		goto label1880;
 		label1:
 		if (!$rStreamInfo['parent_id']) {
@@ -317,32 +315,30 @@ class MonitorCommand implements CommandInterface {
 		$A63c815f93524582 = 20;
 		goto label998;
 		label998:
-		if (true) {
-			echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $A63c815f93524582 . "...\n";
-			if (ProcessManager::isStreamRunning($rPID, $rStreamID)) {
-				if (file_exists($rPlaylist)) {
-					echo "Playlist exists!\n";
-					goto label1064;
-				}
-				if ((file_exists($e1bc98ce34937596) && !$ea6de21e70c530a9 && $rStreamInfo['on_demand'])) {
-					echo "Segment exists!\n";
-					$ea6de21e70c530a9 = true;
-					$rChecks = 0;
-					$db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
-				}
-				if (($rChecks == $A63c815f93524582)) {
-					echo "Reached max failures\n";
-					$E9d347a502b13abd = true;
-					goto label1064;
-				}
-				$rChecks++;
-				sleep(1);
-				goto label998;
+		echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $A63c815f93524582 . "...\n";
+		if (ProcessManager::isStreamRunning($rPID, $rStreamID)) {
+			if (file_exists($rPlaylist)) {
+				echo "Playlist exists!\n";
+				goto label1064;
 			}
-			echo "Ffmpeg stopped running\n";
-			$E9d347a502b13abd = true;
-			goto label1064;
+			if ((file_exists($e1bc98ce34937596) && !$ea6de21e70c530a9 && $rStreamInfo['on_demand'])) {
+				echo "Segment exists!\n";
+				$ea6de21e70c530a9 = true;
+				$rChecks = 0;
+				$db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
+			}
+			if (($rChecks == $A63c815f93524582)) {
+				echo "Reached max failures\n";
+				$E9d347a502b13abd = true;
+				goto label1064;
+			}
+			$rChecks++;
+			sleep(1);
+			goto label998;
 		}
+		echo "Ffmpeg stopped running\n";
+		$E9d347a502b13abd = true;
+		goto label1064;
 		goto label1064;
 		label1064:
 		goto label562;
