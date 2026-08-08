@@ -40,6 +40,168 @@ class UserRepository {
 	}
 
 	/**
+	 * Load the raw line row for a streaming request from cache files or the DB,
+	 * resolving credentials (32-char access token, username+password, or id).
+	 * `$rUserID` is resolved in place (by reference) so the caller's cached
+	 * re-verification sees the same value the original inline code did.
+	 *
+	 * @param mixed       $db        Database handler.
+	 * @param bool        $rCached   Whether to read from the file cache.
+	 * @param array       $rSettings Settings (case_sensitive_line).
+	 * @param int|null    $rUserID   Line id; resolved from a token/cache file when absent.
+	 * @param string|null $rUsername Username or access token.
+	 * @param string|null $rPassword Password.
+	 * @return array|false The line row, or false when it cannot be resolved.
+	 */
+	private static function loadUserRow($db, $rCached, $rSettings, &$rUserID, $rUsername, $rPassword) {
+		if ($rCached) {
+			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
+				$rKey = $rSettings['case_sensitive_line'] ? $rUsername : strtolower($rUsername);
+				$rTokenPath = LINES_TMP_PATH . 'line_t_' . $rKey;
+				$rUserID = file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0;
+			} elseif (!empty($rUsername) && !empty($rPassword)) {
+				$rKey = $rSettings['case_sensitive_line'] ? ($rUsername . '_' . $rPassword) : (strtolower($rUsername) . '_' . strtolower($rPassword));
+				$rCachePath = LINES_TMP_PATH . 'line_c_' . $rKey;
+				$rUserID = file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0;
+			} elseif (empty($rUserID)) {
+				return false;
+			}
+
+			if (!$rUserID) {
+				return false;
+			}
+			$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
+			return file_exists($rInfoPath) ? igbinary_unserialize(file_get_contents($rInfoPath)) : false;
+		}
+
+		if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
+			$db->query('SELECT * FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `access_token` = ? AND LENGTH(`access_token`) = 32', $rUsername);
+		} elseif (!empty($rUsername) && !empty($rPassword)) {
+			$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
+		} elseif (!empty($rUserID)) {
+			$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` = ?', $rUserID);
+		} else {
+			return false;
+		}
+
+		return 0 < $db->num_rows() ? $db->get_row() : false;
+	}
+
+	/**
+	 * Re-verify cached credentials against the loaded row: the access token must
+	 * match for a 32-char token lookup, or username+password for a credential
+	 * lookup. Any other case (e.g. an id lookup) needs no re-check.
+	 *
+	 * @param array       $rUserInfo Loaded line row.
+	 * @param int|null    $rUserID   Resolved line id.
+	 * @param string|null $rUsername Username or access token.
+	 * @param string|null $rPassword Password.
+	 * @return bool True when the credentials are valid.
+	 */
+	private static function verifyCachedCredentials($rUserInfo, $rUserID, $rUsername, $rPassword): bool {
+		if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
+			return $rUsername == $rUserInfo['access_token'];
+		}
+		if (!empty($rUsername) && !empty($rPassword)) {
+			return $rUsername == $rUserInfo['username'] && $rPassword == $rUserInfo['password'];
+		}
+		return true;
+	}
+
+	/**
+	 * Decode the JSON line fields (allowed_ips/ua/bouquet/allowed_outputs) into
+	 * arrays and normalise them. Pure.
+	 *
+	 * @param array $rUserInfo Raw line row.
+	 * @return array The row with decoded array fields.
+	 */
+	private static function decodeUserFields(array $rUserInfo): array {
+		$rAllowedIPS = json_decode($rUserInfo['allowed_ips'], true);
+		$rAllowedUa = json_decode($rUserInfo['allowed_ua'], true);
+		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
+		$rUserInfo['allowed_ips'] = array_filter(array_map('trim', is_array($rAllowedIPS) ? $rAllowedIPS : []));
+		$rUserInfo['allowed_ua'] = array_filter(array_map('trim', is_array($rAllowedUa) ? $rAllowedUa : []));
+		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
+		return $rUserInfo;
+	}
+
+	/**
+	 * The output-format keys a line may use, filtered by its allowed_outputs.
+	 *
+	 * @param mixed $db              Database handler.
+	 * @param bool  $rCached         Read the format list from the file cache.
+	 * @param array $rAllowedOutputs Access-output ids the line is allowed.
+	 * @return array<int,string> Output keys.
+	 */
+	private static function resolveOutputFormats($db, $rCached, array $rAllowedOutputs): array {
+		if ($rCached) {
+			$rRows = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'output_formats'));
+		} else {
+			$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
+			$rRows = $db->get_rows();
+		}
+
+		$rFormats = array();
+		foreach ($rRows as $rRow) {
+			if (in_array(intval($rRow['access_output_id']), $rAllowedOutputs)) {
+				$rFormats[] = $rRow['output_key'];
+			}
+		}
+		return $rFormats;
+	}
+
+	/**
+	 * Aggregate the stream/series/vod/live/radio ids reachable through a line's
+	 * bouquets, keyed as they are stored on the user row. Pure.
+	 *
+	 * @param array $rBouquet  The line's bouquet ids.
+	 * @param array $rBouquets Bouquet map (id => ['streams','series','channels','movies','radios']).
+	 * @return array{channel_ids:int[],series_ids:int[],vod_ids:int[],live_ids:int[],radio_ids:int[]}
+	 */
+	private static function aggregateBouquetIds($rBouquet, $rBouquets): array {
+		$rChannelIDs = $rSeriesIDs = $rVODIDs = $rLiveIDs = $rRadioIDs = array();
+		foreach ($rBouquet as $rID) {
+			if (isset($rBouquets[$rID]['streams'])) {
+				$rChannelIDs = array_merge($rChannelIDs, $rBouquets[$rID]['streams']);
+			}
+			if (isset($rBouquets[$rID]['series'])) {
+				$rSeriesIDs = array_merge($rSeriesIDs, $rBouquets[$rID]['series']);
+			}
+			if (isset($rBouquets[$rID]['channels'])) {
+				$rLiveIDs = array_merge($rLiveIDs, $rBouquets[$rID]['channels']);
+			}
+			if (isset($rBouquets[$rID]['movies'])) {
+				$rVODIDs = array_merge($rVODIDs, $rBouquets[$rID]['movies']);
+			}
+			if (isset($rBouquets[$rID]['radios'])) {
+				$rRadioIDs = array_merge($rRadioIDs, $rBouquets[$rID]['radios']);
+			}
+		}
+		return array(
+			'channel_ids' => array_map('intval', array_unique($rChannelIDs)),
+			'series_ids' => array_map('intval', array_unique($rSeriesIDs)),
+			'vod_ids' => array_map('intval', array_unique($rVODIDs)),
+			'live_ids' => array_map('intval', array_unique($rLiveIDs)),
+			'radio_ids' => array_map('intval', array_unique($rRadioIDs)),
+		);
+	}
+
+	/**
+	 * The distinct category ids reachable through a line's bouquets. Pure.
+	 *
+	 * @param array $rBouquet     The line's bouquet ids.
+	 * @param array $rCategoryMap Bouquet id => category id list.
+	 * @return array<int,mixed> Distinct category ids.
+	 */
+	private static function resolveCategoryIds($rBouquet, $rCategoryMap): array {
+		$rAllowedCategories = array();
+		foreach ($rBouquet as $rID) {
+			$rAllowedCategories = array_merge($rAllowedCategories, ($rCategoryMap[$rID] ?: array()));
+		}
+		return array_values(array_unique($rAllowedCategories));
+	}
+
+	/**
 	 * Fetch an admin/reseller user matching the given login credentials.
 	 *
 	 * @param string $rUsername Username.
@@ -235,75 +397,12 @@ class UserRepository {
 		$db = self::db();
 		$rUserInfo = null;
 
-		if ($rCached) {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if ($rSettings['case_sensitive_line']) {
-					$rTokenPath = LINES_TMP_PATH . 'line_t_' . $rUsername;
-					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
-				} else {
-					$rTokenPath = LINES_TMP_PATH . 'line_t_' . strtolower($rUsername);
-					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
-				}
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					if ($rSettings['case_sensitive_line']) {
-						$rCachePath = LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword;
-						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
-					} else {
-						$rCachePath = LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword);
-						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
-					}
-				} else {
-					if (empty($rUserID)) {
-						return false;
-					}
-				}
-			}
-
-			if ($rUserID) {
-				$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
-				if (file_exists($rInfoPath)) {
-					$rUserInfo = igbinary_unserialize(file_get_contents($rInfoPath));
-				} else {
-					return false;
-				}
-			}
-		} else {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				$db->query('SELECT * FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `access_token` = ? AND LENGTH(`access_token`) = 32', $rUsername);
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
-				} else {
-					if (!empty($rUserID)) {
-						$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` = ?', $rUserID);
-					} else {
-						return false;
-					}
-				}
-			}
-
-			if (0 < $db->num_rows()) {
-				$rUserInfo = $db->get_row();
-			}
-		}
-
-		if (!$rUserInfo) {
+		if (!($rUserInfo = self::loadUserRow($db, $rCached, $rSettings, $rUserID, $rUsername, $rPassword))) {
 			return false;
 		}
 
-		if ($rCached) {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if ($rUsername != $rUserInfo['access_token']) {
-					return false;
-				}
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					if ($rUsername != $rUserInfo['username'] || $rPassword != $rUserInfo['password']) {
-						return false;
-					}
-				}
-			}
+		if ($rCached && !self::verifyCachedCredentials($rUserInfo, $rUserID, $rUsername, $rPassword)) {
+			return false;
 		}
 
 		if ($rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1) {
@@ -316,29 +415,9 @@ class UserRepository {
 			}
 		}
 
-		$allowedIPS = json_decode($rUserInfo['allowed_ips'], true);
-		$allowedUa = json_decode($rUserInfo['allowed_ua'], true);
-		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
-		$rUserInfo['allowed_ips'] = array_filter(array_map('trim', is_array($allowedIPS) ? $allowedIPS : []));
-		$rUserInfo['allowed_ua'] = array_filter(array_map('trim', is_array($allowedUa) ? $allowedUa : []));
-		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
-		$rUserInfo['output_formats'] = array();
+		$rUserInfo = self::decodeUserFields($rUserInfo);
 
-		if ($rCached) {
-			foreach (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'output_formats')) as $rRow) {
-				if (in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-					$rUserInfo['output_formats'][] = $rRow['output_key'];
-				}
-			}
-		} else {
-			$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
-
-			foreach ($db->get_rows() as $rRow) {
-				if (in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-					$rUserInfo['output_formats'][] = $rRow['output_key'];
-				}
-			}
-		}
+		$rUserInfo['output_formats'] = self::resolveOutputFormats($db, $rCached, $rUserInfo['allowed_outputs']);
 
 		$rUserInfo['con_isp_name'] = null;
 		$rUserInfo['isp_violate'] = 0;
@@ -372,45 +451,11 @@ class UserRepository {
 		}
 
 		if ($rGetChannelIDs) {
-			$rLiveIDs = $rVODIDs = $rRadioIDs = $rCategoryIDs = $rChannelIDs = $rSeriesIDs = array();
-
-			foreach ($rUserInfo['bouquet'] as $rID) {
-				if (isset($rBouquets[$rID]['streams'])) {
-					$rChannelIDs = array_merge($rChannelIDs, $rBouquets[$rID]['streams']);
-				}
-
-				if (isset($rBouquets[$rID]['series'])) {
-					$rSeriesIDs = array_merge($rSeriesIDs, $rBouquets[$rID]['series']);
-				}
-
-				if (isset($rBouquets[$rID]['channels'])) {
-					$rLiveIDs = array_merge($rLiveIDs, $rBouquets[$rID]['channels']);
-				}
-
-				if (isset($rBouquets[$rID]['movies'])) {
-					$rVODIDs = array_merge($rVODIDs, $rBouquets[$rID]['movies']);
-				}
-
-				if (isset($rBouquets[$rID]['radios'])) {
-					$rRadioIDs = array_merge($rRadioIDs, $rBouquets[$rID]['radios']);
-				}
-			}
-
-			$rUserInfo['channel_ids'] = array_map('intval', array_unique($rChannelIDs));
-			$rUserInfo['series_ids'] = array_map('intval', array_unique($rSeriesIDs));
-			$rUserInfo['vod_ids'] = array_map('intval', array_unique($rVODIDs));
-			$rUserInfo['live_ids'] = array_map('intval', array_unique($rLiveIDs));
-			$rUserInfo['radio_ids'] = array_map('intval', array_unique($rRadioIDs));
+			$rUserInfo = array_merge($rUserInfo, self::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets));
 		}
 
-		$rAllowedCategories = array();
 		$rCategoryMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'category_map'));
-
-		foreach ($rUserInfo['bouquet'] as $rID) {
-			$rAllowedCategories = array_merge($rAllowedCategories, ($rCategoryMap[$rID] ?: array()));
-		}
-
-		$rUserInfo['category_ids'] = array_values(array_unique($rAllowedCategories));
+		$rUserInfo['category_ids'] = self::resolveCategoryIds($rUserInfo['bouquet'], $rCategoryMap);
 		return $rUserInfo;
 	}
 
@@ -431,81 +476,14 @@ class UserRepository {
 		$rCached = $rSettings['enable_cache'];
 		$rBouquets = BouquetService::getAll();
 		$rUserInfo = null;
-		if ($rCached) {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if ($rSettings['case_sensitive_line']) {
-					$rTokenPath = LINES_TMP_PATH . 'line_t_' . $rUsername;
-					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
-				} else {
-					$rTokenPath = LINES_TMP_PATH . 'line_t_' . strtolower($rUsername);
-					$rUserID = (file_exists($rTokenPath) ? intval(file_get_contents($rTokenPath)) : 0);
-				}
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					if ($rSettings['case_sensitive_line']) {
-						$rCachePath = LINES_TMP_PATH . 'line_c_' . $rUsername . '_' . $rPassword;
-						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
-					} else {
-						$rCachePath = LINES_TMP_PATH . 'line_c_' . strtolower($rUsername) . '_' . strtolower($rPassword);
-						$rUserID = (file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0);
-					}
-				} else {
-					if (!empty($rUserID)) {
-					} else {
-						return false;
-					}
-				}
-			}
-			if (!$rUserID) {
-			} else {
-				$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
-				if (file_exists($rInfoPath)) {
-					$rUserInfo = igbinary_unserialize(file_get_contents($rInfoPath));
-				} else {
-					return false;
-				}
-			}
-		} else {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				$db->query('SELECT * FROM `lines` WHERE `is_mag` = 0 AND `is_e2` = 0 AND `access_token` = ? AND LENGTH(`access_token`) = 32', $rUsername);
-			} else {
-				if (!empty($rUsername) && !empty($rPassword)) {
-					$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `username` = ? AND `password` = ? LIMIT 1', $rUsername, $rPassword);
-				} else {
-					if (!empty($rUserID)) {
-						$db->query('SELECT `lines`.*, `mag_devices`.`token` AS `mag_token` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` = ?', $rUserID);
-					} else {
-						return false;
-					}
-				}
-			}
-			if (0 >= $db->num_rows()) {
-			} else {
-				$rUserInfo = $db->get_row();
-			}
-		}
-		if (!$rUserInfo) {
+		if (!($rUserInfo = self::loadUserRow($db, $rCached, $rSettings, $rUserID, $rUsername, $rPassword))) {
 			return false;
 		}
-		if (!$rCached) {
-		} else {
-			if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
-				if ($rUsername == $rUserInfo['access_token']) {
-				} else {
-					return false;
-				}
-			} else {
-				if (empty($rUsername) || empty($rPassword)) {
-				} else {
-					if (!($rUsername != $rUserInfo['username'] || $rPassword != $rUserInfo['password'])) {
-					} else {
-						return false;
-					}
-				}
-			}
+
+		if ($rCached && !self::verifyCachedCredentials($rUserInfo, $rUserID, $rUsername, $rPassword)) {
+			return false;
 		}
-		if (!($rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1)) {
-		} else {
+		if ($rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1) {
 			$rUserInfo['forced_country'] = GeoIP::getCountry($rIP)['registered_country']['iso_code'];
 			if ($rCached) {
 				\XcVm\Infrastructure\Redis\RedisManager::setSignal('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
@@ -514,29 +492,8 @@ class UserRepository {
 			}
 		}
 
-		$allowedIPS = json_decode($rUserInfo['allowed_ips'], true);
-		$allowedUa = json_decode($rUserInfo['allowed_ua'], true);
-		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
-		$rUserInfo['allowed_ips'] = array_filter(array_map('trim', is_array($allowedIPS) ? $allowedIPS : []));
-		$rUserInfo['allowed_ua'] = array_filter(array_map('trim', is_array($allowedUa) ? $allowedUa : []));
-		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
-		$rUserInfo['output_formats'] = array();
-		if ($rCached) {
-			foreach (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'output_formats')) as $rRow) {
-				if (!in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-				} else {
-					$rUserInfo['output_formats'][] = $rRow['output_key'];
-				}
-			}
-		} else {
-			$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
-			foreach ($db->get_rows() as $rRow) {
-				if (!in_array(intval($rRow['access_output_id']), $rUserInfo['allowed_outputs'])) {
-				} else {
-					$rUserInfo['output_formats'][] = $rRow['output_key'];
-				}
-			}
-		}
+		$rUserInfo = self::decodeUserFields($rUserInfo);
+		$rUserInfo['output_formats'] = self::resolveOutputFormats($db, $rCached, $rUserInfo['allowed_outputs']);
 		$rUserInfo['con_isp_name'] = null;
 		$rUserInfo['isp_violate'] = 0;
 		$rUserInfo['isp_is_server'] = 0;
@@ -561,43 +518,11 @@ class UserRepository {
 				}
 			}
 		}
-		if (!$rGetChannelIDs) {
-		} else {
-			$rLiveIDs = $rVODIDs = $rRadioIDs = $rCategoryIDs = $rChannelIDs = $rSeriesIDs = array();
-			foreach ($rUserInfo['bouquet'] as $rID) {
-				if (!isset($rBouquets[$rID]['streams'])) {
-				} else {
-					$rChannelIDs = array_merge($rChannelIDs, $rBouquets[$rID]['streams']);
-				}
-				if (!isset($rBouquets[$rID]['series'])) {
-				} else {
-					$rSeriesIDs = array_merge($rSeriesIDs, $rBouquets[$rID]['series']);
-				}
-				if (!isset($rBouquets[$rID]['channels'])) {
-				} else {
-					$rLiveIDs = array_merge($rLiveIDs, $rBouquets[$rID]['channels']);
-				}
-				if (!isset($rBouquets[$rID]['movies'])) {
-				} else {
-					$rVODIDs = array_merge($rVODIDs, $rBouquets[$rID]['movies']);
-				}
-				if (!isset($rBouquets[$rID]['radios'])) {
-				} else {
-					$rRadioIDs = array_merge($rRadioIDs, $rBouquets[$rID]['radios']);
-				}
-			}
-			$rUserInfo['channel_ids'] = array_map('intval', array_unique($rChannelIDs));
-			$rUserInfo['series_ids'] = array_map('intval', array_unique($rSeriesIDs));
-			$rUserInfo['vod_ids'] = array_map('intval', array_unique($rVODIDs));
-			$rUserInfo['live_ids'] = array_map('intval', array_unique($rLiveIDs));
-			$rUserInfo['radio_ids'] = array_map('intval', array_unique($rRadioIDs));
+		if ($rGetChannelIDs) {
+			$rUserInfo = array_merge($rUserInfo, self::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets));
 		}
-		$rAllowedCategories = array();
 		$rCategoryMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'category_map'));
-		foreach ($rUserInfo['bouquet'] as $rID) {
-			$rAllowedCategories = array_merge($rAllowedCategories, ($rCategoryMap[$rID] ?: array()));
-		}
-		$rUserInfo['category_ids'] = array_values(array_unique($rAllowedCategories));
+		$rUserInfo['category_ids'] = self::resolveCategoryIds($rUserInfo['bouquet'], $rCategoryMap);
 		return $rUserInfo;
 	}
 
