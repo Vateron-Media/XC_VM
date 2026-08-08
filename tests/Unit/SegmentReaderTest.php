@@ -73,4 +73,22 @@ final class SegmentReaderTest extends TestCase {
 	public function testNoSegmentsReturnsNull(): void {
 		$this->assertNull(SegmentReader::selectSegments("#EXTM3U\n#EXT-X-VERSION:3\n", 10, 10));
 	}
+
+	// ── playlistBufferedSeconds (on-demand prebuffer gate) ─────
+
+	public function testPlaylistBufferedSecondsSumsExtinf(): void {
+		// 567-style ramp: 2+2+8+10 = 22s buffered.
+		$tmp = tempnam(sys_get_temp_dir(), 'xcvmpl');
+		file_put_contents($tmp, $this->playlist([[1, 2.0], [2, 2.0], [3, 8.0], [4, 10.0]]));
+		$this->assertEqualsWithDelta(22.0, SegmentReader::playlistBufferedSeconds($tmp), 0.001);
+		unlink($tmp);
+	}
+
+	public function testPlaylistBufferedSecondsMissingOrNoExtinfIsZero(): void {
+		$this->assertSame(0.0, SegmentReader::playlistBufferedSeconds('/nonexistent/xcvm-none.m3u8'));
+		$tmp = tempnam(sys_get_temp_dir(), 'xcvmpl');
+		file_put_contents($tmp, $this->playlist([[1, 0], [2, 0]], false)); // bare .ts, no #EXTINF
+		$this->assertSame(0.0, SegmentReader::playlistBufferedSeconds($tmp));
+		unlink($tmp);
+	}
 }

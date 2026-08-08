@@ -477,6 +477,26 @@ if ($rChannelInfo) {
                     }
                 }
 
+                // On-demand cold start: this initial prebuffer burst is the
+                // client's whole playback buffer — the feed loop below then runs
+                // in real time, so it never grows past this. Wait until the
+                // playlist actually holds $rPrebuffer seconds before the first
+                // read; otherwise a cold start serves only the 1-2 fast-start
+                // (2s) segments that exist the instant the playlist appears,
+                // stranding the client at ~2s. Bounded by on_demand_wait_time;
+                // bails if the stream stops. Clients only — restreamer chains
+                // keep their existing low-latency behaviour.
+                if ($rChannelInfo["on_demand"] == 1 && !$rUserInfo["is_restreamer"] && $rPrebuffer > 0) {
+                    $rBufferDeadline = time() + max(1, intval($rSettings["on_demand_wait_time"]));
+                    while (
+                        SegmentReader::playlistBufferedSeconds($rPlaylist) < $rPrebuffer
+                        && time() < $rBufferDeadline
+                        && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)
+                    ) {
+                        AsyncFileOperations::efficientSleep(200000);
+                    }
+                }
+
                 // Get list of segments for current prebuffer
                 $rSegments = SegmentReader::getPlaylistSegments($rPlaylist, $rPrebuffer, $rSegmentSettings["seg_time"]);
             } else {

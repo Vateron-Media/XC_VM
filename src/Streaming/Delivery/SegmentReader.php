@@ -107,6 +107,27 @@ class SegmentReader {
 	}
 
 	/**
+	 * Total buffered seconds currently in a playlist (sum of every #EXTINF), or
+	 * 0.0 when the file is missing or carries no duration tags. Used to gate the
+	 * on-demand prebuffer: a cold-started stream should serve a full buffer, not
+	 * just the fast-start segments that exist the instant its playlist appears.
+	 *
+	 * @param string $rPlaylist Path to the playlist file.
+	 * @return float Sum of segment durations in seconds.
+	 */
+	public static function playlistBufferedSeconds($rPlaylist) {
+		if (!is_file($rPlaylist)) {
+			return 0.0;
+		}
+		$rTotal = 0.0;
+		$rSource = str_replace(array("\r\n", "\r"), "\n", (string) file_get_contents($rPlaylist));
+		foreach (self::parseSegmentDurations($rSource) as $rPair) {
+			$rTotal += $rPair[0];
+		}
+		return $rTotal;
+	}
+
+	/**
 	 * Parse [duration, segment] pairs from playlist content, oldest first. A
 	 * segment inherits the most recent preceding #EXTINF (0.0 when absent).
 	 *
