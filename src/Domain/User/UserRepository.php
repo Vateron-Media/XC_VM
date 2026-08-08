@@ -342,7 +342,7 @@ class UserRepository {
 				$rUserInfo['isp_violate'] = 1;
 			}
 
-			if ($rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc'])) {
+			if (!empty($rUserInfo['con_isp_name']) && $rUserInfo['isp_violate'] == 0 && strtolower($rUserInfo['con_isp_name']) != strtolower($rUserInfo['isp_desc'])) {
 				if ($rCached) {
 					$rSignalKey = 'isp/' . $rUserInfo['id'];
 					file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rSignalKey), json_encode(array($rSignalKey, json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])))));
