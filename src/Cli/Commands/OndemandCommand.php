@@ -80,63 +80,33 @@ class OndemandCommand implements CommandInterface {
 				$rMD5 = $rCurentMD5Hash;
 			}
 
-			$rRows = [];
+			$rStreamIDs = ConnectionTracker::activeOnDemandStreamIDs(SERVER_ID);
+			if (empty($rStreamIDs)) {
+				usleep(800000);
+				continue;
+			}
 
+			$rAttached = ConnectionTracker::attachedRestreamCounts($rStreamIDs, SERVER_ID);
+
+			// Viewer counts come from Redis when enabled (per-server slice of the
+			// stream's connection set), else from the lines_live table.
 			if (SettingsManager::getAll()['redis_handler'] && RedisManager::instance()) {
-				$db->query("SELECT stream_id FROM streams_servers WHERE server_id = ? AND on_demand = 1 AND pid IS NOT NULL AND pid > 0", SERVER_ID);
-				$rStreamIDs = $db->get_column();
-
-				$rAttached = [];
-				if (!empty($rStreamIDs)) {
-					$placeholders = str_repeat('?,', count($rStreamIDs) - 1) . '?';
-					$db->query("SELECT stream_id, COUNT(*) AS cnt FROM streams_servers WHERE parent_id = ? AND pid > 0 AND monitor_pid > 0 AND stream_id IN ($placeholders) GROUP BY stream_id", SERVER_ID, ...$rStreamIDs);
-					$rAttachedRows = $db->get_rows(true, 'stream_id');
-					foreach ($rAttachedRows as $id => $row) {
-						$rAttached[$id] = (int) $row['cnt'];
-					}
-				}
-
 				$rConnections = ConnectionTracker::getStreamConnections($rStreamIDs, false, false);
-
+				$rOnline = [];
 				foreach ($rStreamIDs as $rStreamID) {
-					$rRows[] = [
-						'stream_id' => $rStreamID,
-						'online_clients' => count($rConnections[$rStreamID][SERVER_ID] ?? []),
-						'attached' => $rAttached[$rStreamID] ?? 0
-					];
+					$rOnline[$rStreamID] = count($rConnections[$rStreamID][SERVER_ID] ?? []);
 				}
 			} else {
-				$db->query("SELECT stream_id FROM streams_servers WHERE server_id = ? AND on_demand = 1 AND pid IS NOT NULL AND pid > 0", SERVER_ID);
-				$rActive = $db->get_column();
+				$rOnline = ConnectionTracker::onlineClientCounts($rStreamIDs, SERVER_ID);
+			}
 
-				if (empty($rActive)) {
-					usleep(800000);
-					continue;
-				}
-
-				$placeholders = str_repeat('?,', count($rActive) - 1) . '?';
-
-				$online = [];
-				$db->query("SELECT stream_id, COUNT(*) AS cnt FROM lines_live WHERE server_id = ? AND hls_end = 0 AND stream_id IN ($placeholders) GROUP BY stream_id", SERVER_ID, ...$rActive);
-				$onlineRows = $db->get_rows(true, 'stream_id');
-				foreach ($onlineRows as $id => $row) {
-					$online[$id] = (int) $row['cnt'];
-				}
-
-				$attached = [];
-				$db->query("SELECT stream_id, COUNT(*) AS cnt FROM streams_servers WHERE parent_id = ? AND pid > 0 AND monitor_pid > 0 AND stream_id IN ($placeholders) GROUP BY stream_id", SERVER_ID, ...$rActive);
-				$attachedRows = $db->get_rows(true, 'stream_id');
-				foreach ($attachedRows as $id => $row) {
-					$attached[$id] = (int) $row['cnt'];
-				}
-
-				foreach ($rActive as $stream_id) {
-					$rRows[] = [
-						'stream_id' => $stream_id,
-						'online_clients' => $online[$stream_id] ?? 0,
-						'attached' => $attached[$stream_id] ?? 0
-					];
-				}
+			$rRows = [];
+			foreach ($rStreamIDs as $rStreamID) {
+				$rRows[] = [
+					'stream_id' => $rStreamID,
+					'online_clients' => $rOnline[$rStreamID] ?? 0,
+					'attached' => $rAttached[$rStreamID] ?? 0
+				];
 			}
 
 			foreach ($rRows as $rRow) {
