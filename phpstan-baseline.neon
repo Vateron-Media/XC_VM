@@ -49,99 +49,27 @@ parameters:
 			path: src/Cli/Commands/MonitorCommand.php
 
 		-
-			message: '#^Static method XcVm\\Cli\\Commands\\MonitorCommand\:\:parseFrameRate\(\) is unused\.$#'
-			identifier: method.unused
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
 			message: '#^Call to function is_numeric\(\) with int\<min, \-1\>\|int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Cli/Commands/MonitorCommand.php
 
 		-
-			message: '#^If condition is always false\.$#'
-			identifier: if.alwaysFalse
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
 			message: '#^If condition is always true\.$#'
 			identifier: if.alwaysTrue
-			count: 6
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Left side of && is always false\.$#'
-			identifier: booleanAnd.leftAlwaysFalse
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Left side of \|\| is always false\.$#'
-			identifier: booleanOr.leftAlwaysFalse
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Loose comparison using \=\= between 0 and 20 will always evaluate to false\.$#'
-			identifier: equal.alwaysFalse
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Negated boolean expression is always false\.$#'
-			identifier: booleanNot.alwaysFalse
 			count: 1
 			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Negated boolean expression is always true\.$#'
 			identifier: booleanNot.alwaysTrue
-			count: 2
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Result of && is always false\.$#'
-			identifier: booleanAnd.alwaysFalse
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Undefined variable\: \$rForceID$#'
-			identifier: variable.undefined
-			count: 2
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Undefined variable\: \$rProtocol$#'
-			identifier: variable.undefined
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Undefined variable\: \$rStreamSource$#'
-			identifier: variable.undefined
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Unreachable statement \- code above always terminates\.$#'
-			identifier: deadCode.unreachable
-			count: 1
-			path: src/Cli/Commands/MonitorCommand.php
-
-		-
-			message: '#^Variable \$E9d347a502b13abd might not be defined\.$#'
-			identifier: variable.undefined
 			count: 1
 			path: src/Cli/Commands/MonitorCommand.php
 
 		-
 			message: '#^Variable \$rBitrate might not be defined\.$#'
 			identifier: variable.undefined
-			count: 2
+			count: 1
 			path: src/Cli/Commands/MonitorCommand.php
 
 		-
@@ -199,6 +127,12 @@ parameters:
 			path: src/Cli/Commands/ScannerCommand.php
 
 		-
+			message: '#^Strict comparison using \=\=\= between true and true will always evaluate to true\.$#'
+			identifier: identical.alwaysTrue
+			count: 1
+			path: src/Cli/Commands/ServerDiagnoseCommand.php
+
+		-
 			message: '#^Left side of && is always true\.$#'
 			identifier: booleanAnd.leftAlwaysTrue
 			count: 1
@@ -215,12 +149,6 @@ parameters:
 			identifier: function.alreadyNarrowedType
 			count: 1
 			path: src/Cli/Commands/ThumbnailCommand.php
-
-		-
-			message: '#^Left side of && is always true\.$#'
-			identifier: booleanAnd.leftAlwaysTrue
-			count: 1
-			path: src/Cli/Commands/WatchdogCommand.php
 
 		-
 			message: '#^If condition is always true\.$#'
@@ -257,18 +185,6 @@ parameters:
 			identifier: nullCoalesce.variable
 			count: 1
 			path: src/Cli/CronJobs/EpgCronJob.php
-
-		-
-			message: '#^Variable \$rMD5 might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: src/Cli/CronJobs/MaxMindCronJob.php
-
-		-
-			message: '#^Offset ''source'' on array\{name\: string, description\: string, version\: string, requires_core\: string, environment\: string, priority\: int, dependencies\: array, optional_dependencies\: array, \.\.\.\} on left side of \?\? always exists and is not nullable\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Cli/CronJobs/ModuleLicensesCronJob.php
 
 		-
 			message: '#^Parameter \#2 \$replace of function str_replace expects array\<string\>\|string, int given\.$#'
@@ -379,12 +295,6 @@ parameters:
 			path: src/Core/Http/CurlClient.php
 
 		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
-			count: 1
-			path: src/Core/Module/ModuleLoader.php
-
-		-
 			message: '#^Expression "\$this\-\>handle" on a separate line does not do anything\.$#'
 			identifier: expr.resultUnused
 			count: 1
@@ -397,14 +307,32 @@ parameters:
 			path: src/Core/Parsing/StringWalker.php
 
 		-
-			message: '#^Offset 0 on array\{string, int\<\-1, max\>\} in isset\(\) always exists and is not nullable\.$#'
+			message: '#^Offset 0 on array\{non\-falsy\-string, int\<\-1, max\>\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
 			count: 1
 			path: src/Core/Parsing/StringWalker.php
 
 		-
-			message: '#^Offset 1 on array\{string, int\<\-1, max\>\} in isset\(\) always exists and is not nullable\.$#'
+			message: '#^Offset 1 on array\{non\-falsy\-string, int\<\-1, max\>\} in isset\(\) always exists and is not nullable\.$#'
 			identifier: isset.offset
+			count: 1
+			path: src/Core/Parsing/StringWalker.php
+
+		-
+			message: '#^Result of && is always false\.$#'
+			identifier: booleanAnd.alwaysFalse
+			count: 1
+			path: src/Core/Parsing/StringWalker.php
+
+		-
+			message: '#^Right side of \|\| is always false\.$#'
+			identifier: booleanOr.rightAlwaysFalse
+			count: 1
+			path: src/Core/Parsing/StringWalker.php
+
+		-
+			message: '#^Strict comparison using \=\=\= between string and 0 will always evaluate to false\.$#'
+			identifier: identical.alwaysFalse
 			count: 1
 			path: src/Core/Parsing/StringWalker.php
 
@@ -429,12 +357,6 @@ parameters:
 		-
 			message: '#^Constructor of class XcVm\\Core\\Storage\\DropboxClient has an unused parameter \$_deprecatedLocale\.$#'
 			identifier: constructor.unusedParameter
-			count: 1
-			path: src/Core/Storage/DropboxClient.php
-
-		-
-			message: '#^Method XcVm\\Core\\Storage\\DropboxClient\:\:GetCopyRef\(\) never assigns null to &\$expires so it can be removed from the by\-ref type\.$#'
-			identifier: parameterByRef.unusedType
 			count: 1
 			path: src/Core/Storage/DropboxClient.php
 
@@ -481,6 +403,12 @@ parameters:
 			path: src/Core/Util/AdminHelpers.php
 
 		-
+			message: '#^Offset 1 does not exist on array\{string\}\.$#'
+			identifier: offsetAccess.notFound
+			count: 1
+			path: src/Core/Util/StreamUtils.php
+
+		-
 			message: '#^Variable \$rBitrate might not be defined\.$#'
 			identifier: variable.undefined
 			count: 1
@@ -497,30 +425,6 @@ parameters:
 			identifier: smallerOrEqual.alwaysFalse
 			count: 1
 			path: src/Core/Util/SystemInfo.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{bouquet\: mixed\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Bouquet/BouquetService.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{bouquets\: mixed\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Bouquet/BouquetService.php
-
-		-
-			message: '#^Offset ''user_id'' does not exist on array\{user\: array\|null\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Device/EnigmaService.php
-
-		-
-			message: '#^Offset ''user_id'' does not exist on array\{user\: array\|null\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Device/MagService.php
 
 		-
 			message: '#^Variable \$rEvent might not be defined\.$#'
@@ -553,159 +457,9 @@ parameters:
 			path: src/Domain/Server/ServerRepository.php
 
 		-
-			message: '#^Offset ''domain_name'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''geoip_countries'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''geoip_countries'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in empty\(\) does not exist\.$#'
-			identifier: empty.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''http_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''http_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…''\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''http_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''https_broadcast_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{server_online\: bool, order\: 0\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{server_online\: bool\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''isp_names'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''isp_names'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in empty\(\) does not exist\.$#'
-			identifier: empty.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''order'' on array\{server_online\: bool\} in isset\(\) does not exist\.$#'
-			identifier: isset.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''order'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in isset\(\) does not exist\.$#'
-			identifier: isset.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''parent_id'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''parent_id'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''private_ip'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''private_ip'' on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\} in empty\(\) does not exist\.$#'
-			identifier: empty.offset
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''rtmp_port'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''server_ip'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''server_ip'' does not exist on array\{server_protocol\: ''http''\|''https'', request_port\: int, site_url\: non\-falsy\-string, http_url\: non\-falsy\-string, https_url\: non\-falsy\-string, rtmp_server\: non\-falsy\-string, domains\: array\{protocol\: ''http''\|''https'', port\: int, urls\: array\<int\<0, max\>, non\-falsy\-string\>\}, rtmp_mport_url\: ''http\://127\.0\.0\.1…''\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Server/ServerRepository.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{category_id\: mixed\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Stream/CategoryService.php
-
-		-
-			message: '#^Method XcVm\\Domain\\Stream\\ConnectionTracker\:\:getCapacity\(\) should return array\<int, array\{online_clients\: int, capacity\?\: float\}\> but returns array\<array\{capacity\: mixed\}\>\|object\.$#'
-			identifier: return.type
-			count: 1
-			path: src/Domain/Stream/ConnectionTracker.php
-
-		-
 			message: '#^Comparison operation "\>" between int\<1, max\> and 0 is always true\.$#'
 			identifier: greater.alwaysTrue
 			count: 1
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Loose comparison using \=\= between 0 and 0 will always evaluate to true\.$#'
-			identifier: equal.alwaysTrue
-			count: 6
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Loose comparison using \=\= between 0 and 1 will always evaluate to false\.$#'
-			identifier: equal.alwaysFalse
-			count: 1
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Loose comparison using \=\= between null and ''series'' will always evaluate to false\.$#'
-			identifier: equal.alwaysFalse
-			count: 2
 			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
@@ -715,105 +469,9 @@ parameters:
 			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
-			count: 3
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''category_id'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''channel_id'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: string, year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''custom_sid'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: null, \.\.\.\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''custom_sid'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: mixed, year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\} in empty\(\) always exists and is always falsy\.$#'
-			identifier: empty.offset
-			count: 1
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''id'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''live'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''stream_display_name'' on array\{movie_properties\: mixed, type_key\: null\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''stream_icon'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: null\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''target_container'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''tv_archive_server_id'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''type_key'' on array\{movie_properties\: mixed\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''type_output'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: '''', year\: null, live\: 0, category_id\: null, id\: null, target_container\: null, \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''type_output'' does not exist on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: string, year\: null, live\: 0, category_id\: null, id\: null, target_container\: ''mp4'', \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 6
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Offset ''year'' on array\{movie_properties\: mixed, type_key\: null, stream_display_name\: ''''\} on left side of \?\? does not exist\.$#'
-			identifier: nullCoalesce.offset
-			count: 2
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
 			message: '#^Parameter \#1 \$array \(list\<\(int\|string\)\>\) of array_values is already a list, call has no effect\.$#'
 			identifier: arrayValues.list
 			count: 1
-			path: src/Domain/Stream/PlaylistGenerator.php
-
-		-
-			message: '#^Parameter \#2 \$rYear of static method XcVm\\Domain\\Stream\\StreamSorter\:\:formatTitle\(\) expects int\|string, null given\.$#'
-			identifier: argument.type
-			count: 2
 			path: src/Domain/Stream/PlaylistGenerator.php
 
 		-
@@ -831,12 +489,6 @@ parameters:
 		-
 			message: '#^Call to function is_numeric\(\) with int\<1, max\> will always evaluate to true\.$#'
 			identifier: function.alreadyNarrowedType
-			count: 2
-			path: src/Domain/Stream/StreamProcess.php
-
-		-
-			message: '#^Negated boolean expression is always true\.$#'
-			identifier: booleanNot.alwaysTrue
 			count: 2
 			path: src/Domain/Stream/StreamProcess.php
 
@@ -863,12 +515,6 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: src/Domain/Stream/StreamService.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{groups\: mixed\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/GroupService.php
 
 		-
 			message: '#^Comparison operation "\<" between 0 and int\<2, max\> is always true\.$#'
@@ -909,7 +555,7 @@ parameters:
 		-
 			message: '#^Variable \$rCost might not be defined\.$#'
 			identifier: variable.undefined
-			count: 6
+			count: 4
 			path: src/Domain/User/ResellerAPI.php
 
 		-
@@ -925,36 +571,6 @@ parameters:
 			path: src/Domain/User/TicketRepository.php
 
 		-
-			message: '#^Offset ''id'' does not exist on array\{created\: ''''\}\|array\{created\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/TicketRepository.php
-
-		-
-			message: '#^Offset ''member_id'' does not exist on array\{created\: string, last_reply\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/TicketRepository.php
-
-		-
-			message: '#^Offset ''member_id'' does not exist on array\{replies\: list\<array\{message\: non\-falsy\-string\}\>, title\: string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/TicketRepository.php
-
-		-
-			message: '#^Offset ''status'' does not exist on array\{created\: string, last_reply\: non\-falsy\-string\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/TicketRepository.php
-
-		-
-			message: '#^Offset ''title'' does not exist on array\{replies\: array\{\}\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/TicketRepository.php
-
-		-
 			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getE2Info\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
 			count: 1
@@ -963,66 +579,6 @@ parameters:
 		-
 			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getStreamingUserInfo\(\) should return array\|null but returns false\.$#'
 			identifier: return.type
-			count: 6
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Method XcVm\\Domain\\User\\UserRepository\:\:getUserInfo\(\) should return array\|null but returns false\.$#'
-			identifier: return.type
-			count: 6
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''allowed_outputs'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: 0, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: false, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 2
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''id'' does not exist on array\{forced_country\: mixed\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 5
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''is_stalker'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: bool, isp_is_server\: 0\|1, \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''is_stalker'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: int, isp_is_server\: 0\|1, \.\.\.\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''isp_desc'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: 0, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''isp_desc'' does not exist on array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: mixed, isp_violate\: false, isp_is_server\: 0\|1, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array\<non\-falsy\-string\>, allowed_ua\: array\<non\-falsy\-string\>, allowed_outputs\: array\<int\>, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\}\.$#'
-			identifier: offsetAccess.notFound
-			count: 1
-			path: src/Domain/User/UserRepository.php
-
-		-
-			message: '#^Offset ''isp_desc'' on array\{bouquet\: mixed, allowed_ips\: array, allowed_ua\: array, allowed_outputs\: array, output_formats\: list, con_isp_name\: mixed, isp_violate\: mixed, isp_is_server\: int, \.\.\.\}\|array\{bouquet\: mixed, allowed_ips\: array, allowed_ua\: array, allowed_outputs\: array, output_formats\: list, con_isp_name\: null, isp_violate\: 0, isp_is_server\: 0\} in empty\(\) does not exist\.$#'
-			identifier: empty.offset
 			count: 2
 			path: src/Domain/User/UserRepository.php
 
@@ -1031,6 +587,12 @@ parameters:
 			identifier: variable.undefined
 			count: 1
 			path: src/Domain/User/UserService.php
+
+		-
+			message: '#^Offset 1 on non\-empty\-list\<string\> on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Domain/Vod/EpisodeService.php
 
 		-
 			message: '#^Variable \$rInsertID might not be defined\.$#'
@@ -1067,6 +629,12 @@ parameters:
 			identifier: return.type
 			count: 1
 			path: src/Domain/Vod/TMDbService.php
+
+		-
+			message: '#^Ternary operator condition is always true\.$#'
+			identifier: ternary.alwaysTrue
+			count: 1
+			path: src/Domain/Vod/TmdbCron.php
 
 		-
 			message: '#^Comparison operation "\<" between 0 and int\<1, max\> is always true\.$#'
@@ -1135,7 +703,7 @@ parameters:
 			path: src/Infrastructure/ResellerTableRenderer.php
 
 		-
-			message: '#^Variable \$rFilterBefore might not be defined\.$#'
+			message: '#^Undefined variable\: \$rFilterBefore$#'
 			identifier: variable.undefined
 			count: 1
 			path: src/Infrastructure/ResellerTableRenderer.php
