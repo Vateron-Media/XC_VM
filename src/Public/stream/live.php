@@ -234,44 +234,36 @@ if ($rChannelInfo) {
         }
     }
 
+    // Shared connection context for ConnectionTracker::createLive(); the HLS
+    // and TS switch arms differ only in the container and pid they pass.
+    $rConnCtx = array(
+        "is_hmac" => $rIsHMAC,
+        "identifier" => $rIdentifier,
+        "user_id" => $rUserInfo["id"],
+        "stream_id" => $rStreamID,
+        "server_id" => $rServerID,
+        "proxy_id" => $rProxyID,
+        "user_agent" => $rUserAgent,
+        "user_ip" => $rIP,
+        "date_start" => $rActivityStart,
+        "geoip_country_code" => $rCountryCode,
+        "isp" => $rUserInfo["con_isp_name"],
+        "external_device" => $rExternalDevice,
+        "on_demand" => $rChannelInfo["on_demand"],
+        "uuid" => $rTokenData["uuid"],
+        "adaptive" => isset($rTokenData["adaptive"]),
+        "time_offset" => intval($rServers[SERVER_ID]["time_offset"]),
+    );
+
     switch ($rExtension) {
         case "m3u8":
-            if ($rSettings["redis_handler"]) {
-                $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
-            } else {
-                if (isset($rTokenData["adaptive"])) {
-                    $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = 'hls' AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"]);
-                } else {
-                    if (is_null($rIsHMAC)) {
-                        $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rStreamID);
-                    } else {
-                        $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rStreamID);
-                    }
-                }
-                if ($db->num_rows() > 0) {
-                    $rConnection = $db->get_row();
-                }
-            }
+            $rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, "hls", false, true, true);
             if (!isset($rConnection)) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
                 }
 
-                if (is_null($rIsHMAC)) {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                } else {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rIsHMAC . "_" . $rIdentifier, "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                }
+                $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, "hls", NULL);
             } else {
                 $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
@@ -280,17 +272,7 @@ if ($rChannelInfo) {
                     generateError("IP_MISMATCH");
                 }
 
-                if ($rSettings["redis_handler"]) {
-                    $rChanges = array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
-
-                    if ($rConnection = ConnectionTracker::updateConnection($rConnection, $rChanges, "open")) {
-                        $rResult = true;
-                    } else {
-                        $rResult = false;
-                    }
-                } else {
-                    $rResult = $db->query('UPDATE `lines_live` SET `hls_last_read` = ?, `hls_end` = 0, `server_id` = ?, `proxy_id` = ? WHERE `activity_id` = ?', time() - intval($rServers[SERVER_ID]["time_offset"]), $rServerID, $rProxyID, $rConnection["activity_id"]);
-                }
+                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
             }
 
             if (!$rResult) {
@@ -322,38 +304,12 @@ if ($rChannelInfo) {
             exit();
 
         default:
-            if ($rSettings["redis_handler"]) {
-                $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
-            } else {
-                if (is_null($rIsHMAC)) {
-                    $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rExtension, $rStreamID);
-                } else {
-                    $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rExtension, $rStreamID);
-                }
-
-                if ($db->num_rows() > 0) {
-                    $rConnection = $db->get_row();
-                }
-            }
+            $rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, $rExtension, true, false, false);
             if (!isset($rConnection)) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
                 }
-                if (is_null($rIsHMAC)) {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                } else {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo["con_isp_name"], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval($rServers[SERVER_ID]["time_offset"]), 'on_demand' => $rChannelInfo["on_demand"], 'identity' => $rIsHMAC . '_' . $rIdentifier, 'uuid' => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                }
+                $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rPID);
             } else {
                 $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
@@ -366,17 +322,7 @@ if ($rChannelInfo) {
                     posix_kill(intval($rConnection["pid"]), 9);
                 }
 
-                if ($rSettings["redis_handler"]) {
-                    $rChanges = array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
-
-                    if ($rConnection = ConnectionTracker::updateConnection($rConnection, $rChanges, "open")) {
-                        $rResult = true;
-                    } else {
-                        $rResult = false;
-                    }
-                } else {
-                    $rResult = $db->query('UPDATE `lines_live` SET `hls_end` = 0, `hls_last_read` = ?, `pid` = ? WHERE `activity_id` = ?;', time() - intval($rServers[SERVER_ID]["time_offset"]), $rPID, $rConnection["activity_id"]);
-                }
+                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
             }
 
             if (!$rResult) {
