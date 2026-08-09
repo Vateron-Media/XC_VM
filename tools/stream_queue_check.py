@@ -17,12 +17,36 @@ Two independent queues are checked, depending on the stream type:
 
 The type is auto-detected. Exit code: 0 = healthy, 2 = queue problem, 1 = usage.
 
-Usage:
-    stream_queue_check.py <url> [--duration SEC] [--json] [--ua UA]
+Run:
+    python3 tools/stream_queue_check.py <url> [options]
+    # the file is executable, so this also works:
+    tools/stream_queue_check.py <url> [options]
+
+Arguments:
+    url                  Stream URL — HLS .m3u8 or MPEG-TS .ts
+                         (e.g. an XC_VM /play/<token>/ts endpoint). Required.
+
+Options:
+    --duration SEC       Seconds to observe (default: 30).
+    --stall-timeout SEC  TS: delivery gap (s) counted as a stall; keep it above
+                         the segment duration so normal per-segment bursts are
+                         not flagged (default: 15).
+    --tolerance N        Max transient queue breaks (CC + sync loss) tolerated
+                         before the queue is declared BROKEN (default: 0).
+    --live               Live colored dashboard: received segments, playhead and
+                         buffered cache (seconds) over time.
+    --prebuffer SEC      Live only: seconds to buffer before the virtual playhead
+                         starts (default: 10).
+    --buffer-target SEC  Live only: full-scale of the cache-buffer graph in
+                         seconds (default: 30).
+    --ua UA              User-Agent header to send (default: a browser UA).
+    --json               Machine-readable JSON output.
+    --no-color           Disable ANSI colors.
 
 Examples:
-    stream_queue_check.py "http://host/live/stream.m3u8" --duration 60
-    stream_queue_check.py "http://host/play/<token>/ts" --json
+    python3 tools/stream_queue_check.py "http://host/live/user/pass/1.m3u8" --duration 60
+    python3 tools/stream_queue_check.py "http://host/play/<token>/ts" --json
+    python3 tools/stream_queue_check.py "http://host/live/user/pass/1.m3u8" --live --prebuffer 5
 
 @package XC_VM_Tools
 @license AGPL-3.0
