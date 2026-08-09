@@ -1,4 +1,5 @@
 # Files to delete during update (relative to MAIN_HOME)
-# Auto-generated from: git diff 2.3.5..HEAD
+# Auto-generated from: git diff 2.3.7..HEAD
 # One file per line. Lines starting with # are comments.
 #
+vendor/geoip2/geoip2/CLAUDE.md

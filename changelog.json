@@ -1,20 +1,20 @@
 {
-    "version": "2.3.7",
+    "version": "2.3.8",
     "changes": [
-        "Added a registry-driven admin profile dropdown using the Navbar system",
-        "Integrated Claude AI agents into the development workflow",
-        "Enhanced GitHub workflows with configurable release notification inputs",
-        "Added a new Incident Issue Template for structured bug reporting",
-        "Expanded repository workflow automation",
-        "Updated CODEOWNERS configuration",
-        "Fixed transcode speed reporting so live transcoding displays the actual speed instead of remaining at 1x",
-        "Fixed LLOD v2 MPEG-TS segmentation when On Demand streaming is enabled",
-        "Resolved a database connection leak that could exhaust the maximum number of database connections",
-        "Fixed reseller activity log target population and footer rendering",
-        "Improved null-safety across admin tables, player API, stream processing, reseller credit calculations, and TMDb parsing",
-        "Improved stability of cron jobs and CLI commands when data is missing or files are modified concurrently",
-        "Improved watchdog recovery by detecting and replacing stalled watchdog processes",
-        "Suppressed non-critical image write warnings to reduce unnecessary log noise",
-        "Performed additional internal refactoring, stability improvements, and code cleanup"
+        "Improved HLS prebuffering with duration-based buffering",
+        "Fixed on-demand prebuffering before the first TS burst",
+        "Improved LLOD HTTP stream reconnection after source drops",
+        "Improved live MPEG-TS delivery by removing per-read throttling",
+        "Fixed VOD subtitle importing to include all available subtitles",
+        "Fixed FFprobe cache lookup using the correct cache key",
+        "Fixed MaxMind GeoIP forced downloads",
+        "Fixed ISP/ASN detection and user streaming information handling",
+        "Improved stream connection tracking and process cleanup",
+        "Refactored stream startup and command generation for better stability and maintainability",
+        "Major cleanup and refactoring of the stream monitor and supervisor",
+        "Improved CI workflows and GitHub Actions dependencies",
+        "Updated PHPStan baseline to 2.2.8 and improved static analysis tooling",
+        "Added stream queue integrity monitoring tools",
+        "Updated documentation and developer tooling"
     ]
 }
