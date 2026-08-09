@@ -129,7 +129,6 @@ if ($rChannelInfo) {
             }
 
             if (!$rChannelInfo["monitor_pid"]) {
-                // print('show_not_on_air_video_1');
                 OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
@@ -139,7 +138,6 @@ if ($rChannelInfo) {
             $rChannelInfo["pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid")) ?: NULL);
 
             if (!$rChannelInfo["pid"]) {
-                // print('show_not_on_air_video_2');
                 OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         } else {
@@ -154,13 +152,11 @@ if ($rChannelInfo) {
                 }
 
                 if (!$rChannelInfo["monitor_pid"]) {
-                    // print('show_not_on_air_video_3');
                     OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
                 }
 
                 $rChannelInfo["pid"] = $rChannelInfo["monitor_pid"];
             } else {
-                // print('show_not_on_air_video_4');
                 OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
         }
@@ -246,7 +242,7 @@ if ($rChannelInfo) {
                 if (isset($rTokenData["adaptive"])) {
                     $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = 'hls' AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"]);
                 } else {
-                    if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
+                    if (is_null($rIsHMAC)) {
                         $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rStreamID);
                     } else {
                         $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rStreamID);
@@ -261,7 +257,7 @@ if ($rChannelInfo) {
                     generateError("TOKEN_EXPIRED");
                 }
 
-                if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
+                if (is_null($rIsHMAC)) {
                     if ($rSettings["redis_handler"]) {
                         $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
                         $rResult = ConnectionTracker::createConnection($rConnectionData);
@@ -320,7 +316,6 @@ if ($rChannelInfo) {
                 header("Cache-Control: no-store, no-cache, must-revalidate");
                 echo $rHLS;
             } else {
-                // print('show_not_on_air_video_6');
                 OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
             }
 
@@ -330,7 +325,7 @@ if ($rChannelInfo) {
             if ($rSettings["redis_handler"]) {
                 $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
             } else {
-                if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
+                if (is_null($rIsHMAC)) {
                     $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rExtension, $rStreamID);
                 } else {
                     $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rExtension, $rStreamID);
@@ -344,7 +339,7 @@ if ($rChannelInfo) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
                 }
-                if (!isset($rIsHMAC) && is_null($rIsHMAC)) {
+                if (is_null($rIsHMAC)) {
                     if ($rSettings["redis_handler"]) {
                         $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
                         $rResult = ConnectionTracker::createConnection($rConnectionData);
@@ -408,7 +403,7 @@ if ($rChannelInfo) {
 
             if ($rChannelInfo["proxy"]) {
                 // ────────────────────────────────────────────────────────────────
-                // Proxy-режим — оставляем почти как было (usleep 100 мс терпимо)
+                // Proxy mode: relay ffmpeg's unix-socket datagrams straight to the client.
                 // ────────────────────────────────────────────────────────────────
                 header("Content-type: video/mp2t");
 
@@ -437,7 +432,7 @@ if ($rChannelInfo) {
                         flush();
                     } else {
                         $rFails++;
-                        usleep(80000);          // 80 мс вместо 100 мс
+                        usleep(80000);          // 80ms backoff when no data
                     }
                 }
                 // cleanup
@@ -447,7 +442,7 @@ if ($rChannelInfo) {
             }
 
             // ────────────────────────────────────────────────────────────────
-            // Основной TS-поток (не proxy)
+            // Main TS feed (non-proxy): stream the HLS segments as continuous MPEG-TS.
             // ────────────────────────────────────────────────────────────────
             header("Content-Type: video/mp2t");
 
@@ -588,7 +583,6 @@ if ($rChannelInfo) {
                         $rData = stream_get_line($rFP, $rSettings["read_buffer_size"]);
                         if (!empty($rData)) {
                             echo $rData;
-                            $rData = "";
                             $rFails = 0;
                             continue; // drain available data without throttling
                         }
@@ -686,6 +680,5 @@ if ($rChannelInfo) {
             }
     }
 } else {
-    // print('show_not_on_air_video_7');
     OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
 }
