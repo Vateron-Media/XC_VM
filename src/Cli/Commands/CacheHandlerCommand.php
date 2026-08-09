@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Signal\SignalQueue;
 
 /**
  * CacheHandlerCommand — cache handler command
@@ -75,8 +76,7 @@ class CacheHandlerCommand implements CommandInterface {
 
 			try {
 				$rUpdatedLines = array();
-				foreach (glob(SIGNALS_TMP_PATH . 'cache_*') as $rFileMD5) {
-					list($rKey, $rData) = json_decode(file_get_contents($rFileMD5), true);
+				foreach (SignalQueue::pending() as list($rFileMD5, $rKey, $rData)) {
 					list($rHeader) = explode('/', $rKey);
 					switch ($rHeader) {
 						case 'restream_block_user':

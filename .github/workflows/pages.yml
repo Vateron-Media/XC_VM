@@ -34,7 +34,7 @@ jobs:
       # docs/ is a Docsify site (client-side rendered, .nojekyll present),
       # so there is no build step — the folder is uploaded verbatim.
       - name: Configure Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
 
       - name: Upload docs artifact
         uses: actions/upload-pages-artifact@v3
@@ -43,4 +43,4 @@ jobs:
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5

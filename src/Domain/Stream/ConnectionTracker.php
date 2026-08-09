@@ -624,6 +624,131 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Create a live connection record for the current request, transparently
+	 * targeting Redis or the `lines_live` table depending on redis_handler. The
+	 * HLS and TS delivery arms share this; they differ only in the container and
+	 * the pid recorded.
+	 *
+	 * @param array    $rSettings  Settings (reads redis_handler).
+	 * @param array    $rCtx       Request-scoped fields: is_hmac, identifier,
+	 *                             user_id, stream_id, server_id, proxy_id,
+	 *                             user_agent, user_ip, date_start,
+	 *                             geoip_country_code, isp, external_device,
+	 *                             on_demand, uuid, time_offset.
+	 * @param string   $rContainer Container: `hls` or the TS extension.
+	 * @param int|null $rPid       Owning pid (NULL for HLS).
+	 * @return mixed Truthy on success (Redis MULTI result or DB write result).
+	 */
+	public static function createLive(array $rSettings, array $rCtx, string $rContainer, $rPid) {
+		$rConn = array(
+			"stream_id" => $rCtx["stream_id"],
+			"server_id" => $rCtx["server_id"],
+			"proxy_id" => $rCtx["proxy_id"],
+			"user_agent" => $rCtx["user_agent"],
+			"user_ip" => $rCtx["user_ip"],
+			"container" => $rContainer,
+			"pid" => $rPid,
+			"date_start" => $rCtx["date_start"],
+			"geoip_country_code" => $rCtx["geoip_country_code"],
+			"isp" => $rCtx["isp"],
+			"external_device" => $rCtx["external_device"],
+			"hls_end" => 0,
+			"hls_last_read" => time() - $rCtx["time_offset"],
+			"on_demand" => $rCtx["on_demand"],
+			"uuid" => $rCtx["uuid"],
+		);
+
+		if (is_null($rCtx["is_hmac"])) {
+			$rConn["user_id"] = $rCtx["user_id"];
+			$rConn["identity"] = $rCtx["user_id"];
+		} else {
+			$rConn["hmac_id"] = $rCtx["is_hmac"];
+			$rConn["hmac_identifier"] = $rCtx["identifier"];
+			$rConn["identity"] = $rCtx["is_hmac"] . "_" . $rCtx["identifier"];
+		}
+
+		if ($rSettings["redis_handler"]) {
+			return self::createConnection($rConn);
+		}
+
+		$db = self::db();
+
+		if (is_null($rCtx["is_hmac"])) {
+			return $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rConn["user_id"], $rConn["stream_id"], $rConn["server_id"], $rConn["proxy_id"], $rConn["user_agent"], $rConn["user_ip"], $rConn["container"], $rConn["pid"], $rConn["uuid"], $rConn["date_start"], $rConn["geoip_country_code"], $rConn["isp"], $rConn["external_device"], $rConn["hls_last_read"]);
+		}
+
+		return $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rConn["hmac_id"], $rConn["hmac_identifier"], $rConn["stream_id"], $rConn["server_id"], $rConn["proxy_id"], $rConn["user_agent"], $rConn["user_ip"], $rConn["container"], $rConn["pid"], $rConn["uuid"], $rConn["date_start"], $rConn["geoip_country_code"], $rConn["isp"], $rConn["external_device"], $rConn["hls_last_read"]);
+	}
+
+	/**
+	 * Find the current live connection for this request (Redis or lines_live).
+	 * The HLS and TS arms differ in the columns they need and their filters,
+	 * expressed here as explicit flags rather than hidden branches. The dynamic
+	 * pieces are built from those booleans only — never from request input.
+	 *
+	 * @param array  $rSettings      Settings (reads redis_handler).
+	 * @param array  $rCtx           Request-scoped fields (uuid, is_hmac,
+	 *                               identifier, user_id, server_id, stream_id,
+	 *                               adaptive).
+	 * @param string $rContainer     Container: `hls` or the TS extension.
+	 * @param bool   $rWithPid       Also select the `pid` column (TS).
+	 * @param bool   $rOpenOnly      Restrict to open rows (`hls_end = 0`) (HLS).
+	 * @param bool   $rAllowAdaptive Honour an adaptive token (HLS only).
+	 * @return array|null The connection row, or null when none is open.
+	 */
+	public static function lookupLive(array $rSettings, array $rCtx, string $rContainer, bool $rWithPid, bool $rOpenOnly, bool $rAllowAdaptive): ?array {
+		if ($rSettings["redis_handler"]) {
+			return self::getConnection($rCtx["uuid"]);
+		}
+
+		$db = self::db();
+		$rCols = $rWithPid ? "`activity_id`, `pid`, `user_ip`" : "`activity_id`, `user_ip`";
+		$rOpen = $rOpenOnly ? " AND `hls_end` = 0" : "";
+
+		if ($rAllowAdaptive && !empty($rCtx["adaptive"])) {
+			$db->query("SELECT $rCols FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = ?" . $rOpen, $rCtx["uuid"], $rCtx["user_id"], $rContainer);
+		} elseif (is_null($rCtx["is_hmac"])) {
+			$db->query("SELECT $rCols FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?" . $rOpen, $rCtx["uuid"], $rCtx["user_id"], $rCtx["server_id"], $rContainer, $rCtx["stream_id"]);
+		} else {
+			$db->query("SELECT $rCols FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?" . $rOpen, $rCtx["uuid"], $rCtx["is_hmac"], $rCtx["identifier"], $rCtx["server_id"], $rContainer, $rCtx["stream_id"]);
+		}
+
+		return $db->num_rows() > 0 ? $db->get_row() : null;
+	}
+
+	/**
+	 * Refresh an existing live connection (Redis or lines_live), applying the
+	 * given column changes and re-opening the row (`hls_end = 0`). On the Redis
+	 * path $rConnection is updated in place with the stored record.
+	 *
+	 * @param array $rSettings  Settings (reads redis_handler).
+	 * @param array $rConnection Connection row (needs activity_id for the DB path).
+	 * @param array $rChanges    Column => value pairs to write (code-controlled keys).
+	 * @return bool True on a successful write.
+	 */
+	public static function updateLive(array $rSettings, array &$rConnection, array $rChanges): bool {
+		if ($rSettings["redis_handler"]) {
+			$rUpdated = self::updateConnection($rConnection, $rChanges, "open");
+			if ($rUpdated) {
+				$rConnection = $rUpdated;
+				return true;
+			}
+			return false;
+		}
+
+		$db = self::db();
+		$rSet = array();
+		$rParams = array();
+		foreach ($rChanges as $rColumn => $rValue) {
+			$rSet[] = "`" . $rColumn . "` = ?";
+			$rParams[] = $rValue;
+		}
+		$rParams[] = $rConnection["activity_id"];
+
+		return (bool) $db->query('UPDATE `lines_live` SET ' . implode(", ", $rSet) . ", `hls_end` = 0 WHERE `activity_id` = ?", ...$rParams);
+	}
+
+	/**
 	 * Get connections for a specific user/line.
 	 *
 	 * @param int  $rUserID User ID.

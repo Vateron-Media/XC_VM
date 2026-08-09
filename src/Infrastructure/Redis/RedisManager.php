@@ -97,16 +97,15 @@ class RedisManager {
 
 
 	/**
-	 * Write a signal to the filesystem cache.
-	 *
-	 * Stores a JSON-encoded [key, data] pair in SIGNALS_TMP_PATH.
+	 * @deprecated Signals now live in {@see \XcVm\Infrastructure\Signal\SignalQueue}.
+	 * Kept as a thin back-compat alias; call SignalQueue::push() directly.
 	 *
 	 * @param string $rKey  Signal key.
 	 * @param mixed  $rData Signal payload.
 	 * @return void
 	 */
 	public static function setSignal(string $rKey, $rData): void {
-		file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rKey), json_encode(array($rKey, $rData)));
+		\XcVm\Infrastructure\Signal\SignalQueue::push($rKey, $rData);
 	}
 
 	/**
