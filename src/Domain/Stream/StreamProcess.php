@@ -579,6 +579,36 @@ class StreamProcess {
 	}
 
 	/**
+	 * Generate and persist a fresh AES-128-CBC key + IV for a stream's HLS
+	 * encryption (the _.key / _.iv sidecar files). Identical setup used by every
+	 * launcher (startStream / startLoopback / startLLOD).
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return void
+	 */
+	private static function writeStreamKeyIv($rStreamID) {
+		$rKey = openssl_random_pseudo_bytes(16);
+		file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
+		$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
+		$rIV = openssl_random_pseudo_bytes($rIVSize);
+		file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
+	}
+
+	/**
+	 * Clear a stream's leftover segments and stale PID file before a (re)launch.
+	 * Shared preamble of the loopback / LLOD launchers.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return void
+	 */
+	private static function clearStreamPidSegments($rStreamID) {
+		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
+		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
+			unlink(STREAMS_PATH . $rStreamID . '_.pid');
+		}
+	}
+
+	/**
 	 * Assemble the live ffmpeg command string from prepared state. PURE: no
 	 * probe/DB/shell/file I/O — a byte-faithful copy of the startStream assembly,
 	 * fed from $data instead of loop-local variables. The delay-playlist I/O and
@@ -1066,10 +1096,7 @@ class StreamProcess {
 	public static function startLoopback($rStreamID) {
 		global $rSettings, $rServers;
 		$db = self::db();
-		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			unlink(STREAMS_PATH . $rStreamID . '_.pid');
-		}
+		self::clearStreamPidSegments($rStreamID);
 		$rStream = array();
 		$db->query('SELECT * FROM `streams` WHERE direct_source = 0 AND id = ?', $rStreamID);
 		if ($db->num_rows() > 0) {
@@ -1082,11 +1109,7 @@ class StreamProcess {
 					$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 					$rLoopURL = (!is_null($rServers[SERVER_ID]['private_url_ip']) && !is_null($rServers[$rStream['server_info']['parent_id']]['private_url_ip']) ? $rServers[$rStream['server_info']['parent_id']]['private_url_ip'] : $rServers[$rStream['server_info']['parent_id']]['public_url_ip']);
 					$rCurrentSource = $rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts';
-					$rKey = openssl_random_pseudo_bytes(16);
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
-					$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
-					$rIV = openssl_random_pseudo_bytes($rIVSize);
-					file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
+					self::writeStreamKeyIv($rStreamID);
 					$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', null, time(), null, $rPID, json_encode(array()), $rCurrentSource, $rStreamID, SERVER_ID);
 					self::updateStream($rStreamID);
 					return array('main_pid' => $rPID, 'stream_source' => $rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts', 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
@@ -1109,10 +1132,7 @@ class StreamProcess {
 	 */
 	public static function startLLOD($rStreamID, $rStreamInfo, $rStreamArguments, $rForceSource = null) {
 		$db = self::db();
-		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			unlink(STREAMS_PATH . $rStreamID . '_.pid');
-		}
+		self::clearStreamPidSegments($rStreamID);
 		$rSources = ($rForceSource ? array($rForceSource) : json_decode($rStreamInfo['stream_source'], true));
 		$rArgumentMap = array();
 		foreach ($rStreamArguments as $rStreamArgument) {
@@ -1120,11 +1140,7 @@ class StreamProcess {
 		}
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php llod ' . intval($rStreamID) . ' "' . base64_encode(json_encode($rSources)) . '" "' . base64_encode(json_encode($rArgumentMap)) . '" >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
 		$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-		$rKey = openssl_random_pseudo_bytes(16);
-		file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
-		$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
-		$rIV = openssl_random_pseudo_bytes($rIVSize);
-		file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
+		self::writeStreamKeyIv($rStreamID);
 		$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', null, time(), null, $rPID, json_encode(array()), $rSources[0], $rStreamID, SERVER_ID);
 		self::updateStream($rStreamID);
 		return array('main_pid' => $rPID, 'stream_source' => $rSources[0], 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
@@ -1563,11 +1579,7 @@ class StreamProcess {
 
 				shell_exec($rFFMPEG);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
-				$rKey = openssl_random_pseudo_bytes(16);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.key', $rKey);
-				$rIVSize = openssl_cipher_iv_length('AES-128-CBC');
-				$rIV = openssl_random_pseudo_bytes($rIVSize);
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.iv', $rIV);
+				self::writeStreamKeyIv($rStreamID);
 
 				// Wait briefly for PID file to be written, with retry
 				$rPID = 0;
