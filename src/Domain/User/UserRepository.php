@@ -500,11 +500,10 @@ class UserRepository {
 	 *
 	 * @param array $rDevice          Device row (MAC etc.).
 	 * @param bool  $rGetChannelIDs   Include allowed channel ids.
-	 * @param bool  $rGetBouquetInfo  Include bouquet info.
 	 * @param bool  $rGetConnections  Include active connections.
 	 * @return array|null Device user info, or null if not found.
 	 */
-	public static function getE2Info($rDevice, $rGetChannelIDs = false, $rGetBouquetInfo = false, $rGetConnections = false) {
+	public static function getE2Info($rDevice, $rGetChannelIDs = false, $rGetConnections = false) {
 		$db = self::db();
 		if (empty($rDevice['device_id'])) {
 			$db->query('SELECT * FROM `enigma2_devices` WHERE `mac` = ?', $rDevice['mac']);
