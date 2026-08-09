@@ -251,27 +251,13 @@ if ($rChannelInfo) {
         "external_device" => $rExternalDevice,
         "on_demand" => $rChannelInfo["on_demand"],
         "uuid" => $rTokenData["uuid"],
+        "adaptive" => isset($rTokenData["adaptive"]),
         "time_offset" => intval($rServers[SERVER_ID]["time_offset"]),
     );
 
     switch ($rExtension) {
         case "m3u8":
-            if ($rSettings["redis_handler"]) {
-                $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
-            } else {
-                if (isset($rTokenData["adaptive"])) {
-                    $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = 'hls' AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"]);
-                } else {
-                    if (is_null($rIsHMAC)) {
-                        $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rStreamID);
-                    } else {
-                        $db->query("SELECT `activity_id`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = 'hls' AND `stream_id` = ? AND `hls_end` = 0", $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rStreamID);
-                    }
-                }
-                if ($db->num_rows() > 0) {
-                    $rConnection = $db->get_row();
-                }
-            }
+            $rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, "hls", false, true, true);
             if (!isset($rConnection)) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
@@ -328,19 +314,7 @@ if ($rChannelInfo) {
             exit();
 
         default:
-            if ($rSettings["redis_handler"]) {
-                $rConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
-            } else {
-                if (is_null($rIsHMAC)) {
-                    $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rUserInfo["id"], $rServerID, $rExtension, $rStreamID);
-                } else {
-                    $db->query('SELECT `activity_id`, `pid`, `user_ip` FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?;', $rTokenData["uuid"], $rIsHMAC, $rIdentifier, $rServerID, $rExtension, $rStreamID);
-                }
-
-                if ($db->num_rows() > 0) {
-                    $rConnection = $db->get_row();
-                }
-            }
+            $rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, $rExtension, true, false, false);
             if (!isset($rConnection)) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");

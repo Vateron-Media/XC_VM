@@ -681,6 +681,42 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Find the current live connection for this request (Redis or lines_live).
+	 * The HLS and TS arms differ in the columns they need and their filters,
+	 * expressed here as explicit flags rather than hidden branches. The dynamic
+	 * pieces are built from those booleans only — never from request input.
+	 *
+	 * @param array  $rSettings      Settings (reads redis_handler).
+	 * @param array  $rCtx           Request-scoped fields (uuid, is_hmac,
+	 *                               identifier, user_id, server_id, stream_id,
+	 *                               adaptive).
+	 * @param string $rContainer     Container: `hls` or the TS extension.
+	 * @param bool   $rWithPid       Also select the `pid` column (TS).
+	 * @param bool   $rOpenOnly      Restrict to open rows (`hls_end = 0`) (HLS).
+	 * @param bool   $rAllowAdaptive Honour an adaptive token (HLS only).
+	 * @return array|null The connection row, or null when none is open.
+	 */
+	public static function lookupLive(array $rSettings, array $rCtx, string $rContainer, bool $rWithPid, bool $rOpenOnly, bool $rAllowAdaptive): ?array {
+		if ($rSettings["redis_handler"]) {
+			return self::getConnection($rCtx["uuid"]);
+		}
+
+		$db = self::db();
+		$rCols = $rWithPid ? "`activity_id`, `pid`, `user_ip`" : "`activity_id`, `user_ip`";
+		$rOpen = $rOpenOnly ? " AND `hls_end` = 0" : "";
+
+		if ($rAllowAdaptive && !empty($rCtx["adaptive"])) {
+			$db->query("SELECT $rCols FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `container` = ?" . $rOpen, $rCtx["uuid"], $rCtx["user_id"], $rContainer);
+		} elseif (is_null($rCtx["is_hmac"])) {
+			$db->query("SELECT $rCols FROM `lines_live` WHERE `uuid` = ? AND `user_id` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?" . $rOpen, $rCtx["uuid"], $rCtx["user_id"], $rCtx["server_id"], $rContainer, $rCtx["stream_id"]);
+		} else {
+			$db->query("SELECT $rCols FROM `lines_live` WHERE `uuid` = ? AND `hmac_id` = ? AND `hmac_identifier` = ? AND `server_id` = ? AND `container` = ? AND `stream_id` = ?" . $rOpen, $rCtx["uuid"], $rCtx["is_hmac"], $rCtx["identifier"], $rCtx["server_id"], $rContainer, $rCtx["stream_id"]);
+		}
+
+		return $db->num_rows() > 0 ? $db->get_row() : null;
+	}
+
+	/**
 	 * Get connections for a specific user/line.
 	 *
 	 * @param int  $rUserID User ID.
