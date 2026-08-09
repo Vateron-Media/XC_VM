@@ -624,6 +624,63 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Create a live connection record for the current request, transparently
+	 * targeting Redis or the `lines_live` table depending on redis_handler. The
+	 * HLS and TS delivery arms share this; they differ only in the container and
+	 * the pid recorded.
+	 *
+	 * @param array    $rSettings  Settings (reads redis_handler).
+	 * @param array    $rCtx       Request-scoped fields: is_hmac, identifier,
+	 *                             user_id, stream_id, server_id, proxy_id,
+	 *                             user_agent, user_ip, date_start,
+	 *                             geoip_country_code, isp, external_device,
+	 *                             on_demand, uuid, time_offset.
+	 * @param string   $rContainer Container: `hls` or the TS extension.
+	 * @param int|null $rPid       Owning pid (NULL for HLS).
+	 * @return mixed Truthy on success (Redis MULTI result or DB write result).
+	 */
+	public static function createLive(array $rSettings, array $rCtx, string $rContainer, $rPid) {
+		$rConn = array(
+			"stream_id" => $rCtx["stream_id"],
+			"server_id" => $rCtx["server_id"],
+			"proxy_id" => $rCtx["proxy_id"],
+			"user_agent" => $rCtx["user_agent"],
+			"user_ip" => $rCtx["user_ip"],
+			"container" => $rContainer,
+			"pid" => $rPid,
+			"date_start" => $rCtx["date_start"],
+			"geoip_country_code" => $rCtx["geoip_country_code"],
+			"isp" => $rCtx["isp"],
+			"external_device" => $rCtx["external_device"],
+			"hls_end" => 0,
+			"hls_last_read" => time() - $rCtx["time_offset"],
+			"on_demand" => $rCtx["on_demand"],
+			"uuid" => $rCtx["uuid"],
+		);
+
+		if (is_null($rCtx["is_hmac"])) {
+			$rConn["user_id"] = $rCtx["user_id"];
+			$rConn["identity"] = $rCtx["user_id"];
+		} else {
+			$rConn["hmac_id"] = $rCtx["is_hmac"];
+			$rConn["hmac_identifier"] = $rCtx["identifier"];
+			$rConn["identity"] = $rCtx["is_hmac"] . "_" . $rCtx["identifier"];
+		}
+
+		if ($rSettings["redis_handler"]) {
+			return self::createConnection($rConn);
+		}
+
+		$db = self::db();
+
+		if (is_null($rCtx["is_hmac"])) {
+			return $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rConn["user_id"], $rConn["stream_id"], $rConn["server_id"], $rConn["proxy_id"], $rConn["user_agent"], $rConn["user_ip"], $rConn["container"], $rConn["pid"], $rConn["uuid"], $rConn["date_start"], $rConn["geoip_country_code"], $rConn["isp"], $rConn["external_device"], $rConn["hls_last_read"]);
+		}
+
+		return $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rConn["hmac_id"], $rConn["hmac_identifier"], $rConn["stream_id"], $rConn["server_id"], $rConn["proxy_id"], $rConn["user_agent"], $rConn["user_ip"], $rConn["container"], $rConn["pid"], $rConn["uuid"], $rConn["date_start"], $rConn["geoip_country_code"], $rConn["isp"], $rConn["external_device"], $rConn["hls_last_read"]);
+	}
+
+	/**
 	 * Get connections for a specific user/line.
 	 *
 	 * @param int  $rUserID User ID.
