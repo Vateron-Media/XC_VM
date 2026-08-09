@@ -7,6 +7,7 @@ use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
+use XcVm\Infrastructure\Signal\SignalQueue;
 
 /**
  * UserRepository — user repository
@@ -252,19 +253,16 @@ class UserRepository {
 		$db = self::db();
 		$rUserIDs = $rPermissions['direct_reports'];
 
-		if (!$rIncludeSelf) {
-		} else {
+		if ($rIncludeSelf) {
 			$rUserIDs[] = $rUserInfo['id'];
 		}
 
 		$rReturn = array();
 
-		if (0 >= count($rUserIDs)) {
-		} else {
+		if (0 < count($rUserIDs)) {
 			$db->query('SELECT * FROM `users` WHERE `owner_id` IN (' . implode(',', array_map('intval', $rUserIDs)) . ') ORDER BY `username` ASC;');
 
-			if (0 >= $db->num_rows()) {
-			} else {
+			if (0 < $db->num_rows()) {
 				foreach ($db->get_rows() as $rRow) {
 					$rReturn[intval($rRow['id'])] = $rRow;
 				}
@@ -322,8 +320,7 @@ class UserRepository {
 		$db = self::db();
 		$db->query('SELECT * FROM `lines` WHERE `id` = ?;', $rID);
 
-		if ($db->num_rows() != 1) {
-		} else {
+		if ($db->num_rows() == 1) {
 			return $db->get_row();
 		}
 		return null;
@@ -339,8 +336,7 @@ class UserRepository {
 		$db = self::db();
 		$db->query('SELECT * FROM `users` WHERE `id` = ?;', $rID);
 
-		if ($db->num_rows() != 1) {
-		} else {
+		if ($db->num_rows() == 1) {
 			return $db->get_row();
 		}
 		return null;
@@ -358,11 +354,9 @@ class UserRepository {
 		$rReturn = array();
 		$db->query('SELECT * FROM `users` ORDER BY `username` ASC;');
 
-		if (0 >= $db->num_rows()) {
-		} else {
+		if (0 < $db->num_rows()) {
 			foreach ($db->get_rows() as $rRow) {
-				if (!(!$rOwner || $rRow['owner_id'] == $rOwner || $rRow['id'] == $rOwner && $rIncludeSelf)) {
-				} else {
+				if (!$rOwner || $rRow['owner_id'] == $rOwner || $rRow['id'] == $rOwner && $rIncludeSelf) {
 					$rReturn[intval($rRow['id'])] = $rRow;
 				}
 			}
@@ -409,7 +403,7 @@ class UserRepository {
 			$rUserInfo['forced_country'] = GeoIPService::getIPInfo($rIP)['registered_country']['iso_code'];
 
 			if ($rCached) {
-				file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5('forced_country/' . $rUserInfo['id']), json_encode(array('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country'])));
+				SignalQueue::push('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
 			} else {
 				$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
 			}
@@ -418,7 +412,6 @@ class UserRepository {
 		$rUserInfo = self::decodeUserFields($rUserInfo);
 
 		$rUserInfo['output_formats'] = self::resolveOutputFormats($db, $rCached, $rUserInfo['allowed_outputs']);
-
 		$rUserInfo['con_isp_name'] = null;
 		$rUserInfo['isp_violate'] = 0;
 		$rUserInfo['isp_is_server'] = 0;
@@ -442,8 +435,7 @@ class UserRepository {
 
 			if (self::ispChanged($rUserInfo['con_isp_name'], $rUserInfo['isp_violate'], $rUserInfo['isp_desc'])) {
 				if ($rCached) {
-					$rSignalKey = 'isp/' . $rUserInfo['id'];
-					file_put_contents(SIGNALS_TMP_PATH . 'cache_' . md5($rSignalKey), json_encode(array($rSignalKey, json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])))));
+					SignalQueue::push('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
 				} else {
 					$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
 				}
@@ -486,7 +478,7 @@ class UserRepository {
 		if ($rSettings['county_override_1st'] == 1 && empty($rUserInfo['forced_country']) && !empty($rIP) && $rUserInfo['max_connections'] == 1) {
 			$rUserInfo['forced_country'] = GeoIP::getCountry($rIP)['registered_country']['iso_code'];
 			if ($rCached) {
-				\XcVm\Infrastructure\Redis\RedisManager::setSignal('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
+				SignalQueue::push('forced_country/' . $rUserInfo['id'], $rUserInfo['forced_country']);
 			} else {
 				$db->query('UPDATE `lines` SET `forced_country` = ? WHERE `id` = ?', $rUserInfo['forced_country'], $rUserInfo['id']);
 			}
@@ -512,7 +504,7 @@ class UserRepository {
 			}
 			if (self::ispChanged($rUserInfo['con_isp_name'], $rUserInfo['isp_violate'], $rUserInfo['isp_desc'])) {
 				if ($rCached) {
-					\XcVm\Infrastructure\Redis\RedisManager::setSignal('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
+					SignalQueue::push('isp/' . $rUserInfo['id'], json_encode(array($rUserInfo['con_isp_name'], $rUserInfo['isp_asn'])));
 				} else {
 					$db->query('UPDATE `lines` SET `isp_desc` = ?, `as_number` = ? WHERE `id` = ?', $rUserInfo['con_isp_name'], $rUserInfo['isp_asn'], $rUserInfo['id']);
 				}

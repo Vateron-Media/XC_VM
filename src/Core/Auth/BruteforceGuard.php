@@ -102,7 +102,7 @@ class BruteforceGuard {
     private static function blockIP(string $ip, string $reason, bool $useCachedMode = false): void {
         if ($useCachedMode && !empty($GLOBALS['rCached'])) {
             $signalKey = (stripos($reason, 'BRUTEFORCE') !== false ? 'bruteforce_attack' : 'flood_attack');
-            \XcVm\Infrastructure\Redis\RedisManager::setSignal($signalKey . '/' . $ip, 1);
+            \XcVm\Infrastructure\Signal\SignalQueue::push($signalKey . '/' . $ip, 1);
         } else {
             $db = self::getDB();
             if ($db) {

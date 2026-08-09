@@ -9,7 +9,7 @@ use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Infrastructure\Signal\SignalQueue;
 use XcVm\Streaming\Balancer\ProxySelector;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\StreamRedirector;
@@ -391,7 +391,7 @@ if ($rExtension) {
 					if ($rRestreamDetect) {
 						if ($rSettings['detect_restream_block_user']) {
 							if ($rCached) {
-								RedisManager::setSignal('restream_block_user/' . $rUserInfo['id'] . '/' . $rStreamID . '/' . $rIP, 1);
+								SignalQueue::push('restream_block_user/' . $rUserInfo['id'] . '/' . $rStreamID . '/' . $rIP, 1);
 							} else {
 								$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rUserInfo['id']);
 							}
@@ -414,7 +414,7 @@ if ($rExtension) {
 
 			if (($rType == 'live' && $rSettings['show_expiring_video'] && !$rUserInfo['is_trial'] && !is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] - 86400 * 7 <= time() && (86400 <= time() - $rUserInfo['last_expiration_video'] || !$rUserInfo['last_expiration_video']))) {
 				if ($rCached) {
-					RedisManager::setSignal('expiring/' . $rUserInfo['id'], time());
+					SignalQueue::push('expiring/' . $rUserInfo['id'], time());
 				} else {
 					$db->query('UPDATE `lines` SET `last_expiration_video` = ? WHERE `id` = ?;', time(), $rUserInfo['id']);
 				}
