@@ -62,12 +62,15 @@ class MaxMindUpdater {
 
 	/**
 	 * Download all configured editions.
-	 * Returns array of results: ['edition' => string, 'updated' => bool, 'error' => string|null]
+	 *
+	 * @param bool $force Re-download even if unchanged (skips If-Modified-Since,
+	 *                    so the server cannot answer 304 Not Modified).
+	 * @return array Result rows: ['edition' => string, 'updated' => bool, 'error' => string|null]
 	 */
-	public function update(): array {
+	public function update(bool $force = false): array {
 		$results = [];
 		foreach ($this->editions as $edition) {
-			$results[] = $this->downloadEdition($edition);
+			$results[] = $this->downloadEdition($edition, $force);
 		}
 		return $results;
 	}
@@ -79,16 +82,18 @@ class MaxMindUpdater {
 	 * existing database and updates the version file.
 	 *
 	 * @param string $edition Edition id.
+	 * @param bool   $force   Skip If-Modified-Since so the server always returns
+	 *                        the current database (no 304).
 	 * @return array ['edition' => string, 'updated' => bool, 'error' => string|null].
 	 */
-	private function downloadEdition(string $edition): array {
+	private function downloadEdition(string $edition, bool $force = false): array {
 		$url      = sprintf(self::DOWNLOAD_URL, $edition);
 		$destPath = self::MAXMIND_DIR . $edition . '.mmdb';
 		$result   = ['edition' => $edition, 'updated' => false, 'error' => null];
 
 		$headers = ['User-Agent: \XC_VM-MaxMind-Updater/1.0'];
 
-		if (file_exists($destPath)) {
+		if (!$force && file_exists($destPath)) {
 			$headers[] = 'If-Modified-Since: ' . gmdate('D, d M Y H:i:s', filemtime($destPath)) . ' GMT';
 		}
 

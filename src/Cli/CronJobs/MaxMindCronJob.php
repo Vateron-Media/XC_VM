@@ -36,8 +36,12 @@ class MaxMindCronJob implements CommandInterface {
 
 		echo "GeoIP (MaxMind)\n------------------------------\n";
 
+		// --force overrides both the Tuesday-only gate AND the "already up to
+		// date" skip, re-downloading every database unconditionally.
+		$force = in_array('--force', $rArgs);
+
 		// Only run on Tuesdays (MaxMind publishes updates on Tuesdays)
-		if (date('N') !== '2' && !in_array('--force', $rArgs)) {
+		if (date('N') !== '2' && !$force) {
 			echo "Skipping MaxMind update: not Tuesday (use --force to override)\n";
 			return 0;
 		}
@@ -56,7 +60,7 @@ class MaxMindCronJob implements CommandInterface {
 
 		if ($updater !== null) {
 			echo 'Updating MaxMind databases...' . "\n";
-			$results = $updater->update();
+			$results = $updater->update($force);
 
 			foreach ($results as $r) {
 				if ($r['error'] !== null) {
@@ -74,7 +78,7 @@ class MaxMindCronJob implements CommandInterface {
 			$datageolite = $repo->getGeolite();
 			if (is_array($datageolite)) {
 				foreach ($datageolite['files'] as $rFile) {
-					if (!file_exists($rFile['path']) || md5_file($rFile['path']) != $rFile['md5']) {
+					if ($force || !file_exists($rFile['path']) || md5_file($rFile['path']) != $rFile['md5']) {
 						$rFolderPath = pathinfo($rFile['path'])['dirname'] . '/';
 
 						if (!file_exists($rFolderPath)) {
