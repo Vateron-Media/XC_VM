@@ -43,14 +43,13 @@ class StreamProcess {
 	 * @return void
 	 */
 	public static function deleteCache($rSources) {
-		if (!empty($rSources)) {
-			foreach ($rSources as $rSource) {
-				if (file_exists(CACHE_TMP_PATH . md5($rSource))) {
-					unlink(CACHE_TMP_PATH . md5($rSource));
-				}
-			}
-		} else {
+		if (empty($rSources)) {
 			return;
+		}
+		foreach ($rSources as $rSource) {
+			if (file_exists(CACHE_TMP_PATH . md5($rSource))) {
+				unlink(CACHE_TMP_PATH . md5($rSource));
+			}
 		}
 	}
 
@@ -118,6 +117,24 @@ class StreamProcess {
 	}
 
 	/**
+	 * Insert a cache-invalidation signal for the main server once — skips the
+	 * insert when an identical pending signal already exists. Shared by
+	 * updateStream / updateStreams.
+	 *
+	 * @param array $rCustomData Signal payload (type + id/ids).
+	 * @return void
+	 */
+	private static function insertCacheSignalOnce(array $rCustomData) {
+		$db = self::db();
+		$rMainID = ConnectionTracker::getMainID();
+		$rJson = json_encode($rCustomData);
+		$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, $rJson);
+		if (($db->get_row()['count'] ?? 0) == 0) {
+			$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), $rJson);
+		}
+	}
+
+	/**
 	 * Push a stream's configuration update to its server.
 	 *
 	 * @param int  $rStreamID Stream id.
@@ -125,17 +142,11 @@ class StreamProcess {
 	 * @return mixed Update result.
 	 */
 	public static function updateStream($rStreamID, $rForce = false) {
-		$db = self::db();
-		$rCached = SettingsManager::getAll()['enable_cache'];
-		$rMainID = ConnectionTracker::getMainID();
-		if ($rCached) {
-			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
-			if (($db->get_row()['count'] ?? 0) == 0) {
-				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_stream', 'id' => $rStreamID)));
-			}
-			return true;
+		if (!SettingsManager::getAll()['enable_cache']) {
+			return false;
 		}
-		return false;
+		self::insertCacheSignalOnce(array('type' => 'update_stream', 'id' => $rStreamID));
+		return true;
 	}
 
 	/**
@@ -145,17 +156,10 @@ class StreamProcess {
 	 * @return void
 	 */
 	public static function updateStreams($rStreamIDs) {
-		$db = self::db();
-		$rCached = SettingsManager::getAll()['enable_cache'];
-		$rMainID = ConnectionTracker::getMainID();
-		if ($rCached) {
-			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
-			if (($db->get_row()['count'] ?? 0) == 0) {
-				$db->query('INSERT INTO `signals`(`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, ?, ?);', $rMainID, time(), json_encode(array('type' => 'update_streams', 'id' => $rStreamIDs)));
-			}
+		if (!SettingsManager::getAll()['enable_cache']) {
 			return;
 		}
-		return;
+		self::insertCacheSignalOnce(array('type' => 'update_streams', 'id' => $rStreamIDs));
 	}
 
 	/**
@@ -236,13 +240,6 @@ class StreamProcess {
 		}
 	}
 
-	/**
-	 * Build the runtime channel item (ffmpeg command/config) for a source.
-	 *
-	 * @param int   $rStreamID Stream id.
-	 * @param mixed $rSource   Source definition.
-	 * @return mixed The constructed channel item.
-	 */
 	/**
 	 * Build the ffmpeg subtitle import + metadata options for a VOD movie.
 	 *
@@ -643,11 +640,10 @@ class StreamProcess {
 
 	/**
 	 * Assemble the live ffmpeg command string from prepared state. PURE: no
-	 * probe/DB/shell/file I/O — a byte-faithful copy of the startStream assembly,
+	 * probe/DB/shell/file I/O — the single source of truth for the live command,
 	 * fed from $data instead of loop-local variables. The delay-playlist I/O and
 	 * the segment-start/sleep computation stay in startStream and arrive via
-	 * $data['segmentStart']/['delayActive']. Run in shadow (diff-logged) before it
-	 * replaces the inline assembly.
+	 * $data['segmentStart']/['delayActive'].
 	 *
 	 * @param array $data Prepared assembly inputs (see startStream call site).
 	 * @return string The full shell command (ffmpeg + outputs + redirects + pid).
