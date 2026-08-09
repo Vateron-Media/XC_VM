@@ -7,57 +7,57 @@ parameters:
 
     # Entry points to analyze. Add/remove dirs as the audit progresses.
     paths:
-        - src/Core
-        - src/Domain
-        - src/Infrastructure
-        - src/Streaming
-        - src/Modules
-        - src/Cli
+        - ../src/Core
+        - ../src/Domain
+        - ../src/Infrastructure
+        - ../src/Streaming
+        - ../src/Modules
+        - ../src/Cli
 
     # The bootstrap only defines global constants; it does NOT wire a project
     # autoloader. PHPStan resolves every symbol statically from `paths` +
     # `scanDirectories` below (no project code is executed).
     bootstrapFiles:
-        - tools/phpstan/phpstan-bootstrap.php
+        - ../tools/phpstan/phpstan-bootstrap.php
         # Listed directly (not just require'd from the bootstrap) so PHPStan
         # tracks it for result-cache invalidation when constants change.
-        - tools/phpstan/constants.stub.php
+        - ../tools/phpstan/constants.stub.php
 
     # Indexed for symbol resolution (classes/interfaces/functions defined here
     # are findable) but NOT reported on directly. These cover every source dir
     # outside `paths` so cross-references always resolve.
     scanDirectories:
-        - src/Public
-        - src/signals
-        - src/ministra
-        - src/content
-        - src/resources
-        - src/config
-        - src/migrations
+        - ../src/Public
+        - ../src/signals
+        - ../src/ministra
+        - ../src/content
+        - ../src/resources
+        - ../src/config
+        - ../src/migrations
 
     # Root file holding the global XC_Bootstrap class, referenced across the
     # codebase but living outside any scanned directory.
     scanFiles:
-        - src/bootstrap.php
+        - ../src/bootstrap.php
 
     excludePaths:
         analyse:
-            - src/*/tmp/*
-            - src/tmp/*
-            - src/backups/*
+            - ../src/*/tmp/*
+            - ../src/tmp/*
+            - ../src/backups/*
             # Composer autoloader glue + third-party packages (committed +
             # shipped). Symbols resolve via src/vendor/autoload.php, which the
             # Composer-installed phpstan binary loads automatically.
-            - src/vendor/*
+            - ../src/vendor/*
             # View templates: included into a controller's scope, so their
             # variables ($rSettings, $language, ...) are injected by the caller.
             # PHPStan analyses files standalone and would flag every such var as
             # undefined — not real bugs. (Still indexed via scanDirectories.)
-            - src/Modules/*/views/*
+            - ../src/Modules/*/views/*
             # Bundled third-party libraries (not our code): the php-tmdb client
             # and the Mobile-Detect library. Like the vendored packages above,
             # they are indexed for symbol resolution but not analysed.
-            - src/Infrastructure/Tmdb/lib/*
+            - ../src/Infrastructure/Tmdb/lib/*
 
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: false
@@ -219,7 +219,7 @@ parameters:
         # (PHP manual), so the defensive check below is correct, not dead code.
         -
             message: '#=== between resource and false will always evaluate to false#'
-            path: src/Streaming/AsyncFileOperations.php
+            path: ../src/Streaming/AsyncFileOperations.php
 
 includes:
     # Pre-existing errors frozen so CI is green and only NEW code is checked.

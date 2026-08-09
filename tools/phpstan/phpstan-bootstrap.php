@@ -6,7 +6,7 @@
  * The project uses Composer PSR-4, but this bootstrap deliberately does NOT wire
  * a project autoloader. PHPStan discovers every class/interface/function itself
  * by statically scanning the directories listed under `paths` and
- * `scanDirectories` in phpstan.dist.neon — no project code is executed. (The
+ * `scanDirectories` in build/phpstan.dist.neon — no project code is executed. (The
  * Composer-installed phpstan binary loads src/vendor/autoload.php for its own
  * dependencies.)
  *
@@ -23,4 +23,4 @@ if (!defined('MAIN_HOME')) {
 }
 
 // NOTE: constants.stub.php is loaded via its own bootstrapFiles entry in
-// phpstan.dist.neon (so PHPStan tracks it for result-cache invalidation).
+// build/phpstan.dist.neon (so PHPStan tracks it for result-cache invalidation).

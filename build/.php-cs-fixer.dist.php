@@ -15,7 +15,7 @@
  */
 
 $finder = PhpCsFixer\Finder::create()
-	->in(__DIR__ . '/src')
+	->in(__DIR__ . '/../src')
 	->name('*.php')
 	// Composer autoloader glue + third-party packages (committed + shipped).
 	->exclude('vendor')
@@ -34,6 +34,8 @@ $finder = PhpCsFixer\Finder::create()
 return (new PhpCsFixer\Config())
 	->setIndent("\t")
 	->setLineEnding("\n")
+	// Keep the cache next to this config (build/) instead of the repo root.
+	->setCacheFile(__DIR__ . '/.php-cs-fixer.cache')
 	->setRules([
 		// Remove imports that are no longer referenced (cleans up leftovers from
 		// the PSR-4 migration's automated `use` insertion).

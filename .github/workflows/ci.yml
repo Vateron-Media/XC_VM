@@ -15,7 +15,7 @@ name: CI
 # file is documentation. Any commit that also touches code still runs the full
 # gate — so this can never silently disable checks for a real source change. Do
 # not switch this to a `src/**` allowlist: the result also depends on tools/,
-# tests/, Makefile, composer.json/lock, .php-cs-fixer.dist.php and phpstan.dist.neon.
+# tests/, Makefile, composer.json/lock, build/.php-cs-fixer.dist.php and build/phpstan.dist.neon.
 on:
   push:
     branches: [main]
@@ -80,7 +80,7 @@ jobs:
       - name: Install dev dependencies
         run: composer install --no-interaction --working-dir=src
 
-      # Narrow ruleset: import / namespace hygiene only (see .php-cs-fixer.dist.php).
+      # Narrow ruleset: import / namespace hygiene only (see build/.php-cs-fixer.dist.php).
       # Dry-run fails on diff.
       - name: Run PHP-CS-Fixer
         run: make cs

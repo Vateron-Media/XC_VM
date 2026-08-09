@@ -17,7 +17,7 @@ hand during testing. Each is listed below with its purpose and how to run it.
 
 | Tool | Purpose |
 |------|---------|
-| `phpstan/phpstan-bootstrap.php` | PHPStan bootstrap — defines the global constants (e.g. `MAIN_HOME`) the code sets at runtime, so constant-dependent analysis stays accurate. A `bootstrapFile` in `phpstan.dist.neon`. |
+| `phpstan/phpstan-bootstrap.php` | PHPStan bootstrap — defines the global constants (e.g. `MAIN_HOME`) the code sets at runtime, so constant-dependent analysis stays accurate. A `bootstrapFile` in `build/phpstan.dist.neon`. |
 | `phpstan/constants.stub.php` | Auto-generated stub of the ~131 runtime `define()` constants PHPStan cannot see via static scanning. A `bootstrapFile`. **Do not hand-edit** — regenerate it. |
 | `phpstan/gen-constants-stub.php` | Regenerates `constants.stub.php` by scanning `src/` for `define()`s. Run via **`make phpstan-stub`** when runtime constants change. |
 

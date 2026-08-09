@@ -19,6 +19,6 @@ coverage.xml
 
 # Static-analysis / style caches
 .phpstan.cache/
-.php-cs-fixer.cache
+build/.php-cs-fixer.cache
 tools/test-stream-generator/sample.mp4
 .understand-anything/*

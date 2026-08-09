@@ -108,26 +108,26 @@ dev-clean:
 # ─── Static analysis (PHPStan) ──────────────────────────────────
 PHPSTAN := src/vendor/bin/phpstan
 
-# Run the analysis using phpstan.dist.neon.
+# Run the analysis using build/phpstan.dist.neon.
 phpstan:
 	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
-	@php "$(PHPSTAN)" analyse --memory-limit=2G
+	@php "$(PHPSTAN)" analyse -c build/phpstan.dist.neon --memory-limit=2G
 
-# Freeze all current errors into phpstan-baseline.neon (run after a level bump).
+# Freeze all current errors into build/phpstan-baseline.neon (run after a level bump).
 phpstan-baseline:
 	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
-	@php "$(PHPSTAN)" analyse --memory-limit=2G --generate-baseline=phpstan-baseline.neon
+	@php "$(PHPSTAN)" analyse -c build/phpstan.dist.neon --memory-limit=2G --generate-baseline=build/phpstan-baseline.neon
 
 # Regenerate tools/phpstan/constants.stub.php from the current src/ define()s.
 # Run when runtime-defined constants change so the stub PHPStan reads stays
-# accurate (constants.stub.php is a bootstrapFile in phpstan.dist.neon).
+# accurate (constants.stub.php is a bootstrapFile in build/phpstan.dist.neon).
 phpstan-stub:
 	@php tools/phpstan/gen-constants-stub.php > tools/phpstan/constants.stub.php
 	@echo "regenerated tools/phpstan/constants.stub.php ($$(grep -c 'define(' tools/phpstan/constants.stub.php) constants)"
 
 # ─── Code style (PHP-CS-Fixer) ──────────────────────────────────
 # Narrow ruleset — import/namespace hygiene only (no @PSR12 reformat). See
-# .php-cs-fixer.dist.php.
+# build/.php-cs-fixer.dist.php.
 CS_FIXER := src/vendor/bin/php-cs-fixer
 
 # short_open_tag=1 so the fixer analyses `<?`/`<?=` view templates as PHP (prod
@@ -138,12 +138,12 @@ CS_FLAGS := -d short_open_tag=1
 # Check only — fails (exit 8) on any diff. Used in CI.
 cs:
 	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
-	@php $(CS_FLAGS) "$(CS_FIXER)" fix --dry-run --diff --config=.php-cs-fixer.dist.php
+	@php $(CS_FLAGS) "$(CS_FIXER)" fix --dry-run --diff --config=build/.php-cs-fixer.dist.php
 
 # Apply fixes in place.
 cs-fix:
 	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
-	@php $(CS_FLAGS) "$(CS_FIXER)" fix --config=.php-cs-fixer.dist.php
+	@php $(CS_FLAGS) "$(CS_FIXER)" fix --config=build/.php-cs-fixer.dist.php
 
 # ─── PSR-4 regression gates ─────────────────────────────────────
 # Helper: print a variable's resolved value (consumed by CI gate scripts).
