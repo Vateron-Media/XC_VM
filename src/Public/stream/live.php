@@ -234,6 +234,28 @@ if ($rChannelInfo) {
         }
     }
 
+    // Insert a fresh lines_live connection row. Identical for HLS and TS except
+    // the container and the pid it records, so both switch arms share this.
+    $rWriteNewConnection = function ($rContainer, $rPid) use (
+        &$db, &$rSettings, &$rServers, &$rTokenData, &$rUserInfo, &$rIsHMAC, &$rIdentifier,
+        &$rStreamID, &$rServerID, &$rProxyID, &$rUserAgent, &$rIP, &$rCountryCode,
+        &$rExternalDevice, &$rActivityStart, &$rChannelInfo
+    ) {
+        $rNow = time() - intval($rServers[SERVER_ID]["time_offset"]);
+
+        if (is_null($rIsHMAC)) {
+            if ($rSettings["redis_handler"]) {
+                return ConnectionTracker::createConnection(array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rContainer, "pid" => $rPid, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => $rNow, "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]));
+            }
+            return $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rContainer, $rPid, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, $rNow);
+        }
+
+        if ($rSettings["redis_handler"]) {
+            return ConnectionTracker::createConnection(array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rContainer, "pid" => $rPid, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => $rNow, "on_demand" => $rChannelInfo["on_demand"], "identity" => $rIsHMAC . "_" . $rIdentifier, "uuid" => $rTokenData["uuid"]));
+        }
+        return $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rContainer, $rPid, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, $rNow);
+    };
+
     switch ($rExtension) {
         case "m3u8":
             if ($rSettings["redis_handler"]) {
@@ -257,21 +279,7 @@ if ($rChannelInfo) {
                     generateError("TOKEN_EXPIRED");
                 }
 
-                if (is_null($rIsHMAC)) {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                } else {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => "hls", "pid" => NULL, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rIsHMAC . "_" . $rIdentifier, "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, 'hls', NULL, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                }
+                $rResult = $rWriteNewConnection("hls", NULL);
             } else {
                 $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
@@ -339,21 +347,7 @@ if ($rChannelInfo) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
                 }
-                if (is_null($rIsHMAC)) {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("user_id" => $rUserInfo["id"], "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, "date_start" => $rActivityStart, "geoip_country_code" => $rCountryCode, "isp" => $rUserInfo["con_isp_name"], "external_device" => $rExternalDevice, "hls_end" => 0, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]), "on_demand" => $rChannelInfo["on_demand"], "identity" => $rUserInfo["id"], "uuid" => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rUserInfo["id"], $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                } else {
-                    if ($rSettings["redis_handler"]) {
-                        $rConnectionData = array("hmac_id" => $rIsHMAC, "hmac_identifier" => $rIdentifier, "stream_id" => $rStreamID, "server_id" => $rServerID, "proxy_id" => $rProxyID, "user_agent" => $rUserAgent, "user_ip" => $rIP, "container" => $rExtension, "pid" => $rPID, 'date_start' => $rActivityStart, 'geoip_country_code' => $rCountryCode, 'isp' => $rUserInfo["con_isp_name"], 'external_device' => $rExternalDevice, 'hls_end' => 0, 'hls_last_read' => time() - intval($rServers[SERVER_ID]["time_offset"]), 'on_demand' => $rChannelInfo["on_demand"], 'identity' => $rIsHMAC . '_' . $rIdentifier, 'uuid' => $rTokenData["uuid"]);
-                        $rResult = ConnectionTracker::createConnection($rConnectionData);
-                    } else {
-                        $rResult = $db->query('INSERT INTO `lines_live` (`hmac_id`,`hmac_identifier`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rIsHMAC, $rIdentifier, $rStreamID, $rServerID, $rProxyID, $rUserAgent, $rIP, $rExtension, $rPID, $rTokenData["uuid"], $rActivityStart, $rCountryCode, $rUserInfo["con_isp_name"], $rExternalDevice, time() - intval($rServers[SERVER_ID]["time_offset"]));
-                    }
-                }
+                $rResult = $rWriteNewConnection($rExtension, $rPID);
             } else {
                 $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
 
