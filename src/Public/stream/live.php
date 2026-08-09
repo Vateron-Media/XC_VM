@@ -272,17 +272,7 @@ if ($rChannelInfo) {
                     generateError("IP_MISMATCH");
                 }
 
-                if ($rSettings["redis_handler"]) {
-                    $rChanges = array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
-
-                    if ($rConnection = ConnectionTracker::updateConnection($rConnection, $rChanges, "open")) {
-                        $rResult = true;
-                    } else {
-                        $rResult = false;
-                    }
-                } else {
-                    $rResult = $db->query('UPDATE `lines_live` SET `hls_last_read` = ?, `hls_end` = 0, `server_id` = ?, `proxy_id` = ? WHERE `activity_id` = ?', time() - intval($rServers[SERVER_ID]["time_offset"]), $rServerID, $rProxyID, $rConnection["activity_id"]);
-                }
+                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("server_id" => $rServerID, "proxy_id" => $rProxyID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
             }
 
             if (!$rResult) {
@@ -332,17 +322,7 @@ if ($rChannelInfo) {
                     posix_kill(intval($rConnection["pid"]), 9);
                 }
 
-                if ($rSettings["redis_handler"]) {
-                    $rChanges = array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"]));
-
-                    if ($rConnection = ConnectionTracker::updateConnection($rConnection, $rChanges, "open")) {
-                        $rResult = true;
-                    } else {
-                        $rResult = false;
-                    }
-                } else {
-                    $rResult = $db->query('UPDATE `lines_live` SET `hls_end` = 0, `hls_last_read` = ?, `pid` = ? WHERE `activity_id` = ?;', time() - intval($rServers[SERVER_ID]["time_offset"]), $rPID, $rConnection["activity_id"]);
-                }
+                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
             }
 
             if (!$rResult) {

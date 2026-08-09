@@ -717,6 +717,38 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Refresh an existing live connection (Redis or lines_live), applying the
+	 * given column changes and re-opening the row (`hls_end = 0`). On the Redis
+	 * path $rConnection is updated in place with the stored record.
+	 *
+	 * @param array $rSettings  Settings (reads redis_handler).
+	 * @param array $rConnection Connection row (needs activity_id for the DB path).
+	 * @param array $rChanges    Column => value pairs to write (code-controlled keys).
+	 * @return bool True on a successful write.
+	 */
+	public static function updateLive(array $rSettings, array &$rConnection, array $rChanges): bool {
+		if ($rSettings["redis_handler"]) {
+			$rUpdated = self::updateConnection($rConnection, $rChanges, "open");
+			if ($rUpdated) {
+				$rConnection = $rUpdated;
+				return true;
+			}
+			return false;
+		}
+
+		$db = self::db();
+		$rSet = array();
+		$rParams = array();
+		foreach ($rChanges as $rColumn => $rValue) {
+			$rSet[] = "`" . $rColumn . "` = ?";
+			$rParams[] = $rValue;
+		}
+		$rParams[] = $rConnection["activity_id"];
+
+		return (bool) $db->query('UPDATE `lines_live` SET ' . implode(", ", $rSet) . ", `hls_end` = 0 WHERE `activity_id` = ?", ...$rParams);
+	}
+
+	/**
 	 * Get connections for a specific user/line.
 	 *
 	 * @param int  $rUserID User ID.
