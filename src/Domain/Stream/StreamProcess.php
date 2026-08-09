@@ -609,6 +609,39 @@ class StreamProcess {
 	}
 
 	/**
+	 * Read a stream's PID from its sidecar file if present, else fall back to
+	 * the named streams_servers column. Used when stopping a stream to locate
+	 * the feed and monitor processes.
+	 *
+	 * @param int    $rStreamID Stream id.
+	 * @param string $rColumn   Column to fall back to ('pid' or 'monitor_pid').
+	 * @param string $rSuffix   Sidecar suffix ('_.pid' or '_.monitor').
+	 * @return int PID, or 0 if none.
+	 */
+	private static function pidFromFileOrColumn($rStreamID, $rColumn, $rSuffix) {
+		if (file_exists(STREAMS_PATH . $rStreamID . $rSuffix)) {
+			return intval(file_get_contents(STREAMS_PATH . $rStreamID . $rSuffix));
+		}
+		$db = self::db();
+		$db->query('SELECT `' . $rColumn . '` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
+		$rStreamServer = $db->get_row();
+		return intval($rStreamServer[$rColumn] ?? 0);
+	}
+
+	/**
+	 * Reset a stream's per-server runtime row to the stopped state — clear pid,
+	 * source, codecs, status and analysis flags. Shared by the stop paths.
+	 *
+	 * @param int  $rStreamID    Stream id.
+	 * @param bool $rWithMonitor Also clear monitor_pid (full stop vs. movie stop).
+	 * @return void
+	 */
+	private static function resetStreamServerRow($rStreamID, $rWithMonitor = false) {
+		$rMonitor = $rWithMonitor ? ',`monitor_pid` = NULL' : '';
+		self::db()->query('UPDATE `streams_servers` SET `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`audio_codec` = NULL,`video_codec` = NULL,`resolution` = NULL,`compatible` = 0,`stream_status` = 0' . $rMonitor . ' WHERE `stream_id` = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
+	}
+
+	/**
 	 * Assemble the live ffmpeg command string from prepared state. PURE: no
 	 * probe/DB/shell/file I/O — a byte-faithful copy of the startStream assembly,
 	 * fed from $data instead of loop-local variables. The delay-playlist I/O and
@@ -873,26 +906,13 @@ class StreamProcess {
 	 * @return mixed Stop result.
 	 */
 	public static function stopStream($rStreamID, $rStop = false) {
-		$db = self::db();
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
-			$rMonitor = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
-		} else {
-			$db->query('SELECT `monitor_pid` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
-			$rStreamServer = $db->get_row();
-			$rMonitor = intval($rStreamServer['monitor_pid'] ?? 0);
-		}
+		$rMonitor = self::pidFromFileOrColumn($rStreamID, 'monitor_pid', '_.monitor');
 
 		if (0 < $rMonitor && \XcVm\Streaming\Health\ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
 			posix_kill($rMonitor, 9);
 		}
 
-		if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-			$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-		} else {
-			$db->query('SELECT `pid` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` = ? LIMIT 1;', SERVER_ID, $rStreamID);
-			$rStreamServer = $db->get_row();
-			$rPID = intval($rStreamServer['pid'] ?? 0);
-		}
+		$rPID = self::pidFromFileOrColumn($rStreamID, 'pid', '_.pid');
 
 		if (0 < $rPID && \XcVm\Streaming\Health\ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'XC_VMProxy[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID)) {
 			posix_kill($rPID, 9);
@@ -907,7 +927,7 @@ class StreamProcess {
 
 		if ($rStop) {
 			shell_exec('rm -f ' . DELAY_PATH . intval($rStreamID) . '_*');
-			$db->query('UPDATE `streams_servers` SET `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`audio_codec` = NULL,`video_codec` = NULL,`resolution` = NULL,`compatible` = 0,`stream_status` = 0,`monitor_pid` = NULL WHERE `stream_id` = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
+			self::resetStreamServerRow($rStreamID, true);
 			self::updateStream($rStreamID);
 		}
 	}
@@ -927,7 +947,7 @@ class StreamProcess {
 		} else {
 			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`, `cache`) VALUES(?, ?, ?, 1);', SERVER_ID, time(), json_encode(array('type' => 'delete_vod', 'id' => $rStreamID)));
 		}
-		$db->query('UPDATE `streams_servers` SET `bitrate` = NULL,`current_source` = NULL,`to_analyze` = 0,`pid` = NULL,`stream_started` = NULL,`stream_info` = NULL,`audio_codec` = NULL,`video_codec` = NULL,`resolution` = NULL,`compatible` = 0,`stream_status` = 0 WHERE `stream_id` = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
+		self::resetStreamServerRow($rStreamID);
 		self::updateStream($rStreamID);
 	}
 
