@@ -2,6 +2,7 @@
 
 use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -35,6 +36,7 @@ StreamAuthMiddleware::sendStreamHeaders($rSettings, $rServers);
 
 $rCreateExpiration = ($rSettings["create_expiration"] ?: 5);
 $rProxyID = NULL;
+$rServerID = SERVER_ID;
 $rIP = $_SERVER['REMOTE_ADDR'];
 $rUserAgent = (empty($_SERVER["HTTP_USER_AGENT"]) ? '' : htmlentities(trim($_SERVER["HTTP_USER_AGENT"])));
 $rConSpeedFile = NULL;
@@ -129,7 +131,7 @@ if ($rChannelInfo) {
             }
 
             if (!$rChannelInfo["monitor_pid"]) {
-                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
 
             for ($rRetries = 0; !AsyncFileOperations::awaitFileExists(STREAMS_PATH . intval($rStreamID) . "_.pid", 1, 10) && $rRetries < 300; $rRetries++) {
@@ -138,7 +140,7 @@ if ($rChannelInfo) {
             $rChannelInfo["pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid")) ?: NULL);
 
             if (!$rChannelInfo["pid"]) {
-                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
         } else {
             if (!empty($rChannelInfo["proxy"])) {
@@ -152,12 +154,12 @@ if ($rChannelInfo) {
                 }
 
                 if (!$rChannelInfo["monitor_pid"]) {
-                    OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                    OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
                 }
 
                 $rChannelInfo["pid"] = $rChannelInfo["monitor_pid"];
             } else {
-                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
         }
     }
@@ -179,7 +181,7 @@ if ($rChannelInfo) {
                 } else {
                     // Verify stream is still running
                     if (!(ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID) && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID))) {
-                        OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                        OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
                     }
                 }
             }
@@ -226,7 +228,7 @@ if ($rChannelInfo) {
             }
         }
 
-        $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rAcceptIP), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rAcceptIP == $rIP);
+        $rIPMatch = NetworkUtils::ipMatches($rSettings["ip_subnet_match"], $rAcceptIP, $rIP);
 
         if ($rAcceptIP && !$rIPMatch) {
             DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "USER_ALREADY_CONNECTED", $rIP);
@@ -265,7 +267,7 @@ if ($rChannelInfo) {
 
                 $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, "hls", NULL);
             } else {
-                $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
+                $rIPMatch = NetworkUtils::ipMatches($rSettings["ip_subnet_match"], $rConnection["user_ip"], $rIP);
 
                 if (!$rIPMatch && $rSettings["restrict_same_ip"]) {
                     DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
@@ -298,7 +300,7 @@ if ($rChannelInfo) {
                 header("Cache-Control: no-store, no-cache, must-revalidate");
                 echo $rHLS;
             } else {
-                OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+                OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
 
             exit();
@@ -311,7 +313,7 @@ if ($rChannelInfo) {
                 }
                 $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rPID);
             } else {
-                $rIPMatch = ($rSettings["ip_subnet_match"] ? implode(".", array_slice(explode(".", $rConnection["user_ip"]), 0, -1)) == implode(".", array_slice(explode(".", $rIP), 0, -1)) : $rConnection["user_ip"] == $rIP);
+                $rIPMatch = NetworkUtils::ipMatches($rSettings["ip_subnet_match"], $rConnection["user_ip"], $rIP);
 
                 if (!$rIPMatch && $rSettings["restrict_same_ip"]) {
                     DatabaseLogger::clientLog($rStreamID, $rUserInfo["id"], "IP_MISMATCH", $rIP);
@@ -626,5 +628,5 @@ if ($rChannelInfo) {
             }
     }
 } else {
-    OffAirHandler::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+    OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
 }

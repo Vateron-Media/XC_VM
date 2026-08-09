@@ -41,6 +41,23 @@ class NetworkUtils {
     }
 
     /**
+     * Whether two IPs match — exactly, or on the same /24 (first three octets)
+     * when $rSubnetMatch is on. Used to compare a stored connection IP against
+     * the current client IP.
+     *
+     * @param bool        $rSubnetMatch Compare only the leading three octets.
+     * @param string|null $rTargetIP    Stored / other IP.
+     * @param string|null $rClientIP    Current client IP.
+     * @return bool
+     */
+    public static function ipMatches($rSubnetMatch, $rTargetIP, $rClientIP): bool {
+        if ($rSubnetMatch) {
+            return implode(".", array_slice(explode(".", (string) $rTargetIP), 0, -1)) == implode(".", array_slice(explode(".", (string) $rClientIP), 0, -1));
+        }
+        return $rTargetIP == $rClientIP;
+    }
+
+    /**
      * Check if an IP address is in a CIDR range
      *
      * @param string $ip IP address to check

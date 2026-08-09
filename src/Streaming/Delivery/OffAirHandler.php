@@ -53,6 +53,22 @@ class OffAirHandler {
 		}
 	}
 
+	/**
+	 * Show the "not on air" video for a server-side stream — the common case of
+	 * showVideoServer() with the not-on-air option/path keys and the line's ISP.
+	 *
+	 * @param string   $rExtension   Requested container.
+	 * @param array    $rUserInfo    Line row.
+	 * @param string   $rIP          Client IP.
+	 * @param string   $rCountryCode GeoIP country code.
+	 * @param int|null $rServerID    Serving server id.
+	 * @param int|null $rProxyID     Proxy id.
+	 * @return void
+	 */
+	public static function showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID = null, $rProxyID = null) {
+		self::showVideoServer("show_not_on_air_video", "not_on_air_video_path", $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo["con_isp_name"], $rServerID, $rProxyID);
+	}
+
 	public static function showVideoServer($rShowOptionKey, $rVideoPathKey, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null) {
 		global $rSettings, $rServers;
 		$rVideoPath = self::getOffAirVideo($rVideoPathKey);
