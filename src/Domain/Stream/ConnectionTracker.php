@@ -509,6 +509,66 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Stream IDs this server is actively serving on-demand — an on_demand row
+	 * with a running feed (pid set). Used by the on-demand killer to know which
+	 * streams to check for idleness.
+	 *
+	 * @param int $rServerID This server's id.
+	 * @return array<int,int> List of stream ids.
+	 */
+	public static function activeOnDemandStreamIDs(int $rServerID): array {
+		$db = self::db();
+		$db->query("SELECT stream_id FROM streams_servers WHERE server_id = ? AND on_demand = 1 AND pid IS NOT NULL AND pid > 0", $rServerID);
+		return $db->get_column();
+	}
+
+	/**
+	 * For each given stream, how many child servers are actively restreaming it
+	 * from this server (a live parent_id row with both a running feed and
+	 * monitor). A stream with attached restreamers must not be killed.
+	 *
+	 * @param array<int,int> $rStreamIDs Streams to count for.
+	 * @param int            $rServerID  This server's id (the parent).
+	 * @return array<int,int> stream_id => restreamer count.
+	 */
+	public static function attachedRestreamCounts(array $rStreamIDs, int $rServerID): array {
+		if (empty($rStreamIDs)) {
+			return [];
+		}
+		$db = self::db();
+		$rPlaceholders = str_repeat('?,', count($rStreamIDs) - 1) . '?';
+		$db->query("SELECT stream_id, COUNT(*) AS cnt FROM streams_servers WHERE parent_id = ? AND pid > 0 AND monitor_pid > 0 AND stream_id IN ($rPlaceholders) GROUP BY stream_id", $rServerID, ...$rStreamIDs);
+		$rCounts = [];
+		foreach ($db->get_rows(true, 'stream_id') as $rID => $rRow) {
+			$rCounts[$rID] = (int) $rRow['cnt'];
+		}
+		return $rCounts;
+	}
+
+	/**
+	 * DB fallback for the live viewer count per stream on this server (used when
+	 * the Redis connection store is off — otherwise getStreamConnections covers
+	 * it). Counts open live lines (hls_end = 0).
+	 *
+	 * @param array<int,int> $rStreamIDs Streams to count for.
+	 * @param int            $rServerID  This server's id.
+	 * @return array<int,int> stream_id => viewer count.
+	 */
+	public static function onlineClientCounts(array $rStreamIDs, int $rServerID): array {
+		if (empty($rStreamIDs)) {
+			return [];
+		}
+		$db = self::db();
+		$rPlaceholders = str_repeat('?,', count($rStreamIDs) - 1) . '?';
+		$db->query("SELECT stream_id, COUNT(*) AS cnt FROM lines_live WHERE server_id = ? AND hls_end = 0 AND stream_id IN ($rPlaceholders) GROUP BY stream_id", $rServerID, ...$rStreamIDs);
+		$rCounts = [];
+		foreach ($db->get_rows(true, 'stream_id') as $rID => $rRow) {
+			$rCounts[$rID] = (int) $rRow['cnt'];
+		}
+		return $rCounts;
+	}
+
+	/**
 	 * Universal Redis connection query with multiple filters.
 	 *
 	 * Reads from LIVE/LINE#/STREAM#/SERVER# depending on provided filters.
