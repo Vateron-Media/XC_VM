@@ -1,20 +1,9 @@
 {
-    "version": "2.3.8",
-    "changes": [
-        "Improved HLS prebuffering with duration-based buffering",
-        "Fixed on-demand prebuffering before the first TS burst",
-        "Improved LLOD HTTP stream reconnection after source drops",
-        "Improved live MPEG-TS delivery by removing per-read throttling",
-        "Fixed VOD subtitle importing to include all available subtitles",
-        "Fixed FFprobe cache lookup using the correct cache key",
-        "Fixed MaxMind GeoIP forced downloads",
-        "Fixed ISP/ASN detection and user streaming information handling",
-        "Improved stream connection tracking and process cleanup",
-        "Refactored stream startup and command generation for better stability and maintainability",
-        "Major cleanup and refactoring of the stream monitor and supervisor",
-        "Improved CI workflows and GitHub Actions dependencies",
-        "Updated PHPStan baseline to 2.2.8 and improved static analysis tooling",
-        "Added stream queue integrity monitoring tools",
-        "Updated documentation and developer tooling"
-    ]
+  "version": "2.3.9",
+  "changes": [
+    "Updated the bundled php.ini with the xcvm_core.server_url configuration",
+    "Fixed database reconnect logic to prevent fallback to the xc_vm_migrat database",
+    "Fixed watchdog database handling to ensure it does not use the migration database",
+    "Improved database reliability and consistency during reconnect and watchdog operations"
+  ]
 }
