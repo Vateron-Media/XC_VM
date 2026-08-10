@@ -105,23 +105,38 @@ class Database {
 	/**
 	 * Connect using the panel's configured credentials.
 	 *
-	 * On failure exits with a JSON error unless running in migrate mode.
+	 * IMPORTANT: `$migrate` selects the TARGET schema, not just the failure mode.
+	 * The xcvm_core extension resolves `\XC_VM::db_connect(true)` to the
+	 * `xc_vm_migrate` scratch database (that is how the migration flow reads a
+	 * restored old-panel backup). Passing `true` here merely to get "return false
+	 * instead of exit" therefore silently repoints the connection at
+	 * `xc_vm_migrate`; once that DB exists (after a migration) every unqualified
+	 * query resolves against it and fails with "Table 'xc_vm_migrate.<t>' doesn't
+	 * exist". Callers that only want to fail gracefully on the MAIN database must
+	 * pass $graceful, NOT $migrate.
 	 *
-	 * @param bool $migrate When true, return false on failure instead of exiting.
+	 * @param bool      $migrate  Connect to the `xc_vm_migrate` schema instead of
+	 *                            the configured one. Use only for migration code.
+	 * @param bool|null $graceful Return false on failure instead of exiting. When
+	 *                            null it defaults to $migrate (legacy behaviour).
 	 * @return bool True on success.
 	 */
-	public function db_connect($migrate = false) {
+	public function db_connect($migrate = false, $graceful = null) {
+		if ($graceful === null) {
+			$graceful = $migrate;
+		}
+
 		try {
 			$this->dbh = \XC_VM::db_connect($migrate);
 			if (!$this->dbh) {
-				if (!$migrate) {
+				if (!$graceful) {
 					exit(json_encode(array('error' => 'MySQL: Cannot connect to database! Please check credentials.')));
 				}
 
 				return false;
 			}
 		} catch (\PDOException $e) {
-			if (!$migrate) {
+			if (!$graceful) {
 				exit(json_encode(array('error' => 'MySQL: ' . $e->getMessage())));
 			}
 			return false;

@@ -201,10 +201,12 @@ class WatchdogCommand implements CommandInterface {
 	/**
 	 * Block until the panel database accepts connections again.
 	 *
-	 * db_connect(true) returns false instead of exit()ing on failure, so the
-	 * watchdog can sit out a MariaDB restart/outage on the main and resume the
-	 * heartbeat the moment the DB is back, instead of dying and leaving the
-	 * node "offline" until cron:servers revives it.
+	 * db_connect(false, true) reconnects to the MAIN panel DB and returns false
+	 * instead of exit()ing on failure, so the watchdog can sit out a MariaDB
+	 * restart/outage on the main and resume the heartbeat the moment the DB is
+	 * back, instead of dying and leaving the node "offline" until cron:servers
+	 * revives it. (migrate=true would probe `xc_vm_migrate` and, worse, leave the
+	 * global $db pointing at it.)
 	 *
 	 * @param object|null $db The global Database wrapper.
 	 */
@@ -214,7 +216,7 @@ class WatchdogCommand implements CommandInterface {
 		}
 		echo "Database unavailable - waiting for it to come back...\n";
 		$rAttempt = 0;
-		while (!$db->db_connect(true)) {
+		while (!$db->db_connect(false, true)) {
 			$rAttempt++;
 			if ($rAttempt % 12 === 0) {
 				echo 'Still waiting for the database (' . ($rAttempt * 5) . "s)...\n";
