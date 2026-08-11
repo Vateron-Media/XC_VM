@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Database;
 
-use XcVm\Core\Container\ServiceContainer;
-
 /**
  * Менеджер базы данных (\PDO)
  *
@@ -70,8 +68,6 @@ use XcVm\Core\Container\ServiceContainer;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-
-require_once __DIR__ . '/Database.php';
 
 class DatabaseHandler extends Database {
 

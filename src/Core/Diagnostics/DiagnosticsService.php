@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Diagnostics;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Http\ApiClient;
 
 /**

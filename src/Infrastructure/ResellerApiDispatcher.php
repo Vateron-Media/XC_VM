@@ -4,7 +4,6 @@ namespace XcVm\Infrastructure;
 
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Device\EnigmaService;

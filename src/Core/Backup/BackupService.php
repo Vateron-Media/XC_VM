@@ -3,7 +3,6 @@
 namespace XcVm\Core\Backup;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Storage\DropboxClient;
 
 /**

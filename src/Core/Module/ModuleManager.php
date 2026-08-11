@@ -4,7 +4,6 @@ namespace XcVm\Core\Module;
 
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Updates\GitHubReleases;

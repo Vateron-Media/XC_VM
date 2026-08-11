@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Logging\Logger;

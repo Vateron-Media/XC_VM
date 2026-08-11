@@ -3,7 +3,6 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Database\Database;
 use XcVm\Domain\Stream\StreamConfigRepository;
 
 /**

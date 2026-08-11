@@ -2,7 +2,6 @@
 
 use XcVm\Cli\Commands\MigrateCommand;
 use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Database\Database;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Database\QueryHelper;
 

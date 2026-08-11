@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Enum;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Localization\Translator;
 

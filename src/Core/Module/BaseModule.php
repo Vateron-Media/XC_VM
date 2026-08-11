@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Module;
 
-use XcVm\Core\Database\Database;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 
