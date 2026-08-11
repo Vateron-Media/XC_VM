@@ -106,7 +106,7 @@ final class ArchitectureTest extends TestCase {
      * Web-context module files must not use `global $db`.
      *
      * Exemptions:
-     * - ministra/ — BoundaryInterface subsystem with its own portal bootstrap (permanent)
+     * - ministra/ — isolated subsystem with its own portal bootstrap (permanent)
      */
     public function testNoWebContextModuleUsesGlobalDb(): void {
         $ministraDir = $this->moduleDirBasename('ministra');

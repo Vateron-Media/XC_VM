@@ -232,7 +232,7 @@ class MyModuleModule extends BaseModule {
 
 > **Tip:** a module with no routes, no navbar items, and no CLI commands only needs
 > `getName()`, `getVersion()`, and `boot()`.
-> A `BoundaryInterface` module (isolated subsystem with its own entry point) typically
+> An isolated-subsystem module (its own entry point and bootstrap, like Ministra) typically
 > leaves `boot()` and `registerRoutes()` inherited as no-ops.
 
 ### Method contract
@@ -523,34 +523,31 @@ Under the hood:
 
 ---
 
-## Isolated subsystems (BoundaryInterface)
+## Isolated subsystems
 
-A module that is a fully isolated subsystem with its own entry point and bootstrap
-(like Ministra) implements `BoundaryInterface` alongside `ModuleInterface`:
+A module can be a fully isolated subsystem with its own entry point and bootstrap
+(like Ministra). This is a **convention**, not a marker interface — it stays an
+ordinary `ModuleInterface`/`BaseModule` module:
 
 ```php
-class MyModule implements ModuleInterface, BoundaryInterface {
+class MyModule extends BaseModule {
 
     public function getName(): string {
         return 'my-module';
     }
 
-    public function getEntryPoint(): string {
-        // Path relative to src/ — this file handles its own bootstrap
-        return 'my-module/portal.php';
-    }
-
-    public function isIsolated(): bool {
-        return true;
+    public function getVersion(): string {
+        return '1.0.0';
     }
 }
 ```
 
-`BoundaryInterface` is an isolation marker. `isIsolated() = true` means the subsystem
-runs through its own entry point with a separate bootstrap path. It shares infrastructure
-(db, cache, config) but does **not** participate in the main `Router`, `ModuleLoader::bootAll()`,
-or `NavbarRegistry`. The `boot()` and `registerRoutes()` implementations may be left as
-no-ops in this case.
+Isolation means the subsystem runs through its own public entry point (e.g.
+`my-module/portal.php`, a path relative to `src/` that handles its own bootstrap)
+with a separate bootstrap path. It shares infrastructure (db, cache, config) but
+does **not** participate in the main `Router`, `ModuleLoader::bootAll()`, or
+`NavbarRegistry`. The `boot()` and `registerRoutes()` implementations are typically
+left as inherited no-ops.
 
 ---
 

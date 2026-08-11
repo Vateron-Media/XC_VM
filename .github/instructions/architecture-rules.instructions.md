@@ -18,7 +18,7 @@ Authoritative reference: `docs/en/development/architecture.md`.
 | `src/Public/` | Front controller, router, controllers, views, assets |
 | `src/Cli/` | Console commands and cron entry points |
 | `src/Modules/` | Optional extension layer (`{name}_{hash5}/`), loaded by `ModuleLoader` |
-| `src/ministra/` | Stalker Portal — isolated subsystem (`BoundaryInterface`) |
+| `src/ministra/` | Stalker Portal — isolated subsystem |
 
 ## Layer pattern
 Every domain context follows **Controller → Service → Repository → Database**:

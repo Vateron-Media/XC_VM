@@ -665,27 +665,19 @@ $manager->downloadFromPlatform(slug: 'my-module', version: '1.2.0', apiKey: $key
 
 ---
 
-## Изолированные подсистемы (BoundaryInterface)
+## Изолированные подсистемы
 
-Если модуль является изолированной подсистемой с собственным bootstrap (как Ministra), он реализует `BoundaryInterface`:
+Модуль может быть полностью изолированной подсистемой с собственной точкой входа и bootstrap (как Ministra). Это **соглашение**, а не маркер-интерфейс — он остаётся обычным модулем на `BaseModule`:
 
 ```php
-class MyModule extends BaseModule implements BoundaryInterface {
+class MyModule extends BaseModule {
 
     public function getName(): string { return 'my-module'; }
     public function getVersion(): string { return '1.0.0'; }
-
-    public function getEntryPoint(): string {
-        return 'my-module/portal.php';
-    }
-
-    public function isIsolated(): bool {
-        return true;
-    }
 }
 ```
 
-`BoundaryInterface` — маркер изоляции. `isIsolated() = true` означает, что подсистема запускается через собственный entry point с отдельным bootstrap.
+Изоляция означает, что подсистема запускается через собственную публичную точку входа (например, `my-module/portal.php`, путь относительно `src/` с отдельным bootstrap). Она делит инфраструктуру (БД, кэш, конфиг), но **не** участвует в основном `Router`, `ModuleLoader::bootAll()` и `NavbarRegistry`.
 
 ---
 

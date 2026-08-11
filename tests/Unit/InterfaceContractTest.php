@@ -2,7 +2,6 @@
 
 use XcVm\Module\Ministra\MinistraModule;
 use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Events\ListensTo;
 use XcVm\Core\Events\EventDispatcher;
@@ -108,30 +107,6 @@ final class InterfaceContractTest extends TestCase {
     public function testStreamMiddlewareProviderInterfaceHasGetStreamMiddleware(): void {
         $rc = new ReflectionClass(StreamMiddlewareProviderInterface::class);
         $this->assertInterfaceMethod($rc, 'getStreamMiddleware', [], 'array');
-    }
-
-    // ── BoundaryInterface ─────────────────────────────────────────
-
-    public function testBoundaryInterfaceHasCorrectMethods(): void {
-        $rc = new ReflectionClass(BoundaryInterface::class);
-        $this->assertTrue($rc->isInterface());
-
-        $this->assertInterfaceMethod($rc, 'getName',       [], 'string');
-        $this->assertInterfaceMethod($rc, 'getEntryPoint', [], 'string');
-        $this->assertInterfaceMethod($rc, 'isIsolated',    [], 'bool');
-    }
-
-    public function testBoundaryInterfaceHasExactlyThreeMethods(): void {
-        $rc = new ReflectionClass(BoundaryInterface::class);
-        $own = array_filter(
-            $rc->getMethods(ReflectionMethod::IS_PUBLIC),
-            fn(ReflectionMethod $m) => $m->getDeclaringClass()->getName() === BoundaryInterface::class
-        );
-        $this->assertCount(
-            3,
-            $own,
-            'BoundaryInterface must have exactly 3 methods: getName, getEntryPoint, isIsolated'
-        );
     }
 
     // ── MigratableInterface ───────────────────────────────────────
@@ -258,24 +233,6 @@ final class InterfaceContractTest extends TestCase {
                 "EventDispatcher::{$method}() must be static (backward-compat bridge)"
             );
         }
-    }
-
-    // ── MinistraModule ────────────────────────────────────────────
-
-    public function testMinistraModuleImplementsBoundaryInterface(): void {
-        if (!class_exists(\XcVm\Module\Ministra\MinistraModule::class)) {
-            // Module directories use the `{name}_{hash5}` convention, so glob for the
-            // ministra dir rather than assuming a bare `Modules/ministra/` path.
-            $base    = defined('MAIN_HOME') ? MAIN_HOME . 'Modules' : __DIR__ . '/../../src/Modules';
-            $matches = glob($base . '/ministra*/MinistraModule.php');
-            $file    = $matches[0] ?? ($base . '/ministra/MinistraModule.php');
-            require_once $file;
-        }
-        $rc = new ReflectionClass(\XcVm\Module\Ministra\MinistraModule::class);
-        $this->assertTrue(
-            $rc->implementsInterface(BoundaryInterface::class),
-            'MinistraModule must implement BoundaryInterface'
-        );
     }
 
     // ── ModuleState enum ──────────────────────────────────────────

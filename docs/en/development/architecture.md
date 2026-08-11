@@ -19,7 +19,7 @@ Structured PHP monolith with a modular extension layer.
 | `src/Modules/` | Optional extension layer — loaded by `ModuleLoader` |
 | `src/Public/` | Front controller, router, controllers, views, assets |
 | `src/Cli/` | Console commands and cron entry points |
-| `src/ministra/` | Stalker Portal — isolated subsystem (`BoundaryInterface`) |
+| `src/ministra/` | Stalker Portal — isolated subsystem |
 
 ---
 

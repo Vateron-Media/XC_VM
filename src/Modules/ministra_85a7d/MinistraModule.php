@@ -2,7 +2,6 @@
 
 namespace XcVm\Module\Ministra;
 
-use XcVm\Core\Boundary\BoundaryInterface;
 use XcVm\Core\Module\BaseModule;
 
 /**
@@ -40,7 +39,7 @@ use XcVm\Core\Module\BaseModule;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class MinistraModule extends BaseModule implements BoundaryInterface {
+class MinistraModule extends BaseModule {
 
     public function getName(): string {
         return 'ministra';
@@ -48,13 +47,5 @@ class MinistraModule extends BaseModule implements BoundaryInterface {
 
     public function getVersion(): string {
         return '1.0.0';
-    }
-
-    public function getEntryPoint(): string {
-        return 'ministra/portal.php';
-    }
-
-    public function isIsolated(): bool {
-        return true;
     }
 }
