@@ -29,11 +29,8 @@
  */
 
 return [
-    [
-        'hash_id' => '85a7d49c32231f2141ab697a946c3aed',
-        'name'    => 'ministra',
-        'source'  => 'bundled',
-    ],
+    // ministra is no longer a module — the Stalker portal moved into core at
+    // src/Ministra/ (served via /home/xc_vm/Ministra). No entry needed here.
     [
         'hash_id'    => '2541abe329f151202d7a3c4ecfb17db4',
         'name'       => 'watch',

@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Module\Ministra\MinistraModule;
 use XcVm\Cli\CommandRegistry;
 use XcVm\Core\Enum\ModuleState;
 use XcVm\Core\Events\ListensTo;

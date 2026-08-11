@@ -96,7 +96,7 @@ class AuthRepository {
 				// identifiers baked into generated access-code configs — NOT filesystem paths.
 				// Do not rename without regenerating all deployed nginx configs.
 				$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
-				$rAlias = array('Public/Views/admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'Public/assets/player')[$rCode['type']];
+				$rAlias = array('Public/Views/admin', 'reseller', 'Ministra', 'includes/api/admin', 'includes/api/reseller', 'Ministra/new', 'Public/assets/player')[$rCode['type']];
 				$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
 				$rCurrentTemplate = in_array($rType, array('ministra', 'ministra/new')) ? $rMinistraTemplate : $rTemplate;
 

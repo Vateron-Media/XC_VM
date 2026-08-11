@@ -1,6 +1,6 @@
 <?php
 
-namespace XcVm\Module\Ministra;
+namespace XcVm\Ministra;
 
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;

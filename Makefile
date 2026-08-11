@@ -22,8 +22,9 @@ EXCLUDES := \
 	.git
 
 # Directories to copy from MAIN to LB
-# NOTE: Modules/ is intentionally excluded — all modules are MAIN-only.
-LB_DIRS := bin Cli config content Core Domain Modules\
+# NOTE: Modules/ is intentionally excluded — all modules are MAIN-only
+# (e.g. the ministra portal, whose ~50 MB of assets must not ship to LB nodes).
+LB_DIRS := bin Cli config content Core Domain\
 	Infrastructure Public resources signals Streaming tmp vendor www
 
 # Root-level files to copy from MAIN to LB (not inside directories)
