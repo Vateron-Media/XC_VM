@@ -122,15 +122,15 @@ Common causes:
 
 ## Implementation References
 
-- Client parameters and API calls: `src/ministra/xpcom.common.js`
-- Debug/get parameter initialization: `src/ministra/index.html`
-- Server-side device checks and profile: `src/ministra/portal.php`
-- Handshake/get_profile orchestration: `src/Modules/ministra/PortalHandler.php`
+- Client parameters and API calls: `src/Ministra/xpcom.common.js`
+- Debug/get parameter initialization: `src/Ministra/index.html`
+- Server-side device checks and profile: `src/Ministra/portal.php`
+- Handshake/get_profile orchestration: `src/Ministra/PortalHandler.php`
 
 ## Related files
 
 | File | Role |
 | --- | --- |
-| `src/ministra/portal.php` | Ministra portal entry point |
-| `src/ministra/index.html` | Emulated STB browser page |
-| `src/Modules/ministra/PortalHandler.php` | Portal request handler |
+| `src/Ministra/portal.php` | Ministra portal entry point |
+| `src/Ministra/index.html` | Emulated STB browser page |
+| `src/Ministra/PortalHandler.php` | Portal request handler |

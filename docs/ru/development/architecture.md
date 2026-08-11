@@ -19,7 +19,7 @@
 | `src/Modules/` | Опциональный слой расширений — загружается `ModuleLoader` |
 | `src/Public/` | Front controller, router, controllers, views, assets |
 | `src/Cli/` | Консольные команды и точки входа для cron |
-| `src/ministra/` | Stalker Portal — изолированная подсистема |
+| `src/Ministra/` | Stalker Portal — в ядре; отдаётся по `/home/xc_vm/Ministra` |
 
 ---
 

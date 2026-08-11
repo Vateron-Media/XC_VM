@@ -1,0 +1,26 @@
+# Dead-code audit config — NOT part of the green CI gate.
+#
+# Reuses the main analysis setup (paths, stubs, ignoreErrors, baseline) and
+# layers the `tomasvotruba/unused-public` extension on top to report public
+# methods / properties / constants that are never referenced anywhere in the
+# analysed tree. PHPStan already reports unused PRIVATE members on its own at
+# the gate; this config adds the PUBLIC surface.
+#
+# Run on demand:   make phpstan-deadcode
+#
+# Expect FALSE POSITIVES: any public method reached only dynamically — router
+# dispatch, #[ListensTo] event subscribers, CLI command handlers, module hooks,
+# view templates — looks "unused" to static analysis. Treat the output as leads
+# to verify by hand, never as an auto-delete list.
+includes:
+    - phpstan.dist.neon
+    - ../src/vendor/tomasvotruba/unused-public/config/extension.neon
+
+parameters:
+    unused_public:
+        methods: true
+        properties: true
+        constants: true
+        # Also flag public methods only ever called from within their own class
+        # (candidates to demote to private). Noisy — flip on when you want it.
+        local_methods: false

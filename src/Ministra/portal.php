@@ -8,7 +8,7 @@ use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Cache\CacheReader;
-use XcVm\Module\Ministra\PortalHandler;
+use XcVm\Ministra\PortalHandler;
 
 header('Cache-Control: no-store, no-cache, must-revalidate');
 header('Cache-Control: post-check=0, pre-check=0', false);
@@ -17,17 +17,12 @@ header('Pragma: no-cache');
 $rReqType = (!empty($_REQUEST['type']) ? $_REQUEST['type'] : null);
 $rReqAction = (!empty($_REQUEST['action']) ? $_REQUEST['action'] : null);
 
-// Module dirs are `{name}_{hash5}` since the module migration (a legacy bare
-// `ministra` dir is still possible) — resolve PortalHandler in either layout.
-// This runs before composer autoload on purpose: pre-init stubs need no DB/vendor.
-$rPortalHandlerFile = __DIR__ . '/../Modules/ministra/PortalHandler.php';
+// PortalHandler is a sibling file in this dir. Loaded here, before composer
+// autoload, on purpose: the pre-init stubs need no DB/vendor.
+$rPortalHandlerFile = __DIR__ . '/PortalHandler.php';
 if (!is_file($rPortalHandlerFile)) {
-	$rPortalHandlerGlob = glob(__DIR__ . '/../Modules/ministra_*/PortalHandler.php');
-	if (empty($rPortalHandlerGlob)) {
-		http_response_code(503);
-		exit('// ministra module files are missing');
-	}
-	$rPortalHandlerFile = $rPortalHandlerGlob[0];
+	http_response_code(503);
+	exit('// ministra files are missing');
 }
 require $rPortalHandlerFile;
 
@@ -35,11 +30,12 @@ require $rPortalHandlerFile;
 PortalHandler::handlePreInit($rReqType, $rReqAction);
 
 register_shutdown_function('shutdown');
+// src/Ministra → src/ (deploy root == MAIN_HOME).
 if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', dirname(__DIR__) . '/');
 }
-require_once dirname(__DIR__) . '/vendor/autoload.php';
-require_once dirname(__DIR__) . '/ministra/MinistraBootstrap.php';
+require_once MAIN_HOME . 'vendor/autoload.php';
+require_once __DIR__ . '/MinistraBootstrap.php';
 MinistraBootstrap::boot();
 
 $rRequestPath = parse_url(($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);

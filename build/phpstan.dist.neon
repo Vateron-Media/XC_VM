@@ -12,6 +12,7 @@ parameters:
         - ../src/Infrastructure
         - ../src/Streaming
         - ../src/Modules
+        - ../src/Ministra
         - ../src/Cli
 
     # The bootstrap only defines global constants; it does NOT wire a project
@@ -29,7 +30,6 @@ parameters:
     scanDirectories:
         - ../src/Public
         - ../src/signals
-        - ../src/ministra
         - ../src/content
         - ../src/resources
         - ../src/config
@@ -54,6 +54,12 @@ parameters:
             # PHPStan analyses files standalone and would flag every such var as
             # undefined — not real bugs. (Still indexed via scanDirectories.)
             - ../src/Modules/*/views/*
+            # ministra portal entry: procedural front-controller whose
+            # $rSettings/$db are injected by the bootstrap it includes — same
+            # standalone-analysis false positives as views. The PortalHandler /
+            # PortalHelpers classes next to it ARE analysed; only this entry is
+            # excluded (it was scan-only under the old src/ministra layout too).
+            - ../src/Ministra/portal.php
             # Bundled third-party libraries (not our code): the php-tmdb client
             # and the Mobile-Detect library. Like the vendored packages above,
             # they are indexed for symbol resolution but not analysed.
