@@ -114,6 +114,33 @@ XC_VM's brute-force guard blocks IPs after too many failed login attempts. This 
 </details>
 
 <details>
+<summary><b>❌ Set-top box gets blocked after a reset/firmware change (its serial or device_id changed, but the panel has the old one)</b></summary>
+
+---
+
+A box that used to work starts getting its **IP blocked** after a **factory reset, firmware change/update, hardware swap** (or moving the MAC to a different box): it now reports a **different serial number (`sn`) or `device_id`** than what the panel has stored. On `get_profile` the server blocks the IP and the portal returns 404.
+
+This is **not a bug** — it's the portal's anti-clone protection, **MAGSCAN**. It requires a serial number and compares the posted `sn` against the stored `mag_devices.sn`:
+
+- **No serial number** in the request → ban (`[MS] No Serial Number`).
+- **Posted `sn` ≠ the device's stored `sn`** → ban (`[MS] Invalid Serial Number`).
+
+In both cases the IP is written to the `blocked_ips` table (and from there into iptables) and the device gets a 404. If the device has the **`lock_device`** flag set, `device_id`, `device_id2` and `hw_version` are checked too — a mismatch fails verification and the device shows "your device is not active" (without an IP ban).
+
+**How to fix (for a legitimate box whose data genuinely changed):**
+
+1. **Reset the binding in the panel:** open that MAG device in admin and **clear its stored serial number / `device_id`** (or delete and re-add the device). The "serial already recorded" condition then no longer triggers, and the next connection binds the new values.
+2. **Unblock the IP.** Easiest way — **via the web panel**: open **Tools → IP Management** (`/<admin-code>/ips`), which lists the blocked IPs — remove the one you need (or clear the whole list). CLI / manual options if you can't reach the panel:
+   - CLI (clear all blocks): `sudo /home/xc_vm/console.php tools flush`;
+   - Manually, per IP: `sudo iptables -D INPUT -s <IP> -j DROP && sudo rm -f /home/xc_vm/tmp/flood/block_<IP>`.
+
+> ⚠️ The `enable_debug_stalker` setting bypasses the `lock_device` / image checks but **NOT** the MAGSCAN serial hard-ban (which runs earlier) — you still have to clear the stored `sn` in the panel.
+
+---
+
+</details>
+
+<details>
 <summary><b>❌ Forgot admin password / can't log in at all</b></summary>
 
 ---
