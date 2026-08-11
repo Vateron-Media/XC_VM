@@ -114,6 +114,13 @@ phpstan:
 	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
 	@php "$(PHPSTAN)" analyse -c build/phpstan.dist.neon --memory-limit=2G
 
+# Dead-code audit (on demand, NOT a CI gate): reports unused PUBLIC methods /
+# properties / constants via tomasvotruba/unused-public. Expect false positives
+# for dynamically-invoked code (routes, #[ListensTo], commands) — verify by hand.
+phpstan-deadcode:
+	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
+	@php "$(PHPSTAN)" analyse -c build/phpstan-deadcode.neon --memory-limit=2G
+
 # Freeze all current errors into build/phpstan-baseline.neon (run after a level bump).
 phpstan-baseline:
 	@test -x "$(PHPSTAN)" || { echo "PHPStan not found — run 'make dev-tools' (composer install) first."; exit 1; }
