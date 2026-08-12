@@ -425,10 +425,7 @@
 	}
 
 	karaoke.init_color_buttons([
-		{
-			label: word["karaoke_view"],
-			cmd: function () {},
-		},
+		{ label: word["karaoke_view"], cmd: function () {} },
 		{ label: word["karaoke_sort"], cmd: karaoke.sort_menu_switcher },
 		{ label: word["karaoke_favorite"], cmd: karaoke.add_del_fav },
 		{ label: word["karaoke_find"], cmd: karaoke.other_switcher },

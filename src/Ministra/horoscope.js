@@ -60,6 +60,9 @@
 
 			this.superclass.show.apply(this);
 
+			this.menu_map[0].style.visibility = "visible";
+			this.menu_map[2].style.visibility = "visible";
+
 			this.load();
 		};
 
@@ -67,6 +70,9 @@
 			_debug("horoscope.hide");
 
 			this.hide_info();
+
+			this.menu_map[0].style.visibility = "hidden";
+			this.menu_map[2].style.visibility = "hidden";
 
 			this.superclass.hide.apply(this);
 		};

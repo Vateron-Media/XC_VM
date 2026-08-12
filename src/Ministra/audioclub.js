@@ -525,10 +525,7 @@
 			if (this.data_items[this.cur_row].is_album) {
 				this.update_header_path([
 					{ alias: "performer", item: "" },
-					{
-						alias: "album",
-						item: this.data_items[this.cur_row].name,
-					},
+					{ alias: "album", item: this.data_items[this.cur_row].name },
 				]);
 
 				this.load_params = {
@@ -538,10 +535,7 @@
 				};
 			} else if (this.data_items[this.cur_row].is_performer) {
 				this.update_header_path([
-					{
-						alias: "performer",
-						item: this.data_items[this.cur_row].name,
-					},
+					{ alias: "performer", item: this.data_items[this.cur_row].name },
 					{ alias: "album", item: "" },
 				]);
 				this.load_params["performer_id"] = this.data_items[this.cur_row].id;
@@ -1042,14 +1036,14 @@
 			this.color_buttons.get("red").disable();
 			this.color_buttons.get("green").disable();
 			/*            this.color_buttons.get('yellow').disable();
-                        this.color_buttons.get('blue').disable();*/
+            this.color_buttons.get('blue').disable();*/
 		};
 
 		this.enableAllColorButton = function () {
 			this.color_buttons.get("red").enable();
 			this.color_buttons.get("green").enable();
 			/*            this.color_buttons.get('yellow').enable();
-                        this.color_buttons.get('blue').disable();*/
+            this.color_buttons.get('blue').disable();*/
 		};
 	}
 

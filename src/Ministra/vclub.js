@@ -664,9 +664,17 @@
 
 			this.short_info_box.innerHTML = info;
 			if (item.screenshot_uri) {
-				this.screenshot_box.innerHTML = '<img src="' + item.screenshot_uri + '">';
+				var html = item.lock
+					? '<img src="template/' +
+						loader.template +
+						"/i" +
+						resolution_prefix +
+						"/" +
+						'mb_prev_lock.png">'
+					: '<img src="' + item.screenshot_uri + '">';
+				this.screenshot_box.innerHTML = html;
 			} else {
-				this.screenshot_box.innerHTML = "";
+				this.screenshot_box.innerHTML = "<span></span>";
 			}
 		};
 
@@ -717,11 +725,12 @@
 			}
 			window.clearTimeout(this.row_callback_timer);
 
-			var self = this;
-
-			this.row_callback_timer = window.setTimeout(function () {
-				self.fill_short_info(item);
-			}, this.row_callback_timeout);
+			if (this.cur_view !== "wide") {
+				var self = this;
+				this.row_callback_timer = window.setTimeout(function () {
+					self.fill_short_info(item);
+				}, this.row_callback_timeout);
+			}
 		};
 
 		this.set_middle_container = function () {
@@ -854,13 +863,21 @@
 
 		this.full_info_switch = function () {
 			_debug("full_info_switch");
+			var self = this;
 
 			if (this.info && this.info.on) {
 				this.on = true;
 				this.info.hide();
 			} else {
 				this.on = false;
-				this.info.show(this.current_movie);
+				if (this.current_movie.lock) {
+					this.password_input.callback = function () {
+						self.info.show(self.current_movie);
+					};
+					this.password_input.show();
+				} else {
+					this.info.show(this.current_movie);
+				}
 			}
 		};
 
@@ -910,6 +927,14 @@
 			if (data.length === 0 && this.history.length == 1) {
 				this.enable_color_buttons();
 			}
+
+			if (
+				data.length == 1 &&
+				(data[0].is_file || (data[0].is_movie && data[0].has_files == "0"))
+			) {
+				this.check_for_pass(true);
+				return;
+			}
 		};
 
 		this.action = function () {
@@ -939,10 +964,7 @@
 
 			if (this.data_items[this.cur_row].is_movie) {
 				this.update_header_path([
-					{
-						alias: "movie",
-						item: this.data_items[this.cur_row].name,
-					},
+					{ alias: "movie", item: this.data_items[this.cur_row].name },
 					{ alias: "sortby", item: "" },
 					{ alias: "genre", item: "" },
 					{ alias: "search", item: "" },
@@ -1338,7 +1360,9 @@
 
 												stb.player.prev_layer = self;
 
-												stb.key_lock = true;
+												if (!connection_problem.on) {
+													stb.key_lock = true;
+												}
 
 												stb.player.need_show_info = 0;
 
@@ -1361,7 +1385,9 @@
 
 								stb.player.prev_layer = self;
 
-								stb.key_lock = true;
+								if (!connection_problem.on) {
+									stb.key_lock = true;
+								}
 
 								stb.player.need_show_info = 0;
 
@@ -1684,6 +1710,15 @@
 			},
 		},
 		{
+			label: word["vclub_only_hd"],
+			cmd: function () {
+				this.parent.load_params.sortby = "added";
+				this.parent.load_params.fav = false;
+				this.parent.load_params.hd = true;
+				this.parent.load_params.not_ended = false;
+			},
+		},
+		{
 			label: word["vclub_only_favorite"],
 			cmd: function () {
 				this.parent.load_params.sortby = "name";
@@ -1692,7 +1727,43 @@
 				this.parent.load_params.not_ended = false;
 			},
 		},
+		{
+			label: word["vclub_not_ended"],
+			cmd: function () {
+				this.parent.load_params.sortby = "last_ended";
+				this.parent.load_params.fav = false;
+				this.parent.load_params.hd = false;
+				this.parent.load_params.not_ended = true;
+			},
+		},
 	];
+
+	if (stb.profile["kinopoisk_rating"]) {
+		var rating_item = {
+			label: get_word("vclub_by_rating"),
+			cmd: function () {
+				this.parent.load_params.fav = false;
+				this.parent.load_params.sortby = "rating";
+				this.parent.load_params.hd = false;
+				this.parent.load_params.not_ended = false;
+			},
+		};
+
+		sort_menu.splice(1, 0, rating_item);
+	}
+
+	if (stb.profile["show_purchased_filter"]) {
+		var purchased_item = {
+			label: get_word("vclub_only_purchased"),
+			cmd: function () {
+				this.parent.load_params.fav = false;
+				this.parent.load_params.sortby = "purchased";
+				this.parent.load_params.hd = false;
+				this.parent.load_params.not_ended = false;
+			},
+		};
+		sort_menu.push(purchased_item);
+	}
 
 	vclub.init_sort_menu(sort_menu, {
 		offset_x: 217,

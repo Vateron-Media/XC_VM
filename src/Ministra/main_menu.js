@@ -5,10 +5,15 @@ var main_menu = {
 	dom_obj: {},
 	date: {},
 	time: {},
+	visible_widget: undefined,
 
 	show: function () {
 		_debug("main_menu.show");
 		this.dom_obj.show();
+
+		if (!stb.player.on && this.visible_widget) {
+			this.visible_widget.hide();
+		}
 
 		this.set_focused_module();
 

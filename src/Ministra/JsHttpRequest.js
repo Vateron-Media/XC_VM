@@ -295,7 +295,6 @@ function JsHttpRequest() {
 		return escape(s).replace(new RegExp("\\+", "g"), "%2B");
 	};
 }
-
 JsHttpRequest.COUNT = 0;
 JsHttpRequest.MAX_URL_LEN = 2000;
 JsHttpRequest.CACHE = {};

@@ -53,7 +53,12 @@ function _log(action, param, content_id) {
 		param:
 			typeof param == "string" || param instanceof String ? encodeURIComponent(param) : param,
 		content_id: content_id,
-		tmp_type: stb.get_current_place(),
+		tmp_type:
+			module.radio_widget && module.radio_widget.widget_on
+				? 5
+				: module.audio_widget && module.audio_widget.widget_on
+					? 4
+					: stb.get_current_place(),
 	};
 
 	if (
@@ -216,7 +221,9 @@ HTMLElement.prototype.offsetY = function (offset_y) {
 
 HTMLElement.prototype.setClass = function (class_name) {
 	try {
-		this.className = class_name;
+		if (!this.haveClass(class_name)) {
+			this.className = class_name;
+		}
 	} catch (e) {
 		_debug(e);
 	}
@@ -858,8 +865,8 @@ function md51(s) {
 	}
 	s = s.substring(i - 64);
 	var tail = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-	for (i = 0; i < s.length; i++) tail[i >> 2] |= s.charCodeAt(i) << ((i % 4) << 3);
-	tail[i >> 2] |= 0x80 << ((i % 4) << 3);
+	for (i = 0; i < s.length; i++) tail[i >> 2] |= s.charCodeAt(i) << (i % 4 << 3);
+	tail[i >> 2] |= 0x80 << (i % 4 << 3);
 	if (i > 55) {
 		md5cycle(state, tail);
 		for (i = 0; i < 16; i++) tail[i] = 0;

@@ -149,15 +149,19 @@ ListLayer.prototype.init_list = function () {
 		//item = document.createElement('ul');
 		//item.setClass('blue_row_bg');
 
+		this.map[i] = this.init_blocks(item);
+
+		this.map[i]["row"] = item;
+		this.main_container.appendChild(item);
+
+		item.show();
+
 		if (i > 0) {
 			offset = this.map[i - 1].row.clientHeight + this.map[i - 1].row.offsetTop;
 			item.moveY(offset);
 		}
 
-		this.map[i] = this.init_blocks(item);
-
-		this.map[i]["row"] = item;
-		this.main_container.appendChild(item);
+		this.map[i]["top"] = item.offsetTop;
 	}
 
 	this.init_active_row();
@@ -308,6 +312,7 @@ ListLayer.prototype.fill_list = function (data) {
 
 	this.total_items = data.length;
 	this.data_items = data;
+	this.last_active_row = -1;
 
 	for (var i = 0; i < data.length; i++) {
 		if (this.break_filling_list) {
@@ -411,9 +416,7 @@ ListLayer.prototype.set_active_row = function (num) {
 				}
 			}
 		}
-
-		var offset = this.map[num]["row"].offsetTop - this.active_row_offset;
-
+		var offset = this.map[num]["top"] - this.active_row_offset;
 		this.active_row["row"].moveY(offset);
 
 		if (this.active_row["row"].isHidden()) {
@@ -437,17 +440,20 @@ ListLayer.prototype.set_active_row = function (num) {
 
 		if (!this.fav_manage_mode) {
 			if (this.data_items.length != 0) {
-				for (var j = 0; j < this.row_blocks.length; j++) {
-					this.handling_block(
-						this.data_items[num][this.row_blocks[j]],
-						this.active_row,
-						this.row_blocks[j]
-					);
+				if (this.last_active_row != num) {
+					for (var j = 0; j < this.row_blocks.length; j++) {
+						this.handling_block(
+							this.data_items[num][this.row_blocks[j]],
+							this.active_row,
+							this.row_blocks[j]
+						);
+					}
 				}
-
 				if (
 					this.shift_row_callback &&
-					(this.cur_view == "middle" || this.cur_view == "short")
+					(this.cur_view == "middle" ||
+						this.cur_view == "short" ||
+						stb.cur_place === "vclub")
 				) {
 					this.shift_row_callback.call(this, this.data_items[num]);
 				}
@@ -455,6 +461,9 @@ ListLayer.prototype.set_active_row = function (num) {
 				this.active_row["row"].hide();
 			}
 		}
+
+		this.last_active_row = num;
+		_debug("this.last_active_row", this.last_active_row);
 
 		_debug("ListLayer.set_active_row end");
 	} catch (e) {

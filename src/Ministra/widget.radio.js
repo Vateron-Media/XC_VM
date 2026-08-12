@@ -25,6 +25,7 @@
 			stb.player.addCustomEventListener("radiostart", function (item) {
 				if (item.radio) {
 					_debug("radio_widget.radiostart");
+					stb.player.cur_media_item = item;
 					self.show(item);
 				}
 			});
@@ -40,6 +41,7 @@
 				if (item.radio) {
 					_debug("radio_widget.radiopause");
 					self.show(item);
+					stb.player.cur_media_item = item;
 					self.pause_btn.hide();
 					self.play_btn.show();
 				}
@@ -49,6 +51,7 @@
 				if (item.radio) {
 					_debug("radio_widget.radiocontinue");
 					self.show(item);
+					stb.player.cur_media_item = item;
 					self.play_btn.hide();
 					self.pause_btn.show();
 				}
@@ -87,12 +90,17 @@
 			}
 			this.play_btn.hide();
 			this.pause_btn.show();
+			main_menu.visible_widget = this;
 		},
 
 		hide: function () {
 			_debug("radio_widget.hide");
 			this.dom_obj.hide();
 			this.widget_on = this.on = false;
+
+			if (main_menu.visible_widget === this) {
+				main_menu.visible_widget = undefined;
+			}
 		},
 
 		bind: function () {
@@ -181,10 +189,7 @@
 			var load_params =
 				module.radio && module.radio.load_params
 					? module.radio.load_params
-					: {
-							type: "radio",
-							action: "get_ordered_list",
-						};
+					: { type: "radio", action: "get_ordered_list" };
 			load_params.all = 1;
 			_debug("load_params", load_params);
 			stb.load(

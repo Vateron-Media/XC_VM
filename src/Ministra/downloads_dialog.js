@@ -8,15 +8,12 @@ function downloads_dialog_constructor() {
 
 	this.secure_url = false;
 }
-
 function setEnvironmentValue(name, value) {
 	gSTB.RDir("setenv " + name + " " + value);
 }
-
 function getEnvironmentValue(name) {
 	return gSTB.RDir("getenv " + name);
 }
-
 downloads_dialog_constructor.prototype.cur_device = "";
 downloads_dialog_constructor.prototype.count_visible_items = 3;
 downloads_dialog_constructor.prototype.count_devices = "";

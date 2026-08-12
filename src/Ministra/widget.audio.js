@@ -29,6 +29,7 @@
 					return;
 				}
 				_debug("audio_widget.audiostart");
+				stb.player.cur_media_item = item;
 				self.show(item);
 			});
 
@@ -39,14 +40,14 @@
 
 			stb.player.addCustomEventListener("audiopause", function (item) {
 				_debug("audio_widget.audiopause");
-
+				stb.player.cur_media_item = item;
 				self.pause_btn.hide();
 				self.play_btn.show();
 			});
 
 			stb.player.addCustomEventListener("audiocontinue", function (item) {
 				_debug("audio_widget.audiopause");
-
+				stb.player.cur_media_item = item;
 				self.play_btn.hide();
 				self.pause_btn.show();
 			});
@@ -93,6 +94,7 @@
 
 			this.play_btn.hide();
 			this.pause_btn.show();
+			main_menu.visible_widget = this;
 		},
 
 		hide: function () {
@@ -100,6 +102,10 @@
 			this.dom_obj.hide();
 			this.widget_on = this.on = false;
 			window.clearInterval(this.seek_bar_interval);
+
+			if (main_menu.visible_widget === this) {
+				main_menu.visible_widget = undefined;
+			}
 		},
 
 		bind: function () {
@@ -108,7 +114,8 @@
 			(function (dir) {
 				_debug("dir", dir);
 
-				var idx = this._get_current_idx();
+				var idx = this._get_current_idx(),
+					cur_media_item;
 
 				_debug("playlist idx", idx);
 
@@ -118,24 +125,31 @@
 					if (!stb.player.cur_media_item.playlist[idx]) {
 						return;
 					}
+					try {
+						if (typeof stb.player.cur_media_item.playlist[0] == "object") {
+							cur_media_item = stb.player.cur_media_item.playlist[idx].clone();
+							cur_media_item.playlist = stb.player.cur_media_item.playlist;
+							if (cur_media_item.is_audio) {
+								cur_media_item.number = null;
+							}
+						} else {
+							cur_media_item = stb.player.cur_media_item.clone();
 
-					if (typeof stb.player.cur_media_item.playlist[0] == "object") {
-						cur_media_item = stb.player.cur_media_item.playlist[idx].clone();
-						cur_media_item.playlist = stb.player.cur_media_item.playlist;
-						if (cur_media_item.is_audio) {
-							cur_media_item.number = null;
+							cur_media_item.cmd = cur_media_item.playlist[idx];
+							cur_media_item.name = cur_media_item.cmd.substr(
+								stb.player.cur_media_item.cmd.lastIndexOf("/") + 1
+							);
 						}
-					} else {
-						var cur_media_item = stb.player.cur_media_item.clone();
 
-						cur_media_item.cmd = cur_media_item.playlist[idx];
+						stb.player.cur_media_item = cur_media_item;
+						stb.player.cur_media_item.playing = 1;
+						stb.player.cur_media_item.paused = 0;
 
-						cur_media_item.name = cur_media_item.cmd.substr(
-							stb.player.cur_media_item.cmd.lastIndexOf("/") + 1
-						);
+						stb.player.play(cur_media_item);
+					} catch (e) {
+						_debug(e);
+						stb.player.stop();
 					}
-
-					stb.player.play(cur_media_item);
 				}
 			})
 				.bind(key.NEXT, this, 1)

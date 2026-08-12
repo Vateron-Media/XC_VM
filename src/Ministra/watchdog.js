@@ -155,7 +155,10 @@ watchdog.prototype.parse_result = function (data) {
 
 				var self = this;
 
-				if (data.event == "send_msg_with_video") {
+				if (
+					data.event == "send_msg_with_video" ||
+					data.post_function == "send_msg_with_video"
+				) {
 					var msg_callback = function () {
 						self.send_confirm();
 
@@ -189,6 +192,9 @@ watchdog.prototype.parse_result = function (data) {
 
 							if (stb.player.cur_media_item.restore_item) {
 								stb.player.play(stb.player.cur_media_item.restore_item);
+							} else {
+								stb.Stop();
+								stb.player.on = false;
 							}
 						};
 

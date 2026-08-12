@@ -47,7 +47,7 @@
 					stb.portal_path +
 					"/external/settings/index.html?ajax_loader=" +
 					stb.ajax_loader;
-				url += "?language=" + stb.stb_lang;
+				url += "&language=" + stb.stb_lang;
 				url += "&token=" + stb.access_token;
 				url += "&pri_audio_lang=" + stb.user["pri_audio_lang"];
 				url += "&sec_audio_lang=" + stb.user["sec_audio_lang"];

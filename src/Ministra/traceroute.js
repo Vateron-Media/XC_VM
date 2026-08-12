@@ -140,11 +140,7 @@ Traceroute.prototype._getNormTime = function () {
 Traceroute.prototype.sendStatistics = function () {
 	if (this.result.length) {
 		parent.load(
-			{
-				type: "stb",
-				action: "save_diagnostic_info",
-				data: JSON.stringify(this.result),
-			},
+			{ type: "stb", action: "save_diagnostic_info", data: JSON.stringify(this.result) },
 			function () {},
 			"POST",
 			{ "Content-type": "application/x-www-form-urlencoded" }

@@ -536,12 +536,12 @@
 			this.superclass.bind.apply(this);
 			(function () {
 				/*if(this.data_items[this.cur_row].state == 0 || this.data_items[this.cur_row].state == 5 || this.data_items[this.cur_row].state == 4 ){
-                    stbDownloadManager.StartJob(this.data_items[this.cur_row].id)
-                }
-                else{
-                    stbDownloadManager.StopJob(this.data_items[this.cur_row].id)
-                }
-                var self=this;*/
+                        stbDownloadManager.StartJob(this.data_items[this.cur_row].id)
+                    }
+                    else{
+                        stbDownloadManager.StopJob(this.data_items[this.cur_row].id)
+                    }
+                    var self=this;*/
 				this.start_stop_job(this.data_items[this.cur_row]);
 				setTimeout(function () {
 					self.every_interval.call(self);
@@ -607,7 +607,6 @@
 			});
 		};
 	}
-
 	downloads_constructor.prototype = new ListLayer();
 	var downloads = new downloads_constructor();
 	downloads.bind();
@@ -628,8 +627,8 @@
 				//if (downloads.data_items[downloads.cur_row].fake){
 				downloads.adjust_priority(downloads.data_items[downloads.cur_row].id, true);
 				/*}else{
-                    stbDownloadManager.AdjustJobPriority(downloads.data_items[downloads.cur_row].id, true);
-                }*/
+                stbDownloadManager.AdjustJobPriority(downloads.data_items[downloads.cur_row].id, true);
+            }*/
 				clearInterval(downloads.interval);
 				downloads.interval = null;
 				downloads.interval = setInterval(function () {
@@ -643,8 +642,8 @@
 				//if (downloads.data_items[downloads.cur_row].fake){
 				downloads.adjust_priority(downloads.data_items[downloads.cur_row].id, false);
 				/*}else{
-                    stbDownloadManager.AdjustJobPriority(downloads.data_items[downloads.cur_row].id, false);
-                }*/
+                stbDownloadManager.AdjustJobPriority(downloads.data_items[downloads.cur_row].id, false);
+            }*/
 				clearInterval(downloads.interval);
 				downloads.interval = null;
 				downloads.interval = setInterval(function () {
