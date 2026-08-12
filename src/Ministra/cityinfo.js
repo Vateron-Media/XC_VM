@@ -3,126 +3,122 @@
  */
 
 (function () {
+	function cityinfo_constructor() {
+		this.layer_name = "cityinfo";
 
-    function cityinfo_constructor() {
+		this.row_blocks = ["title"];
 
-        this.layer_name = 'cityinfo';
+		this.load_params = {
+			type: "cityinfo",
+			action: "get_ordered_list",
+		};
 
-        this.row_blocks = ['title'];
+		this.superclass = ListLayer.prototype;
 
-        this.load_params = {
-            "type": "cityinfo",
-            "action": "get_ordered_list"
-        };
+		this.row_callback_timer;
+		this.row_callback_timeout = 300;
 
-        this.superclass = ListLayer.prototype;
+		this.shift_row_callback = function (item) {
+			window.clearTimeout(this.row_callback_timer);
 
-        this.row_callback_timer;
-        this.row_callback_timeout = 300;
+			var self = this;
 
-        this.shift_row_callback = function (item) {
+			this.row_callback_timer = window.setTimeout(function () {
+				self.fill_short_info(item);
+			}, this.row_callback_timeout);
+		};
 
-            window.clearTimeout(this.row_callback_timer);
+		this.fill_short_info = function (item) {
+			_debug("cityinfo.fill_short_info");
 
-            var self = this;
+			this.short_info_box.innerHTML = "<span>" + item.title + "</span><br><br>" + item.number;
+		};
 
-            this.row_callback_timer = window.setTimeout(function () {
+		this.init_short_info = function () {
+			this.info_box = create_block_element("", this.main_container);
 
-                self.fill_short_info(item);
+			this.short_info_box = create_block_element("cityinfo_info_box", this.info_box);
+		};
 
-            },
-                this.row_callback_timeout);
-        };
+		this.sort_menu_switcher = function () {
+			if (this.sort_menu && this.sort_menu.on) {
+				this.sort_menu.hide();
+			} else {
+				this.sort_menu.show();
+			}
+		};
 
-        this.fill_short_info = function (item) {
-            _debug('cityinfo.fill_short_info');
+		this.init_sort_menu = function (map, options) {
+			this.sort_menu = new bottom_menu(this, options);
+			this.sort_menu.init(map);
+			this.sort_menu.bind();
+		};
+	}
 
-            this.short_info_box.innerHTML = '<span>' + item.title + '</span><br><br>' + item.number;
-        };
+	cityinfo_constructor.prototype = new ListLayer();
 
-        this.init_short_info = function () {
-            this.info_box = create_block_element('', this.main_container);
+	var cityinfo = new cityinfo_constructor();
 
-            this.short_info_box = create_block_element('cityinfo_info_box', this.info_box);
-        };
+	cityinfo.bind();
+	cityinfo.init();
 
-        this.sort_menu_switcher = function () {
-            if (this.sort_menu && this.sort_menu.on) {
-                this.sort_menu.hide();
-            } else {
-                this.sort_menu.show();
-            }
-        };
+	cityinfo.init_short_info();
 
-        this.init_sort_menu = function (map, options) {
-            this.sort_menu = new bottom_menu(this, options);
-            this.sort_menu.init(map);
-            this.sort_menu.bind();
-        };
-    }
+	cityinfo.set_middle_container();
 
-    cityinfo_constructor.prototype = new ListLayer();
+	cityinfo.init_left_ear(word["ears_back"]);
 
-    var cityinfo = new cityinfo_constructor();
+	cityinfo.init_color_buttons([
+		{ label: word["cityinfo_sort"], cmd: cityinfo.sort_menu_switcher },
+		{ label: "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;", cmd: "" },
+		{ label: "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;", cmd: "" },
+		{ label: "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;", cmd: "" },
+	]);
 
-    cityinfo.bind();
-    cityinfo.init();
+	cityinfo.init_sort_menu(
+		[
+			{
+				label: word["cityinfo_main"],
+				cmd: function () {
+					this.parent.load_params.part = "main";
+				},
+			},
+			{
+				label: word["cityinfo_help"],
+				cmd: function () {
+					this.parent.load_params.part = "help";
+				},
+			},
+			{
+				label: word["cityinfo_other"],
+				cmd: function () {
+					this.parent.load_params.part = "other";
+				},
+			},
+		],
+		{
+			offset_x: 27,
+			color: "red",
+		}
+	);
 
-    cityinfo.init_short_info();
+	cityinfo.init_header_path(word["cityinfo_title"]);
 
-    cityinfo.set_middle_container();
+	cityinfo.hide();
 
-    cityinfo.init_left_ear(word['ears_back']);
+	module.cityinfo = cityinfo;
 
-    cityinfo.init_color_buttons([
-        { "label": word['cityinfo_sort'], "cmd": cityinfo.sort_menu_switcher },
-        { "label": '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', "cmd": '' },
-        { "label": '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', "cmd": '' },
-        { "label": '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;', "cmd": '' }
-    ]);
+	if (!module.infoportal_sub) {
+		module.infoportal_sub = [];
+	}
 
-    cityinfo.init_sort_menu(
-        [
-            {
-                "label": word['cityinfo_main'], "cmd": function () {
-                    this.parent.load_params.part = 'main'
-                }
-            },
-            {
-                "label": word['cityinfo_help'], "cmd": function () {
-                    this.parent.load_params.part = 'help'
-                }
-            },
-            {
-                "label": word['cityinfo_other'], "cmd": function () {
-                    this.parent.load_params.part = 'other'
-                }
-            }
-        ],
-        {
-            "offset_x": 27,
-            "color": "red"
-        }
-    );
+	module.infoportal_sub.push({
+		title: word["cityinfo_title"],
+		cmd: function () {
+			main_menu.hide();
+			module.cityinfo.show();
+		},
+	});
 
-    cityinfo.init_header_path(word['cityinfo_title']);
-
-    cityinfo.hide();
-
-    module.cityinfo = cityinfo;
-
-    if (!module.infoportal_sub) {
-        module.infoportal_sub = [];
-    }
-
-    module.infoportal_sub.push({
-        "title": word['cityinfo_title'],
-        "cmd": function () {
-            main_menu.hide();
-            module.cityinfo.show();
-        }
-    })
-
-    loader.next();
-
+	loader.next();
 })();

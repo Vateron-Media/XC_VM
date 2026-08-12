@@ -2,35 +2,39 @@
  * Redirection to ex.ua module.
  */
 (function () {
+	main_menu.add(
+		"MAGic Cast",
+		[],
+		"mm_ico_magiccast.png",
+		function () {
+			var params = "";
 
-    main_menu.add('MAGic Cast', [], 'mm_ico_magiccast.png', function () {
+			if (stb.user["web_proxy_host"]) {
+				params += "?proxy=http://";
+				if (stb.user["web_proxy_user"]) {
+					params += stb.user["web_proxy_user"] + ":" + stb.user["web_proxy_pass"] + "@";
+				}
+				params += stb.user["web_proxy_host"] + ":" + stb.user["web_proxy_port"];
+			}
 
-        var params = '';
+			stb.setFrontPanel(".");
 
-        if (stb.user['web_proxy_host']) {
-            params += '?proxy=http://';
-            if (stb.user['web_proxy_user']) {
-                params += stb.user['web_proxy_user'] + ':' + stb.user['web_proxy_pass'] + '@';
-            }
-            params += stb.user['web_proxy_host'] + ':' + stb.user['web_proxy_port'];
-        }
+			if (!params) {
+				params += "?";
+			} else {
+				params += "&";
+			}
 
-        stb.setFrontPanel('.');
+			params = stb.add_referrer(params, this.module.layer_name);
 
-        if (!params) {
-            params += '?';
-        } else {
-            params += '&';
-        }
+			var url = "http://magiccast.magapps.net/index.html";
 
-        params = stb.add_referrer(params, this.module.layer_name);
+			_debug("url", url + params);
 
-        var url = 'http://magiccast.magapps.net/index.html';
+			window.location = url + params;
+		},
+		{ layer_name: "magiccast" }
+	);
 
-        _debug('url', url + params);
-
-        window.location = url + params;
-    }, { layer_name: "magiccast" });
-
-    loader.next();
+	loader.next();
 })();

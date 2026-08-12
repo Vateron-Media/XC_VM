@@ -4,153 +4,150 @@
  */
 
 (function () {
+	var course_cbr = {
+		dom_obj: {},
+		map: [],
 
-    var course_cbr = {
+		init: function () {
+			this.dom_obj = create_block_element("course_block", main_menu.dom_obj);
 
-        dom_obj: {},
-        map: [],
+			var title = create_inline_element("", this.dom_obj);
+			title.setClass("course_title");
+			title.innerHTML = word["course_title_cbr"] + " ";
 
-        init: function () {
+			this.date_obj = create_inline_element("", this.dom_obj);
+			this.date_obj.setClass("course_date");
 
-            this.dom_obj = create_block_element('course_block', main_menu.dom_obj);
+			for (var i = 0; i < 3; i++) {
+				var item = {};
 
-            var title = create_inline_element('', this.dom_obj);
-            title.setClass('course_title');
-            title.innerHTML = word['course_title_cbr'] + ' ';
+				var ul = document.createElement("ul");
 
-            this.date_obj = create_inline_element('', this.dom_obj);
-            this.date_obj.setClass('course_date');
+				var currency = document.createElement("li");
+				currency.setClass("course_currency");
+				ul.appendChild(currency);
 
-            for (var i = 0; i < 3; i++) {
-                var item = {};
+				item["currency_dom_obj"] = currency;
 
-                var ul = document.createElement('ul');
+				var value = document.createElement("li");
+				value.setClass("course_value");
+				ul.appendChild(value);
 
-                var currency = document.createElement('li');
-                currency.setClass('course_currency');
-                ul.appendChild(currency);
+				item["value_dom_obj"] = value;
 
-                item['currency_dom_obj'] = currency;
+				var trend = document.createElement("li");
+				trend.setClass("course_trend");
 
-                var value = document.createElement('li');
-                value.setClass('course_value');
-                ul.appendChild(value);
+				var uarr = create_inline_element("uarr", trend);
+				uarr.innerHTML = "&uarr;";
+				uarr.hide();
 
-                item['value_dom_obj'] = value;
+				var darr = create_inline_element("darr", trend);
+				darr.innerHTML = "&darr;";
+				darr.hide();
 
-                var trend = document.createElement('li');
-                trend.setClass('course_trend');
+				item["uarr"] = uarr;
 
-                var uarr = create_inline_element('uarr', trend);
-                uarr.innerHTML = '&uarr;';
-                uarr.hide();
+				item["darr"] = darr;
 
-                var darr = create_inline_element('darr', trend);
-                darr.innerHTML = '&darr;';
-                darr.hide();
+				var trend_val = create_inline_element("trend_val", trend);
 
-                item['uarr'] = uarr;
+				item["trend_val"] = trend_val;
 
-                item['darr'] = darr;
+				ul.appendChild(trend);
 
-                var trend_val = create_inline_element('trend_val', trend);
+				this.map.push(item);
 
-                item['trend_val'] = trend_val;
+				this.dom_obj.appendChild(ul);
+			}
 
-                ul.appendChild(trend);
+			this.dom_obj.hide();
+			this.start_load();
+		},
 
-                this.map.push(item);
+		set: function (data) {
+			_debug("course.set", data);
 
-                this.dom_obj.appendChild(ul);
-            }
+			if (!data) {
+				this.dom_obj.hide();
+				return false;
+			} else {
+				this.dom_obj.show();
+			}
 
-            this.dom_obj.hide();
-            this.start_load();
-        },
+			this.current = data;
 
-        set: function (data) {
-            _debug('course.set', data);
+			if (!empty(this.current)) {
+				this.dom_obj.show();
+			}
 
-            if (!data) {
-                this.dom_obj.hide();
-                return false;
-            } else {
-                this.dom_obj.show();
-            }
+			this.date_obj.innerHTML = data.on_date || "";
 
-            this.current = data;
+			for (var i = 0; i < this.map.length; i++) {
+				if (data["data"].hasOwnProperty(i)) {
+					this.map[i].currency_dom_obj.innerHTML = data["data"][i].currency;
+					this.map[i].value_dom_obj.innerHTML = data["data"][i].value;
 
-            if (!empty(this.current)) {
-                this.dom_obj.show();
-            }
+					if (parseFloat(data["data"][i].trend) == -1) {
+						this.map[i].darr.show();
+						this.map[i].uarr.hide();
+						this.map[i].trend_val.innerHTML = data["data"][i].diff;
+					} else if (parseFloat(data["data"][i].trend) == 1) {
+						this.map[i].darr.hide();
+						this.map[i].uarr.show();
+						this.map[i].trend_val.innerHTML = data["data"][i].diff;
+					} else {
+						this.map[i].darr.hide();
+						this.map[i].uarr.hide();
+						this.map[i].trend_val.innerHTML = "";
+					}
+				} else {
+					this.map[i].currency_dom_obj.innerHTML = "";
+					this.map[i].value_dom_obj.innerHTML = "";
+					this.map[i].trend_val.innerHTML = "";
+					this.map[i].darr.hide();
+					this.map[i].uarr.hide();
+				}
+			}
+		},
 
-            this.date_obj.innerHTML = data.on_date || '';
+		load: function () {
+			_debug("course_cbr.load");
 
-            for (var i = 0; i < this.map.length; i++) {
+			stb.load(
+				{
+					type: "course_cbr",
+					action: "get_data",
+				},
+				function (result) {
+					_debug("on course_cbr.load", result);
 
-                if (data['data'].hasOwnProperty(i)) {
+					this.set(result);
+				},
+				this
+			);
+		},
 
-                    this.map[i].currency_dom_obj.innerHTML = data['data'][i].currency;
-                    this.map[i].value_dom_obj.innerHTML = data['data'][i].value;
+		start_load: function () {
+			_debug("course_cbr.start_load");
 
-                    if (parseFloat(data['data'][i].trend) == -1) {
-                        this.map[i].darr.show();
-                        this.map[i].uarr.hide();
-                        this.map[i].trend_val.innerHTML = data['data'][i].diff;
-                    } else if (parseFloat(data['data'][i].trend) == 1) {
-                        this.map[i].darr.hide();
-                        this.map[i].uarr.show();
-                        this.map[i].trend_val.innerHTML = data['data'][i].diff;
-                    } else {
-                        this.map[i].darr.hide();
-                        this.map[i].uarr.hide();
-                        this.map[i].trend_val.innerHTML = '';
-                    }
-                } else {
-                    this.map[i].currency_dom_obj.innerHTML = '';
-                    this.map[i].value_dom_obj.innerHTML = '';
-                    this.map[i].trend_val.innerHTML = '';
-                    this.map[i].darr.hide();
-                    this.map[i].uarr.hide();
-                }
-            }
-        },
+			this.load();
 
-        load: function () {
-            _debug('course_cbr.load');
+			var self = this;
 
-            stb.load(
-                {
-                    "type": "course_cbr",
-                    "action": "get_data"
-                },
-                function (result) {
-                    _debug('on course_cbr.load', result);
+			window.clearInterval(this.load_interval);
+			this.load_interval = window.setInterval(
+				function () {
+					self.load();
+				},
+				30 * 60 * 1000
+			);
+		},
+	};
 
-                    this.set(result)
-                },
-                this
-            )
-        },
+	course_cbr.init();
 
-        start_load: function () {
-            _debug('course_cbr.start_load');
+	module.course_cbr = course_cbr;
 
-            this.load();
-
-            var self = this;
-
-            window.clearInterval(this.load_interval);
-            this.load_interval = window.setInterval(function () {
-                self.load()
-            }, 30 * 60 * 1000)
-        }
-    };
-
-    course_cbr.init();
-
-    module.course_cbr = course_cbr;
-
-    loader.next();
-
+	loader.next();
 })();

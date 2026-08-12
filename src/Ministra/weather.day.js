@@ -4,39 +4,37 @@
  */
 
 (function () {
+	function WeatherForecastConstructor() {
+		this.layer_name = "weather_forecast";
 
-    function WeatherForecastConstructor() {
+		this.dom_obj = this.create_block();
+		document.body.appendChild(this.dom_obj);
 
-        this.layer_name = 'weather_forecast';
+		this.superclass = BaseLayer.prototype;
 
-        this.dom_obj = this.create_block();
-        document.body.appendChild(this.dom_obj);
+		this.map = [];
 
-        this.superclass = BaseLayer.prototype;
+		this.reload_timeout = 30000;
 
-        this.map = [];
+		this.init = function () {
+			_debug("weather_forecast.init");
 
-        this.reload_timeout = 30000;
+			this.superclass.init.call(this);
 
-        this.init = function () {
-            _debug('weather_forecast.init');
+			var container = create_block_element("weather_forecast", this.dom_obj);
 
-            this.superclass.init.call(this);
+			for (var i = 0; i < 4; i++) {
+				this.map[i] = {};
 
-            var container = create_block_element('weather_forecast', this.dom_obj);
+				var col = create_block_element("weather_row_1 weather_col_" + (i + 1), container);
+				this.map[i].text = create_block_element("day_weather_text", col);
+				this.map[i].descr = create_block_element("day_weather_descr", col);
 
-            for (var i = 0; i < 4; i++) {
-                this.map[i] = {};
+				var layer_1_container = create_block_element("day_weather_layer_1", col);
+				this.map[i].layer_1 = document.createElement("img");
+				layer_1_container.appendChild(this.map[i].layer_1);
 
-                var col = create_block_element('weather_row_1 weather_col_' + (i + 1), container);
-                this.map[i].text = create_block_element('day_weather_text', col);
-                this.map[i].descr = create_block_element('day_weather_descr', col);
-
-                var layer_1_container = create_block_element('day_weather_layer_1', col);
-                this.map[i].layer_1 = document.createElement('img');
-                layer_1_container.appendChild(this.map[i].layer_1);
-
-                /*var layer_2_container = create_block_element('day_weather_layer_2', col);
+				/*var layer_2_container = create_block_element('day_weather_layer_2', col);
                  this.map[i].layer_2 = document.createElement('img');
                  layer_2_container.appendChild(this.map[i].layer_2);
 
@@ -44,141 +42,167 @@
                  this.map[i].layer_3 = document.createElement('img');
                  layer_3_container.appendChild(this.map[i].layer_3);*/
 
-                this.map[i].temp = create_block_element('day_weather_temp', col);
-            }
+				this.map[i].temp = create_block_element("day_weather_temp", col);
+			}
+		};
 
-        };
+		this.show = function () {
+			_debug("weather_forecast.show");
 
-        this.show = function () {
-            _debug('weather_forecast.show');
+			this.superclass.show.call(this);
 
-            this.superclass.show.call(this);
+			this.load();
 
-            this.load();
+			this.t_load();
+		};
 
-            this.t_load();
-        };
+		this.hide = function () {
+			_debug("weather_forecast.hide");
 
-        this.hide = function () {
-            _debug('weather_forecast.hide');
+			this.superclass.hide.call(this);
 
-            this.superclass.hide.call(this);
+			window.clearInterval(this.reload_timer);
+		};
 
-            window.clearInterval(this.reload_timer);
-        };
+		this.t_load = function () {
+			_debug("weather_forecast.t_load");
 
-        this.t_load = function () {
-            _debug('weather_forecast.t_load');
+			var self = this;
 
-            var self = this;
+			this.reload_timer = window.setInterval(function () {
+				self.load();
+			}, this.reload_timeout);
+		};
 
-            this.reload_timer = window.setInterval(function () {
-                self.load()
-            }, this.reload_timeout);
-        };
+		this.load = function () {
+			_debug("weather_forecast.load");
 
-        this.load = function () {
-            _debug('weather_forecast.load');
+			stb.load(
+				{
+					type: "weather",
+					action: "get_forecast",
+				},
 
-            stb.load(
-                {
-                    "type": "weather",
-                    "action": "get_forecast"
-                },
+				function (result) {
+					this.fill(result);
+				},
 
-                function (result) {
-                    this.fill(result);
-                },
+				this
+			);
+		};
 
-                this
-            )
-        };
+		this.fill = function (data) {
+			_debug("weather_forecast.fill", data);
 
-        this.fill = function (data) {
-            _debug('weather_forecast.fill', data);
+			if (data.error && data.error == "not_configured") {
+				this.map[0].descr.innerHTML = get_word("current_weather_not_configured");
+				this.map[1].descr.innerHTML = get_word("current_weather_not_configured");
+				this.map[2].descr.innerHTML = get_word("current_weather_not_configured");
+				this.map[3].descr.innerHTML = get_word("current_weather_not_configured");
+				return;
+			}
 
-            if (data.error && data.error == 'not_configured') {
-                this.map[0].descr.innerHTML = get_word('current_weather_not_configured');
-                this.map[1].descr.innerHTML = get_word('current_weather_not_configured');
-                this.map[2].descr.innerHTML = get_word('current_weather_not_configured');
-                this.map[3].descr.innerHTML = get_word('current_weather_not_configured');
-                return;
-            }
+			if (data.repeat_time) {
+				var self = this;
+				window.setTimeout(function () {
+					self.load();
+				}, data.repeat_time * 1000);
 
-            if (data.repeat_time) {
-                var self = this;
-                window.setTimeout(function () {
-                    self.load()
-                }, data.repeat_time * 1000);
+				return;
+			}
 
-                return;
-            }
+			this.update_header_path([{ alias: "city", item: data.city }]);
 
-            this.update_header_path([{ "alias": "city", "item": data.city }]);
+			data = data["forecast"];
 
-            data = data['forecast'];
+			for (var i = 0; i < data.length; i++) {
+				this.map[i].text.innerHTML = data[i].title;
 
-            for (var i = 0; i < data.length; i++) {
+				var descr =
+					data[i].cloud_str +
+					'<br><span class="day_weather_sub">' +
+					word["dayweather_pressure"] +
+					"</span> ";
+				descr +=
+					(data[i].p.hasOwnProperty("min")
+						? data[i].p.min + "..." + data[i].p.max
+						: data[i].p) +
+					' <span class="day_weather_sub">' +
+					word["dayweather_mmhg"] +
+					"</span><br>";
+				if (data[i].h) {
+					descr +=
+						'<div class="day_weather_sub">' +
+						word["weather_humidity"].toLowerCase() +
+						": " +
+						(data[i].h.hasOwnProperty("min")
+							? data[i].h.min + "-" + data[i].h.max
+							: data[i].h) +
+						"%</div> ";
+				}
+				descr +=
+					'<div class="day_weather_sub" style="margin-left: 5px">' +
+					word["dayweather_wind"];
+				descr += '<span class="wind_direction_' + data[i].w_rumb_str + '">&uarr;</span>';
+				descr +=
+					'<span style="margin-left: 2px"> ' +
+					(data[i].wind.hasOwnProperty("min")
+						? data[i].wind.min + "-" + data[i].wind.max
+						: data[i].wind) +
+					' <span class="day_weather_sub">' +
+					word["dayweather_speed"] +
+					"</span></span>";
+				descr += "</div>";
 
-                this.map[i].text.innerHTML = data[i].title;
+				this.map[i].descr.innerHTML = descr;
 
-                var descr = data[i].cloud_str + '<br><span class="day_weather_sub">' + word['dayweather_pressure'] + '</span> ';
-                descr += (data[i].p.hasOwnProperty('min') ? data[i].p.min + '...' + data[i].p.max : data[i].p) + ' <span class="day_weather_sub">' + word['dayweather_mmhg'] + '</span><br>';
-                if (data[i].h) {
-                    descr += '<div class="day_weather_sub">' + word['weather_humidity'].toLowerCase() + ': ' + (data[i].h.hasOwnProperty('min') ? data[i].h.min + '-' + data[i].h.max : data[i].h) + '%</div> ';
-                }
-                descr += '<div class="day_weather_sub" style="margin-left: 5px">' + word['dayweather_wind'];
-                descr += '<span class="wind_direction_' + data[i].w_rumb_str + '">&uarr;</span>';
-                descr += '<span style="margin-left: 2px"> ' + (data[i].wind.hasOwnProperty('min') ? data[i].wind.min + '-' + data[i].wind.max : data[i].wind) + ' <span class="day_weather_sub">' + word['dayweather_speed'] + '</span></span>';
-                descr += '</div>';
+				this.map[i].layer_1.src =
+					"template/" + loader.template + "/i" + resolution_prefix + "/" + data[i].pict;
 
-                this.map[i].descr.innerHTML = descr;
+				this.map[i].temp.innerHTML = data[i].temperature;
+			}
+		};
 
-                this.map[i].layer_1.src = 'template/' + loader.template + '/i' + resolution_prefix + '/' + data[i].pict;
+		this.bind = function () {
+			(function () {
+				this.hide();
+				main_menu.show();
+			})
+				.bind(key.EXIT, this)
+				.bind(key.LEFT, this)
+				.bind(key.MENU, this);
 
-                this.map[i].temp.innerHTML = data[i].temperature;
-            }
-        };
+			this.load.bind(key.REFRESH, this);
+		};
+	}
 
-        this.bind = function () {
+	WeatherForecastConstructor.prototype = new BaseLayer();
 
-            (function () {
-                this.hide();
-                main_menu.show();
-            }).bind(key.EXIT, this).bind(key.LEFT, this).bind(key.MENU, this);
+	var forecast = new WeatherForecastConstructor();
 
-            this.load.bind(key.REFRESH, this);
-        };
-    }
+	forecast.init();
 
-    WeatherForecastConstructor.prototype = new BaseLayer();
+	forecast.bind();
 
-    var forecast = new WeatherForecastConstructor();
+	forecast.init_left_ear(word["ears_back"]);
 
-    forecast.init();
+	forecast.init_header_path(word["dayweather_title"]);
 
-    forecast.bind();
+	forecast.hide();
 
-    forecast.init_left_ear(word['ears_back']);
+	module.weather_forecast = forecast;
 
-    forecast.init_header_path(word['dayweather_title']);
+	if (!module.infoportal_sub) {
+		module.infoportal_sub = [];
+	}
 
-    forecast.hide();
-
-    module.weather_forecast = forecast;
-
-    if (!module.infoportal_sub) {
-        module.infoportal_sub = [];
-    }
-
-    module.infoportal_sub.push({
-        "title": word['dayweather_title'],
-        "cmd": function () {
-            main_menu.hide();
-            module.weather_forecast.show();
-        }
-    })
-
+	module.infoportal_sub.push({
+		title: word["dayweather_title"],
+		cmd: function () {
+			main_menu.hide();
+			module.weather_forecast.show();
+		},
+	});
 })();
 
 loader.next();

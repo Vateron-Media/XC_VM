@@ -3,265 +3,266 @@
  */
 
 (function () {
+	if (!stb.profile["use_embedded_settings"]) {
+		return;
+	}
 
-    if (!stb.profile['use_embedded_settings']) {
-        return;
-    }
+	/* SETTINGS */
 
-    /* SETTINGS */
+	function LocalizationSettingsConstructor() {
+		this.layer_name = "localization_settings";
 
-    function LocalizationSettingsConstructor() {
+		this.save_params = { type: "stb", action: "set_locale" };
 
-        this.layer_name = 'localization_settings';
+		this.superclass = SettingLayer.prototype;
 
-        this.save_params = { "type": "stb", "action": "set_locale" };
+		this.save_callback = function (result) {
+			_debug("save_callback", result);
 
-        this.superclass = SettingLayer.prototype;
+			stb.msg.set_callback(function () {
+				stb.ExecAction("reboot");
+			});
+			stb.msg.push(word["settings_saved_reboot"]);
 
-        this.save_callback = function (result) {
-            _debug('save_callback', result);
+			var lang = this.save_params.locale.substr(0, 2);
 
-            stb.msg.set_callback(function () {
-                stb.ExecAction('reboot')
-            });
-            stb.msg.push(word['settings_saved_reboot']);
+			_debug("lang", lang);
 
-            var lang = this.save_params.locale.substr(0, 2);
+			stb.RDir("setenv language " + lang);
 
-            _debug('lang', lang);
+			var timezone = this.save_params.timezone;
 
-            stb.RDir('setenv language ' + lang);
+			_debug("timezone", timezone);
 
-            var timezone = this.save_params.timezone;
+			if (timezone != stb.timezone) {
+				stb.timezone = timezone;
+				stb.ExecAction("timezone " + timezone);
+				stb.RDir("setenv timezone_conf_int");
+			}
 
-            _debug('timezone', timezone);
+			_debug("ntp_server", this.save_params.ntp_server);
 
-            if (timezone != stb.timezone) {
-                stb.timezone = timezone;
-                stb.ExecAction('timezone ' + timezone);
-                stb.RDir('setenv timezone_conf_int');
-            }
+			if (stb.ntp_server != this.save_params.ntp_server) {
+				stb.ntp_server = this.save_params.ntp_server;
+				stb.RDir("setenv ntpurl " + this.save_params.ntp_server);
+			}
+		};
 
-            _debug('ntp_server', this.save_params.ntp_server);
+		this.load_default = function () {
+			_debug("localization_settings.load_default");
 
-            if (stb.ntp_server != this.save_params.ntp_server) {
-                stb.ntp_server = this.save_params.ntp_server;
-                stb.RDir('setenv ntpurl ' + this.save_params.ntp_server);
-            }
-        };
+			this.controls[0].set_default();
+			this.controls[1].set_default();
+			this.controls[2].set_default();
+			this.controls[3].set_default();
+		};
 
-        this.load_default = function () {
-            _debug('localization_settings.load_default');
+		this.load_map = function () {
+			_debug("localization_settings.load_map");
 
-            this.controls[0].set_default();
-            this.controls[1].set_default();
-            this.controls[2].set_default();
-            this.controls[3].set_default();
-        };
+			stb.load(
+				{
+					type: "stb",
+					action: "get_locales",
+				},
 
-        this.load_map = function () {
-            _debug('localization_settings.load_map');
+				function (result) {
+					_debug("localization_settings.load_map get_locales callback", result);
 
-            stb.load(
-                {
-                    "type": "stb",
-                    "action": "get_locales"
-                },
+					this.locales = result;
 
-                function (result) {
-                    _debug('localization_settings.load_map get_locales callback', result);
+					this.add_control(
+						new OptionInput(this, {
+							name: "locale",
+							label: word["localization_label"],
+							map: this.locales,
+						})
+					);
 
-                    this.locales = result;
+					this._load_countries();
+				},
 
-                    this.add_control(new OptionInput(this, {
-                        "name": "locale",
-                        "label": word['localization_label'],
-                        "map": this.locales
-                    }));
+				this
+			);
+		};
 
-                    this._load_countries();
-                },
+		this._load_countries = function () {
+			_debug("localization_settings._load_countries");
 
-                this
-            );
-        };
+			stb.load(
+				{
+					type: "stb",
+					action: "get_countries",
+				},
 
-        this._load_countries = function () {
-            _debug('localization_settings._load_countries');
+				function (result) {
+					_debug("localization_settings.load_map get_countries callback", result);
 
-            stb.load(
-                {
-                    "type": "stb",
-                    "action": "get_countries"
-                },
+					this.countries = result;
 
-                function (result) {
-                    _debug('localization_settings.load_map get_countries callback', result);
+					this.country_option = this.add_control(
+						new OptionInput(this, {
+							name: "country",
+							label: word["country_label"],
+							map: this.countries,
+							suggests_target: { type: "stb", action: "search_countries" },
+						})
+					);
+
+					this.city_option = this.add_control(
+						new OptionInput(this, {
+							name: "city",
+							label: word["city_label"],
+							map: [],
+							suggests_target: { type: "stb", action: "search_cities" },
+						})
+					);
 
-                    this.countries = result;
+					//this.timezone_option = this.add_control(new OptionInput(this, {"name" : "timezone", "label" : word['timezone_label'], "map" : []}));
 
-                    this.country_option = this.add_control(new OptionInput(this,
-                        {
-                            "name": "country",
-                            "label": word['country_label'],
-                            "map": this.countries,
-                            "suggests_target": { "type": "stb", "action": "search_countries" }
-                        })
-                    );
+					this._load_timezones();
 
-                    this.city_option = this.add_control(new OptionInput(this,
-                        {
-                            "name": "city",
-                            "label": word['city_label'],
-                            "map": [],
-                            "suggests_target": { "type": "stb", "action": "search_cities" }
-                        })
-                    );
+					var self = this;
 
-                    //this.timezone_option = this.add_control(new OptionInput(this, {"name" : "timezone", "label" : word['timezone_label'], "map" : []}));
+					this.country_option.onchange = function () {
+						var country_id = self.country_option.get_value();
 
-                    this._load_timezones();
+						stb.load(
+							{
+								type: "stb",
+								action: "get_cities",
+								country_id: country_id,
+							},
 
-                    var self = this;
+							function (result) {
+								_debug("get_cities callback");
 
-                    this.country_option.onchange = function () {
+								self.city_option.fill(result);
+								self.city_option.suggests_target["country_id"] = country_id;
+							},
 
-                        var country_id = self.country_option.get_value();
+							self
+						);
+					};
+				},
 
-                        stb.load(
-                            {
-                                "type": "stb",
-                                "action": "get_cities",
-                                "country_id": country_id
-                            },
+				this
+			);
+		};
 
-                            function (result) {
-                                _debug('get_cities callback');
+		this._load_timezones = function () {
+			_debug("localization_settings._load_timezones");
 
-                                self.city_option.fill(result);
-                                self.city_option.suggests_target['country_id'] = country_id;
-                            },
+			stb.load(
+				{
+					type: "stb",
+					action: "get_timezones",
+				},
 
-                            self
-                        );
-                    }
-                },
+				function (result) {
+					_debug("_load_timezones callback");
 
-                this
-            );
-        };
+					result = result || [];
 
-        this._load_timezones = function () {
-            _debug('localization_settings._load_timezones');
+					this.timezone_option = this.add_control(
+						new OptionInput(this, {
+							name: "timezone",
+							label: word["timezone_label"],
+							map: result,
+						})
+					);
 
-            stb.load(
-                {
-                    "type": "stb",
-                    "action": "get_timezones"
-                },
+					this.add_control(
+						new TextInput(this, {
+							name: "ntp_server",
+							label: word["ntp_server"],
+							default_val: stb.ntp_server,
+						})
+					);
 
-                function (result) {
-                    _debug('_load_timezones callback');
+					var self = this;
 
-                    result = result || [];
+					this.city_option.onchange = function () {
+						_debug("this.city_option.onchange");
 
-                    this.timezone_option = this.add_control(new OptionInput(this, {
-                        "name": "timezone",
-                        "label": word['timezone_label'],
-                        "map": result
-                    }));
+						var selected = self.city_option.get_selected();
 
-                    this.add_control(new TextInput(this, {
-                        "name": "ntp_server",
-                        "label": word['ntp_server'],
-                        "default_val": stb.ntp_server
-                    }));
+						_debug("selected", selected);
 
-                    var self = this;
+						if (!selected || !selected.timezone) {
+							return;
+						}
 
-                    this.city_option.onchange = function () {
-                        _debug('this.city_option.onchange');
+						_debug("selected.timezone", selected.timezone);
 
-                        var selected = self.city_option.get_selected();
+						self.timezone_option.set_selected_by_value(selected.timezone);
+					};
+				},
 
-                        _debug('selected', selected);
+				this
+			);
+		};
 
-                        if (!selected || !selected.timezone) {
-                            return
-                        }
+		this.save = function () {
+			_debug("localization_settings.save");
 
-                        _debug('selected.timezone', selected.timezone);
+			this.get_input_value("default_lang");
+			this.superclass.save.apply(this);
+		};
 
-                        self.timezone_option.set_selected_by_value(selected.timezone);
-                    }
-                },
+		this.init = function () {
+			_debug("localization_settings.init");
 
-                this
-            );
-        };
+			this.superclass.init.apply(this);
 
-        this.save = function () {
-            _debug('localization_settings.save');
+			var page_info = create_block_element("page_button_info", this.dom_obj);
+			page_info.innerHTML = get_word("localization_page_button_info");
+		};
+	}
 
-            this.get_input_value('default_lang');
-            this.superclass.save.apply(this);
+	LocalizationSettingsConstructor.prototype = new SettingLayer();
 
-        };
+	var localization_settings = new LocalizationSettingsConstructor();
 
-        this.init = function () {
-            _debug('localization_settings.init');
+	localization_settings.init();
 
-            this.superclass.init.apply(this);
+	localization_settings.load_map();
 
-            var page_info = create_block_element('page_button_info', this.dom_obj);
-            page_info.innerHTML = get_word('localization_page_button_info');
-        }
-    }
+	localization_settings.bind();
 
-    LocalizationSettingsConstructor.prototype = new SettingLayer();
+	//localization_settings.init_left_ear(word['ears_back']);
 
-    var localization_settings = new LocalizationSettingsConstructor();
+	localization_settings.init_color_buttons([
+		{ label: word["parent_settings_cancel"], cmd: localization_settings.cancel },
+		{ label: word["parent_settings_save"], cmd: localization_settings.save },
+		{ label: word["empty"], cmd: "" },
+		{ label: word["empty"], cmd: "" },
+	]);
 
-    localization_settings.init();
+	//localization_settings.color_buttons[localization_settings.color_buttons.getIdxByVal('color', 'yellow')].text_obj.setClass('disable_color_btn_text');
+	//localization_settings.color_buttons[localization_settings.color_buttons.getIdxByVal('color', 'blue')].text_obj.setClass('disable_color_btn_text');
+	//localization_settings.color_buttons.get('yellow').disable();
+	//localization_settings.color_buttons.get('blue')  .disable();
 
-    localization_settings.load_map();
+	localization_settings.init_header_path(word["localization_settings_title"]);
 
-    localization_settings.bind();
+	localization_settings.hide();
 
-    //localization_settings.init_left_ear(word['ears_back']);
+	module.localization_settings = localization_settings;
 
-    localization_settings.init_color_buttons([
-        { "label": word['parent_settings_cancel'], "cmd": localization_settings.cancel },
-        { "label": word['parent_settings_save'], "cmd": localization_settings.save },
-        { "label": word['empty'], "cmd": '' },
-        { "label": word['empty'], "cmd": '' }
-    ]);
+	/* END SETTINGS */
 
-    //localization_settings.color_buttons[localization_settings.color_buttons.getIdxByVal('color', 'yellow')].text_obj.setClass('disable_color_btn_text');
-    //localization_settings.color_buttons[localization_settings.color_buttons.getIdxByVal('color', 'blue')].text_obj.setClass('disable_color_btn_text');
-    //localization_settings.color_buttons.get('yellow').disable();
-    //localization_settings.color_buttons.get('blue')  .disable();
+	if (!module.settings_sub) {
+		module.settings_sub = [];
+	}
 
-    localization_settings.init_header_path(word['localization_settings_title']);
-
-    localization_settings.hide();
-
-    module.localization_settings = localization_settings;
-
-    /* END SETTINGS */
-
-    if (!module.settings_sub) {
-        module.settings_sub = [];
-    }
-
-    module.settings_sub.push({
-        "title": word['localization_settings_title'],
-        "cmd": function () {
-            main_menu.hide();
-            module.localization_settings.show();
-        }
-    })
-
+	module.settings_sub.push({
+		title: word["localization_settings_title"],
+		cmd: function () {
+			main_menu.hide();
+			module.localization_settings.show();
+		},
+	});
 })();
 
 loader.next();

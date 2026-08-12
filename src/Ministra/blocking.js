@@ -1,75 +1,79 @@
 (function () {
-    var blocking = {
+	var blocking = {
+		on: false,
 
-        on: false,
+		init: function () {
+			this.bind.call(this);
+		},
 
-        init: function () {
-            this.bind.call(this);
-        },
+		init_layer: function () {
+			if (!this.dom_obj) {
+				var _style = document.createElement("link");
+				_style.type = "text/css";
+				_style.rel = "stylesheet";
 
-        init_layer: function () {
-            if (!this.dom_obj) {
+				_style.href =
+					"template/" + loader.template + "/blocking" + resolution_prefix + ".css";
+				document.getElementsByTagName("head")[0].appendChild(_style);
 
-                var _style = document.createElement('link');
-                _style.type = "text/css";
-                _style.rel = "stylesheet";
+				this.dom_obj = create_block_element("cut_off", document.body);
+				this.text_msg = create_block_element("cut_off_text", this.dom_obj);
+				this.blocking_buttons = create_block_element("blocking_buttons", this.dom_obj);
 
-                _style.href = 'template/' + loader.template + '/blocking' + resolution_prefix + ".css";
-                document.getElementsByTagName("head")[0].appendChild(_style);
+				this.blocking_account_reboot = create_block_element(
+					"blocking_account_reboot",
+					this.blocking_buttons
+				);
+				this.blocking_account_reboot.innerHTML =
+					'<div class="color_btn red"></div> ' + get_word("blocking_account_reboot");
 
-                this.dom_obj = create_block_element('cut_off', document.body);
-                this.text_msg = create_block_element('cut_off_text', this.dom_obj);
-                this.blocking_buttons = create_block_element('blocking_buttons', this.dom_obj);
+				this.hide();
+			}
+		},
 
-                this.blocking_account_reboot = create_block_element('blocking_account_reboot', this.blocking_buttons);
-                this.blocking_account_reboot.innerHTML = '<div class="color_btn red"></div> ' + get_word('blocking_account_reboot');
+		show: function (msg) {
+			_debug("blocking.show");
+			this.init_layer();
+			try {
+				this.mac = stb.GetDeviceMacAddress().toUpperCase().clearnl();
+			} catch (e) {
+				try {
+					this.mac = stb.RDir("MACAddress").toUpperCase().clearnl();
+				} catch (e) {
+					this.mac = "";
+				}
+			}
+			this.text_msg.innerHTML = (msg || get_word("cut_off_msg")) + this.mac;
+			this.blocking_account_reboot.innerHTML =
+				'<div class="color_btn red"></div> ' + get_word("blocking_account_reboot");
+			this.dom_obj.show();
+			this.on = true;
+			stb.load_account_modules();
+		},
 
-                this.hide();
-            }
-        },
+		hide: function () {
+			this.dom_obj.hide();
+			this.on = false;
+		},
 
-        show: function (msg) {
-            _debug('blocking.show');
-            this.init_layer();
-            try {
-                this.mac = stb.GetDeviceMacAddress().toUpperCase().clearnl();
-            } catch (e) {
-                try {
-                    this.mac = stb.RDir('MACAddress').toUpperCase().clearnl();
-                } catch (e) {
-                    this.mac = "";
-                }
-            }
-            this.text_msg.innerHTML = (msg || get_word('cut_off_msg')) + this.mac;
-            this.blocking_account_reboot.innerHTML = '<div class="color_btn red"></div> ' + get_word('blocking_account_reboot');
-            this.dom_obj.show();
-            this.on = true;
-            stb.load_account_modules();
-        },
+		bind: function () {
+			(function () {
+				_debug("window.referrer", window.referrer);
+				if (window.referrer) {
+					window.location = window.referrer;
+				}
+			}).bind(key.EXIT, this);
 
-        hide: function () {
-            this.dom_obj.hide();
-            this.on = false;
-        },
+			(function () {
+				_debug("blocking key.red");
+				window.location = window.location;
+			}).bind(key.RED, this);
+		},
+	};
 
-        bind: function () {
-            (function () {
-                _debug('window.referrer', window.referrer);
-                if (window.referrer) {
-                    window.location = window.referrer
-                }
-            }).bind(key.EXIT, this);
+	blocking.init();
 
-            (function () {
-                _debug('blocking key.red');
-                window.location = window.location;
-            }).bind(key.RED, this);
-        }
-    };
+	window.module = window.module || {};
 
-    blocking.init();
-
-    window.module = window.module || {};
-
-    window.module.blocking = blocking;
+	window.module.blocking = blocking;
 })();

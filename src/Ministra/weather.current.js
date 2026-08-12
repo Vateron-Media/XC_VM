@@ -4,113 +4,159 @@
  */
 
 (function () {
+	var curweather = {
+		dom_obj: {},
 
-    var curweather = {
+		init: function () {
+			this.dom_obj = create_block_element("curweather_block", main_menu.dom_obj);
+			this.start_load();
+		},
 
-        dom_obj: {},
+		set: function (weather) {
+			_debug("curweather.set", weather);
+			this.current = weather;
 
-        init: function () {
+			if (main_menu) {
+				this.render();
+			}
+		},
 
-            this.dom_obj = create_block_element('curweather_block', main_menu.dom_obj);
-            this.start_load();
-        },
+		render: function () {
+			_debug("curweather.render");
 
-        set: function (weather) {
-            _debug('curweather.set', weather);
-            this.current = weather;
+			var self = this;
 
-            if (main_menu) {
-                this.render();
-            }
-        },
+			if (!this.current) {
+				this.dom_obj.innerHTML =
+					'<div class="curweather_descr"><span class="curweather_title">' +
+					word["current_weather_unavailable"] +
+					"</span></div>";
 
-        render: function () {
-            _debug('curweather.render');
+				if (!this.dom_obj.isHidden()) {
+					window.setTimeout(function () {
+						self.dom_obj.hide();
+					}, 60000);
+				}
 
-            var self = this;
+				return;
+			}
 
-            if (!this.current) {
-                this.dom_obj.innerHTML = '<div class="curweather_descr"><span class="curweather_title">' + word['current_weather_unavailable'] + '</span></div>';
+			if (this.current.error && this.current.error == "not_configured") {
+				this.dom_obj.innerHTML =
+					'<div class="curweather_descr"><span class="curweather_title">' +
+					get_word("current_weather_not_configured") +
+					"</span></div>";
+				return;
+			}
 
-                if (!this.dom_obj.isHidden()) {
-                    window.setTimeout(function () {
-                        self.dom_obj.hide();
-                    }, 60000);
-                }
+			if (this.current.repeat_time) {
+				window.clearInterval(this.load_interval);
 
-                return;
-            }
+				window.setTimeout(function () {
+					self.start_load();
+				}, this.current.repeat_time * 1000);
 
-            if (this.current.error && this.current.error == 'not_configured') {
-                this.dom_obj.innerHTML = '<div class="curweather_descr"><span class="curweather_title">' + get_word('current_weather_not_configured') + '</span></div>';
-                return;
-            }
+				return;
+			}
 
-            if (this.current.repeat_time) {
-                window.clearInterval(this.load_interval);
+			if (this.dom_obj.isHidden()) {
+				this.dom_obj.show();
+			}
 
-                window.setTimeout(function () {
-                    self.start_load()
-                }, this.current.repeat_time * 1000);
+			var cur =
+				'<div class="curweather_img"><img src="template/' +
+				loader.template +
+				"/i" +
+				resolution_prefix +
+				"/" +
+				this.current.pict +
+				'"/></div>';
+			cur += '<div class="city">' + this.current.city + "</div>";
+			cur +=
+				'<div class="curweather_descr">' +
+				this.current.t +
+				"&deg; " +
+				(this.current.t_units ? this.current.t_units : "C") +
+				"<br>";
+			cur += this.current.cloud_str + "<br>";
+			if (this.current.t_flik) {
+				cur +=
+					'<span class="curweather_title">' +
+					word["weather_comfort"] +
+					":</span> " +
+					this.current.t_flik +
+					"&deg; " +
+					(this.current.t_units ? this.current.t_units : "C") +
+					"<br>";
+			}
+			cur +=
+				'<span class="curweather_title">' +
+				word["weather_pressure"] +
+				":</span> " +
+				this.current.p +
+				" " +
+				word["weather_mmhg"] +
+				"<br>";
+			cur +=
+				'<div class="curweather_wind"><div class="curweather_title" style="float: left">' +
+				word["weather_wind"] +
+				":</div>" +
+				(this.current.w_rumb_str
+					? '<div class="wind_direction_' + this.current.w_rumb_str + '">&uarr;</div>'
+					: "") +
+				'<div style="float: left;"> ' +
+				this.current.w +
+				" " +
+				word["weather_speed"] +
+				"</div></div><br>";
+			cur +=
+				'<span class="curweather_title">' +
+				word["weather_humidity"] +
+				":</span> " +
+				this.current.h +
+				"%<br>";
+			cur += "</div>";
 
-                return;
-            }
+			this.dom_obj.innerHTML = cur;
+		},
 
-            if (this.dom_obj.isHidden()) {
-                this.dom_obj.show();
-            }
+		load: function () {
+			_debug("curweather.load");
 
-            var cur = '<div class="curweather_img"><img src="template/' + loader.template + '/i' + resolution_prefix + '/' + this.current.pict + '"/></div>';
-            cur += '<div class="city">' + this.current.city + '</div>';
-            cur += '<div class="curweather_descr">' + this.current.t + '&deg; ' + (this.current.t_units ? this.current.t_units : 'C') + '<br>';
-            cur += this.current.cloud_str + '<br>';
-            if (this.current.t_flik) {
-                cur += '<span class="curweather_title">' + word['weather_comfort'] + ':</span> ' + this.current.t_flik + '&deg; ' + (this.current.t_units ? this.current.t_units : 'C') + '<br>';
-            }
-            cur += '<span class="curweather_title">' + word['weather_pressure'] + ':</span> ' + this.current.p + ' ' + word['weather_mmhg'] + '<br>';
-            cur += '<div class="curweather_wind"><div class="curweather_title" style="float: left">' + word['weather_wind'] + ':</div>' + (this.current.w_rumb_str ? '<div class="wind_direction_' + this.current.w_rumb_str + '">&uarr;</div>' : '') + '<div style="float: left;"> ' + this.current.w + ' ' + word['weather_speed'] + '</div></div><br>';
-            cur += '<span class="curweather_title">' + word['weather_humidity'] + ':</span> ' + this.current.h + '%<br>';
-            cur += '</div>';
+			stb.load(
+				{
+					type: "weather",
+					action: "get_current",
+				},
+				function (result) {
+					_debug("on curweather.load");
 
-            this.dom_obj.innerHTML = cur;
-        },
+					this.set(result);
+				},
+				this
+			);
+		},
 
-        load: function () {
-            _debug('curweather.load');
+		start_load: function () {
+			_debug("curweather.start_load");
 
-            stb.load(
-                {
-                    "type": "weather",
-                    "action": "get_current"
-                },
-                function (result) {
-                    _debug('on curweather.load');
+			this.load();
 
-                    this.set(result);
-                },
-                this
-            )
+			var self = this;
 
-        },
+			window.clearInterval(this.load_interval);
+			this.load_interval = window.setInterval(
+				function () {
+					self.load();
+				},
+				10 * 60 * 1000
+			);
+		},
+	};
 
-        start_load: function () {
-            _debug('curweather.start_load');
+	curweather.init();
 
-            this.load();
+	module.curweather = curweather;
 
-            var self = this;
-
-            window.clearInterval(this.load_interval);
-            this.load_interval = window.setInterval(function () {
-                self.load()
-            }, 10 * 60 * 1000);
-        }
-    };
-
-    curweather.init();
-
-    module.curweather = curweather;
-
-    loader.next();
-
+	loader.next();
 })();

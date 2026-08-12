@@ -1,242 +1,235 @@
 (function () {
+	module.audio_widget = {
+		on: false,
+		widget_on: false,
 
-    module.audio_widget = {
+		init: function () {
+			_debug("audio_widget.init");
 
-        on: false,
-        widget_on: false,
+			this.dom_obj = create_block_element("audio_widget_block", main_menu.dom_obj);
 
-        init: function () {
-            _debug('audio_widget.init');
+			this.title_obj = create_block_element("title", this.dom_obj);
 
-            this.dom_obj = create_block_element('audio_widget_block', main_menu.dom_obj);
+			this.items_obj = create_block_element("items", this.dom_obj);
 
-            this.title_obj = create_block_element('title', this.dom_obj);
+			this.seek_bar_obj = create_block_element("seek_bar", this.dom_obj);
+			this.seek_inner_obj = create_block_element("inner", this.seek_bar_obj);
 
-            this.items_obj = create_block_element('items', this.dom_obj);
+			this.buttons_block_obj = create_block_element("buttons_block", this.dom_obj);
 
-            this.seek_bar_obj = create_block_element('seek_bar', this.dom_obj);
-            this.seek_inner_obj = create_block_element('inner', this.seek_bar_obj);
+			this.prev_btn = create_block_element("prev_btn", this.buttons_block_obj);
+			this.next_btn = create_block_element("next_btn", this.buttons_block_obj);
+			this.play_btn = create_block_element("play_btn", this.buttons_block_obj);
+			this.pause_btn = create_block_element("pause_btn", this.buttons_block_obj);
 
-            this.buttons_block_obj = create_block_element('buttons_block', this.dom_obj);
+			var self = this;
 
-            this.prev_btn = create_block_element('prev_btn', this.buttons_block_obj);
-            this.next_btn = create_block_element('next_btn', this.buttons_block_obj);
-            this.play_btn = create_block_element('play_btn', this.buttons_block_obj);
-            this.pause_btn = create_block_element('pause_btn', this.buttons_block_obj);
+			stb.player.addCustomEventListener("audiostart", function (item) {
+				if (!item.is_track) {
+					return;
+				}
+				_debug("audio_widget.audiostart");
+				self.show(item);
+			});
 
-            var self = this;
+			stb.player.addCustomEventListener("audiostop", function (item) {
+				_debug("audio_widget.audiostop");
+				self.hide();
+			});
 
-            stb.player.addCustomEventListener("audiostart", function (item) {
-                if (!item.is_track) {
-                    return;
-                }
-                _debug('audio_widget.audiostart');
-                self.show(item);
-            });
+			stb.player.addCustomEventListener("audiopause", function (item) {
+				_debug("audio_widget.audiopause");
 
-            stb.player.addCustomEventListener("audiostop", function (item) {
-                _debug('audio_widget.audiostop');
-                self.hide();
-            });
+				self.pause_btn.hide();
+				self.play_btn.show();
+			});
 
-            stb.player.addCustomEventListener("audiopause", function (item) {
-                _debug('audio_widget.audiopause');
+			stb.player.addCustomEventListener("audiocontinue", function (item) {
+				_debug("audio_widget.audiopause");
 
-                self.pause_btn.hide();
-                self.play_btn.show();
-            });
+				self.play_btn.hide();
+				self.pause_btn.show();
+			});
 
-            stb.player.addCustomEventListener("audiocontinue", function (item) {
-                _debug('audio_widget.audiopause');
+			main_menu.addCustomEventListener("mainmenushow", function (layer_name) {
+				if (layer_name != "audioclub" && layer_name != "media_browser") {
+					return;
+				}
+				_debug("audio_widget.mainmenushow");
 
-                self.play_btn.hide();
-                self.pause_btn.show();
-            });
+				self.on = self.widget_on;
 
-            main_menu.addCustomEventListener("mainmenushow", function (layer_name) {
-                if (layer_name != 'audioclub' && layer_name != 'media_browser') {
-                    return;
-                }
-                _debug('audio_widget.mainmenushow');
+				if (self.on) {
+					self._start_updating_seek_bar();
+				}
+			});
 
-                self.on = self.widget_on;
+			main_menu.addCustomEventListener("mainmenuhide", function () {
+				_debug("audio_widget.mainmenuhide");
 
-                if (self.on) {
-                    self._start_updating_seek_bar();
-                }
-            });
+				self.on = false;
+				window.clearInterval(self.seek_bar_interval);
+			});
 
-            main_menu.addCustomEventListener("mainmenuhide", function () {
-                _debug('audio_widget.mainmenuhide');
+			this.hide();
+		},
 
-                self.on = false;
-                window.clearInterval(self.seek_bar_interval);
-            });
+		show: function (item) {
+			if (!item.is_track) {
+				return;
+			}
+			_debug("audio_widget.show", item);
 
-            this.hide();
-        },
+			this.title_obj.innerHTML = item.name;
+			this._update_cur_items();
+			this.dom_obj.show();
+			this.widget_on = true;
+
+			if (main_menu.on) {
+				this.on = true;
 
-        show: function (item) {
-            if (!item.is_track) {
-                return;
-            }
-            _debug('audio_widget.show', item);
+				this._start_updating_seek_bar();
+			}
 
-            this.title_obj.innerHTML = item.name;
-            this._update_cur_items();
-            this.dom_obj.show();
-            this.widget_on = true;
+			this.play_btn.hide();
+			this.pause_btn.show();
+		},
 
-            if (main_menu.on) {
-                this.on = true;
+		hide: function () {
+			_debug("audio_widget.hide");
+			this.dom_obj.hide();
+			this.widget_on = this.on = false;
+			window.clearInterval(this.seek_bar_interval);
+		},
 
-                this._start_updating_seek_bar();
-            }
+		bind: function () {
+			_debug("audio_widget.bind");
 
-            this.play_btn.hide();
-            this.pause_btn.show();
-        },
+			(function (dir) {
+				_debug("dir", dir);
 
-        hide: function () {
-            _debug('audio_widget.hide');
-            this.dom_obj.hide();
-            this.widget_on = this.on = false;
-            window.clearInterval(this.seek_bar_interval);
-        },
+				var idx = this._get_current_idx();
 
-        bind: function () {
-            _debug('audio_widget.bind');
+				_debug("playlist idx", idx);
 
-            (function (dir) {
+				if (idx >= 0 && idx <= stb.player.cur_media_item.playlist.length - 1) {
+					idx = idx + dir;
 
-                _debug('dir', dir);
+					if (!stb.player.cur_media_item.playlist[idx]) {
+						return;
+					}
 
-                var idx = this._get_current_idx();
+					if (typeof stb.player.cur_media_item.playlist[0] == "object") {
+						cur_media_item = stb.player.cur_media_item.playlist[idx].clone();
+						cur_media_item.playlist = stb.player.cur_media_item.playlist;
+						if (cur_media_item.is_audio) {
+							cur_media_item.number = null;
+						}
+					} else {
+						var cur_media_item = stb.player.cur_media_item.clone();
 
-                _debug('playlist idx', idx);
+						cur_media_item.cmd = cur_media_item.playlist[idx];
 
-                if (idx >= 0 && idx <= stb.player.cur_media_item.playlist.length - 1) {
+						cur_media_item.name = cur_media_item.cmd.substr(
+							stb.player.cur_media_item.cmd.lastIndexOf("/") + 1
+						);
+					}
 
-                    idx = idx + dir;
+					stb.player.play(cur_media_item);
+				}
+			})
+				.bind(key.NEXT, this, 1)
+				.bind(key.PREV, this, -1);
+		},
 
-                    if (!stb.player.cur_media_item.playlist[idx]) {
-                        return;
-                    }
+		_update_cur_items: function () {
+			var cur_idx = this._get_current_idx();
+			var total_items = this._get_total_playlist_items();
 
-                    if (typeof (stb.player.cur_media_item.playlist[0]) == 'object') {
-                        cur_media_item = stb.player.cur_media_item.playlist[idx].clone();
-                        cur_media_item.playlist = stb.player.cur_media_item.playlist;
-                        if (cur_media_item.is_audio) {
-                            cur_media_item.number = null;
-                        }
-                    } else {
-                        var cur_media_item = stb.player.cur_media_item.clone();
+			this.items_obj.innerHTML = "[" + (cur_idx + 1) + "/" + total_items + "]";
 
-                        cur_media_item.cmd = cur_media_item.playlist[idx];
+			if (cur_idx < total_items - 1) {
+				this.next_btn.show();
+			} else {
+				this.next_btn.hide();
+			}
 
-                        cur_media_item.name = cur_media_item.cmd.substr(stb.player.cur_media_item.cmd.lastIndexOf("/") + 1);
-                    }
+			if (cur_idx > 0) {
+				this.prev_btn.show();
+			} else {
+				this.prev_btn.hide();
+			}
+		},
 
-                    stb.player.play(cur_media_item);
-                }
+		_get_current_idx: function () {
+			_debug("audio_widget._get_current_idx");
 
-            }).bind(key.NEXT, this, 1).bind(key.PREV, this, -1);
+			_debug("stb.player.cur_media_item", stb.player.cur_media_item);
 
-        },
+			if (typeof stb.player.cur_media_item.playlist[0] == "object") {
+				var idx = -1;
 
-        _update_cur_items: function () {
+				for (var i = 0; i < stb.player.cur_media_item.playlist.length; i++) {
+					if (stb.player.cur_media_item.id == stb.player.cur_media_item.playlist[i].id) {
+						idx = i;
+						break;
+					}
+				}
+			} else {
+				idx = stb.player.cur_media_item.playlist.indexOf(stb.player.cur_media_item.cmd);
+			}
 
-            var cur_idx = this._get_current_idx();
-            var total_items = this._get_total_playlist_items();
+			return idx;
+		},
 
-            this.items_obj.innerHTML = '[' + (cur_idx + 1) + '/' + total_items + ']';
+		_get_total_playlist_items: function () {
+			_debug("audio_widget._get_total_playlist_items");
 
-            if (cur_idx < total_items - 1) {
-                this.next_btn.show();
-            } else {
-                this.next_btn.hide();
-            }
+			return stb.player.cur_media_item.playlist.length || 0;
+		},
 
-            if (cur_idx > 0) {
-                this.prev_btn.show();
-            } else {
-                this.prev_btn.hide();
-            }
-        },
+		shift_playlist: function (dir) {
+			_debug("audio_widget.shift_playlist", dir);
+		},
 
-        _get_current_idx: function () {
-            _debug('audio_widget._get_current_idx');
+		_start_updating_seek_bar: function () {
+			_debug("audio_widget._start_updating_seek_bar");
 
-            _debug('stb.player.cur_media_item', stb.player.cur_media_item)
+			var self = this;
 
-            if (typeof (stb.player.cur_media_item.playlist[0]) == 'object') {
+			window.clearInterval(this.seek_bar_interval);
 
-                var idx = -1;
+			this._update_seek_bar();
 
-                for (var i = 0; i < stb.player.cur_media_item.playlist.length; i++) {
-                    if (stb.player.cur_media_item.id == stb.player.cur_media_item.playlist[i].id) {
-                        idx = i;
-                        break;
-                    }
-                }
-            } else {
-                idx = stb.player.cur_media_item.playlist.indexOf(stb.player.cur_media_item.cmd);
-            }
+			this.seek_bar_interval = window.setInterval(function () {
+				self._update_seek_bar();
+			}, 1000);
+		},
 
-            return idx;
-        },
+		_update_seek_bar: function () {
+			var pos_time = stb.GetPosTime();
+			var media_len = stb.GetMediaLen();
 
-        _get_total_playlist_items: function () {
-            _debug('audio_widget._get_total_playlist_items');
+			_debug("pos_time", pos_time);
+			_debug("media_len", media_len);
+			_debug("this.seek_bar_obj.offsetWidth", this.seek_bar_obj.offsetWidth);
 
-            return stb.player.cur_media_item.playlist.length || 0;
-        },
+			var width = (this.seek_bar_obj.offsetWidth * pos_time) / media_len;
 
-        shift_playlist: function (dir) {
-            _debug('audio_widget.shift_playlist', dir);
-        },
+			_debug("width", width);
 
-        _start_updating_seek_bar: function () {
-            _debug('audio_widget._start_updating_seek_bar');
+			if (width > this.seek_bar_obj.offsetWidth) {
+				width = this.seek_bar_obj.offsetWidth;
+			}
 
-            var self = this;
+			_debug("width 2", width);
 
-            window.clearInterval(this.seek_bar_interval);
+			this.seek_inner_obj.style.width = width + "px";
+		},
+	};
 
-            this._update_seek_bar();
-
-            this.seek_bar_interval = window.setInterval(function () {
-                self._update_seek_bar();
-            }, 1000);
-        },
-
-        _update_seek_bar: function () {
-
-            var pos_time = stb.GetPosTime();
-            var media_len = stb.GetMediaLen();
-
-            _debug('pos_time', pos_time);
-            _debug('media_len', media_len);
-            _debug('this.seek_bar_obj.offsetWidth', this.seek_bar_obj.offsetWidth);
-
-            var width = this.seek_bar_obj.offsetWidth * pos_time / media_len;
-
-            _debug('width', width);
-
-            if (width > this.seek_bar_obj.offsetWidth) {
-                width = this.seek_bar_obj.offsetWidth;
-            }
-
-            _debug('width 2', width);
-
-            this.seek_inner_obj.style.width = width + 'px';
-        }
-
-    };
-
-    module.audio_widget.init();
-    module.audio_widget.bind();
-
+	module.audio_widget.init();
+	module.audio_widget.bind();
 })();
 
 loader.next();

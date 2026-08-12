@@ -3,51 +3,50 @@
  */
 
 .color_button_bar .separator {
-    background: url(i_720/footer_bg2.png);
-    height: 46px;
-    width: 14px;
-    margin: 0;
+	background: url(i_720/footer_bg2.png);
+	height: 46px;
+	width: 14px;
+	margin: 0;
 }
 
 .screensaver {
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 720px;
-    width: 1280px;
-    z-index: 1001;
-    background-color: #000;
+	position: absolute;
+	left: 0;
+	top: 0;
+	height: 720px;
+	width: 1280px;
+	z-index: 1001;
+	background-color: #000;
 }
 
 .screensaver .screensaver_clock {
-    position: absolute;
-    left: 20px;
-    top: 20px;
-    height: 40px;
-    width: 100px;
-    color: #fff;
-    font-size: 36px;
-    /*-webkit-transition: opacity 1s linear;*/
+	position: absolute;
+	left: 20px;
+	top: 20px;
+	height: 40px;
+	width: 100px;
+	color: #fff;
+	font-size: 36px;
+	/*-webkit-transition: opacity 1s linear;*/
 }
 
 dl.definition_list {
-    margin: 0 auto;
-    width: 610px;
-    font-size: 32px;
+	margin: 0 auto;
+	width: 610px;
+	font-size: 32px;
 }
 
 dl.definition_list dt {
-    float: left;
-    padding: 5px;
-    width: 300px;
-    clear: left;
-    text-align: right;
-    font-weight: bold;
+	float: left;
+	padding: 5px;
+	width: 300px;
+	clear: left;
+	text-align: right;
+	font-weight: bold;
 }
 
 dl.definition_list dd {
-    padding: 5px 0;
-
+	padding: 5px 0;
 }
 
 /*
@@ -55,27 +54,27 @@ Clock On Video by Agnitumus
 */
 
 .onVideoOff {
-    display: none;
+	display: none;
 }
 
 .onVideoupRight {
-    top: 127px;
-    right: 130px;
+	top: 127px;
+	right: 130px;
 }
 
 .onVideoupLeft {
-    top: 127px;
-    left: 130px;
+	top: 127px;
+	left: 130px;
 }
 
 .onVideodownRight {
-    bottom: 127px;
-    right: 130px;
+	bottom: 127px;
+	right: 130px;
 }
 
 .onVideodownLeft {
-    bottom: 127px;
-    left: 130px;
+	bottom: 127px;
+	left: 130px;
 }
 
 /*
