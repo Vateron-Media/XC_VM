@@ -61,15 +61,20 @@ class MigrationRunner {
 				continue;
 			}
 
-			$rStatements = array_filter(array_map('trim', explode(';', $rSQL)));
+			// Strip full-line `--` comments BEFORE splitting on `;` — a comment
+			// may itself contain a semicolon (e.g. "no GeoIP data; on the old
+			// schedule…"), which would otherwise corrupt statement parsing and
+			// leak comment text into the next statement, failing forever.
+			$rLines = array_filter(explode("\n", $rSQL), function ($l) {
+				return strpos(ltrim($l), '--') !== 0;
+			});
+			$rClean = implode("\n", $rLines);
+
+			$rStatements = array_filter(array_map('trim', explode(';', $rClean)));
 			$rFailed = false;
 
 			foreach ($rStatements as $rStatement) {
-				$rLines = array_filter(explode("\n", $rStatement), function ($l) {
-					return strpos(ltrim($l), '--') !== 0;
-				});
-				$rStatement = trim(implode("\n", $rLines));
-				if (empty($rStatement)) {
+				if ($rStatement === '') {
 					continue;
 				}
 				if (!$db->query($rStatement . ';')) {
