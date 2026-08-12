@@ -1,8 +1,7 @@
-< !-- * {
+<!-- * {
 	margin: 0;
 	padding: 0;
 }
-
 html,
 body {
 	overflow: hidden;
@@ -11,20 +10,16 @@ body {
 	width: 1714px;
 	height: 874px;
 }
-
 a {
 	outline: none;
 	text-decoration: none;
 }
-
 :focus {
 	outline: none;
 }
-
 #center {
 	background: url(1080/bg.png) no-repeat;
 }
-
 .header_text {
 	position: absolute;
 	margin-top: 12px;
@@ -37,7 +32,6 @@ a {
 	font-size: 60px;
 	text-shadow: -2px -3px 0 #0f2240;
 }
-
 .header_icon {
 	position: absolute;
 	margin-top: 5px;
@@ -71,7 +65,6 @@ a {
 	display: none;
 	z-index: 9999;
 }
-
 .modal {
 	position: absolute;
 	background: -webkit-gradient(
@@ -95,26 +88,21 @@ a {
 	display: none;
 	z-index: 9999;
 }
-
 #modal_ico {
 	height: 120px;
 	width: 105px;
 	float: left;
 	margin-right: 30px;
 }
-
 .ico_alert {
 	background: url(720/ico_alert.png) no-repeat;
 }
-
 .ico_info {
 	background: url(720/ico_info.png) no-repeat;
 }
-
 .ico_issue {
 	background: url(720/ico_issue.png) no-repeat;
 }
-
 #modal_btn {
 	position: relative;
 	height: 90px;
@@ -122,7 +110,6 @@ a {
 	bottom: 0px;
 	right: 15px;
 }
-
 #modal_btn input[type="button"] {
 	position: relative;
 	height: 75px;
@@ -138,7 +125,6 @@ a {
 	-webkit-border-image: url(1080/btn.png) 0 20 0 20 stretch stretch;
 	text-shadow: -1px -2px 0 #555;
 }
-
 #modal_btn input[type="button"]:focus {
 	background: none;
 	border-width: 0 20px;

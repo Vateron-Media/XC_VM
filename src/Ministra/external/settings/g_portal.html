@@ -14,15 +14,16 @@
 				],
 				["check", parent.t("Play in preview only by OK:")],
 			];
-
-			var themes_select = ["select", parent.t("Theme:")];
-
-			parent.prof.themes = parent.prof.themes || [];
-
-			parent.prof.themes.map(function (theme) {
-				themes_select.push(theme.id);
-				themes_select.push(theme.name);
-			});
+			var addIndex = 0;
+			var themes_select = [];
+			if (parent.prof.themes && parent.prof.themes.length) {
+				themes_select = ["select", parent.t("Theme:")];
+				parent.prof.themes.map(function (theme) {
+					themes_select.push(theme.id);
+					themes_select.push(theme.name);
+				});
+				addIndex = 1;
+			}
 
 			menuT.push(themes_select);
 
@@ -47,16 +48,24 @@
 				if (parent.prof.play_in_preview_by_ok) {
 					document.getElementById("i2").setAttribute("checked", "checked");
 				}
+				if (addIndex == 0) {
+					var removeChild = document.getElementById("theme_row");
+					removeChild.parentNode.removeChild(removeChild);
+					document.getElementById("i4").id = "i3";
+					document.getElementById("i5").id = "i4";
+				}
 			}
 
 			function submit() {
 				var save_data = {
 					show_after_loading: document.getElementById("i1").value,
 					play_in_preview_by_ok: document.getElementById("i2").checked,
-					theme: document.getElementById("i3").value,
+					theme: addIndex ? document.getElementById("i3").value : parent.prof.user_theme,
 				};
 
-				parent.rebut = document.getElementById("i3").value != parent.prof.user_theme;
+				if (addIndex) {
+					parent.rebut = document.getElementById("i3").value != parent.prof.user_theme;
+				}
 
 				parent.prof.show_after_loading = save_data.show_after_loading;
 				parent.prof.play_in_preview_by_ok = save_data.play_in_preview_by_ok;
@@ -92,8 +101,7 @@
 		<script language="JavaScript" src="js/pres.js"></script>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	</head>
-
-	<body onload="onLoad()" onkeydown="pressKey(event)">
+	<body onload="onLoad()" onkeydown="pressKey(event);">
 		<div id="blueback">
 			<table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
 				<tr>
@@ -106,7 +114,7 @@
 					<td align="right"><span id="t2"></span></td>
 					<td><input type="checkbox" id="i2" /><label></label></td>
 				</tr>
-				<tr>
+				<tr id="theme_row">
 					<td align="right"><span id="t3"></span></td>
 					<td>
 						<div class="sub_select"><select id="i3"></select></div>

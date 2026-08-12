@@ -1,5 +1,4 @@
 <html>
-
 <head>
     <script language="JavaScript" src="js/pres.js"></script>
     <script>
@@ -11,7 +10,7 @@
         }
         tread += ']}';
         read = JSON.parse(parent.stb.GetEnv(tread));
-        if (read.result.language == "") read.result.language = "en";
+        if (read.result.language == "")read.result.language = "en";
         var langv = read.result.language;
         var gr;
         var menuT = [
@@ -24,26 +23,26 @@
             ['check', parent.t('Plasma display saving:')]
         ];
         var mid = menuT.length + 2;
-        parent.load({ "type": "stb", "action": "get_settings_profile" }, function (prof) {
+        parent.load({"type": "stb", "action": "get_settings_profile"}, function (prof) {
             read.result.a = prof.playback_buffer_size;
             read.result.b = prof.screensaver_delay;
             gr = parseInt(read.result.a);
             init();
-            if (gr == 0) document.getElementById('i11').style.visibility = 'hidden'; else {
+            if (gr == 0)document.getElementById('i11').style.visibility = 'hidden'; else {
                 document.getElementById('i11').style.width = step * gr;
             }
             document.getElementById('i12').innerHTML = gr;
 
-            if (prof.hasOwnProperty('plasma_saving')) {
-                if (prof.plasma_saving === '1') {
+            if (prof.hasOwnProperty('plasma_saving')){
+                if (prof.plasma_saving === '1'){
                     document.getElementById('i7').setAttribute('checked', 'checked');
-                } else {
+                }else{
                     document.getElementById('i7').removeAttribute('checked');
                 }
             }
 
-            if (prof.hide_adv_mc_settings) {
-                ['igmp_block', 'mcproxy_option', 'mcproxy_addr'].map(function (id) {
+            if (prof.hide_adv_mc_settings){
+                ['igmp_block', 'mcproxy_option', 'mcproxy_addr'].map(function(id){
                     document.getElementById(id).parentNode.removeChild(document.getElementById(id));
                 })
             }
@@ -87,7 +86,7 @@
                 pr = true;
                 parent.stb.SetBufferSize(gr * 1000, by);
             }
-            if (document.getElementById("i3")) {
+            if (document.getElementById("i3")){
                 var t = document.getElementById("i3").value;
                 if (t != read.result.igmp_conf) {
                     wf = true;
@@ -101,7 +100,7 @@
                 wr += (pr ? ',' : '') + '"upnp_conf":"' + t + '"';
                 pr = true;
             }
-            if (document.getElementById("i5")) {
+            if (document.getElementById("i5")){
                 var mc_proxy_enabled = t = document.getElementById("i5").checked;
                 if (t != (read.result.mc_proxy_enabled == "true" ? true : false)) {
                     wf = true;
@@ -110,9 +109,9 @@
                     parent.stb.EnableMulticastProxy(t);
                 }
             }
-            if (document.getElementById("i6")) {
+            if (document.getElementById("i6")){
                 var mc_proxy_url = t = document.getElementById("i6").value;
-                if (t != read.result.mc_proxy_url) if (!(url.test(t) || t == '')) erm += parent.t("No correct") + "<br />" + parent.t("Multicast proxy URL:"); else {
+                if (t != read.result.mc_proxy_url)if (!(url.test(t) || t == ''))erm += parent.t("No correct") + "<br />" + parent.t("Multicast proxy URL:"); else {
                     wf = true;
                     wr += (pr ? ',' : '') + '"mc_proxy_url":"' + t + '"';
                     pr = true;
@@ -124,21 +123,21 @@
 
             var plasma = document.getElementById("i7").checked;
 
-            parent.load({ "type": "stb", "action": "set_screensaver_delay", "screensaver_delay": t }, function (result) {
+            parent.load({"type": "stb", "action": "set_screensaver_delay", "screensaver_delay": t}, function (result) {
                 if (!result) {
                     erm += parent.t('Saving error');
                     parent.erMes(erm, "i" + iid);
                 } else {
-                    parent.load({ "type": "stb", "action": "set_playback_buffer", "playback_buffer_bytes": by, "playback_buffer_size": gr }, function (result) {
+                    parent.load({"type": "stb", "action": "set_playback_buffer", "playback_buffer_bytes": by, "playback_buffer_size": gr}, function (result) {
                         if (!result) {
                             erm += parent.t('Saving error');
                             parent.erMes(erm, "i" + iid);
-                        } else {
-                            parent.load({ "type": "stb", "action": "set_plasma_saving", "plasma_saving": plasma }, function (result) {
+                        }else{
+                            parent.load({"type": "stb", "action": "set_plasma_saving", "plasma_saving": plasma}, function (result) {
                                 if (!result) {
                                     erm += parent.t('Saving error');
                                 }
-                                if (erm != '') {
+                                if (erm != ''){
                                     parent.erMes(erm, "i" + iid);
                                 } else {
                                     if (wf) {
@@ -146,9 +145,9 @@
                                     }
                                     try {
                                         parent.stb.SendEventToPortal('{"type":"settings",'
-                                            + '"screensaver_delay":"' + t + '",'
-                                            + '"plasma_saving":"' + (plasma ? 1 : 0) + '",'
-                                            + '"mc_proxy_url":"' + (mc_proxy_enabled && mc_proxy_url ? mc_proxy_url : '') + '"}'
+                                                + '"screensaver_delay":"' + t + '",'
+                                                + '"plasma_saving":"'+(plasma ? 1 : 0)+'",'
+                                                + '"mc_proxy_url":"' + (mc_proxy_enabled && mc_proxy_url ? mc_proxy_url : '') + '"}'
                                         );
                                     } catch (e) {
                                     }
@@ -171,7 +170,7 @@
                         var d = document.getElementById('i11');
                         d.style.visibility = 'visible';
                         gr = gr + (1 * a);
-                        if (gr > 15) gr = 15;
+                        if (gr > 15)gr = 15;
                         if (gr <= 0) {
                             gr = 0;
                             d.style.visibility = 'hidden';
@@ -188,54 +187,54 @@
 
     </script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
 <body onload="onLoad()" onkeydown="pressKey(event);">
-    <div id="blueback" style="display: none">
-        <table width="100%" border="0" cellpadding="0" cellspacing="0">
-            <tr>
-                <td align="right"><span id="t1"></span></td>
-                <td width="10"><input id="i1" class="volume" name="vol" type="button" />
+<div id="blueback" style="display: none">
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="right"><span id="t1"></span></td>
+            <td width="10"><input id="i1" class="volume" name="vol" type="button"/>
 
-                    <div id="i11" class="volume_bar"></div>
-                    <div id="i12" class="volume_percent" align="center"></div>
-            </tr>
-            <tr>
-                <td align="right"><span id="t2"></span></td>
-                <td>
-                    <div class="sub_select"><select id="i2"></select></div>
-                </td>
-            </tr>
-            <tr id="igmp_block">
-                <td align="right"><span id="t3"></span></td>
-                <td>
-                    <div class="sub_select"><select id="i3"></select></div>
-                </td>
-            </tr>
-            <tr id="ch">
-                <td align="right"><span id="t4"></span>
-                <td>
-                    <div class="sub_select"><select id="i4"></select></div>
-                </td>
-            </tr>
-            <tr id="mcproxy_option">
-                <td align="right"><span id="t5"></span></td>
-                <td><input type="checkbox" id="i5" /><label></label></td>
-            </tr>
-            <tr id="mcproxy_addr">
-                <td align="right"><span id="t6"></span></td>
-                <td><input type="text" class="input-text" id="i6"></td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t7"></span></td>
-                <td><input type="checkbox" id="i7" /><label></label></td>
-            </tr>
-        </table>
+                <div id="i11" class="volume_bar"></div>
+                <div id="i12" class="volume_percent" align="center"></div>
+        </tr>
+        <tr>
+            <td align="right"><span id="t2"></span></td>
+            <td>
+                <div class="sub_select"><select id="i2"></select></div>
+            </td>
+        </tr>
+        <tr id="igmp_block">
+            <td align="right"><span id="t3"></span></td>
+            <td>
+                <div class="sub_select"><select id="i3"></select></div>
+            </td>
+        </tr>
+        <tr id="ch">
+            <td align="right"><span id="t4"></span>
+            <td>
+                <div class="sub_select"><select id="i4"></select></div>
+            </td>
+        </tr>
+        <tr id="mcproxy_option">
+            <td align="right"><span id="t5"></span></td>
+            <td><input type="checkbox" id="i5"/><label></label></td>
+        </tr>
+        <tr id="mcproxy_addr">
+            <td align="right"><span id="t6"></span></td>
+            <td><input type="text" class="input-text" id="i6"></td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t7"></span></td>
+            <td><input type="checkbox" id="i7"/><label></label></td>
+        </tr>
+    </table>
 
-    </div>
-    <div id="footer">
-        <input id="i9" type="button" class="but" value="Cancel" onClick="back();" />
-        <input id="i8" type="button" value="" onClick="submit();" />
-    </div>
+</div>
+<div id="footer">
+    <input id="i9" type="button" class="but" value="Cancel" onClick="back();"/>
+    <input id="i8" type="button" value="" onClick="submit();"/>
+</div>
 </body>
-
 </html>
+
+

@@ -40,12 +40,12 @@
 								} else {
 									try {
 										parent.stb.SendEventToPortal(
-											'{"type":"settings","settings_password":"' + p1 + '"}'
+											'{"type":"settings","settings_password":"' + p1 + '"}',
 										);
 									} catch (e) {}
 									back();
 								}
-							}
+							},
 						);
 					} else {
 						parent.erMes(parent.t("New and confirm passwords must be same"), "i" + iid);
@@ -65,8 +65,7 @@
 		<script language="JavaScript" src="js/pres.js"></script>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	</head>
-
-	<body onload="onLoad()" onkeydown="pressKey(event)">
+	<body onload="onLoad()" onkeydown="pressKey(event);">
 		<div id="blueback">
 			<table class="nsp" width="100%" border="0" cellpadding="0" cellspacing="0">
 				<tr>

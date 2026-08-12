@@ -162,7 +162,7 @@
 
 			function clear_channel_list() {
 				parent.stb.SendEventToPortal(
-					JSON.stringify({ type: "settings", clear_dvb_channels: true })
+					JSON.stringify({ type: "settings", clear_dvb_channels: true }),
 				);
 				document.getElementById("i9").value = parent.t("List is cleared");
 			}
@@ -178,7 +178,7 @@
 							send_event_data.data,
 							send_event_data_attr[i].name,
 							document.getElementById("i" + i),
-							send_event_data_attr[i].default_val
+							send_event_data_attr[i].default_val,
 						);
 					}
 
@@ -228,7 +228,7 @@
 				toggle_display_form(true, [1, 2, 3, 4, 5, 6, 7]);
 
 				parent.stb.SendEventToPortal(
-					JSON.stringify({ type: "settings", stop_dvb_scan: true })
+					JSON.stringify({ type: "settings", stop_dvb_scan: true }),
 				);
 				document.getElementById("i8").value = parent.t("Start scan");
 				scanning = false;
@@ -246,7 +246,7 @@
 					scanning = false;
 					total_found = 0;
 					parent.stb.SendEventToPortal(
-						JSON.stringify({ type: "settings", update_dvb_channels: true })
+						JSON.stringify({ type: "settings", update_dvb_channels: true }),
 					);
 					document.getElementById("i8").value = parent.t("New scan");
 
@@ -340,13 +340,13 @@
 					if (antena_power.result.dvb_power && antena_power.result.dvb_power == "true") {
 						parent.conf(
 							parent.t(
-								"For the selected type of signal, necessary to turn off the power of antenna. The power will be turned off after rebooting the device. Rebooting now?"
+								"For the selected type of signal, necessary to turn off the power of antenna. The power will be turned off after rebooting the device. Rebooting now?",
 							),
 							"",
 							'stb.SetEnv(\'{"dvb_power": false, "dvb_type": ' +
 								dvb_type +
 								'}\');stb.ExecAction("reboot");stbWebWindow.close();',
-							1
+							1,
 						);
 					}
 				} else {
@@ -356,13 +356,13 @@
 					) {
 						parent.conf(
 							parent.t(
-								"For the selected type of signal, necessary to turn on the power of antenna. The power turns on after rebooting the device. Rebooting now?"
+								"For the selected type of signal, necessary to turn on the power of antenna. The power turns on after rebooting the device. Rebooting now?",
 							),
 							"",
 							'stb.SetEnv(\'{"dvb_power": true, "dvb_type": ' +
 								dvb_type +
 								'}\');stb.ExecAction("reboot");stbWebWindow.close();',
-							1
+							1,
 						);
 					}
 				}
@@ -411,8 +411,7 @@
 		<script language="JavaScript" src="js/pres.js"></script>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	</head>
-
-	<body onload="onLoad()" onkeydown="pressKeyC(event)">
+	<body onload="onLoad()" onkeydown="pressKeyC(event);">
 		<div id="blueback">
 			<table id="content" width="100%" border="0" cellpadding="0" cellspacing="0">
 				<tr id="tr1">
@@ -503,7 +502,7 @@
 			<input id="i11" type="button" value="" onClick="stop_scan();back();" />
 			<input id="i10" type="button" value="" onClick="submit();" />
 			<input id="i9" type="button" value="" onclick="clear_channel_list()" />
-			<input id="i8" type="button" value="" onclick="scan()" />
+			<input id="i8" type="button" value="" onclick="scan();" />
 		</div>
 	</body>
 </html>
