@@ -56,12 +56,10 @@
 	left: 412px;
 	padding: 5px;
 }
-
 .vclub_screenshot_box img {
 	width: 225px;
 	height: 300px;
 }
-
 .today_block {
 	position: absolute;
 	right: 2px;
@@ -69,9 +67,11 @@
 	width: 94px;
 	height: 25px;
 	background-image: url("i_480/mb_table.png");
-	background-position: 102px -30px;
+	background-position: 102px -25px;
 	padding: 3px 0 0 6px;
 	color: #122f59;
+	font-family: "Myriad Pro Cond", sans-serif;
+	font-size: 16px;
 	/*float: right;
     margin: 0px 0 0 4px;*/
 }
@@ -83,9 +83,11 @@
 	width: 94px;
 	height: 25px;
 	background-image: url("i_480/mb_table.png");
-	background-position: 102px -60px;
+	background-position: 102px -50px;
 	padding: 3px 0 0 6px;
 	color: #fff;
+	font-family: "Myriad Pro Cond", sans-serif;
+	font-size: 16px;
 	/*float: right;
     margin: 0px 0 0 4px;*/
 }
@@ -123,6 +125,7 @@
 	right: 11px;
 	top: 4px;
 	width: 101px;
+	font-size: 16px;
 }
 
 .disabled_all_buttons span {
@@ -136,7 +139,6 @@
 	background-image: url("i_480/low_q.png");
 	margin: 2px 0 0 2px;
 }
-
 #vclub .active_low_quality_block {
 	float: left;
 	width: 20px;
@@ -144,5 +146,4 @@
 	background-image: url("i_480/low_q.png");
 	margin: 8px 2px 0 2px;
 }
-
 /* END VCLUB */

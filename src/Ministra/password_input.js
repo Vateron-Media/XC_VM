@@ -38,7 +38,7 @@ function password_input(options) {
 
 password_input.prototype.init = function () {
 	this.dom_obj = create_block_element("password");
-	var container = create_block_element("password_continer", this.dom_obj);
+	var container = create_block_element("password_container", this.dom_obj);
 	this.error_ico = create_block_element("password_error_ico", container);
 	this.input = create_block_element("password_input", container);
 

@@ -41,7 +41,7 @@
 .lang_container ul li.search_active_cell {
 	background: url("i/footer_search_act.png") no-repeat;
 	color: #000;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 	text-shadow: #fff -1px -1px 0;
 }
 
@@ -62,5 +62,4 @@
 	white-space: pre;
 	overflow: hidden;
 }
-
 /* END SEARCH BOX */

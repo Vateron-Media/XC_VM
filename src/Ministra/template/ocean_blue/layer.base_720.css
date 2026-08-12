@@ -24,7 +24,7 @@
 	left: 20px;
 	top: 20px;
 	height: 40px;
-	width: 100px;
+	width: 140px;
 	color: #fff;
 	font-size: 36px;
 	/*-webkit-transition: opacity 1s linear;*/
@@ -42,7 +42,7 @@ dl.definition_list dt {
 	width: 300px;
 	clear: left;
 	text-align: right;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 dl.definition_list dd {

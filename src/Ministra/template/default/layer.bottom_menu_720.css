@@ -31,7 +31,7 @@
 	background: url("i_720/footer_menu_act.png");
 	color: #000;
 	text-shadow: #fff -1px -1px 0;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 .bottom_menu_container li[rel="disabled"] {
@@ -46,5 +46,4 @@
 	color: #f00;
 	float: right;
 }
-
 /* END BOTTOM MENU */

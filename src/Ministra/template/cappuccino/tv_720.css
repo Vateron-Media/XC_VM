@@ -38,6 +38,7 @@
 	font-size: 26px;
 	/*text-shadow: #122946 0 -1px 0;*/
 	/*margin: 4px 0 0 3px;*/
+	margin-top: 2px;
 	padding-left: 3px;
 	white-space: pre;
 	overflow: hidden;
@@ -46,11 +47,16 @@
 	/*width: 209px;*/
 }
 
+#tv .wide_container .name_block {
+	width: auto;
+	margin-right: 655px;
+}
+
 #tv .active_name_block {
 	/*font-size: 22px;
     color: #002864;
     text-shadow: #fff 0 1px 0;*/
-	margin: 0 15px 0 0;
+	margin: 0px 15px 0 0;
 	/*white-space: pre;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -76,9 +82,7 @@
 	/*position: absolute;
     left: 49px;
     top: 72px;
-    */
-	/*width: 622px;*/
-	/*
+    */ /*width: 622px;*/ /*
     width: 253px;
     height: 30px;
     background-image: url("i_720/mb_table.png");
@@ -289,7 +293,6 @@
 #tv[rel="quality-filter"] .short_container .name_block {
 	margin-right: 30px;
 }
-
 #tv[rel="quality-filter"] .short_container .active_name_block {
 	margin-right: 50px;
 }

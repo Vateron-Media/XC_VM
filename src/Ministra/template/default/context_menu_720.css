@@ -17,18 +17,15 @@
 	height: 15px;
 	background: url(i_720/v_menu_1a.png) top left;
 }
-
 .con_menu_main_active .v_menu1_top_r {
 	height: 15px;
 	width: 4px;
 	background: url(i_720/v_menu_1a.png) top right;
 }
-
 .con_menu_main_active .v_menu1_bottom_l {
 	height: 15px;
 	background: url(i_720/v_menu_1a.png) bottom left;
 }
-
 .con_menu_main_active .v_menu1_bottom_r {
 	height: 15px;
 	width: 4px;
@@ -50,7 +47,6 @@
 .con_menu_main_active .v_menu1_center_r {
 	background: url(i_720/v_menu_2a.png) right;
 }
-
 /* END MAIN ACTIVE */
 
 /* MAIN PASSIVE */
@@ -58,18 +54,15 @@
 	height: 15px;
 	background: url(i_720/v_menu_1b.png) top left;
 }
-
 .con_menu_main_passive .v_menu1_top_r {
 	height: 15px;
 	width: 4px;
 	background: url(i_720/v_menu_1b.png) top right;
 }
-
 .con_menu_main_passive .v_menu1_bottom_l {
 	height: 15px;
 	background: url(i_720/v_menu_1b.png) bottom left;
 }
-
 .con_menu_main_passive .v_menu1_bottom_r {
 	height: 15px;
 	width: 4px;
@@ -91,7 +84,6 @@
 .con_menu_main_passive .v_menu1_center_r {
 	background: url(i_720/v_menu_2b.png) right;
 }
-
 /* END MAIN PASSIVE */
 
 /* SUB MENU */

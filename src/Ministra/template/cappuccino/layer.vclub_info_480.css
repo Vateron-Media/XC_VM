@@ -48,12 +48,10 @@
 	padding: 5px;
 	margin: 15px 13px 0 0;
 }
-
 .mb_filminfo_prev img {
 	width: 225px;
 	height: 300px;
 }
-
 .mb_filminfo_trans {
 	/*background: url("i_480/mb_filminfo_trans.png") bottom left;*/
 	height: 35px;
@@ -61,5 +59,4 @@
 	position: absolute;
 	bottom: 0;
 }
-
 /* END VCLUB INFO */

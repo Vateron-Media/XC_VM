@@ -7,7 +7,6 @@
 .blue_row_bg {
 	clear: both;
 }
-
 .blue_row_bg .d_number_block {
 	background-position: -92px 0px;
 	width: 34px;
@@ -20,7 +19,6 @@
 	text-align: center;
 	overflow: hidden;
 }
-
 .blue_row_bg .d_name_block,
 .blue_row_bg .d_status_block,
 .blue_row_bg .d_progress_block {
@@ -36,23 +34,19 @@
 	text-overflow: ellipsis;
 	font-family: "Myriad Pro Cond";
 }
-
 .blue_row_bg .d_name_block {
 	padding-top: 1px;
 	margin-left: 5px;
 	width: 600px;
 }
-
 .blue_row_bg .d_progress_block {
 	line-height: 32px;
 	width: 185px;
 }
-
 .blue_row_bg .d_status_block {
 	padding-top: 2px;
 	width: 135px;
 }
-
 /* </passive row> */
 /* <progress bar> */
 .pb,
@@ -60,7 +54,6 @@
 	display: block;
 	height: 16px;
 }
-
 .pb {
 	float: left;
 	width: 110px;
@@ -69,14 +62,12 @@
 	border: 1px solid #fff;
 	margin-top: 5px;
 }
-
 .pb span {
 	float: left;
 	width: 110px;
 	background: #003366;
 	border-radius: 4px;
 }
-
 /* </progress bar> */
 /* <active row> */
 .active_row_bg .active_d_number_block {
@@ -94,7 +85,6 @@
 	overflow: hidden;
 	padding-top: -1px;
 }
-
 .active_row_bg .active_d_name_block,
 .active_row_bg .active_d_progress_block,
 .active_row_bg .active_d_status_block {
@@ -109,30 +99,24 @@
 	text-overflow: ellipsis;
 	font-family: "Myriad Pro Cond";
 }
-
 .active_row_bg .active_d_name_block {
 	padding-top: 3px;
 	width: 610px;
 }
-
 .active_row_bg .active_d_progress_block {
 	line-height: 30px;
 	width: 185px;
 }
-
 .active_row_bg .pb {
 	border-color: #333;
 }
-
 .txt {
 	margin-left: 3px;
 }
-
 .active_row_bg .active_d_status_block {
 	width: 135px;
 	line-height: 30px;
 }
-
 /* </active row> */
 /* <row_font> */
 .blue_row_bg .d_name_block,
@@ -143,5 +127,4 @@
 .active_row_bg .active_d_status_block {
 	font-size: 26px;
 }
-
 /* </row_font> */

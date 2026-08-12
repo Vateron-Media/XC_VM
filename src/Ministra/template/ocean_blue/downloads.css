@@ -40,7 +40,7 @@
 .blue_row_bg .d_name_block {
 	padding-top: 0;
 	margin-left: 5px;
-	font-family: "Roboto";
+	font-family: "Myriad Pro";
 }
 
 .blue_row_bg .d_progress_block {
@@ -112,8 +112,7 @@
 
 .active_row_bg .active_d_name_block {
 	padding-top: 1px;
-	font-family: "Roboto";
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 .active_row_bg .active_d_progress_block {

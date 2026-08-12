@@ -65,7 +65,7 @@
 	overflow: hidden;
 	text-shadow: none;
 	white-space: pre;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 /*#records .active_row_bg[rel="close"] .active_ch_name_block{

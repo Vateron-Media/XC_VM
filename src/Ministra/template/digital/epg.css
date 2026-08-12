@@ -53,6 +53,9 @@
 
 #epg .number_block {
 	margin-top: 5px;
+	background-image: url("i/mb_icons.png");
+	background-position: -92px 0;
+	width: 34px;
 }
 
 #epg .active_number_block,
@@ -63,7 +66,6 @@
 #epg .blue_row_bg[active="active"] .number_block {
 	width: 34px;
 	height: 27px;
-	background-image: url("i/mb_icons.png");
 	background-position: -92px -21px;
 	color: #202020;
 	padding-top: 4px;
@@ -216,7 +218,7 @@
 
 #epg .program_info .time {
 	color: #ffc528;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 #epg .on_date {
@@ -261,8 +263,7 @@
 #epg .live_line_container {
 	position: absolute;
 	top: 92px;
-	left: 231px;
-	/* 231px-678px */
+	left: 231px; /* 231px-678px */
 	width: 447px;
 }
 

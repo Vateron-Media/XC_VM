@@ -22,10 +22,10 @@
 .vclub_info_box {
 	position: absolute;
 	width: 400px;
-	height: 196px;
+	height: 192px;
 	top: 74px;
 	left: 810px;
-	line-height: 26px;
+	line-height: 28px;
 	color: #fff;
 	font-size: 25px;
 	overflow: hidden;
@@ -68,12 +68,12 @@
 	right: 1px;
 	top: 0;
 	width: 194px;
-	height: 34px;
+	height: 28px;
 	background-image: url("i_720/mb_table02.png");
 	background-position: 202px 0;
-	padding: 2px 0 0 6px;
+	padding: 8px 0 0 6px;
 	color: #0a5104;
-	font-family: "Roboto", sans-serif;
+	font-family: "Myriad Pro", sans-serif;
 	font-size: 24px;
 	overflow: hidden;
 }
@@ -83,12 +83,12 @@
 	right: 1px;
 	top: 0;
 	width: 194px;
-	height: 34px;
+	height: 28px;
 	background-image: url("i_720/mb_table03.png");
 	background-position: 202px 0;
-	padding: 2px 0 0 6px;
+	padding: 8px 0 0 6px;
 	color: #4f7249;
-	font-family: "Roboto", sans-serif;
+	font-family: "Myriad Pro", sans-serif;
 	font-size: 24px;
 	overflow: hidden;
 }
@@ -98,12 +98,12 @@
 	right: 1px;
 	top: 0;
 	width: 194px;
-	height: 34px;
+	height: 28px;
 	background-image: url("i_720/mb_table04.png");
 	background-position: 202px 0;
-	padding: 2px 0 0 6px;
+	padding: 8px 0 0 6px;
 	color: #748b70;
-	font-family: "Roboto", sans-serif;
+	font-family: "Myriad Pro", sans-serif;
 	font-size: 24px;
 	overflow: hidden;
 }
@@ -115,15 +115,14 @@
 	right: 23px;
 	top: 4px;
 	width: 201px;
-	height: 42px;
+	height: 34px;
 	background-image: url("i_720/mb_table_act02.png");
 	background-position: 219px -4px;
-	padding: 9px 0 0 8px;
+	padding: 16px 0 0 8px;
 	color: #fff;
-	font-family: "Roboto", sans-serif;
+	font-family: "Myriad Pro Bold", sans-serif;
 	font-size: 24px;
 	overflow: hidden;
-	font-weight: bold;
 }
 
 .disabled_all_buttons span {
@@ -137,7 +136,6 @@
 	background-image: url("i_720/low_q.png");
 	margin: 5px 0 0 2px;
 }
-
 #vclub .active_low_quality_block {
 	float: left;
 	width: 28px;
@@ -145,5 +143,4 @@
 	background-image: url("i_720/low_q.png");
 	margin: 11px 2px 0 2px;
 }
-
 /* END VCLUB */

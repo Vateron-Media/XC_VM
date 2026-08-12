@@ -1,6 +1,6 @@
 @font-face {
-	font-family: "Roboto";
-	src: url("fonts/Roboto-Regular.ttf");
+	font-family: "Myriad Pro";
+	src: url("fonts/MyriadPro-Regular.ttf");
 	font-style: normal;
 	font-weight: normal;
 }
@@ -15,7 +15,7 @@ html {
 }
 
 body {
-	font-family: "Roboto", sans-serif;
+	font-family: "Myriad Pro", sans-serif;
 	width: 100%;
 	height: 480px;
 	overflow: hidden;

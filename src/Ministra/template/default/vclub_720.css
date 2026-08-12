@@ -22,10 +22,10 @@
 .vclub_info_box {
 	position: absolute;
 	width: 400px;
-	height: 196px;
+	height: 192px;
 	top: 74px;
 	left: 810px;
-	line-height: 26px;
+	line-height: 28px;
 	color: #fff;
 	font-size: 25px;
 	overflow: hidden;
@@ -73,6 +73,8 @@
 	background-position: 202px 0;
 	padding: 8px 0 0 6px;
 	color: #122f59;
+	font-family: "Myriad Pro Cond", sans-serif;
+	font-size: 20px;
 }
 
 .yesterday_block {
@@ -85,6 +87,8 @@
 	background-position: 202px 0;
 	padding: 8px 0 0 6px;
 	color: #fff;
+	font-family: "Myriad Pro Cond", sans-serif;
+	font-size: 20px;
 }
 
 .week_and_more_block {
@@ -130,7 +134,6 @@
 	background-image: url("i_720/low_q.png");
 	margin: 5px 0 0 2px;
 }
-
 #vclub .active_low_quality_block {
 	float: left;
 	width: 28px;
@@ -138,5 +141,4 @@
 	background-image: url("i_720/low_q.png");
 	margin: 11px 2px 0 2px;
 }
-
 /* END VCLUB */

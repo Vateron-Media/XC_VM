@@ -27,8 +27,7 @@
 	position: absolute;
 	top: 129px;
 	width: 100%;
-	font: 14px "Myriad Pro Cond";
 	color: #333;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold Cond";
 	text-align: center;
 }

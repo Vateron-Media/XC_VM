@@ -34,7 +34,6 @@
 	font-family: "Myriad Pro Cond", sans-serif;
 	color: #99a8b5;
 }
-
 .curweather_block .wind_direction_N {
 	-webkit-transform: rotate(180deg);
 	float: left;

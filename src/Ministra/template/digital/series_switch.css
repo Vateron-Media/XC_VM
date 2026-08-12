@@ -31,7 +31,7 @@
 	width: 100%;
 	font-size: 14px;
 	color: #333;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 	text-align: center;
 }
 
@@ -41,8 +41,7 @@
 	width: 100%;
 	font-size: 14px;
 	color: #202020;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 	text-align: center;
 }
-
 /* END SERIES SWITCH */

@@ -46,7 +46,6 @@
 	-webkit-border-image: url(i/input.png) 13 13 14 13 stretch stretch;
 	-webkit-border-radius: 15px;
 }
-
 .modal_form .item input:focus {
 	-webkit-border-image: url(i/input_act.png) 13 13 14 13 stretch stretch;
 }
@@ -59,7 +58,6 @@
 	line-height: 42px;
 	margin-top: -20px;
 }
-
 .modal_form .buttons {
 	width: 100%;
 	text-align: right;
@@ -69,7 +67,7 @@
 	/*float: right;*/
 	background: url(i/btn2.png) right no-repeat;
 	font-size: 19px;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 	text-align: center;
 	color: #fff;
 	line-height: 28px;
@@ -136,7 +134,6 @@
 .modal_form .form_time {
 	width: 45px;
 }
-
 .modal_form .form_date {
 	width: 88px;
 }

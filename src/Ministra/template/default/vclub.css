@@ -22,10 +22,10 @@
 .vclub_info_box {
 	position: absolute;
 	width: 254px;
-	height: 102px;
+	height: 100px;
 	top: 70px;
 	left: 418px;
-	line-height: 18px;
+	line-height: 20px;
 	color: #fff;
 	font-size: 16px;
 	overflow: hidden;
@@ -137,7 +137,6 @@
 	background-image: url("i/low_q.png");
 	margin: 5px 0 0 2px;
 }
-
 #vclub .active_low_quality_block {
 	float: left;
 	width: 20px;
@@ -145,5 +144,4 @@
 	background-image: url("i/low_q.png");
 	margin: 11px 2px 0 2px;
 }
-
 /* END VCLUB */

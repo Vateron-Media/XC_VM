@@ -47,6 +47,11 @@
 	/*width: 209px;*/
 }
 
+#tv .wide_container .name_block {
+	width: auto;
+	margin-right: 655px;
+}
+
 #tv .active_name_block {
 	/*font-size: 22px;
     color: #002864;
@@ -63,7 +68,7 @@
 
 #tv .short_container .active_name_block {
 	width: auto;
-	margin-top: 6px;
+	margin-top: 10px;
 	float: none;
 }
 
@@ -77,9 +82,7 @@
 	/*position: absolute;
     left: 49px;
     top: 72px;
-    */
-	/*width: 622px;*/
-	/*
+    */ /*width: 622px;*/ /*
     width: 253px;
     height: 30px;
     background-image: url("i_720/mb_table.png");
@@ -290,7 +293,6 @@
 #tv[rel="quality-filter"] .short_container .name_block {
 	margin-right: 30px;
 }
-
 #tv[rel="quality-filter"] .short_container .active_name_block {
 	margin-right: 50px;
 }

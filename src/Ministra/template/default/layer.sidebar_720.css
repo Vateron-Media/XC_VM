@@ -21,7 +21,7 @@ ul.items_container_passive li,
 ul.items_container_active li {
 	height: 26px;
 	font-size: 20px;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 	color: #000000;
 	white-space: pre;
 	margin-top: 2px;
@@ -97,5 +97,4 @@ ul.t_row > li {
 	display: table-cell;
 	vertical-align: top;
 }
-
 /* END LAYER SIDEBAR */

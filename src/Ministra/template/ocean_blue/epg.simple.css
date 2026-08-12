@@ -70,7 +70,6 @@
 #epg_simple .blue_row_bg[rel="close"] .name_block {
 	color: #99a8b5 !important;
 }
-
 #epg_simple .blue_row_bg[active="active"][rel="close"] .name_block {
 	color: #808080 !important;
 }
@@ -78,7 +77,7 @@
 #epg_simple .blue_row_bg[active="active"] .name_block {
 	color: #002864;
 	text-shadow: none;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 #epg_simple .week {
@@ -104,7 +103,7 @@
 	background-position: 0 -1px;
 	color: #002864;
 	text-shadow: none;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 #epg_simple .week li[rel="close"] {
@@ -133,7 +132,7 @@
 #epg_simple .program_info .time,
 #epg_simple .full_program_info .time {
 	color: #cfeafe;
-	font-weight: bold;
+	font-family: "Myriad Pro Bold";
 }
 
 #epg_simple .full_program_info {
