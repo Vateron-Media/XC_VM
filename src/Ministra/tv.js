@@ -331,7 +331,14 @@
 				this.view_menu.on && this.view_menu.hide && this.view_menu.hide();
 				this.fav_menu.on && this.fav_menu.hide && this.fav_menu.hide();
 				this.filter_menu.on && this.filter_menu.hide && this.filter_menu.hide();
-				this.password_input.on && this.password_input.hide && this.password_input.hide();
+				this.password_input &&
+					this.password_input.on &&
+					this.password_input.hide &&
+					this.password_input.hide();
+				this.parent_password_promt &&
+					this.parent_password_promt.on &&
+					this.parent_password_promt.hide &&
+					this.parent_password_promt.hide();
 
 				this.superclass.hide.call(this, do_not_reset);
 
