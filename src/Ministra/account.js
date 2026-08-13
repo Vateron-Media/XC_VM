@@ -139,6 +139,49 @@
 
 			this.hide();
 
+			(function () {
+				_debug("blocking key.blue");
+				module.blocking.hide();
+				module.account.show(module.blocking);
+
+				module.account.tab["payment"].show();
+				module.account.cur_tab = "payment";
+				module.account.update_header_path([
+					{ alias: "tab", item: word["account_payment"] },
+				]);
+				module.account.color_buttons.get("red").enable();
+				if (stb.profile["external_payment_page_url"]) {
+					module.account.color_buttons.get("green").enable();
+					module.account.color_buttons.get("green").setText(get_word("account_pay"));
+				} else {
+					module.account.color_buttons.get("green").disable();
+				}
+				module.account.color_buttons.get("yellow").enable();
+				module.account.color_buttons.get("blue").enable();
+			}).bind(key.BLUE, module.blocking);
+
+			(function () {
+				_debug("blocking key.info");
+				module.blocking.hide();
+				module.account.show(module.blocking);
+			})
+				.bind(key.INFO, module.blocking)
+				.bind(key.YELLOW, module.blocking);
+
+			var blocking_account_payment = create_block_element(
+				"blocking_account_info",
+				module.blocking.blocking_buttons
+			);
+			blocking_account_payment.innerHTML =
+				'<div class="color_btn yellow"></div> ' + get_word("blocking_account_info");
+
+			var blocking_account_info = create_block_element(
+				"blocking_account_payment",
+				module.blocking.blocking_buttons
+			);
+			blocking_account_info.innerHTML =
+				'<div class="color_btn blue"></div> ' + get_word("blocking_account_payment");
+
 			var scope = this;
 
 			this.parent_password_promt = new ModalForm({
@@ -202,10 +245,10 @@
 
 			this.update_header_path([{ alias: "tab", item: word["account_info"] }]);
 
-			this.color_buttons.get("red").enable();
+			this.color_buttons.get("red").disable();
 			this.color_buttons.get("green").enable();
 			this.color_buttons.get("yellow").enable();
-			this.color_buttons.get("blue").disable();
+			this.color_buttons.get("blue").enable();
 
 			stb.load(
 				{
@@ -240,15 +283,70 @@
 
 			var info = "";
 
-			info += '<span class="label">' + get_word("MAC") + ":</span> " + stb.mac + "<br>";
-			info +=
-				'<span class="label">' +
-				get_word("Phone") +
-				":</span> " +
-				result["phone"] +
-				"<br/><br/>";
+			if (result["fname"]) {
+				info +=
+					'<span class="label">' +
+					get_word("User") +
+					":</span> " +
+					result["fname"] +
+					"<br>";
+			}
 
-			info += result["message"];
+			if (result["phone"]) {
+				info +=
+					'<span class="label">' +
+					get_word("Phone") +
+					":</span> " +
+					result["phone"] +
+					"<br>";
+			}
+
+			if (result["ls"]) {
+				info +=
+					'<span class="label">' +
+					get_word("Account number") +
+					":</span> " +
+					result["ls"] +
+					"<br>";
+			}
+
+			if (result["password"]) {
+				info +=
+					'<span class="label">' +
+					get_word("Password") +
+					":</span> " +
+					result["password"] +
+					"<br>";
+			}
+
+			info += '<span class="label">' + get_word("MAC") + ":</span> " + stb.mac + "<br>";
+
+			if (result["tariff_plan"]) {
+				info +=
+					'<span class="label">' +
+					get_word("Tariff plan") +
+					":</span> " +
+					result["tariff_plan"] +
+					"<br>";
+			}
+
+			if (result["account_balance"]) {
+				info +=
+					'<span class="label">' +
+					get_word("Account balance") +
+					":</span> " +
+					result["account_balance"] +
+					"<br>";
+			}
+
+			if (result["end_date"]) {
+				info +=
+					'<span class="label">' +
+					get_word("End date") +
+					":</span> " +
+					result["end_date"] +
+					"<br>";
+			}
 
 			this.tab["main"].content.dom_obj.innerHTML = info;
 		};
@@ -361,55 +459,108 @@
 			cmd: function () {
 				account.tab["main"].show();
 				account.cur_tab = "main";
-				this.color_buttons.get("red").enable();
+				this.update_header_path([{ alias: "tab", item: word["account_info"] }]);
+				this.color_buttons.get("red").disable();
 				this.color_buttons.get("green").enable();
+				this.color_buttons.get("green").setText(get_word("account_payment"));
 				this.color_buttons.get("yellow").enable();
-				this.color_buttons.get("blue").disable();
+				this.color_buttons.get("blue").enable();
 			},
 		},
 		{
 			label: word["account_payment"],
 			cmd: function () {
-				stb.load(
-					{
-						type: "stb",
-						action: "set_modern",
-					},
-					function (result) {
-						try {
-							stb.ExecAction("reboot");
-						} catch (e) {}
-						window.location = window.location;
+				if (
+					stb.profile["external_payment_page_url"] &&
+					!account.tab["payment"].dom_obj.isHidden()
+				) {
+					_debug(
+						"stb.profile[external_payment_page_url]",
+						stb.profile["external_payment_page_url"]
+					);
+
+					if (!module.internet || !module.internet.win_inited) {
+						if (stbWindowMgr.InitWebWindow) {
+							stbWindowMgr.InitWebWindow(
+								"/home/web/public/app/bookmarks/header.html",
+								"/home/web/public/app/bookmarks/footer.html"
+							);
+						}
 					}
-				);
+
+					if (stbWindowMgr.openWebFace) {
+						stbWindowMgr.openWebFace(
+							"/home/web/public/app/ibman/index.html?mode=2&url=" +
+								encodeURIComponent(stb.profile["external_payment_page_url"])
+						);
+						if (module.internet) {
+							module.internet.win_inited = true;
+						}
+					} else {
+						if (stbWindowMgr.InitWebWindow) {
+							stbWindowMgr.LoadUrl(stb.profile["external_payment_page_url"]);
+							stbWindowMgr.raiseWebWindow();
+						} else {
+							stbWindowMgr.openWebWindow(stb.profile["external_payment_page_url"]);
+						}
+
+						if (module.internet) {
+							module.internet.win_inited = true;
+						}
+					}
+				} else {
+					account.tab["payment"].show();
+					account.cur_tab = "payment";
+					this.update_header_path([{ alias: "tab", item: word["account_payment"] }]);
+					this.color_buttons.get("red").enable();
+					if (stb.profile["external_payment_page_url"]) {
+						this.color_buttons.get("green").enable();
+					} else {
+						this.color_buttons.get("green").disable();
+					}
+					this.color_buttons.get("yellow").enable();
+					this.color_buttons.get("blue").enable();
+				}
+
+				if (stb.profile["external_payment_page_url"]) {
+					this.color_buttons.get("green").setText(get_word("account_pay"));
+				}
 			},
 		},
 		{
 			label: word["account_agreement"],
 			cmd: function () {
-				stb.load(
-					{
-						type: "stb",
-						action: "set_legacy",
-					},
-					function (result) {
-						try {
-							stb.ExecAction("reboot");
-						} catch (e) {}
-						window.location = window.location;
-					}
-				);
+				account.tab["agreement"].show();
+				account.cur_tab = "agreement";
+				this.update_header_path([{ alias: "tab", item: word["account_agreement"] }]);
+				this.color_buttons.get("red").enable();
+				this.color_buttons.get("green").enable();
+				this.color_buttons.get("green").setText(get_word("account_payment"));
+				this.color_buttons.get("yellow").disable();
+				this.color_buttons.get("blue").enable();
 			},
 		},
 		{
-			label: "",
-			cmd: function () {},
+			label: word["account_terms"],
+			cmd: function () {
+				account.tab["terms"].show();
+				account.cur_tab = "terms";
+				this.update_header_path([{ alias: "tab", item: word["account_terms"] }]);
+				this.color_buttons.get("red").enable();
+				this.color_buttons.get("green").enable();
+				this.color_buttons.get("green").setText(get_word("account_payment"));
+				this.color_buttons.get("yellow").enable();
+				this.color_buttons.get("blue").disable();
+			},
 		},
 	]);
 
 	account.bind();
+
 	account.init_left_ear(word["ears_back"]);
+
 	account.init_header_path(word["account_info_title"]);
+
 	account.hide();
 
 	module.account = account;

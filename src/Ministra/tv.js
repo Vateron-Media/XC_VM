@@ -60,12 +60,22 @@
 		this.quick_ch_switch = { on: false, hide_to: 3000 };
 
 		this.row_callback_timer;
-		this.row_callback_timeout = 500;
+		this.row_callback_timeout = 50;
+
+		this.shift_row_callback_timer;
+		this.shift_row_callback_timeout = 50;
+
+		this.shift_page_callback_timer;
+		this.shift_page_callback_timeout = 50;
 
 		this.fav_manage_mode = false;
 		this.auto_play = true;
 
-		this.password_input = new password_input({ parent: this, proceed_navigation: true });
+		this.password_input = new password_input({
+			parent: this,
+			proceed_navigation: true,
+			id: "tv_modal_form",
+		});
 		this.password_input.bind();
 
 		this._show = function (genre) {
@@ -152,7 +162,7 @@
 			}
 
 			if (stb.user["enable_buffering_indication"]) {
-				this.progress_bar.init(this);
+				// this.progress_bar.init(this);
 			}
 
 			this.init_aspects();
@@ -183,7 +193,6 @@
 				new ModalFormButton({
 					value: get_word("ok_btn"),
 					onclick: function () {
-						scope.show_player();
 						var parent_password = scope.parent_password_promt
 							.getItemByName("parent_password")
 							.getValue();
@@ -208,7 +217,6 @@
 				new ModalFormButton({
 					value: get_word("cancel_btn"),
 					onclick: function () {
-						scope.show_player();
 						scope.parent_password_promt.hide();
 					},
 				})
@@ -264,12 +272,7 @@
 
 				if (this.cur_view == "short") {
 					stb.SetTopWin(1);
-					stb.SetViewport(
-						this.preview_pos.xsize,
-						this.preview_pos.ysize,
-						this.preview_pos.x,
-						this.preview_pos.y
-					);
+					this.recalculate_preview_mode();
 
 					_debug("stb.player.on", stb.player.on);
 					_debug("stb.player.is_tv", stb.player.is_tv);
@@ -286,14 +289,6 @@
 			} catch (e) {
 				_debug(e);
 			}
-		};
-
-		this.sortIDs = function (channels) {
-			var i;
-			for (i = 0; i < channels.length; i++) {
-				channels[i]["number"] = (i + 1).toString();
-			}
-			return channels;
 		};
 
 		this.hide = function (do_not_reset) {
@@ -331,6 +326,7 @@
 				this.view_menu.on && this.view_menu.hide && this.view_menu.hide();
 				this.fav_menu.on && this.fav_menu.hide && this.fav_menu.hide();
 				this.filter_menu.on && this.filter_menu.hide && this.filter_menu.hide();
+
 				this.password_input &&
 					this.password_input.on &&
 					this.password_input.hide &&
@@ -541,10 +537,8 @@
 				if (this.quick_ch_switch.on) {
 					this.del_quick_go_ch();
 				} else if (stb.profile["play_in_preview_only_by_ok"]) {
-					this.hide(true);
-					if (this.cur_view != "short") {
-						main_menu.show();
-					}
+					this.hide();
+					main_menu.show();
 				}
 			}).bind(key.BACK, this);
 
@@ -563,7 +557,6 @@
 				self.add_del_censored();
 			};
 
-			this.hide_player();
 			this.password_input.show();
 		};
 
@@ -608,8 +601,8 @@
 							stb.player.channels.splice(idx, 1);
 						}
 
-						stb.load_channels(this.genre);
-						stb.load_fav_channels(this.genre.id);
+						stb.load_channels();
+						stb.load_fav_channels();
 					}
 				},
 				this
@@ -642,8 +635,8 @@
 							self.active_row.lock_block.hide();
 						}
 
-						stb.load_channels(this.genre);
-						stb.load_fav_channels(this.genre.id);
+						stb.load_channels();
+						stb.load_fav_channels();
 					}
 				},
 				this
@@ -748,10 +741,8 @@
 			}
 
 			if (this.sort_menu && this.sort_menu.on) {
-				this.show_player();
 				this.sort_menu.hide();
 			} else {
-				this.hide_player();
 				this.sort_menu.show();
 			}
 		};
@@ -768,10 +759,8 @@
 			}
 
 			if (this.view_menu && this.view_menu.on) {
-				this.show_player();
 				this.view_menu.hide();
 			} else {
-				this.hide_player();
 				this.view_menu.show();
 			}
 		};
@@ -972,12 +961,7 @@
 			try {
 				_debug("this.preview_pos", this.preview_pos);
 				stb.SetTopWin(1);
-				stb.SetViewport(
-					this.preview_pos.xsize,
-					this.preview_pos.ysize,
-					this.preview_pos.x,
-					this.preview_pos.y
-				);
+				this.recalculate_preview_mode();
 			} catch (e) {
 				_debug(e);
 			}
@@ -1036,6 +1020,7 @@
 				this.cur_row_data.number = data[idx].number;
 
 				data[idx] = this.cur_row_data;
+				this.active_row["number_block"].innerHTML = this.cur_row_data.number;
 			}
 
 			this.load_params["from_ch_id"] = 0;
@@ -1242,33 +1227,6 @@
 					return;
 				}
 
-				//self.fill_short_info(item);
-
-				/*if (item.open){
- 
-                    _debug('item.lock', item.lock);
- 
-                    if (item.lock && self.genre.alias != 'for adults'){
-                        self.password_input.callback = function(){
-                            stb.player.need_show_info = 0;
-                            stb.player.prev_layer = self;
-                            self.data_items[self.cur_row].unlocked = true;
-                            self.fill_short_info(item);
-                            self._play_now(item);
-                        };
- 
-                        self.password_input.show();
-                    }else{
-                        self.fill_short_info(item);
-                        stb.player.need_show_info = 0;
-                        stb.player.prev_layer = self;
-                        self._play_now(item);
-                    }
-                }else{
-                    self.fill_short_info(item);
-                    stb.player.stop();
-                }*/
-
 				if (!self.do_not_load) {
 					self.check_for_play_in_preview();
 				} else {
@@ -1287,8 +1245,9 @@
 			item = item || this.data_items[this.cur_row];
 
 			_debug("item", item);
-
 			var self = this;
+
+			stb.player.stop();
 
 			if (item.open) {
 				_debug("item.lock", item.lock);
@@ -1301,6 +1260,7 @@
 						self.fill_short_info(item);
 						self._play_now(item);
 					};
+
 					this.hide_player();
 					self.password_input.show();
 				} else {
@@ -1311,7 +1271,6 @@
 				}
 			} else {
 				self.fill_short_info(item);
-				stb.player.stop();
 			}
 		};
 
@@ -1352,7 +1311,9 @@
 									stb.player.prev_layer = self;
 								}
 
-								stb.key_lock = true;
+								if (!connection_problem.on) {
+									stb.key_lock = true;
+								}
 
 								stb.player.need_show_info = 0;
 
@@ -1379,7 +1340,9 @@
 					stb.player.prev_layer = self;
 				}
 
-				stb.key_lock = true;
+				if (!connection_problem.on) {
+					stb.key_lock = true;
+				}
 
 				stb.player.need_show_info = 0;
 
@@ -1556,6 +1519,14 @@
 		};
 
 		this.shift_row = function (dir) {
+			var page_shift = 0;
+			if (
+				(this.cur_row == 0 && dir < 0) ||
+				(this.data_items.length - 1 == this.cur_row && dir > 0)
+			) {
+				page_shift = dir;
+			}
+
 			if (this.fav_manage_mode) {
 				var cur_data_items = this.data_items.clone();
 				//var cur_row_data = this.data_items[this.cur_row].clone();
@@ -1567,71 +1538,92 @@
 				var cur_row_fav_idx = stb.player.fav_channels_ids.indexOf(cur_item_id);
 
 				_debug("stb.player.fav_channels_ids before", stb.player.fav_channels_ids);
+
+				var next_row_fav_idx = cur_row_fav_idx + dir;
+
+				if (next_row_fav_idx < 0) {
+					next_row_fav_idx = stb.player.fav_channels_ids.length - 1;
+				} else if (next_row_fav_idx > stb.player.fav_channels_ids.length - 1) {
+					next_row_fav_idx = 0;
+				}
+
+				stb.player.fav_channels_ids[cur_row_fav_idx] =
+					stb.player.fav_channels_ids[next_row_fav_idx];
+				stb.player.fav_channels_ids[next_row_fav_idx] = cur_item_id;
 			}
 
 			this.data_items[this.cur_row].unlocked = false;
 
 			this.superclass.shift_row.call(this, dir);
 
-			if (this.fav_manage_mode) {
-				var next_row_data = this.data_items[this.cur_row];
-				var next_number = next_row_data.number;
-				var next_item_id = this.data_items[this.cur_row].id;
+			if (this.fav_manage_mode && page_shift === 0) {
+				var self = this;
+				var fav_shift_row = function () {
+					if (page_shift === 0) {
+						var next_row_data = self.data_items[self.cur_row];
+						var next_number = next_row_data.number;
 
-				_debug("cur_number", cur_number);
+						_debug("cur_number", cur_number);
 
-				_debug("next_row_data.number before", next_row_data.number);
+						_debug("next_row_data.number before", next_row_data.number);
 
-				next_row_data.number = cur_number;
-				cur_row_data.number = next_number;
+						cur_row_data.number = next_number;
 
-				_debug("next_row_data.number after", next_row_data.number);
+						next_row_data.number = cur_number;
+						self.data_items[cur_row_num] = next_row_data;
 
-				var next_row_fav_idx = stb.player.fav_channels_ids.indexOf(next_item_id);
+						if (
+							self.data_items[cur_row_num].hasOwnProperty("open") &&
+							!self.data_items[cur_row_num].open
+						) {
+							self.map[cur_row_num]["row"].addClass("close");
+						} else {
+							self.map[cur_row_num]["row"].removeClass("close");
+						}
 
-				stb.player.fav_channels_ids[cur_row_fav_idx] = next_item_id;
-				stb.player.fav_channels_ids[next_row_fav_idx] = cur_item_id;
+						self.data_items[self.cur_row] = cur_row_data;
 
-				this.data_items[this.cur_row] = cur_row_data;
-				this.data_items[cur_row_num] = next_row_data;
+						_debug("next_row_data.number after", next_row_data.number);
 
-				if (
-					this.data_items[this.cur_row].hasOwnProperty("open") &&
-					!this.data_items[this.cur_row].open
-				) {
-					this.map[this.cur_row]["row"].addClass("close");
-					this.active_row["row"].addClass("close");
-				} else {
-					this.map[this.cur_row]["row"].removeClass("close");
-					this.active_row["row"].removeClass("close");
-				}
+						if (
+							self.data_items[self.cur_row].hasOwnProperty("open") &&
+							!self.data_items[self.cur_row].open
+						) {
+							self.map[self.cur_row]["row"].addClass("close");
+							self.active_row["row"].addClass("close");
+						} else {
+							self.map[self.cur_row]["row"].removeClass("close");
+							self.active_row["row"].removeClass("close");
+						}
 
-				if (
-					this.data_items[cur_row_num].hasOwnProperty("open") &&
-					!this.data_items[cur_row_num].open
-				) {
-					this.map[cur_row_num]["row"].addClass("close");
-				} else {
-					this.map[cur_row_num]["row"].removeClass("close");
-				}
+						self.active_row["number_block"].innerHTML = next_number;
 
-				this.active_row["number_block"].innerHTML = next_number;
+						_debug("stb.player.fav_channels_ids after", stb.player.fav_channels_ids);
 
-				_debug("stb.player.fav_channels_ids after", stb.player.fav_channels_ids);
+						for (var j = 0; j < self.row_blocks.length; j++) {
+							self.handling_block(
+								cur_row_data[self.row_blocks[j]],
+								self.map[self.cur_row],
+								self.row_blocks[j]
+							);
 
-				for (var j = 0; j < this.row_blocks.length; j++) {
-					this.handling_block(
-						cur_row_data[this.row_blocks[j]],
-						this.map[this.cur_row],
-						this.row_blocks[j]
-					);
+							if (page_shift === 0) {
+								self.handling_block(
+									next_row_data[self.row_blocks[j]],
+									self.map[cur_row_num],
+									self.row_blocks[j]
+								);
+							}
+						}
+					}
 
-					this.handling_block(
-						next_row_data[this.row_blocks[j]],
-						this.map[cur_row_num],
-						this.row_blocks[j]
-					);
-				}
+					window.clearTimeout(self.shift_row_callback_timer);
+				};
+
+				this.shift_row_callback_timer = window.setTimeout(
+					fav_shift_row,
+					this.shift_row_callback_timeout
+				);
 			}
 		};
 
@@ -1647,7 +1639,8 @@
 							block_obj.show();
 						}
 
-						block_obj.innerHTML = '<img src="' + data + '">';
+						block_obj.innerHTML =
+							'<img src="/' + stb.portal_path + "/misc/logos/120/" + data + '">';
 					} else {
 						if (!block_obj.isHidden()) {
 							block_obj.hide();
@@ -1668,11 +1661,15 @@
 		this.shift_page = function (dir) {
 			if (this.fav_manage_mode) {
 				stb.player.save_fav_ids();
-
-				this.cur_row_data = this.data_items[this.cur_row];
 			}
+			var self = this;
 
-			this.superclass.shift_page.call(this, dir);
+			this.shift_page_callback_timer = window.setTimeout(function () {
+				self.cur_row_data = self.data_items[self.cur_row];
+				self.page_dir = dir;
+				self.superclass.shift_page.call(self, dir);
+				window.clearTimeout(self.shift_page_callback_timer);
+			}, this.shift_page_callback_timeout);
 		};
 
 		this.switch_fav_manage_mode = function () {
@@ -1716,7 +1713,10 @@
 				this.color_buttons.get("red").disable();
 				this.color_buttons.get("green").disable();
 				this.color_buttons.get("yellow").disable();
-				this.color_buttons.get("blue").disable();
+
+				if (stb.profile["tv_quality_filter"]) {
+					this.color_buttons.get("blue").disable();
+				}
 			}
 
 			this.fav_manage_mode = !this.fav_manage_mode;
@@ -1887,10 +1887,12 @@
 
 				var self = this;
 
-				this.load();
+				window.clearInterval(this.load_timer);
+				this.load_timer = window.setTimeout(function () {
+					self.load();
+				}, 50);
 
 				window.clearInterval(this.timer);
-
 				this.timer = window.setInterval(
 					function () {
 						self.load();
@@ -1940,7 +1942,7 @@
 								},
 
 								function (result) {
-									_debug("tv.short_epg_loader.load callback", result);
+									_debug("tv.short_epg_loader.load callback");
 
 									if (result && Array.isArray(result)) {
 										stb.epg_loader.epg[ch_id] = epg = result;
@@ -1970,6 +1972,8 @@
 		};
 
 		this.progress_bar = {
+			// Progress Bar for TV preview
+
 			load: 0,
 
 			init: function (parent) {
@@ -2091,6 +2095,41 @@
 
 			window.clearTimeout(this.make_fillscreen_to);
 		};
+
+		this.post_loading_handle = function () {
+			_debug("tv.post_loading_handle");
+
+			var currOffset;
+			var offsets = tv.map.map(function (currVal, index, arr) {
+				return arr[index]["top"];
+			});
+
+			// find duplicates
+			while (offsets.length) {
+				currOffset = offsets.splice(0, 1)[0];
+				if (offsets.indexOf(currOffset) !== -1) {
+					break;
+				}
+			}
+
+			if (typeof offsets !== "undefined" && offsets.length) {
+				// var offsets_timer = window.setTimeout(function () {
+				module.tv.map.map(function (currVal, index, mapArr) {
+					var offset;
+					var item = currVal.row;
+
+					if (index > 0) {
+						offset =
+							mapArr[index - 1].row.clientHeight + mapArr[index - 1].row.offsetTop;
+						item.moveY(offset);
+					}
+
+					currVal["top"] = item.offsetTop;
+				});
+				//     window.clearTimeout(offsets_timer);
+				// }, 200);
+			}
+		};
 	}
 
 	tv_constructor.prototype = new ListLayer();
@@ -2115,20 +2154,17 @@
 
 	tv.init_right_ear(word["ears_tv_guide"]);
 
-	if (loader.template == "xc_vm") {
-		var color_buttons_map = [
-			{ label: word["tv_view"], cmd: tv.view_switcher },
-			{ label: word["tv_sort"], cmd: tv.sort_menu_switcher },
-			{ label: word["tv_favorite"], cmd: tv.add_del_fav },
-			{ label: word["radio_search"], cmd: tv.search_menu_switcher },
-		];
+	var color_buttons_map = [
+		{ label: word["tv_view"], cmd: tv.view_switcher },
+		{ label: word["tv_sort"], cmd: tv.sort_menu_switcher },
+	];
+
+	if (stb.profile["tv_quality_filter"]) {
+		color_buttons_map.push({ label: word["tv_favorite"], cmd: tv.fav_menu_switcher });
+		color_buttons_map.push({ label: get_word("tv_quality"), cmd: tv.filter_switcher });
 	} else {
-		var color_buttons_map = [
-			{ label: word["tv_view"], cmd: tv.view_switcher },
-			{ label: word["tv_sort"], cmd: tv.sort_menu_switcher },
-			{ label: word["tv_favorite"], cmd: tv.add_del_fav },
-			{ label: get_word("tv_move"), cmd: tv.switch_fav_manage_mode },
-		];
+		color_buttons_map.push({ label: word["tv_favorite"], cmd: tv.add_del_fav });
+		color_buttons_map.push({ label: get_word("tv_move"), cmd: tv.switch_fav_manage_mode });
 	}
 
 	tv.init_color_buttons(color_buttons_map);
@@ -2137,31 +2173,38 @@
 		{
 			label: word["tv_by_number"],
 			cmd: function () {
-				this.parent.show_player();
 				this.parent.load_params.fav = false;
 				stb.user.fav_itv_on = 0;
 				stb.player.set_fav_status();
 				this.parent.load_params.sortby = "number";
 				this.parent.load_params.hd = 0;
-				stb.player.channels = tv.sortIDs(stb.player.channels.sortBy("snumber"));
+				if (!stb.profile["tv_quality_filter"]) {
+					this.parent.color_buttons.get("blue").disable();
+				} else {
+					this.parent.fav_menu && this.parent.fav_menu.disable_by_name("fav_manage");
+				}
+				stb.player.channels = stb.player.channels.sortBy("number");
 			},
 		},
 		{
 			label: word["tv_by_title"],
 			cmd: function () {
-				this.parent.show_player();
 				this.parent.load_params.fav = false;
 				stb.user.fav_itv_on = 0;
 				stb.player.set_fav_status();
 				this.parent.load_params.sortby = "name";
 				this.parent.load_params.hd = 0;
-				stb.player.channels = tv.sortIDs(stb.player.channels.sortBy("name"));
+				if (!stb.profile["tv_quality_filter"]) {
+					this.parent.color_buttons.get("blue").disable();
+				} else {
+					this.parent.fav_menu && this.parent.fav_menu.disable_by_name("fav_manage");
+				}
+				stb.player.channels = stb.player.channels.sortBy("name");
 			},
 		},
 		{
 			label: word["tv_only_favorite"],
 			cmd: function () {
-				this.parent.show_player();
 				this.parent.load_params.sortby = "fav";
 				stb.user.fav_itv_on = 1;
 				stb.player.set_fav_status();
@@ -2169,7 +2212,11 @@
 				this.parent.load_params.hd = 0;
 
 				this.parent.color_buttons.get("blue").enable();
-				stb.player.channels = tv.sortIDs(stb.player.channels.sortBy("snumber"));
+				if (stb.profile["tv_quality_filter"]) {
+					this.parent.fav_menu && this.parent.fav_menu.disable_by_name("fav_manage");
+				}
+
+				stb.player.channels = stb.player.channels.sortBy("number");
 			},
 		},
 	];
@@ -2178,12 +2225,16 @@
 		sort_menu_map.push({
 			label: get_word("tv_only_hd"),
 			cmd: function () {
-				this.parent.show_player();
 				this.parent.load_params.fav = false;
 				stb.user.fav_itv_on = 0;
 				stb.player.set_fav_status();
 				this.parent.load_params.sortby = "number";
 				this.parent.load_params.hd = 1;
+				if (!stb.profile["tv_quality_filter"]) {
+					this.parent.color_buttons.get("blue").disable();
+				} else {
+					this.parent.fav_menu && this.parent.fav_menu.disable_by_name("fav_manage");
+				}
 			},
 		});
 	}
@@ -2235,14 +2286,12 @@
 			{
 				label: word["tv_list_w_info"],
 				cmd: function () {
-					this.parent.show_player();
 					this.parent.set_short_container();
 				},
 			},
 			{
 				label: word["tv_list"],
 				cmd: function () {
-					this.parent.show_player();
 					this.parent.set_wide_container();
 				},
 			},
@@ -2336,10 +2385,18 @@
 					title: genres[i].title,
 					cmd: (function (genre) {
 						return function () {
-							_debug("genre.id", genre.id);
+							_debug("cmd - genre: id title", genre.id, genre.title);
 
-							stb.load_fav_channels(genre.id);
-							stb.load_channels(genre);
+							if (genre.censored) {
+								module.tv.parent_password_promt.callback = function () {
+									main_menu.hide();
+									module.tv._show(genre);
+								};
+								module.tv.parent_password_promt.show();
+							} else {
+								main_menu.hide();
+								module.tv._show(genre);
+							}
 						};
 					})(genres[i]),
 				});

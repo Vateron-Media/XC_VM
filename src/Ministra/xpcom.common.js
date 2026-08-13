@@ -1,5 +1,4 @@
 /**
- /**
  * Common XPCOM STB constructor.
  * @constructor
  */
@@ -20,6 +19,7 @@ function common_xpcom() {
 	this.header_ua_ext = [];
 	this.access_token = "";
 	this.random = "";
+	this.allowed_stb_types = [];
 
 	this.aspect_idx = 0;
 	this.aspect_array = [
@@ -43,6 +43,8 @@ function common_xpcom() {
 	this.hdmi_on = true;
 
 	this.ntp_wait_time = 0;
+
+	this.clock_formats = { "12h": "{2}:{1} {3}", "24h": "{0}:{1}" };
 
 	// iso639
 	this.lang_map = {
@@ -231,6 +233,423 @@ function common_xpcom() {
 		za: "zha", //Zhuang; Chuang
 		zu: "zul", //Zulu
 	};
+	this.timezone_list = [
+		"Europe/Andorra",
+		"Asia/Dubai",
+		"Asia/Kabul",
+		"America/Antigua",
+		"America/Anguilla",
+		"Europe/Tirane",
+		"Asia/Yerevan",
+		"Africa/Luanda",
+		"Antarctica/McMurdo",
+		"Antarctica/South_Pole",
+		"Antarctica/Rothera",
+		"Antarctica/Palmer",
+		"Antarctica/Mawson",
+		"Antarctica/Davis",
+		"Antarctica/Casey",
+		"Antarctica/Vostok",
+		"Antarctica/DumontDUrville",
+		"Antarctica/Syowa",
+		"Antarctica/Macquarie",
+		"America/Argentina/Buenos_Aires",
+		"America/Argentina/Cordoba",
+		"America/Argentina/Salta",
+		"America/Argentina/Jujuy",
+		"America/Argentina/Tucuman",
+		"America/Argentina/Catamarca",
+		"America/Argentina/La_Rioja",
+		"America/Argentina/San_Juan",
+		"America/Argentina/Mendoza",
+		"America/Argentina/San_Luis",
+		"America/Argentina/Rio_Gallegos",
+		"America/Argentina/Ushuaia",
+		"Pacific/Pago_Pago",
+		"Europe/Vienna",
+		"Australia/Lord_Howe",
+		"Australia/Hobart",
+		"Australia/Currie",
+		"Australia/Melbourne",
+		"Australia/Sydney",
+		"Australia/Broken_Hill",
+		"Australia/Brisbane",
+		"Australia/Lindeman",
+		"Australia/Adelaide",
+		"Australia/Darwin",
+		"Australia/Perth",
+		"Australia/Eucla",
+		"America/Aruba",
+		"Europe/Mariehamn",
+		"Asia/Baku",
+		"Europe/Sarajevo",
+		"America/Barbados",
+		"Asia/Dhaka",
+		"Europe/Brussels",
+		"Africa/Ouagadougou",
+		"Europe/Sofia",
+		"Asia/Bahrain",
+		"Africa/Bujumbura",
+		"Africa/Porto",
+		"America/St_Barthelemy",
+		"Atlantic/Bermuda",
+		"Asia/Brunei",
+		"America/La_Paz",
+		"America/Kralendijk",
+		"America/Noronha",
+		"America/Belem",
+		"America/Fortaleza",
+		"America/Recife",
+		"America/Araguaina",
+		"America/Maceio",
+		"America/Bahia",
+		"America/Sao_Paulo",
+		"America/Campo_Grande",
+		"America/Cuiaba",
+		"America/Santarem",
+		"America/Porto_Velho",
+		"America/Boa_Vista",
+		"America/Manaus",
+		"America/Eirunepe",
+		"America/Rio_Branco",
+		"America/Nassau",
+		"Asia/Thimphu",
+		"Africa/Gaborone",
+		"Europe/Minsk",
+		"America/Belize",
+		"America/St_Johns",
+		"America/Halifax",
+		"America/Glace_Bay",
+		"America/Moncton",
+		"America/Goose_Bay",
+		"America/Blanc",
+		"America/Montreal",
+		"America/Toronto",
+		"America/Nipigon",
+		"America/Thunder_Bay",
+		"America/Iqaluit",
+		"America/Pangnirtung",
+		"America/Resolute",
+		"America/Atikokan",
+		"America/Rankin_Inlet",
+		"America/Winnipeg",
+		"America/Rainy_River",
+		"America/Regina",
+		"America/Swift_Current",
+		"America/Edmonton",
+		"America/Cambridge_Bay",
+		"America/Yellowknife",
+		"America/Inuvik",
+		"America/Creston",
+		"America/Dawson_Creek",
+		"America/Vancouver",
+		"America/Whitehorse",
+		"America/Dawson",
+		"Indian/Cocos",
+		"Africa/Kinshasa",
+		"Africa/Lubumbashi",
+		"Africa/Bangui",
+		"Africa/Brazzaville",
+		"Europe/Zurich",
+		"Africa/Abidjan",
+		"Pacific/Rarotonga",
+		"America/Santiago",
+		"Pacific/Easter",
+		"Africa/Douala",
+		"Asia/Shanghai",
+		"Asia/Harbin",
+		"Asia/Chongqing",
+		"Asia/Urumqi",
+		"Asia/Kashgar",
+		"America/Bogota",
+		"America/Costa_Rica",
+		"America/Havana",
+		"Atlantic/Cape_Verde",
+		"America/Curacao",
+		"Indian/Christmas",
+		"Asia/Nicosia",
+		"Europe/Prague",
+		"Europe/Berlin",
+		"Africa/Djibouti",
+		"Europe/Copenhagen",
+		"America/Dominica",
+		"America/Santo_Domingo",
+		"Africa/Algiers",
+		"America/Guayaquil",
+		"Pacific/Galapagos",
+		"Europe/Tallinn",
+		"Africa/Cairo",
+		"Africa/El_Aaiun",
+		"Africa/Asmara",
+		"Europe/Madrid",
+		"Africa/Ceuta",
+		"Atlantic/Canary",
+		"Africa/Addis_Ababa",
+		"Europe/Helsinki",
+		"Pacific/Fiji",
+		"Atlantic/Stanley",
+		"Pacific/Chuuk",
+		"Pacific/Pohnpei",
+		"Pacific/Kosrae",
+		"Atlantic/Faroe",
+		"Europe/Paris",
+		"Africa/Libreville",
+		"Europe/London",
+		"America/Grenada",
+		"Asia/Tbilisi",
+		"America/Cayenne",
+		"Europe/Guernsey",
+		"Africa/Accra",
+		"Europe/Gibraltar",
+		"America/Godthab",
+		"America/Danmarkshavn",
+		"America/Scoresbysund",
+		"America/Thule",
+		"Africa/Banjul",
+		"Africa/Conakry",
+		"America/Guadeloupe",
+		"Africa/Malabo",
+		"Europe/Athens",
+		"Atlantic/South_Georgia",
+		"America/Guatemala",
+		"Pacific/Guam",
+		"Africa/Bissau",
+		"America/Guyana",
+		"Asia/Hong_Kong",
+		"America/Tegucigalpa",
+		"Europe/Zagreb",
+		"America/Port",
+		"Europe/Budapest",
+		"Asia/Jakarta",
+		"Asia/Pontianak",
+		"Asia/Makassar",
+		"Asia/Jayapura",
+		"Europe/Dublin",
+		"Asia/Jerusalem",
+		"Europe/Isle_of_Man",
+		"Asia/Kolkata",
+		"Indian/Chagos",
+		"Asia/Baghdad",
+		"Asia/Tehran",
+		"Atlantic/Reykjavik",
+		"Europe/Rome",
+		"Europe/Jersey",
+		"America/Jamaica",
+		"Asia/Amman",
+		"Asia/Tokyo",
+		"Africa/Nairobi",
+		"Asia/Bishkek",
+		"Asia/Phnom_Penh",
+		"Pacific/Tarawa",
+		"Pacific/Enderbury",
+		"Pacific/Kiritimati",
+		"Indian/Comoro",
+		"America/St_Kitts",
+		"Asia/Pyongyang",
+		"Asia/Seoul",
+		"Asia/Kuwait",
+		"America/Cayman",
+		"Asia/Almaty",
+		"Asia/Qyzylorda",
+		"Asia/Aqtobe",
+		"Asia/Aqtau",
+		"Asia/Oral",
+		"Asia/Vientiane",
+		"Asia/Beirut",
+		"America/St_Lucia",
+		"Europe/Vaduz",
+		"Asia/Colombo",
+		"Africa/Monrovia",
+		"Africa/Maseru",
+		"Europe/Vilnius",
+		"Europe/Luxembourg",
+		"Europe/Riga",
+		"Africa/Tripoli",
+		"Africa/Casablanca",
+		"Europe/Monaco",
+		"Europe/Chisinau",
+		"Europe/Podgorica",
+		"America/Marigot",
+		"Indian/Antananarivo",
+		"Pacific/Majuro",
+		"Pacific/Kwajalein",
+		"Europe/Skopje",
+		"Africa/Bamako",
+		"Asia/Rangoon",
+		"Asia/Ulaanbaatar",
+		"Asia/Hovd",
+		"Asia/Choibalsan",
+		"Asia/Macau",
+		"Pacific/Saipan",
+		"America/Martinique",
+		"Africa/Nouakchott",
+		"America/Montserrat",
+		"Europe/Malta",
+		"Indian/Mauritius",
+		"Indian/Maldives",
+		"Africa/Blantyre",
+		"America/Mexico_City",
+		"America/Cancun",
+		"America/Merida",
+		"America/Monterrey",
+		"America/Matamoros",
+		"America/Mazatlan",
+		"America/Chihuahua",
+		"America/Ojinaga",
+		"America/Hermosillo",
+		"America/Tijuana",
+		"America/Santa_Isabel",
+		"America/Bahia_Banderas",
+		"Asia/Kuala_Lumpur",
+		"Asia/Kuching",
+		"Africa/Maputo",
+		"Africa/Windhoek",
+		"Pacific/Noumea",
+		"Africa/Niamey",
+		"Pacific/Norfolk",
+		"Africa/Lagos",
+		"America/Managua",
+		"Europe/Amsterdam",
+		"Europe/Oslo",
+		"Asia/Kathmandu",
+		"Pacific/Nauru",
+		"Pacific/Niue",
+		"Pacific/Auckland",
+		"Pacific/Chatham",
+		"Asia/Muscat",
+		"America/Panama",
+		"America/Lima",
+		"Pacific/Tahiti",
+		"Pacific/Marquesas",
+		"Pacific/Gambier",
+		"Pacific/Port_Moresby",
+		"Asia/Manila",
+		"Asia/Karachi",
+		"Europe/Warsaw",
+		"America/Miquelon",
+		"Pacific/Pitcairn",
+		"America/Puerto_Rico",
+		"Asia/Gaza",
+		"Asia/Hebron",
+		"Europe/Lisbon",
+		"Atlantic/Madeira",
+		"Atlantic/Azores",
+		"Pacific/Palau",
+		"America/Asuncion",
+		"Asia/Qatar",
+		"Indian/Reunion",
+		"Europe/Bucharest",
+		"Europe/Belgrade",
+		"Europe/Kaliningrad",
+		"Europe/Moscow",
+		"Europe/Volgograd",
+		"Europe/Samara",
+		"Asia/Yekaterinburg",
+		"Asia/Omsk",
+		"Asia/Novosibirsk",
+		"Asia/Novokuznetsk",
+		"Asia/Krasnoyarsk",
+		"Asia/Irkutsk",
+		"Asia/Yakutsk",
+		"Asia/Vladivostok",
+		"Asia/Sakhalin",
+		"Asia/Magadan",
+		"Asia/Kamchatka",
+		"Asia/Anadyr",
+		"Africa/Kigali",
+		"Asia/Riyadh",
+		"Pacific/Guadalcanal",
+		"Indian/Mahe",
+		"Africa/Khartoum",
+		"Europe/Stockholm",
+		"Asia/Singapore",
+		"Atlantic/St_Helena",
+		"Europe/Ljubljana",
+		"Arctic/Longyearbyen",
+		"Europe/Bratislava",
+		"Africa/Freetown",
+		"Europe/San_Marino",
+		"Africa/Dakar",
+		"Africa/Mogadishu",
+		"America/Paramaribo",
+		"Africa/Juba",
+		"Africa/Sao_Tome",
+		"America/El_Salvador",
+		"America/Lower_Princes",
+		"Asia/Damascus",
+		"Africa/Mbabane",
+		"America/Grand_Turk",
+		"Africa/Ndjamena",
+		"Indian/Kerguelen",
+		"Africa/Lome",
+		"Asia/Bangkok",
+		"Asia/Dushanbe",
+		"Pacific/Fakaofo",
+		"Asia/Dili",
+		"Asia/Ashgabat",
+		"Africa/Tunis",
+		"Pacific/Tongatapu",
+		"Europe/Istanbul",
+		"America/Port_of_Spain",
+		"Pacific/Funafuti",
+		"Asia/Taipei",
+		"Africa/Dar_es_Salaam",
+		"Europe/Kiev",
+		"Europe/Uzhgorod",
+		"Europe/Zaporozhye",
+		"Europe/Simferopol",
+		"Africa/Kampala",
+		"Pacific/Johnston",
+		"Pacific/Midway",
+		"Pacific/Wake",
+		"America/New_York",
+		"America/Detroit",
+		"America/Kentucky/Louisville",
+		"America/Kentucky/Monticello",
+		"America/Indiana/Indianapolis",
+		"America/Indiana/Vincennes",
+		"America/Indiana/Winamac",
+		"America/Indiana/Marengo",
+		"America/Indiana/Petersburg",
+		"America/Indiana/Vevay",
+		"America/Chicago",
+		"America/Indiana/Tell_City",
+		"America/Indiana/Knox",
+		"America/Menominee",
+		"America/North_Dakota/Center",
+		"America/North_Dakota/New_Salem",
+		"America/North_Dakota/Beulah",
+		"America/Denver",
+		"America/Boise",
+		"America/Shiprock",
+		"America/Phoenix",
+		"America/Los_Angeles",
+		"America/Anchorage",
+		"America/Juneau",
+		"America/Sitka",
+		"America/Yakutat",
+		"America/Nome",
+		"America/Adak",
+		"America/Metlakatla",
+		"Pacific/Honolulu",
+		"America/Montevideo",
+		"Asia/Samarkand",
+		"Asia/Tashkent",
+		"Europe/Vatican",
+		"America/St_Vincent",
+		"America/Caracas",
+		"America/Tortola",
+		"America/St_Thomas",
+		"Asia/Ho_Chi_Minh",
+		"Pacific/Efate",
+		"Pacific/Wallis",
+		"Pacific/Apia",
+		"Asia/Aden",
+		"Indian/Mayotte",
+		"Africa/Johannesburg",
+		"Africa/Lusaka",
+		"Africa/Harare",
+	];
 
 	this.base_modules = [
 		"reset",
@@ -266,6 +685,7 @@ function common_xpcom() {
 		this.player = new player();
 		this.player.bind();
 		this.get_server_params();
+		this.get_types_list();
 		this.get_stb_params();
 		this.init_rc();
 		this.handshake();
@@ -316,6 +736,7 @@ function common_xpcom() {
 			new ModalFormInput({
 				label: get_word("auth_password"),
 				name: "password",
+				type: "password",
 				onchange: function () {
 					_debug("change");
 					stb.auth_dialog.resetStatus();
@@ -332,11 +753,51 @@ function common_xpcom() {
 				onclick: function () {
 					var login = self.auth_dialog.getItemByName("login").getValue();
 					var password = self.auth_dialog.getItemByName("password").getValue();
-					var device_id = self.get_device_id();
-					var device_id2 = self.get_device_id2();
 
 					_debug("login", login);
 					_debug("password", password);
+					// @TODO check formation for the whole STB list
+					if (
+						["mag322", "mag324", "im2101vi", "im2101vo", "aurahd4"].indexOf(
+							self.type.toLowerCase()
+						) >= 0
+					) {
+						var device_id = stb.GetUID
+							? stb.GetUID("device_id", "1729452065727304", 3)
+							: "";
+						var device_id2 = stb.GetUID
+							? stb.GetUID(self.access_token) ==
+								stb.GetUID(self.access_token, self.access_token)
+								? ""
+								: stb.GetUID("device_id", self.access_token, 5)
+							: "";
+					}
+
+					if (
+						["mag322", "mag324", "im2101vi", "im2101vo", "aurahd4"].indexOf(
+							self.type.toLowerCase()
+						) === -1 ||
+						!device_id ||
+						!device_id2
+					) {
+						device_id = stb.GetUID ? stb.GetUID() : "";
+						device_id2 = stb.GetUID
+							? stb.GetUID(self.access_token) ==
+								stb.GetUID(self.access_token, self.access_token)
+								? ""
+								: stb.GetUID("device_id", self.access_token)
+							: "";
+					}
+
+					var debugDeviceId = self.get_debug_param("device_id");
+					if (debugDeviceId) {
+						device_id = debugDeviceId;
+					}
+
+					var debugDeviceId2 = self.get_debug_param("device_id2");
+					if (debugDeviceId2) {
+						device_id2 = debugDeviceId2;
+					}
 
 					stb.load(
 						{
@@ -391,6 +852,10 @@ function common_xpcom() {
 	};
 
 	this.get_server_params = function () {
+		// xc_vm: our portal URL is /ACCESS_CODE/ (single path segment) and the
+		// backend endpoint is portal.php, not the classic server/load.php. The
+		// simpler pattern also tolerates a trailing query string (?mac=... in
+		// browser-emulation mode) without swallowing it into portal_path.
 		var pattern = /(http?|https?):\/\/([^\/]*)\/([\w\/]+)*\/(.)*/;
 
 		this.portal_protocol = document.URL.replace(pattern, "$1");
@@ -431,6 +896,45 @@ function common_xpcom() {
 					return self.disabled_modules.indexOf(module) == -1;
 				});
 
+				if (
+					result.template &&
+					result.template.indexOf("smart_launcher") != -1 &&
+					result["launcher_url"]
+				) {
+					if (single_module.length == 0) {
+						_debug("redirect to the new launcher");
+						window.stop();
+						document.body.hide();
+						_debug(
+							result["launcher_url"] +
+								"?config=" +
+								encodeURIComponent(
+									result["launcher_profile_url"] +
+										"?uid=" +
+										this.user["id"] +
+										"&language=" +
+										this.stb_lang_orig +
+										"&_=" +
+										new Date().getTime()
+								)
+						);
+						window.location =
+							result["launcher_url"] +
+							"?config=" +
+							encodeURIComponent(
+								result["launcher_profile_url"] +
+									"?uid=" +
+									this.user["id"] +
+									"&language=" +
+									this.stb_lang_orig +
+									"&_=" +
+									new Date().getTime()
+							);
+						return;
+					} else {
+						result.template = "default";
+					}
+				}
 				stb.loader.show();
 				this.check_graphic_res();
 
@@ -549,6 +1053,24 @@ function common_xpcom() {
 		this.additional_services_on = parseInt(param, 10);
 	};
 
+	this.get_types_list = function () {
+		_debug("stb.get_types_list");
+
+		this.load(
+			{
+				type: "stb",
+				action: "get_types_list",
+			},
+
+			function (result) {
+				_debug("stb.get_types_list callback", result);
+				this.allowed_stb_types = result.allowed_stb_types;
+				this.strict_stb_type_check = result.strict_stb_type_check;
+			},
+			this
+		);
+	};
+
 	this.get_stb_params = function () {
 		try {
 			this.video_mode = stb.RDir("vmode");
@@ -583,6 +1105,11 @@ function common_xpcom() {
 			this.stb_lang = this.stb_lang_orig = stb.RDir("getenv language").clearnl();
 
 			this.timezone = stb.RDir("getenv timezone_conf").clearnl();
+
+			if (this.timezone_list.indexOf(this.timezone) === -1) {
+				stb.RDir('setenv timezone_conf "" ');
+				this.timezone = stb.RDir("getenv timezone_conf").clearnl();
+			}
 
 			this.ntp_server = stb.RDir("getenv ntpurl").clearnl();
 
@@ -628,51 +1155,46 @@ function common_xpcom() {
 			_debug(e);
 		}
 
-		if (debug) {
+		// STB emulation for debugging. Overrides are applied only when the URL
+		// carries a debug_key: a real STB never sends one, so production is
+		// unaffected. Every read goes through get_debug_param(), which is gated
+		// on the same debug_key, so there is a single choke point and no
+		// ungated path. The server (enable_debug_stalker + the debug key)
+		// remains the final arbiter of any emulated device.
+		if (this.get_debug_param("debug_key")) {
 			var debugMac = this.get_debug_param("mac");
-
 			if (debugMac) {
 				this.mac = debugMac;
 				this.set_cookie("mac_emu", 1);
 			}
 
 			var debugSerialNumber = this.get_debug_param("sn");
-
 			if (debugSerialNumber) {
 				this.serial_number = debugSerialNumber;
 			}
 
 			var debugStbType = this.get_debug_param("stb_type");
-
 			if (debugStbType) {
 				this.type = debugStbType;
 			}
 
 			var debugHwVersion = this.get_debug_param("hw_version");
-
 			if (debugHwVersion) {
 				this.hw_version = debugHwVersion;
 			}
 
 			var debugVersion = this.get_debug_param("ver");
-
 			if (debugVersion) {
 				this.version = debugVersion;
 			}
 
 			var debugImageVersion = this.get_debug_param("image_version");
-
 			if (debugImageVersion) {
 				this.image_version = debugImageVersion;
 			}
 
 			this.set_cookie("debug", 1);
-
-			var debugKey = this.get_debug_param("debug_key");
-
-			if (debugKey) {
-				this.set_cookie("debug_key", debugKey);
-			}
+			this.set_cookie("debug_key", this.get_debug_param("debug_key"));
 		}
 
 		this.set_cookie("mac", this.mac);
@@ -696,47 +1218,6 @@ function common_xpcom() {
 		document.cookie = name + "=" + encodeURIComponent(val) + "; path=/;";
 	};
 
-	this.get_debug_param = function (name) {
-		if (
-			!_GET ||
-			!_GET.hasOwnProperty(name) ||
-			typeof _GET[name] == "undefined" ||
-			_GET[name] === ""
-		) {
-			return "";
-		}
-
-		try {
-			return decodeURIComponent(_GET[name]);
-		} catch (e) {
-			return _GET[name];
-		}
-	};
-
-	this.get_device_id = function () {
-		var debugDeviceId = this.get_debug_param("device_id");
-
-		if (debugDeviceId) {
-			return debugDeviceId;
-		}
-
-		return stb.GetUID ? stb.GetUID() : "";
-	};
-
-	this.get_device_id2 = function () {
-		var debugDeviceId2 = this.get_debug_param("device_id2");
-
-		if (debugDeviceId2) {
-			return debugDeviceId2;
-		}
-
-		return stb.GetUID
-			? stb.GetUID(this.access_token) == stb.GetUID(this.access_token, this.access_token)
-				? ""
-				: stb.GetUID("device_id", this.access_token)
-			: "";
-	};
-
 	this.delete_cookie = function (name) {
 		document.cookie = name + "=; path=/; expires=Thu, 01-Jan-1970 00:00:01 GMT;";
 	};
@@ -754,6 +1235,13 @@ function common_xpcom() {
 				word = result;
 				//this.clock.start();
 
+				if (!this.profile.clock_format) {
+					this.profile.clock_format =
+						get_word("time_format") && this.clock_formats[get_word("time_format")]
+							? this.clock_formats[get_word("time_format")]
+							: "24h";
+				}
+
 				this.user_init(this.profile);
 
 				this.clock.start();
@@ -767,10 +1255,29 @@ function common_xpcom() {
 		);
 	};
 
+	// Read a debug/emulation override from the URL. Returns "" unless the URL
+	// carries a debug_key, so this is the single gate for all STB-emulation
+	// params (mac, sn, stb_type, device_id, auth_via_query, ...).
+	this.get_debug_param = function (name) {
+		if (!_GET || !_GET["debug_key"]) {
+			return "";
+		}
+		if (!_GET.hasOwnProperty(name) || typeof _GET[name] == "undefined" || _GET[name] === "") {
+			return "";
+		}
+		try {
+			return decodeURIComponent(_GET[name]);
+		} catch (e) {
+			return _GET[name];
+		}
+	};
+
 	this.load = function (params, var_args) {
 		_debug("stb.load()");
 		_debug("params:", params);
 
+		// In emulation mode the browser has no STB auth cookie, so pass the
+		// access token via the query string when ?auth_via_query=1 is set.
 		if (
 			params &&
 			this.access_token &&
@@ -831,37 +1338,43 @@ function common_xpcom() {
 						try {
 							var result = JSON.parse(req.responseText);
 							req = null;
-							if (connection_problem.on && stb.cur_place == "tv" && stb.player.on) {
-								stb.player.play_last();
-							}
-							connection_problem.hide();
-							authentication_problem.hide();
-							callback.call(context, result.js);
 						} catch (er) {
-							if (req !== null) {
-								_debug("req.responseText", req.responseText);
+							_debug("req.responseText", req.responseText);
+							if (
+								req.responseText == "Authorization failed." ||
+								req.responseText == "Access denied."
+							) {
 								if (
-									req.responseText == "Authorization failed." ||
-									req.responseText == "Access denied."
+									stb.auth_access &&
+									req.responseText == "Authorization failed."
 								) {
-									if (stb.auth_access) {
-										keydown_observer.emulate_key(key.MENU);
+									keydown_observer.emulate_key(key.MENU);
+									if (typeof main_menu !== "undefined") {
 										main_menu.hide();
-										stb.loader.show();
-										stb.key_lock = false;
-										if (!stb.auth_dialog) {
-											stb.init_auth_dialog();
-										}
-										stb.auth_dialog.show();
-									} else if (req.responseText == "Access denied.") {
-										stb.cut_off();
-									} else if (!stb.auth_dialog || !stb.auth_dialog.on) {
-										authentication_problem.show();
 									}
+									stb.loader.show();
+									stb.key_lock = false;
+									if (!stb.auth_dialog) {
+										stb.init_auth_dialog();
+									}
+									if (stb.auth_dialog.on !== true) {
+										stb.auth_dialog.show();
+									}
+								} else if (req.responseText == "Access denied.") {
+									stb.cut_off();
+								} else if (!stb.auth_dialog || !stb.auth_dialog.on) {
+									authentication_problem.show();
 								}
-								throw new Error(er);
 							}
+							throw new Error(er);
 						}
+						_debug(result.text);
+						if (connection_problem.on && stb.cur_place == "tv" && stb.player.on) {
+							stb.player.play_last();
+						}
+						connection_problem.hide();
+						authentication_problem.hide();
+						callback.call(context, result.js);
 						result = null;
 					} else if (req.status == 0) {
 						console.log("Abort request");
@@ -1014,13 +1527,11 @@ function common_xpcom() {
 		var prehash = stb.GetHashVersion1
 			? stb.GetHashVersion1(this.type, this.version.substr(0, 56))
 			: 0;
-		var currentMac = this.mac || this.get_debug_param("mac") || "";
 
 		this.load(
 			{
 				type: "stb",
 				action: "handshake",
-				mac: currentMac,
 				token: this.get_saved_access_token() || "",
 				prehash: prehash,
 			},
@@ -1049,23 +1560,39 @@ function common_xpcom() {
 
 	this.get_user_profile = function (auth_second_step, prehash) {
 		_debug("this.get_user_profile", auth_second_step, prehash);
+		// @TODO check formation for the whole STB list
+		if (
+			["mag322", "mag324", "im2101vi", "im2101vo", "aurahd4"].indexOf(
+				this.type.toLowerCase()
+			) >= 0
+		) {
+			var device_id = stb.GetUID ? stb.GetUID("device_id", "1729452065727304", 3) : "";
+			var device_id2 = stb.GetUID
+				? stb.GetUID(this.access_token) == stb.GetUID(this.access_token, this.access_token)
+					? ""
+					: stb.GetUID("device_id", this.access_token, 5)
+				: "";
+		}
 
-		var currentMac = this.mac || this.get_debug_param("mac") || "";
-		var serial_number = this.serial_number || this.get_debug_param("sn") || "";
-		var stb_type = this.type || this.get_debug_param("stb_type") || "";
-		var version =
-			typeof this.version == "undefined" || this.version === null ? "" : this.version;
-		var num_banks =
-			typeof this.num_banks == "undefined" || this.num_banks === null ? 0 : this.num_banks;
-		var image_version = this.image_version || this.get_debug_param("image_version") || "";
-		var hw_version = this.hw_version || this.get_debug_param("hw_version") || "";
-		var device_id = this.get_device_id();
-		var device_id2 = this.get_device_id2();
+		if (
+			["mag322", "mag324", "im2101vi", "im2101vo", "aurahd4"].indexOf(
+				this.type.toLowerCase()
+			) === -1 ||
+			!device_id ||
+			!device_id2
+		) {
+			device_id = stb.GetUID ? stb.GetUID() : "";
+			device_id2 = stb.GetUID
+				? stb.GetUID(this.access_token) == stb.GetUID(this.access_token, this.access_token)
+					? ""
+					: stb.GetUID("device_id", this.access_token)
+				: "";
+		}
 
 		var metrics = {
-			mac: currentMac,
-			sn: serial_number,
-			model: stb_type,
+			mac: this.mac,
+			sn: this.serial_number,
+			model: this.type,
 			type: "STB",
 			uid: device_id2,
 			random: this.random,
@@ -1077,14 +1604,13 @@ function common_xpcom() {
 			{
 				type: "stb",
 				action: "get_profile",
-				mac: currentMac,
 				hd: this.hd,
-				ver: version,
-				num_banks: num_banks,
-				sn: serial_number,
-				stb_type: stb_type,
+				ver: this.version,
+				num_banks: this.num_banks,
+				sn: this.serial_number,
+				stb_type: this.type,
 				client_type: "STB",
-				image_version: image_version,
+				image_version: this.image_version,
 				video_out: stb.GetHDMIConnectionState
 					? stb.GetHDMIConnectionState() == 0 && window.innerHeight <= 576
 						? "rca"
@@ -1094,7 +1620,7 @@ function common_xpcom() {
 				device_id2: device_id2,
 				signature: stb.GetUID ? stb.GetUID(this.random) : "",
 				auth_second_step: auth_second_step ? 1 : 0,
-				hw_version: hw_version,
+				hw_version: this.hw_version,
 				not_valid_token: this.not_valid_token ? 1 : 0,
 				metrics: encodeURIComponent(JSON.stringify(metrics)),
 				hw_version_2: stb.GetHashVersion1
@@ -1179,20 +1705,12 @@ function common_xpcom() {
 		) {
 			_debug("checking conditions 2");
 
+			_debug("allowed_stb_types", this.allowed_stb_types);
+
+			// @TODO check for the whole STB list
 			if (
 				(this.num_banks == 2 ||
-					[
-						"MAG256",
-						"MAG257",
-						"MAG322",
-						"MAG323",
-						"MAG324",
-						"MAG325",
-						"MAG349",
-						"MAG350",
-						"MAG351",
-						"MAG352",
-					].indexOf(this.type) >= 0) &&
+					(this.allowed_stb_types || []).indexOf(this.type.toLowerCase()) >= 0) &&
 				params.update_type == "http_update"
 			) {
 				try {
@@ -1252,9 +1770,9 @@ function common_xpcom() {
 		screensaver.init();
 
 		if (
-			this.user["allowed_stb_types"] &&
-			!this.profile["strict_stb_type_check"] &&
-			this.user["allowed_stb_types"].indexOf("aurahd") !== -1
+			this.allowed_stb_types &&
+			!this.strict_stb_type_check &&
+			this.allowed_stb_types.indexOf("aurahd") !== -1
 		) {
 			var cut_type = this.type.indexOf("AuraHD") != -1 ? "AuraHD" : this.type;
 		} else {
@@ -1262,13 +1780,66 @@ function common_xpcom() {
 		}
 
 		if (
-			this.user["allowed_stb_types"] &&
-			this.user["allowed_stb_types"].indexOf(cut_type.toLowerCase()) == -1 &&
+			this.allowed_stb_types &&
+			this.allowed_stb_types.indexOf(cut_type.toLowerCase()) == -1 &&
 			!_GET["debug_key"]
 		) {
-			//stb.loader.stop();
-			//this.cut_off(get_word('stb_type_not_supported'));
-			//return;
+			stb.loader.stop();
+			this.cut_off(get_word("stb_type_not_supported"));
+
+			return;
+		}
+
+		_debug("allowed_stb_types", this.allowed_stb_types);
+		// @TODO check for the whole STB list
+		if (
+			(this.allowed_stb_types || []).indexOf(this.type.toLowerCase()) === -1 &&
+			!_GET["debug_key"]
+		) {
+			var match = /Player Engine version: (\S+)/.exec(this.version);
+			_debug("match", match);
+
+			if (match && match.length == 2) {
+				var player_version = parseInt(
+					(match[1] + "").replace("0x", "").replace(/[^a-f0-9]/gi, ""),
+					16
+				);
+				_debug("player_version", player_version);
+			}
+
+			if (!match || match.length != 2 || player_version < 1382) {
+				stb.loader.stop();
+				this.cut_off(get_word("outdated_firmware"));
+
+				// @TODO check for the whole STB list
+				_debug("allowed_stb_types", this.allowed_stb_types);
+				if (
+					(this.allowed_stb_types || []).indexOf(this.type.toLowerCase()) >= 0 ||
+					this.type.indexOf("AuraHD") != -1
+				) {
+					this.check_image_version();
+				}
+
+				return;
+			}
+		}
+
+		if (
+			(!this.ntp_server && this.user["stb_ntp_server"]) ||
+			(this.ntp_server &&
+				this.user["stb_ntp_server"] &&
+				this.ntp_server != this.user["stb_ntp_server"] &&
+				this.user["overwrite_stb_ntp_server"])
+		) {
+			_debug("set ntpurl " + this.user["stb_ntp_server"]);
+			try {
+				stb.RDir("setenv ntpurl " + this.user["stb_ntp_server"]);
+				_debug("reboot");
+				stb.ExecAction("reboot");
+				return;
+			} catch (e) {
+				_debug(e);
+			}
 		}
 
 		if (this.user["store_auth_data_on_stb"]) {
@@ -1293,7 +1864,9 @@ function common_xpcom() {
 								"?uid=" +
 								this.user["id"] +
 								"&language=" +
-								this.stb_lang_orig
+								this.stb_lang_orig +
+								"&_=" +
+								new Date().getTime()
 						)
 				);
 				window.location =
@@ -1304,7 +1877,9 @@ function common_xpcom() {
 							"?uid=" +
 							this.user["id"] +
 							"&language=" +
-							this.stb_lang_orig
+							this.stb_lang_orig +
+							"&_=" +
+							new Date().getTime()
 					);
 				return;
 			}
@@ -1399,9 +1974,14 @@ function common_xpcom() {
 
 				_debug("this.user[update_url]", this.user["update_url"]);
 
-				//if (['MAG200', 'MAG245', 'MAG245D', 'MAG250','MAG420', 'MAG254', 'MAG255', 'MAG256', 'MAG257', 'MAG270', 'MAG275', 'MAG322', 'MAG323', 'MAG324', 'MAG325', 'MAG349', 'MAG350', 'MAG351', 'MAG352', 'WR320', 'IP_STB_HD'].indexOf(this.type) >= 0 || this.type.indexOf('AuraHD') != -1) {
-				//   this.check_image_version();
-				//}
+				// @TODO check for the whole STB list
+				_debug("allowed_stb_types", this.allowed_stb_types);
+				if (
+					(this.allowed_stb_types || []).indexOf(this.type.toLowerCase()) >= 0 ||
+					this.type.indexOf("AuraHD") != -1
+				) {
+					this.check_image_version();
+				}
 
 				if (single_module.indexOf("tv") != -1 || single_module.length == 0) {
 					this.epg_loader.start();
@@ -1460,6 +2040,11 @@ function common_xpcom() {
 				try {
 					var timezone = stb.RDir("getenv timezone_conf");
 
+					if (this.timezone_list.indexOf(timezone) === -1) {
+						stb.RDir('setenv timezone_conf "" ');
+						timezone = stb.RDir("getenv timezone_conf");
+					}
+
 					_debug("timezone", timezone);
 
 					if (this.user["default_timezone"] && !timezone) {
@@ -1483,6 +2068,11 @@ function common_xpcom() {
 
 					stb.SetAspect(this.user["aspect"]);
 
+					_debug("this.user['playback_buffer_size']", this.user["playback_buffer_size"]);
+					_debug(
+						"this.user['playback_buffer_bytes']",
+						this.user["playback_buffer_bytes"]
+					);
 					stb.SetBufferSize(
 						this.user["playback_buffer_size"],
 						this.user["playback_buffer_bytes"]
@@ -1566,7 +2156,7 @@ function common_xpcom() {
 					stb.loader.add_pos(this.load_step, "skip channels loading");
 					stb.loader.add_pos(this.load_step, "skip fav_channels loading");
 				} else {
-					this.load_channels({ id: -1 });
+					this.load_channels();
 					this.load_fav_channels();
 					this.load_fav_itv();
 				}
@@ -1632,6 +2222,8 @@ function common_xpcom() {
 
 		_debug("this.user[display_menu_after_loading]", this.user["display_menu_after_loading"]);
 
+		var noAvailableChannelForPlay = false;
+
 		if (this.GetHDMIConnectionState) {
 			this.hdmi_on = this.GetHDMIConnectionState() == 2;
 		}
@@ -1653,12 +2245,22 @@ function common_xpcom() {
 		}
 
 		if (module.tv) {
+			// fix for issues #17281, #32851
+			module.tv.post_loading_handle();
+
+			// choose channel for first_play()
 			this.player.init_first_channel();
+
+			// if there is no available channel (empty object)
+			if (Object.keys(stb.player.cur_tv_item).length === 0) {
+				noAvailableChannelForPlay = true;
+			}
 		}
 
 		if (
 			this.user["display_menu_after_loading"] ||
 			focus_module ||
+			noAvailableChannelForPlay ||
 			!this.player.channels ||
 			this.player.channels.length == 0 ||
 			!module.tv
@@ -1784,7 +2386,6 @@ function common_xpcom() {
 		}
 
 		if (this.power_off) {
-			//this.StandBy(0);
 			this.power_off = false;
 			keydown_observer.emulate_key(key.MENU);
 			this.clock && this.clock.show && this.clock.show();
@@ -1795,11 +2396,16 @@ function common_xpcom() {
 				main_menu.hide();
 				stb.player.play_last();
 			}
+
+			screensaver.restart_timer();
 		} else {
 			keydown_observer.emulate_key(key.MENU);
 			this.StandBy(1);
 			this.power_off = true;
 			this.setFrontPanel("");
+
+			screensaver.hide.call(screensaver);
+			window.clearTimeout(screensaver.activate_timer);
 		}
 	};
 
@@ -1954,35 +2560,27 @@ function common_xpcom() {
 		}
 	};
 
-	this.load_channels = function (genre, bypass) {
-		if (genre !== null && genre.id !== -1) {
-			if (genre.censored && !bypass) {
-				var self = this;
-				module.tv.parent_password_promt.callback = function () {
-					self.load_channels(genre, true);
-				};
-				module.tv.parent_password_promt.show();
-				return;
-			}
-			main_menu.hide();
-			stb.loader.show();
-		}
-
+	this.load_channels = function () {
 		this.load(
 			{
 				type: "itv",
 				action: "get_all_channels",
 				force_ch_link_check: stb.user["force_ch_link_check"],
-				genre: genre == null ? null : genre.id,
 			},
 
 			function (result) {
+				_debug("all_channels", result);
+
 				stb.loader.add_pos(this.load_step, "channels loaded");
 
-				_debug("all_channels", result);
 				this.player.channels = result.data || [];
 
+				if (module && module.tv && module.tv.data_items) {
+					module.tv.data_items = this.player.channels;
+				}
+
 				_debug("this.player.is_tv", this.player.is_tv);
+
 				_debug("this.player.cur_media_item", this.player.cur_media_item);
 				_debug("this.player.cur_tv_item", this.player.cur_tv_item);
 
@@ -1995,13 +2593,19 @@ function common_xpcom() {
 					_debug("ch_idx", ch_idx);
 
 					if (ch_idx !== null) {
-						this.player.cur_media_item = this.player.cur_tv_item =
-							this.player.channels[ch_idx];
+						var item = this.player.channels[ch_idx];
+						this.player.cur_media_item = this.player.cur_tv_item = item;
 
-						_debug("this.player.cur_tv_item", this.player.cur_tv_item);
+						var item_genre_key = module.tv.genres.getIdxByVal("id", item.tv_genre_id);
+						var item_genre = module.tv.genres[item_genre_key];
 
-						if (this.player.cur_tv_item.lock != "1") {
-							this.player.last_not_locked_tv_item = this.player.cur_tv_item;
+						if (
+							item.lock != "1" &&
+							item.censored != "1" &&
+							item_genre &&
+							item_genre.censored != 1
+						) {
+							this.player.last_not_locked_tv_item = item;
 						}
 
 						_debug("this.player.on", this.player.on);
@@ -2009,11 +2613,17 @@ function common_xpcom() {
 						if (this.player.on) {
 							this.player.play(this.player.cur_tv_item);
 						}
+					} else {
+						stb.msg.push({
+							msg:
+								(this.player.cur_tv_item
+									? '"' + this.player.cur_tv_item.name + '" - '
+									: "") + get_word("msg_channel_not_available"),
+						});
+						this.player.stop();
+						module.tv.do_not_load = false;
+						module.tv.show(false);
 					}
-				}
-				if (genre !== null && genre.id !== -1) {
-					stb.loader.hide();
-					module.tv._show(genre);
 				}
 
 				this.player.init_first_channel();
@@ -2023,14 +2633,13 @@ function common_xpcom() {
 		);
 	};
 
-	this.load_fav_channels = function (genre_id) {
+	this.load_fav_channels = function () {
 		this.load(
 			{
 				type: "itv",
 				action: "get_all_fav_channels",
 				fav: 1,
 				force_ch_link_check: stb.user["force_ch_link_check"],
-				genre: genre_id,
 			},
 
 			function (result) {
@@ -2499,7 +3108,9 @@ function common_xpcom() {
 				return;
 			}
 
-			stb.key_lock = true;
+			if (!connection_problem.on) {
+				stb.key_lock = true;
+			}
 
 			stb.load(
 				{
@@ -2544,7 +3155,9 @@ function common_xpcom() {
 
 									stb.player.prev_layer = main_menu;
 
-									stb.key_lock = true;
+									if (!connection_problem.on) {
+										stb.key_lock = true;
+									}
 
 									stb.player.need_show_info = 0;
 
@@ -2569,7 +3182,9 @@ function common_xpcom() {
 
 					stb.player.prev_layer = main_menu;
 
-					stb.key_lock = true;
+					if (!connection_problem.on) {
+						stb.key_lock = true;
+					}
 
 					stb.player.play({
 						id: 0,
@@ -2777,9 +3392,6 @@ function common_xpcom() {
 			if (this.minutes < 10) {
 				this.minutes = "0" + this.minutes;
 			}
-			if (this.hours < 10) {
-				this.hours = "0" + this.hours;
-			}
 
 			this.show();
 		},
@@ -2792,7 +3404,7 @@ function common_xpcom() {
 				main_menu.date &&
 				main_menu.on
 			) {
-				main_menu.time.innerHTML = get_word("time_format").format(
+				main_menu.time.innerHTML = stb.clock_formats[stb.profile.clock_format].format(
 					this.hours,
 					this.minutes,
 					this.ap_hours,
@@ -2807,16 +3419,13 @@ function common_xpcom() {
 			}
 
 			if (stb.player && stb.player.info && stb.player.info.on && stb.player.info.clock) {
-				stb.player.info.clock.innerHTML = get_word("time_format").format(
-					this.hours,
-					this.minutes,
-					this.ap_hours,
-					this.ap_mark
-				);
+				stb.player.info.clock.innerHTML = stb.clock_formats[
+					stb.profile.clock_format
+				].format(this.hours, this.minutes, this.ap_hours, this.ap_mark);
 			}
 
 			if (module && module.tv && module.tv.on && module.tv.clock_box) {
-				module.tv.clock_box.innerHTML = get_word("time_format").format(
+				module.tv.clock_box.innerHTML = stb.clock_formats[stb.profile.clock_format].format(
 					this.hours,
 					this.minutes,
 					this.ap_hours,
@@ -2909,7 +3518,12 @@ function common_xpcom() {
 				minutes = "0" + minutes;
 			}
 
-			return get_word("time_format").format(hours, minutes, ap_hours, ap_mark);
+			return stb.clock_formats[stb.profile.clock_format].format(
+				hours,
+				minutes,
+				ap_hours,
+				ap_mark
+			);
 		},
 
 		format_XX: function (value) {
@@ -3012,7 +3626,7 @@ var screensaver = {
 
 		stb.clock.addCustomEventListener("tick", function (date) {
 			if (self.on) {
-				self.clock.innerHTML = get_word("time_format").format(
+				self.clock.innerHTML = stb.clock_formats[stb.profile.clock_format].format(
 					date.hours,
 					date.minutes,
 					date.ap_hours,
@@ -3088,7 +3702,7 @@ var screensaver = {
 		this.dom_obj.show();
 		this.on = true;
 
-		this.clock.innerHTML = get_word("time_format").format(
+		this.clock.innerHTML = stb.clock_formats[stb.profile.clock_format].format(
 			stb.clock.hours,
 			stb.clock.minutes,
 			stb.clock.ap_hours,
@@ -3162,6 +3776,8 @@ var connection_problem = {
 			this.dom_obj.show();
 			this.on = true;
 		}
+
+		stb.key_lock = false;
 	},
 
 	hide: function () {
@@ -3173,6 +3789,7 @@ var connection_problem = {
 
 		this.dom_obj.hide();
 		this.on = false;
+		stb.key_lock = false;
 	},
 };
 
