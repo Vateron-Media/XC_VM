@@ -1,9 +1,8 @@
 <html>
-
 <head>
     <script>
         var iid = 1;
-        _ = function (o) { return o };
+        _ = function(o){return o};
         var iso639 = [
             {
                 code: ['eng', 'en'],
@@ -359,7 +358,7 @@
 
         var options = [];
 
-        for (var i = 0; i < iso639.length; i++) {
+        for (var i=0; i < iso639.length; i++){
             options[options.length] = iso639[i].code[0];
             options[options.length] = iso639[i].id;
         }
@@ -376,17 +375,15 @@
         menuT[5] = menuT[5].concat(colorList);
 
         var mid = menuT.length + 2;
-        var pread = [0, 1, 2, 3, 4, 5];
-        var read = {
-            result: [
-                parent.prof.pri_audio_lang || parent._GET['pri_audio_lang'],
-                parent.prof.sec_audio_lang || parent._GET['sec_audio_lang'],
-                parent.prof.pri_subtitle_lang || parent._GET['pri_subtitle_lang'],
-                parent.prof.sec_subtitle_lang || parent._GET['sec_subtitle_lang'],
-                parent.prof.subtitle_size || parent._GET['subtitle_size'] || 20,
-                parent.prof.subtitle_color || parent._GET['subtitle_color'] || 0xFFFFFF
-            ]
-        };
+        var pread = [0,1,2,3,4,5];
+        var read = {result:[
+            parent.prof.pri_audio_lang    || parent._GET['pri_audio_lang'],
+            parent.prof.sec_audio_lang    || parent._GET['sec_audio_lang'],
+            parent.prof.pri_subtitle_lang || parent._GET['pri_subtitle_lang'],
+            parent.prof.sec_subtitle_lang || parent._GET['sec_subtitle_lang'],
+            parent.prof.subtitle_size     || parent._GET['subtitle_size']      || 20,
+            parent.prof.subtitle_color    || parent._GET['subtitle_color']     || 0xFFFFFF
+        ]};
 
         function onLoad() {
             sload();
@@ -400,27 +397,27 @@
         function submit() {
 
             var save_data = {
-                pri_audio_lang: document.getElementById("i1").value,
-                sec_audio_lang: document.getElementById("i2").value,
-                pri_subtitle_lang: document.getElementById("i3").value,
-                sec_subtitle_lang: document.getElementById("i4").value,
-                subtitle_size: document.getElementById("i5").value,
-                subtitle_color: document.getElementById("i6").value
+                pri_audio_lang    : document.getElementById("i1").value,
+                sec_audio_lang    : document.getElementById("i2").value,
+                pri_subtitle_lang : document.getElementById("i3").value,
+                sec_subtitle_lang : document.getElementById("i4").value,
+                subtitle_size     : document.getElementById("i5").value,
+                subtitle_color    : document.getElementById("i6").value
             };
 
-            parent._GET['pri_audio_lang'] = parent.prof.pri_audio_lang = save_data['pri_audio_lang'];
-            parent._GET['sec_audio_lang'] = parent.prof.sec_audio_lang = save_data['sec_audio_lang'];
+            parent._GET['pri_audio_lang']    = parent.prof.pri_audio_lang    = save_data['pri_audio_lang'];
+            parent._GET['sec_audio_lang']    = parent.prof.sec_audio_lang    = save_data['sec_audio_lang'];
             parent._GET['pri_subtitle_lang'] = parent.prof.pri_subtitle_lang = save_data['pri_subtitle_lang'];
             parent._GET['sec_subtitle_lang'] = parent.prof.sec_subtitle_lang = save_data['sec_subtitle_lang'];
-            parent._GET['subtitle_size'] = parent.prof.subtitle_size = save_data['subtitle_size'];
-            parent._GET['subtitle_color'] = parent.prof.subtitle_color = save_data['subtitle_color'];
+            parent._GET['subtitle_size']     = parent.prof.subtitle_size     = save_data['subtitle_size'];
+            parent._GET['subtitle_color']    = parent.prof.subtitle_color    = save_data['subtitle_color'];
 
-            save_data.type = "stb";
+            save_data.type   = "stb";
             save_data.action = "set_lang_priority";
 
             parent.load(
                 save_data,
-                function (result) {
+                function (result){
                     save_data.type = "settings";
                     save_data.action = undefined;
                     parent.stb.SendEventToPortal(JSON.stringify(save_data));
@@ -446,53 +443,51 @@
 
     <script language="JavaScript" src="js/pres.js"></script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
 <body onload="onLoad()" onkeydown="pressKey(event);">
-    <div id="blueback">
-        <table class="nsp2" width="100%" border="0" cellpadding="0" cellspacing="0">
-            <tr>
-                <td align="right"><span id="t1"></span>
-                <td>
-                    <div class="sub_select"><select id="i1"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t2"></span>
-                <td>
-                    <div class="sub_select"><select id="i2"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t3"></span>
-                <td>
-                    <div class="sub_select"><select id="i3"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t4"></span>
-                <td>
-                    <div class="sub_select"><select id="i4"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t5"></span>
-                <td>
-                    <div class="sub_select"><select id="i5"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t6"></span>
-                <td>
-                    <div class="sub_select"><select id="i6"></select></div>
-                </td>
-            </tr>
-        </table>
+<div id="blueback">
+    <table class="nsp2" width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="right"><span id="t1"></span>
+            <td>
+                <div class="sub_select"><select id="i1"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t2"></span>
+            <td>
+                <div class="sub_select"><select id="i2"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t3"></span>
+            <td>
+                <div class="sub_select"><select id="i3"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t4"></span>
+            <td>
+                <div class="sub_select"><select id="i4"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t5"></span>
+            <td>
+                <div class="sub_select"><select id="i5"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t6"></span>
+            <td>
+                <div class="sub_select"><select id="i6"></select></div>
+            </td>
+        </tr>
+    </table>
 
-    </div>
-    <div id="footer">
-        <input id="i8" type="button" value="" onClick="back();" />
-        <input id="i7" type="button" value="" onClick="submit();" />
-    </div>
+</div>
+<div id="footer">
+    <input id="i8" type="button" value="" onClick="back();"/>
+    <input id="i7" type="button" value="" onClick="submit();"/>
+</div>
 </body>
-
 </html>
