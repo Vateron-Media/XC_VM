@@ -254,7 +254,7 @@ class PortalHandler
 						"internet",
 						"logout",
 						"account_menu",
-						// DEBUG: legacy modules enabled for review (docs/ru/guides/ministra-unused-modules.md)
+						// Legacy modules not loaded by default (uncomment to review):
 						// "apps",
 						// "app_skeleton",
 						// "remotepvr",
