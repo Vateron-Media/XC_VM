@@ -25,9 +25,10 @@ git diff HEAD -- src/Ministra/xpcom.common.js # что изменилось (н�
   `get_debug_param()` по `?debug_key`; подмена `mac`, `sn`, `stb_type`, `hw_version`,
   `ver`, `image_version` (init), `device_id`/`device_id2` (do_auth), `auth_via_query`
   (load). См. `docs/ru/guides/ministra-browser-emulation.md`.
-- ❌ **Родительский контроль в `load_channels`** — обработка `genre.censored` +
-  `module.tv.parent_password_promt` (запрос родительского пароля на скрытых жанрах) и
-  метод `load_fav_channels`. В 5.6.10 логика родит.контроля другая.
+- ✅ **Родительский контроль в `load_channels`** — сознательно НЕ возвращаем форковый
+  genre-level промпт (`genre.censored` → `parent_password_promt` при загрузке жанра).
+  5.6.10 фильтрует censored по-элементно, а запрос пароля мы обрабатываем гардами в
+  `tv.js` (уже восстановлены). Возврат genre-промпта дал бы двойной запрос пароля.
 - ✅/⚠️ **Auth-поток в `load()`** — оказался **уже в 5.6.10** (ветка `"Access denied."`
   → `stb.cut_off()`, `connection_problem`/`play_last` присутствуют). НЕ потерян. Отдельно:
   5.6.10 не защищает `_debug(result.text)` от **null/пустого ответа** — необработанные
@@ -45,10 +46,17 @@ git diff HEAD -- src/Ministra/xpcom.common.js # что изменилось (н�
   из `$rSettings`. Требует **деплой `PortalHandler.php`** на сервер.
 - ✅ **`"layer.sclub_info"`** в `base_modules` (после `layer.vclub_info`) — восстановлено.
   Без него `sclub.js` падал с `ReferenceError: sclub_info is not defined`.
-- ⚠️ **Списки моделей STB / `allowed_stb_types`** — наша обработка `aurahd` и проверки
-  `allowed_stb_types` (частично закомментировано `cut_off('stb_type_not_supported')`).
-  Сверить, нужна ли правка поверх 5.6.10.
-- ⚠️ **`check_image_version`** — у нас вызов закомментирован. Решить, оставлять ли так.
+- ✅ **Списки моделей STB / `allowed_stb_types` / `aurahd`** — 5.6.10 богаче нашего форка:
+  `this.allowed_stb_types` заполняется из `get_types_list` (бэкенд починен), aurahd-проверки
+  на месте. Правок не нужно.
+- ✅ **`outdated_firmware` (`player_version < 1382`)** — новый гейт 5.6.10 (в форке его не
+  было), но он **внутри** `if (allowed_stb_types.indexOf(type) === -1)` → срабатывает только
+  для типов ВНЕ белого списка и пропускает их при свежем плеере (≥1382). Для whitelisted
+  устройств (напр. MAG250) блок пропускается. Не регресс — оставляем. Если нужен старый box
+  с древней прошивкой — добавить его тип в `allowed_stb_types`.
+- ✅ **`check_image_version`** — 5.6.10 вызывает его снова, но это **no-op**: бэкенд не шлёт
+  `stb.user["autoupdate"]` (массив правил автообновления) → тело метода не выполняется.
+  Безвредно, оставляем как есть.
 
 ---
 
@@ -98,25 +106,29 @@ git diff HEAD -- src/Ministra/xpcom.common.js # что изменилось (н�
 
 ## player.js
 
-- ❌ **Кастомный preview/playback** для темы xc_vm.
-- ❌ **Свой поток родительского контроля** (`password_input.callback`, `unlocked`,
-  `_play_now`) — отличается от 5.6.10.
-- ⚠️ **Мульти-аудио / titles** — у нас своя реализация (`infoCurtitle`, `titles.length`).
-  Сверить с 5.6.10, чтобы не потерять/не задвоить.
+- ✅ **Логотип превью** — восстановлено (готовый `item.logo` URL, см. tv.js выше).
+- ✅ **PVR-ветка темы xc_vm** — цела в 5.6.10 (`~4562`): в xc_vm только локальная запись
+  (`local_pvr_confirm`), в остальных темах — полный выбор remote+local. Не тронуто.
+- ✅ **Мульти-аудио / titles** — 5.6.10 сохранил логику (`titles`→`playlist`,
+  `infoCurtitle`) и **улучшил** (добавил `.replace(/\n/)`, `if (metadata)`-гард и
+  try/catch вокруг парсинга). Форковый гард `metadata &&` покрыт новым `if (metadata)`.
+  Действий не требуется.
+- ℹ️ **Родит. контроль** (`password_input.callback`/`unlocked`/`_play_now`) — этого в
+  player.js нет ни у нас, ни в 5.6.10; поток живёт в `tv.js` (уже восстановлен). Пункт
+  был неточным.
 
 ---
 
 ## account.js
 
-- ❌ **Минимальный экран аккаунта** — показываем только `Phone` + `result["message"]`
-  вместо расширенного экрана 5.6.10.
-- ❌ **Переключение UI-режима** — `set_modern` / `set_legacy` (через `stb.load` + reboot)
-  на кнопках green/yellow вместо стандартных payment/agreement/terms.
-- ❌ **Состояния цветных кнопок** — `red.enable()` / `blue.disable()` (у 5.6.10 иначе).
-- ⚠️ Мы **намеренно убрали**: экран оплаты по `key.blue` из blocking, расширенные поля
-  (`fname`/`ls`/`password`/`tariff_plan`/`account_balance`/`end_date`), поток
-  `external_payment_page_url` (web-window), вкладки agreement/terms. НЕ возвращать, если
-  хотим сохранить наш минимальный экран.
+**Решено: оставляем полный экран 5.6.10** (не восстанавливаем минимальный форк-экран).
+
+Порт 5.6.10 заменил наш минимальный экран (`Phone` + `result["message"]`,
+`set_modern`/`set_legacy`) на полный upstream: `User / Phone / Account number /
+Password / Tariff plan / Account balance / End date` + оплата через web-окно
+(`external_payment_page_url`) и вкладки payment/agreement/terms. Это осознанный выбор —
+больше информации для клиента. Форковый минимальный экран доступен в
+`git show 89dcefc7:src/Ministra/account.js`, если понадобится откатить.
 
 ---
 
