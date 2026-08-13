@@ -12,6 +12,34 @@
 
 ---
 
+## Как это работает (модель debug-режима)
+
+С обновления на Ministra 5.6.10 эмуляция устроена по принципу «один ключ — один гейт»:
+
+1. **Клиент** (`xpcom.common.js`) применяет любые подменённые из URL идентификаторы (`mac`, `sn`, `stb_type`, `device_id`, …) **только если в URL есть `debug_key`**. Без `debug_key` ни один параметр не читается — реальная приставка его никогда не передаёт, поэтому в проде поведение не меняется. Все чтения идут через единственную функцию `get_debug_param()`, которая закрыта этим же `debug_key`.
+2. **Сервер** (`portal.php`) — финальный арбитр: подменённое устройство проходит проверку (обход подписи образа) **только если включён серверный флаг** `enable_debug_stalker`. Если флаг выключен — фейковый `mac` из браузера будет отклонён.
+
+Итог: чтобы эмуляция реально заработала, нужны **оба** условия — `?debug_key=…` в URL (активация на клиенте) и включённый `Stalker Debug Mode` в панели (авторизация на сервере).
+
+---
+
+## Как получить / выбрать `debug_key`
+
+`debug_key` — это ключ активации эмуляции. Порядок такой:
+
+1. **Включите серверный debug** (это и есть основное «разрешение»):
+   - Панель → **Settings** → переключатель **«Stalker Debug Mode»** (в БД настройка `enable_debug_stalker`).
+   - Это выставляет `enable_debug_stalker = 1`; `portal.php` начинает пускать эмулируемые устройства (`$rDebug` → `$rVerified = true`).
+2. **Выберите значение `debug_key`** и добавьте его в URL как `?debug_key=…`:
+   - В текущей сборке серверная проверка *значения* `debug_key` не выполняется — подходит любая непустая строка (например `?debug_key=1`).
+   - **Рекомендация:** используйте длинную случайную приватную строку (например `?debug_key=7f3a…`), а не `1`, чтобы отладочные ссылки нельзя было угадать/переслать случайно. И **выключайте** `Stalker Debug Mode` в проде сразу после отладки.
+
+> ⚠️ Безопасность. Пока `enable_debug_stalker` включён, эмуляцию может запустить любой, кто знает URL и подставит `?debug_key=<что угодно>&mac=<чужой>`. Держите тумблер выключенным в проде.
+>
+> Рекомендуемое усиление (пока **не** реализовано): сверять *значение* `debug_key` с секретной настройкой на сервере (напр. `debug_stalker_key`) в `portal.php` — тогда даже при включённом флаге эмуляция потребует знания секрета. См. блок `if ($rDebug)` в `src/Ministra/portal.php`.
+
+---
+
 ## Поддерживаемые URL
 
 Обычно используются два варианта (в зависимости от nginx-конфига):
@@ -45,40 +73,46 @@ http://HOST/ACCESS_CODE/portal.php?type=stb&action=handshake&mac=...&token=&preh
 
 ---
 
-## Обязательные GET-параметры
+## GET-параметры эмуляции
 
-Если включена проверка устройства, передавайте идентификаторы явно:
+> Все параметры ниже читаются клиентом **только при наличии `debug_key`** в URL.
+
+**Ключ активации (обязателен):**
 
 | Параметр | Назначение |
 | --- | --- |
-| `mac` | MAC устройства для handshake |
+| `debug_key` | Включает чтение всех остальных debug-параметров. Без него эмуляция не активируется. |
+
+**Идентификаторы устройства** (передавайте явно, если включена проверка устройства):
+
+| Параметр | Назначение |
+| --- | --- |
+| `mac` | MAC устройства для handshake (ставит куку `mac_emu=1`) |
 | `sn` | Серийный номер устройства |
 | `stb_type` | Модель STB (например `MAG250`) |
-| `device_id` | Первый device id |
-| `device_id2` | Второй device id |
+| `device_id` | Первый device id (подменяется в `do_auth`) |
+| `device_id2` | Второй device id (подменяется в `do_auth`) |
 | `hw_version` | Аппаратная версия |
+| `ver` | Версия ПО/образа (если включён lock по образу) |
+| `image_version` | Версия образа (если сравнивается) |
 
 Без этих значений сервер может отклонить `get_profile` как невалидное устройство.
 
----
-
-## Полезные GET-параметры
+**Вспомогательные:**
 
 | Параметр | Когда нужен |
 | --- | --- |
-| `debug_key` | Обход ограничения по `allowed_stb_types` на клиенте |
-| `ver` | Если включен lock по образу/версии |
-| `image_version` | Если сравнивается версия образа |
+| `auth_via_query` | `auth_via_query=1` — дублировать access token в query-параметр `token`, если заголовок `Authorization` режется прокси/nginx (у браузера нет STB-куки авторизации) |
 | `access_token` | Для теста повторного входа с готовым token |
-| `auth_via_query` | Debug-режим: дублировать token в query-параметр, если Authorization режется прокси/nginx |
-| `debug` | Клиентский debug-режим (в текущей сборке и так включен по умолчанию) |
+
+> Устаревшее: переменная `debug` в `index.html` (`var debug = 1`) **больше не** управляет эмуляцией — гейтом теперь является `debug_key`. Её можно оставить или обнулить; на STB-эмуляцию она не влияет.
 
 ---
 
 ## Пример URL
 
 ```text
-http://192.168.110.251/HgBjUjSI/?mac=00:1A:79:11:22:33&sn=062014N000001&stb_type=MAG250&device_id=ABC123&device_id2=DEF456&hw_version=1.7-BD-00&debug_key=1
+http://192.168.110.251/HgBjUjSI/?debug_key=СЕКРЕТ&mac=00:1A:79:11:22:33&sn=062014N000001&stb_type=MAG250&device_id=ABC123&device_id2=DEF456&hw_version=1.7-BD-00
 ```
 
 При необходимости добавьте:
@@ -93,6 +127,8 @@ http://192.168.110.251/HgBjUjSI/?mac=00:1A:79:11:22:33&sn=062014N000001&stb_type
 http://192.168.110.251/HgBjUjSI/
 ```
 
+(в STB Emulator идентификаторы обычно берутся из настроек эмулятора, а не из URL).
+
 ---
 
 ## Что означает your device is not active
@@ -105,32 +141,37 @@ http://192.168.110.251/HgBjUjSI/
 2. Не совпадают `sn`, `device_id`, `device_id2`, `hw_version` при `lock_device = 1`.
 3. Модель не проходит whitelist `allowed_stb_types`.
 4. Токен handshake невалиден или не принят на `get_profile`.
+5. Не включён `Stalker Debug Mode` в панели, а устройство эмулируется из браузера (нет валидной подписи образа).
 
 ---
 
 ## Быстрый чеклист
 
-1. Открыть портал через корректный префикс (`/ACCESS_CODE/` или `/c/`).
-2. Для STB Emulator не использовать URL с `action=handshake` в настройке портала.
-3. Передать все обязательные поля (`mac`, `sn`, `stb_type`, `device_id`, `device_id2`, `hw_version`).
-4. Проверить, что handshake вернул token и следующий `get_profile` уходит с Authorization Bearer.
-5. Если Authorization не доходит до PHP, временно включить `auth_via_query=1`.
-6. При ограничениях по типу STB добавить `debug_key=1`.
-7. Если блок не снимается, проверить запись устройства в БД (`mag_devices`) и флаг `lock_device`.
+1. Включить в панели **Settings → Stalker Debug Mode** (`enable_debug_stalker`).
+2. Открыть портал через корректный префикс (`/ACCESS_CODE/` или `/c/`).
+3. Добавить в URL `debug_key=<значение>` — без него подмена идентификаторов не активируется.
+4. Для STB Emulator не использовать URL с `action=handshake` в настройке портала.
+5. Передать все обязательные поля (`mac`, `sn`, `stb_type`, `device_id`, `device_id2`, `hw_version`).
+6. Проверить, что handshake вернул token и следующий `get_profile` уходит с Authorization Bearer.
+7. Если Authorization не доходит до PHP, временно добавить `auth_via_query=1`.
+8. Если блок не снимается, проверить запись устройства в БД (`mag_devices`) и флаг `lock_device`.
+9. После отладки **выключить** `Stalker Debug Mode`.
 
 ---
 
 ## Где смотреть реализацию
 
-- Клиентские параметры и вызовы API: `src/ministra/xpcom.common.js`
-- Инициализация debug/get-параметров: `src/ministra/index.html`
-- Серверная проверка устройства и профиль: `src/ministra/portal.php`
-- Handshake/get_profile orchestration: `src/Modules/ministra/PortalHandler.php`
+- Единый гейт debug-параметров (`get_debug_param`, подмена `mac`/`sn`/`stb_type`/`device_id`/`auth_via_query`): `src/Ministra/xpcom.common.js`
+- Инициализация окружения и клиентских параметров: `src/Ministra/index.html`
+- Серверная проверка устройства и профиль (флаг `enable_debug_stalker` → `$rDebug`): `src/Ministra/portal.php`
+- Handshake/get_profile orchestration: `src/Ministra/PortalHandler.php`
 
 ## Связанные файлы
 
 | Файл | Роль |
 | --- | --- |
-| `src/ministra/portal.php` | Точка входа портала Ministra |
-| `src/ministra/index.html` | Страница эмулируемого STB-браузера |
-| `src/Modules/ministra/PortalHandler.php` | Обработчик запросов портала |
+| `src/Ministra/portal.php` | Точка входа портала Ministra; серверный гейт `enable_debug_stalker` |
+| `src/Ministra/xpcom.common.js` | Клиент: `get_debug_param()` и подмена идентификаторов по `debug_key` |
+| `src/Ministra/index.html` | Страница эмулируемого STB-браузера |
+| `src/Ministra/PortalHandler.php` | Обработчик запросов портала |
+| `src/Public/Views/admin/settings.php` | Переключатель «Stalker Debug Mode» (`enable_debug_stalker`) |
