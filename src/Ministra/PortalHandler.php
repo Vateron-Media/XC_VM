@@ -94,21 +94,12 @@ class PortalHandler
 				case "downloads":
 					exit(json_encode(["js" => true]));
 
-				case "weatherco":
-					exit(json_encode(["js" => false]));
-
-				case "course":
-					exit(json_encode(["js" => true]));
-
 				case "account_info":
 					switch ($rReqAction) {
 						case "get_terms_info":
 							exit(json_encode(["js" => true]));
 
 						case "get_payment_info":
-							exit(json_encode(["js" => true]));
-
-						case "get_demo_video_parts":
 							exit(json_encode(["js" => true]));
 
 						case "get_agreement_info":
@@ -212,6 +203,20 @@ class PortalHandler
 
 				exit(json_encode(["js" => $rTotal], JSON_PARTIAL_OUTPUT_ON_ERROR));
 
+			case "get_types_list":
+				exit(
+					json_encode([
+						"js" => [
+							"allowed_stb_types" => array_values(
+								(array) ($rSettings["allowed_stb_types"] ?? []),
+							),
+							"strict_stb_type_check" => empty($rSettings["strict_stb_type_check"])
+								? ""
+								: $rSettings["strict_stb_type_check"],
+						],
+					])
+				);
+
 			case "get_localization":
 				exit(json_encode(["js" => $ctx["language"][$ctx["device"]["locale"]]]));
 
@@ -249,6 +254,12 @@ class PortalHandler
 						"internet",
 						"logout",
 						"account_menu",
+						// DEBUG: legacy modules enabled for review (docs/ru/guides/ministra-unused-modules.md)
+						// "apps",
+						// "app_skeleton",
+						// "remotepvr",
+						// "widget.audio",
+						// "widget.radio",
 					],
 					"switchable_modules" => ["sclub", "vlub"],
 					"disabled_modules" => [
@@ -394,7 +405,6 @@ class PortalHandler
 					"template/" . $ctx["theme"] . "/" . $rMode . "/mm_ico_setting.png",
 					"template/" . $ctx["theme"] . "/" . $rMode . "/mm_ico_tv.png",
 					"template/" . $ctx["theme"] . "/" . $rMode . "/mm_ico_video.png",
-					"template/" . $ctx["theme"] . "/" . $rMode . "/mm_ico_youtube.png",
 					"template/" . $ctx["theme"] . "/" . $rMode . "/left_white.png",
 					"template/" . $ctx["theme"] . "/" . $rMode . "/logo.png",
 					"template/" . $ctx["theme"] . "/" . $rMode . "/play.png",
@@ -409,6 +419,16 @@ class PortalHandler
 					"template/" . $ctx["theme"] . "/" . $rMode . "/volume_bg.png",
 					"template/" . $ctx["theme"] . "/" . $rMode . "/volume_off.png",
 				];
+
+				// Only preload images that actually exist for the current theme.
+				// Modern themes use sprite sheets, so the classic per-icon files
+				// (play.png, rec.png, hd.png, ...) may be absent — skip them so the
+				// client does not fire 404s while precaching.
+				$rImages = array_values(
+					array_filter($rImages, function ($rPath) {
+						return is_file(__DIR__ . "/" . $rPath);
+					}),
+				);
 
 				exit(json_encode(["js" => $rImages]));
 

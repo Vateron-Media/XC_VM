@@ -151,7 +151,7 @@ if (!$rSettings["disable_ministra"]) {
 
 			//MAGSCAN
 			//If No SerialNumber Is Posted
-			if (empty($rSerialNumber)) {
+			if (empty($rSerialNumber) && !$rDebug) {
 				$rBanData = ["ip" => $rIP, "notes" => "[MS] No Serial Number", "date" => time()];
 				touch(FLOOD_TMP_PATH . "block_" . $rIP);
 				$db->query(
@@ -164,7 +164,7 @@ if (!$rSettings["disable_ministra"]) {
 				die();
 			}
 			//If Posted SN is different from Device
-			if (!empty($rDevice["sn"]) && $rDevice["sn"] !== $rSerialNumber) {
+			if (!empty($rDevice["sn"]) && $rDevice["sn"] !== $rSerialNumber && !$rDebug) {
 				$rBanData = [
 					"ip" => $rIP,
 					"notes" => "[MS] Invalid Serial Number",
@@ -363,7 +363,7 @@ if (!$rSettings["disable_ministra"]) {
 			"web_proxy_user" => "",
 			"web_proxy_pass" => "",
 			"web_proxy_exclude_list" => "",
-			"demo_video_url" => "",
+			// "demo_video_url" => "",
 			"tv_quality" => "high",
 			"tv_quality_filter" => "",
 			"is_moderator" => false,
@@ -407,7 +407,7 @@ if (!$rSettings["disable_ministra"]) {
 			"default_led_level" => "10",
 			"standby_led_level" => "90",
 			"show_version_in_main_menu" => "1",
-			"disable_youtube_for_mag200" => "1",
+			// "disable_youtube_for_mag200" => "1",
 			"auth_access" => false,
 			"epg_data_block_period_for_stb" => "5",
 			"standby_on_hdmi_off" => "1",
@@ -477,22 +477,6 @@ if (!$rSettings["disable_ministra"]) {
 
 		$rLanguage = [
 			"en_GB.utf8" => [
-				"weather_comfort" => "Comfort",
-				"weather_pressure" => "Pressure",
-				"weather_mmhg" => "mm Hg",
-				"weather_wind" => "Wind",
-				"weather_speed" => "m/s",
-				"weather_humidity" => "Humidity",
-				"current_weather_unavailable" => "Current weather unavailable",
-				"current_weather_not_configured" => "The weather is not configured",
-				"karaoke_view" => "VIEW",
-				"karaoke_sort" => "SORT",
-				"karaoke_search" => "SEARCH",
-				"karaoke_sampling" => "PICKING",
-				"karaoke_by_letter" => "BY LETTER",
-				"karaoke_by_performer" => "BY NAME",
-				"karaoke_by_title" => "BY TITLE",
-				"karaoke_title" => "KARAOKE",
 				"layer_page" => "Page",
 				"layer_from" => "of",
 				"layer_found" => "Total",
@@ -614,7 +598,6 @@ if (!$rSettings["disable_ministra"]) {
 				"ears_back" => "BACK",
 				"ears_about_movie" => "ABOUT",
 				"ears_tv_guide" => "GUIDE",
-				"ears_about_package" => "INFO",
 				"settings_title" => "Settings",
 				"parent_settings_cancel" => "CANCEL",
 				"parent_settings_save" => "SAVE",
@@ -641,39 +624,6 @@ if (!$rSettings["disable_ministra"]) {
 				"update_source" => "Source",
 				"update_method_select" => "Method select",
 				"empty" => "EMPTY",
-				"course_title" => "Exchange rate on",
-				"course_title_nbu" => "NBU exchange rate on",
-				"course_title_cbr" => "CBR exchange rate on",
-				"dayweather_title" => "WEATHER",
-				"dayweather_pressure" => "pres.:",
-				"dayweather_mmhg" => "mm Hg",
-				"dayweather_wind" => "wind:",
-				"dayweather_speed" => "m/s",
-				"infoportal_title" => "INFOPORTAL",
-				"cityinfo_title" => "CITY INFO",
-				"cityinfo_main" => "emergency",
-				"cityinfo_help" => "help",
-				"cityinfo_other" => "other",
-				"cityinfo_sort" => "VIEW",
-				"horoscope_title" => "HOROSCOPE",
-				"anecdote_title" => "JOKES",
-				"anecdote_goto" => "GOTO",
-				"anecdote_like" => "LIKE",
-				"anecdote_bookmark" => "BOOKMARK",
-				"anecdote_to_bookmark" => "TO BOOKMARK",
-				"anecdote_pagebar_title" => "JOKE",
-				"mastermind_title" => "MASTERMIND",
-				"mastermind_rules" => "RULES",
-				"mastermind_rating" => "RATING",
-				"mastermind_bull" => "B",
-				"mastermind_cow" => "C",
-				"mastermind_rules_text" =>
-					"Your task is to guess the number of unduplicated four digits, the first of them - not zero. Every your guess will be compared with the number put forth a STB. If you guessed a digit, but it is not in place, then it is a COW (C). If you guessed, and a number, and its location, this BULL (B).",
-				"mastermind_move_cursor" => "Moving the cursor",
-				"mastermind_cell_numbers" => "Enter numbers into cells",
-				"mastermind_step_confirmation" => "Confirmation of the step",
-				"mastermind_page" => "Page",
-				"mastermind_history_moves" => "Moving through the pages of history moves",
 				"msg_service_off" => "Service is disabled",
 				"msg_channel_not_available" => "Channel is not available",
 				"epg_title" => "TV Guide",
@@ -751,7 +701,6 @@ if (!$rSettings["disable_ministra"]) {
 				"screensaver_delay_title" => "Screensaver interval",
 				"screensaver_off" => "Disabled",
 				"screensaver_minutes" => "min",
-				"demo_video_title" => "DEMO VIDEO",
 				"account_info_title" => "My Account",
 				"coming_soon" => "Coming soon",
 				"account_info" => "INFORMATION",
@@ -759,7 +708,6 @@ if (!$rSettings["disable_ministra"]) {
 				"account_pay" => "PAY",
 				"account_agreement" => "LEGACY PORTAL",
 				"account_terms" => "",
-				"demo_video" => "Video instruction",
 				"tv_quality" => "QUALITY",
 				"tv_quality_low" => "low",
 				"tv_quality_medium" => "medium",
@@ -805,25 +753,6 @@ if (!$rSettings["disable_ministra"]) {
 				"Phone" => "Subscription Expire Date",
 				"Tariff plan" => "Tariff plan",
 				"User" => "User",
-				"SERVICES MANAGEMENT" => "SERVICES MANAGEMENT",
-				"SUBSCRIBE" => "SUBSCRIBE",
-				"UNSUBSCRIBE" => "UNSUBSCRIBE",
-				"package_info_title" => "PACKAGE INFO",
-				"package_type" => "Type",
-				"package_content" => "Content",
-				"package_description" => "Description",
-				"confirm_service_subscribe_text" =>
-					"Are you really want to subscribe to this service?",
-				"confirm_service_unsubscribe_text" =>
-					"Are you really want to unsubscribe from this service?",
-				"confirm_service_price_text" => "The service costs {0}",
-				"service_subscribe_success" => "You have successfully subscribed to the service.",
-				"service_unsubscribe_success" =>
-					"You have successfully unsubscribed from the service.",
-				"service_subscribe_success_reboot" =>
-					"You have successfully subscribed to the service. STB will be rebooted.",
-				"service_unsubscribe_success_reboot" =>
-					"You have successfully unsubscribed from the service. STB will be rebooted.",
 				"service_subscribe_fail" => "An error in the management of subscriptions.",
 				"service_subscribe_server_error" => "Server error. Try again later.",
 				"package_price_measurement" => "package_price_measurement",
