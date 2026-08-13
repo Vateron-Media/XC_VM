@@ -3701,16 +3701,15 @@ player.prototype.show_info = function (item, direct_call, skip_button_pos) {
 		}
 
 		if (item.logo && stb.profile["show_tv_channel_logo"]) {
+			// On xc_vm item.logo is already a full URL; keep the 5.6.10
+			// timeshift_mode class but skip the classic misc/logos/ path
+			// build (which would break the image).
 			this.info.logo.innerHTML =
 				"<img " +
 				(this.active_time_shift || this.active_local_time_shift
 					? 'class="timeshift_mode"'
 					: "") +
-				' src="/' +
-				stb.portal_path +
-				"/misc/logos/" +
-				(resolution_prefix.substr(1) == 720 ? 320 : 240) +
-				"/" +
+				' src="' +
 				item.logo +
 				'">';
 		} else {

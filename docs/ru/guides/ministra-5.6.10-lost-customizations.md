@@ -64,15 +64,23 @@ git diff HEAD -- src/Ministra/xpcom.common.js # что изменилось (н�
 - **Кастомные методы, которых НЕТ в 5.6.10** — подсистема поиска по каналам:
   - ✅ `hide_player()` / `show_player()` — восстановлены (их звал `tv_archive.js:321`
     → `hide_player is not a function`; в не-xc_vm они no-op).
-  - ❌ `init_search_box()` / `search_menu_switcher()` — ещё нет (нужны только в теме xc_vm).
-- ❌ **Сортировка** — `tv.sortIDs(stb.player.channels.sortBy("snumber"))` вместо
-  `sortBy("number")` (связано с полем `snumber` и `sortIDs` в `global.js`).
+  - ✅ `init_search_box()` / `search_menu_switcher()` — **сохранены** в 5.6.10 tv.js
+    (774/815), вызов из xc_vm-ветки (226) рабочий. Потеряна только привязка кнопки
+    поиска в `color_buttons_map` (см. ниже).
+  - ✅ **`color_buttons_map` (xc_vm)** — восстановлено (гибрид). В теме xc_vm: если
+    `tv_quality_filter` включён → кнопка «Качество» (фича 5.6.10), иначе → «Поиск»
+    (`radio_search` → `tv.search_menu_switcher`, кастом форка). Не-xc_vm темы — без
+    изменений (`tv_move`). Требует **деплой** tv.js.
+- ✅ **Сортировка `snumber` — НЕ нужна** (не регресс). Форк делал
+  `sortBy("snumber")` + `sortIDs()` (переномерация каналов 1..n на клиенте). Backend
+  XC_VM теперь сам отдаёт `"number" => $rNumber++` (последовательная нумерация), а
+  `snumber` не шлёт вовсе → `sortBy("number")` из 5.6.10 корректен. `sortIDs` устарел.
 - ⚠️ **`row_callback_timeout = 500`** (в 5.6.10 — `50`). Проверить нужное значение.
-- ❌ **Логотипы каналов** (`handling_block`, `block_name == "logo"`) — у нас `data`
-  используется как **готовый URL** (`<img src="' + data + '">`), а 5.6.10 строит
-  `'/' + stb.portal_path + '/misc/logos/120/' + data` (классический stalker-путь). На
-  xc_vm 5.6.10-вариант даёт битую картинку / 302 по `misc/logos/`. Аналогично в
-  `player.js` (превью-логотип).
+- ✅ **Логотипы каналов** (`block_name == "logo"`) — восстановлено. На xc_vm `data`
+  (tv.js `handling_block`) и `item.logo` (player.js превью) — **готовые URL**, а 5.6.10
+  строил классический stalker-путь `.../misc/logos/120/` (tv.js) и
+  `.../misc/logos/{320|240}/` (player.js) → битая картинка. Вернули `<img src="<url>">`,
+  сохранив у player.js фичу 5.6.10 (`class="timeshift_mode"`). Требует **деплой** tv.js + player.js.
 - ✅ **Родительский контроль (запрос пароля при открытии канала)** — восстановлена
   логика форка в 3 гардах (`~448` EPG-кнопка, `~668` полный экран, `~1255` превью
   `check_for_play_in_preview`). 5.6.10 сменил гард `genre.alias != "for adults"` →

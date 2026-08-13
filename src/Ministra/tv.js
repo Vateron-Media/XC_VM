@@ -1639,8 +1639,10 @@
 							block_obj.show();
 						}
 
-						block_obj.innerHTML =
-							'<img src="/' + stb.portal_path + "/misc/logos/120/" + data + '">';
+						// On xc_vm the backend sends a ready-to-use logo URL in
+						// `data`; upstream 5.6.10 builds a classic stalker
+						// misc/logos/ path, which breaks the image here.
+						block_obj.innerHTML = '<img src="' + data + '">';
 					} else {
 						if (!block_obj.isHidden()) {
 							block_obj.hide();
@@ -2164,7 +2166,21 @@
 		color_buttons_map.push({ label: get_word("tv_quality"), cmd: tv.filter_switcher });
 	} else {
 		color_buttons_map.push({ label: word["tv_favorite"], cmd: tv.add_del_fav });
-		color_buttons_map.push({ label: get_word("tv_move"), cmd: tv.switch_fav_manage_mode });
+
+		if (loader.template == "xc_vm") {
+			// xc_vm theme: 4th color button is channel search (fork custom),
+			// not the fav-manage "move" mode. The quality-filter branch above
+			// (5.6.10) still wins when the profile enables it.
+			color_buttons_map.push({
+				label: word["radio_search"],
+				cmd: tv.search_menu_switcher,
+			});
+		} else {
+			color_buttons_map.push({
+				label: get_word("tv_move"),
+				cmd: tv.switch_fav_manage_mode,
+			});
+		}
 	}
 
 	tv.init_color_buttons(color_buttons_map);
