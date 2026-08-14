@@ -315,13 +315,47 @@ class StreamProcess {
 	}
 
 	/**
+	 * Whether a path recorded against another server ALSO resolves on this
+	 * server's own filesystem — true for shared storage (SAN/NFS/bind-mount)
+	 * that is mounted at an identical path on every node (Main + every LB).
+	 *
+	 * `stream_source` only ever records the server id the path was BROWSED
+	 * from at import time (almost always Main, since only Main runs the admin
+	 * UI) — it says nothing about whether the underlying storage is actually
+	 * server-local or a shared mount. Callers used to treat "not the owning
+	 * server id" as "must fetch over HTTP", which forces an LB to download the
+	 * whole file via ffmpeg even when the exact same path is already mounted
+	 * on it. Checking the real path first lets shared-mount files stay on the
+	 * local/symlink path on every node instead of just the recorded owner.
+	 *
+	 * @param string $rPath Absolute filesystem path recorded in stream_source.
+	 * @return bool
+	 */
+	private static function isLocallyMountedPath($rPath) {
+		// Hardcoded on purpose: this is the shared 100TB mount point that is
+		// identical on Main and every LB. Add more prefixes here (or read them
+		// from a setting) if other shared mounts need the same treatment.
+		static $rSharedPrefixes = array('/opt/arr/media/');
+		if (!is_string($rPath) || $rPath === '') {
+			return false;
+		}
+		foreach ($rSharedPrefixes as $rPrefix) {
+			if (strncmp($rPath, $rPrefix, strlen($rPrefix)) === 0) {
+				return file_exists($rPath);
+			}
+		}
+		return false;
+	}
+
+	/**
 	 * Resolve a created-channel source string into [serverId, sourcePath].
 	 *
 	 * A plain string is a local path on this server. An `s:<serverId>:<path>`
-	 * string references a file on another server; when that server is known it is
-	 * rewritten to its getFile API URL, otherwise the raw path is kept. Extracted
-	 * from createChannelItem. The `explode(':', …, 3)` limit keeps colons in the
-	 * path intact.
+	 * string references a file on another server; when that server is known —
+	 * and the path is not also reachable locally via a shared mount, see
+	 * isLocallyMountedPath() — it is rewritten to its getFile API URL,
+	 * otherwise the raw path is kept. Extracted from createChannelItem. The
+	 * `explode(':', …, 3)` limit keeps colons in the path intact.
 	 *
 	 * @param string $rSource  Source string (`path` or `s:<serverId>:<path>`).
 	 * @param mixed  $rServers Server registry (array keyed by server id).
@@ -332,12 +366,18 @@ class StreamProcess {
 			$rSplit = explode(':', $rSource, 3);
 			$rServerID = intval($rSplit[1]);
 			$rSourcePath = $rSplit[2];
-			if ($rServerID != SERVER_ID) {
+			if ($rServerID != SERVER_ID && !self::isLocallyMountedPath($rSplit[2])) {
 				if (is_array($rServers) && isset($rServers[$rServerID])) {
 					$rSourcePath = $rServers[$rServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rSplit[2]);
 				} else {
 					$rSourcePath = $rSplit[2];
 				}
+			} else {
+				// Either already local, or a shared-mount path that resolves
+				// here too, report it as local so the symlink gate upstream
+				// (createChannelItem's `$rServerID == SERVER_ID` check) fires.
+				$rSourcePath = $rSplit[2];
+				$rServerID = SERVER_ID;
 			}
 		} else {
 			$rServerID = SERVER_ID;
@@ -1038,10 +1078,15 @@ class StreamProcess {
 				if (substr($rStreamSource, 0, 2) == 's:') {
 					$rMovieSource = explode(':', $rStreamSource, 3);
 					$rMovieServerID = $rMovieSource[1];
-					if ($rMovieServerID != SERVER_ID) {
+					if ($rMovieServerID != SERVER_ID && !self::isLocallyMountedPath($rMovieSource[2])) {
 						$rMoviePath = $rServers[$rMovieServerID]['api_url'] . '&action=getFile&filename=' . urlencode($rMovieSource[2]);
 					} else {
+						// Recorded owner is a different server, but the path also
+						// resolves on THIS server's filesystem (shared mount) use
+						// it directly and report ourselves as the owner so the
+						// `ln -s` branch below fires instead of the ffmpeg fallback.
 						$rMoviePath = $rMovieSource[2];
+						$rMovieServerID = SERVER_ID;
 					}
 					$rProtocol = null;
 				} else {
