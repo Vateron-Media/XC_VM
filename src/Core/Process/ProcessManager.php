@@ -307,18 +307,27 @@ class ProcessManager {
      */
     public static function acquireCronLock($lockFile, $timeout = 1800) {
         if (file_exists($lockFile)) {
-            $pid = (int)trim(file_get_contents($lockFile));
+            // Read content + mtime up front. A competing cron can remove the lock
+            // file between the exists() check and these reads (TOCTOU), which would
+            // otherwise emit "failed to open stream" / "stat failed" warnings. If it
+            // vanished, fall through and take the lock ourselves.
+            $contents = @file_get_contents($lockFile);
+            $mtime = @filemtime($lockFile);
 
-            if (self::procExists($pid)) {
-                // Process is running — check if it's stale
-                if (time() - filemtime($lockFile) >= $timeout) {
-                    // Stale — kill and take over
-                    if ($pid > 0) {
-                        posix_kill($pid, 9);
+            if ($contents !== false && $mtime !== false) {
+                $pid = (int)trim($contents);
+
+                if (self::procExists($pid)) {
+                    // Process is running — check if it's stale
+                    if (time() - $mtime >= $timeout) {
+                        // Stale — kill and take over
+                        if ($pid > 0) {
+                            posix_kill($pid, 9);
+                        }
+                    } else {
+                        // Still fresh — another instance is running
+                        exit('Running...');
                     }
-                } else {
-                    // Still fresh — another instance is running
-                    exit('Running...');
                 }
             }
         }

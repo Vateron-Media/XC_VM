@@ -125,7 +125,7 @@ if (isset(RequestManager::getAll()['post_data'])) {
                         $rExtensions = array('mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v');
                     }
 
-                    if (!in_array(strtolower(pathinfo(explode('?', $rURL)[0])['extension']), $rExtensions)) {
+                    if (!in_array(strtolower(pathinfo(explode('?', $rURL)[0])['extension'] ?? ''), $rExtensions)) {
                     } else {
                         $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
 

@@ -30,9 +30,25 @@ class HomeController extends BasePlayerController
         }
 
         $rPopularNow = array();
-        $rPopular = igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'));
+        // tmdb_popular is written by a cron and may be absent (fresh install /
+        // TMDB disabled) or corrupt; guard the read + unserialize so the home
+        // page never fatals on a missing file or a non-array payload.
+        $rPopular = array('movies' => array(), 'series' => array());
+        $rPopularFile = CONTENT_PATH . 'tmdb_popular';
+        if (is_file($rPopularFile)) {
+            $rPopularData = igbinary_unserialize((string) @file_get_contents($rPopularFile));
+            if (is_array($rPopularData)) {
+                $rPopular = array_merge($rPopular, $rPopularData);
+            }
+        }
+        if (!is_array($rPopular['movies'])) {
+            $rPopular['movies'] = array();
+        }
+        if (!is_array($rPopular['series'])) {
+            $rPopular['series'] = array();
+        }
 
-        if (!(0 < count($rPopular['movies']) && 0 < count($rUserInfo['vod_ids']))) {
+        if (!(0 < count($rPopular['movies']) && 0 < count($rUserInfo['vod_ids'] ?? array()))) {
         } else {
             if (SettingsManager::getAll()['player_hide_incompatible']) {
                 $db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular['movies']) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 ORDER BY FIELD(id, ' . implode(',', $rPopular['movies']) . ') ASC LIMIT 50;');
@@ -48,7 +64,7 @@ class HomeController extends BasePlayerController
             }
         }
 
-        if (!(0 < count($rPopular['series']) && 0 < count($rUserInfo['series_ids']))) {
+        if (!(0 < count($rPopular['series']) && 0 < count($rUserInfo['series_ids'] ?? array()))) {
         } else {
             if (SettingsManager::getAll()['player_hide_incompatible']) {
                 $db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path` FROM `streams_series` WHERE `id` IN (' . implode(',', $rPopular['series']) . ') AND `id` IN (' . implode(',', $rUserInfo['series_ids']) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) = 1 ORDER BY FIELD(id, ' . implode(',', $rPopular['series']) . ') ASC LIMIT 50;');

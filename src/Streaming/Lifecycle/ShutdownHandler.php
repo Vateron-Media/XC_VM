@@ -67,7 +67,7 @@ class ShutdownHandler {
         }
 
         // Только live: on-demand instant off
-        if ($rContext === 'live' && $rSettings['on_demand_instant_off'] && $rChannelInfo['on_demand'] == 1) {
+        if ($rContext === 'live' && !empty($rSettings['on_demand_instant_off']) && !empty($rChannelInfo['on_demand'])) {
             ConnectionTracker::removeFromQueue($rStreamID, $rPID);
         }
 

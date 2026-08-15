@@ -82,7 +82,7 @@ class AuthRepository {
 			if ($rCode['enabled']) {
 				$rWhitelist = array();
 
-				foreach (json_decode($rCode['whitelist'], true) as $rIP) {
+				foreach ((array) json_decode($rCode['whitelist'], true) as $rIP) {
 					if (filter_var($rIP, FILTER_VALIDATE_IP)) {
 						$rWhitelist[] = 'allow ' . $rIP . ';';
 					}
