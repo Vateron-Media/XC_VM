@@ -1440,6 +1440,25 @@ $isAjaxRequest = (
 												</div>
 
 												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="shared_mount_prefixes">
+														Shared Mount Prefixes
+														<i title="<?= $language::get('shared_mount_prefixes_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i>
+													</label>
+
+													<div class="col-md-8">
+														<select class="form-control" id="shared_mount_prefixes" name="shared_mount_prefixes[]" multiple="multiple">
+															<?php
+															$rRaw = $rSettings["shared_mount_prefixes"] ?? [];
+															$rMountPrefixes = is_array($rRaw) ? $rRaw : (json_decode($rRaw, true) ?: []);
+															foreach ($rMountPrefixes as $rPrefix):
+															?>
+																<option value="<?= htmlspecialchars($rPrefix) ?>" selected><?= htmlspecialchars($rPrefix) ?></option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="vod_bitrate_plus">
 														VOD Bitrate Buffer
 														<i title="<?= $language::get('additional_buffer_when_streaming_vod') ?>" class="tooltip text-secondary far fa-circle"></i>
@@ -2980,7 +2999,7 @@ renderUnifiedLayoutFooter('admin');
 	});
 
 	$(document).ready(function() {
-		$("select").select2({
+		$("select").not("#shared_mount_prefixes").select2({
 			width: "100%"
 		});
 
@@ -2994,6 +3013,13 @@ renderUnifiedLayoutFooter('admin');
 		$("#allowed_stb_types_for_local_recording").select2({
 			width: "100%",
 			tags: true
+		});
+
+		$("#shared_mount_prefixes").select2({
+			width: "100%",
+			tags: true,
+			tokenSeparators: [","],
+			placeholder: "Add a mount path and press enter"
 		});
 
 		var numericFields = [

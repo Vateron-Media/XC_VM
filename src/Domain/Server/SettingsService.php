@@ -53,6 +53,10 @@ class SettingsService {
 			$rArray['maxmind_editions'] = array();
 		}
 
+		if (!isset($rData['shared_mount_prefixes'])) {
+			$rArray['shared_mount_prefixes'] = array();
+		}
+
 		if (!isset($rData['allow_countries'])) {
 			$rArray['allow_countries'] = array('ALL');
 		}
