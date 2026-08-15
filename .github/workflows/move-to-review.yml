@@ -1,0 +1,97 @@
+name: Move referenced issues to Review & Deploy
+
+# When a commit lands on main referencing an issue (e.g. "Refs: #152" or a bare
+# "#152"), move that issue's card on the org Kanban board
+# (https://github.com/orgs/Vateron-Media/projects/5) to the "Review & Deploy"
+# status column — WITHOUT closing the issue. Closing keywords (Closes/Fixes/...)
+# still close issues via GitHub itself; use "Refs: #N" to move without closing.
+#
+# Reuses the ADD_TO_PROJECT_PAT secret (Projects v2 read+write) already used by
+# add-to-project.yml. The default GITHUB_TOKEN cannot write org-level Projects v2.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  move-to-review:
+    name: Move referenced issues to Review & Deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        env:
+          PROJECT_OWNER: Vateron-Media
+          PROJECT_NUMBER: "5"
+          TARGET_STATUS: "Review & Deploy"
+        with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          script: |
+            const owner = process.env.PROJECT_OWNER;
+            const number = parseInt(process.env.PROJECT_NUMBER, 10);
+            const targetStatus = process.env.TARGET_STATUS;
+
+            // 1. Collect issue numbers referenced in the pushed commits.
+            const nums = new Set();
+            for (const c of context.payload.commits || []) {
+              const msg = c.message || '';
+              let m;
+              const re = /(?<![\w/])#(\d+)/g; // bare #N, not part of a word or URL path
+              while ((m = re.exec(msg)) !== null) nums.add(parseInt(m[1], 10));
+            }
+            if (nums.size === 0) { core.info('No issue references in pushed commits.'); return; }
+            core.info(`Referenced numbers: ${[...nums].join(', ')}`);
+
+            // 2. Resolve project id + Status field options.
+            const proj = await github.graphql(`
+              query($owner:String!, $number:Int!) {
+                organization(login:$owner) {
+                  projectV2(number:$number) {
+                    id
+                    field(name:"Status") {
+                      ... on ProjectV2SingleSelectField { id options { id name } }
+                    }
+                  }
+                }
+              }`, { owner, number });
+            const project = proj.organization && proj.organization.projectV2;
+            if (!project) { core.setFailed(`Project #${number} not found under ${owner}.`); return; }
+            const statusField = project.field;
+            if (!statusField) { core.setFailed('Single-select "Status" field not found on the project.'); return; }
+            const option = statusField.options.find(o => o.name === targetStatus);
+            if (!option) {
+              core.setFailed(`Status option "${targetStatus}" not found. Available: ${statusField.options.map(o => o.name).join(', ')}`);
+              return;
+            }
+
+            // 3. For each referenced issue: ensure it's on the board, then set Status.
+            for (const n of nums) {
+              try {
+                const iss = await github.graphql(`
+                  query($owner:String!, $repo:String!, $n:Int!) {
+                    repository(owner:$owner, name:$repo) { issue(number:$n) { id title } }
+                  }`, { owner: context.repo.owner, repo: context.repo.repo, n });
+                const issue = iss.repository.issue;
+                if (!issue) { core.info(`#${n}: not an issue in this repo (PR or missing), skipping.`); continue; }
+
+                const added = await github.graphql(`
+                  mutation($projectId:ID!, $contentId:ID!) {
+                    addProjectV2ItemById(input:{ projectId:$projectId, contentId:$contentId }) { item { id } }
+                  }`, { projectId: project.id, contentId: issue.id });
+                const itemId = added.addProjectV2ItemById.item.id;
+
+                await github.graphql(`
+                  mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!) {
+                    updateProjectV2ItemFieldValue(input:{
+                      projectId:$projectId, itemId:$itemId, fieldId:$fieldId,
+                      value:{ singleSelectOptionId:$optionId }
+                    }) { projectV2Item { id } }
+                  }`, { projectId: project.id, itemId, fieldId: statusField.id, optionId: option.id });
+
+                core.info(`#${n} "${issue.title}" -> ${targetStatus}`);
+              } catch (e) {
+                core.warning(`#${n}: ${e.message}`);
+              }
+            }
