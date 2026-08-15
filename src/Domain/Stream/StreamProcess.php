@@ -332,15 +332,12 @@ class StreamProcess {
 	 * @return bool
 	 */
 	private static function isLocallyMountedPath($rPath) {
-		// Hardcoded on purpose: this is the shared 100TB mount point that is
-		// identical on Main and every LB. Add more prefixes here (or read them
-		// from a setting) if other shared mounts need the same treatment.
-		static $rSharedPrefixes = array('/opt/arr/media/');
 		if (!is_string($rPath) || $rPath === '') {
 			return false;
 		}
+		$rSharedPrefixes = SettingsManager::get('shared_mount_prefixes', array());
 		foreach ($rSharedPrefixes as $rPrefix) {
-			if (strncmp($rPath, $rPrefix, strlen($rPrefix)) === 0) {
+			if ($rPrefix !== '' && strncmp($rPath, $rPrefix, strlen($rPrefix)) === 0) {
 				return file_exists($rPath);
 			}
 		}

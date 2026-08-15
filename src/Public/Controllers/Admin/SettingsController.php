@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\Response;
 use XcVm\Domain\Stream\StreamConfigRepository;
 
 /**
@@ -24,6 +25,7 @@ use XcVm\Domain\Stream\StreamConfigRepository;
 class SettingsController extends BaseAdminController {
     public function index(): void {
         $this->requirePermission();
+        Response::noCache();
 
         $rSettings = SettingsManager::getAll();
         $rStreamArguments = StreamConfigRepository::getStreamArguments();

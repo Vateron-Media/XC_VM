@@ -49,6 +49,13 @@ class SettingsRepository {
 		}
 		$rOutput['api_ips'] = !empty($rOutput['api_ips']) ? explode(',', $rOutput['api_ips']) : [];
 
+		$rDecodedPrefixes = json_decode($rOutput['shared_mount_prefixes'] ?? '', true);
+		if (!is_array($rDecodedPrefixes)) {
+			// Legacy CSV format from before this became a select2 tags field; self-heals to JSON on next save.
+			$rDecodedPrefixes = !empty($rOutput['shared_mount_prefixes']) ? explode(',', $rOutput['shared_mount_prefixes']) : [];
+		}
+		$rOutput['shared_mount_prefixes'] = array_values(array_filter(array_map('trim', $rDecodedPrefixes)));
+
 		\XcVm\Core\Cache\FileCache::setCache('settings', $rOutput);
 
 		return $rOutput;
