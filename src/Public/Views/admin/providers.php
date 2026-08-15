@@ -56,11 +56,11 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 										<td class="text-center"><?php echo $rProvider['username']; ?></td>
 										<td class="text-center">
 											<?php
-											if ($rData['max_connections'] > 0) {
-												$rColour = $rData['max_connections'] * 0.75 < $rData['active_connections'] ? 'danger' : ($rData['max_connections'] * 0.5 < $rData['active_connections'] ? 'warning' : 'success');
-												echo '<a href="streams?search=' . urlencode(strtolower($rProvider['ip'])) . '&filter=1"><button type="button" class="btn btn-' . $rColour . ' btn-xs waves-effect waves-light">' . number_format($rData['active_connections'], 0) . ' / ' . number_format($rData['max_connections'], 0) . '</button></a>';
+											if (($rData['max_connections'] ?? 0) > 0) {
+												$rColour = ($rData['max_connections'] ?? 0) * 0.75 < ($rData['active_connections'] ?? 0) ? 'danger' : (($rData['max_connections'] ?? 0) * 0.5 < ($rData['active_connections'] ?? 0) ? 'warning' : 'success');
+												echo '<a href="streams?search=' . urlencode(strtolower($rProvider['ip'])) . '&filter=1"><button type="button" class="btn btn-' . $rColour . ' btn-xs waves-effect waves-light">' . number_format(($rData['active_connections'] ?? 0), 0) . ' / ' . number_format(($rData['max_connections'] ?? 0), 0) . '</button></a>';
 											} else {
-												echo '<a href="streams?search=' . urlencode(strtolower($rProvider['ip'])) . '&filter=1"><button type="button" class="btn btn-success btn-xs waves-effect waves-light">' . number_format($rData['active_connections'], 0) . ' / &infin;</button></a>';
+												echo '<a href="streams?search=' . urlencode(strtolower($rProvider['ip'])) . '&filter=1"><button type="button" class="btn btn-success btn-xs waves-effect waves-light">' . number_format(($rData['active_connections'] ?? 0), 0) . ' / &infin;</button></a>';
 											}
 											?>
 										</td>

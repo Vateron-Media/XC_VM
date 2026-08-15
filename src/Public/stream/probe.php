@@ -152,7 +152,7 @@ if (isset($rRequest['data'])) {
 			$rServerID = SERVER_ID;
 		}
 
-		if (0 < $rChannelInfo['monitor_pid'] && 0 < $rChannelInfo['pid'] && $rServers[$rServerID]['last_status'] == 1) {
+		if (is_array($rChannelInfo) && 0 < ($rChannelInfo['monitor_pid'] ?? 0) && 0 < ($rChannelInfo['pid'] ?? 0) && ($rServers[$rServerID]['last_status'] ?? 0) == 1) {
 			if (file_exists(STREAMS_PATH . $rStreamID . '_.stream_info')) {
 				$rInfo = file_get_contents(STREAMS_PATH . $rStreamID . '_.stream_info');
 			} else {
@@ -160,7 +160,7 @@ if (isset($rRequest['data'])) {
 			}
 
 			$rInfo = json_decode($rInfo, true);
-			echo json_encode(array('codecs' => $rInfo['codecs'], 'container' => $rInfo['container'], 'bitrate' => $rInfo['bitrate']));
+			echo json_encode(array('codecs' => $rInfo['codecs'] ?? null, 'container' => $rInfo['container'] ?? null, 'bitrate' => $rInfo['bitrate'] ?? null));
 
 			exit();
 		}

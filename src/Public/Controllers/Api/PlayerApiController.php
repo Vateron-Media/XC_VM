@@ -68,7 +68,7 @@ class PlayerApiController {
 			generateError('PLAYER_API_DISABLED');
 		}
 
-		if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'], '/'))[0]) == 'panel_api') {
+		if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'] ?? '', '/'))[0]) == 'panel_api') {
 			if (!$rSettings['legacy_panel_api']) {
 				$this->deny = false;
 				generateError('LEGACY_PANEL_API_DISABLED');
@@ -78,11 +78,11 @@ class PlayerApiController {
 		}
 
 		$rIP = $_SERVER['REMOTE_ADDR'];
-		$rUserAgent = trim($_SERVER['HTTP_USER_AGENT']);
+		$rUserAgent = trim($_SERVER['HTTP_USER_AGENT'] ?? '');
 		$this->offset = (empty($rRequest['params']['offset']) ? 0 : abs(intval($rRequest['params']['offset'])));
 		$this->limit = (empty($rRequest['params']['items_per_page']) ? 0 : abs(intval($rRequest['params']['items_per_page'])));
 		$this->domainName = DomainResolver::resolve(SERVER_ID);
-		$this->domain = parse_url($this->domainName)['host'];
+		$this->domain = parse_url($this->domainName)['host'] ?? '';
 
 		$rValidActions = array('get_epg', 200 => 'get_vod_categories', 201 => 'get_live_categories', 202 => 'get_live_streams', 203 => 'get_vod_streams', 204 => 'get_series_info', 205 => 'get_short_epg', 206 => 'get_series_categories', 207 => 'get_simple_data_table', 208 => 'get_series', 209 => 'get_vod_info');
 		$rAction = (!empty($rRequest['action']) && (in_array($rRequest['action'], $rValidActions) || array_key_exists($rRequest['action'], $rValidActions)) ? $rRequest['action'] : '');

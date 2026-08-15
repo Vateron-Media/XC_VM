@@ -239,6 +239,7 @@ class UserRepository {
 	 */
 	private static function applyIspInfo(array $rUserInfo, $rSettings, $rCached, $rIP, $db): array {
 		$rUserInfo['con_isp_name'] = null;
+		$rUserInfo['isp_asn'] = null;
 		$rUserInfo['isp_violate'] = 0;
 		$rUserInfo['isp_is_server'] = 0;
 

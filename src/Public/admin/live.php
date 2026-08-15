@@ -299,7 +299,7 @@ if (0 < $db->num_rows()) {
 					if (file_exists(STREAMS_PATH . $rNextSegment)) {
 						// next segment already exists → current one is complete; drain the remainder and advance
 						clearstatcache(true, STREAMS_PATH . $rSegmentFile);
-						$rRestSize = filesize(STREAMS_PATH . $rSegmentFile) - ftell($rFP);
+						$rRestSize = (($rSegSize = @filesize(STREAMS_PATH . $rSegmentFile)) !== false ? $rSegSize - ftell($rFP) : 0);
 
 						if (0 < $rRestSize) {
 							echo stream_get_line($rFP, $rRestSize);
