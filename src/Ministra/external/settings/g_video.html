@@ -1,36 +1,33 @@
 <html>
-
 <head>
 
     <script>
         var iid = 1;
-        var model = parent.stb.RDir("Model");
+        var model = parent.stb.RDir("Model").toLowerCase();
         var menuT = new Array();
-        if (model.toLowerCase() == 'mag200') {
+        if (model == 'mag200') {
             menuT = [
-                ['select', parent.t('Video output mode:'), "PAL", "PAL", "576-50", "576-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60"],
+                ['select', parent.t('Video output mode:'), "PAL", "PAL", "576p-50", "576p-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60"],
                 ['select', parent.t('Graphic resolution:'), "tvsystem_res", parent.t("Same as video"), "720", "720x576", "1280", "1280x720"],
                 ['select', parent.t('Auto framerate:'), "Disabled", parent.t("Disabled"), "50_60", "50/60 Hz", "24_50_60", "24/50/60 Hz", "24_50", "24/50 Hz", "24_60", "24/60 Hz"],
                 ['select', parent.t('Force DVI:'), 0, parent.t("Off"), 1, parent.t("On")],
                 ['select', parent.t('HDMI event reaction:'), 0, parent.t("Ignore"), 1, parent.t("Immediately"), 60, parent.t("Delay 1 minute"), 300, parent.t("Delay 5 minute"), 600, parent.t("Delay 10 minutes")]
             ];
-        }
-        else {
-
+        } else {
             menuT = [
-                ['select', parent.t('Video output mode:'), "PAL", "PAL", "576-50", "576-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60"],
+                ['select', parent.t('Video output mode:'), "Auto", "Auto", "PAL", "PAL", "576p-50", "576p-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60"],
                 ['select', parent.t('Graphic resolution:'), "tvsystem_res", parent.t("Same as video"), "720", "720x576", "1280", "1280x720"],
                 ['select', parent.t('Auto framerate:'), "Disabled", parent.t("Disabled"), "50_60", "50/60 Hz", "24_50_60", "24/50/60 Hz", "24_50", "24/50 Hz", "24_60", "24/60 Hz"],
                 ['select', parent.t('Force DVI:'), 0, parent.t("Off"), 1, parent.t("On")],
                 ['select', parent.t('HDMI event reaction:'), 0, parent.t("Ignore"), 1, parent.t("Immediately"), 60, parent.t("Delay 1 minute"), 300, parent.t("Delay 5 minute"), 600, parent.t("Delay 10 minutes")]
             ];
 
-            if (['mag254', 'mag255', 'mag270', 'mag275', 'mag350'].indexOf(model.toLowerCase()) != -1) {
-                menuT[0] = ['select', parent.t('Video output mode:'), "Auto", "Auto", "PAL", "PAL", "576-50", "576-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60"];
-            } else if (['mag256', 'mag257'].indexOf(model.toLowerCase()) != -1) {
+            if (model == 'mag250') { // MAG250 family - w/o "Auto" mode
+                menuT[0] = ['select', parent.t('Video output mode:'), "PAL", "PAL", "576p-50", "576p-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60"];
+            } else if (['mag256', 'mag257', 'mag322', 'mag323', 'im2102', 'im2100v'].indexOf(model) != -1){
                 menuT[0] = ['select', parent.t('Video output mode:'), "Auto", "Auto", "PAL", "PAL", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60"];
-            } else if (['mag351', 'mag352'].indexOf(model.toLowerCase()) != -1) {
-                menuT[0] = ['select', parent.t('Video output mode:'), "Auto", "Auto", "PAL", "PAL", "576-50", "576-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60", "3840x2160p25", "3840x2160p25", "3840x2160p30", "3840x2160p30", "3840x2160p50", "3840x2160p50", "3840x2160p60", "3840x2160p60"];
+            }else if (['mag351', 'mag352', 'mag420', 'mag422', 'mag424', 'im4411', 'im4412', 'mag520','mag522','mag522v2','mag524','mag526','mag528','mag540'].indexOf(model) != -1){
+                menuT[0] = ['select', parent.t('Video output mode:'), "Auto", "Auto", "PAL", "PAL", "576p-50", "576p-50", "720p-50", "720p-50", "1080i-50", "1080i-50", "1080p-50", "1080p-50", "NTSC", "NTSC", "720p-60", "720p-60", "1080i-60", "1080i-60", "1080p-60", "1080p-60", "3840x2160p25", "3840x2160p25", "3840x2160p30", "3840x2160p30", "3840x2160p50", "3840x2160p50", "3840x2160p60", "3840x2160p60"];
             }
         }
         var mid = menuT.length + 2;
@@ -41,8 +38,8 @@
         }
         tread += ']}';
         read = JSON.parse(parent.stb.GetEnv(tread));
-        if (read.result.auto_framerate == "") read.result.auto_framerate = "Disabled";
-        if (read.result.force_dvi == "") read.result.force_dvi = 0;
+        if (read.result.auto_framerate == "")read.result.auto_framerate = "Disabled";
+        if (read.result.force_dvi == "")read.result.force_dvi = 0;
 
         function onLoad() {
             sload();
@@ -53,14 +50,14 @@
             document.getElementById("i6").value = parent.t('OK');
             document.getElementById("i7").value = parent.t('Cancel');
 
-            for (var i = 0; i < document.getElementById("i5").options.length; i++) {
-                if (parent.prof.hdmi_event_reaction == document.getElementById("i5").options[i].value) {
+            for (var i=0; i<document.getElementById("i5").options.length; i++){
+                if (parent.prof.hdmi_event_reaction == document.getElementById("i5").options[i].value){
                     document.getElementById("i5").selectedIndex = i;
                 }
             }
 
-            if (parent.prof.hasOwnProperty('hdmi_event_reaction')) {
-                document.querySelector('#i5 option[value="' + parent.prof.hdmi_event_reaction + '"]').setAttribute('selected', 'selected');
+            if (parent.prof.hasOwnProperty('hdmi_event_reaction')){
+                document.querySelector('#i5 option[value="'+parent.prof.hdmi_event_reaction+'"]').setAttribute('selected', 'selected');
             }
         }
 
@@ -103,22 +100,22 @@
 
             var hdmi_event_reaction = parent.prof.hdmi_event_reaction = document.getElementById('i5').options[document.getElementById('i5').selectedIndex].value;
 
-            parent.stb.SendEventToPortal(JSON.stringify({ "type": "settings", "hdmi_event_reaction": parseInt(hdmi_event_reaction, 10) }));
+            parent.stb.SendEventToPortal(JSON.stringify({"type":"settings","hdmi_event_reaction":parseInt(hdmi_event_reaction, 10)}));
 
             parent.load(
                 {
-                    "type": "stb",
-                    "action": "set_hdmi_reaction",
-                    "data": hdmi_event_reaction
+                    "type"   : "stb",
+                    "action" : "set_hdmi_reaction",
+                    "data"   : hdmi_event_reaction
                 },
                 function (result) {
-                    if (flau) parent.confb(parent.t('Auto framerate:') + '<br />' + parent.t('Video output framerate will be automatically adjusted according to played content during file playback.<br />Notes:<br />- works only with HDMI 720p/1080i/1080p video modes<br />- make sure that TV supports required video mode') + '<br />' + parent.t('Are you sure about this changes?'), 'i' + iid, "auto_fr_save('" + temp_af + "');nextMenu('glavnaya.html');");
+                    if (flau)parent.confb(parent.t('Auto framerate:') + '<br />' + parent.t('Video output framerate will be automatically adjusted according to played content during file playback.<br />Notes:<br />- works only with HDMI 720p/1080i/1080p video modes<br />- make sure that TV supports required video mode') + '<br />' + parent.t('Are you sure about this changes?'), 'i' + iid, "auto_fr_save('" + temp_af + "');nextMenu('glavnaya.html');");
                     else back();
                 }
             );
         }
         function change(a) {
-            if (iid > mid - 2) if (iid + a <= mid && iid + a >= mid - 1) {
+            if (iid > mid - 2)if (iid + a <= mid && iid + a >= mid - 1) {
                 iid += a;
                 document.getElementById('i' + iid).focus();
             }
@@ -126,46 +123,44 @@
     </script>
     <script language="JavaScript" src="js/pres.js"></script>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-
 <body onload="onLoad()" onkeydown="pressKey(event);">
-    <div id="blueback">
-        <table class="nsl1" width="100%" border="0" cellpadding="0" cellspacing="0">
-            <tr>
-                <td align="right"><span id="t1"></span></td>
-                <td width="10">
-                    <div class="sub_select"><select id="i1"></select></div>
-            </tr>
-            <tr>
-                <td align="right"><span id="t2"></span></td>
-                <td>
-                    <div class="sub_select"><select id="i2"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t3"></span></td>
-                <td>
-                    <div class="sub_select"><select id="i3"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t4"></span>
-                <td>
-                    <div class="sub_select"><select id="i4"></select></div>
-                </td>
-            </tr>
-            <tr>
-                <td align="right"><span id="t5"></span>
-                <td>
-                    <div class="sub_select"><select id="i5"></select></div>
-                </td>
-            </tr>
-        </table>
+<div id="blueback">
+    <table class="nsl1" width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td align="right"><span id="t1"></span></td>
+            <td width="10">
+                <div class="sub_select"><select id="i1"></select></div>
+        </tr>
+        <tr>
+            <td align="right"><span id="t2"></span></td>
+            <td>
+                <div class="sub_select"><select id="i2"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t3"></span></td>
+            <td>
+                <div class="sub_select"><select id="i3"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t4"></span>
+            <td>
+                <div class="sub_select"><select id="i4"></select></div>
+            </td>
+        </tr>
+        <tr>
+            <td align="right"><span id="t5"></span>
+            <td>
+                <div class="sub_select"><select id="i5"></select></div>
+            </td>
+        </tr>
+    </table>
 
-    </div>
-    <div id="footer">
-        <input id="i7" type="button" value="" onClick="back();" />
-        <input id="i6" type="button" value="" onClick="submit();" />
-    </div>
+</div>
+<div id="footer">
+    <input id="i7" type="button" value="" onClick="back();"/>
+    <input id="i6" type="button" value="" onClick="submit();"/>
+</div>
 </body>
-
 </html>

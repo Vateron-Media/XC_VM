@@ -1,1 +1,1 @@
-var ver = 'XC_VM 1.0';
+var ver = "5.6.10_XC_VM_Mod";

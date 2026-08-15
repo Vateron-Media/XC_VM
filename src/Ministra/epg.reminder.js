@@ -1,299 +1,295 @@
 /*    Epg reminder    */
 
 (function () {
+	var reminder = {
+		memos: [],
+
+		get_list: function () {
+			_debug("epg.reminder.get_list");
+
+			stb.load(
+				{
+					type: "tvreminder",
+					action: "get_all_active",
+				},
+
+				function (result) {
+					_debug("reminder.get_list result", result);
+
+					if (!result) {
+						return;
+					}
+
+					this.memos = result;
+
+					var timestamp = new Date().getTime() / 1000;
+
+					for (var i = 0; i < this.memos.length; i++) {
+						var diff = this.memos[i].fire_ts - timestamp;
+
+						if (diff > 0) {
+							this.memos[i]["timer"] = window.setTimeout(
+								(function (context, memo) {
+									return function () {
+										stb.msg.push(function () {
+											_debug("return show_notification");
+											return context.show_notification.call(context, memo);
+										});
+									};
+								})(this, this.memos[i]),
+								diff * 1000
+							);
+						}
+					}
+				},
+
+				this
+			);
+		},
+
+		add_del: function () {
+			_debug("add_del");
+
+			var program_id = this.get_item().real_id;
+
+			_debug("this.memos", this.memos);
+
+			var memo_idx = this.memos.getIdxByVal("tv_program_real_id", program_id);
+
+			if (memo_idx !== null) {
+				this.del(memo_idx);
+			} else {
+				this.add();
+			}
+		},
+
+		add: function () {
+			_debug("epg.reminder.add");
+
+			var ch_id = this.get_ch_id();
+			var program_id = this.get_item().id;
+			var program_real_id = this.get_item().real_id;
+			var program_name = this.get_item().name;
+			var program_time = this.get_item().t_time;
+			var fire_ts = this.get_item().start_timestamp;
+			var channel = this.get_channel();
+
+			_debug("ch_id", ch_id);
+			_debug("program_id", program_id);
+			_debug("program_real_id", program_real_id);
+			_debug("fire_ts", fire_ts);
+			_debug("channel", channel);
+
+			stb.load(
+				{
+					type: "tvreminder",
+					action: "add",
+					ch_id: ch_id,
+					program_id: program_real_id,
+					fire_ts: fire_ts,
+					program_name: channel.type == "dvb" ? encodeURIComponent(program_name) : "",
+				},
+
+				function (memo) {
+					_debug("epg.reminder.add result", memo);
+
+					if (channel.type == "dvb") {
+						memo = {
+							fire_ts: fire_ts,
+							t_fire_time: program_time,
+							itv_name: channel.name,
+							ch_id: ch_id,
+							program_name: program_name,
+							tv_program_id: program_id,
+							tv_program_real_id: program_real_id,
+						};
+					} else if (empty(memo)) {
+						return;
+					}
 
-    var reminder = {
+					_debug("memo", memo);
 
-        memos: [],
+					var timestamp = new Date().getTime() / 1000;
 
-        get_list: function () {
-            _debug('epg.reminder.get_list');
+					var diff = fire_ts - timestamp;
 
-            stb.load(
-                {
-                    "type": "tvreminder",
-                    "action": "get_all_active"
-                },
+					_debug("diff", diff);
 
-                function (result) {
-                    _debug('reminder.get_list result', result);
+					if (diff > 0) {
+						this.show_mark(program_id);
 
-                    if (!result) {
-                        return;
-                    }
+						memo.timer = window.setTimeout(
+							(function (context, memo) {
+								return function () {
+									stb.msg.push(function () {
+										return context.show_notification.call(context, memo);
+									});
+								};
+							})(this, memo),
+							diff * 1000
+						);
 
-                    this.memos = result;
+						this.memos.push(memo);
 
-                    var timestamp = (new Date().getTime()) / 1000;
+						_debug("this.memos", this.memos);
+					}
+				},
 
-                    for (var i = 0; i < this.memos.length; i++) {
+				this
+			);
+		},
 
-                        var diff = (this.memos[i].fire_ts - timestamp);
+		del: function (memo_idx) {
+			_debug("epg.reminder.del", memo_idx);
 
-                        if (diff > 0) {
+			var memo = this.memos[memo_idx];
 
-                            this.memos[i]['timer'] = window.setTimeout((function (context, memo) {
+			var program_id = memo.tv_program_id;
 
-                                return function () {
-                                    stb.msg.push(function () {
-                                        _debug('return show_notification');
-                                        return context.show_notification.call(context, memo)
-                                    });
-                                }
+			stb.load(
+				{
+					type: "tvreminder",
+					action: "del",
+					program_id: memo.tv_program_real_id,
+				},
 
-                            })(this, this.memos[i]), diff * 1000);
-                        }
-                    }
-                },
+				function (result) {
+					_debug("epg.reminder.del result", result);
+				},
 
-                this
-            )
-        },
+				this
+			);
 
-        add_del: function () {
-            _debug('add_del');
+			this.hide_mark(program_id);
 
-            var program_id = this.get_item().real_id;
+			window.clearTimeout(memo.timer);
 
-            _debug('this.memos', this.memos);
+			this.memos.splice(memo_idx, 1);
 
-            var memo_idx = this.memos.getIdxByVal('tv_program_real_id', program_id);
+			_debug("this.memos", this.memos);
+		},
 
-            if (memo_idx !== null) {
-                this.del(memo_idx);
-            } else {
-                this.add();
-            }
-        },
+		show_notification: function (memo) {
+			_debug("epg.reminder.show_notification", memo);
 
-        add: function () {
-            _debug('epg.reminder.add');
+			var timestamp = new Date().getTime() / 1000;
 
-            var ch_id = this.get_ch_id();
-            var program_id = this.get_item().id;
-            var program_real_id = this.get_item().real_id;
-            var program_name = this.get_item().name;
-            var program_time = this.get_item().t_time;
-            var fire_ts = this.get_item().start_timestamp;
-            var channel = this.get_channel();
+			var msg = word["epg_memo"] + " - " + word["epg_on_ch"] + " " + memo["itv_name"] + " ";
 
-            _debug('ch_id', ch_id);
-            _debug('program_id', program_id);
-            _debug('program_real_id', program_real_id);
-            _debug('fire_ts', fire_ts);
-            _debug('channel', channel);
+			if (timestamp - memo.fire_ts > 60) {
+				msg +=
+					word["epg_on_time"] +
+					" " +
+					memo["t_fire_time"] +
+					" " +
+					word["epg_started"] +
+					" ";
+			} else {
+				msg += word["epg_now_begins"] + " ";
+			}
 
-            stb.load(
-                {
-                    "type": "tvreminder",
-                    "action": "add",
-                    "ch_id": ch_id,
-                    "program_id": program_real_id,
-                    "fire_ts": fire_ts,
-                    "program_name": channel.type == 'dvb' ? encodeURIComponent(program_name) : ''
-                },
+			msg += memo["program_name"];
 
-                function (memo) {
-                    _debug('epg.reminder.add result', memo);
+			msg += "<br>OK - " + word["epg_goto_ch"];
 
-                    if (channel.type == 'dvb') {
+			_debug("msg", msg);
 
-                        memo = {
-                            fire_ts: fire_ts,
-                            t_fire_time: program_time,
-                            itv_name: channel.name,
-                            ch_id: ch_id,
-                            program_name: program_name,
-                            tv_program_id: program_id,
-                            tv_program_real_id: program_real_id
-                        };
+			stb.msg.set_confirm_callback(function () {
+				_debug("stb.msg ok callback");
 
-                    } else if (empty(memo)) {
-                        return;
-                    }
+				var fav_ch_idx = null;
 
-                    _debug('memo', memo);
+				if (stb.user.fav_itv_on) {
+					fav_ch_idx = stb.player.fav_channels.getIdxByVal("id", parseInt(memo["ch_id"]));
+				}
 
-                    var timestamp = (new Date().getTime()) / 1000;
+				_debug("fav_ch_idx", fav_ch_idx);
 
-                    var diff = (fire_ts - timestamp);
+				if (fav_ch_idx === null) {
+					var ch_idx = stb.player.channels.getIdxByVal("id", parseInt(memo["ch_id"]));
 
-                    _debug('diff', diff);
+					if (ch_idx !== null) {
+						_debug("ch_idx", ch_idx);
 
-                    if (diff > 0) {
+						stb.user.fav_itv_on = 0;
 
-                        this.show_mark(program_id);
+						stb.player.ch_idx = ch_idx;
+						stb.player.cur_media_item = stb.player.channels[stb.player.ch_idx];
+						stb.player.cur_tv_item = stb.player.channels[stb.player.ch_idx];
+						stb.player.last_not_locked_tv_item = stb.player.channels[stb.player.ch_idx];
 
-                        memo.timer = window.setTimeout((function (context, memo) {
+						keydown_observer.emulate_key(key.MENU);
+						//keydown_observer.emulate_key(key.EXIT);
+						main_menu.hide();
+						stb.player.play_last();
+					}
+				} else {
+					stb.player.f_ch_idx = fav_ch_idx;
 
-                            return function () {
-                                stb.msg.push(function () {
-                                    return context.show_notification.call(context, memo)
-                                });
-                            }
+					_debug("stb.player.f_ch_idx", stb.player.f_ch_idx);
 
-                        })(this, memo), diff * 1000);
+					stb.player.cur_media_item = stb.player.fav_channels[stb.player.f_ch_idx];
+					stb.player.cur_tv_item = stb.player.fav_channels[stb.player.f_ch_idx];
+					stb.player.last_not_locked_tv_item =
+						stb.player.fav_channels[stb.player.f_ch_idx];
 
-                        this.memos.push(memo);
+					keydown_observer.emulate_key(key.MENU);
+					//keydown_observer.emulate_key(key.EXIT);
+					main_menu.hide();
+					stb.player.play_last();
+				}
+			});
 
-                        _debug('this.memos', this.memos);
-                    }
+			return msg;
+		},
 
-                },
+		get_ch_id: function () {
+			_debug("epg_reminder.get_ch_id");
 
-                this
-            )
-        },
+			return this.parent.data_items[this.parent.cur_row].ch_id;
+		},
 
-        del: function (memo_idx) {
-            _debug('epg.reminder.del', memo_idx);
+		get_channel: function () {
+			_debug("epg_reminder.get_channel");
 
-            var memo = this.memos[memo_idx];
+			return this.parent.channel;
+		},
 
-            var program_id = memo.tv_program_id;
+		get_item: function () {
+			_debug("epg_reminder.get_item");
 
-            stb.load(
-                {
-                    "type": "tvreminder",
-                    "action": "del",
-                    "program_id": memo.tv_program_real_id
-                },
+			return this.parent.data_items[this.parent.cur_row].epg[this.parent.cur_cell_col];
+		},
 
-                function (result) {
-                    _debug('epg.reminder.del result', result);
-                },
+		show_mark: function (program_id) {
+			_debug("epg_reminder.show_mark", program_id);
 
-                this
-            );
+			var mark_idx = this.parent.marks_map.getIdxByVal("program_id", program_id);
 
-            this.hide_mark(program_id);
+			if (mark_idx !== null) {
+				this.parent.marks_map[mark_idx].mark_memo.show();
 
-            window.clearTimeout(memo.timer);
+				this.get_item().mark_memo = 1;
+				this.parent.set_active_row(this.parent.cur_row);
+			}
+		},
 
-            this.memos.splice(memo_idx, 1);
+		hide_mark: function (program_id) {
+			_debug("epg_reminder.hide_mark", program_id);
 
-            _debug('this.memos', this.memos);
-        },
+			var mark_idx = this.parent.marks_map.getIdxByVal("program_id", program_id);
 
-        show_notification: function (memo) {
-            _debug('epg.reminder.show_notification', memo);
+			if (mark_idx !== null) {
+				this.parent.marks_map[mark_idx].mark_memo.hide();
 
-            var timestamp = (new Date().getTime()) / 1000;
+				this.get_item().mark_memo = 0;
+				this.parent.set_active_row(this.parent.cur_row);
+			}
+		},
+	};
 
-            var msg = word['epg_memo'] + ' - ' + word['epg_on_ch'] + ' ' + memo['itv_name'] + ' ';
-
-            if ((timestamp - memo.fire_ts) > 60) {
-                msg += word['epg_on_time'] + ' ' + memo['t_fire_time'] + ' ' + word['epg_started'] + ' ';
-            } else {
-                msg += word['epg_now_begins'] + ' ';
-            }
-
-            msg += memo['program_name'];
-
-            msg += '<br>OK - ' + word['epg_goto_ch'];
-
-            _debug('msg', msg);
-
-            stb.msg.set_confirm_callback(function () {
-                _debug('stb.msg ok callback');
-
-                var fav_ch_idx = null;
-
-                if (stb.user.fav_itv_on) {
-                    fav_ch_idx = stb.player.fav_channels.getIdxByVal('id', parseInt(memo['ch_id']));
-                }
-
-                _debug('fav_ch_idx', fav_ch_idx);
-
-                if (fav_ch_idx === null) {
-
-                    var ch_idx = stb.player.channels.getIdxByVal('id', parseInt(memo['ch_id']));
-
-                    if (ch_idx !== null) {
-
-                        _debug('ch_idx', ch_idx);
-
-                        stb.user.fav_itv_on = 0;
-
-                        stb.player.ch_idx = ch_idx;
-                        stb.player.cur_media_item = stb.player.channels[stb.player.ch_idx];
-                        stb.player.cur_tv_item = stb.player.channels[stb.player.ch_idx];
-                        stb.player.last_not_locked_tv_item = stb.player.channels[stb.player.ch_idx];
-
-                        keydown_observer.emulate_key(key.MENU);
-                        //keydown_observer.emulate_key(key.EXIT);
-                        main_menu.hide();
-                        stb.player.play_last();
-                    }
-
-                } else {
-
-                    stb.player.f_ch_idx = fav_ch_idx;
-
-                    _debug('stb.player.f_ch_idx', stb.player.f_ch_idx);
-
-                    stb.player.cur_media_item = stb.player.fav_channels[stb.player.f_ch_idx];
-                    stb.player.cur_tv_item = stb.player.fav_channels[stb.player.f_ch_idx];
-                    stb.player.last_not_locked_tv_item = stb.player.fav_channels[stb.player.f_ch_idx];
-
-                    keydown_observer.emulate_key(key.MENU);
-                    //keydown_observer.emulate_key(key.EXIT);
-                    main_menu.hide();
-                    stb.player.play_last();
-                }
-            });
-
-            return msg;
-        },
-
-        get_ch_id: function () {
-            _debug('epg_reminder.get_ch_id');
-
-            return this.parent.data_items[this.parent.cur_row].ch_id;
-        },
-
-        get_channel: function () {
-            _debug('epg_reminder.get_channel');
-
-            return this.parent.channel;
-        },
-
-        get_item: function () {
-            _debug('epg_reminder.get_item');
-
-            return this.parent.data_items[this.parent.cur_row].epg[this.parent.cur_cell_col];
-        },
-
-        show_mark: function (program_id) {
-            _debug('epg_reminder.show_mark', program_id);
-
-            var mark_idx = this.parent.marks_map.getIdxByVal('program_id', program_id);
-
-            if (mark_idx !== null) {
-                this.parent.marks_map[mark_idx].mark_memo.show();
-
-                this.get_item().mark_memo = 1;
-                this.parent.set_active_row(this.parent.cur_row);
-            }
-        },
-
-        hide_mark: function (program_id) {
-            _debug('epg_reminder.hide_mark', program_id);
-
-            var mark_idx = this.parent.marks_map.getIdxByVal('program_id', program_id);
-
-            if (mark_idx !== null) {
-                this.parent.marks_map[mark_idx].mark_memo.hide();
-
-                this.get_item().mark_memo = 0;
-                this.parent.set_active_row(this.parent.cur_row);
-            }
-        }
-    };
-
-    module.epg_reminder = reminder;
-    module.epg_reminder.get_list();
-
+	module.epg_reminder = reminder;
+	module.epg_reminder.get_list();
 })();
 
 loader.next();

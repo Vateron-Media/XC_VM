@@ -40,8 +40,20 @@ class MaxMindCronJob implements CommandInterface {
 		// date" skip, re-downloading every database unconditionally.
 		$force = in_array('--force', $rArgs);
 
+		// Self-heal: the installer runs this with --force but swallows a failed
+		// download (network/GitHub hiccup), which can leave the panel with no
+		// GeoIP data. Without this, the absent database is not re-fetched until
+		// the next Tuesday and portal.php fatals on the missing
+		// GeoLite2-Country.mmdb. When the primary database is missing, run
+		// regardless of the schedule; the download steps below only fetch the
+		// files that are actually absent (a present database is skipped).
+		$rMissing = !is_file('/home/xc_vm/bin/maxmind/GeoLite2-Country.mmdb');
+		if ($rMissing) {
+			echo "GeoLite2-Country.mmdb missing — running regardless of schedule.\n";
+		}
+
 		// Only run on Tuesdays (MaxMind publishes updates on Tuesdays)
-		if (date('N') !== '2' && !$force) {
+		if (date('N') !== '2' && !$force && !$rMissing) {
 			echo "Skipping MaxMind update: not Tuesday (use --force to override)\n";
 			return 0;
 		}

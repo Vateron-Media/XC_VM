@@ -6,6 +6,7 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
@@ -31,6 +32,7 @@ use XcVm\Domain\Vod\EpisodeService;
 use XcVm\Domain\Vod\MovieService;
 use XcVm\Domain\Vod\SeriesService;
 use XcVm\Module\Watch\WatchService;
+use XcVm\Public\Controllers\Admin\TableController;
 
 class AdminAPIWrapper {
     public static $db = null;
@@ -81,22 +83,28 @@ class AdminAPIWrapper {
         return $rReturn;
     }
     public static function TableAPI($rID, $rStart = 0, $rLimit = 10, $rData = array(), $rShowColumns = array(), $rHideColumns = array()) {
-        $rTableAPI = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/' . trim(dirname($_SERVER['PHP_SELF']), '/') . '/table.php';
+        // Historically this proxied over HTTP to `<code>/table.php` on the broadcast
+        // port. That path is dead under the Front Controller: `dirname(PHP_SELF)` now
+        // resolves to `/public`, nginx 404s every `*.php`, and — crucially — the
+        // api-scope access code routes *every* path back to AdminApiController (never
+        // TableController), so the round-trip could only ever return `null`.
+        //
+        // Dispatch the DataTables handler in-process instead. TableController::index()
+        // authenticates via `api_key`, renders the JSON for `$rID`, echoes it and
+        // exit()s — so this method emits the response directly and never returns.
         $rData['api_key'] = self::$rKey;
         $rData['id'] = $rID;
         $rData['start'] = $rStart;
         $rData['length'] = $rLimit;
         $rData['show_columns'] = $rShowColumns;
         $rData['hide_columns'] = $rHideColumns;
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $rTableAPI);
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query($rData));
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, array('X-Requested-With: xmlhttprequest'));
-        $rReturn = json_decode(curl_exec($ch), true);
-        curl_close($ch);
-        return $rReturn;
+        $rData['draw'] = 0;
+
+        RequestManager::set(array_merge(RequestManager::getAll(), $rData));
+        $_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
+
+        (new TableController())->index();
+        return null; // unreachable: TableController::index() exit()s after echoing
     }
     public static function createSession() {
         global $rUserInfo;

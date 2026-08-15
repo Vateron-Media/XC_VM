@@ -1,23 +1,22 @@
 #account .label {
-    color: #99A8B5;
+	color: #99a8b5;
 }
 
 .main_container,
 .payment_container,
 .agreement_container,
 .terms_container {
-    position: absolute;
-    left: 15px;
-    height: 312px;
-    width: 565px;
+	position: absolute;
+	left: 15px;
+	height: 312px;
+	width: 565px;
 }
-
 .main_content,
 .payment_content,
 .agreement_content,
 .terms_content {
-    position: absolute;
-    height: 312px;
-    width: 540px;
-    overflow: hidden;
+	position: absolute;
+	height: 312px;
+	width: 540px;
+	overflow: hidden;
 }

@@ -1,33 +1,32 @@
 .simple_layer {
-    padding: 20px;
-    width: 1100px;
-    height: 490px;
+	padding: 20px;
+	width: 1100px;
+	height: 490px;
 }
 
 #account .label {
-    color: #99A8B5;
+	color: #99a8b5;
 }
 
 .main_container,
 .payment_container,
 .agreement_container,
 .terms_container {
-    position: absolute;
-    left: 15px;
-    height: 488px;
-    width: 1100px;
+	position: absolute;
+	left: 15px;
+	height: 488px;
+	width: 1100px;
 }
-
 .main_content,
 .payment_content,
 .agreement_content,
 .terms_content {
-    position: absolute;
-    height: 488px;
-    width: 1080px;
-    overflow: hidden;
+	position: absolute;
+	height: 488px;
+	width: 1080px;
+	overflow: hidden;
 }
 
 #account .label {
-    color: #99A8B5;
+	color: #99a8b5;
 }
