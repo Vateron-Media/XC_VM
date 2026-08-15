@@ -111,6 +111,7 @@ PACKAGES = {
         "libsodium23",
         "cpufrequtils",
         "mcrypt",
+        "libogg0",
         "libnuma1",
     ],
     "ubuntu20": [
@@ -150,6 +151,7 @@ PACKAGES = {
         "libsodium23",
         "cpufrequtils",
         "mcrypt",
+        "libogg0",
         "libnuma1",
     ],
     "ubuntu22": [
@@ -241,6 +243,7 @@ PACKAGES = {
         "libsodium23",
         "cpufrequtils",
         "mcrypt",
+        "libogg0",
         "libnuma1",
     ],
     "debian11": [
