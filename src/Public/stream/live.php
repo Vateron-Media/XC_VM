@@ -332,7 +332,7 @@ if ($rChannelInfo) {
             // segment.php proxies them from the daemon. Encrypted streams / a
             // daemon that's down fall through to the legacy tmpfs HLS.
             $rHLS = false;
-            if (file_exists(FANOUT_CTL_SOCK) && empty($rSettings["encrypt_hls"]) && FanoutClient::isStreamFed($rStreamID)) {
+            if (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
                 $rDaemonPl = FanoutClient::hlsPlaylist($rStreamID);
                 if ($rDaemonPl !== NULL) {
                     $rHLS = HLSGenerator::tokenizeDaemonPlaylist($rDaemonPl, $rSettings, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);

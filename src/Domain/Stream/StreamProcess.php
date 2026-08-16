@@ -1508,7 +1508,17 @@ class StreamProcess {
 					// A2). The daemon starts listening on the returned socket, then
 					// buildLive tees the HLS output into it. Null when the daemon is
 					// unreachable → buildLive emits the on-disk-only HLS (rollback).
-					$rIngestSock = (!$rLoopback && !$rDelayActive) ? FanoutClient::registerIngest($rStreamID) : null;
+					// Generate the stream's HLS key/iv up-front so, when encrypt_hls
+					// is on, we can hand them to the daemon at ingest registration
+					// and it encrypts the HLS segments it serves (ADR 0003, Phase B
+					// encrypted) — matching the panel's #EXT-X-KEY.
+					self::writeStreamKeyIv($rStreamID);
+					$rEncKey = $rEncIV = null;
+					if (!empty($rSettings['encrypt_hls']) && !$rLoopback && !$rDelayActive) {
+						$rEncKey = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.key'));
+						$rEncIV = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.iv'));
+					}
+					$rIngestSock = (!$rLoopback && !$rDelayActive) ? FanoutClient::registerIngest($rStreamID, $rEncKey, $rEncIV) : null;
 
 					$rFFMPEG = self::buildLive(array(
 						'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,
@@ -1525,7 +1535,6 @@ class StreamProcess {
 
 				shell_exec($rFFMPEG);
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
-				self::writeStreamKeyIv($rStreamID);
 
 				// Wait briefly for PID file to be written, with retry
 				$rPID = 0;

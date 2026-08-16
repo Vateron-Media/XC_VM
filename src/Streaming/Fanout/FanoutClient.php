@@ -106,10 +106,12 @@ class FanoutClient {
 	 * Returns null if the daemon is unreachable / declines — the caller then
 	 * launches ffmpeg legacy-only (no tee), the daemon-reachability rollback.
 	 *
-	 * @param int $rStreamID Stream id.
+	 * @param int         $rStreamID Stream id.
+	 * @param string|null $rKeyHex   Hex AES-128 key for encrypted HLS, or null.
+	 * @param string|null $rIVHex    Hex AES-128-CBC IV, or null.
 	 * @return string|null The ingest socket path, or null on failure.
 	 */
-	public static function registerIngest(int $rStreamID): ?string {
+	public static function registerIngest(int $rStreamID, ?string $rKeyHex = null, ?string $rIVHex = null): ?string {
 		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
 			return null;
 		}
@@ -123,6 +125,11 @@ class FanoutClient {
 			CURLOPT_CONNECTTIMEOUT => 2,
 			CURLOPT_TIMEOUT        => 3,
 		]);
+
+		if (!empty($rKeyHex) && !empty($rIVHex)) {
+			curl_setopt($rCurl, CURLOPT_POSTFIELDS, json_encode(['key' => $rKeyHex, 'iv' => $rIVHex]));
+			curl_setopt($rCurl, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+		}
 		$rBody = curl_exec($rCurl);
 		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
 		curl_close($rCurl);
