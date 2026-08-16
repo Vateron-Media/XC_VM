@@ -1,0 +1,145 @@
+<?php
+
+namespace XcVm\Streaming\Fanout;
+
+use XcVm\Streaming\Codec\FfmpegPaths;
+
+/**
+ * FanoutClient — PHP-side control client for the xc_fanout daemon (ADR 0002, P2).
+ *
+ * The daemon exposes a PHP-only control surface on a unix socket
+ * (FANOUT_CTL_SOCK): `PUT /streams/<id>` registers/updates a stream's pull
+ * config, `DELETE /streams/<id>` removes it. The daemon owns the puller and
+ * starts it on the first viewer, so registering is idempotent and cheap — it
+ * only stores the source config; no bytes flow until nginx proxies a viewer to
+ * `/live/<id>` on the client socket.
+ *
+ * This mirrors ProxyCommand's source resolution: the daemon reimplements
+ * `getActiveStream` (direct video/mp2t vs ffmpeg remux) in Go, so PHP only needs
+ * to hand it the source URLs and the per-stream user_agent/proxy/cookie.
+ *
+ * @package XC_VM_Streaming_Fanout
+ * @author  Divarion_D <https://github.com/Divarion-D>
+ * @copyright 2025-2026 Vateron Media
+ * @link    https://github.com/Vateron-Media/XC_VM
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+class FanoutClient {
+	/** Default source User-Agent, matching ProxyCommand::startProxy(). */
+	private const DEFAULT_UA = 'Mozilla/5.0';
+
+	/**
+	 * Build the daemon source config from a `streams` row and its keyed
+	 * `streams_arguments` (as ProxyCommand reads them). Pure function — no I/O —
+	 * so it is unit-testable against the exact shapes ProxyCommand uses.
+	 *
+	 * @param array $rStreamRow       Row from `streams` (needs `stream_source`).
+	 * @param array $rStreamArguments Rows from streams_options⨝streams_arguments,
+	 *                                keyed by `argument_key` (user_agent/proxy/cookie).
+	 * @return array{urls:string[],ua:string,proxy:string,cookie:string,ffmpeg:string}
+	 */
+	public static function buildSource(array $rStreamRow, array $rStreamArguments): array {
+		$rURLs = [];
+		if (!empty($rStreamRow['stream_source'])) {
+			$rDecoded = json_decode($rStreamRow['stream_source'], true);
+			if (is_array($rDecoded)) {
+				foreach ($rDecoded as $rURL) {
+					$rURL = trim((string) $rURL);
+					if ($rURL !== '') {
+						$rURLs[] = $rURL;
+					}
+				}
+			}
+		}
+
+		$rUA = self::DEFAULT_UA;
+		if (isset($rStreamArguments['user_agent'])) {
+			$rUA = ($rStreamArguments['user_agent']['value']
+				?: ($rStreamArguments['user_agent']['argument_default_value'] ?? self::DEFAULT_UA));
+		}
+
+		$rProxy = '';
+		if (!empty($rStreamArguments['proxy']['value'])) {
+			$rProxy = (string) $rStreamArguments['proxy']['value'];
+		}
+
+		$rCookie = '';
+		if (!empty($rStreamArguments['cookie']['value'])) {
+			$rCookie = (string) $rStreamArguments['cookie']['value'];
+		}
+
+		return [
+			'urls'   => $rURLs,
+			'ua'     => (string) $rUA,
+			'proxy'  => $rProxy,
+			'cookie' => $rCookie,
+			'ffmpeg' => FfmpegPaths::cpu(),
+		];
+	}
+
+	/**
+	 * Register (or update) a stream's pull config with the daemon.
+	 *
+	 * @param int   $rStreamID Stream id (the daemon key and the `/live/<id>` path).
+	 * @param array $rSource   Config from {@see buildSource()}; empty `urls` is rejected.
+	 * @return bool True when the daemon accepted the registration (HTTP 204).
+	 */
+	public static function register(int $rStreamID, array $rSource): bool {
+		if (empty($rSource['urls'])) {
+			return false;
+		}
+
+		$rBody = json_encode($rSource);
+		if ($rBody === false) {
+			return false;
+		}
+
+		return self::call('PUT', $rStreamID, $rBody);
+	}
+
+	/**
+	 * Unregister a stream (stops its puller, drops it from the daemon).
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return bool True when the daemon accepted the removal (HTTP 204).
+	 */
+	public static function unregister(int $rStreamID): bool {
+		return self::call('DELETE', $rStreamID, null);
+	}
+
+	/**
+	 * Issue one control request over the daemon's unix socket via cURL.
+	 *
+	 * @param string      $rMethod HTTP method (PUT/DELETE).
+	 * @param int         $rStreamID Stream id.
+	 * @param string|null $rBody   JSON body for PUT, or null.
+	 * @return bool True on a 2xx (specifically 204) response.
+	 */
+	private static function call(string $rMethod, int $rStreamID, ?string $rBody): bool {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK')) {
+			return false;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			// Host is irrelevant over a unix socket, but cURL needs a valid URL.
+			CURLOPT_URL            => 'http://localhost/streams/' . $rStreamID,
+			CURLOPT_CUSTOMREQUEST  => $rMethod,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 2,
+			CURLOPT_TIMEOUT        => 3,
+		]);
+
+		if ($rBody !== null) {
+			curl_setopt($rCurl, CURLOPT_POSTFIELDS, $rBody);
+			curl_setopt($rCurl, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+		}
+
+		curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		return $rCode >= 200 && $rCode < 300;
+	}
+}

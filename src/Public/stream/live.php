@@ -14,6 +14,7 @@ use XcVm\Streaming\Delivery\HLSGenerator;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\SegmentReader;
 use XcVm\Streaming\Delivery\SignalSender;
+use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
 use XcVm\Streaming\TS;
 
@@ -350,6 +351,35 @@ if ($rChannelInfo) {
             touch(CONS_TMP_PATH . $rTokenData["uuid"]);
 
             if ($rChannelInfo["proxy"]) {
+                // ────────────────────────────────────────────────────────────────
+                // Fanout mode (ADR 0002, P2) — flag-gated by `live_fanout`.
+                // Auth is done; instead of pinning this PHP-FPM worker in the
+                // socket relay for the whole session, register the source with the
+                // xc_fanout daemon and hand the byte path to nginx via
+                // X-Accel-Redirect (same pattern as P1 segment delivery). The
+                // worker is freed the moment we return; nginx proxies the viewer
+                // straight to the daemon's /live/<id>. Falls back to the legacy
+                // relay below if registration fails.
+                // ────────────────────────────────────────────────────────────────
+                if (!empty($rSettings["live_fanout"])) {
+                    DatabaseFactory::connect();
+                    $db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?', $rStreamID);
+                    $rStreamRow = ($db->num_rows() > 0 ? $db->get_row() : array());
+                    $db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
+                    $rStreamArguments = $db->get_rows(true, 'argument_key');
+                    DatabaseFactory::close();
+
+                    $rSource = FanoutClient::buildSource($rStreamRow, $rStreamArguments);
+
+                    if (!empty($rSource["urls"]) && FanoutClient::register($rStreamID, $rSource)) {
+                        header("Content-Type: video/mp2t");
+                        header("X-Accel-Buffering: no");
+                        header("X-Accel-Redirect: /xc_fanout/live/" . rawurlencode((string) $rStreamID));
+                        exit;
+                    }
+                    // Registration failed — fall through to the legacy socket relay.
+                }
+
                 // ────────────────────────────────────────────────────────────────
                 // Proxy mode: relay ffmpeg's unix-socket datagrams straight to the client.
                 // ────────────────────────────────────────────────────────────────
