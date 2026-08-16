@@ -136,9 +136,11 @@ class FanoutBinaryCommand implements CommandInterface {
 		@chown($rBinary, 'xc_vm');
 		@chgrp($rBinary, 'xc_vm');
 
-		// Restart: kill the running daemon so the service keepalive respawns it
-		// with the new binary. Harmless no-op if it isn't running yet.
-		shell_exec("pkill -u xc_vm -f 'bin/xc_fanout/xc_fanout' 2>/dev/null");
+		// Restart: kill ONLY the daemon process (match the exact process NAME, not
+		// the cmdline) so the service keepalive loop — whose bash cmdline contains
+		// the same binary path — survives and respawns it with the new binary.
+		// Harmless no-op if it isn't running yet.
+		shell_exec("pkill -u xc_vm -x xc_fanout 2>/dev/null");
 
 		echo "xc_fanout {$rNewVer} installed.\n";
 		return 0;
