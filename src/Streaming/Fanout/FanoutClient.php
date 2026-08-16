@@ -98,7 +98,48 @@ class FanoutClient {
 	}
 
 	/**
-	 * Unregister a stream (stops its puller, drops it from the daemon).
+	 * Put a stream into push-fed (ingest) mode and return the unix socket the
+	 * producer must connect to. Used by StreamProcess for non-proxy live streams:
+	 * the daemon starts listening on the returned socket, then StreamProcess
+	 * launches the stream's ffmpeg with a `-f tee … unix:<socket>` output.
+	 *
+	 * Returns null if the daemon is unreachable / declines — the caller then
+	 * launches ffmpeg legacy-only (no tee), the daemon-reachability rollback.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return string|null The ingest socket path, or null on failure.
+	 */
+	public static function registerIngest(int $rStreamID): ?string {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return null;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/ingest/' . $rStreamID,
+			CURLOPT_CUSTOMREQUEST  => 'PUT',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 2,
+			CURLOPT_TIMEOUT        => 3,
+		]);
+		$rBody = curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		if ($rCode < 200 || $rCode >= 300 || !is_string($rBody)) {
+			return null;
+		}
+
+		$rData = json_decode($rBody, true);
+		$rSocket = (is_array($rData) && !empty($rData['socket'])) ? (string) $rData['socket'] : '';
+
+		return ($rSocket !== '' && file_exists($rSocket)) ? $rSocket : null;
+	}
+
+	/**
+	 * Unregister a stream (stops its puller / ingest listener, drops it from the
+	 * daemon). Works for both pull-fed (proxy) and push-fed (ingest) streams.
 	 *
 	 * @param int $rStreamID Stream id.
 	 * @return bool True when the daemon accepted the removal (HTTP 204).
@@ -116,7 +157,7 @@ class FanoutClient {
 	 * @return bool True on a 2xx (specifically 204) response.
 	 */
 	private static function call(string $rMethod, int $rStreamID, ?string $rBody): bool {
-		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK')) {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
 			return false;
 		}
 

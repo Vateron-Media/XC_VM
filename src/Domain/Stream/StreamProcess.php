@@ -6,6 +6,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Util\StreamUtils;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * StreamProcess — stream process
@@ -405,6 +406,40 @@ class StreamProcess {
 			. ' -hls_flags delete_segments+discont_start+omit_endlist' . $rKeyFrames
 			. ' -hls_segment_type mpegts -hls_segment_filename "' . STREAMS_PATH . intval($rStreamID) . '_%d.ts" "'
 			. STREAMS_PATH . intval($rStreamID) . '_.m3u8" ';
+	}
+
+	/**
+	 * Same HLS output as {@see buildHlsMpegtsOutput()} but fanned through the
+	 * `tee` muxer so the stream also feeds the xc_fanout daemon (ADR 0003, A2):
+	 * slave 1 is the existing on-disk HLS, slave 2 pushes mpegts into the daemon's
+	 * ingest socket. `onfail=ignore` on the daemon slave keeps the HLS output
+	 * alive if the daemon is down/restarts (verified: ffmpeg "continuing with 1/2
+	 * slaves"). Used only when the daemon accepted an ingest registration; a plain
+	 * multi-output would abort ffmpeg entirely on a failed daemon output.
+	 *
+	 * The per-muxer flags move from `-flag value` form into the tee slave's
+	 * `:flag=value` form; the leading {MAP}/{LLOD} options stay shared before
+	 * `-f tee`.
+	 *
+	 * @param string $rIngestSock Daemon ingest socket (from FanoutClient::registerIngest()).
+	 * @return string The `-f tee …` output fragment.
+	 */
+	private static function buildHlsTeeOutput($rOptions, $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID, $rIngestSock) {
+		$rHls = '[f=hls'
+			. ':hls_init_time=' . $rInitTime
+			. ':hls_time=' . intval($rSegmentSettings['seg_time'])
+			. ':hls_list_size=' . intval($rSegmentSettings['seg_list_size'])
+			. ':hls_delete_threshold=' . intval($rSegmentSettings['seg_delete_threshold'])
+			. ':hls_flags=delete_segments+discont_start+omit_endlist' . $rKeyFrames
+			. ':hls_segment_type=mpegts'
+			// NB: the flag-form output has `-individual_header_trailer 0`, but that
+			// is a `segment`-muxer option the `hls` muxer ignores (silent no-op in
+			// flag form; a FATAL "Unknown option" inside a tee slave). Omitted here.
+			. ':hls_segment_filename=' . STREAMS_PATH . intval($rStreamID) . '_%d.ts'
+			. ']' . STREAMS_PATH . intval($rStreamID) . '_.m3u8';
+		$rDaemon = '[f=mpegts:onfail=ignore:mpegts_flags=+initial_discontinuity]unix:' . $rIngestSock;
+
+		return $rOptions . ' -f tee "' . $rHls . '|' . $rDaemon . '"';
 	}
 
 	/**
@@ -809,7 +844,20 @@ class StreamProcess {
 		// Fast start: shorten the first segment so players can begin sooner.
 		// Capped at seg_time so a small seg_time never produces a longer first segment.
 		$rInitTime = min(2, intval($rSegmentSettings['seg_time']));
-		$rOutputs['mpegts'][] = self::buildHlsMpegtsOutput($rOptions, $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID);
+		// When the xc_fanout daemon accepted an ingest registration (reachable),
+		// tee the HLS output to it too (ADR 0003, A2). Standard live only — not
+		// loopback/delay. If the daemon was unreachable ($data['ingestSock'] is
+		// null) the original on-disk-only HLS output runs, unchanged.
+		if (!$rLoopback && !$rDelayActive && !empty($data['ingestSock'])) {
+			// The tee muxer needs an EXPLICIT -map — plain single outputs use
+			// ffmpeg's automatic stream selection, but tee does not ("Output file
+			// does not contain any stream" otherwise). Reuse the stream's own map,
+			// or -map 0 -copy_unknown when it relies on automatic selection.
+			$rTeeMap = ($rMap !== '' ? $rMap : '-map 0 -copy_unknown ');
+			$rOutputs['mpegts'][] = self::buildHlsTeeOutput($rTeeMap . '{LLOD}', $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID, $data['ingestSock']);
+		} else {
+			$rOutputs['mpegts'][] = self::buildHlsMpegtsOutput($rOptions, $rSegmentSettings, $rKeyFrames, $rInitTime, $rStreamID);
+		}
 
 		if ($rStream['stream_info']['rtmp_output'] == 1) {
 			$rOutputs['flv'][] = self::buildFlvOutput($rFLVOptions, 'rtmp://127.0.0.1:' . intval($rServers[$rStream['server_info']['server_id']]['rtmp_port']) . '/live/' . intval($rStreamID) . '?password=' . urlencode($rSettings['live_streaming_pass']));
@@ -954,6 +1002,10 @@ class StreamProcess {
 		if (file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) {
 			unlink(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID));
 		}
+
+		// Drop any xc_fanout daemon ingest listener for this stream (ADR 0003, A2).
+		// No-op when the daemon isn't reachable.
+		FanoutClient::unregister(intval($rStreamID));
 
 		self::streamLog($rStreamID, SERVER_ID, 'STREAM_STOP');
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
@@ -1452,6 +1504,12 @@ class StreamProcess {
 					// Assemble the live ffmpeg command (pure). buildLive() does all the
 					// transcode-attribute resolution and {TEMPLATE} substitution internally, so
 					// it is fed the raw stream row.
+					// Register a daemon ingest for standard live streams (ADR 0003,
+					// A2). The daemon starts listening on the returned socket, then
+					// buildLive tees the HLS output into it. Null when the daemon is
+					// unreachable → buildLive emits the on-disk-only HLS (rollback).
+					$rIngestSock = (!$rLoopback && !$rDelayActive) ? FanoutClient::registerIngest($rStreamID) : null;
+
 					$rFFMPEG = self::buildLive(array(
 						'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,
 						'streamID' => $rStreamID, 'streamSource' => $rStreamSource,
@@ -1462,6 +1520,7 @@ class StreamProcess {
 						'llod' => $rLLOD, 'loopback' => $rLoopback,
 						'segmentStart' => $rSegmentStart, 'delayActive' => $rDelayActive,
 						'ffmpegCpu' => $rFFMPEG_CPU, 'ffmpegGpu' => $rFFMPEG_GPU,
+						'ingestSock' => $rIngestSock,
 					));
 
 				shell_exec($rFFMPEG);

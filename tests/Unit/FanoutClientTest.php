@@ -79,4 +79,10 @@ final class FanoutClientTest extends TestCase {
 		// before any socket call is attempted.
 		$this->assertFalse(FanoutClient::register(42, ['urls' => []]));
 	}
+
+	public function testRegisterIngestReturnsNullWithoutDaemon() {
+		// FANOUT_CTL_SOCK is not defined in the unit env, so registerIngest must
+		// fail closed (null) — the caller then launches ffmpeg legacy-only.
+		$this->assertNull(FanoutClient::registerIngest(42));
+	}
 }
