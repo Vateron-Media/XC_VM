@@ -316,7 +316,22 @@ if ($rChannelInfo) {
                 DatabaseFactory::close();
             }
 
-            $rHLS = HLSGenerator::generateHLS($rSettings, $rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+            // Phase B (ADR 0003): serve HLS from the daemon's in-RAM segmenter
+            // when it is fed and the stream is unencrypted (daemon HLS is plain
+            // mpegts). The daemon playlist's sequence segments are tokenized into
+            // the same auth'd /hls/<token> URLs as the legacy path, marked so
+            // segment.php proxies them from the daemon. Encrypted streams / a
+            // daemon that's down fall through to the legacy tmpfs HLS.
+            $rHLS = false;
+            if (file_exists(FANOUT_CTL_SOCK) && empty($rSettings["encrypt_hls"]) && FanoutClient::isStreamFed($rStreamID)) {
+                $rDaemonPl = FanoutClient::hlsPlaylist($rStreamID);
+                if ($rDaemonPl !== NULL) {
+                    $rHLS = HLSGenerator::tokenizeDaemonPlaylist($rDaemonPl, $rSettings, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+                }
+            }
+            if ($rHLS === false) {
+                $rHLS = HLSGenerator::generateHLS($rSettings, $rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+            }
 
             if ($rHLS) {
                 touch(CONS_TMP_PATH . $rTokenData["uuid"]);

@@ -172,6 +172,34 @@ class FanoutClient {
 	}
 
 	/**
+	 * Fetch the daemon's in-RAM HLS playlist for a stream (ADR 0003, Phase B),
+	 * from the nginx-facing client socket. The returned m3u8 lists segments by
+	 * sequence (`<seq>.ts`); live.php tokenizes those into auth'd URLs.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return string|null The raw m3u8, or null if unavailable.
+	 */
+	public static function hlsPlaylist(int $rStreamID): ?string {
+		if (!function_exists('curl_init') || !defined('FANOUT_HTTP_SOCK') || !file_exists(FANOUT_HTTP_SOCK)) {
+			return null;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_HTTP_SOCK,
+			CURLOPT_URL            => 'http://localhost/hls/' . $rStreamID . '/index.m3u8',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 1,
+			CURLOPT_TIMEOUT        => 2,
+		]);
+		$rBody = curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		return ($rCode === 200 && is_string($rBody) && $rBody !== '') ? $rBody : null;
+	}
+
+	/**
 	 * Unregister a stream (stops its puller / ingest listener, drops it from the
 	 * daemon). Works for both pull-fed (proxy) and push-fed (ingest) streams.
 	 *
