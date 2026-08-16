@@ -60,6 +60,8 @@ The daemon is a **live fan-out engine**: one ingest per stream → many viewers,
 - **Test:** HLS player only (no TS viewer) holds a stream up; segments roll; sliding window correct.
 
 **Phase C — Parity & robustness (the real work; gates flag-default).**
+_Foundations landed (daemon 0.2.0 + `service`):_ HLS now joins the on-demand lifecycle (`/hls` `touch()`es the stream — starts/keeps the puller for an HLS-only audience; unified idle-stop reaper covers TS+HLS); off-air signal via control `GET /streams/<id>` → `{running,refs,has_data,since_data_ms}`; daemon auto-restarts on crash (keepalive loop in `service`, `Restart=always` equivalent). _Still to do:_ wire the auth endpoint to read the status for off-air; on-demand cold-start bounds; adaptive/restreamer/redirect parity; disconnect accounting (→ P4 Redis).
+
 Everything `live.php`'s legacy block does must have a daemon-model equivalent before the daemon can be the default:
 - **Off-air / source-down** detection (today: no pid ⇒ not-on-air page). Daemon needs a health/last-data signal the auth endpoint can read.
 - **On-demand cold start** (first viewer starts the stream; bounded wait; expiry).

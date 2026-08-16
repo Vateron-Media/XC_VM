@@ -18,15 +18,17 @@ boot() {
   if [ -f $SCRIPT/bin/redis/redis-server ]; then
     sudo -u xc_vm $SCRIPT/bin/redis/redis-server $SCRIPT/bin/redis/redis.conf >/dev/null 2>/dev/null
   fi
-  # xc_fanout live fan-out daemon (ADR 0002, P2). Only present once the binary
-  # has been pulled from the binaries repo; -x guard keeps boot clean on nodes
-  # that don't have it yet. Runs in the foreground, so background it like the
-  # signals/watchdog daemons; a crash is not auto-restarted (parity with those).
-  # Idle until the `live_fanout` setting is on, so start order vs nginx is moot.
+  # xc_fanout live fan-out daemon (ADR 0002/0003, P2). Only present once the
+  # binary has been pulled from the binaries repo; -x guard keeps boot clean on
+  # nodes that don't have it yet. Idle until the `live_fanout` setting is on, so
+  # start order vs nginx is moot. Wrapped in a keepalive loop (2s backoff) so a
+  # crash is auto-restarted — the Restart=always equivalent without a second
+  # systemd unit. Both the loop and the daemon run as xc_vm, so `stop`'s
+  # `pkill -u xc_vm` ends both together and nothing respawns during shutdown.
   if [ -x $SCRIPT/bin/xc_fanout/xc_fanout ]; then
     mkdir -p $SCRIPT/bin/xc_fanout/sockets
     sudo chown -R xc_vm:xc_vm $SCRIPT/bin/xc_fanout
-    sudo -u xc_vm $SCRIPT/bin/xc_fanout/xc_fanout -sock $SCRIPT/bin/xc_fanout/sockets/http.sock -ctl $SCRIPT/bin/xc_fanout/sockets/control.sock >/dev/null 2>/dev/null &
+    sudo -u xc_vm bash -c 'while true; do '"$SCRIPT"'/bin/xc_fanout/xc_fanout -sock '"$SCRIPT"'/bin/xc_fanout/sockets/http.sock -ctl '"$SCRIPT"'/bin/xc_fanout/sockets/control.sock >>'"$SCRIPT"'/tmp/xc_fanout.log 2>&1; sleep 2; done' &
   fi
   sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
