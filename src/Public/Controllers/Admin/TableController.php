@@ -83,7 +83,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 
-		if ($rMobile) {
+		if (!empty($rMobile)) {
 			SettingsManager::getAll()["modal_edit"] = false;
 			SettingsManager::getAll()["group_buttons"] = false;
 		}
@@ -242,7 +242,7 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "users") && !Authorization::check("adv", "mass_edit_users")) {
 			exit;
 		}
-		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"]) === "desc" ? "desc" : "asc";
+		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"] ?? '') === "desc" ? "desc" : "asc";
 		$rOrder = ["`lines`.`id`", "`lines`.`username`", "`lines`.`password`", "`lines`.`member_id`", "`lines`.`enabled` - `lines`.`admin_enabled`", "`active_connections` > 0", "`lines`.`is_trial`", "`lines`.`is_restreamer`", "`active_connections`", "`lines`.`max_connections`", "`lines`.`exp_date`", "`active_connections` " . $rOrderDirection . ", `last_activity`", false];
 		if (isset(RequestManager::getAll()["order"]) && 0 < strlen(RequestManager::getAll()["order"][0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::getAll()["order"][0]["column"] ?? 0);
@@ -535,7 +535,7 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "manage_mag")) {
 			exit;
 		}
-		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"]) === "desc" ? "desc" : "asc";
+		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"] ?? '') === "desc" ? "desc" : "asc";
 		$rOrder = ["`lines`.`id`", "`lines`.`username`", "`mag_devices`.`mac`", "`mag_devices`.`stb_type`", "`lines`.`member_id`", "`lines`.`enabled`", "`active_connections` > 0", "`lines`.`is_trial`", "`lines`.`exp_date`", "`active_connections` " . $rOrderDirection . ", `last_activity`", false];
 		$rOrderColumn = RequestManager::getAll()["order"][0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
@@ -804,7 +804,7 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "manage_e2")) {
 			exit;
 		}
-		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"]) === "desc" ? "desc" : "asc";
+		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"] ?? '') === "desc" ? "desc" : "asc";
 		$rOrder = ["`lines`.`id`", "`lines`.`username`", "`enigma2_devices`.`mac`", "`enigma2_devices`.`public_ip`", "`lines`.`member_id`", "`lines`.`enabled`", "`active_connections` > 0", "`lines`.`is_trial`", "`lines`.`exp_date`", "`active_connections` " . $rOrderDirection . ", `last_activity`", false];
 		$rOrderColumn = RequestManager::getAll()["order"][0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
@@ -2470,7 +2470,7 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "connection_logs")) {
 			exit;
 		}
-		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"]) === "desc" ? "desc" : "asc";
+		$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"] ?? '') === "desc" ? "desc" : "asc";
 		$rOrder = ["`username` " . $rOrderDirection . ", `lines_activity`.`hmac_identifier`", "`streams`.`stream_display_name`", "`server_name`", "`lines_activity`.`user_agent`", "`lines_activity`.`isp`", "`lines_activity`.`user_ip`", "`lines_activity`.`date_start`", "`lines_activity`.`activity_id`", "`lines_activity`.`date_end` - `lines_activity`.`date_start`", "`lines_activity`.`container`", "`lines`.`is_restreamer`"];
 		$rOrderColumn = RequestManager::getAll()["order"][0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
@@ -2673,7 +2673,7 @@ class TableController extends BaseAdminController {
 				echo json_encode(["draw" => intval(RequestManager::getAll()["draw"] ?? 0), "recordsTotal" => 0, "recordsFiltered" => 0, "data" => []]);
 				exit;
 			}
-			$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"]) === "desc" ? false : true;
+			$rOrderDirection = strtolower(RequestManager::getAll()["order"][0]["dir"] ?? '') === "desc" ? false : true;
 			$rFilterBefore = true;
 			if (isset(RequestManager::getAll()["refresh"])) {
 				$rStart = 0;

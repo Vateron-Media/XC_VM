@@ -18,8 +18,11 @@ use XcVm\Domain\Stream\ConnectionTracker;
 class StreamRedirector {
 	public static function redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserISP = '', $rType = '') {
 		if ($rCached) {
-			$rStream = (igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . $rStreamID)) ?: null);
-			$rStream['bouquets'] = BouquetService::getMapEntry($rStreamID);
+			$rRaw = @file_get_contents(STREAMS_TMP_PATH . 'stream_' . $rStreamID);
+			$rStream = ($rRaw !== false ? (igbinary_unserialize($rRaw) ?: null) : null);
+			if (is_array($rStream)) {
+				$rStream['bouquets'] = BouquetService::getMapEntry($rStreamID);
+			}
 		} else {
 			$rStream = self::getStreamData($rStreamID);
 		}
@@ -35,7 +38,7 @@ class StreamRedirector {
 				$rAvailableServers = array($rStream['info']['tv_archive_server_id']);
 			}
 		} else {
-			if (!($rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 0)) {
+			if (!(($rStream['info']['direct_source'] ?? 0) == 1 && ($rStream['info']['direct_proxy'] ?? 0) == 0)) {
 				foreach ($rServers as $rServerID => $rServerInfo) {
 					if (!array_key_exists($rServerID, $rStreamServers) || !$rServerInfo['server_online'] || $rServerInfo['server_type'] != 0) {
 						continue;

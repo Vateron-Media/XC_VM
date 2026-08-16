@@ -52,7 +52,7 @@ class ProvidersCronJob implements CommandInterface {
 
     private function readURL(string $rURL): ?array {
         $rContext = stream_context_create(array('http' => array('timeout' => 30)));
-        return json_decode(file_get_contents($rURL, false, $rContext), true);
+        return json_decode(@file_get_contents($rURL, false, $rContext) ?: 'null', true);
     }
 
     private function loadCron(?int $rProviderID): void {
@@ -105,13 +105,13 @@ class ProvidersCronJob implements CommandInterface {
             $rLiveCategories = $this->readURL($rCategoriesURL);
             if (!is_array($rLiveCategories)) $rLiveCategories = [];
             foreach ($rLiveCategories as $rCategory) {
-                $rCategories[$rCategory['category_id']] = $rCategory['category_name'];
+                if (isset($rCategory['category_id'])) { $rCategories[$rCategory['category_id']] = $rCategory['category_name'] ?? ''; }
             }
             $rCategoriesURL = $rURL . '&action=get_vod_categories';
             $rVodCategories = $this->readURL($rCategoriesURL);
             if (!is_array($rVodCategories)) $rVodCategories = [];
             foreach ($rVodCategories as $rCategory) {
-                $rCategories[$rCategory['category_id']] = $rCategory['category_name'];
+                if (isset($rCategory['category_id'])) { $rCategories[$rCategory['category_id']] = $rCategory['category_name'] ?? ''; }
             }
 
             $rStreamsURL = $rURL . '&action=get_live_streams';
@@ -141,6 +141,11 @@ class ProvidersCronJob implements CommandInterface {
             $rTime = time();
             foreach (array('live' => $rStreams, 'movie' => $rVOD) as $rType => $rSelection) {
                 foreach ($rSelection as $rStream) {
+                    // External provider payloads may omit any of these keys.
+                    $rStream += array('stream_id' => null, 'category_id' => '', 'name' => '', 'stream_icon' => '', 'epg_channel_id' => '', 'container_extension' => '');
+                    if ($rStream['stream_id'] === null) {
+                        continue;
+                    }
                     $rNewIDs[] = $rStream['stream_id'];
                     $rCategoryIDs = (isset($rStream['category_ids']) ? (is_array($rStream['category_ids']) ? $rStream['category_ids'] : array()) : array($rStream['category_id']));
                     $rCategoryArray = array();
