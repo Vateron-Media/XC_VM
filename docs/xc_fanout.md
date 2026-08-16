@@ -5,9 +5,10 @@ streams to viewers. This page explains *why* it exists and *how the panel talks
 to it*. The decision records are ADR 0001/0002/0003; this is the plain-language
 overview.
 
-The daemon's source and binaries live in the separate **`XC_VM_Binaries`** repo
-(`xc_fanout/`), not in the panel tree, and it is never bundled into the panel/LB
-archive. It is a single static binary per architecture.
+The daemon's **source** lives in its own repo, **`XC_VM_Fanout`** (`GIT_REPO_FANOUT`),
+and its compiled binaries ship as **GitHub Release assets** (never committed to a
+tree). It is a single static binary per architecture and is never bundled into the
+panel/LB archive.
 
 ---
 
@@ -116,6 +117,22 @@ sockets live next to the binary in the app bin tree
 (`bin/xc_fanout/sockets/{http,control}.sock`), mirroring the php-fpm sockets
 layout nginx already reaches over `unix:`. Installed on MAIN first; LB rollout is
 a later phase.
+
+### Install / update
+
+The binary is fetched from the latest `XC_VM_Fanout` release, like the other
+distributed binaries:
+
+```
+console.php fanout_binary          # install or update to the latest release
+console.php fanout_binary force     # reinstall the current version
+```
+
+`FanoutBinaryCommand` reads the installed version straight from the binary
+(`xc_fanout -version`), compares it to the latest release tag, and — when they
+differ — downloads the arch-matched asset (`xc_fanout-linux-<arch>`), verifies its
+SHA-256 against the release's `SHA256SUMS`, installs it atomically, and kills the
+running daemon so the `service` keepalive respawns it with the new binary.
 
 See `docs/adr/0001-*`, `0002-*`, `0003-*` for the full design and the phased
 cutover plan.
