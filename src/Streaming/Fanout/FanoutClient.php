@@ -138,6 +138,40 @@ class FanoutClient {
 	}
 
 	/**
+	 * Whether the daemon is currently serving this stream with live data — i.e.
+	 * a puller/ingest is producing bytes. Used by live.php to decide whether to
+	 * hand a non-proxy viewer to the daemon (A3) or fall back to the legacy feed.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return bool True when the daemon reports has_data for the stream.
+	 */
+	public static function isStreamFed(int $rStreamID): bool {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return false;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/streams/' . $rStreamID,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 1,
+			CURLOPT_TIMEOUT        => 2,
+		]);
+		$rBody = curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		if ($rCode !== 200 || !is_string($rBody)) {
+			return false;
+		}
+
+		$rData = json_decode($rBody, true);
+
+		return is_array($rData) && !empty($rData['has_data']);
+	}
+
+	/**
 	 * Unregister a stream (stops its puller / ingest listener, drops it from the
 	 * daemon). Works for both pull-fed (proxy) and push-fed (ingest) streams.
 	 *

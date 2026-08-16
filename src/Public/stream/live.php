@@ -434,6 +434,22 @@ if ($rChannelInfo) {
             }
 
             // ────────────────────────────────────────────────────────────────
+            // Non-proxy fanout hand-off (ADR 0003, A3). The stream's ffmpeg tees
+            // its mpegts into the xc_fanout daemon (A2) from the same process that
+            // writes the on-disk HLS, so once we reach delivery (playlist ready
+            // above) the daemon has data. If it's reachable and serving this
+            // stream, hand the byte path to nginx→daemon via X-Accel-Redirect —
+            // like proxy mode — instead of pinning this worker in the per-viewer
+            // .ts chase-read below. Daemon down / not fed ⇒ the legacy feed runs.
+            // ────────────────────────────────────────────────────────────────
+            if (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
+                header("Content-Type: video/mp2t");
+                header("X-Accel-Buffering: no");
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID));
+                exit;
+            }
+
+            // ────────────────────────────────────────────────────────────────
             // Main TS feed (non-proxy): stream the HLS segments as continuous MPEG-TS.
             // ────────────────────────────────────────────────────────────────
             header("Content-Type: video/mp2t");

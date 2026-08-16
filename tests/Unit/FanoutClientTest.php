@@ -85,4 +85,9 @@ final class FanoutClientTest extends TestCase {
 		// fail closed (null) — the caller then launches ffmpeg legacy-only.
 		$this->assertNull(FanoutClient::registerIngest(42));
 	}
+
+	public function testIsStreamFedFalseWithoutDaemon() {
+		// No daemon socket in the unit env → not fed → live.php uses the legacy feed.
+		$this->assertFalse(FanoutClient::isStreamFed(42));
+	}
 }
