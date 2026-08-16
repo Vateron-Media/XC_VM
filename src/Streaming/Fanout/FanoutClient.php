@@ -138,6 +138,44 @@ class FanoutClient {
 	}
 
 	/**
+	 * Prewarm a registered (proxy) stream and wait up to $rWaitMs for its source
+	 * to produce data, returning whether it did (ADR 0003, Phase C off-air). The
+	 * daemon starts the puller and blocks until data or the timeout; PHP shows
+	 * the not-on-air page when this returns false, matching the legacy startProxy
+	 * behaviour on a dead source.
+	 *
+	 * @param int $rStreamID Stream id (must already be registered).
+	 * @param int $rWaitMs   Max wait for first data, milliseconds.
+	 * @return bool True when the daemon reports has_data within the window.
+	 */
+	public static function probe(int $rStreamID, int $rWaitMs): bool {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return false;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/probe/' . $rStreamID . '?wait=' . intval($rWaitMs),
+			CURLOPT_POST           => true,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 2,
+			CURLOPT_TIMEOUT        => intval(ceil($rWaitMs / 1000)) + 3,
+		]);
+		$rBody = curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		if ($rCode !== 200 || !is_string($rBody)) {
+			return false;
+		}
+
+		$rData = json_decode($rBody, true);
+
+		return is_array($rData) && !empty($rData['has_data']);
+	}
+
+	/**
 	 * Whether the daemon is currently serving this stream with live data — i.e.
 	 * a puller/ingest is producing bytes. Used by live.php to decide whether to
 	 * hand a non-proxy viewer to the daemon (A3) or fall back to the legacy feed.

@@ -126,6 +126,15 @@ if ($rChannelInfo) {
         $rStreamArguments = $db->get_rows(true, 'argument_key');
         $rSource = FanoutClient::buildSource($rStreamRow, $rStreamArguments);
         $rFanout = !empty($rSource["urls"]) && FanoutClient::register($rStreamID, $rSource);
+
+        // Off-air parity (ADR 0003, Phase C): prewarm the daemon puller and wait
+        // for the source to actually produce. A running-but-dead source shows the
+        // not-on-air page here, exactly like the legacy startProxy path (whose
+        // viewer would otherwise hang on an empty stream). Bounded by
+        // on_demand_wait_time; a warm stream returns immediately.
+        if ($rFanout && !FanoutClient::probe($rStreamID, max(1, intval($rSettings["on_demand_wait_time"] ?: 5)) * 1000)) {
+            OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
+        }
     }
 
     if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {

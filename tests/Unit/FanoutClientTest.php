@@ -90,4 +90,10 @@ final class FanoutClientTest extends TestCase {
 		// No daemon socket in the unit env → not fed → live.php uses the legacy feed.
 		$this->assertFalse(FanoutClient::isStreamFed(42));
 	}
+
+	public function testProbeFalseWithoutDaemon() {
+		// No daemon socket → probe fails closed → live.php shows not-on-air only
+		// after a real register, so this alone is a safe false.
+		$this->assertFalse(FanoutClient::probe(42, 500));
+	}
 }
