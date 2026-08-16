@@ -103,14 +103,30 @@ if ($rChannelInfo) {
         $rProxyID = NULL;
     }
 
-    // Fanout mode (ADR 0002, P2): the xc_fanout daemon owns the proxy-mode
-    // producer — it starts the source puller on the first viewer and stops it
-    // after the last one leaves. So when the flag is on and this is a proxy
-    // stream, skip ALL the legacy startProxy/startMonitor process management
-    // below (no legacy producer, no streams_servers pid write → the streams
-    // cron leaves it alone) and let the delivery arm register the source with
-    // the daemon + hand off via X-Accel-Redirect.
-    $rFanout = !empty($rSettings["live_fanout"]) && !empty($rChannelInfo["proxy"]);
+    // Fanout (ADR 0002/0003, P2): route proxy-mode live TS through the xc_fanout
+    // daemon when it is reachable — there is NO settings flag; the switch is the
+    // daemon itself. If its control socket is present AND registering the source
+    // succeeds, this stream is committed to the daemon path: we skip the whole
+    // legacy startProxy/startMonitor block below (the daemon owns the producer —
+    // starts the puller on the first viewer, stops it after the last leaves) and
+    // no streams_servers pid is written, so the streams cron leaves it alone; the
+    // delivery arm then hands the byte path to nginx via X-Accel-Redirect.
+    //
+    // Deciding on *registration success* (not just socket presence) makes the
+    // fallback correct: a stopped/unreachable daemon (or a stale socket after a
+    // hard kill, or a stream with no source) leaves $rFanout false, so the FULL
+    // legacy path runs — startProxy producer included. Stopping the daemon is
+    // therefore the rollback: every stream falls back automatically, no flag.
+    $rFanout = false;
+    if (!empty($rChannelInfo["proxy"]) && file_exists(FANOUT_CTL_SOCK)) {
+        DatabaseFactory::connect();
+        $db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?', $rStreamID);
+        $rStreamRow = ($db->num_rows() > 0 ? $db->get_row() : array());
+        $db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
+        $rStreamArguments = $db->get_rows(true, 'argument_key');
+        $rSource = FanoutClient::buildSource($rStreamRow, $rStreamArguments);
+        $rFanout = !empty($rSource["urls"]) && FanoutClient::register($rStreamID, $rSource);
+    }
 
     if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
         $rChannelInfo["pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid"));
@@ -361,36 +377,25 @@ if ($rChannelInfo) {
 
             if ($rChannelInfo["proxy"]) {
                 // ────────────────────────────────────────────────────────────────
-                // Fanout mode (ADR 0002, P2) — flag-gated by `live_fanout`.
-                // Auth is done; instead of pinning this PHP-FPM worker in the
-                // socket relay for the whole session, register the source with the
-                // xc_fanout daemon and hand the byte path to nginx via
-                // X-Accel-Redirect (same pattern as P1 segment delivery). The
-                // worker is freed the moment we return; nginx proxies the viewer
-                // straight to the daemon's /live/<id>. Falls back to the legacy
-                // relay below if registration fails.
+                // Fanout hand-off (ADR 0002/0003, P2). Auth is done and the source
+                // was already registered with the daemon above (that is what set
+                // $rFanout). Instead of pinning this PHP-FPM worker in the socket
+                // relay for the whole session, hand the byte path to nginx via
+                // X-Accel-Redirect (same pattern as P1 segment delivery): the
+                // worker is freed the moment we return and nginx proxies the viewer
+                // straight to the daemon's /live/<id>.
                 // ────────────────────────────────────────────────────────────────
                 if ($rFanout) {
-                    DatabaseFactory::connect();
-                    $db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?', $rStreamID);
-                    $rStreamRow = ($db->num_rows() > 0 ? $db->get_row() : array());
-                    $db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
-                    $rStreamArguments = $db->get_rows(true, 'argument_key');
-                    DatabaseFactory::close();
-
-                    $rSource = FanoutClient::buildSource($rStreamRow, $rStreamArguments);
-
-                    if (!empty($rSource["urls"]) && FanoutClient::register($rStreamID, $rSource)) {
-                        header("Content-Type: video/mp2t");
-                        header("X-Accel-Buffering: no");
-                        header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID));
-                        exit;
-                    }
-                    // Registration failed — fall through to the legacy socket relay.
+                    header("Content-Type: video/mp2t");
+                    header("X-Accel-Buffering: no");
+                    header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID));
+                    exit;
                 }
 
                 // ────────────────────────────────────────────────────────────────
-                // Proxy mode: relay ffmpeg's unix-socket datagrams straight to the client.
+                // Legacy proxy relay (daemon unreachable): relay ffmpeg's
+                // unix-socket datagrams straight to the client. The producer was
+                // started by startProxy above because $rFanout is false.
                 // ────────────────────────────────────────────────────────────────
                 header("Content-type: video/mp2t");
 

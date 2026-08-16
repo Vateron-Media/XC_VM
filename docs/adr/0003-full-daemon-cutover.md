@@ -43,10 +43,10 @@ The daemon is a **live fan-out engine**: one ingest per stream → many viewers,
 
 ---
 
-## 3. Phases (each flag-gated by `live_fanout`, reversible)
+## 3. Phases (each reversible — the daemon's reachability is the switch; stop it to fall back)
 
-**Phase 0 — Schema/enablement (prerequisite, small).**
-`live_fanout` has no home yet: the `settings` table has no such column, so the flag can't be turned on in prod (only ALTER'd on the test box). Add `live_fanout TINYINT(1) DEFAULT 0` to `src/bin/install/database.sql` + a settings migration, and an admin toggle. Without this nothing else ships.
+**Phase 0 — ~~Schema/enablement~~ (dropped).**
+The original plan added a `live_fanout` settings column + admin toggle. **Removed** (done): for a *permanent* cutover a runtime settings flag is throwaway scaffolding, and a settings column that ends up always-1 is dead weight (cf. P1's dormant `hls_accelerator`). **The switch is the daemon itself.** `live.php` routes a proxy stream to the daemon iff its control socket is present *and* `FanoutClient::register` succeeds; otherwise the full legacy path runs (producer included). So **stopping the daemon is the rollback** — every stream falls back automatically, per node, with no DB write, no cache rebuild, no admin UI, and self-healing (crash → keepalive → back). Which *stream types* the daemon handles stays a code decision (proxy now; +non-proxy after Phase A), which is the granularity that actually matters. The test-box `live_fanout` column was dropped.
 
 **Phase A — Non-proxy live via the daemon (ADR 0002 S4). _Biggest new piece._**
 - Daemon: add a per-stream **ingest listener** — a unix socket the producer connects to and pushes `-f mpegts` into (today the daemon only *pulls*; here it *receives*). Reuse the same Stream (ring + HLS) once bytes arrive.
@@ -59,7 +59,7 @@ The daemon is a **live fan-out engine**: one ingest per stream → many viewers,
 - **Daemon gap to fix:** `/hls` requests must participate in the on-demand lifecycle (keep the puller alive) — today only `/live` attaches; an HLS-only audience would let the puller idle-stop. Add attach/detach (or a last-access TTL) to the HLS handler.
 - **Test:** HLS player only (no TS viewer) holds a stream up; segments roll; sliding window correct.
 
-**Phase C — Parity & robustness (the real work; gates flag-default).**
+**Phase C — Parity & robustness (the real work; gates making the daemon the default).**
 _Foundations landed (daemon 0.2.0 + `service`):_ HLS now joins the on-demand lifecycle (`/hls` `touch()`es the stream — starts/keeps the puller for an HLS-only audience; unified idle-stop reaper covers TS+HLS); off-air signal via control `GET /streams/<id>` → `{running,refs,has_data,since_data_ms}`; daemon auto-restarts on crash (keepalive loop in `service`, `Restart=always` equivalent). _Still to do:_ wire the auth endpoint to read the status for off-air; on-demand cold-start bounds; adaptive/restreamer/redirect parity; disconnect accounting (→ P4 Redis).
 
 Everything `live.php`'s legacy block does must have a daemon-model equivalent before the daemon can be the default:
@@ -67,10 +67,9 @@ Everything `live.php`'s legacy block does must have a daemon-model equivalent be
 - **On-demand cold start** (first viewer starts the stream; bounded wait; expiry).
 - **Adaptive / multi-bitrate**, **restreamer chains**, **redirect-to-LB** routing.
 - **Connection limits / IP match / telemetry** — keep the `ConnectionTracker` writes at auth; move real connect/disconnect accounting to the daemon (→ **P4** Redis), since with X-Accel PHP no longer sees disconnect.
-- **Supervision hardening**: auto-restart the daemon on crash (today it's a bare `&` in `service`, not restarted).
 
 **Phase D — Make the daemon the default.**
-Flip `live_fanout` on by default once Phase C parity holds in a canary. Keep the flag as the rollback switch for one release.
+No flag to flip: a reachable daemon already serves every wired stream type. Phase D = widen coverage to all live types and confirm parity in a canary node before rolling the daemon to every node. Rollback stays "stop the daemon" until legacy is deleted (Phase E).
 
 **Phase E — Delete legacy (the requested cleanup). _Only after D is stable._**
 Remove and update consumers:
@@ -78,7 +77,7 @@ Remove and update consumers:
 - `live.php`: the proxy socket-relay loop and the non-proxy `.ts` chase-read loop (the ~350→628 block) — `live.php` becomes auth + register + X-Accel only (the "slim `live_auth`" ADR 0002 originally imagined, reached by deletion rather than duplication).
 - `segment.php` / `HLSGenerator` tmpfs-serving path once HLS is daemon-served (keep timeshift/archive readfile).
 - `CONS_TMP_PATH` datagram sockets + related cleanup in `MonitorCommand`.
-Each deletion behind the same flag being on; `git revert`-able.
+Each deletion gated on the daemon being the sole live path; `git revert`-able.
 
 **Phase F — Drop streaming tmpfs mounts (ADR 0001 P5).**
 Once nothing writes `<id>_*.ts`/`.m3u8` to `STREAMS_PATH`, remove the tmpfs mount for it (installer + `service`). Timeshift/archive unaffected.
@@ -93,7 +92,7 @@ Ship the daemon to LB nodes (binary already multi-arch, static; LB archive stays
 - **Yes to the full cutover for live** — the box A/B proves the payoff (8 viewers: 9 php-fpm workers/242 MB → 1 worker/45 MB). It scales the exact wall P0 found.
 - **Keep VOD/timeshift out** — different model; no benefit, real risk. (Confirm this scope.)
 - **The daemon replaces delivery, not ffmpeg** — non-proxy transcode stays; we only tee its output.
-- **Delete legacy LAST (Phase E), not now** — keep both paths behind `live_fanout` until parity (Phase C) is proven in production. Deleting `ProxyCommand`/`live.php` loops before that removes our rollback.
+- **Delete legacy LAST (Phase E), not now** — keep both paths (daemon reachable ⇒ daemon, else legacy) until parity (Phase C) is proven in production. Deleting `ProxyCommand`/`live.php` loops before that removes our rollback.
 - **Real effort is Phase C**, not the happy path. Off-air, on-demand cold-start, adaptive, restreamer, limits, and disconnect-accounting are where correctness lives. Budget accordingly.
 - **Two concrete daemon gaps** surfaced already: (1) `/hls` must join the on-demand lifecycle; (2) the daemon needs a health/last-data signal for off-air. Both are Phase A/B.
 - **Order:** Phase 0 (schema) → A (non-proxy) → B (HLS) → C (parity) → D (default) → E (delete) → F (tmpfs) → G (LB).
