@@ -428,9 +428,18 @@ if ($rChannelInfo) {
             // .ts chase-read below. Daemon down / not fed ⇒ the legacy feed runs.
             // ────────────────────────────────────────────────────────────────
             if ($rTSDaemon) {
+                // client_prebuffer / restreamer_prebuffer (seconds) → the daemon
+                // front-loads that much keyframe-aligned history on join, filling
+                // the player's cache. The legacy byte path below applies these; the
+                // X-Accel hand-off must pass them through or they would be lost
+                // (the daemon otherwise sends only the current GOP). The daemon
+                // clamps the value to its own retention ceiling.
+                $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
+                    ? intval($rSettings["restreamer_prebuffer"] ?? 0)
+                    : intval($rSettings["client_prebuffer"] ?? 0);
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
-                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]));
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer);
                 exit;
             }
 
