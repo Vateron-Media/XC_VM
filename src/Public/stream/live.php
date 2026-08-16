@@ -178,24 +178,12 @@ if ($rChannelInfo) {
                 OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
         } else {
-            if (!empty($rChannelInfo["proxy"])) {
-                if (!($rChannelInfo["monitor_pid"] && ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID))) {
-                    @unlink(STREAMS_PATH . $rStreamID . "_.pid");
-                    ProcessManager::startProxy($rStreamID);
-
-                    if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
-                        $rChannelInfo["monitor_pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor"));
-                    }
-                }
-
-                if (!$rChannelInfo["monitor_pid"]) {
-                    OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
-                }
-
-                $rChannelInfo["pid"] = $rChannelInfo["monitor_pid"];
-            } else {
-                OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
-            }
+            // Non-on-demand: proxy streams are daemon-only now (ADR 0003, Phase E
+            // — the legacy ProxyCommand producer was removed). If we reach here
+            // $rFanout is false, i.e. the daemon is unreachable, so show
+            // not-on-air (the keepalive brings the daemon back in ~2s). A dead
+            // non-proxy stream is likewise not-on-air.
+            OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
         }
     }
 
@@ -415,59 +403,19 @@ if ($rChannelInfo) {
 
             if ($rChannelInfo["proxy"]) {
                 // ────────────────────────────────────────────────────────────────
-                // Fanout hand-off (ADR 0002/0003, P2). Auth is done and the source
-                // was already registered with the daemon above (that is what set
-                // $rFanout). Instead of pinning this PHP-FPM worker in the socket
-                // relay for the whole session, hand the byte path to nginx via
-                // X-Accel-Redirect (same pattern as P1 segment delivery): the
-                // worker is freed the moment we return and nginx proxies the viewer
-                // straight to the daemon's /live/<id>.
+                // Proxy streams are daemon-only (ADR 0003, Phase E — the legacy
+                // ProxyCommand producer + socket relay were removed). Auth is done
+                // and the source was already registered + probed with the daemon
+                // above (that set $rFanout; an unreachable/dead daemon already went
+                // not-on-air). Hand the byte path to nginx → daemon via
+                // X-Accel-Redirect; the FPM worker is freed the instant we return.
                 // ────────────────────────────────────────────────────────────────
-                if ($rFanout) {
-                    header("Content-Type: video/mp2t");
-                    header("X-Accel-Buffering: no");
-                    header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]));
-                    exit;
+                if (!$rFanout) {
+                    OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
                 }
-
-                // ────────────────────────────────────────────────────────────────
-                // Legacy proxy relay (daemon unreachable): relay ffmpeg's
-                // unix-socket datagrams straight to the client. The producer was
-                // started by startProxy above because $rFanout is false.
-                // ────────────────────────────────────────────────────────────────
-                header("Content-type: video/mp2t");
-
-                if (!file_exists(CONS_TMP_PATH . $rStreamID . "/")) {
-                    mkdir(CONS_TMP_PATH . $rStreamID);
-                }
-
-                $rSocketFile = CONS_TMP_PATH . $rStreamID . "/" . $rTokenData["uuid"];
-                $rSocket = socket_create(AF_UNIX, SOCK_DGRAM, 0);
-                @unlink($rSocketFile);
-                socket_bind($rSocket, $rSocketFile);
-                socket_set_option($rSocket, SOL_SOCKET, SO_RCVTIMEO, array("sec" => 20, "usec" => 0));
-                socket_set_nonblock($rSocket);
-                $rTotalFails = 200;
-                $rFails = 0;
-
-                while ($rFails <= $rTotalFails) {
-                    // MPEG-TS packet size = 188 bytes
-                    // 64 packets per read:
-                    // 188 * 64 = 12032 bytes (~12 KB)
-                    $rBuffer = socket_read($rSocket, 188 * 64);
-
-                    if ($rBuffer !== false && $rBuffer !== '') {
-                        $rFails = 0;
-                        echo $rBuffer;
-                        flush();
-                    } else {
-                        $rFails++;
-                        usleep(80000);          // 80ms backoff when no data
-                    }
-                }
-                // cleanup
-                socket_close($rSocket);
-                @unlink($rSocketFile);
+                header("Content-Type: video/mp2t");
+                header("X-Accel-Buffering: no");
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]));
                 exit;
             }
 

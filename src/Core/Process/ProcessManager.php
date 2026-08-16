@@ -507,18 +507,6 @@ class ProcessManager {
         return true;
     }
 
-    /**
-     * Start a proxy process in background.
-     *
-     * Extracted from ProcessManager::startProxy().
-     *
-     * @param int $streamID
-     * @return bool
-     */
-    public static function startProxy($streamID) {
-        shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php proxy ' . intval($streamID) . ' >/dev/null 2>/dev/null &');
-        return true;
-    }
 
     // ───────────────────────────────────────────────────────────
     //  Utility

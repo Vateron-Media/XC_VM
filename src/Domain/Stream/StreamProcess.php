@@ -95,16 +95,6 @@ class StreamProcess {
 		return true;
 	}
 
-	/**
-	 * Start the proxy process for a stream.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return mixed Start result.
-	 */
-	public static function startProxy($rStreamID) {
-		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php proxy ' . intval($rStreamID) . ' >/dev/null 2>/dev/null &');
-		return true;
-	}
 
 	/**
 	 * Start thumbnail generation for a stream.
