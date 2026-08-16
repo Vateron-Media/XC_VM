@@ -355,7 +355,13 @@ class UsersCronJob implements CommandInterface {
                                         }
                                     }
                                 } else {
-                                    if ($rConnection['container'] != 'rtmp') {
+                                    // Daemon-served TS (pid=0, ADR 0003 Phase C) has no PHP
+                                    // worker to probe — the fanout_sync daemon closes it by
+                                    // reconciling against the daemon's live-connection set.
+                                    // Skip it here so this reaper neither leaks it (a live
+                                    // reused worker pid reads as "running") nor closes it
+                                    // early (when that worker recycles).
+                                    if ($rConnection['container'] != 'rtmp' && intval($rConnection['pid']) !== 0) {
                                         if ($rConnection['server_id'] == SERVER_ID) {
                                             $rIsRunning = ProcessManager::isRunning($rConnection['pid'], 'php-fpm');
                                         } else {

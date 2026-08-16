@@ -41,6 +41,7 @@ boot() {
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php watchdog >/dev/null 2>/dev/null &
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php queue >/dev/null 2>/dev/null &
   sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php cache_handler >/dev/null 2>/dev/null &
+  sudo -u xc_vm $SCRIPT/bin/php/bin/php $SCRIPT/console.php fanout_sync >/dev/null 2>/dev/null &
 }
 
 # Foreground entry for systemd (Type=simple): boot, then stay alive so systemd

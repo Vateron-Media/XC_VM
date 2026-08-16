@@ -238,6 +238,40 @@ class FanoutClient {
 	}
 
 	/**
+	 * Every live-TS viewer uuid currently connected to the daemon (across all
+	 * streams), for the fanout_sync reconciler. Returns null when the daemon is
+	 * unreachable — the caller must then skip reconciliation (an empty array
+	 * would wrongly close every daemon connection).
+	 *
+	 * @return string[]|null Active connection uuids, or null on failure.
+	 */
+	public static function activeConnections(): ?array {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return null;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/connections',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 2,
+			CURLOPT_TIMEOUT        => 3,
+		]);
+		$rBody = curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		if ($rCode !== 200 || !is_string($rBody)) {
+			return null;
+		}
+
+		$rData = json_decode($rBody, true);
+
+		return is_array($rData) ? $rData : null;
+	}
+
+	/**
 	 * Unregister a stream (stops its puller / ingest listener, drops it from the
 	 * daemon). Works for both pull-fed (proxy) and push-fed (ingest) streams.
 	 *

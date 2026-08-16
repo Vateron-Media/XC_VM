@@ -356,12 +356,26 @@ if ($rChannelInfo) {
             exit();
 
         default:
+            // Decide TS delivery once: daemon (proxy already registered+probed,
+            // or non-proxy fed) vs the legacy per-viewer feed. Daemon-served TS
+            // connections are recorded with pid=0 — their auth worker returns
+            // immediately under X-Accel, so the reaper's isRunning(pid) check
+            // can't track them; the fanout_sync daemon reconciles pid=0 rows
+            // against the daemon's live-connection set (see UsersCronJob).
+            $rTSDaemon = false;
+            if ($rChannelInfo["proxy"]) {
+                $rTSDaemon = $rFanout;
+            } elseif (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
+                $rTSDaemon = true;
+            }
+            $rConnPID = $rTSDaemon ? 0 : $rPID;
+
             $rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, $rExtension, true, false, false);
             if (!isset($rConnection)) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
                 }
-                $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rPID);
+                $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rConnPID);
             } else {
                 $rIPMatch = NetworkUtils::ipMatches($rSettings["ip_subnet_match"], $rConnection["user_ip"], $rIP);
 
@@ -374,7 +388,7 @@ if ($rChannelInfo) {
                     posix_kill(intval($rConnection["pid"]), 9);
                 }
 
-                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
+                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("pid" => $rConnPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
             }
 
             if (!$rResult) {
@@ -412,7 +426,7 @@ if ($rChannelInfo) {
                 if ($rFanout) {
                     header("Content-Type: video/mp2t");
                     header("X-Accel-Buffering: no");
-                    header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID));
+                    header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]));
                     exit;
                 }
 
@@ -466,10 +480,10 @@ if ($rChannelInfo) {
             // like proxy mode — instead of pinning this worker in the per-viewer
             // .ts chase-read below. Daemon down / not fed ⇒ the legacy feed runs.
             // ────────────────────────────────────────────────────────────────
-            if (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
+            if ($rTSDaemon) {
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
-                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID));
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]));
                 exit;
             }
 
