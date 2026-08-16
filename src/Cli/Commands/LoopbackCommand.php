@@ -5,7 +5,6 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Streaming\TS;
 
 /**
  * LoopbackCommand — loopback command
@@ -112,7 +111,6 @@ class LoopbackCommand implements CommandInterface {
 
 		set_time_limit(0);
 		cli_set_process_title('Loopback[' . $rStreamID . ']');
-		require MAIN_HOME . 'Streaming/TimeshiftClient.php';
 
 		$rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 		$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
@@ -200,9 +198,9 @@ class LoopbackCommand implements CommandInterface {
 							$rAdaptationField = $rHeader >> 4 & 3;
 							if (($rAdaptationField & 2) === 2) {
 								if (0 < count($rPATHeaders) && unpack('C', $rPacket[4])[1] == 7 && substr($rPacket, 4, 2) == KEYFRAME_HEADER) {
-									// Extract PCR directly from the adaptation field. TS::parsePacket() is
-									// unsuitable here — its getBits() only advances on zero bits and returns
-									// garbage PTS, causing the gate to never fire (one giant segment).
+									// Extract PCR directly from the adaptation field (parsed inline — a
+									// generic bit-reader mis-advances on zero bits and returns garbage PTS,
+									// causing the gate to never fire → one giant segment).
 									// Keyframe flags are 0x50, so PCR_flag (0x10) is set: PCR base in the
 									// 5 bytes starting at offset 6.
 									$rKfPTS = null;

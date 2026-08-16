@@ -90,7 +90,6 @@ class LlodCommand implements CommandInterface {
 		set_time_limit(0);
 		error_reporting(E_WARNING | E_PARSE);
 		cli_set_process_title('LLOD[' . $rStreamID . ']');
-		require MAIN_HOME . 'Streaming/TimeshiftClient.php';
 
 		$rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 

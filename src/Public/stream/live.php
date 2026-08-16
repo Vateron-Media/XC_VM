@@ -16,7 +16,6 @@ use XcVm\Streaming\Delivery\SegmentReader;
 use XcVm\Streaming\Delivery\SignalSender;
 use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
-use XcVm\Streaming\TS;
 
 /**
  * Live stream delivery endpoint

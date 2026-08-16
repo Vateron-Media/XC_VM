@@ -164,52 +164,6 @@ class ProcessManager {
         return false;
     }
 
-    /**
-     * Check if a process is alive using a PID file
-     *
-     * Reads PID from file, then checks /proc/PID/cmdline for expected string.
-     *
-     * @param string $pidFile Path to PID file
-     * @param string $searchString Expected string in cmdline
-     * @return bool
-     */
-    public static function checkPidFile($pidFile, $searchString) {
-        if (!file_exists($pidFile)) {
-            return false;
-        }
-
-        $pid = (int)trim(file_get_contents($pidFile));
-
-        if ($pid <= 0) {
-            return false;
-        }
-
-        return self::matchesCmdline($pid, $searchString);
-    }
-
-    /**
-     * Check if a process cmdline contains a search string
-     *
-     * @param int $pid Process ID
-     * @param string $search String to look for in cmdline
-     * @return bool
-     */
-    public static function matchesCmdline($pid, $search) {
-        $pid = (int)$pid;
-
-        if ($pid <= 0 || !self::procExists($pid)) {
-            return false;
-        }
-
-        $cmdline = @file_get_contents('/proc/' . $pid . '/cmdline');
-
-        if ($cmdline === false) {
-            return false;
-        }
-
-        return stripos($cmdline, $search) !== false;
-    }
-
     // ───────────────────────────────────────────────────────────
     //  Process Control
     // ───────────────────────────────────────────────────────────
@@ -233,25 +187,6 @@ class ProcessManager {
         }
 
         return posix_kill($pid, $signal);
-    }
-
-    /**
-     * Kill all processes matching a pattern via cmdline
-     *
-     * @param string $pattern Pattern to match in ps output
-     */
-    public static function killByPattern($pattern) {
-        $pattern = escapeshellarg($pattern);
-        shell_exec("kill -9 `ps -ef | grep {$pattern} | grep -v grep | awk '{print \$2}'`");
-    }
-
-    /**
-     * Get the current process PID
-     *
-     * @return int
-     */
-    public static function currentPid() {
-        return getmypid();
     }
 
     /**
@@ -358,22 +293,6 @@ class ProcessManager {
         file_put_contents($lockFile, getmypid());
 
         return true;
-    }
-
-    /**
-     * Release a cron lock
-     *
-     * @param string $lockFile Path to PID lock file
-     */
-    public static function releaseCronLock($lockFile) {
-        if (file_exists($lockFile)) {
-            $pid = (int)trim(file_get_contents($lockFile));
-
-            // Only remove if it's our lock
-            if ($pid === getmypid()) {
-                unlink($lockFile);
-            }
-        }
     }
 
     // ───────────────────────────────────────────────────────────
@@ -511,17 +430,6 @@ class ProcessManager {
     // ───────────────────────────────────────────────────────────
     //  Utility
     // ───────────────────────────────────────────────────────────
-
-    /**
-     * Count running processes matching a pattern
-     *
-     * @param string $pattern grep pattern
-     * @return int
-     */
-    public static function countProcesses($pattern) {
-        $pattern = escapeshellarg($pattern);
-        return (int)trim(shell_exec("ps ax | grep -v grep | grep -c {$pattern}"));
-    }
 
     /**
      * Check if an nginx master process is running.
