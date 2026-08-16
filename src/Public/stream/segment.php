@@ -186,14 +186,12 @@ if (isset($_GET['token'])) {
 					}
 
 					if (file_exists($rSegment . '.enc')) {
-						header('Content-Length: ' . filesize($rSegment . '.enc'));
-						readfile($rSegment . '.enc');
+						header('X-Accel-Redirect: /xc_hls/' . rawurlencode(basename($rSegment) . '.enc'));
 					} else {
 						generate404();
 					}
 				} else {
-					header('Content-Length: ' . $rFilesize);
-					readfile($rSegment);
+					header('X-Accel-Redirect: /xc_hls/' . rawurlencode(basename($rSegment)));
 				}
 			} else {
 				if (0 < $rOffset) {
