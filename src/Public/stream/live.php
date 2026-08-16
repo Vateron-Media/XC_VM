@@ -383,7 +383,7 @@ if ($rChannelInfo) {
                     if (!empty($rSource["urls"]) && FanoutClient::register($rStreamID, $rSource)) {
                         header("Content-Type: video/mp2t");
                         header("X-Accel-Buffering: no");
-                        header("X-Accel-Redirect: /xc_fanout/live/" . rawurlencode((string) $rStreamID));
+                        header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID));
                         exit;
                     }
                     // Registration failed — fall through to the legacy socket relay.
