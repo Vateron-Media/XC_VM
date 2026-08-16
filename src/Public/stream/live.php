@@ -103,6 +103,15 @@ if ($rChannelInfo) {
         $rProxyID = NULL;
     }
 
+    // Fanout mode (ADR 0002, P2): the xc_fanout daemon owns the proxy-mode
+    // producer — it starts the source puller on the first viewer and stops it
+    // after the last one leaves. So when the flag is on and this is a proxy
+    // stream, skip ALL the legacy startProxy/startMonitor process management
+    // below (no legacy producer, no streams_servers pid write → the streams
+    // cron leaves it alone) and let the delivery arm register the source with
+    // the daemon + hand off via X-Accel-Redirect.
+    $rFanout = !empty($rSettings["live_fanout"]) && !empty($rChannelInfo["proxy"]);
+
     if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
         $rChannelInfo["pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid"));
     }
@@ -115,7 +124,7 @@ if ($rChannelInfo) {
         ConnectionTracker::addToQueue($rStreamID, $rPID);
     }
 
-    if (!ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
+    if (!$rFanout && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
         $rChannelInfo["pid"] = NULL;
 
         if ($rChannelInfo["on_demand"] == 1) {
@@ -361,7 +370,7 @@ if ($rChannelInfo) {
                 // straight to the daemon's /live/<id>. Falls back to the legacy
                 // relay below if registration fails.
                 // ────────────────────────────────────────────────────────────────
-                if (!empty($rSettings["live_fanout"])) {
+                if ($rFanout) {
                     DatabaseFactory::connect();
                     $db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?', $rStreamID);
                     $rStreamRow = ($db->num_rows() > 0 ? $db->get_row() : array());
