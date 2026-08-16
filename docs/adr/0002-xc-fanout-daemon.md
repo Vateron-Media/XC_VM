@@ -28,7 +28,7 @@ P0 measured the cost: **~1 PHP-FPM worker + ~25 MB per viewer**; the ~400 ceilin
  mpegts (non-proxy)      └───────────────────────────────────────────────│──────────────────────┘
                                                                           │ (one HTTP conn per viewer)
  viewer ──HTTP──▶ nginx ──auth_request──▶ PHP (204/403)                   │
- viewer ◀──chunked mpegts── nginx ──proxy_pass unix:/run/xc_fanout/http.sock ◀┘
+ viewer ◀──chunked mpegts── nginx ──proxy_pass unix:/home/xc_vm/bin/xc_fanout/sockets/http.sock ◀┘
 ```
 
 - **PHP is only in `auth_request`** (short subrequest), never in the byte path.
@@ -37,7 +37,7 @@ P0 measured the cost: **~1 PHP-FPM worker + ~25 MB per viewer**; the ~400 ceilin
 ### 2.1 Ingest per sub-mode (how "daemon owns the puller" applies)
 
 - **proxy-mode:** the daemon **fully owns the puller** — it reimplements `ProxyCommand::getActiveStream` semantics in Go: connect to a source URL, use it directly if `Content-Type: video/mp2t`, otherwise spawn `ffmpeg … -f mpegts -` (HLS/remux sources) and read its stdout. Replaces `ProxyCommand.php` entirely.
-- **non-proxy:** the stream's HLS ffmpeg (owned by `StreamProcess`) must stay — it feeds HLS delivery (P1). We do **not** add a second source pull. Instead that ffmpeg gets a **second tee'd output** `-f mpegts unix:/run/xc_fanout/ingest/<id>.sock` alongside its `-f hls …`. The daemon owns the **ingest socket + fan-out**; the producer is the existing ffmpeg. (Rejected alternative: daemon tails the `.ts` segments — re-reads tmpfs and adds a segment of latency.)
+- **non-proxy:** the stream's HLS ffmpeg (owned by `StreamProcess`) must stay — it feeds HLS delivery (P1). We do **not** add a second source pull. Instead that ffmpeg gets a **second tee'd output** `-f mpegts unix:/home/xc_vm/bin/xc_fanout/sockets/ingest/<id>.sock` alongside its `-f hls …`. The daemon owns the **ingest socket + fan-out**; the producer is the existing ffmpeg. (Rejected alternative: daemon tails the `.ts` segments — re-reads tmpfs and adds a segment of latency.)
 
 > One ffmpeg per stream, at most one source pull. This is also the on-ramp to P3 (in-RAM HLS): once the daemon receives the mpegts feed it can later segment it itself and drop the tmpfs HLS output.
 
@@ -59,7 +59,7 @@ Rather than a separate `auth_request` subrequest + a slim `live_auth` endpoint, 
 2. registers the stream with the daemon over the **control unix socket** (`FanoutClient::register` → `PUT /streams/<id>`),
 3. emits `header('X-Accel-Redirect: /xc_fanout/live/<id>')` and returns.
 
-nginx then proxies the viewer to the daemon's client socket (`location ^~ /xc_fanout/live/` → `proxy_pass http://unix:/run/xc_fanout/http.sock`), and **PHP-FPM is freed the instant `live.php` returns** — PHP is out of the byte path, the same win auth_request would give.
+nginx then proxies the viewer to the daemon's client socket (`location ^~ /xc_fanout/live/` → `proxy_pass http://unix:/home/xc_vm/bin/xc_fanout/sockets/http.sock`), and **PHP-FPM is freed the instant `live.php` returns** — PHP is out of the byte path, the same win auth_request would give.
 
 Why this over `auth_request`: the `live_fanout` flag stays **in PHP** (read from the settings cache), so flipping it needs **no nginx reload** and no map/generated-include machinery; there is no second subrequest; and it is byte-for-byte the P1 pattern already proven in production. **Port, do not rewrite** the auth logic — it is literally the same code path, only the delivery tail changes; regression-test auth parity before enabling the flag.
 
@@ -74,7 +74,7 @@ P2 keeps the existing `ConnectionTracker` write at auth time plus a reaper for s
 ## 3. Packaging & placement
 
 - The Go module lives in the **separate binaries repo** `XC_VM_Binaries/xc_fanout/` (not in this repo, and never bundled into the panel/LB archive). It builds with `XC_VM_Binaries/build_xc_fanout.sh`: runs `go test`, then cross-compiles a fully static (`CGO_ENABLED=0`) binary per arch (linux amd64/arm64/armv7/386) into a per-version store `bin/xc_fanout/<version>/xc_fanout-linux-<arch>` + `SHA256SUMS`. Installed on **MAIN** first (LB is P6). One static binary per arch runs on any distro, so no per-distro Docker build is needed (unlike nginx/php/ffmpeg here).
-- Supervised as a long-lived service (systemd unit or the existing process supervisor). Control/ingest sockets under `/run/xc_fanout/` (real tmpfs-free runtime dir, not `STREAMS_PATH`).
+- Supervised as a long-lived service (systemd unit or the existing process supervisor). Sockets live in the app bin tree next to the daemon binary — `bin/xc_fanout/sockets/{control,http}.sock` — mirroring the php-fpm sockets layout (`bin/php/sockets/`), which nginx already reaches over `unix:`. (A unix socket carries no stored stream bytes — it is pure IPC — so its location is orthogonal to the tmpfs-free byte-path goal; the point is only to keep it out of the streaming content/tmpfs mount.)
 - **Rollback flag:** unlike P1 (which shipped without a toggle), P2 is a large behavioural change, so it **is** gated — the `settings` flag `live_fanout`, read in PHP from the settings cache (missing/`0` = off, the fail-safe default). Off ⇒ `live.php` runs today's socket relay unchanged; on ⇒ it registers with the daemon and `X-Accel-Redirect`s the viewer. If registration fails at request time, `live.php` **falls through to the legacy relay** in the same request, so a down daemon degrades gracefully rather than erroring. No nginx reload is needed to flip the flag.
 
 ---
@@ -83,7 +83,7 @@ P2 keeps the existing `ConnectionTracker` write at auth time plus a reaper for s
 
 - **S1 — Core engine (no panel).** Ring buffer + TS PAT/PMT/keyframe parser + HTTP-over-unix fan-out server; ingest from stdin/file. **Test:** feed a captured `.ts`, attach N `curl` clients, assert every client gets a byte-identical stream and a clean keyframe join. Pure isolation, no XC_VM involvement.
 - **S2 — Source puller (proxy-mode).** Port `getActiveStream` (direct mp2t / ffmpeg spawn); per-stream config. **Test:** pull a real source on the box, one client, compare to today's ProxyCommand output.
-- **S3 — Wire proxy-mode into the panel. _(implemented — see §2.4)_** Reuses `live.php`'s existing auth, then hands proxy-mode delivery to nginx→daemon via `X-Accel-Redirect: /xc_fanout/live/<id>` (not `auth_request`), behind the `live_fanout` settings flag; `FanoutClient` registers the source over the control socket. nginx internal `location ^~ /xc_fanout/live/` proxies to `unix:/run/xc_fanout/http.sock`. Unit-tested: `FanoutClientTest` (source-config builder parity + empty-urls short-circuit). **Still to validate:** real player end-to-end + auth/limits regression on the test box; flag off = old socket relay (verified by code path).
+- **S3 — Wire proxy-mode into the panel. _(implemented — see §2.4)_** Reuses `live.php`'s existing auth, then hands proxy-mode delivery to nginx→daemon via `X-Accel-Redirect: /xc_fanout/live/<id>` (not `auth_request`), behind the `live_fanout` settings flag; `FanoutClient` registers the source over the control socket. nginx internal `location ^~ /xc_fanout/live/` proxies to `unix:/home/xc_vm/bin/xc_fanout/sockets/http.sock`. Unit-tested: `FanoutClientTest` (source-config builder parity + empty-urls short-circuit). **Still to validate:** real player end-to-end + auth/limits regression on the test box; flag off = old socket relay (verified by code path).
 - **S4 — Non-proxy sub-mode.** Add the tee'd `-f mpegts` output in `StreamProcess`; route non-proxy TS feed through the daemon. **Test:** real player on a non-proxy stream; HLS still served by P1 path.
 - **S5 — Lifecycle & supervision.** On-demand start/stop owned by the daemon; systemd/supervisor; DB status ownership. **Test:** cold-start a on-demand stream via first viewer; idle stop.
 - **S6 — Scale validation.** Re-run the P0 harness against the daemon path: confirm viewers no longer pin workers/RAM and the box holds ≫400. Record before/after.
