@@ -412,9 +412,17 @@ if ($rChannelInfo) {
                 if (!$rFanout) {
                     OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
                 }
+                // client_prebuffer / restreamer_prebuffer (seconds) → the daemon
+                // front-loads that much keyframe-aligned history on join, filling
+                // the player's cache. Without it the daemon sends only the current
+                // GOP (~1s, "no cache"). Same hand-off contract as the non-proxy
+                // $rTSDaemon branch below; the daemon clamps to its retention ceiling.
+                $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
+                    ? intval($rSettings["restreamer_prebuffer"] ?? 0)
+                    : intval($rSettings["client_prebuffer"] ?? 0);
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
-                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]));
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer);
                 exit;
             }
 
