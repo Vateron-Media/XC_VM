@@ -217,6 +217,44 @@ class FanoutClient {
 	}
 
 	/**
+	 * Whether the daemon is reachable but has NO record of this stream (control
+	 * GET /streams/<id> → 404). This is the orphaned-ingest signal after a daemon
+	 * restart (ADR 0003, C-ops): the daemon wiped its in-memory registry, so a
+	 * still-running ffmpeg tee writes into a now-dead socket (onfail=ignore) and
+	 * the stream is off the daemon until re-registered. Distinct from
+	 * {@see isStreamFed()} (which is false for 404, unreachable AND no-data
+	 * alike): here only a real 404 from a reachable daemon returns true. Returns
+	 * false when the daemon is unreachable (legacy is then the intended path,
+	 * nothing to re-feed) or already knows the stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return bool True only when a reachable daemon answered 404 for this stream.
+	 */
+	public static function daemonStreamMissing(int $rStreamID): bool {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return false;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/streams/' . $rStreamID,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 1,
+			CURLOPT_TIMEOUT        => 2,
+		]);
+		curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		$rErrno = curl_errno($rCurl);
+		curl_close($rCurl);
+
+		// A connect failure (daemon down / stale socket) leaves rErrno set and
+		// rCode 0 → NOT "missing" (don't churn streams when the daemon is simply
+		// off). Only a clean 404 from a live control socket is the re-feed signal.
+		return $rErrno === 0 && $rCode === 404;
+	}
+
+	/**
 	 * Fetch the daemon's in-RAM HLS playlist for a stream (ADR 0003, Phase B),
 	 * from the nginx-facing client socket. The returned m3u8 lists segments by
 	 * sequence (`<seq>.ts`); live.php tokenizes those into auth'd URLs.
