@@ -409,7 +409,7 @@ class ProcessManager {
         }
 
         $cmdline = trim(@file_get_contents('/proc/' . $pid . '/cmdline'));
-        return ($cmdline == 'XC_VM[' . $streamID . ']' || $cmdline == 'XC_VMProxy[' . $streamID . ']');
+        return ($cmdline == 'XC_VM[' . $streamID . ']');
     }
 
     /**
