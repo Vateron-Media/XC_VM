@@ -16,7 +16,7 @@ Verified against the code, not just this doc:
 - **Phase D** 🟢 done for the canary's available types — coverage confirmed (llod=0 verified daemon-fed + self-healing; llod=1 covered by construction). Proxy/restreamer/llod=2 lack a canary representative; their full validation rides with C4.
 - **Phase E** 🟡 E1 done + dead-code sweep (removed the never-matching `XC_VMProxy[]` process checks). **E2/E3 deliberately GATED** — the `live.php` chase-read and `generateHLS`/`segment.php` serving are the active daemon-reachability fallback (daemon-down, re-feed windows, unvalidated proxy/restreamer/llod=2 types); deleting them removes the rollback. E4 (`CONS_TMP_PATH`) intentionally **retained** (not dead).
 - **Phase F** ⛔ **cancelled** per Danil: on-disk HLS stays (timeshift/thumbnail/analyse depend on `<id>_*.ts`); the tee's on-disk HLS slave and the streaming-tmpfs drop are off the table. The daemon is the *delivery* layer; on-disk artifacts remain for non-delivery consumers.
-- **Phase G (LB)** 🟡 started — daemon deployed + running + nginx-routed on the first LB (server 12); full stream-to-LB e2e blocked on an LB env defect (bundled ffmpeg 8.0 missing libogg.so.0) + no push/release for the production install path.
+- **Phase G (LB)** 🟡 started — daemon deployed + running + nginx-routed on the first LB (server 12); LB daemon proven functional (ingest→fan-out→in-RAM HLS); LB env fixed (libogg0 + nginx locations); real-source e2e + productionised install (push/release, LB build ships daemon) remain.
 
 Daemon refinements landed beyond the original text (all Phase-C robustness): `client_prebuffer` in the TS join (0.7.1); stalled-viewer write-timeout so a half-open client can't pin a connection / leak a ghost (0.7.2).
 
@@ -108,13 +108,15 @@ On-disk HLS stays: timeshift, thumbnailing, `.analyse`, and MonitorCommand healt
 **Phase G — LB rollout (P6). 🟡 started (2026-08-17) — daemon on the LB + functional; full e2e blocked on an LB env defect.**
 First LB node added (server 12 `testlb`, 31.77.173.176, amd64, online). Brought the daemon up on it (canary, manual): deployed xc_fanout 0.7.3, created the sockets dir, added the two `^~ /xc_fanout/` + `/xc_fanout_hls/` nginx locations (they were **absent** — the LB's `nginx.conf` predated them; `nginx -t` OK, reloaded), launched the keepalive daemon + `fanout_sync`. Verified: daemon runs (0.7.3), control + client sockets respond (register/probe/ingest/delete, `/hls`, `/connections`). The binary is identical to MAIN's (extensively verified), and `service`/`nginx.conf`/`live.php`/`StreamProcess` are shared, so routing is by construction.
 
+**LB daemon proven functional (2026-08-17):** an ingest feed on the LB (`PUT /ingest/<id>` + a local ffmpeg mpegts) produced `has_data:true` and a valid in-RAM HLS playlist from the LB's `/hls/<id>/index.m3u8` — fan-out + segmenter on the LB are identical to MAIN. The LB's `StreamProcess`/monitor also correctly read a DB stream assignment, attempted start, and probed the source (ffprobe works). So the LB-side daemon + shared feed/serve code work; only a *real external source* e2e is still open (the test source `bridge-tv` served broken h264 to the LB's IP — a source/geo issue, not the daemon).
+
 **Findings / gaps for a production Phase G:**
-- **LB `nginx.conf` lacks the fanout locations** — the LB build/regeneration must include them (added manually here; will be lost on a config regen).
+- **LB env defects fixed on the canary (manual):** the LB's bundled ffmpeg/ffprobe 8.0 wouldn't start (`libogg.so.0` missing → installed `libogg0`); the LB's `nginx.conf` lacked the `^~ /xc_fanout/` + `/xc_fanout_hls/` locations (added; `nginx -t` OK). Both must be handled by the **LB build / binaries bundle / provisioning**, not by hand.
 - **No production install path yet**: `fanout_binary` pulls from a GitHub release, and the daemon repo is **unpushed** (no release exists) — the LB got the binary by manual scp. Push + release (or wire the daemon into `LbInstallFlow`) is required for real LB rollout.
-- **LB bundled ffmpeg 8.0 is broken** — `libogg.so.0 => not found`, so it won't even start → the LB cannot run **any** stream (proxy-pull or non-proxy-tee), independent of the daemon. This blocks the full stream-to-LB e2e (assign a stream to the LB → its ffmpeg feeds the LB daemon → a redirected viewer is X-Accel'd to the LB daemon). Fix the LB env (`libogg0`) first.
+- The external admin API (`?api_key=…`) is the **system/reporting** surface (user_info/activity_logs/live_connections) — it has **no stream→server assignment**; that stays a DB/admin-UI operation. Also, `cron:streams` only starts a stream whose `streams_servers` row is already "active" (`pid`/`stream_status<>0`/`to_analyze`) — a freshly-inserted all-zero row is skipped.
 - Note: LB nodes are **not** "no-DB" — they connect to the MAIN DB/Redis (config.enc/server_id, crons, and `fanout_sync` reconciling `SERVER#<id>`).
 
-**Remaining:** fix the LB ffmpeg, assign a stream to the LB, verify the redirected-viewer daemon path end-to-end; then productionise the install (push/release + LB build includes the nginx locations + daemon).
+**Remaining:** a real-source stream-to-LB e2e (clean source or restream-from-origin), then productionise the install: **push/release the daemon** + make the **LB build ship the daemon binary, the nginx fanout locations, and its lib deps (libogg)**.
 
 ---
 
