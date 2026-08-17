@@ -77,6 +77,15 @@ class FanoutSyncCommand implements CommandInterface {
 			sleep(self::INTERVAL);
 		}
 
+		// Self-respawn like every other daemon (watchdog/signals): refreshOrBreak
+		// exits the loop on an nginx restart or a code change so a FRESH process
+		// picks up the new code — but that only happens if we spawn the successor.
+		// Without this the reconciler dies on the first deploy / nginx reload and
+		// never comes back (it is launched just once by the `service` script), so
+		// daemon-served pid=0 connections stop being reconciled and ghost viewers
+		// pile up in Redis/lines_live on streams nobody is watching.
+		$this->restartDaemon('fanout_sync');
+
 		return 0;
 	}
 
