@@ -13,7 +13,7 @@ Verified against the code, not just this doc:
 - **Phase A** ✅ done — A1 ingest, A2 `StreamProcess` tee, A3 `live.php` routing, LLOD v3 push.
 - **Phase B** ✅ done — daemon-served HLS incl. AES-128 encrypted.
 - **Phase C** 🟢 nearly complete — off-air (probe) ✅, disconnect accounting ✅ *(`fanout_sync` self-respawn fixed 2026-08-17)*, C1a cold-start ✅, C2 adaptive ✅, C3 restreamer-prebuffer ✅, C-ops re-feed ✅, C5 off-air-in-auth closed (already covered). **Only C4 (redirect-to-LB) remains — deferred, needs an LB node** (C3 has an optional box e2e pending a restreamer line). See the Phase C task breakdown at the end.
-- **Phase D** ❌ not started.
+- **Phase D** 🟢 done for the canary's available types — coverage confirmed (llod=0 verified daemon-fed + self-healing; llod=1 covered by construction). Proxy/restreamer/llod=2 lack a canary representative; their full validation rides with C4.
 - **Phase E** 🟡 only **E1 done** (`ProxyCommand.php` deleted, `startProxy` gone). E2 (non-proxy `.ts` chase-read in `live.php`) + E3 (`segment.php`/`HLSGenerator` tmpfs-serving) not started; E4 (`CONS_TMP_PATH`) intentionally **retained** (not dead — liveness-touch, geoip, crons).
 - **Phase F** ⛔ **cancelled** per Danil: on-disk HLS stays (timeshift/thumbnail/analyse depend on `<id>_*.ts`); the tee's on-disk HLS slave and the streaming-tmpfs drop are off the table. The daemon is the *delivery* layer; on-disk artifacts remain for non-delivery consumers.
 - **Phase G** ❌ not started.
@@ -86,8 +86,13 @@ Everything `live.php`'s legacy block does must have a daemon-model equivalent be
 - **Adaptive / multi-bitrate**, **restreamer chains**, **redirect-to-LB** routing.
 - **Connection limits / disconnect accounting. _Done (light P4)._** Under X-Accel the auth worker returns immediately, so the reaper's `isRunning(pid)` check leaks daemon TS rows (a reused worker pid reads as "running"). Fix: daemon-served TS rows are written `pid=0`; the daemon tracks each viewer's uuid (`?c=` in the X-Accel URL) and exposes them at control `GET /connections`; a small `fanout_sync` daemon closes `pid=0` rows whose uuid is no longer connected (20s connect-grace). The reaper skips `pid=0` TS. IP/limits/auth stay in `live.php` at auth time. Box-validated: viewer → pid=0 + uuid in /connections; disconnect → daemon drops the uuid, fanout_sync closes the row. (Full registry-in-Redis is still a possible later P4; this fixes the limit correctness now.)
 
-**Phase D — Make the daemon the default.**
-No flag to flip: a reachable daemon already serves every wired stream type. Phase D = widen coverage to all live types and confirm parity in a canary node before rolling the daemon to every node. Rollback stays "stop the daemon" until legacy is deleted (Phase E).
+**Phase D — Make the daemon the default. 🟢 done for the canary's available types (2026-08-17).**
+No flag to flip: a reachable daemon already serves every wired stream type; Phase D is a **coverage confirmation**, not new code. Canary audit (single MAIN server):
+- **llod=0 non-proxy** (the dominant type): ✅ box-verified daemon-fed (560/564/568/569 → `has_data:true`), and the C-ops re-feed keeps them fed across daemon restarts.
+- **llod=1 (v2)**: ✅ covered by construction — `StreamProcess::startStream:1511` calls `registerIngest` for it identically to llod=0 (the only difference is `-tune zerolatency` input flags, which don't touch the tee); a clean box e2e was inconclusive only because the on-demand test-warm churned stream 558's state (and `pkill -f` on the progress path self-matches the invoking shell — kill by pid).
+- **llod=2 (v3)**, **proxy (S3)**, **restreamer**: code paths validated in earlier phases (A/S3/C3), but this canary has **no working representative** (599's llod=2 source is a stale BAD_TOKEN loopback; zero `direct_proxy` streams; zero `is_restreamer` lines) — fresh box e2e needs those set up, and proxy/multi-node validation naturally rides with **C4 (LB rollout)**.
+
+Conclusion: the daemon **is** the default for every live type present and working here; the dominant path is verified and self-heals. Rollback stays "stop the daemon" until legacy is deleted (Phase E).
 
 **Phase E — Delete legacy (the requested cleanup). _Only after D is stable._**
 Remove and update consumers:
