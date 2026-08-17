@@ -16,7 +16,7 @@ Verified against the code, not just this doc:
 - **Phase D** 🟢 done for the canary's available types — coverage confirmed (llod=0 verified daemon-fed + self-healing; llod=1 covered by construction). Proxy/restreamer/llod=2 lack a canary representative; their full validation rides with C4.
 - **Phase E** 🟡 E1 done + dead-code sweep (removed the never-matching `XC_VMProxy[]` process checks). **E2/E3 deliberately GATED** — the `live.php` chase-read and `generateHLS`/`segment.php` serving are the active daemon-reachability fallback (daemon-down, re-feed windows, unvalidated proxy/restreamer/llod=2 types); deleting them removes the rollback. E4 (`CONS_TMP_PATH`) intentionally **retained** (not dead).
 - **Phase F** ⛔ **cancelled** per Danil: on-disk HLS stays (timeshift/thumbnail/analyse depend on `<id>_*.ts`); the tee's on-disk HLS slave and the streaming-tmpfs drop are off the table. The daemon is the *delivery* layer; on-disk artifacts remain for non-delivery consumers.
-- **Phase G** ❌ not started.
+- **Phase G (LB)** 🟡 started — daemon deployed + running + nginx-routed on the first LB (server 12); full stream-to-LB e2e blocked on an LB env defect (bundled ffmpeg 8.0 missing libogg.so.0) + no push/release for the production install path.
 
 Daemon refinements landed beyond the original text (all Phase-C robustness): `client_prebuffer` in the TS join (0.7.1); stalled-viewer write-timeout so a half-open client can't pin a connection / leak a ghost (0.7.2).
 
@@ -105,8 +105,16 @@ Each remaining deletion is gated on the daemon being the sole live path for its 
 **Phase F — Drop streaming tmpfs mounts (ADR 0001 P5). ⛔ CANCELLED (2026-08-17, Danil).**
 On-disk HLS stays: timeshift, thumbnailing, `.analyse`, and MonitorCommand health all read `<id>_*.ts` from `STREAMS_PATH`. So the tee's on-disk `-f hls` slave is kept and the streaming tmpfs mount stays. The daemon remains the *delivery* layer; the on-disk artifacts remain for these non-delivery consumers. (This also removes the E3 pressure to delete `generateHLS` entirely — the on-disk HLS path stays as a fallback.)
 
-**Phase G — LB rollout (P6).**
-Ship the daemon to LB nodes (binary already multi-arch, static; LB archive stays privilege-free). LB nodes run only pull+fan-out (no admin/DB).
+**Phase G — LB rollout (P6). 🟡 started (2026-08-17) — daemon on the LB + functional; full e2e blocked on an LB env defect.**
+First LB node added (server 12 `testlb`, 31.77.173.176, amd64, online). Brought the daemon up on it (canary, manual): deployed xc_fanout 0.7.3, created the sockets dir, added the two `^~ /xc_fanout/` + `/xc_fanout_hls/` nginx locations (they were **absent** — the LB's `nginx.conf` predated them; `nginx -t` OK, reloaded), launched the keepalive daemon + `fanout_sync`. Verified: daemon runs (0.7.3), control + client sockets respond (register/probe/ingest/delete, `/hls`, `/connections`). The binary is identical to MAIN's (extensively verified), and `service`/`nginx.conf`/`live.php`/`StreamProcess` are shared, so routing is by construction.
+
+**Findings / gaps for a production Phase G:**
+- **LB `nginx.conf` lacks the fanout locations** — the LB build/regeneration must include them (added manually here; will be lost on a config regen).
+- **No production install path yet**: `fanout_binary` pulls from a GitHub release, and the daemon repo is **unpushed** (no release exists) — the LB got the binary by manual scp. Push + release (or wire the daemon into `LbInstallFlow`) is required for real LB rollout.
+- **LB bundled ffmpeg 8.0 is broken** — `libogg.so.0 => not found`, so it won't even start → the LB cannot run **any** stream (proxy-pull or non-proxy-tee), independent of the daemon. This blocks the full stream-to-LB e2e (assign a stream to the LB → its ffmpeg feeds the LB daemon → a redirected viewer is X-Accel'd to the LB daemon). Fix the LB env (`libogg0`) first.
+- Note: LB nodes are **not** "no-DB" — they connect to the MAIN DB/Redis (config.enc/server_id, crons, and `fanout_sync` reconciling `SERVER#<id>`).
+
+**Remaining:** fix the LB ffmpeg, assign a stream to the LB, verify the redirected-viewer daemon path end-to-end; then productionise the install (push/release + LB build includes the nginx locations + daemon).
 
 ---
 
