@@ -166,6 +166,13 @@ class UpdateCommand implements CommandInterface {
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
 				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');
 
+				// Pull/refresh the xc_fanout daemon binary to match this panel
+				// version (ADR 0003, Phase G) — nothing else does it. Idempotent
+				// (downloads only on a version mismatch) + background + best-effort
+				// so an unreachable GitHub never blocks the update; the RootSignals
+				// hourly self-heal is the backstop. Runs on every node (LBs too).
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary >/dev/null 2>&1 &');
+
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
 				// from the XC_VM_Update release. Best-effort: run in background so a
