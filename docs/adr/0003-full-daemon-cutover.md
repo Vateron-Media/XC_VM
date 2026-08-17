@@ -1,6 +1,6 @@
 # ADR 0003 — Full live-delivery cutover to `xc_fanout` (retire the legacy byte path)
 
-- **Status:** Accepted — in progress. Phases 0/A/B done & box-validated; **Phase C in progress**; E1 done; **Phase F cancelled** (see below). (updated 2026-08-17)
+- **Status:** Accepted — in progress. Phases 0/A/B/D done & box-validated; **Phase C essentially complete** (C4 folds into G); **E** = E1 + dead-code done, E2/E3 gated (fallback); **F cancelled**; **G** = daemon proven functional on the first LB, productionisation remains. (updated 2026-08-17)
 - **Date:** 2026-08-16 (rev. 2026-08-17)
 - **Builds on:** ADR 0001 (tmpfs-free streaming), ADR 0002 (`xc_fanout` daemon). S3 (proxy live TS) + P3 (in-RAM HLS) are box-validated.
 - **Goal (from Danil):** make the daemon the **single, always-on** delivery layer for **all live streams** — proxy *and* non-proxy, TS *and* HLS — then delete the legacy byte-path code that becomes unused.
