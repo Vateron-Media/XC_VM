@@ -418,7 +418,9 @@ if ($rChannelInfo) {
                 // GOP (~1s, "no cache"). Same hand-off contract as the non-proxy
                 // $rTSDaemon branch below; the daemon clamps to its retention ceiling.
                 $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
-                    ? intval($rSettings["restreamer_prebuffer"] ?? 0)
+                    ? (!empty($rTokenData["prebuffer"])
+                        ? intval($rSegmentSettings["seg_time"] ?? 0)
+                        : intval($rSettings["restreamer_prebuffer"] ?? 0))
                     : intval($rSettings["client_prebuffer"] ?? 0);
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
@@ -443,7 +445,9 @@ if ($rChannelInfo) {
                 // (the daemon otherwise sends only the current GOP). The daemon
                 // clamps the value to its own retention ceiling.
                 $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
-                    ? intval($rSettings["restreamer_prebuffer"] ?? 0)
+                    ? (!empty($rTokenData["prebuffer"])
+                        ? intval($rSegmentSettings["seg_time"] ?? 0)
+                        : intval($rSettings["restreamer_prebuffer"] ?? 0))
                     : intval($rSettings["client_prebuffer"] ?? 0);
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
