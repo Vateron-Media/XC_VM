@@ -1,9 +1,24 @@
 # ADR 0003 — Full live-delivery cutover to `xc_fanout` (retire the legacy byte path)
 
-- **Status:** Proposed
-- **Date:** 2026-08-16
+- **Status:** Accepted — in progress. Phases 0/A/B done & box-validated; **Phase C in progress**; E1 done; **Phase F cancelled** (see below). (updated 2026-08-17)
+- **Date:** 2026-08-16 (rev. 2026-08-17)
 - **Builds on:** ADR 0001 (tmpfs-free streaming), ADR 0002 (`xc_fanout` daemon). S3 (proxy live TS) + P3 (in-RAM HLS) are box-validated.
 - **Goal (from Danil):** make the daemon the **single, always-on** delivery layer for **all live streams** — proxy *and* non-proxy, TS *and* HLS — then delete the legacy byte-path code that becomes unused.
+
+## Progress snapshot (2026-08-17)
+
+Verified against the code, not just this doc:
+
+- **Phase 0** ✅ dropped (no `live_fanout` flag; switch = daemon reachability).
+- **Phase A** ✅ done — A1 ingest, A2 `StreamProcess` tee, A3 `live.php` routing, LLOD v3 push.
+- **Phase B** ✅ done — daemon-served HLS incl. AES-128 encrypted.
+- **Phase C** 🟡 in progress — off-air (probe) ✅, disconnect accounting ✅ *(mechanism done; `fanout_sync` self-respawn bug fixed 2026-08-17, was silently dying on deploy/nginx-reload)*. **Open:** on-demand cold-start bounds, adaptive/restreamer/redirect parity, off-air status in the auth endpoint. See the Phase C task breakdown at the end.
+- **Phase D** ❌ not started.
+- **Phase E** 🟡 only **E1 done** (`ProxyCommand.php` deleted, `startProxy` gone). E2 (non-proxy `.ts` chase-read in `live.php`) + E3 (`segment.php`/`HLSGenerator` tmpfs-serving) not started; E4 (`CONS_TMP_PATH`) intentionally **retained** (not dead — liveness-touch, geoip, crons).
+- **Phase F** ⛔ **cancelled** per Danil: on-disk HLS stays (timeshift/thumbnail/analyse depend on `<id>_*.ts`); the tee's on-disk HLS slave and the streaming-tmpfs drop are off the table. The daemon is the *delivery* layer; on-disk artifacts remain for non-delivery consumers.
+- **Phase G** ❌ not started.
+
+Daemon refinements landed beyond the original text (all Phase-C robustness): `client_prebuffer` in the TS join (0.7.1); stalled-viewer write-timeout so a half-open client can't pin a connection / leak a ghost (0.7.2).
 
 ---
 
@@ -82,8 +97,8 @@ Remove and update consumers:
 - `CONS_TMP_PATH` datagram sockets + related cleanup in `MonitorCommand`.
 Each deletion gated on the daemon being the sole live path; `git revert`-able.
 
-**Phase F — Drop streaming tmpfs mounts (ADR 0001 P5).**
-Once nothing writes `<id>_*.ts`/`.m3u8` to `STREAMS_PATH`, remove the tmpfs mount for it (installer + `service`). Timeshift/archive unaffected.
+**Phase F — Drop streaming tmpfs mounts (ADR 0001 P5). ⛔ CANCELLED (2026-08-17, Danil).**
+On-disk HLS stays: timeshift, thumbnailing, `.analyse`, and MonitorCommand health all read `<id>_*.ts` from `STREAMS_PATH`. So the tee's on-disk `-f hls` slave is kept and the streaming tmpfs mount stays. The daemon remains the *delivery* layer; the on-disk artifacts remain for these non-delivery consumers. (This also removes the E3 pressure to delete `generateHLS` entirely — the on-disk HLS path stays as a fallback.)
 
 **Phase G — LB rollout (P6).**
 Ship the daemon to LB nodes (binary already multi-arch, static; LB archive stays privilege-free). LB nodes run only pull+fan-out (no admin/DB).
@@ -109,3 +124,21 @@ Ship the daemon to LB nodes (binary already multi-arch, static; LB archive stays
 - **Disconnect accounting** moves to the daemon (PHP no longer sees it) — until P4/Redis, limits lean on the auth-time write + reaper.
 - **Deleting legacy too early** — gate strictly on Phase D stability.
 - **Timeshift/recording coupling** — the non-proxy ffmpeg also feeds recording; the tee must not disturb those outputs.
+
+---
+
+## 6. Phase C work breakdown (2026-08-17)
+
+Ordered by observed pain / risk. Each item ships with a regression check and is reachability-reversible.
+
+- **C1 — On-demand cold-start robustness.** Two cold-start paths, both can fail the *first* attempt today:
+  - **C1a (proxy / daemon-pull):** the daemon's puller ffmpeg (non-`video/mp2t` source) runs with no `-probesize`/`-analyzeduration` tuning and no reconnect flags → slow / flaky first output → `probe` can exceed `on_demand_wait_time` → not-on-air on the first try, warm on retry. Fix in the daemon `runFfmpeg`: bounded low-latency analyze + reconnect, without breaking codec detection.
+  - **C1b (non-proxy / panel tee):** ~~observed on stream 567~~ — **moot**: 567 turned out to have a broken source link (deleted, replaced by 558/llod=1, which works). The non-proxy monitor hard-fails if ffmpeg exits during warm-up, but with a healthy source the current window is adequate. Deferred until a real non-proxy cold-start failure surfaces.
+- **C2 — Adaptive / multi-bitrate parity. ✅ DONE — box-verified (2026-08-17); no daemon-specific code needed.** Box check: temporarily set `adaptive_link=[560,568]` on 569 (non-proxy), rebuilt the stream cache (`cron:cache_engine` — the per-stream cache `info` carries `adaptive_link`; `cron:cache` is a different job), and fetched `569.m3u8` with a real line → a correct 3-variant master (`#EXT-X-STREAM-INF` for 568 720p / 560 576 / 569 base, sorted by BANDWIDTH desc, each an `/auth/<token>` URL). Reverted 569 afterwards. Adaptive is a **composition** of already-daemon-served streams, not a separate path: `auth.php` (≈480–524) builds the `#EXT-X-STREAM-INF` **master** playlist from `streams.adaptive_link` and serves it itself; each variant URL is a normal `.../auth/<token>` that re-enters `live.php`'s `m3u8` branch, where Phase B already routes it to the daemon (`isStreamFed` → `hlsPlaylist` → `tokenizeDaemonPlaylist`) or falls back to `generateHLS`. So each variant is daemon-served exactly like any non-proxy HLS stream — no adaptive-specific daemon work. Pre-existing constraints (not daemon regressions): (1) `direct_proxy` + adaptive is disabled (`auth.php` → `HLS_DISABLED`); (2) the master lists only variants whose `stream_info` (bitrate/w/h) is populated, so a fully-cold adaptive stream yields a thin/empty master until variants warm. **Pending:** box e2e (no adaptive stream is currently configured on the canary — set `adaptive_link` on a warm stream to verify variant playlists come from the daemon).
+- **C3 — Restreamer-chain parity. 🟡 code fixed + deployed (2026-08-17); box e2e pending.** Found & fixed a real gap: the daemon X-Accel hand-off ignored the token's `prebuffer` flag (set by `?prebuffer` / `X-XC_VM-PREBUFFER`), always passing `restreamer_prebuffer`. Legacy gives a restreamer that requested prebuffer a `seg_time` burst; through the daemon it got `restreamer_prebuffer` (0 here) → empty cache. Both hand-off branches now mirror legacy: `is_restreamer ? (token.prebuffer ? seg_time : restreamer_prebuffer) : client_prebuffer` (commit `5054f05a`). Other restreamer specifics need no daemon work: 2nd-IP skip / `restreamer_bypass_proxy` / `disable_*_allow_restream` are auth-time (pre-delivery, shared by both paths); the legacy chase-read's restreamer fast-exit has no daemon equivalent (the daemon streams bytes directly). **Box e2e pending:** the canary currently has no `is_restreamer` line and no daemon-fed stream (all `/streams/<id>` are 404 after the daemon restart — needs re-warm).
+- **C4 — Redirect-to-LB parity.** Streams with `redirect_id`/`originator_id` routed to an LB node — confirm daemon behaviour vs legacy.
+- **C5 — Off-air status in the auth endpoint.** Move/mirror the off-air decision earlier (auth.php) so a dead source fails fast before `live.php`, instead of only after registration.
+- **C-ops — `fanout_sync` supervision.** ✅ fixed (self-respawn `restartDaemon`); consider having `watchdog` also resurrect it if absent (belt-and-braces), since it is otherwise launched only by `service` at boot.
+- **C-ops — re-feed after a daemon restart.** Confirmed live: a daemon restart (deploy/crash) wipes the in-memory registry, and the already-running ffmpeg tees keep writing to the now-dead ingest sockets (`onfail=ignore`), so **every** ingest-fed stream stays off the daemon (`/streams/<id>` → 404, delivery silently on legacy) until its ffmpeg is restarted and re-`PUT /ingest`s. On-demand streams self-heal on the next viewer; 24/7 streams need a manual re-warm (kill the stream's ffmpeg **by pid** — a `pkill -f` on the progress path self-matches the invoking shell — then `cron:streams` restarts it). **Candidate fix:** on daemon (re)start, have the panel (a cron or the keepalive wrapper) re-warm 24/7 ingest-fed streams whose `/streams/<id>` is 404, so daemon acceleration returns without operator action.
+
+**Starting with C1** (the concrete observed regression).
