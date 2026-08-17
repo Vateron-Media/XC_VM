@@ -14,7 +14,7 @@ Verified against the code, not just this doc:
 - **Phase B** ✅ done — daemon-served HLS incl. AES-128 encrypted.
 - **Phase C** 🟢 nearly complete — off-air (probe) ✅, disconnect accounting ✅ *(`fanout_sync` self-respawn fixed 2026-08-17)*, C1a cold-start ✅, C2 adaptive ✅, C3 restreamer-prebuffer ✅, C-ops re-feed ✅, C5 off-air-in-auth closed (already covered). **Only C4 (redirect-to-LB) remains — deferred, needs an LB node** (C3 has an optional box e2e pending a restreamer line). See the Phase C task breakdown at the end.
 - **Phase D** 🟢 done for the canary's available types — coverage confirmed (llod=0 verified daemon-fed + self-healing; llod=1 covered by construction). Proxy/restreamer/llod=2 lack a canary representative; their full validation rides with C4.
-- **Phase E** 🟡 only **E1 done** (`ProxyCommand.php` deleted, `startProxy` gone). E2 (non-proxy `.ts` chase-read in `live.php`) + E3 (`segment.php`/`HLSGenerator` tmpfs-serving) not started; E4 (`CONS_TMP_PATH`) intentionally **retained** (not dead — liveness-touch, geoip, crons).
+- **Phase E** 🟡 E1 done + dead-code sweep (removed the never-matching `XC_VMProxy[]` process checks). **E2/E3 deliberately GATED** — the `live.php` chase-read and `generateHLS`/`segment.php` serving are the active daemon-reachability fallback (daemon-down, re-feed windows, unvalidated proxy/restreamer/llod=2 types); deleting them removes the rollback. E4 (`CONS_TMP_PATH`) intentionally **retained** (not dead).
 - **Phase F** ⛔ **cancelled** per Danil: on-disk HLS stays (timeshift/thumbnail/analyse depend on `<id>_*.ts`); the tee's on-disk HLS slave and the streaming-tmpfs drop are off the table. The daemon is the *delivery* layer; on-disk artifacts remain for non-delivery consumers.
 - **Phase G** ❌ not started.
 
@@ -94,13 +94,13 @@ No flag to flip: a reachable daemon already serves every wired stream type; Phas
 
 Conclusion: the daemon **is** the default for every live type present and working here; the dominant path is verified and self-heals. Rollback stays "stop the daemon" until legacy is deleted (Phase E).
 
-**Phase E — Delete legacy (the requested cleanup). _Only after D is stable._**
-Remove and update consumers:
-- `Cli/Commands/ProxyCommand.php` (whole file) + its callers/refs (`StreamsCronJob`, `SignalsCommand`, `LlodCommand`, `MonitorCommand`, `ProcessManager::startProxy`).
-- `live.php`: the proxy socket-relay loop and the non-proxy `.ts` chase-read loop (the ~350→628 block) — `live.php` becomes auth + register + X-Accel only (the "slim `live_auth`" ADR 0002 originally imagined, reached by deletion rather than duplication).
-- `segment.php` / `HLSGenerator` tmpfs-serving path once HLS is daemon-served (keep timeshift/archive readfile).
-- `CONS_TMP_PATH` datagram sockets + related cleanup in `MonitorCommand`.
-Each deletion gated on the daemon being the sole live path; `git revert`-able.
+**Phase E — Delete legacy (the requested cleanup). _Only after D is stable._** Per-item status:
+- **E1 — `Cli/Commands/ProxyCommand.php` + callers. ✅ done** (whole file + `ProcessManager::startProxy` + refs). Follow-up dead-code sweep: the `XC_VMProxy[<id>]` process-title checks in `ProcessManager::isMonitorAlive` / `StreamProcess::stopStream` can never match now (nothing is titled that) — **removed (2026-08-17)**.
+- **E2 — `live.php` non-proxy `.ts` chase-read loop** (the ~455→690 block). ⏸️ **GATED — not done.** This is the active daemon-reachability **fallback**: it serves non-proxy TS when the daemon is down, during a re-feed window after a daemon restart, and for stream types not yet canary-validated (proxy/restreamer/llod=2). Deleting it makes the daemon mandatory and removes the rollback. Do only once D is proven stable across **all** types (needs LB/representatives). The proxy socket-relay half was already removed in E1.
+- **E3 — `segment.php` / `HLSGenerator::generateHLS` tmpfs-serving path.** ⏸️ **GATED — not done** (same rollback reasoning; it is the HLS fallback). Note: Phase F is cancelled, so on-disk HLS files stay regardless — E3 is only about removing the *serving* path once daemon HLS is the sole path for all types.
+- **E4 — `CONS_TMP_PATH` datagram sockets.** ❎ **retained by directive** — not dead (liveness-touch, geoip cache, cleanup crons).
+
+Each remaining deletion is gated on the daemon being the sole live path for its type; `git revert`-able.
 
 **Phase F — Drop streaming tmpfs mounts (ADR 0001 P5). ⛔ CANCELLED (2026-08-17, Danil).**
 On-disk HLS stays: timeshift, thumbnailing, `.analyse`, and MonitorCommand health all read `<id>_*.ts` from `STREAMS_PATH`. So the tee's on-disk `-f hls` slave is kept and the streaming tmpfs mount stays. The daemon remains the *delivery* layer; the on-disk artifacts remain for these non-delivery consumers. (This also removes the E3 pressure to delete `generateHLS` entirely — the on-disk HLS path stays as a fallback.)
