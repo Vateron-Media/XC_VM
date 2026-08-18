@@ -31,7 +31,7 @@ P0 measured the cost: **~1 PHP-FPM worker + ~25 MB per viewer**; the ~400 ceilin
  viewer ◀──chunked mpegts── nginx ──proxy_pass unix:/home/xc_vm/bin/xc_fanout/sockets/http.sock ◀┘
 ```
 
-- **PHP is only in `auth_request`** (short subrequest), never in the byte path.
+- **PHP is only in the auth step** (short-lived), never in the byte path. _(This sketch drew that step as an nginx `auth_request` subrequest; the realized design keeps the full `live.php` auth inline and hands off with `X-Accel-Redirect` — see §2.4. The "PHP out of the byte path" property is identical either way.)_
 - **nginx** terminates every client, opens one upstream connection per client to the daemon; the daemon holds the single ingest and fans out from the ring.
 
 ### 2.1 Ingest per sub-mode (how "daemon owns the puller" applies)
@@ -61,13 +61,13 @@ Rather than a separate `auth_request` subrequest + a slim `live_auth` endpoint, 
 
 nginx then proxies the viewer to the daemon's client socket (`location ^~ /xc_fanout/` → `proxy_pass http://unix:/home/xc_vm/bin/xc_fanout/sockets/http.sock`), and **PHP-FPM is freed the instant `live.php` returns** — PHP is out of the byte path, the same win auth_request would give.
 
-Why this over `auth_request`: the `live_fanout` flag stays **in PHP** (read from the settings cache), so flipping it needs **no nginx reload** and no map/generated-include machinery; there is no second subrequest; and it is byte-for-byte the P1 pattern already proven in production. **Port, do not rewrite** the auth logic — it is literally the same code path, only the delivery tail changes; regression-test auth parity before enabling the flag.
+Why this over `auth_request`: the switch stays **in PHP** (originally the `live_fanout` settings flag, now the daemon's reachability — see §3 Rollback), so flipping delivery needs **no nginx reload** and no map/generated-include machinery; there is no second subrequest; and it is byte-for-byte the P1 pattern already proven in production. **Port, do not rewrite** the auth logic — it is literally the same code path, only the delivery tail changes; auth parity is covered by `FanoutClientTest` + box validation.
 
 Trade-off vs `auth_request`: the daemon, not PHP, now observes real connect/disconnect on the proxied upstream, so precise connection-liveness accounting (today driven by the FPM worker's lifetime + reaper) shifts toward the daemon. For S3 the `createLive` record is still written at auth time and the existing stale-connection reaper covers teardown; the exact ownership split is settled in **S5** (and telemetry→Redis in **P4**).
 
 ### 2.5 Connection telemetry
 
-P2 keeps the existing `ConnectionTracker` write at auth time plus a reaper for stale connections. Moving the registry to Redis (owned by the daemon, which sees real connect/disconnect) is **P4** and out of scope here.
+P2 keeps the existing `ConnectionTracker` write at auth time plus a reaper for stale connections. The daemon owns the truth of who is connected (it sees real connect/disconnect via the `?c=<uuid>` refcount) and exposes it over the control socket (`GET /connections`); `fanout_sync` reconciles that against the `lines_live` rows written at auth time — this is the **light P4** that shipped. What is *not* yet done is **per-viewer transfer telemetry** (`divergence` / bitrate): legacy `live.php` measured each viewer's byte rate in its chase-read loop and wrote it to `DIVERGENCE_TMP_PATH`; a daemon-served viewer never enters that loop, so `lines_divergence` / `lines_live.divergence` stay blank for them and the anti-fraud rate checks are blind. Closing that (daemon exposes per-connection bytes → PHP writes `divergence`) is the remaining **P4** work — see ADR 0003 §"Remaining". Moving the whole connection registry off tmpfs into Redis is the larger P4 vision in ADR 0001 §4 and is not required for the divergence fix.
 
 ---
 
@@ -86,9 +86,9 @@ P2 keeps the existing `ConnectionTracker` write at auth time plus a reaper for s
 - **S3 — Wire proxy-mode into the panel. _(implemented — see §2.4)_** Reuses `live.php`'s existing auth, then hands proxy-mode delivery to nginx→daemon via `X-Accel-Redirect: /xc_fanout/<id>` (not `auth_request`), behind the `live_fanout` settings flag; `FanoutClient` registers the source over the control socket. nginx internal `location ^~ /xc_fanout/` proxies to `unix:/home/xc_vm/bin/xc_fanout/sockets/http.sock`. Unit-tested: `FanoutClientTest`. **Box-validated (test node, real player):** flag-off vs flag-on A/B at 8 concurrent viewers on a real proxy stream — legacy pinned ~1 php-fpm worker + ~24 MB per viewer (9 workers / 242 MB), fanout served all 8 via the daemon (daemon_conns=8) with php-fpm flat at baseline (1 worker / 45 MB). GOTCHA fixed: the X-Accel target must be two path segments (`/xc_fanout/<id>`) — a `/xc_fanout/live/<id>` form is hijacked by the server-level 3-segment `^/(user)/(pass)/(stream)` rewrite (rewrites run on internal redirects too), same reason P1's `/xc_hls/<file>` is two segments.
 - **S4 — Non-proxy sub-mode.** Add the tee'd `-f mpegts` output in `StreamProcess`; route non-proxy TS feed through the daemon. **Test:** real player on a non-proxy stream; HLS still served by P1 path.
 - **S5 — Lifecycle & supervision.** On-demand start/stop owned by the daemon; systemd/supervisor; DB status ownership. **Test:** cold-start a on-demand stream via first viewer; idle stop.
-- **S6 — Scale validation.** Re-run the P0 harness against the daemon path: confirm viewers no longer pin workers/RAM and the box holds ≫400. Record before/after.
+- **S6 — Scale validation. _(done)_** Re-ran the P0 harness against the daemon path: legacy pins ~1 php-fpm worker + ~24 MB per viewer (O(N) — the origin of the ~400 ceiling), while the daemon serves N viewers off a single pulled source at O(1) fan-out cost (25 viewers = 1 worker / ~13 MB measured; a connect-storm briefly touches ~6 workers for 2–4 s, then settles). The ceiling is gone: it was worker-per-viewer, not tmpfs. Before/after recorded in the cutover report.
 
-Slices land behind the `live_fanout` flag so each is canary-able and reversible.
+Each slice is canary-able and reversible by the daemon's reachability (stop the daemon → full legacy path runs); the original `live_fanout` settings flag was removed once the cutover became permanent (see §3 Rollback and ADR 0003 §3 Phase 0).
 
 ---
 
@@ -96,6 +96,6 @@ Slices land behind the `live_fanout` flag so each is canary-able and reversible.
 
 - **Clean-join correctness** (PAT/PMT + keyframe) — wrong join = player artifacts on connect. Mirror ProxyCommand's proven logic; verify against real players in S1/S3.
 - **Slow-client isolation** — one slow viewer must never stall the producer or others; bounded per-subscriber queue + drop policy, load-tested in S6.
-- **Auth parity** — the `auth_request` endpoint must preserve every current check; regression tests before flipping `live_fanout`.
+- **Auth parity** — auth still runs in full inside `live.php` exactly as before; the daemon hand-off happens *after* every check passes, via `X-Accel-Redirect` (the `auth_request` sub-request design in earlier drafts was dropped for the same reason as P1's HLS — a two-segment internal `location` — see §2.4). So there is no separate auth endpoint to keep in parity; the risk reduces to "don't hand off before auth completes", covered by `FanoutClientTest` + box validation.
 - **Lifecycle races** — start/stop ownership split between daemon and `StreamProcess`; settle the boundary in S5, guard on-demand cold start.
 - **New trusted binary** — security review + reproducible build; LB archive stays privilege-free (P6).
