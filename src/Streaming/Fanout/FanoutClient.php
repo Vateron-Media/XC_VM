@@ -317,6 +317,42 @@ class FanoutClient {
 	}
 
 	/**
+	 * Per-viewer average delivery rate (KB/s since attach), keyed by connection
+	 * uuid, across all daemon streams (control GET /rates). This is the daemon
+	 * replacement for the legacy chase-read loop's DIVERGENCE_TMP_PATH speed
+	 * files: fanout_sync compares each rate to the stream's expected bitrate and
+	 * records the divergence for daemon-served viewers (ADR 0003, P4). Returns
+	 * null when the daemon is unreachable (the caller then skips the write).
+	 *
+	 * @return array<string,int>|null uuid => KB/s, or null on failure.
+	 */
+	public static function connectionRates(): ?array {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return null;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/rates',
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 2,
+			CURLOPT_TIMEOUT        => 3,
+		]);
+		$rBody = curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		if ($rCode !== 200 || !is_string($rBody)) {
+			return null;
+		}
+
+		$rData = json_decode($rBody, true);
+
+		return is_array($rData) ? $rData : null;
+	}
+
+	/**
 	 * Unregister a stream (stops its puller / ingest listener, drops it from the
 	 * daemon). Works for both pull-fed (proxy) and push-fed (ingest) streams.
 	 *
