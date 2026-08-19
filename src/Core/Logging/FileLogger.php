@@ -96,10 +96,6 @@ class FileLogger implements LoggerInterface {
             'line'    => $line,
             'time'    => time(),
             'env'     => php_sapi_name(),
-            // Origin node, stamped at write time so a log is self-describing (LB vs
-            // MAIN) regardless of which node later parses it. Guarded because a very
-            // early failure can log before SERVER_ID is defined; the collector then
-            // falls back to its own SERVER_ID.
             'server_id' => defined('SERVER_ID') ? SERVER_ID : null,
         ];
 

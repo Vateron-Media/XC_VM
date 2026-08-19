@@ -108,6 +108,14 @@ class StatusCommand implements CommandInterface {
 		if ($rServers[SERVER_ID]['is_main']) {
 			$this->broadcastUpdateBinaries($db, $rServers);
 			$this->configureRedis($db, $rServers);
+		} else {
+			// LB nodes run no local Redis (bin/redis is stripped from the LB build)
+			// and never reach configureRedis, so the xcvm_core extension would keep
+			// its default Redis target of 127.0.0.1 and every connection refuses —
+			// live.php then fails with LINE_CREATE_FAIL under redis_handler. Point
+			// the extension at the MAIN server's Redis (same host as MySQL) using the
+			// shared password, without touching MAIN's own config.
+			$this->configureRedisLb($db, $rServers);
 		}
 
 		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
@@ -313,6 +321,52 @@ class StatusCommand implements CommandInterface {
 			if (!\XC_VM::config_set_redis('127.0.0.1', 6379, $rPassword)) {
 				echo "WARNING: failed to sync the Redis password into config.enc\n";
 			}
+		}
+	}
+
+	/**
+	 * Point this LB node's xcvm_core Redis config at the MAIN server's Redis.
+	 *
+	 * The MAIN server owns the shared Redis (its configureRedis generates the
+	 * password and stores it in `settings`). An LB has no local Redis, so it must
+	 * connect to MAIN's — at the same host it already uses for MySQL. We only READ
+	 * the shared password here (never rotate it — that is MAIN's job) and write the
+	 * host/password into the local config.enc so `\XC_VM::redis_connect()` reaches
+	 * the right server instead of refusing on 127.0.0.1.
+	 *
+	 * @param mixed                        $db       Database handle.
+	 * @param array<int,array<string,mixed>> $rServers Servers keyed by id.
+	 * @return void
+	 */
+	private function configureRedisLb($db, array $rServers): void {
+		if (!method_exists('XC_VM', 'config_set_redis')) {
+			return;
+		}
+
+		// Resolve the MAIN server's reachable IP (prefer a private link if set).
+		$rHost = null;
+		foreach ($rServers as $rServer) {
+			if (!empty($rServer['is_main'])) {
+				$rHost = !empty($rServer['private_url_ip']) ? $rServer['private_url_ip'] : ($rServer['server_ip'] ?? null);
+				break;
+			}
+		}
+		if (empty($rHost)) {
+			echo "WARNING: could not resolve the main server's IP for Redis\n";
+			return;
+		}
+
+		$db->query('SELECT `redis_password` FROM `settings`;');
+		$rPassword = $db->get_row()['redis_password'] ?? '';
+		if ($rPassword === '' || $rPassword === '#PASSWORD#') {
+			echo "WARNING: no shared Redis password available yet\n";
+			return;
+		}
+
+		if (!\XC_VM::config_set_redis($rHost, 6379, $rPassword)) {
+			echo "WARNING: failed to point config.enc Redis at the main server ({$rHost})\n";
+		} else {
+			echo "Redis pointed at main server {$rHost}:6379\n";
 		}
 	}
 
