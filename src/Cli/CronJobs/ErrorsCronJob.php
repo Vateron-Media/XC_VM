@@ -88,6 +88,12 @@ class ErrorsCronJob implements CommandInterface {
             $rLogTime = (int) ($row['time'] ?? time());
             $rLogFile = (string) ($row['file'] ?? '');
             $rLogEnv = (string) ($row['env'] ?? php_sapi_name());
+            // Prefer the origin server stamped into the record (FileLogger); fall
+            // back to this node's SERVER_ID for legacy files written before the
+            // field existed. This is what lets a panel_logs row show LB vs MAIN.
+            $rLogServerID = (isset($row['server_id']) && is_numeric($row['server_id']))
+                ? (int) $row['server_id']
+                : SERVER_ID;
 
             if (
                 stripos($rLogMessage, 'server has gone away') !== false ||
@@ -97,7 +103,11 @@ class ErrorsCronJob implements CommandInterface {
                 continue;
             }
 
+            // server_id is part of the key so the SAME error from LB and MAIN keeps
+            // two distinct panel_logs rows — INSERT IGNORE on `unique` would
+            // otherwise collapse them into one and lose the per-server attribution.
             $hash = md5(
+                $rLogServerID .
                 $rLogType .
                 $rLogMessage .
                 $rLogExtra .
@@ -112,7 +122,7 @@ class ErrorsCronJob implements CommandInterface {
 
             $query .= sprintf(
                 "(%d,%s,%s,%s,%s,%s,%s,%s,%s),",
-                SERVER_ID,
+                $rLogServerID,
                 $this->sqlValue($rLogType),
                 $this->sqlValue($rLogMessage),
                 $this->sqlValue($rLogExtra),
