@@ -55,7 +55,6 @@ src/Streaming/
 ├── Delivery/
 │   ├── HLSGenerator.php
 │   ├── OffAirHandler.php
-│   ├── SignalSender.php
 │   └── StreamRedirector.php
 ├── Health/
 │   └── ProcessChecker.php

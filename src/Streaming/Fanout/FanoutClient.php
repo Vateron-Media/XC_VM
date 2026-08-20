@@ -356,7 +356,7 @@ class FanoutClient {
 	 * Queue an admin "send message" text overlay for one viewer on the daemon
 	 * (control POST /signal/<uuid>). The daemon burns the banner onto that viewer's
 	 * next HLS segment and a short live-TS window, then clears it — reproducing the
-	 * legacy SignalSender overlay now that clients are served only by the daemon.
+	 * legacy PHP byte-path overlay now that clients are served only by the daemon.
 	 * Best-effort: a daemon that's down / has no font just drops it.
 	 *
 	 * @param string $rUUID   Viewer connection uuid.
