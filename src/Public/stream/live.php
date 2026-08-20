@@ -14,8 +14,8 @@ use XcVm\Streaming\Delivery\HLSGenerator;
 use XcVm\Streaming\Delivery\OffAirHandler;
 use XcVm\Streaming\Delivery\SegmentReader;
 use XcVm\Streaming\Delivery\SignalSender;
+use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
-use XcVm\Streaming\TS;
 
 /**
  * Live stream delivery endpoint
@@ -102,6 +102,40 @@ if ($rChannelInfo) {
         $rProxyID = NULL;
     }
 
+    // Fanout (ADR 0002/0003, P2): route proxy-mode live TS through the xc_fanout
+    // daemon when it is reachable — there is NO settings flag; the switch is the
+    // daemon itself. If its control socket is present AND registering the source
+    // succeeds, this stream is committed to the daemon path: we skip the whole
+    // legacy startProxy/startMonitor block below (the daemon owns the producer —
+    // starts the puller on the first viewer, stops it after the last leaves) and
+    // no streams_servers pid is written, so the streams cron leaves it alone; the
+    // delivery arm then hands the byte path to nginx via X-Accel-Redirect.
+    //
+    // Deciding on *registration success* (not just socket presence) makes the
+    // fallback correct: a stopped/unreachable daemon (or a stale socket after a
+    // hard kill, or a stream with no source) leaves $rFanout false, so the FULL
+    // legacy path runs — startProxy producer included. Stopping the daemon is
+    // therefore the rollback: every stream falls back automatically, no flag.
+    $rFanout = false;
+    if (!empty($rChannelInfo["proxy"]) && file_exists(FANOUT_CTL_SOCK)) {
+        DatabaseFactory::connect();
+        $db->query('SELECT `stream_source` FROM `streams` WHERE `id` = ?', $rStreamID);
+        $rStreamRow = ($db->num_rows() > 0 ? $db->get_row() : array());
+        $db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
+        $rStreamArguments = $db->get_rows(true, 'argument_key');
+        $rSource = FanoutClient::buildSource($rStreamRow, $rStreamArguments);
+        $rFanout = !empty($rSource["urls"]) && FanoutClient::register($rStreamID, $rSource);
+
+        // Off-air parity (ADR 0003, Phase C): prewarm the daemon puller and wait
+        // for the source to actually produce. A running-but-dead source shows the
+        // not-on-air page here, exactly like the legacy startProxy path (whose
+        // viewer would otherwise hang on an empty stream). Bounded by
+        // on_demand_wait_time; a warm stream returns immediately.
+        if ($rFanout && !FanoutClient::probe($rStreamID, max(1, intval($rSettings["on_demand_wait_time"] ?: 5)) * 1000)) {
+            OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
+        }
+    }
+
     if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
         $rChannelInfo["pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid"));
     }
@@ -114,7 +148,7 @@ if ($rChannelInfo) {
         ConnectionTracker::addToQueue($rStreamID, $rPID);
     }
 
-    if (!ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
+    if (!$rFanout && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
         $rChannelInfo["pid"] = NULL;
 
         if ($rChannelInfo["on_demand"] == 1) {
@@ -143,24 +177,12 @@ if ($rChannelInfo) {
                 OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
         } else {
-            if (!empty($rChannelInfo["proxy"])) {
-                if (!($rChannelInfo["monitor_pid"] && ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID))) {
-                    @unlink(STREAMS_PATH . $rStreamID . "_.pid");
-                    ProcessManager::startProxy($rStreamID);
-
-                    if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
-                        $rChannelInfo["monitor_pid"] = intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor"));
-                    }
-                }
-
-                if (!$rChannelInfo["monitor_pid"]) {
-                    OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
-                }
-
-                $rChannelInfo["pid"] = $rChannelInfo["monitor_pid"];
-            } else {
-                OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
-            }
+            // Non-on-demand: proxy streams are daemon-only now (ADR 0003, Phase E
+            // — the legacy ProxyCommand producer was removed). If we reach here
+            // $rFanout is false, i.e. the daemon is unreachable, so show
+            // not-on-air (the keepalive brings the daemon back in ~2s). A dead
+            // non-proxy stream is likewise not-on-air.
+            OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
         }
     }
 
@@ -290,7 +312,22 @@ if ($rChannelInfo) {
                 DatabaseFactory::close();
             }
 
-            $rHLS = HLSGenerator::generateHLS($rSettings, $rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+            // Phase B (ADR 0003): serve HLS from the daemon's in-RAM segmenter
+            // when it is fed and the stream is unencrypted (daemon HLS is plain
+            // mpegts). The daemon playlist's sequence segments are tokenized into
+            // the same auth'd /hls/<token> URLs as the legacy path, marked so
+            // segment.php proxies them from the daemon. Encrypted streams / a
+            // daemon that's down fall through to the legacy tmpfs HLS.
+            $rHLS = false;
+            if (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
+                $rDaemonPl = FanoutClient::hlsPlaylist($rStreamID);
+                if ($rDaemonPl !== NULL) {
+                    $rHLS = HLSGenerator::tokenizeDaemonPlaylist($rDaemonPl, $rSettings, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+                }
+            }
+            if ($rHLS === false) {
+                $rHLS = HLSGenerator::generateHLS($rSettings, $rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
+            }
 
             if ($rHLS) {
                 touch(CONS_TMP_PATH . $rTokenData["uuid"]);
@@ -306,12 +343,26 @@ if ($rChannelInfo) {
             exit();
 
         default:
+            // Decide TS delivery once: daemon (proxy already registered+probed,
+            // or non-proxy fed) vs the legacy per-viewer feed. Daemon-served TS
+            // connections are recorded with pid=0 — their auth worker returns
+            // immediately under X-Accel, so the reaper's isRunning(pid) check
+            // can't track them; the fanout_sync daemon reconciles pid=0 rows
+            // against the daemon's live-connection set (see UsersCronJob).
+            $rTSDaemon = false;
+            if ($rChannelInfo["proxy"]) {
+                $rTSDaemon = $rFanout;
+            } elseif (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
+                $rTSDaemon = true;
+            }
+            $rConnPID = $rTSDaemon ? 0 : $rPID;
+
             $rConnection = ConnectionTracker::lookupLive($rSettings, $rConnCtx, $rExtension, true, false, false);
             if (!isset($rConnection)) {
                 if (time() > $rExpiresAt) {
                     generateError("TOKEN_EXPIRED");
                 }
-                $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rPID);
+                $rResult = ConnectionTracker::createLive($rSettings, $rConnCtx, $rExtension, $rConnPID);
             } else {
                 $rIPMatch = NetworkUtils::ipMatches($rSettings["ip_subnet_match"], $rConnection["user_ip"], $rIP);
 
@@ -324,7 +375,7 @@ if ($rChannelInfo) {
                     posix_kill(intval($rConnection["pid"]), 9);
                 }
 
-                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("pid" => $rPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
+                $rResult = ConnectionTracker::updateLive($rSettings, $rConnection, array("pid" => $rConnPID, "hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])));
             }
 
             if (!$rResult) {
@@ -351,41 +402,56 @@ if ($rChannelInfo) {
 
             if ($rChannelInfo["proxy"]) {
                 // ────────────────────────────────────────────────────────────────
-                // Proxy mode: relay ffmpeg's unix-socket datagrams straight to the client.
+                // Proxy streams are daemon-only (ADR 0003, Phase E — the legacy
+                // ProxyCommand producer + socket relay were removed). Auth is done
+                // and the source was already registered + probed with the daemon
+                // above (that set $rFanout; an unreachable/dead daemon already went
+                // not-on-air). Hand the byte path to nginx → daemon via
+                // X-Accel-Redirect; the FPM worker is freed the instant we return.
                 // ────────────────────────────────────────────────────────────────
-                header("Content-type: video/mp2t");
-
-                if (!file_exists(CONS_TMP_PATH . $rStreamID . "/")) {
-                    mkdir(CONS_TMP_PATH . $rStreamID);
+                if (!$rFanout) {
+                    OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
                 }
+                // client_prebuffer / restreamer_prebuffer (seconds) → the daemon
+                // front-loads that much keyframe-aligned history on join, filling
+                // the player's cache. Without it the daemon sends only the current
+                // GOP (~1s, "no cache"). Same hand-off contract as the non-proxy
+                // $rTSDaemon branch below; the daemon clamps to its retention ceiling.
+                $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
+                    ? (!empty($rTokenData["prebuffer"])
+                        ? intval($rSegmentSettings["seg_time"] ?? 0)
+                        : intval($rSettings["restreamer_prebuffer"] ?? 0))
+                    : intval($rSettings["client_prebuffer"] ?? 0);
+                header("Content-Type: video/mp2t");
+                header("X-Accel-Buffering: no");
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer);
+                exit;
+            }
 
-                $rSocketFile = CONS_TMP_PATH . $rStreamID . "/" . $rTokenData["uuid"];
-                $rSocket = socket_create(AF_UNIX, SOCK_DGRAM, 0);
-                @unlink($rSocketFile);
-                socket_bind($rSocket, $rSocketFile);
-                socket_set_option($rSocket, SOL_SOCKET, SO_RCVTIMEO, array("sec" => 20, "usec" => 0));
-                socket_set_nonblock($rSocket);
-                $rTotalFails = 200;
-                $rFails = 0;
-
-                while ($rFails <= $rTotalFails) {
-                    // MPEG-TS packet size = 188 bytes
-                    // 64 packets per read:
-                    // 188 * 64 = 12032 bytes (~12 KB)
-                    $rBuffer = socket_read($rSocket, 188 * 64);
-
-                    if ($rBuffer !== false && $rBuffer !== '') {
-                        $rFails = 0;
-                        echo $rBuffer;
-                        flush();
-                    } else {
-                        $rFails++;
-                        usleep(80000);          // 80ms backoff when no data
-                    }
-                }
-                // cleanup
-                socket_close($rSocket);
-                @unlink($rSocketFile);
+            // ────────────────────────────────────────────────────────────────
+            // Non-proxy fanout hand-off (ADR 0003, A3). The stream's ffmpeg tees
+            // its mpegts into the xc_fanout daemon (A2) from the same process that
+            // writes the on-disk HLS, so once we reach delivery (playlist ready
+            // above) the daemon has data. If it's reachable and serving this
+            // stream, hand the byte path to nginx→daemon via X-Accel-Redirect —
+            // like proxy mode — instead of pinning this worker in the per-viewer
+            // .ts chase-read below. Daemon down / not fed ⇒ the legacy feed runs.
+            // ────────────────────────────────────────────────────────────────
+            if ($rTSDaemon) {
+                // client_prebuffer / restreamer_prebuffer (seconds) → the daemon
+                // front-loads that much keyframe-aligned history on join, filling
+                // the player's cache. The legacy byte path below applies these; the
+                // X-Accel hand-off must pass them through or they would be lost
+                // (the daemon otherwise sends only the current GOP). The daemon
+                // clamps the value to its own retention ceiling.
+                $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
+                    ? (!empty($rTokenData["prebuffer"])
+                        ? intval($rSegmentSettings["seg_time"] ?? 0)
+                        : intval($rSettings["restreamer_prebuffer"] ?? 0))
+                    : intval($rSettings["client_prebuffer"] ?? 0);
+                header("Content-Type: video/mp2t");
+                header("X-Accel-Buffering: no");
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer);
                 exit;
             }
 

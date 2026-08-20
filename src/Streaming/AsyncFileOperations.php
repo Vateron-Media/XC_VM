@@ -178,21 +178,6 @@ class AsyncFileOperations {
     }
 
     /**
-     * Batch check multiple files existence
-     * More efficient than individual checks
-     * 
-     * @param array $files Array of file paths
-     * @return array Array with file => bool mapping
-     */
-    public static function checkFilesExists(array $files) {
-        $results = [];
-        foreach ($files as $file) {
-            $results[$file] = @stat($file) !== false;
-        }
-        return $results;
-    }
-
-    /**
      * Wait for ANY file from list to exist
      * Returns on first match or after timeout
      * 
@@ -217,67 +202,6 @@ class AsyncFileOperations {
     }
 
     /**
-     * Adaptive wait with exponential backoff
-     * Starts with short waits, then increases delay
-     * 
-     * @param string $file File path to monitor
-     * @param int $maxRetries Maximum retry attempts
-     * @param int $initialDelayMs Initial delay in milliseconds
-     * @return bool
-     */
-    public static function awaitFileExistsAdaptive($file, $maxRetries = 300, $initialDelayMs = 10) {
-        $delay = max(1000, $initialDelayMs * 1000); // Start in microseconds
-        $maxDelay = 500000; // Cap at 500ms
-
-        for ($i = 0; $i < $maxRetries; $i++) {
-            if (@stat($file) !== false) {
-                return true;
-            }
-
-            usleep($delay);
-
-            // Increase delay exponentially but cap it
-            $delay = min($maxDelay, intval($delay * 1.2));
-        }
-
-        return false;
-    }
-
-    /**
-     * Monitor file for changes (mtime)
-     * More efficient than polling
-     * 
-     * @param string $file File path
-     * @param int $timeoutSeconds Maximum wait time
-     * @return bool True if file was modified
-     */
-    public static function awaitFileModified($file, $timeoutSeconds = 30) {
-        $stat = @stat($file);
-        if ($stat === false) {
-            return false;
-        }
-
-        $originalMtime = $stat['mtime'];
-        $endTime = time() + $timeoutSeconds;
-
-        while (time() < $endTime) {
-            $currentStat = @stat($file);
-
-            if ($currentStat === false) {
-                return false;
-            }
-
-            if ($currentStat['mtime'] > $originalMtime) {
-                return true;
-            }
-
-            usleep(50000); // 50ms check interval
-        }
-
-        return false;
-    }
-
-    /**
      * Clear cache for specific file
      * @param string $file File path
      */
@@ -287,17 +211,6 @@ class AsyncFileOperations {
         } else {
             unset(self::$fileCache[$file]);
         }
-    }
-
-    /**
-     * Get cache statistics for debugging
-     * @return array
-     */
-    public static function getCacheStats() {
-        return [
-            'cached_files' => count(self::$fileCache),
-            'cache_memory' => memory_get_usage(true),
-        ];
     }
 
     /**
@@ -335,16 +248,4 @@ class AsyncFileOperations {
         return $stat !== false ? $stat['size'] : false;
     }
 
-    /**
-     * Check if multiple files exist in parallel fashion
-     * Better than sequential checks
-     * 
-     * @param array $files File paths to check
-     * @return array Files that exist
-     */
-    public static function filterExistingFiles(array $files) {
-        return array_filter($files, function ($file) {
-            return @stat($file) !== false;
-        });
-    }
 }

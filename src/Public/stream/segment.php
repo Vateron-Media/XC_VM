@@ -88,6 +88,26 @@ if (isset($_GET['token'])) {
 				$rUUID = $rTokenArray[5];
 				$rVideoCodec = ($rTokenArray[7] ?: 'h264');
 				$rOnDemand = ($rTokenArray[8] ?: 0);
+
+				// Phase B (ADR 0003): daemon in-RAM HLS segment — name is
+				// "<id>_d<seq>.ts", no on-disk file. Auth lives in the token; run
+				// the same uuid + IP checks, then proxy the segment from the
+				// daemon's RAM via an internal X-Accel location (2-path-segment
+				// target so the server-level rewrites don't hijack it).
+				if (preg_match('/^' . intval($rStreamID) . '_d(\d+)\.ts$/', $rSegmentID, $rDSeg)) {
+					if (!file_exists(CONS_TMP_PATH . $rUUID)) {
+						generate404();
+					}
+					$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rUserIP), 0, -1)) == implode('.', array_slice(explode('.', getuserip()), 0, -1)) : $rUserIP == getuserip());
+					if (!($rIPMatch || !$rSettings['restrict_same_ip'])) {
+						generate404();
+					}
+					header('Access-Control-Allow-Origin: *');
+					header('Content-Type: video/mp2t');
+					header('X-Accel-Redirect: /xc_fanout_hls/' . intval($rStreamID) . '_' . $rDSeg[1]);
+					exit();
+				}
+
 				$rSegment = STREAMS_PATH . $rSegmentID;
 				$rSegmentData = explode('_', $rSegmentID);
 
@@ -186,14 +206,12 @@ if (isset($_GET['token'])) {
 					}
 
 					if (file_exists($rSegment . '.enc')) {
-						header('Content-Length: ' . filesize($rSegment . '.enc'));
-						readfile($rSegment . '.enc');
+						header('X-Accel-Redirect: /xc_hls/' . rawurlencode(basename($rSegment) . '.enc'));
 					} else {
 						generate404();
 					}
 				} else {
-					header('Content-Length: ' . $rFilesize);
-					readfile($rSegment);
+					header('X-Accel-Redirect: /xc_hls/' . rawurlencode(basename($rSegment)));
 				}
 			} else {
 				if (0 < $rOffset) {

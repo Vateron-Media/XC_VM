@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * LlodCommand — llod command
@@ -89,7 +90,6 @@ class LlodCommand implements CommandInterface {
 		set_time_limit(0);
 		error_reporting(E_WARNING | E_PARSE);
 		cli_set_process_title('LLOD[' . $rStreamID . ']');
-		require MAIN_HOME . 'Streaming/TimeshiftClient.php';
 
 		$rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 
@@ -160,6 +160,22 @@ class LlodCommand implements CommandInterface {
 
 		stream_set_blocking($rFP, true);
 
+		// LLOD v3 daemon feed (ADR 0003). LLOD reads MPEG-TS itself (no ffmpeg),
+		// so mirror the raw bytes into the xc_fanout daemon's push-fed ingest
+		// socket — the same stream then fans out via /live/<id> and in-RAM /hls,
+		// and live.php's isStreamFed() routes viewers to the daemon. The write is
+		// non-blocking + best-effort so a daemon stall never slows LLOD's own
+		// segmenting (its primary job); the daemon resyncs on PAT/PMT after any
+		// dropped bytes. Null / failed connect ⇒ legacy-only, no behaviour change.
+		$rDaemonSock = FanoutClient::registerIngest($rStreamID);
+		$rDaemonConn = null;
+		if ($rDaemonSock !== null) {
+			$rDaemonConn = @stream_socket_client('unix://' . $rDaemonSock, $rDErrno, $rDErrstr, 2);
+			if ($rDaemonConn) {
+				stream_set_blocking($rDaemonConn, false);
+			}
+		}
+
 		shell_exec('rm -f ' . STREAMS_PATH . escapeshellarg($rStreamID) . '_*.ts');
 
 		// ── MPEG-TS demux state ──────────────────────────────────────────
@@ -191,6 +207,15 @@ class LlodCommand implements CommandInterface {
 
 			$lastData = time();
 			$buffer  .= $data;
+
+			// Mirror to the daemon (best-effort, non-blocking). On a write error
+			// (daemon gone) stop mirroring; live.php then falls back to legacy.
+			if ($rDaemonConn) {
+				if (@fwrite($rDaemonConn, $data) === false) {
+					@fclose($rDaemonConn);
+					$rDaemonConn = null;
+				}
+			}
 
 			$len = strlen($buffer);
 			$off = 0;
@@ -289,6 +314,12 @@ class LlodCommand implements CommandInterface {
 		if (is_resource($rFP)) {
 			fclose($rFP);
 		}
+		if (is_resource($rDaemonConn)) {
+			fclose($rDaemonConn);
+		}
+		// Drop the daemon ingest on a clean exit; stopStream() is the backstop
+		// when LLOD is killed mid-loop.
+		FanoutClient::unregister($rStreamID);
 	}
 
 	/**

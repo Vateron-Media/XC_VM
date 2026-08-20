@@ -96,6 +96,7 @@ class FileLogger implements LoggerInterface {
             'line'    => $line,
             'time'    => time(),
             'env'     => php_sapi_name(),
+            'server_id' => defined('SERVER_ID') ? SERVER_ID : null,
         ];
 
         $logLine = base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . "\n";

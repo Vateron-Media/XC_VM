@@ -306,6 +306,37 @@ class RootSignalsCronJob implements CommandInterface {
                 $db->query('UPDATE `settings` SET `live_streaming_pass` = ?', Encryption::randomString(40));
             }
         }
+
+        // xc_fanout daemon binary — keep it installed and current (ADR 0003,
+        // Phase G). Nothing else pulls it: not the installer, not UpdateCommand,
+        // so a fresh node/LB would never get the daemon and an updated panel would
+        // keep an old one. fanout_binary is idempotent (downloads only on a
+        // version mismatch, and only when GitHub is reachable), so it is safe to
+        // poll. Throttle the check to ~hourly via a stamp, but the first pass
+        // (stamp absent) runs immediately so a fresh install/LB gets the daemon
+        // within a minute; the running daemon is respawned by fanout_binary on an
+        // actual upgrade. Root context (this cron) is required — it installs into
+        // bin/ and chowns. Runs on every node (main + LB) since LBs need it too.
+        $rFanoutStamp = CRONS_TMP_PATH . 'fanout_binary_check';
+        if (!file_exists($rFanoutStamp) || time() - intval(@file_get_contents($rFanoutStamp) ?: 0) > 3600) {
+            file_put_contents($rFanoutStamp, time());
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary >/dev/null 2>&1 &');
+        }
+
+        // xcvm_core PHP extension — same self-heal rationale as the daemon above.
+        // The extension is mirrored into the binaries repo tree decoupled from the
+        // heavy runtime bundle, so nothing else keeps it current: a fresh LB (or a
+        // node on an older extension) would never converge on its own. xcvm_core is
+        // idempotent (version-compared, downloads only on a mismatch) and installs
+        // with a load-test + rollback, so it is safe to poll ~hourly; the first
+        // pass runs immediately. This is what delivers config_set_redis to LB nodes,
+        // without which StatusCommand::configureRedisLb cannot point Redis at main.
+        $rCoreStamp = CRONS_TMP_PATH . 'xcvm_core_check';
+        if (!file_exists($rCoreStamp) || time() - intval(@file_get_contents($rCoreStamp) ?: 0) > 3600) {
+            file_put_contents($rCoreStamp, time());
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
+        }
+
         if ($rServers[SERVER_ID]['limit_requests'] > 0) {
             $rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval($rServers[SERVER_ID]['limit_requests']) . 'r/s;';
         } else {

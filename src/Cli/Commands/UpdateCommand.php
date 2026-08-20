@@ -166,6 +166,23 @@ class UpdateCommand implements CommandInterface {
 				exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system");
 				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status');
 
+				// Pull/refresh the xc_fanout daemon binary to match this panel
+				// version (ADR 0003, Phase G) — nothing else does it. Idempotent
+				// (downloads only on a version mismatch) + background + best-effort
+				// so an unreachable GitHub never blocks the update; the RootSignals
+				// hourly self-heal is the backstop. Runs on every node (LBs too).
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary >/dev/null 2>&1 &');
+
+				// Pull/refresh the xcvm_core PHP extension to match the version
+				// published in the binaries repo — decoupled from the heavy runtime
+				// bundle, so an update alone would otherwise leave a stale extension.
+				// Picks the OpenSSL-ABI-matched build, installs atomically with a
+				// load-test + rollback, and reloads php-fpm. Idempotent + background
+				// + best-effort; the RootSignals hourly self-heal is the backstop.
+				// Runs on every node (LBs too) — this is what ships config_set_redis
+				// to LB nodes so their Redis target can be pointed at the main server.
+				exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
+
 				// Ensure GeoLite2 databases are present/refreshed after an update.
 				// They are no longer shipped in the update archive, so fetch them
 				// from the XC_VM_Update release. Best-effort: run in background so a

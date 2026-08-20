@@ -3,7 +3,6 @@
 namespace XcVm\Core\Util;
 
 use XcVm\Core\Process\ProcessManager;
-use XcVm\Streaming\TS;
 
 /**
  * StreamUtils — stream utils
@@ -362,13 +361,4 @@ class StreamUtils {
 		return false;
 	}
 
-	/**
-	 * Probe an MPEG-TS file via the bundled `tsinfo` binary.
-	 *
-	 * @param string $rFilename Path to the .ts file.
-	 * @return array|null Decoded probe data, or null on failure.
-	 */
-	public static function getTSInfo($rFilename) {
-		return json_decode(shell_exec(BIN_PATH . 'tsinfo ' . escapeshellarg($rFilename)), true);
-	}
 }

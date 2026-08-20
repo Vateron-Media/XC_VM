@@ -5,7 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Domain\Stream\StreamProcess;
-use XcVm\Streaming\TS;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * LoopbackCommand — loopback command
@@ -112,7 +112,6 @@ class LoopbackCommand implements CommandInterface {
 
 		set_time_limit(0);
 		cli_set_process_title('Loopback[' . $rStreamID . ']');
-		require MAIN_HOME . 'Streaming/TimeshiftClient.php';
 
 		$rSettings = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'settings'));
 		$rServers = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'servers'));
@@ -127,6 +126,27 @@ class LoopbackCommand implements CommandInterface {
 
 		shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*.ts');
 		stream_set_blocking($rFP, true);
+
+		// Loopback daemon feed (ADR 0003, Phase G restream-from-origin). Loopback
+		// reads MPEG-TS from the parent server itself (no ffmpeg), so — like LLOD v3
+		// — mirror the bytes into the xc_fanout daemon's push-fed ingest socket: the
+		// same stream then fans out via /live/<id> and in-RAM /hls on this LB, and
+		// live.php's isStreamFed() routes viewers to the daemon instead of the PHP
+		// byte path (the whole point on an LB too). The write is non-blocking +
+		// best-effort so a daemon stall never slows loopback's own segmenting; the
+		// daemon resyncs on PAT/PMT after any dropped bytes. Null/failed connect ⇒
+		// legacy-only, no behaviour change. We mirror the SANITIZED buffer (below),
+		// not the raw read, because admin/live interleaves 0xFF padding that would
+		// otherwise break the daemon's packet parsing.
+		$rDaemonSock = FanoutClient::registerIngest($rStreamID);
+		$rDaemonConn = null;
+		if ($rDaemonSock !== null) {
+			$rDaemonConn = @stream_socket_client('unix://' . $rDaemonSock, $rDErrno, $rDErrstr, 2);
+			if ($rDaemonConn) {
+				stream_set_blocking($rDaemonConn, false);
+			}
+		}
+
 		$rExcessBuffer = $rPrebuffer = $rBuffer = $rPacket = '';
 		$rPATHeaders = array();
 		$rNewSegment = $rPAT = false;
@@ -189,6 +209,15 @@ class LoopbackCommand implements CommandInterface {
 			}
 			$rPacketNum = floor(strlen($rBuffer) / PACKET_SIZE);
 			if (0 < $rPacketNum) {
+				// Mirror the sanitized whole-packet buffer to the daemon (best-effort,
+				// non-blocking). On a write error (daemon gone) stop mirroring; viewers
+				// then fall back to the legacy on-disk HLS this loop still writes.
+				if ($rDaemonConn) {
+					if (@fwrite($rDaemonConn, $rBuffer) === false) {
+						@fclose($rDaemonConn);
+						$rDaemonConn = null;
+					}
+				}
 				foreach (str_split($rBuffer, PACKET_SIZE) as $rPacket) {
 					list(, $rHeader) = unpack('N', substr($rPacket, 0, 4));
 					$rSync = $rHeader >> 24 & 255;
@@ -200,9 +229,9 @@ class LoopbackCommand implements CommandInterface {
 							$rAdaptationField = $rHeader >> 4 & 3;
 							if (($rAdaptationField & 2) === 2) {
 								if (0 < count($rPATHeaders) && unpack('C', $rPacket[4])[1] == 7 && substr($rPacket, 4, 2) == KEYFRAME_HEADER) {
-									// Extract PCR directly from the adaptation field. TS::parsePacket() is
-									// unsuitable here — its getBits() only advances on zero bits and returns
-									// garbage PTS, causing the gate to never fire (one giant segment).
+									// Extract PCR directly from the adaptation field (parsed inline — a
+									// generic bit-reader mis-advances on zero bits and returns garbage PTS,
+									// causing the gate to never fire → one giant segment).
 									// Keyframe flags are 0x50, so PCR_flag (0x10) is set: PCR base in the
 									// 5 bytes starting at offset 6.
 									$rKfPTS = null;
@@ -290,6 +319,10 @@ class LoopbackCommand implements CommandInterface {
 		if (time() - $rLastPacket < TIMEOUT) {
 			$this->writeError($rStreamID, '[Loopback] Connection to source closed unexpectedly.');
 		}
+		if ($rDaemonConn) {
+			@fclose($rDaemonConn);
+		}
+		FanoutClient::unregister($rStreamID);
 		fclose($rSegmentFile);
 		fclose($rFP);
 

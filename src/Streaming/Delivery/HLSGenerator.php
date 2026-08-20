@@ -57,4 +57,53 @@ class HLSGenerator {
 
 		return false;
 	}
+
+	/**
+	 * Tokenize the xc_fanout daemon's in-RAM HLS playlist (ADR 0003, Phase B).
+	 * The daemon lists plain segments by sequence (`<seq>.ts`); rewrite each into
+	 * the same per-segment auth'd URL scheme generateHLS() uses, but with a
+	 * segment name marked as a daemon segment (`<id>_d<seq>.ts`) so segment.php
+	 * proxies it from the daemon's RAM instead of tmpfs. Daemon HLS is always
+	 * plain mpegts (unencrypted) — callers gate on `!encrypt_hls`.
+	 *
+	 * @param string $rPlaylist Raw daemon m3u8.
+	 * @return string|false Tokenized playlist, or false if it has no segments.
+	 */
+	public static function tokenizeDaemonPlaylist($rPlaylist, $rSettings, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, $rOnDemand, $rServerID, $rProxyID) {
+		$rPrefix = ($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '');
+		$rReplaced = 0;
+
+		$rSource = preg_replace_callback(
+			'/^(\d+)\.ts$/m',
+			function ($rM) use ($rSettings, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, $rOnDemand, $rPrefix, &$rReplaced) {
+				$rReplaced++;
+				$rSegName = intval($rStreamID) . '_d' . $rM[1] . '.ts';
+				if ($rIsHMAC) {
+					$rPayload = 'HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
+				} else {
+					$rPayload = $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
+				}
+				return $rPrefix . '/hls/' . Encryption::encrypt($rPayload, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			},
+			$rPlaylist
+		);
+
+		if ($rReplaced === 0) {
+			return false;
+		}
+
+		// Encrypted HLS: the daemon serves AES-128-CBC segments (it was given the
+		// same key/iv), so declare the key exactly like generateHLS — URI to the
+		// /key token endpoint, IV from the stream's iv file.
+		if (!empty($rSettings['encrypt_hls'])) {
+			$rIVFile = STREAMS_PATH . intval($rStreamID) . '_.iv';
+			if (is_file($rIVFile)) {
+				$rKeyToken = Encryption::encrypt($rIP . '/' . $rStreamID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+				$rKeyLine = '#EXT-X-KEY:METHOD=AES-128,URI="' . $rPrefix . '/key/' . $rKeyToken . '",IV=0x' . bin2hex((string) file_get_contents($rIVFile));
+				$rSource = preg_replace('/(#EXTM3U\r?\n)/', '$1' . $rKeyLine . "\n", $rSource, 1);
+			}
+		}
+
+		return $rSource;
+	}
 }

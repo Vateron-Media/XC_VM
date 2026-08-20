@@ -41,6 +41,15 @@ define('BIN_PATH',      MAIN_HOME . 'bin/');
 define('STORAGE_PATH',  MAIN_HOME . 'storage/');
 define('SIGNALS_PATH',  MAIN_HOME . 'signals/');
 
+// xc_fanout daemon sockets (ADR 0002, P2/P3). Kept in the app bin tree next to
+// the daemon binary, mirroring the php-fpm sockets layout (bin/php/sockets/):
+// FANOUT_HTTP_SOCK is the nginx-facing client surface, FANOUT_CTL_SOCK the
+// PHP-only control surface. A unix socket stores no stream bytes (IPC only), so
+// this is orthogonal to the tmpfs-free byte-path goal.
+define('FANOUT_RUN_PATH',  BIN_PATH . 'xc_fanout/sockets/');
+define('FANOUT_CTL_SOCK',  FANOUT_RUN_PATH . 'control.sock');
+define('FANOUT_HTTP_SOCK', FANOUT_RUN_PATH . 'http.sock');
+
 // ─────────────────────────────────────────────────────────────────
 //  3. Контент-директории
 // ─────────────────────────────────────────────────────────────────

@@ -13,6 +13,7 @@ use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Codec\FFprobeRunner;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * StreamsCronJob — streams cron job
@@ -137,6 +138,29 @@ class StreamsCronJob implements CommandInterface {
 
                     $rPlaylist = STREAMS_PATH . $rStream['stream_id'] . '_.m3u8';
                     if (ProcessManager::isStreamRunning($rPID, $rStream['stream_id']) && file_exists($rPlaylist)) {
+                        // Re-feed after a daemon restart (ADR 0003, C-ops). This
+                        // stream's ffmpeg is running and teeing into the daemon,
+                        // but if the daemon restarted it wiped its in-memory
+                        // registry and `onfail=ignore` silently dropped the tee
+                        // slave — the daemon no longer knows the stream
+                        // (control /streams/<id> → 404) and delivery has quietly
+                        // fallen back to legacy. Restart it so buildLive
+                        // re-registers the ingest and the daemon serves it again.
+                        // Guard: only a reachable-daemon 404 (daemonStreamMissing),
+                        // so a stopped daemon leaves legacy alone; throttled by a
+                        // stamp so a stream whose ingest keeps failing is not
+                        // restart-looped every cron tick. Proxy streams have no
+                        // local ffmpeg, so they never reach this running branch.
+                        if (FanoutClient::daemonStreamMissing($rStream['stream_id'])) {
+                            $rRefeedStamp = STREAMS_PATH . $rStream['stream_id'] . '_.refeed';
+                            if (!file_exists($rRefeedStamp) || time() - filemtime($rRefeedStamp) > 120) {
+                                echo 'Daemon lost stream ' . $rStream['stream_id'] . ' (restarted) — re-feeding...' . "\n\n";
+                                touch($rRefeedStamp);
+                                StreamProcess::startMonitor($rStream['stream_id'], 1);
+                                continue;
+                            }
+                        }
+
                         echo 'Update Stream Information...' . "\n";
                         $rBitrate = StreamUtils::getStreamBitrate('live', STREAMS_PATH . $rStream['stream_id'] . '_.m3u8');
                         $rProgressPath = STREAMS_PATH . $rStream['stream_id'] . '_.progress';
