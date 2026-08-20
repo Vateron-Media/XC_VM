@@ -402,3 +402,40 @@ new:
 	@rm -rf $(DIST_DIR)
 	@echo "==> Creating distribution directory: $(DIST_DIR)"
 	@mkdir -p ${DIST_DIR}
+
+# ─── Documentation (MkDocs Material + auto-translated ru) ────────────
+# English (docs/en) is the single source of truth; docs/ru is GENERATED from it
+# by tools/docs/translate.py (never committed) and consumed by the mkdocs
+# static-i18n plugin. The Pages workflow runs the same steps in CI.
+#
+#   make docs-venv       # one-time: local venv from docs/requirements.txt
+#   make docs-serve      # translate (noop) + live preview at :8000
+#   make docs-build      # translate + strict static build into ./site
+#   make docs-translate  # (re)generate docs/ru only
+#
+# Engine via DOCS_TRANSLATE_PROVIDER (default: translators = free, no API key):
+#   make docs-build                                     # free web engines (yandex/...)
+#   make docs-build DOCS_TRANSLATE_PROVIDER=anthropic   # needs ANTHROPIC_API_KEY
+#   make docs-build DOCS_TRANSLATE_PROVIDER=noop        # copy en (fast dry-run)
+DOCS_VENV := .docs-venv
+DOCS_PY := $(DOCS_VENV)/bin/python
+DOCS_TRANSLATE_PROVIDER ?= translators
+
+.PHONY: docs-venv docs-translate docs-build docs-serve
+
+# The venv's mkdocs binary doubles as the install stamp (built once).
+$(DOCS_VENV)/bin/mkdocs:
+	@python3 -m venv $(DOCS_VENV)
+	@$(DOCS_VENV)/bin/pip install -q --upgrade pip
+	@$(DOCS_VENV)/bin/pip install -q -r docs/requirements.txt
+
+docs-venv: $(DOCS_VENV)/bin/mkdocs
+
+docs-translate: $(DOCS_VENV)/bin/mkdocs
+	@DOCS_TRANSLATE_PROVIDER=$(DOCS_TRANSLATE_PROVIDER) $(DOCS_PY) tools/docs/translate.py --lang ru
+
+docs-build: docs-translate
+	@$(DOCS_PY) -m mkdocs build --strict
+
+docs-serve: docs-translate
+	@$(DOCS_PY) -m mkdocs serve

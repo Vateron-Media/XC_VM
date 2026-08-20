@@ -1,0 +1,130 @@
+site_name: XC_VM
+site_description: XC_VM IPTV panel — user and developer documentation
+site_url: https://vateron-media.github.io/XC_VM/
+repo_url: https://github.com/Vateron-Media/XC_VM
+repo_name: Vateron-Media/XC_VM
+docs_dir: docs
+site_dir: site
+edit_uri: edit/main/docs/
+
+# ru/ is generated at build time (translated from en/) and consumed by the i18n
+# plugin. adr/agents/xc_fanout.md are repo-internal English notes, not part of
+# the published site; requirements.txt is toolchain, not content.
+exclude_docs: |
+  adr/
+  agents/
+  xc_fanout.md
+  requirements.txt
+
+theme:
+  name: material
+  language: en
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - navigation.tracking
+    - search.highlight
+    - search.suggest
+    - content.code.copy
+    - content.tabs.link
+    - toc.follow
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - tables
+  - footnotes
+  - toc:
+      permalink: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+
+plugins:
+  - search
+  # English is the canonical source (docs/en). Russian (docs/ru) is generated at
+  # build time by tools/docs/translate.py and consumed here in folder structure.
+  - i18n:
+      docs_structure: folder
+      fallback_to_default: true
+      reconfigure_material: true
+      reconfigure_search: true
+      languages:
+        - locale: en
+          default: true
+          name: English
+          build: true
+        - locale: ru
+          name: Русский
+          build: true
+
+nav:
+  - Home: en/README.md
+  - User Guide:
+      - Administration:
+          - SSL Certificate Generation: en/administration/ssl-generation.md
+          - Updating a Server: en/administration/server-update.md
+          - Server Diagnostics: en/administration/server-diagnostics.md
+          - Update Mechanism: en/administration/update-system.md
+          - Reseller System: en/administration/reseller-system.md
+          - Backup Strategy: en/administration/backup-strategy.md
+      - API Reference:
+          - Interactive API (Swagger): en/api/swagger.md
+      - Customization:
+          - UI Translations: en/guides/translations.md
+      - Diagnostics:
+          - Diagnostics Service: en/guides/diagnostics-api.md
+      - Info & FAQ:
+          - FAQ: en/info/faq.md
+          - Migration Guide: en/info/migration_guide.md
+          - Watch Folder: en/info/watch_folder.md
+  - Developer Guide:
+      - Architecture:
+          - Architecture Overview: en/development/architecture.md
+          - Autoloading (PSR-4): en/development/autoloader.md
+          - Bootstrap Contexts: en/development/bootstrap-contexts.md
+          - Module System: en/development/modules.md
+          - HTTP Request Handling: en/development/http-request-handling.md
+          - Streaming Subsystem: en/development/streaming-subsystem.md
+          - Event System: en/development/event-system.md
+          - Exception Hierarchy: en/development/exception-hierarchy.md
+          - Caching and Redis: en/development/caching-and-redis.md
+          - Navbar Rendering: en/development/navbar-rendering.md
+      - Developer Workflow:
+          - Development Workflow: en/guides/dev-workflow.md
+          - CLI Tools & Migrations: en/guides/cli-tools.md
+          - PHPUnit Setup: en/guides/phpunit-phar.md
+          - Feature Flags: en/guides/feature-flags.md
+          - Process Management: en/guides/process-management.md
+      - Security & Access:
+          - Authentication and Sessions: en/guides/authentication-and-sessions.md
+          - Permissions and RBAC: en/guides/permissions-and-rbac.md
+          - Input Validation: en/guides/input-validation.md
+          - Error Handling: en/guides/error-handling.md
+      - Integrations:
+          - GeoIP and Device Detection: en/guides/geoip-and-device-detection.md
+          - Ministra STB Emulation: en/guides/ministra-browser-emulation.md
+          - UCS Integration: en/guides/ucs-integration.md
+      - Build & Release:
+          - Build System (MAIN vs LB): en/builds/build_system.md
+          - Pre-release Checklist: en/builds/updates_checklist.md

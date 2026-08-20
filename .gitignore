@@ -22,3 +22,8 @@ coverage.xml
 build/.php-cs-fixer.cache
 tools/test-stream-generator/sample.mp4
 .understand-anything/*
+# Docs: generated translations (from docs/en via tools/docs/translate.py),
+# MkDocs build output, and the translation cache — none are committed.
+docs/ru/
+/site/
+.docs-cache/

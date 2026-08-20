@@ -122,4 +122,4 @@ Probable cause(s):
 | `src/Cli/CronJobs/RootSignalsCronJob.php` | Applies iptables blocks (the false-positive source) |
 | `src/Domain/Server/ServerRepository.php` | `servers` table access |
 
-See also: [CLI Tools](en-us/guides/cli-tools.md), [Updating a Server](en-us/administration/server-update.md).
+See also: [CLI Tools](../guides/cli-tools.md), [Updating a Server](../administration/server-update.md).

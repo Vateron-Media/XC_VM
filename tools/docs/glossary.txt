@@ -1,0 +1,43 @@
+# Do-not-translate terms for docs translation (tools/docs/translate.py).
+# One term per line; blank lines and #-comments ignored. Product, protocol,
+# tool and code identifiers that must stay verbatim in every language.
+
+XC_VM
+xc_fanout
+xcvm_core
+Vateron Media
+Xtream Codes
+Ministra
+UCS
+X-Accel-Redirect
+HLS
+MPEG-TS
+MPEGTS
+RTMP
+DASH
+VOD
+EPG
+GeoIP
+FFmpeg
+ffmpeg
+ffprobe
+nginx
+Redis
+MariaDB
+MySQL
+PHP
+PHP-FPM
+Composer
+PSR-4
+Docsify
+MkDocs
+systemd
+tmpfs
+bouquet
+timeshift
+watchdog
+load balancer
+install_id
+drawtext
+OpenAPI
+Swagger
