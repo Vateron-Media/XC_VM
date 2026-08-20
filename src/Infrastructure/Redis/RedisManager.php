@@ -37,7 +37,10 @@ class RedisManager {
 			$rNow = time();
 			if ($rNow - self::$lastPingCheck > 30) {
 				try {
-					self::$instance->ping();
+					$rPong = self::$instance->ping();
+					if ($rPong !== true && $rPong !== '+PONG' && $rPong !== 'PONG') {
+						throw new \RedisException('unhealthy ping reply');
+					}
 					self::$lastPingCheck = $rNow;
 				} catch (\RedisException $e) {
 					self::$instance = null;
