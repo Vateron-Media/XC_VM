@@ -323,6 +323,20 @@ class RootSignalsCronJob implements CommandInterface {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php fanout_binary >/dev/null 2>&1 &');
         }
 
+        // xcvm_core PHP extension — same self-heal rationale as the daemon above.
+        // The extension is mirrored into the binaries repo tree decoupled from the
+        // heavy runtime bundle, so nothing else keeps it current: a fresh LB (or a
+        // node on an older extension) would never converge on its own. xcvm_core is
+        // idempotent (version-compared, downloads only on a mismatch) and installs
+        // with a load-test + rollback, so it is safe to poll ~hourly; the first
+        // pass runs immediately. This is what delivers config_set_redis to LB nodes,
+        // without which StatusCommand::configureRedisLb cannot point Redis at main.
+        $rCoreStamp = CRONS_TMP_PATH . 'xcvm_core_check';
+        if (!file_exists($rCoreStamp) || time() - intval(@file_get_contents($rCoreStamp) ?: 0) > 3600) {
+            file_put_contents($rCoreStamp, time());
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
+        }
+
         if ($rServers[SERVER_ID]['limit_requests'] > 0) {
             $rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval($rServers[SERVER_ID]['limit_requests']) . 'r/s;';
         } else {
