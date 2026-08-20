@@ -55,8 +55,6 @@ src/Streaming/
 ├── Delivery/
 │   ├── HLSGenerator.php
 │   ├── OffAirHandler.php
-│   ├── SegmentReader.php
-│   ├── SignalSender.php
 │   └── StreamRedirector.php
 ├── Health/
 │   └── ProcessChecker.php
@@ -454,7 +452,6 @@ console.php stream:check "<url>" --decode=30 --json
 | `src/Streaming/Balancer/ProxySelector.php` | proxy server selection |
 | `src/Streaming/Protection/ConnectionLimiter.php` | per-user connection limits |
 | `src/Streaming/Delivery/HLSGenerator.php` | M3U8 playlist generation |
-| `src/Streaming/Delivery/SegmentReader.php` | segment extraction from playlists |
 | `src/Streaming/Delivery/StreamRedirector.php` | stream availability and server routing |
 | `src/Streaming/AsyncFileOperations.php` | non-blocking filesystem utilities |
 | `src/Streaming/Lifecycle/ShutdownHandler.php` | connection cleanup on exit |

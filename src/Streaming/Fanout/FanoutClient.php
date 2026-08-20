@@ -353,6 +353,45 @@ class FanoutClient {
 	}
 
 	/**
+	 * Queue an admin "send message" text overlay for one viewer on the daemon
+	 * (control POST /signal/<uuid>). The daemon burns the banner onto that viewer's
+	 * next HLS segment and a short live-TS window, then clears it — reproducing the
+	 * legacy PHP byte-path overlay now that clients are served only by the daemon.
+	 * Best-effort: a daemon that's down / has no font just drops it.
+	 *
+	 * @param string $rUUID   Viewer connection uuid.
+	 * @param array  $rSignal Signal fields (message, font_size, font_color, xy_offset).
+	 * @return bool True when the daemon accepted the signal (HTTP 2xx).
+	 */
+	public static function sendSignal(string $rUUID, array $rSignal): bool {
+		if ($rUUID === '' || !function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return false;
+		}
+
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost/signal/' . rawurlencode($rUUID),
+			CURLOPT_CUSTOMREQUEST  => 'POST',
+			CURLOPT_POSTFIELDS     => json_encode([
+				'message'    => (string) ($rSignal['message'] ?? ''),
+				'font_size'  => intval($rSignal['font_size'] ?? 0),
+				'font_color' => (string) ($rSignal['font_color'] ?? ''),
+				'xy_offset'  => (string) ($rSignal['xy_offset'] ?? ''),
+			]),
+			CURLOPT_HTTPHEADER     => ['Content-Type: application/json'],
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => 2,
+			CURLOPT_TIMEOUT        => 3,
+		]);
+		curl_exec($rCurl);
+		$rCode = curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		curl_close($rCurl);
+
+		return $rCode >= 200 && $rCode < 300;
+	}
+
+	/**
 	 * Unregister a stream (stops its puller / ingest listener, drops it from the
 	 * daemon). Works for both pull-fed (proxy) and push-fed (ingest) streams.
 	 *

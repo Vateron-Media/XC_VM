@@ -55,8 +55,6 @@ src/Streaming/
 ├── Delivery/
 │   ├── HLSGenerator.php
 │   ├── OffAirHandler.php
-│   ├── SegmentReader.php
-│   ├── SignalSender.php
 │   └── StreamRedirector.php
 ├── Health/
 │   └── ProcessChecker.php
@@ -453,7 +451,6 @@ console.php stream:check "<url>" --decode=30 --json
 | `src/Streaming/Balancer/ProxySelector.php` | выбор прокси-сервера |
 | `src/Streaming/Protection/ConnectionLimiter.php` | ограничения подключений на пользователя |
 | `src/Streaming/Delivery/HLSGenerator.php` | генерация плейлиста M3U8 |
-| `src/Streaming/Delivery/SegmentReader.php` | извлечение сегментов из плейлистов |
 | `src/Streaming/Delivery/StreamRedirector.php` | доступность потока и маршрутизация серверов |
 | `src/Streaming/AsyncFileOperations.php` | неблокирующие утилиты файловой системы |
 | `src/Streaming/Lifecycle/ShutdownHandler.php` | очистка подключения при выходе |
