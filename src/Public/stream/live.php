@@ -4,7 +4,6 @@ use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\AsyncFileOperations;
@@ -12,8 +11,6 @@ use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
 use XcVm\Streaming\Delivery\HLSGenerator;
 use XcVm\Streaming\Delivery\OffAirHandler;
-use XcVm\Streaming\Delivery\SegmentReader;
-use XcVm\Streaming\Delivery\SignalSender;
 use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
 
@@ -434,14 +431,15 @@ if ($rChannelInfo) {
             // writes the on-disk HLS, so once we reach delivery (playlist ready
             // above) the daemon has data. If it's reachable and serving this
             // stream, hand the byte path to nginx→daemon via X-Accel-Redirect —
-            // like proxy mode — instead of pinning this worker in the per-viewer
-            // .ts chase-read below. Daemon down / not fed ⇒ the legacy feed runs.
+            // like proxy mode. Non-proxy TS is daemon-only (ADR 0003, Phase E — the
+            // legacy per-viewer .ts chase-read was removed); daemon down / not fed
+            // ⇒ not-on-air, same as the proxy arm.
             // ────────────────────────────────────────────────────────────────
             if ($rTSDaemon) {
                 // client_prebuffer / restreamer_prebuffer (seconds) → the daemon
                 // front-loads that much keyframe-aligned history on join, filling
-                // the player's cache. The legacy byte path below applies these; the
-                // X-Accel hand-off must pass them through or they would be lost
+                // the player's cache. The X-Accel hand-off must pass them through or
+                // they would be lost
                 // (the daemon otherwise sends only the current GOP). The daemon
                 // clamps the value to its own retention ceiling.
                 $rDaemonPrebuffer = $rUserInfo["is_restreamer"]
@@ -456,242 +454,13 @@ if ($rChannelInfo) {
             }
 
             // ────────────────────────────────────────────────────────────────
-            // Main TS feed (non-proxy): stream the HLS segments as continuous MPEG-TS.
+            // Non-proxy TS is daemon-only now (ADR 0003, Phase E — the legacy
+            // per-viewer .ts chase-read was removed). Reaching here means the
+            // daemon isn't serving this stream ($rTSDaemon false), so show
+            // not-on-air, exactly like the proxy arm above. Stopping the daemon
+            // is the rollback (git revert this commit).
             // ────────────────────────────────────────────────────────────────
-            header("Content-Type: video/mp2t");
-
-            // File for storing the current transfer rate
-            $rConSpeedFile = DIVERGENCE_TMP_PATH . $rTokenData["uuid"];
-
-            // Checking if the playlist exists
-            if (file_exists($rPlaylist)) {
-                // Define the prebuffer based on the user type
-                if ($rUserInfo["is_restreamer"]) {
-                    if ($rTokenData["prebuffer"]) {
-                        $rPrebuffer = $rSegmentSettings["seg_time"];
-                    } else {
-                        $rPrebuffer = $rSettings["restreamer_prebuffer"];
-                    }
-                } else {
-                    $rPrebuffer = $rSettings["client_prebuffer"];
-                }
-
-                // Get stream duration if available
-                if (file_exists(STREAMS_PATH . $rStreamID . "_.dur")) {
-                    $rDuration = intval(file_get_contents(STREAMS_PATH . $rStreamID . "_.dur"));
-
-                    // If duration is greater than segment time, adjust segment time
-                    if ($rSegmentSettings["seg_time"] < $rDuration) {
-                        $rSegmentSettings["seg_time"] = $rDuration;
-                    }
-                }
-
-                // On-demand cold start: this initial prebuffer burst is the
-                // client's whole playback buffer — the feed loop below then runs
-                // in real time, so it never grows past this. Wait until the
-                // playlist actually holds $rPrebuffer seconds before the first
-                // read; otherwise a cold start serves only the 1-2 fast-start
-                // (2s) segments that exist the instant the playlist appears,
-                // stranding the client at ~2s. Bounded by on_demand_wait_time;
-                // bails if the stream stops. Clients only — restreamer chains
-                // keep their existing low-latency behaviour.
-                if ($rChannelInfo["on_demand"] == 1 && !$rUserInfo["is_restreamer"] && $rPrebuffer > 0) {
-                    $rBufferDeadline = time() + max(1, intval($rSettings["on_demand_wait_time"]));
-                    while (
-                        SegmentReader::playlistBufferedSeconds($rPlaylist) < $rPrebuffer
-                        && time() < $rBufferDeadline
-                        && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)
-                    ) {
-                        AsyncFileOperations::efficientSleep(200000);
-                    }
-                }
-
-                // Get list of segments for current prebuffer
-                $rSegments = SegmentReader::getPlaylistSegments($rPlaylist, $rPrebuffer, $rSegmentSettings["seg_time"]);
-            } else {
-                $rSegments = NULL;
-            }
-
-            // if segments exist, send them to the client
-            if (!is_null($rSegments)) {
-                if (is_array($rSegments)) {
-                    $rBytes = 0;
-                    $rStartTime = time();
-
-                    // Send segments to the client
-                    foreach ($rSegments as $rSegment) {
-                        $segmentPath = STREAMS_PATH . $rSegment;
-                        if (file_exists($segmentPath)) {
-                            $rBytes += readfile($segmentPath); // Read and output the segment
-                        } else {
-                            exit(); // Segment not found, exit
-                        }
-                    }
-
-                    // Calculating the transfer rate
-                    $rTotalTime = max(0.1, time() - $rStartTime);
-                    $rDivergence = intval($rBytes / $rTotalTime / 1024);
-                    file_put_contents($rConSpeedFile, $rDivergence);
-
-                    // Defining the current segment
-                    preg_match('/_(.*)\\./', array_pop($rSegments), $rCurrentSegment);
-                    $rCurrent = $rCurrentSegment[1];
-                } else {
-                    $rCurrent = $rSegments; // If segments are not an array
-                }
-            } else {
-                if (!file_exists($rPlaylist)) {
-                    $rCurrent = -1; // Playlist does not exist
-                } else {
-                    exit();
-                }
-            }
-
-            // Settings for waiting for the next segment
-            $rFails = 0;
-            $rTotalFails = max(
-                $rSegmentSettings["seg_time"] * 2,
-                intval($rSettings["segment_wait_time"]) ?: 20
-            );
-
-            $rMonitorCheck = $rLastCheck = time();
-
-            while (true) {
-                $rSegmentFile = sprintf("%d_%d.ts", $rChannelInfo["stream_id"], $rCurrent + 1);
-                $rNextSegment = sprintf("%d_%d.ts", $rChannelInfo["stream_id"], $rCurrent + 2);
-
-                // Wait for the next segment to appear - using non-blocking async check
-                $segmentFound = AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rSegmentFile, max(1, $rTotalFails), 1000);
-
-                if ($segmentFound && file_exists(STREAMS_PATH . $rSegmentFile)) {
-                    // We process signals if there are any
-                    if (file_exists(SIGNALS_PATH . $rTokenData["uuid"])) {
-                        $rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rTokenData["uuid"]), true);
-
-                        if ($rSignalData["type"] == "signal") {
-                            // Wait for the next segment - using non-blocking check
-                            AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rNextSegment, max(1, $rTotalFails), 1000);
-                            SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, $rSegmentFile, ($rVideoCodec ?: "h264"));
-                            unlink(SIGNALS_PATH . $rTokenData["uuid"]);
-                            $rCurrent++;
-                        }
-                    }
-
-                    // Clear fail counter and open segment file
-                    $rFails = 0;
-                    $rTimeStart = time();
-                    $rFP = fopen(STREAMS_PATH . $rSegmentFile, "r");
-
-                    // Stream segment data to the client, keeping pace with ffmpeg.
-                    //
-                    // While data is available we loop WITHOUT sleeping, draining
-                    // everything ffmpeg has written so far. Only when we catch up
-                    // to the write head (no data) do we pause ~1s and tick the
-                    // stall counter. Previously a 1s sleep ran after EVERY read,
-                    // capping throughput at read_buffer_size per second (e.g.
-                    // 8 KB/s), which starved the client and then dumped the rest
-                    // of the segment in a single burst. Draining without
-                    // throttling paces delivery to the real bitrate regardless of
-                    // read_buffer_size or channel bitrate.
-                    while ($rFails <= $rTotalFails && !file_exists(STREAMS_PATH . $rNextSegment)) {
-                        $rData = stream_get_line($rFP, $rSettings["read_buffer_size"]);
-                        if (!empty($rData)) {
-                            echo $rData;
-                            $rFails = 0;
-                            continue; // drain available data without throttling
-                        }
-
-                        // No data yet: caught up to ffmpeg's write head, or it stalled.
-                        if (ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
-                            AsyncFileOperations::efficientSleep(1000000); // 1s: await more data / stall-timeout tick
-                            $rFails++;
-                        } else {
-                            // Stream process died - don't spin, add small backoff delay
-                            AsyncFileOperations::efficientSleep(100000); // 100ms to reduce CPU when process is dead
-                        }
-                    }
-
-                    // If the segment is not fully read, send the remaining data
-                    if (ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID) && $rFails <= $rTotalFails && file_exists(STREAMS_PATH . $rSegmentFile) && is_resource($rFP)) {
-                        $rSegmentSize = filesize(STREAMS_PATH . $rSegmentFile);
-                        $rRestSize = $rSegmentSize - ftell($rFP);
-                        if ($rRestSize > 0) {
-                            echo stream_get_line($rFP, $rRestSize);
-                        }
-
-                        $rTotalTime = max(0.1, time() - $rTimeStart);
-                        file_put_contents($rConSpeedFile, intval($rSegmentSize / 1024 / $rTotalTime));
-                    } else {
-                        if (!($rUserInfo["is_restreamer"] == 1 || $rTotalFails < $rFails)) {
-                            // Wait for segment recovery with non-blocking checks
-                            for ($rChecks = 0; $rChecks <= $rSegmentSettings["seg_time"] && !ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID); $rChecks++) {
-                                if (file_exists(STREAMS_PATH . $rStreamID . "_.pid")) {
-                                    $pidContent = AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid");
-                                    if ($pidContent) {
-                                        $rChannelInfo["pid"] = intval($pidContent);
-                                    }
-                                }
-                                AsyncFileOperations::efficientSleep(1000000); // 1 second
-                            }
-
-                            if ($rSegmentSettings["seg_time"] >= $rChecks && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID)) {
-                                if (!file_exists(STREAMS_PATH . $rNextSegment)) {
-                                    $rCurrent = -2;
-                                }
-                            } else {
-                                exit();
-                            }
-                        } else {
-                            exit();
-                        }
-                    }
-
-                    fclose($rFP);
-                    $rFails = 0;
-                    $rCurrent++;
-
-                    // Monitor connection status every 5 seconds
-                    if ($rSettings["monitor_connection_status"] && 5 <= time() - $rMonitorCheck) {
-                        if (connection_status() != CONNECTION_NORMAL) {
-                            exit();
-                        }
-                        $rMonitorCheck = time();
-                    }
-
-                    // Every 5 minutes check settings and refresh hls_last_read
-                    if (time() - $rLastCheck > 300) {
-                        $rLastCheck = time();
-                        $rConnection = NULL;
-                        $rSettings = CacheReader::get('settings');
-
-                        if ($rSettings["redis_handler"]) {
-                            RedisManager::ensureConnected();
-                            $rExistingConnection = ConnectionTracker::getConnection($rTokenData["uuid"]);
-                            if ($rExistingConnection) {
-                                $rChanges = ["hls_last_read" => time() - intval($rServers[SERVER_ID]["time_offset"])];
-                                $rConnection = ConnectionTracker::updateConnection($rExistingConnection, $rChanges, "open");
-                            }
-                            RedisManager::closeInstance();
-                        } else {
-                            DatabaseFactory::connect();
-                            $db->query('UPDATE `lines_live` SET `hls_last_read` = ? WHERE `uuid` = ?', time() - intval($rServers[SERVER_ID]["time_offset"]), $rTokenData["uuid"]);
-                            $db->query('SELECT `pid`, `hls_end` FROM `lines_live` WHERE `uuid` = ?', $rTokenData["uuid"]);
-
-                            if ($db->num_rows() == 1) {
-                                $rConnection = $db->get_row();
-                            }
-
-                            DatabaseFactory::close();
-                        }
-
-                        if (!is_array($rConnection) || $rConnection["hls_end"] != 0 || $rConnection["pid"] != $rPID) {
-                            exit();
-                        }
-                    }
-                } else {
-                    exit(); // Segment file does not exist, exit
-                }
-            }
+            OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
     }
 } else {
     OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
