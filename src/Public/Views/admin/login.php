@@ -394,7 +394,8 @@ if (!isset($_SESSION['hash'])) {
                     </div>
                 </div>
                 <div class="login-footer">
-                    <div>&copy; <?= date('Y') ?> XC_VM Admin Panel. All rights reserved.</div>
+                    <?php $rYears = (date('Y') === '2025') ? '2025' : '2025–' . date('Y'); ?>
+                    <div>&copy; <?= $rYears ?> <a href="https://github.com/Vateron-Media/XC_VM" target="_blank" rel="noopener noreferrer">Vateron Media</a> &middot; <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">AGPL-3.0</a></div>
                 </div>
             </div>
         </div>

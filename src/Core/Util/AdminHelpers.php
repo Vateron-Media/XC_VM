@@ -8,9 +8,9 @@ use XcVm\Core\Http\Response;
 use XcVm\Core\Validation\InputValidator;
 
 /*
- * \XC_VM — Утилитарные функции
+ * AdminHelpers — utility functions.
  *
- * Статический класс для UI-хелперов, форматирования, валидации и генерации.
+ * Static class for UI helpers, formatting, validation and generation.
  */
 
 class AdminHelpers {
@@ -25,12 +25,10 @@ class AdminHelpers {
 		$rIP = $rParts[0];
 		$rNetmask = null;
 
-		if (count($rParts) != 2) {
-		} else {
+		if (count($rParts) == 2) {
 			$rNetmask = intval($rParts[1]);
 
-			if ($rNetmask >= 0) {
-			} else {
+			if ($rNetmask < 0) {
 				return false;
 			}
 		}
@@ -58,11 +56,8 @@ class AdminHelpers {
 	 */
 	public static function overwriteData($rData, $rOverwrite, $rSkip = array()) {
 		foreach ($rOverwrite as $rKey => $rValue) {
-			if (!array_key_exists($rKey, $rData) || in_array($rKey, $rSkip)) {
-			} else {
-				if (empty($rValue) && is_null($rData[$rKey])) {
-					$rData[$rKey] = null;
-				} else {
+			if (array_key_exists($rKey, $rData) && !in_array($rKey, $rSkip)) {
+				if (!(empty($rValue) && is_null($rData[$rKey]))) {
 					$rData[$rKey] = $rValue;
 				}
 			}
@@ -159,21 +154,20 @@ class AdminHelpers {
 	 * @return array Reordered array.
 	 */
 	public static function sortArrayByArray($rArray, $rSort) {
-		if (!(empty($rArray) || empty($rSort))) {
-			$rOrdered = array();
-
-			foreach ($rSort as $rValue) {
-				if (($rKey = array_search($rValue, $rArray)) === false) {
-				} else {
-					$rOrdered[] = $rValue;
-					unset($rArray[$rKey]);
-				}
-			}
-
-			return $rOrdered + $rArray;
-		} else {
+		if (empty($rArray) || empty($rSort)) {
 			return array();
 		}
+
+		$rOrdered = array();
+
+		foreach ($rSort as $rValue) {
+			if (($rKey = array_search($rValue, $rArray)) !== false) {
+				$rOrdered[] = $rValue;
+				unset($rArray[$rKey]);
+			}
+		}
+
+		return $rOrdered + $rArray;
 	}
 
 	/**
@@ -219,9 +213,12 @@ class AdminHelpers {
 	public static function getFooter() {
 		$currentYear = date('Y');
 		$startYear = 2025;
-		$yearRange = ($startYear === (int)$currentYear) ? $startYear : "{$startYear}-{$currentYear}";
+		$yearRange = ($startYear === (int)$currentYear) ? $startYear : "{$startYear}\u{2013}{$currentYear}";
 
-		return "&copy; {$yearRange} <img height='20px' style='padding-left: 10px; padding-right: 10px; margin-top: -2px;' src='./assets/images/logo-topbar.png' /> v" . XC_VM_VERSION;
+		$brand = "<a href='https://github.com/Vateron-Media/XC_VM' target='_blank' rel='noopener noreferrer'>Vateron Media</a>";
+		$license = "<a href='https://www.gnu.org/licenses/agpl-3.0.html' target='_blank' rel='noopener noreferrer'>AGPL-3.0</a>";
+
+		return "{$brand} &nbsp;&middot;&nbsp; &copy; {$yearRange} &middot; {$license} &middot; v" . XC_VM_VERSION;
 	}
 
 	/**
@@ -278,8 +275,7 @@ class AdminHelpers {
 		$rFile = fopen($rFilename, 'w');
 
 		foreach ($rData as $rRow) {
-			if (!empty($rHeader)) {
-			} else {
+			if (empty($rHeader)) {
 				$rHeader = array_keys($rRow);
 				fputcsv($rFile, $rHeader);
 				$rHeader = array_flip($rHeader);

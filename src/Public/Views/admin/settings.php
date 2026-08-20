@@ -41,6 +41,18 @@ if (!isset($__settingsViewMode)):
 		$BinOS = $BinOS !== '' ? $BinOS : 'N/A';
 	}
 
+	// xc_fanout daemon (`-version`) + xcvm_core extension (version marker written
+	// by `console.php xcvm_core`) — shown on the info tab.
+	$rFanoutBin = BIN_PATH . 'xc_fanout/xc_fanout';
+	$FanoutVersion = (is_file($rFanoutBin) && is_executable($rFanoutBin))
+		? (ltrim(trim((string) shell_exec(escapeshellarg($rFanoutBin) . ' -version 2>/dev/null')), 'vV') ?: 'N/A')
+		: 'N/A';
+
+	$rCoreVerFile = rtrim((string) ini_get('extension_dir'), '/') . '/xcvm_core.version';
+	$XcvmCoreVersion = is_file($rCoreVerFile)
+		? (trim((string) file_get_contents($rCoreVerFile)) ?: 'N/A')
+		: (extension_loaded('xcvm_core') ? (phpversion('xcvm_core') ?: 'N/A') : 'N/A');
+
 	$_TITLE = "Settings";
 
 	require_once __DIR__ . '/../layouts/admin.php';
@@ -2696,6 +2708,18 @@ $isAjaxRequest = (
 															<td class="text-center" style="font-size: 0.85rem;">OS</td>
 															<td class="text-center">
 																<button type="button" class="btn btn-secondary btn-sm" style="font-size: 0.85rem;"><?= $BinOS ?? 'N/A' ?></button>
+															</td>
+														</tr>
+
+														<tr>
+															<td class="text-center" style="font-size: 0.85rem;">Daemon (xc_fanout)</td>
+															<td class="text-center">
+																<button type="button" class="btn btn-primary btn-sm" style="font-size: 0.85rem;"><?= $FanoutVersion ?></button>
+															</td>
+
+															<td class="text-center" style="font-size: 0.85rem;">xcvm_core</td>
+															<td class="text-center">
+																<button type="button" class="btn btn-dark btn-sm" style="font-size: 0.85rem;"><?= $XcvmCoreVersion ?></button>
 															</td>
 														</tr>
 													</tbody>
