@@ -2,7 +2,6 @@
 
 namespace XcVm\Streaming\Health;
 
-
 /**
  * ProcessChecker — process checker
  *
