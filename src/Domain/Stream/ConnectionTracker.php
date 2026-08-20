@@ -52,6 +52,12 @@ class ConnectionTracker {
 			for ($rAttempt = 0; $rAttempt < 2 && $rRedis; $rAttempt++) {
 				try {
 					$rMulti = $rRedis->multi();
+					// multi() returns false (not the pipeline) on a broken socket;
+					// calling zCard() on that bool would fatal outside the RedisException
+					// catch. Turn it into a RedisException so we reconnect and retry.
+					if (!$rMulti instanceof \Redis) {
+						throw new \RedisException('Redis multi() did not return a pipeline');
+					}
 					foreach (array_keys($rServers) as $rServerID) {
 						if ($rServers[$rServerID]['server_online']) {
 							$rMulti->zCard((($rProxy ? 'PROXY#' : 'SERVER#')) . $rServerID);

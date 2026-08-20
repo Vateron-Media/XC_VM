@@ -17,6 +17,11 @@ use XcVm\Domain\Stream\ConnectionTracker;
 
 class StreamRedirector {
 	public static function redirectStream($rCached, $rSettings, $rServers, $rStreamID, $rExtension, $rUserInfo, $rCountryCode, $rUserISP = '', $rType = '') {
+		// The server map can arrive null during a transient cache rebuild; keep it an
+		// array so the array_key_exists()/foreach below neither fatal nor warn.
+		if (!is_array($rServers)) {
+			$rServers = array();
+		}
 		if ($rCached) {
 			$rRaw = @file_get_contents(STREAMS_TMP_PATH . 'stream_' . $rStreamID);
 			$rStream = ($rRaw !== false ? (igbinary_unserialize($rRaw) ?: null) : null);

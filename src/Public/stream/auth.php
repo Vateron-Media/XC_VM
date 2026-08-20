@@ -254,7 +254,7 @@ if ($rExtension) {
 		BruteforceGuard::checkAuthFlood($rUserInfo, $rIP);
 		$rUserID = $rUserInfo['id'] ?? null;
 
-		if (($rServers[SERVER_ID]['enable_proxy'] && !($rProxies[$_SERVER['HTTP_X_IP']] ?? null) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
+		if ((($rServers[SERVER_ID]['enable_proxy'] ?? 0) && !($rProxies[$_SERVER['HTTP_X_IP']] ?? null) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 			generateError('PROXY_ACCESS_DENIED');
 		}
 
