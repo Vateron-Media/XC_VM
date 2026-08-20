@@ -7,9 +7,9 @@ docs_dir: docs
 site_dir: site
 edit_uri: edit/main/docs/
 
-# ru/ is generated at build time (translated from en/) and consumed by the i18n
-# plugin. adr/agents/xc_fanout.md are repo-internal English notes, not part of
-# the published site; requirements.txt is toolchain, not content.
+# ru/ is a committed generated tree (translated from en/ locally before release)
+# consumed by the i18n plugin. adr/agents/xc_fanout.md are repo-internal English
+# notes, not part of the published site; requirements.txt is toolchain.
 exclude_docs: |
   adr/
   agents/

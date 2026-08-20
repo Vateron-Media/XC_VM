@@ -2,8 +2,9 @@
 """Generate translated docs from the canonical English source.
 
 English (``docs/en``) is the single source of truth; every other language tree
-(e.g. ``docs/ru``) is produced from it by this script and is NOT committed —
-``mkdocs build`` consumes the generated tree via the mkdocs-static-i18n plugin.
+(e.g. ``docs/ru``) is produced from it by this script. The generated tree IS
+committed and refreshed by running this script LOCALLY before a release (not in
+CI); ``mkdocs build`` then consumes it via the mkdocs-static-i18n plugin.
 
 Design goals
 ------------

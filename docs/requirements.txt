@@ -1,15 +1,6 @@
-# Documentation site toolchain (MkDocs + Material) and the translation pipeline.
-# Used by `make docs-serve` / `make docs-translate` locally and by the Pages
-# workflow (.github/workflows/pages.yml).
+# MkDocs site BUILD toolchain — used by CI (.github/workflows/pages.yml) and by
+# `make docs-build` / `docs-serve`. Translation is a separate, local-only step;
+# its dependencies live in tools/docs/requirements.txt.
 
 mkdocs-material==9.7.7
 mkdocs-static-i18n==1.3.1
-
-# Translation backend for tools/docs/translate.py. Pick per DOCS_TRANSLATE_PROVIDER:
-#   translators = free, NO API KEY (web engines: yandex/google/bing/...) — default
-#   anthropic   = highest quality for structure-heavy Markdown (needs ANTHROPIC_API_KEY)
-#   deepl       = DeepL API (needs DEEPL_AUTH_KEY)
-#   noop        = copy English verbatim (structural dry-runs; no dependency)
-translators>=5.9
-# anthropic>=0.40   # uncomment for DOCS_TRANSLATE_PROVIDER=anthropic
-# deepl>=1.18       # uncomment for DOCS_TRANSLATE_PROVIDER=deepl

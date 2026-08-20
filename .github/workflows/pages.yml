@@ -1,16 +1,16 @@
 name: Deploy docs to Pages
 
 # Builds the MkDocs (Material) site and publishes it to GitHub Pages. English
-# (docs/en) is the single source; Russian (docs/ru) is generated at build time
-# by tools/docs/translate.py and is NOT committed. Runs only when docs actually
-# change, unlike GitHub's built-in "pages build and deployment".
+# (docs/en) is the single source you edit; Russian (docs/ru) is a GENERATED tree
+# that is committed and refreshed LOCALLY before a release (`make docs-translate`)
+# — translation is intentionally NOT run in CI (it is slow). CI only builds the
+# already-translated site. Runs only when docs actually change.
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
       - 'mkdocs.yml'
-      - 'tools/docs/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -40,32 +40,8 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install docs toolchain
+      - name: Install docs build toolchain
         run: pip install -r docs/requirements.txt
-
-      # Per-file translation cache: only English files that changed since the
-      # last run hit the translation backend. The exact key misses whenever any
-      # docs/en file changes; restore-keys then pulls the most recent prior
-      # cache so translate.py can diff against it and re-translate just the delta.
-      - name: Restore translation cache
-        uses: actions/cache@v4
-        with:
-          path: .docs-cache
-          key: docs-tr-${{ hashFiles('docs/en/**', 'tools/docs/**') }}
-          restore-keys: |
-            docs-tr-
-
-      # Defaults to `translators` — free web engines, NO API key. A file whose
-      # translation fails (rate-limit/outage) gracefully falls back to English
-      # so the deploy never breaks, and is retried next run. Override with the
-      # DOCS_TRANSLATE_PROVIDER repo variable (+ the matching key secret) to use
-      # anthropic/deepl.
-      - name: Generate translated docs (ru)
-        env:
-          DOCS_TRANSLATE_PROVIDER: ${{ vars.DOCS_TRANSLATE_PROVIDER || 'translators' }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          DEEPL_AUTH_KEY: ${{ secrets.DEEPL_AUTH_KEY }}
-        run: python tools/docs/translate.py --lang ru
 
       - name: Build site (strict)
         run: mkdocs build --strict
