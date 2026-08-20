@@ -1,10 +1,7 @@
 <?php
 
 use XcVm\Core\Config\ConfigReader;
-use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Util\Encryption;
-use XcVm\Streaming\AsyncFileOperations;
-use XcVm\Streaming\Delivery\SignalSender;
 
 /**
  * HLS segment delivery endpoint
@@ -104,30 +101,27 @@ if (isset($_GET['token'])) {
 					}
 					header('Access-Control-Allow-Origin: *');
 					header('Content-Type: video/mp2t');
-					header('X-Accel-Redirect: /xc_fanout_hls/' . intval($rStreamID) . '_' . $rDSeg[1]);
+					// Pass the viewer uuid + video codec so the daemon can apply a
+					// pending "send message" overlay to this segment (else no-op).
+					header('X-Accel-Redirect: /xc_fanout_hls/' . intval($rStreamID) . '_' . $rDSeg[1] . '?c=' . rawurlencode($rUUID) . '&vc=' . rawurlencode($rVideoCodec));
 					exit();
 				}
 
-				$rSegment = STREAMS_PATH . $rSegmentID;
-				$rSegmentData = explode('_', $rSegmentID);
-
-
-				if (file_exists($rSegment) && $rSegmentData[0] == $rStreamID) {
-				} else {
-					generate404();
-				}
+				// Client HLS is daemon-only (ADR 0003, Phase E). A LIVE segment that
+				// is not a daemon token ("<id>_d<seq>.ts", handled above) is no longer
+				// served from the on-disk tmpfs HLS — those files stay only for
+				// timeshift/thumbnail/.analyse/MonitorCommand, never for clients.
+				generate404();
 			}
 
-			if (file_exists(CONS_TMP_PATH . $rUUID)) {
-			} else {
+			if (!file_exists(CONS_TMP_PATH . $rUUID)) {
 				generate404();
 			}
 
 			$rFilesize = filesize($rSegment);
 			$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rUserIP), 0, -1)) == implode('.', array_slice(explode('.', getuserip()), 0, -1)) : $rUserIP == getuserip());
 
-			if ($rIPMatch || !$rSettings['restrict_same_ip']) {
-			} else {
+			if (!$rIPMatch && $rSettings['restrict_same_ip']) {
 				generate404();
 			}
 
@@ -139,98 +133,24 @@ if (isset($_GET['token'])) {
 				header('Content-Type: video/mp2t');
 			}
 
-			if ($rType == 'LIVE') {
-				if ($rOnDemand) {
-					$rSettings['encrypt_hls'] = false;
-				}
+			// ARCHIVE (timeshift catch-up) segments are on-disk files, served here.
+			// Live HLS is daemon-only now (handled above, else 404), so only archive
+			// requests reach this point. Offset-read a partial first segment, else readfile.
+			if (0 < $rOffset) {
+				header('Content-Length: ' . ($rFilesize - $rOffset));
+				$rFP = @fopen($rSegment, 'rb');
 
-				if (file_exists(SIGNALS_PATH . $rUUID)) {
-					$rSignalData = json_decode(file_get_contents(SIGNALS_PATH . $rUUID), true);
+				if ($rFP) {
+					fseek($rFP, $rOffset);
 
-					if ($rSignalData['type'] == 'signal') {
-						LegacyInitializer::initStreaming();
-
-						if ($rSettings['encrypt_hls']) {
-							$rKey = file_get_contents(STREAMS_PATH . $rStreamID . '_.key');
-							$rIV = file_get_contents(STREAMS_PATH . $rStreamID . '_.iv');
-							$rData = SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, basename($rSegment), $rVideoCodec, true);
-							echo openssl_encrypt($rData, 'aes-128-cbc', $rKey, OPENSSL_RAW_DATA, $rIV);
-						} else {
-							SignalSender::sendSignal($rFFMPEG_CPU, $rSignalData, basename($rSegment), $rVideoCodec);
-						}
-
-						unlink(SIGNALS_PATH . $rUUID);
-
-						exit();
+					while (!feof($rFP)) {
+						echo stream_get_line($rFP, $rSettings['read_buffer_size']);
 					}
-				}
-
-				if ($rSettings['encrypt_hls']) {
-					$rSegmentData = explode('_', pathinfo($rSegmentID)['filename']);
-					$rSegmentExtension = pathinfo($rSegmentID, PATHINFO_EXTENSION);
-
-					if (file_exists(STREAMS_PATH . $rStreamID . '_' . $rSegmentData[1] . '.' . $rSegmentExtension)) {
-					} else {
-						generate404();
-					}
-
-					if (file_exists($rSegment . '.enc_write')) {
-						if (file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
-							$b73e9a5cd67eae9b = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.dur')) * 2;
-						} else {
-							$b73e9a5cd67eae9b = $rSettings['seg_time'] * 2;
-						}
-
-						// Wait for encryption to complete using async file monitoring
-						$maxWaitTime = max(1, $b73e9a5cd67eae9b * 10);
-						$encWaitFile = $rSegment . '.enc_write';
-						$encCompleteFile = $rSegment . '.enc';
-
-						// Monitor for completion - use inotify if available
-						$startTime = microtime(true);
-						$timeout = $maxWaitTime / 10; // Convert to seconds
-
-						while (file_exists($encWaitFile) && !file_exists($encCompleteFile) && (microtime(true) - $startTime) < $timeout) {
-							AsyncFileOperations::efficientSleep(100000); // 0.1 seconds
-						}
-					} else {
-						ignore_user_abort(true);
-						touch($rSegment . '.enc_write');
-						$rKey = file_get_contents(STREAMS_PATH . $rStreamID . '_.key');
-						$rIV = file_get_contents(STREAMS_PATH . $rStreamID . '_.iv');
-						$rData = openssl_encrypt(file_get_contents($rSegment), 'aes-128-cbc', $rKey, OPENSSL_RAW_DATA, $rIV);
-						file_put_contents($rSegment . '.enc', $rData);
-						unset($rData);
-						unlink($rSegment . '.enc_write');
-						ignore_user_abort(false);
-					}
-
-					if (file_exists($rSegment . '.enc')) {
-						header('X-Accel-Redirect: /xc_hls/' . rawurlencode(basename($rSegment) . '.enc'));
-					} else {
-						generate404();
-					}
-				} else {
-					header('X-Accel-Redirect: /xc_hls/' . rawurlencode(basename($rSegment)));
+					fclose($rFP);
 				}
 			} else {
-				if (0 < $rOffset) {
-					header('Content-Length: ' . ($rFilesize - $rOffset));
-					$rFP = @fopen($rSegment, 'rb');
-
-					if (!$rFP) {
-					} else {
-						fseek($rFP, $rOffset);
-
-						while (!feof($rFP)) {
-							echo stream_get_line($rFP, $rSettings['read_buffer_size']);
-						}
-						fclose($rFP);
-					}
-				} else {
-					header('Content-Length: ' . $rFilesize);
-					readfile($rSegment);
-				}
+				header('Content-Length: ' . $rFilesize);
+				readfile($rSegment);
 			}
 
 			exit();

@@ -309,21 +309,18 @@ if ($rChannelInfo) {
                 DatabaseFactory::close();
             }
 
-            // Phase B (ADR 0003): serve HLS from the daemon's in-RAM segmenter
-            // when it is fed and the stream is unencrypted (daemon HLS is plain
-            // mpegts). The daemon playlist's sequence segments are tokenized into
-            // the same auth'd /hls/<token> URLs as the legacy path, marked so
-            // segment.php proxies them from the daemon. Encrypted streams / a
-            // daemon that's down fall through to the legacy tmpfs HLS.
+            // Client HLS is daemon-only (ADR 0003, Phase E). When the stream is
+            // fed, serve the daemon's in-RAM segmenter playlist (plain or AES-128,
+            // both produced by the daemon), tokenized into auth'd /hls/<token> URLs
+            // that segment.php proxies from the daemon. A daemon that's down / not
+            // fed ⇒ not-on-air, same as the TS arm. The on-disk HLS stays only for
+            // timeshift/thumbnail/.analyse/MonitorCommand, never served to clients.
             $rHLS = false;
             if (file_exists(FANOUT_CTL_SOCK) && FanoutClient::isStreamFed($rStreamID)) {
                 $rDaemonPl = FanoutClient::hlsPlaylist($rStreamID);
                 if ($rDaemonPl !== NULL) {
                     $rHLS = HLSGenerator::tokenizeDaemonPlaylist($rDaemonPl, $rSettings, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
                 }
-            }
-            if ($rHLS === false) {
-                $rHLS = HLSGenerator::generateHLS($rSettings, $rPlaylist, (isset($rUsername) ? $rUsername : NULL), (isset($rPassword) ? $rPassword : NULL), $rStreamID, $rTokenData["uuid"], $rIP, $rIsHMAC, $rIdentifier, $rVideoCodec, intval($rChannelInfo["on_demand"]), $rServerID, $rProxyID);
             }
 
             if ($rHLS) {
@@ -421,7 +418,7 @@ if ($rChannelInfo) {
                     : intval($rSettings["client_prebuffer"] ?? 0);
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
-                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer);
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer . "&vc=" . rawurlencode((string) $rVideoCodec));
                 exit;
             }
 
@@ -449,7 +446,7 @@ if ($rChannelInfo) {
                     : intval($rSettings["client_prebuffer"] ?? 0);
                 header("Content-Type: video/mp2t");
                 header("X-Accel-Buffering: no");
-                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer);
+                header("X-Accel-Redirect: /xc_fanout/" . rawurlencode((string) $rStreamID) . "?c=" . rawurlencode($rTokenData["uuid"]) . "&prebuffer=" . $rDaemonPrebuffer . "&vc=" . rawurlencode((string) $rVideoCodec));
                 exit;
             }
 

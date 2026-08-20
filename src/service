@@ -28,7 +28,10 @@ boot() {
   # xc_vm, so `stop`'s `pkill -u xc_vm` ends both and nothing respawns on shutdown.
   mkdir -p $SCRIPT/bin/xc_fanout/sockets
   sudo chown -R xc_vm:xc_vm $SCRIPT/bin/xc_fanout 2>/dev/null
-  sudo -u xc_vm bash -c 'while true; do if [ -x '"$SCRIPT"'/bin/xc_fanout/xc_fanout ]; then '"$SCRIPT"'/bin/xc_fanout/xc_fanout -sock '"$SCRIPT"'/bin/xc_fanout/sockets/http.sock -ctl '"$SCRIPT"'/bin/xc_fanout/sockets/control.sock >>'"$SCRIPT"'/tmp/xc_fanout.log 2>&1; fi; sleep 2; done' &
+  # -ffmpeg/-font power the admin "send message" drawtext overlay (Phase E): the
+  # daemon burns the banner onto a signalled viewer's HLS segment / TS window.
+  # FF resolves the newest bundled ffmpeg each pass (survives a binaries update).
+  sudo -u xc_vm bash -c 'while true; do if [ -x '"$SCRIPT"'/bin/xc_fanout/xc_fanout ]; then FF=$(ls -d '"$SCRIPT"'/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -V | tail -1); '"$SCRIPT"'/bin/xc_fanout/xc_fanout -sock '"$SCRIPT"'/bin/xc_fanout/sockets/http.sock -ctl '"$SCRIPT"'/bin/xc_fanout/sockets/control.sock -ffmpeg "${FF:-ffmpeg}" -font '"$SCRIPT"'/bin/free-sans.ttf >>'"$SCRIPT"'/tmp/xc_fanout.log 2>&1; fi; sleep 2; done' &
   sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/daemons.sh
