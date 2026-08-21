@@ -222,10 +222,10 @@ Every `make` target used during release prep, in one place.
 
 | Command | Purpose |
 | --- | --- |
-| `make dev-tools` | Install dev tooling (PHPStan, PHP-CS-Fixer) via `composer install` |
+| `make dev-tools` | Install dev tooling (PHPStan, phpcs) via `composer install` |
 | `make phpstan` | Static analysis (also catches syntax errors) |
 | `make phpstan-baseline` | Regenerate the PHPStan baseline |
-| `make cs` | Code-style check — import/namespace hygiene (PHP-CS-Fixer, dry-run) |
+| `make cs` | Code-style check — import/namespace hygiene (phpcs + Slevomat) |
 | `make cs-fix` | Apply code-style fixes in place |
 | `make gates` | PSR-4 regression gates (procedural-use, LB-archive, vendor-prod-only) |
 | `make dev-clean` | Remove the dev tools again, restoring the production-only `vendor/` |

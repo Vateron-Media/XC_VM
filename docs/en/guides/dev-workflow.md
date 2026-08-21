@@ -7,7 +7,7 @@ How to set up the project locally, run the quality checks, and deploy code to a 
 ## Local Setup
 
 The committed `src/vendor/` is **production-only**, so the dev tools (PHPStan,
-PHP-CS-Fixer) are not in the tree. Install them once from the committed lock:
+phpcs) are not in the tree. Install them once from the committed lock:
 
 ```bash
 make dev-tools          # = cd src && composer install
@@ -25,7 +25,7 @@ Run these before pushing — CI runs the same set:
 | Command | Checks |
 | --- | --- |
 | `make phpstan` | Static analysis against the committed baseline (fails only on NEW issues) |
-| `make cs` | Code style — import/namespace hygiene (PHP-CS-Fixer, dry-run) |
+| `make cs` | Code style — import/namespace hygiene (phpcs + Slevomat) |
 | `make cs-fix` | Apply the style fixes in place |
 | `make gates` | PSR-4 regression gates (below) |
 | `php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests |

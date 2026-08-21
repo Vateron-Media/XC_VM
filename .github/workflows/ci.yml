@@ -15,7 +15,7 @@ name: CI
 # file is documentation. Any commit that also touches code still runs the full
 # gate — so this can never silently disable checks for a real source change. Do
 # not switch this to a `src/**` allowlist: the result also depends on tools/,
-# tests/, Makefile, composer.json/lock, build/.php-cs-fixer.dist.php and build/phpstan.dist.neon.
+# tests/, Makefile, composer.json/lock, build/phpcs.xml.dist and build/phpstan.dist.neon.
 on:
   push:
     branches: [main]
@@ -62,7 +62,7 @@ jobs:
         run: make phpstan
 
   code-style:
-    name: Code Style (PHP-CS-Fixer)
+    name: Code Style (phpcs + Slevomat)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -75,14 +75,15 @@ jobs:
           coverage: none
           tools: composer:v2
 
-      # PHP-CS-Fixer is a require-dev tool; the committed src/vendor/ is
-      # production-only, so install it here (from the committed lock).
+      # phpcs + Slevomat are require-dev tools; the committed src/vendor/ is
+      # production-only, so install them here (from the committed lock). The
+      # phpcodesniffer-composer-installer plugin is allow-listed in composer.json.
       - name: Install dev dependencies
         run: composer install --no-interaction --working-dir=src
 
-      # Narrow ruleset: import / namespace hygiene only (see build/.php-cs-fixer.dist.php).
-      # Dry-run fails on diff.
-      - name: Run PHP-CS-Fixer
+      # Narrow ruleset: import / namespace hygiene only (see build/phpcs.xml.dist).
+      # phpcs exits non-zero on any violation.
+      - name: Run phpcs
         run: make cs
 
   psr4-gates:

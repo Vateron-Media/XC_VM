@@ -91,7 +91,7 @@ sub-path under the module directory. See [Module System](modules.md).
 
 ## Dev tooling
 
-The committed `vendor/` is production-only. PHPStan and PHP-CS-Fixer are
+The committed `vendor/` is production-only. PHPStan and phpcs are
 `require-dev` packages — install them locally with:
 
 ```bash
