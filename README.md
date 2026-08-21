@@ -90,7 +90,6 @@ Migrating from Xtream Codes / XUI.one? Follow the step-by-step migration guide:
 | FFmpeg    | 8.0, 7.1, 4.0                        | Media transcoding & processing  |
 | MariaDB   | 11.4      | SQL database engine             |
 | KeyDB     | 6.3.4      | Cache & session storage (Redis) |
-| yt-dlp    | 2025.07.21 | Audio/Video downloader          |
 
 ---
 

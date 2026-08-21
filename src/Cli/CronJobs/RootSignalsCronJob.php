@@ -337,6 +337,20 @@ class RootSignalsCronJob implements CommandInterface {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php xcvm_core >/dev/null 2>&1 &');
         }
 
+        // yt-dlp — same self-heal rationale. It is a static bundled binary that
+        // resolves media URLs (StreamUtils) and nothing else keeps it current, so
+        // it goes stale between panel releases and breaks extraction. The `ytdlp`
+        // command is idempotent (version-compared against the upstream release,
+        // downloads only on a mismatch, SHA-verified + run-tested before an atomic
+        // swap), so it is safe to poll. Daily is enough (yt-dlp releases ~weekly);
+        // the first pass (stamp absent) runs immediately. Runs on every node that
+        // has the binary (main + LB).
+        $rYtDlpStamp = CRONS_TMP_PATH . 'ytdlp_check';
+        if (!file_exists($rYtDlpStamp) || time() - intval(@file_get_contents($rYtDlpStamp) ?: 0) > 86400) {
+            file_put_contents($rYtDlpStamp, time());
+            shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php ytdlp >/dev/null 2>&1 &');
+        }
+
         if ($rServers[SERVER_ID]['limit_requests'] > 0) {
             $rLimitConf = 'limit_req_zone global zone=two:10m rate=' . intval($rServers[SERVER_ID]['limit_requests']) . 'r/s;';
         } else {
