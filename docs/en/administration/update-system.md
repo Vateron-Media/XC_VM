@@ -2,7 +2,7 @@
 
 The XC_VM update system is implemented as a multi-layered process, from the web interface to system-level scripts. This approach ensures reliability, automation, and data integrity during panel updates.
 
-> 📋 For a step-by-step guide with screenshots, see [Updating a Server](en-us/administration/server-update.md).
+> 📋 For a step-by-step guide with screenshots, see [Updating a Server](../administration/server-update.md).
 
 ---
 
@@ -54,7 +54,7 @@ At this stage the following actions are performed:
 sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH" > /dev/null 2>&1 &
 ```
 
-> 💡 After the Python updater finishes, it calls `console.php update post-update` which triggers [database migrations](en-us/guides/cli-tools.md#database-updates-after-version-upgrade) and post-update cleanup.
+> 💡 After the Python updater finishes, it calls `console.php update post-update` which triggers [database migrations](../guides/cli-tools.md#database-updates-after-version-upgrade) and post-update cleanup.
 
 ---
 

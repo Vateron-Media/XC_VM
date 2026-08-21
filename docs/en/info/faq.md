@@ -107,7 +107,7 @@ XC_VM's brute-force guard blocks IPs after too many failed login attempts. This 
 
 1. **From admin panel:** Tools → IP Management → remove from blocked list.
 2. **From CLI:** `sudo /home/xc_vm/console.php tools flush` — flushes all blocked IPs.
-3. **If completely locked out:** Use `console.php tools rescue` to create a rescue access code (see [CLI Tools](en-us/guides/cli-tools.md)).
+3. **If completely locked out:** Use `console.php tools rescue` to create a rescue access code (see [CLI Tools](../guides/cli-tools.md)).
 
 ---
 
@@ -205,7 +205,7 @@ Migration `.sql` files from `migrations/` run automatically during updates. If o
 2. Open the file in `migrations/` and inspect the SQL.
 3. Fix the issue manually in MySQL, then the next update will continue from where it stopped.
 
-See [Database Migrations](en-us/guides/cli-tools.md#database-updates-after-version-upgrade) for details.
+See [Database Migrations](../guides/cli-tools.md#database-updates-after-version-upgrade) for details.
 
 ---
 

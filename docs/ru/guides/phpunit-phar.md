@@ -1,16 +1,16 @@
-# PHPUnit PHAR: скачивание и запуск тестов
+# PHPUnit PHAR: Загрузка и запуск тестов
 
-Эта инструкция показывает, как запускать тесты проекта через фиксированный PHP-бинарь:
+В этом руководстве показано, как запускать тесты проекта с фиксированным двоичным кодом PHP:
 
-- PHP-бинарь: `/home/xc_vm/bin/php/bin/php`
-- PHPUnit-бинарь: локальный `tools/.bin/phpunit.phar`
+- PHP двоичный код: `/home/xc_vm/bin/php/bin/php`
+- Двоичный файл PHPUnit: local `tools/.bin/phpunit.phar`
 
-## Почему так
+## Почему такая установка
 
-`phpunit.phar` не содержит PHP внутри и всегда запускается через интерпретатор PHP.
+`phpunit.phar` не включает PHP. Он всегда выполняется через интерпретатор PHP.
 
-Если запускать `./phpunit.phar` напрямую, может использоваться другой `php` из `PATH`.
-Чтобы исключить ошибки окружения, используйте явный путь к бинарю.
+Если вы запустите `./phpunit.phar` напрямую, он может использовать другой `php` из `PATH`.
+Используйте явный двоичный путь для обеспечения согласованности во время выполнения.
 
 ## 1. Проверить PHP
 
@@ -20,7 +20,7 @@
 
 ## 2. Скачать PHPUnit PHAR
 
-Проект использует PHP 8.1, поэтому используйте PHPUnit 10.
+Этот проект привязан к PHP версии 8.1, поэтому используйте PHPUnit 10.
 
 ```bash
 cd /home/xc_vm
@@ -29,25 +29,25 @@ wget -O tools/.bin/phpunit.phar https://phar.phpunit.de/phpunit-10.phar
 chmod +x tools/.bin/phpunit.phar
 ```
 
-## 3. Проверить запуск PHPUnit
+## 3. Проверьте PHPUnit
 
 ```bash
 /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar --version
 ```
 
-## 4. Запустить все тесты
+## 4. Выполните все тесты
 
-Конфиг проекта:
+Конфигурационный файл проекта:
 
 - `tests/phpunit.xml.dist`
 
-Запуск:
+Бежать:
 
 ```bash
 /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
 ```
 
-## 5. Запустить один тестовый файл
+## 5. Запустите один тестовый файл
 
 ```bash
 /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist tests/Unit/GitHubReleasesTest.php
@@ -55,28 +55,28 @@ chmod +x tools/.bin/phpunit.phar
 
 ## 6. Показать, какой тест выполняется сейчас
 
-Для подробного вывода текущего выполняемого теста используйте режим отладки:
+Используйте режим отладки для печати текущего теста:
 
 ```bash
 /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist --debug --no-progress
 ```
 
-## 7. Опционально: вывод покрытия
+## 7. Дополнительно: Выход покрытия
 
-Если установлен `xdebug` или `pcov`:
+Если установлено значение `xdebug` или `pcov`:
 
 ```bash
 XDEBUG_MODE=coverage /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist --coverage-text
 ```
 
-## Заметка по безопасности
+## Защитная записка
 
-Не храните `phpunit.phar` в git-репозитории. Оставляйте его локально (`tools/.bin`) и обновляйте отдельно.
+Не фиксируйте `phpunit.phar` в репозитории. Сохраняйте его локальным (`tools/.bin`) и обновляйте независимо.
 
 ## Связанные файлы
 
-| Файл | Роль |
+|Файл|Роль|
 | --- | --- |
-| `tools/.bin/phpunit.phar` | Запиненный бинарь PHPUnit |
-| `tests/phpunit.xml.dist` | Конфигурация PHPUnit |
-| `tests/bootstrap.php` | Бутстрап тестов (автозагрузчик Composer + константы) |
+| `tools/.bin/phpunit.phar` |Закрепленный двоичный файл PHPUnit|
+| `tests/phpunit.xml.dist` |Конфигурация PHPUnit|
+| `tests/bootstrap.php` |Тестовый bootstrap (Composer автозагрузчик + константы)|

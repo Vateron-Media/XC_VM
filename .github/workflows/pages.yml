@@ -1,12 +1,16 @@
 name: Deploy docs to Pages
 
-# Runs only when the documentation actually changes, unlike GitHub's built-in
-# "pages build and deployment" which fires on every push to the branch.
+# Builds the MkDocs (Material) site and publishes it to GitHub Pages. English
+# (docs/en) is the single source you edit; Russian (docs/ru) is a GENERATED tree
+# that is committed and refreshed LOCALLY before a release (`make docs-translate`)
+# — translation is intentionally NOT run in CI (it is slow). CI only builds the
+# already-translated site. Runs only when docs actually change.
 on:
   push:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'mkdocs.yml'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -31,15 +35,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v7
 
-      # docs/ is a Docsify site (client-side rendered, .nojekyll present),
-      # so there is no build step — the folder is uploaded verbatim.
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install docs build toolchain
+        run: pip install -r docs/requirements.txt
+
+      - name: Build site (strict)
+        run: mkdocs build --strict
+
       - name: Configure Pages
         uses: actions/configure-pages@v6
 
-      - name: Upload docs artifact
+      - name: Upload site artifact
         uses: actions/upload-pages-artifact@v5
         with:
-          path: docs
+          path: site
 
       - name: Deploy to GitHub Pages
         id: deployment

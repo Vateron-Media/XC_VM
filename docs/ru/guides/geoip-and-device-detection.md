@@ -1,15 +1,15 @@
-# GeoIP и определение устройства
+# GeoIP и обнаружение устройства
 
-XC_VM использует базы MaxMind GeoIP2/GeoLite2 для геолокации и определения ISP, а также библиотеку Mobile_Detect для разбора user agent.
-Эти системы интегрированы в аутентификацию стриминга для контроля доступа, географической маршрутизации и логирования активности.
+XC_VM использует базы данных MaxMind GeoIP2/GeoLite2 для определения геолокации и интернет-провайдера, а также библиотеку Mobile_Detect для анализа пользовательского агента.
+Эти системы интегрированы в потоковую аутентификацию для контроля доступа, географической маршрутизации и ведения журнала действий.
 
 ---
 
-## Поиск по GeoIP
+## GeoIP Поиск
 
-Два класса предоставляют GeoIP-поиск:
+Два класса обеспечивают поиск GeoIP:
 
-### GeoIP (утилита)
+### GeoIP (полезность)
 
 Файл: `src/Core/Util/GeoIP.php`
 
@@ -20,42 +20,42 @@ GeoIP::isISPBlocked($ispName, $blockedISPs): int
 GeoIP::isASNBlocked($asn, $blockedServers): bool
 ```
 
-Результаты кэшируются как файлы по путям `CONS_TMP_PATH/{md5(ip)}_geo2` и `CONS_TMP_PATH/{md5(ip)}_isp`.
+Результаты кэшируются в виде файлов с параметрами `CONS_TMP_PATH/{md5(ip)}_geo2` и `CONS_TMP_PATH/{md5(ip)}_isp`.
 
-### GeoIPService (высокоуровневый)
+### Геоипсервис (высокого уровня)
 
 Файл: `src/Core/GeoIP/GeoIPService.php`
 
 ```php
-GeoIPService::getIPInfo($rIP): array|false      // поиск на уровне города
-GeoIPService::getISP($rIP): array|false         // данные ISP + ASN
-GeoIPService::matchCIDR($rASN, $rIP): array|null  // определение hosting/proxy
+GeoIPService::getIPInfo($rIP): array|false      // city-level lookup
+GeoIPService::getISP($rIP): array|false         // ISP + ASN data
+GeoIPService::matchCIDR($rASN, $rIP): array|null  // hosting/proxy detection
 ```
 
-`matchCIDR()` проверяет IP по CIDR-блокам, сохранённым по ASN в `CIDR_TMP_PATH/{asn}`. Возвращает флаги для определения hosting и proxy.
+`matchCIDR()` проверяет соответствие IP-адреса блокам CIDR, хранящимся в ASN по адресу `CIDR_TMP_PATH/{asn}`. Возвращает флаги для определения хостинга и прокси-сервера.
 
 ---
 
-## Определение ISP и ASN
+## Обнаружение интернет-провайдеров и ASN
 
-Когда включена настройка `show_isps`, каждый стриминговый запрос определяет ISP клиента:
+Когда `show_isps` включено, каждый потоковый запрос разрешает клиентский провайдер:
 
 ```php
 $rISPLock = GeoIPService::getISP($rIP);
-// возвращает: ['isp' => 'Comcast', 'autonomous_system_number' => 7922, ...]
+// returns: ['isp' => 'Comcast', 'autonomous_system_number' => 7922, ...]
 ```
 
-Данные ISP хранятся в записи пользователя:
+Данные интернет-провайдера хранятся в записи пользователя:
 
-| Поле | Описание |
+|Поле|Описание|
 | --- | --- |
-| `isp_desc` | заблокированное имя ISP |
-| `as_number` | заблокированный ASN |
-| `con_isp_name` | текущий ISP подключения (временное значение) |
-| `is_isplock` | включить привязку к ISP (0/1) |
-| `isp_violate` | флаг нарушения ISP — блокирует доступ |
+| `isp_desc` |имя заблокированного интернет-провайдера|
+| `as_number` |заблокированный ASN|
+| `con_isp_name` |текущее подключение провайдера (временное)|
+| `is_isplock` |включить привязку к интернет-провайдеру (0/1)|
+| `isp_violate` |Флаг нарушения со стороны провайдера — блокирует доступ|
 
-Нарушение привязки к ISP возникает, когда:
+Нарушение блокировки интернет-провайдера происходит, когда:
 
 ```text
 con_isp_name != isp_desc
@@ -66,118 +66,118 @@ AND enable_isp_lock = 1
 
 ---
 
-## Определение устройства
+## Обнаружение устройств
 
-### Mobile_Detect
+### Мобильное обнаружение
 
 Файл: `src/Core/Device/MobileDetect.php`
 
-Библиотека (v2.8.45) для разбора user agent:
+Библиотека (версия 2.8.45) для анализа пользовательского агента:
 
 ```php
 $detect = new Mobile_Detect();
-$detect->isMobile();    // телефоны
-$detect->isTablet();    // планшеты
-$detect->isAndroid();   // по бренду
+$detect->isMobile();    // phones
+$detect->isTablet();    // tablets
+$detect->isAndroid();   // brand-specific
 ```
 
-Используется в `src/bootstrap.php` для определения мобильных устройств в адаптивном интерфейсе администратора.
+Используется в `src/bootstrap.php` для обнаружения мобильных устройств с адаптивным интерфейсом администратора.
 
-### Set-Top Box устройства
+### Телевизионные приставки
 
-**EnigmaService** (`src/Domain/Device/EnigmaService.php`):
+**Энигмасервис** (`src/Domain/Device/EnigmaService.php`):
 
-Управляет аккаунтами STB Enigma2. Поля привязки: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
+Управляет учетными записями Enigma2 STB. Блокирует поля: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
-**MagService** (`src/Domain/Device/MagService.php`):
+**Магсервис** (`src/Domain/Device/MagService.php`):
 
-Управляет аккаунтами STB MAG. Поля привязки: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
+Управляет учетными записями MAG STB. Блокирует поля: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
-Оба поддерживают:
+Обе поддержки:
 
-- `lock_device` — привязка к железу
-- `is_isplock` — привязка к ISP
-- `forced_country` — принудительное закрепление пользователя за определённой страной
+- `lock_device` — аппаратная блокировка
+- `is_isplock` — Привязка к провайдеру
+- `forced_country` — принудительный перевод пользователя в определенную страну
 
 ---
 
 ## Проверки контроля доступа
 
-Все проверки происходят в `src/www/stream/auth.php` во время валидации токена:
+Все проверки выполняются в `src/www/stream/auth.php` во время проверки токена:
 
-### 1. Валидация страны
-
-```text
-если forced_country задано:
-    country_code должен совпадать с forced_country
-    ошибка: FORCED_COUNTRY_INVALID
-
-если существует белый список allow_countries:
-    country_code должен быть в белом списке
-    ошибка: NOT_IN_ALLOWED_COUNTRY
-```
-
-### 2. Контроль привязки к ISP
+### 1. Валидация в стране
 
 ```text
-если is_isplock = 1 и is_stalker = 0:
-    con_isp_name должен совпадать с isp_desc
-    ошибка: ISP_BLOCKED
+if forced_country is set:
+    country_code must match forced_country
+    error: FORCED_COUNTRY_INVALID
+
+if allow_countries whitelist exists:
+    country_code must be in whitelist
+    error: NOT_IN_ALLOWED_COUNTRY
 ```
 
-### 3. Блокировка по ASN
+### 2. Принудительное применение блокировки интернет-провайдером
 
 ```text
-если block_svp = 1:
-    проверить ASN по списку заблокированных серверов
-    ошибка: ASN_BLOCKED
+if is_isplock = 1 and is_stalker = 0:
+    con_isp_name must match isp_desc
+    error: ISP_BLOCKED
 ```
 
-### 4. Определение hosting и proxy
+### 3. Блокировка ASN
+
+```text
+if block_svp = 1:
+    check ASN against blocked servers
+    error: ASN_BLOCKED
+```
+
+### 4. Обнаружение хостинга и прокси-серверов
 
 ```text
 GeoIPService::matchCIDR($asn, $ip)
-    flag[3] = hosting → ошибка: HOSTING_DETECT
-    flag[4] = proxy → ошибка: PROXY_DETECT
+    flag[3] = hosting → error: HOSTING_DETECT
+    flag[4] = proxy → error: PROXY_DETECT
 ```
 
-Также проверяется заголовок `X-XC_VM-DETECT` для детекции рестрима.
+Также проверяет заголовок `X-XC_VM-DETECT` для обнаружения повторного потока.
 
-### 5. Блокировка User-Agent
+### 5. Блокировка пользовательского агента
 
 ```text
-проверка через BlocklistService::checkBlockedUAs()
-ошибка: BLOCKED_USER_AGENT
+check against BlocklistService::checkBlockedUAs()
+error: BLOCKED_USER_AGENT
 
-если у пользователя задан allowed_ua:
-    user_agent должен совпадать с одной из записей
-    ошибка: NOT_IN_ALLOWED_UAS
+if user has allowed_ua set:
+    user_agent must match one entry
+    error: NOT_IN_ALLOWED_UAS
 ```
 
-### 6. Валидация типа устройства
+### 6. Проверка типа устройства
 
 ```text
-флаг MAG-устройства должен совпадать с токеном
-ошибка: DEVICE_NOT_ALLOWED или TOKEN_EXPIRED
+MAG device flag must match token
+error: DEVICE_NOT_ALLOWED or TOKEN_EXPIRED
 ```
 
 ---
 
-## Географическая маршрутизация
+## Географический маршрут
 
-Данные GeoIP управляют выбором серверов и прокси:
+GeoIP выбор сервера для хранения данных и прокси-сервера:
 
 ### Выбор сервера (StreamAuth::checkAccess)
 
 Когда `enable_geoip == 1`:
 
-- Точное совпадение по стране → выбрать этот сервер сразу.
+- Точное соответствие стране → немедленно выберите этот сервер.
 - `geoip_type == 'strict'` → исключить несоответствующие серверы.
-- Иначе → присвоить весовой приоритет (1 для low, 2 для normal).
+- В противном случае → назначьте приоритетный вес (1 для низкого, 2 для нормального).
 
-### Выбор прокси (ProxySelector::availableProxy)
+### Выбор прокси-сервера (ProxySelector::Доступный прокси)
 
-Та же логика применяется к списку прокси-серверов. Использует код страны и имя ISP для маршрутизации.
+Та же логика применима к списку прокси-серверов. Для маршрутизации используется как код страны, так и имя провайдера.
 
 ```php
 ProxySelector::availableProxy(
@@ -195,18 +195,18 @@ ProxySelector::availableProxy(
 
 ```php
 $updater = MaxMindUpdater::fromSettings($settings);
-$updater->update();  // загружает и распаковывает все настроенные издания
+$updater->update();  // downloads and extracts all configured editions
 ```
 
-Поддерживаемые издания:
+Поддерживаемые выпуски:
 
-- `GeoLite2-Country`, `GeoLite2-City`, `GeoLite2-ASN` (бесплатные)
-- `GeoIP2-Country`, `GeoIP2-City`, `GeoIP2-ISP`, `GeoIP2-Anonymous-IP` (платные)
+- `GeoLite2-Country`, `GeoLite2-City`, `GeoLite2-ASN` ( бесплатно)
+- `GeoIP2-Country`, `GeoIP2-City`, `GeoIP2-ISP`, `GeoIP2-Anonymous-IP` ( оплаченный)
 
-Загрузка через MaxMind API с использованием `maxmind_account_id` и `maxmind_license_key`.
-Распаковывает `.mmdb` файлы из tar.gz архивов в `BIN_PATH/maxmind/`.
+Загружается через MaxMind API с использованием `maxmind_account_id` и `maxmind_license_key`.
+Извлекает `.mmdb` файлов из tar.gz архивов в `BIN_PATH/maxmind/`.
 
-Пути файлов баз данных (заданы в `src/Core/Config/Binaries.php`):
+Пути к файлам базы данных (определены в `src/Core/Config/Binaries.php`):
 
 ```text
 GEOLITE2_BIN  = BIN_PATH/maxmind/GeoLite2-Country.mmdb
@@ -216,45 +216,45 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 ### Автоматическое обновление
 
-Обновление баз выполняет крон-задача `cron:maxmind` (`src/Cli/CronJobs/MaxMindCronJob.php`).
-Она запускается **только по вторникам** — в день, когда MaxMind публикует новые релизы. Логика ветвится по настройкам панели:
+Базы данных обновляются с помощью задания cron `cron:maxmind` (`src/Cli/CronJobs/MaxMindCronJob.php`).
+Он запускается ** только по вторникам** — в день, когда MaxMind публикует новые версии. Логика разветвляется на настройки панели:
 
-- если заданы `maxmind_account_id` + `maxmind_license_key` + `maxmind_editions` — базы тянутся напрямую из MaxMind API (`MaxMindUpdater`, скачиваются только настроенные издания);
-- если кредлы MaxMind **не** заданы — используется фолбэк на GitHub-релизы GeoLite2 (бесплатные базы).
+- если `maxmind_account_id` + `maxmind_license_key` + `maxmind_editions` задано, базы данных извлекаются непосредственно из MaxMind API (`MaxMindUpdater`, загружаются только настроенные версии).;
+- если учетные данные MaxMind не заданы, они возвращаются к версиям GitHub GeoLite2 (бесплатные базы данных).
 
 ### Ручное (принудительное) обновление
 
-Чтобы обновить базы `.mmdb` немедленно на работающей панели, запустите крон-задачу вручную **от root** с флагом `--force` (он снимает ограничение «только по вторникам»):
+Чтобы немедленно обновить базы данных `.mmdb` на рабочей панели, запустите задание cron вручную **от имени пользователя root** с флагом `--force` (это снимает ограничение "Только по вторникам").:
 
 ```bash
 /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:maxmind --force
 ```
 
-Статусы в выводе:
+Выходные статусы:
 
-- `[OK]` — база обновлена;
-- `[SKIP]` — уже актуальна;
-- `[WARN]` / `[ERROR]` — с деталями (неверные кредлы, HTTP-ошибка, недоступность сети).
+- `[OK]` — база данных обновлена;
+- `[SKIP]` — уже обновлено;
+- `[WARN]` / `[ERROR]` — с подробной информацией (неверные учетные данные, ошибка HTTP, сеть недоступна).
 
-> ⚠️ Через MaxMind API отправляется заголовок `If-Modified-Since`, поэтому уже свежая база вернёт HTTP 304 и статус `[SKIP]`. Чтобы гарантированно перекачать файл, предварительно удалите (или переименуйте) соответствующий `.mmdb` в `BIN_PATH/maxmind/` — тогда заголовок не отправится. У GitHub-фолбэка такого поведения нет: там сверяется md5 и файл перекачивается при несовпадении.
+> ➡️ Путь к API MaxMind отправляет заголовок `If-Modified-Since`, поэтому уже обновленная база данных возвращает HTTP 304 и статус `[SKIP]`. Чтобы принудительно выполнить повторную загрузку, сначала удалите (или переименуйте) соответствующий `.mmdb` в `BIN_PATH/maxmind/`, чтобы заголовок не отправлялся. Резервный вариант GitHub не имеет такого поведения — он сравнивает md5 и повторные загрузки при несоответствии.
 
 ---
 
-## Логирование активности
+## Ведение журнала действий
 
-Все стриминговые сессии логируют данные GeoIP и устройства в `lines_live`:
+Все сеансы потоковой передачи записываются в журнал GeoIP, а данные устройства - в журнал `lines_live`:
 
-| Столбец | Источник |
+|Колонка|Источник|
 | --- | --- |
 | `geoip_country_code` | `GeoIPService::getIPInfo()` |
-| `isp` | `con_isp_name` из `GeoIPService::getISP()` |
-| `external_device` | идентификатор типа устройства |
-| `user_agent` | HTTP-заголовок User-Agent |
-| `user_ip` | IP клиента |
+| `isp` |`con_isp_name` из `GeoIPService::getISP()`|
+| `external_device` |идентификатор типа устройства|
+| `user_agent` |Заголовок HTTP User-Agent|
+| `user_ip` |IP-адрес клиента|
 
-Логируется в `live.php`, `vod.php`, `timeshift.php` и `rtmp.php`.
+Вошел в систему `live.php`, `vod.php`, `timeshift.php`, и `rtmp.php`.
 
-Периодически архивируется из `lines_live` в `lines_activity` через `ActivityCronJob`.
+Периодически архивируется с `lines_live` по `lines_activity` с помощью `ActivityCronJob`.
 
 ---
 
@@ -262,35 +262,35 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 ### Настройки
 
-| Настройка | Тип | Описание |
+|Установка|Тип|Описание|
 | --- | --- | --- |
-| `show_isps` | `0/1` | включить определение ISP |
-| `enable_isp_lock` | `0/1` | включить применение привязки к ISP |
-| `block_svp` | `0/1` | блокировать VPN/proxy/сервер (проверка ASN) |
-| `block_streaming_servers` | `0/1` | блокировать IP датацентров |
-| `block_proxies` | `0/1` | блокировать IP прокси-провайдеров |
-| `county_override_1st` | `0/1` | автоматически назначать forced_country при первом подключении |
-| `allow_countries` | `array` | белый список разрешённых кодов стран |
-| `detect_restream_block_user` | `0/1` | автоматически отключать пользователя при определении рестрима |
-| `disallow_empty_user_agents` | `0/1` | отклонять запросы без User-Agent |
-| `maxmind_account_id` | `string` | аккаунт MaxMind API |
-| `maxmind_license_key` | `string` | ключ MaxMind API |
-| `maxmind_editions` | `JSON` | массив загружаемых изданий |
+| `show_isps` | `0/1` |включить обнаружение интернет-провайдера|
+| `enable_isp_lock` | `0/1` |включить принудительную привязку к провайдеру|
+| `block_svp` | `0/1` |заблокировать VPN/прокси/сервер (проверка ASN)|
+| `block_streaming_servers` | `0/1` |блокировать IP-адреса центров обработки данных|
+| `block_proxies` | `0/1` |блокировать IP-адреса прокси-провайдеров|
+| `county_override_1st` | `0/1` |автоматическое назначение forced_country при первом подключении|
+| `allow_countries` | `array` |белый список разрешенных кодов стран|
+| `detect_restream_block_user` | `0/1` |автоматическое отключение пользователя при обнаружении повторного потока|
+| `disallow_empty_user_agents` | `0/1` |отклонять запросы без использования User-Agent|
+| `maxmind_account_id` | `string` |Учетная запись MaxMind API|
+| `maxmind_license_key` | `string` |API-ключ MaxMind|
+| `maxmind_editions` | `JSON` |множество загруженных изданий|
 
 ---
 
 ## Связанные файлы
 
-| Файл | Назначение |
+|Файл|Цель|
 | --- | --- |
-| `src/Core/Util/GeoIP.php` | низкоуровневые GeoIP-поиски с файловым кэшем |
-| `src/Core/GeoIP/GeoIPService.php` | высокоуровневый GeoIP + сопоставление CIDR |
-| `src/Core/GeoIP/MaxMindUpdater.php` | загрузчик баз данных MaxMind |
-| `src/Core/Config/Binaries.php` | константы путей файлов баз GeoIP |
-| `src/Core/Device/MobileDetect.php` | библиотека Mobile_Detect |
-| `src/Domain/Device/EnigmaService.php` | управление STB Enigma2 |
-| `src/Domain/Device/MagService.php` | управление STB MAG |
-| `src/Domain/User/UserRepository.php` | обогащение записей пользователей данными GeoIP |
-| `src/www/stream/auth.php` | аутентификация стриминга со всеми гео/устройство проверками |
-| `src/Streaming/Auth/StreamAuth.php` | выбор сервера с учётом GeoIP |
-| `src/Streaming/Balancer/ProxySelector.php` | выбор прокси с учётом GeoIP |
+| `src/Core/Util/GeoIP.php` |низкоуровневый поиск GeoIP с кэшированием файлов|
+| `src/Core/GeoIP/GeoIPService.php` |соответствие высокого уровня GeoIP + CIDR|
+| `src/Core/GeoIP/MaxMindUpdater.php` |Загрузчик баз данных MaxMind|
+| `src/Core/Config/Binaries.php` |GeoIP константы пути к файлу базы данных|
+| `src/Core/Device/MobileDetect.php` |Библиотека Mobile_Detect|
+| `src/Domain/Device/EnigmaService.php` |Управление STB Enigma2|
+| `src/Domain/Device/MagService.php` |Управление MAG STB|
+| `src/Domain/User/UserRepository.php` |GeoIP обогащение пользовательских записей|
+| `src/www/stream/auth.php` |потоковая авторизация со всеми проверками местоположения / устройства|
+| `src/Streaming/Auth/StreamAuth.php` |Выбор сервера с поддержкой GeoIP|
+| `src/Streaming/Balancer/ProxySelector.php` |Выбор прокси-сервера с поддержкой GeoIP|

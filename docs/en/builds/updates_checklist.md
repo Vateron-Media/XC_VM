@@ -47,6 +47,25 @@ VERSION="X.Y.Z"
 > ⚠️ Do not create a separate version-bump commit/push at this step.
 > Otherwise `dist/changes.md` will include extra release commits and force additional edits.
 
+### Regenerate translated documentation
+
+Documentation is written in **English only** (`docs/en`). The Russian tree
+(`docs/ru`) is a **generated, committed** artifact refreshed locally before each
+release — translation is intentionally **not** run in CI (it is slow); CI only
+builds the committed tree. If `docs/en` changed since the last release:
+
+```bash
+make docs-translate      # regenerate docs/ru from docs/en (free, no API key)
+make docs-build          # strict build — fails on any broken link/anchor
+```
+
+- `make docs-translate` re-translates only the English files whose content
+  changed (per-file cache), so this is fast on an incremental release.
+- **Review and commit the regenerated `docs/ru`** — it is included in the single
+  release commit (step 5). Never hand-edit `docs/ru`.
+- Pushing the docs change triggers `pages.yml`, which builds and publishes the
+  site to GitHub Pages.
+
 ---
 
 ## 3. Deleted Files
@@ -117,6 +136,7 @@ sed -i "s/define('XC_VM_VERSION', *'[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_V
 
 ```bash
 git add src/Core/Config/AppConfig.php changelog.json src/migrations/deleted_files.txt
+git add docs/en docs/ru   # include any doc edits + the regenerated ru (step 2)
 git commit -m "Prepare release ${VERSION}"
 git push
 ```
@@ -220,3 +240,12 @@ Every `make` target used during release prep, in one place.
 | `make lb` | Build the LoadBalancer archive into `dist/` |
 | `make main` | Build the MAIN archive into `dist/` |
 | `bash tools/test-install/test_release.sh` | Docker install test of the built release |
+
+**Documentation** (English source in `docs/en`; `docs/ru` is generated + committed):
+
+| Command | Purpose |
+| --- | --- |
+| `make docs-venv` | One-time: local venv (build + translation deps) |
+| `make docs-translate` | Regenerate `docs/ru` from `docs/en` (before a release) |
+| `make docs-build` | Strict MkDocs build into `./site` (what CI runs) |
+| `make docs-serve` | Live docs preview at `http://127.0.0.1:8000` |

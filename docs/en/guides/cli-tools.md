@@ -484,7 +484,7 @@ sudo /home/xc_vm/console.php server:diagnose <server_id>
 sudo /home/xc_vm/console.php server:diagnose
 ```
 
-Finds out **why** a proxy/LB node shows offline in the panel: checks the heartbeat, reachability (ICMP/TCP/HTTP `/api`), clock skew, the signal queue, and — locally on the node — whether the node firewalled the main's IP in its own iptables, whether the `xc_vm` service/nginx are up, whether the `watchdog` heartbeat daemon is running, and whether `cron:servers` is in the `xc_vm` crontab. Read-only; exit code `0` = no problems found, `2` = probable causes printed. See the [Server Diagnostics guide](en-us/administration/server-diagnostics.md) for details.
+Finds out **why** a proxy/LB node shows offline in the panel: checks the heartbeat, reachability (ICMP/TCP/HTTP `/api`), clock skew, the signal queue, and — locally on the node — whether the node firewalled the main's IP in its own iptables, whether the `xc_vm` service/nginx are up, whether the `watchdog` heartbeat daemon is running, and whether `cron:servers` is in the `xc_vm` crontab. Read-only; exit code `0` = no problems found, `2` = probable causes printed. See the [Server Diagnostics guide](../administration/server-diagnostics.md) for details.
 
 ### SSL Certificate
 
@@ -506,7 +506,7 @@ Applies all pending `.sql` files from `/home/xc_vm/migrations/`. Use this when y
 /home/xc_vm/console.php migrate
 ```
 
-Transfers data from the staging database `xc_vm_migrate`. See the [Database Update Guide](en-us/info/migration_guide.md) for details.
+Transfers data from the staging database `xc_vm_migrate`. See the [Database Update Guide](../info/migration_guide.md) for details.
 
 ---
 

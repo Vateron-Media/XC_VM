@@ -1,28 +1,28 @@
 # Система событий
 
-XC_VM использует типизированный диспетчер событий в стиле PSR-14. Все события —
-обычные PHP-классы, диспетчируемые и принимаемые по имени класса. Диспетчер
-хранится в DI-контейнере под ключом `events`.
+XC_VM использует типизированный диспетчер событий в стиле PSR-14. Все события являются простыми классами PHP
+отправлено и получено по имени. Диспетчер основан на экземпляре и хранится в
+Откройте контейнер под ключом `events`.
 
 ---
 
-## EventDispatcher
+## Диспетчер событий
 
-`EventDispatcher` — синглтон с instance-мостом. Статические методы делегируют
-в активный экземпляр, поэтому существующие вызовы работают без изменений.
+`EventDispatcher` - это синглтон с мостом экземпляра. Статические методы делегируют
+активный экземпляр, поэтому существующие сайты вызовов работают без изменений.
 
 ```php
-// bootstrap.php создаёт канонический экземпляр:
+// bootstrap.php wires the canonical instance:
 $dispatcher = new EventDispatcher();
 EventDispatcher::setInstance($dispatcher);
 $container->set('events', $dispatcher);
 
-// Оба пути достигают одного хранилища слушателей:
-EventDispatcher::dispatch(new MyEvent(...));           // статический вызов
-$container->get('events')->dispatch(new MyEvent(...)); // вызов через экземпляр
+// Both paths reach the same listener store:
+EventDispatcher::dispatch(new MyEvent(...));           // static call
+$container->get('events')->dispatch(new MyEvent(...)); // instance call
 ```
 
-В тестах изолируйте состояние на каждый тест:
+В тестах изолируйте состояние для каждого теста с помощью:
 
 ```php
 protected function setUp(): void {
@@ -40,35 +40,34 @@ protected function tearDown(): void {
 ## Диспетчеризация и прослушивание
 
 ```php
-// Диспетчеризация
+// Dispatch
 EventDispatcher::dispatch(new StreamStartedEvent($lineId, $streamId));
 
-// Прослушивание
+// Listen
 EventDispatcher::listen(StreamStartedEvent::class, function (StreamStartedEvent $e): void {
-    // обработка
+    // handle
 }, priority: 10);
 
-// Удаление слушателя
+// Remove a listener
 EventDispatcher::unlisten(StreamStartedEvent::class, $myCallable);
 
-// Проверка
+// Check
 EventDispatcher::hasListeners(StreamStartedEvent::class); // bool
 ```
 
-**Приоритет** — чем выше целое число, тем раньше вызывается слушатель. По умолчанию `0`.
+**Приоритет** — более высокое целое число = вызывается первым. По умолчанию `0`.
 
 ---
 
 ## Регистрация слушателей в модуле
 
-### Вариант 1 — массив getEventSubscribers()
+### Вариант 1 — Получить массив eventsubscribers()
 
 ```php
 public function getEventSubscribers(): array {
     return [
         StreamStartedEvent::class => [$this, 'onStreamStarted'],
-        // с приоритетом:
-        UserAuthenticatedEvent::class => [[$this, 'onAuth'], 20],
+        StreamStartedEvent::class => [[$this, 'onStreamStarted'], 20], // with priority
     ];
 }
 ```
@@ -82,14 +81,14 @@ class MyModuleModule extends BaseModule {
 
     #[ListensTo(StreamStartedEvent::class, priority: 20)]
     public function onStreamStarted(StreamStartedEvent $e): void {
-        // обработка
+        // handle
     }
 
-    // IS_REPEATABLE — несколько атрибутов на одном методе
+    // IS_REPEATABLE — multiple attributes on the same method
     #[ListensTo(StreamStartedEvent::class)]
     #[ListensTo(StreamStoppedEvent::class)]
     public function onStreamChange(object $e): void {
-        // обработка обоих событий
+        // handle both events
     }
 }
 ```
@@ -99,9 +98,9 @@ class MyModuleModule extends BaseModule {
 
 ---
 
-## Останавливаемые события (stoppable)
+## Останавливаемые события
 
-Расширьте `AbstractEvent` и вызовите `$e->stopPropagation()`:
+Продлить `AbstractEvent` и вызвать `$e->stopPropagation()`:
 
 ```php
 class MyGatingEvent extends AbstractEvent {
@@ -116,28 +115,28 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 }, priority: 100);
 ```
 
-Слушатели пропускаются, как только `isPropagationStopped()` возвращает `true`.
+Прослушиватели пропускаются, как только `isPropagationStopped()` возвращает значение `true`.
 
 ---
 
-## Встроенные события ядра
+## Встроенные основные события
 
-| Класс события | Расположение | Когда диспетчеризуется | Останавливаемое |
-| ------------- | ------------ | ---------------------- | :-------------: |
-| `ModuleLoadedEvent` | `Events/Module/` | После загрузки файла модуля | Нет |
-| `ModuleBootedEvent` | `Events/Module/` | После вызова `boot()` | Нет |
-| `PackageInstalledEvent` | `Events/Module/` | После установки из маркетплейса | Нет |
-| `UserAuthenticatedEvent` | `Events/Auth/` | После успешного входа | Да |
-| `UserLoggedOutEvent` | `Events/Auth/` | После выхода | Нет |
-| `StreamStartedEvent` | `Events/Stream/` | После старта стрима | Нет |
-| `StreamStoppedEvent` | `Events/Stream/` | После остановки стрима | Нет |
-| `SettingsChangedEvent` | `Events/Settings/` | После сохранения настроек | Нет |
+|Класс события|Местоположение|Когда отправлено|Останавливаемый|
+| ----------- | -------- | --------------- | :-------: |
+| `ModuleLoadedEvent` | `Events/Module/` |После загрузки файла модуля|Нет|
+| `ModuleBootedEvent` | `Events/Module/` |После вызова `boot()`|Нет|
+| `PackageInstalledEvent` | `Events/Module/` |После установки marketplace|Нет|
+| `UserAuthenticatedEvent` | `Events/Auth/` |После успешного входа в систему|Да|
+| `UserLoggedOutEvent` | `Events/Auth/` |После выхода из системы|Нет|
+| `StreamStartedEvent` | `Events/Stream/` |После начала трансляции|Нет|
+| `StreamStoppedEvent` | `Events/Stream/` |После того, как поток прекратился|Нет|
+| `SettingsChangedEvent` | `Events/Settings/` |После сохранения настроек|Нет|
 
 ---
 
 ## Создание пользовательского события
 
-Обычный класс с `readonly`-свойствами для неизменяемой полезной нагрузки:
+Простой класс — используйте свойства `readonly` для неизменяемых полезных нагрузок:
 
 ```php
 <?php
@@ -151,7 +150,7 @@ final class MyModuleEvent {
 }
 ```
 
-Останавливаемое событие — расширяйте `AbstractEvent`:
+Останавливаемое событие — продлить `AbstractEvent`:
 
 ```php
 <?php
@@ -168,7 +167,7 @@ final class MyModuleGatingEvent extends AbstractEvent {
 }
 ```
 
-Диспетчеризация из любого места после bootstrap:
+Отправка из любой точки мира после начальной загрузки:
 
 ```php
 EventDispatcher::dispatch(new MyModuleEvent($lineId, 'reason'));
@@ -176,7 +175,7 @@ EventDispatcher::dispatch(new MyModuleEvent($lineId, 'reason'));
 
 ---
 
-## Справочник атрибута ListensTo
+## Ссылка на атрибут ListensTo
 
 ```php
 #[\Attribute(\Attribute::TARGET_METHOD | \Attribute::IS_REPEATABLE)]
@@ -188,16 +187,16 @@ final class ListensTo {
 }
 ```
 
-- `eventClass` — полное имя класса события (FQN)
-- `priority` — приоритет слушателя (выше = вызывается раньше; по умолчанию `0`)
-- Размещается на публичных методах классов, расширяющих `BaseModule`
-- `IS_REPEATABLE` — несколько `#[ListensTo]` на одном методе регистрируются все
-- Если `eventClass` не существует во время выполнения — атрибут пропускается (не исключение)
+- `eventClass` — полное название класса для события
+- `priority` — приоритет прослушивателя (более высокий = вызывается первым; по умолчанию `0`)
+- Размещается в общедоступных методах классов, расширяющих `BaseModule`
+- `IS_REPEATABLE` — зарегистрировано несколько `#[ListensTo]` для одного и того же метода
+- Если `eventClass` не существует во время выполнения, атрибут корректно пропускается (без исключений).
 
 ## Связанные файлы
 
-| Файл | Роль |
+|Файл|Роль|
 | --- | --- |
-| `src/Core/Events/EventDispatcher.php` | Диспетчер событий PSR-14 |
-| `src/Core/Events/ListensTo.php` | Атрибут слушателя |
-| `src/Core/Events/` | Классы событий (Auth, Module, Settings, Stream) |
+| `src/Core/Events/EventDispatcher.php` |Диспетчер событий PSR-14|
+| `src/Core/Events/ListensTo.php` |Атрибут слушателя|
+| `src/Core/Events/` |Классы событий (Авторизация, модуль, Настройки, поток)|

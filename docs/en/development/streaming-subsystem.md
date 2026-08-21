@@ -177,11 +177,13 @@ Main delivery endpoint (~650 lines):
 2. Resolve server/proxy: `StreamAuth::checkAccess()` + `ProxySelector::availableProxy()`.
 3. Enforce connection limits: `StreamAuth::validateConnections()`.
 4. Create connection record: `ConnectionTracker::createConnection()`.
-5. Deliver content:
-   - **M3U8:** `HLSGenerator::generateHLS()` → client fetches segments via `segment.php`.
-   - **TS:** Loop segments using `AsyncFileOperations::awaitFileExists()`.
-6. Every 5 minutes: refresh settings, update `hls_last_read`, verify process alive.
-7. On exit: `ShutdownHandler::handle()` → close connection record.
+5. Hand delivery to the **`xc_fanout` daemon** (see below): PHP emits an
+   `X-Accel-Redirect` and exits the byte path — nginx streams the bytes.
+   - **TS:** `X-Accel-Redirect: /xc_fanout/<id>?c=<uuid>&prebuffer=N` (nginx
+     rewrites to the daemon's `/live/<id>`).
+   - **HLS:** the playlist points at tokenized segments; `segment.php` serves live
+     segments only through the daemon (`/xc_fanout_hls/<id>_<seq>`), else `404`.
+6. On exit: `ShutdownHandler::handle()` → close connection record.
 
 ### VOD (vod.php)
 
@@ -190,6 +192,39 @@ Same auth flow as live. Reads from `VOD_PATH` instead of `STREAMS_PATH`.
 ### Timeshift (timeshift.php)
 
 Serves archived segments. Uses `TimeshiftClient` for archive file resolution.
+
+### Daemon delivery — `xc_fanout`
+
+Live client delivery (TS **and** HLS) is **daemon-only**: PHP authorizes the
+viewer and then leaves the byte path entirely, so a viewer no longer pins a
+PHP-FPM worker for the life of the stream.
+
+- **Fan-out.** `xc_fanout` (a bundled Go daemon) pulls each source **once** and
+  fans it out to every viewer over a unix socket, with an in-RAM HLS segmenter.
+  PHP is out of the per-viewer byte path; the old chase-read loop
+  (`AsyncFileOperations::awaitFileExists()`) and `HLSGenerator::generateHLS()`
+  serving path were removed in the cutover.
+- **Two sockets.** A client socket (nginx-facing) serves `/live/<id>` and
+  `/hls/...`; a PHP-only control socket registers sources
+  (`PUT /streams/<id>` / `/ingest/<id>`), answers off-air status
+  (`GET /streams/<id>`, `GET /probe/<id>`) and exposes telemetry.
+- **Telemetry / reconciliation.** `fanout_sync` polls `GET /rates` (per-uuid
+  KB/s → `lines_divergence`) and `GET /connections` (reconciles `lines_live`
+  rows, since PHP cannot see a disconnect under `X-Accel`).
+- **Off-air.** If the daemon reports no data (`has_data=false` / stale), PHP
+  shows a "not on air" page instead of letting the viewer hang.
+- **On-disk HLS retained** only for timeshift / thumbnails / `.analyse` /
+  `MonitorCommand` — not for client delivery.
+
+#### Send-message overlay
+
+The admin "Send Message" action burns a text banner onto **one** viewer's video.
+PHP posts it to the daemon control socket
+(`FanoutClient::sendSignal` → `POST /signal/<uuid>`), and the daemon applies an
+ffmpeg `drawtext` overlay to that viewer's next HLS segment (or a short ~5s TS
+window), one-shot, best-effort — a signal never breaks playback. The daemon must
+be launched with an ffmpeg that actually has the `drawtext` filter, so the
+`service` launcher picks a drawtext-capable build.
 
 ---
 
