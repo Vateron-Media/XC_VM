@@ -53,6 +53,11 @@ if (!isset($__settingsViewMode)):
 		? (trim((string) file_get_contents($rCoreVerFile)) ?: 'N/A')
 		: (extension_loaded('xcvm_core') ? (phpversion('xcvm_core') ?: 'N/A') : 'N/A');
 
+	// yt-dlp (`--version`) — auto-updated daily by cron:root_signals (`console.php ytdlp`).
+	$YtDlpVersion = (is_file(YOUTUBE_BIN) && is_executable(YOUTUBE_BIN))
+		? (trim((string) shell_exec(escapeshellarg(YOUTUBE_BIN) . ' --version 2>/dev/null')) ?: 'N/A')
+		: 'N/A';
+
 	$_TITLE = "Settings";
 
 	require_once __DIR__ . '/../layouts/admin.php';
@@ -2721,6 +2726,16 @@ $isAjaxRequest = (
 															<td class="text-center">
 																<button type="button" class="btn btn-dark btn-sm" style="font-size: 0.85rem;"><?= $XcvmCoreVersion ?></button>
 															</td>
+														</tr>
+
+														<tr>
+															<td class="text-center" style="font-size: 0.85rem;">yt-dlp</td>
+															<td class="text-center">
+																<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;"><?= $YtDlpVersion ?></button>
+															</td>
+
+															<td class="text-center" style="font-size: 0.85rem;"></td>
+															<td class="text-center"></td>
 														</tr>
 													</tbody>
 												</table>
