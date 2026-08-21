@@ -411,7 +411,7 @@ new:
 #
 #   make docs-venv       # one-time: local venv (build + translation deps)
 #   make docs-serve      # live preview at :8000 (builds committed en+ru)
-#   make docs-build      # strict static build into ./site (what CI runs)
+#   make docs-build      # strict static build into ./build/site (what CI runs)
 #   make docs-translate  # release step: (re)generate docs/ru from docs/en, then commit
 #
 # Translation engine via DOCS_TRANSLATE_PROVIDER (default: translators = free, no key):

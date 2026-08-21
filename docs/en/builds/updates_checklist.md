@@ -247,5 +247,5 @@ Every `make` target used during release prep, in one place.
 | --- | --- |
 | `make docs-venv` | One-time: local venv (build + translation deps) |
 | `make docs-translate` | Regenerate `docs/ru` from `docs/en` (before a release) |
-| `make docs-build` | Strict MkDocs build into `./site` (what CI runs) |
+| `make docs-build` | Strict MkDocs build into `./build/site` (what CI runs) |
 | `make docs-serve` | Live docs preview at `http://127.0.0.1:8000` |

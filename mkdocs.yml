@@ -4,7 +4,7 @@ site_url: https://vateron-media.github.io/XC_VM/
 repo_url: https://github.com/Vateron-Media/XC_VM
 repo_name: Vateron-Media/XC_VM
 docs_dir: docs
-site_dir: site
+site_dir: build/site
 edit_uri: edit/main/docs/
 
 # ru/ is a committed generated tree (translated from en/ locally before release)

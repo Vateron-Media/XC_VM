@@ -25,5 +25,5 @@ tools/test-stream-generator/sample.mp4
 # Docs: MkDocs build output and the translation cache. docs/ru IS committed —
 # it is generated from docs/en (tools/docs/translate.py) and refreshed locally
 # before a release, so CI only has to build it.
-/site/
+/build/site/
 .docs-cache/
