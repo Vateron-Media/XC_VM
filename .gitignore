@@ -19,7 +19,7 @@ coverage.xml
 
 # Static-analysis / style caches
 .phpstan.cache/
-build/.php-cs-fixer.cache
+build/.phpcs-cache
 tools/test-stream-generator/sample.mp4
 .understand-anything/*
 # Docs: MkDocs build output and the translation cache. docs/ru IS committed —

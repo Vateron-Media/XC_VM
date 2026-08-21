@@ -5,7 +5,9 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Domain\Vod\TMDbService;/**
+use XcVm\Domain\Vod\TMDbService;
+
+/**
  * Player functions bootstrap.
  *
  * Loads core dependencies, verifies player session integrity,

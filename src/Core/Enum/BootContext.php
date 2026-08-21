@@ -2,9 +2,6 @@
 
 namespace XcVm\Core\Enum;
 
-use XcVm\Core\Init\LegacyInitializer;
-use XcVm\Core\Localization\Translator;
-
 /**
  * Boot context for XC_Bootstrap::boot().
  *

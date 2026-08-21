@@ -6,7 +6,9 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\User\UserRepository;/**
+use XcVm\Domain\User\UserRepository;
+
+/**
  * ResellerLiveConnectionsController — Live connections.
  *
  * @package XC_VM_Public_Controllers_Reseller

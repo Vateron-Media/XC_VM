@@ -2,12 +2,8 @@
 
 namespace XcVm\Core\Container;
 
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Container\Psr\ContainerInterface;
 use XcVm\Core\Container\Psr\NotFoundException;
-use XcVm\Core\Database\DatabaseHandler;
-use XcVm\Core\Http\Request;
-use XcVm\Core\Module\ModuleInterface;
 
 /**
  * Минимальный DI-контейнер (Service Container)

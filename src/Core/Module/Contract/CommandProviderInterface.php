@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Module\Contract;
 
-use XcVm\Cli\CommandInterface;
-
 /**
  * @package XC_VM_Core_Module
  * @author  Divarion_D <https://github.com/Divarion-D>

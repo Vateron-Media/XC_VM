@@ -54,6 +54,7 @@
  */
 
 declare(strict_types=0);
+
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Container\ServiceContainer;
@@ -64,7 +65,6 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Logging\Logger;
-use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;

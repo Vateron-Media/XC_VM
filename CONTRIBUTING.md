@@ -55,9 +55,9 @@ Install the dev tooling once, then run the linters and tests before committing
 (CI runs the same set):
 
 ```sh
-make dev-tools     # install PHPStan + PHP-CS-Fixer (composer install)
+make dev-tools     # install PHPStan + phpcs (Slevomat) (composer install)
 make phpstan       # static analysis (also catches syntax errors)
-make cs            # code style — import/namespace hygiene (PHP-CS-Fixer)
+make cs            # code style — import/namespace hygiene (phpcs + Slevomat)
 make gates         # PSR-4 regression gates
 php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist   # unit tests
 make dev-clean     # done? remove the dev tools again, restoring prod-only vendor/

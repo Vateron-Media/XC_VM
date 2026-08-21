@@ -4,7 +4,6 @@ namespace XcVm\Core\Util;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Http\Response;
 use XcVm\Core\Validation\InputValidator;
 
 /*

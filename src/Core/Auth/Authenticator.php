@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Logging\Logger;

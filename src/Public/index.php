@@ -4,7 +4,6 @@ use XcVm\Core\Http\Router;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
-use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Api\AdminApiController;
 use XcVm\Public\Controllers\Api\Enigma2ApiController;
 use XcVm\Public\Controllers\Api\EpgApiController;

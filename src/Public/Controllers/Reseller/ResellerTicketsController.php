@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\User\TicketRepository;/**
+use XcVm\Domain\User\TicketRepository;
+
+/**
  * ResellerTicketsController — Tickets listing.
  *
  * @package XC_VM_Public_Controllers_Reseller

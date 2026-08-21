@@ -7,14 +7,14 @@ XC_VM is an open-source, Xtream-Codes-style IPTV management panel (PHP 8.1+, AGP
 ## Layout essentials
 
 - **`src/` is the application root.** `composer.json`, `vendor/`, `bootstrap.php`, `console.php` all live in `src/`, not the repo root. PSR-4: `XcVm\` → `src/` (e.g. `XcVm\Core\Database\DatabaseHandler` = `src/Core/Database/DatabaseHandler.php`).
-- The repo root holds build/release tooling: `Makefile`, `tools/`, `tests/`, `install/`, `lb_configs/`, `.php-cs-fixer.dist.php`.
+- The repo root holds build/release tooling: `Makefile`, `tools/`, `tests/`, `install/`, `lb_configs/`, `build/phpcs.xml.dist`.
 
 ## Commands
 
 Everything is driven from the **repo root via the `Makefile`**. Static-analysis/style tools are `require-dev` packages and are NOT in the committed `vendor/`; install them first.
 
 ```bash
-make dev-tools        # composer install in src/ — adds PHPStan + PHP-CS-Fixer to src/vendor (do this first)
+make dev-tools        # composer install in src/ — adds PHPStan + phpcs (Slevomat) to src/vendor (do this first)
 make phpstan          # static analysis (phpstan.dist.neon, --memory-limit=2G)
 make cs               # code-style check (dry-run, fails on diff)
 make cs-fix           # apply style fixes in place
@@ -41,7 +41,7 @@ php -l path/to/File.php   # quick syntax check (used constantly; no DB needed)
 - **`vendor/` is committed and PRODUCTION-ONLY.** Never run `composer install` on a deploy path. To change autoload, run `composer dump-autoload` from `src/`. After changing deps, re-commit a `composer install --no-dev` vendor (and `composer.lock`).
 - **Git LFS:** `src/bin/install/database.sql`, the bundled `ffmpeg`/`ffprobe`, `redis-server`, `yt-dlp`, fonts/videos, etc. are LFS objects. Editing an LFS file is transparent (the clean filter re-stages it as an LFS object on `git add`; `git push` uploads it). A checkout without LFS materialised ships 130-byte pointer stubs — the build's `verify_no_lfs_pointers` guards against this.
 - **Never `git push`.** Commit freely (Conventional Commits, English messages, grouped logically), but pushing to remote is the user's call — do not push unless explicitly told to.
-- PHP runs with **`short_open_tag=1`** (view templates use `<?`/`<?=`). PHP-CS-Fixer is invoked with `-d short_open_tag=1` so it sees class usage inside short-tag blocks.
+- PHP runs with **`short_open_tag=1`** (view templates use `<?`/`<?=`). The phpcs code-style ruleset **excludes** view templates, so no short-tag handling is needed there.
 
 ## Architecture (big picture)
 

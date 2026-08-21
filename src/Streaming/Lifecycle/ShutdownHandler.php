@@ -2,7 +2,6 @@
 
 namespace XcVm\Streaming\Lifecycle;
 
-use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Database\DatabaseFactory;

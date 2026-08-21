@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Events\Module;
 
-use XcVm\Core\Module\ModuleLoader;
-
 /**
  * Fired by ModuleLoader after a module class is instantiated and stored.
  *

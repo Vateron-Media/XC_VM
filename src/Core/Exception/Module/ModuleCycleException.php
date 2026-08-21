@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Exception\Module;
 
-use XcVm\Core\Module\ModuleLoader;
-
 /**
  * Thrown when ModuleLoader detects a circular dependency between modules.
  *

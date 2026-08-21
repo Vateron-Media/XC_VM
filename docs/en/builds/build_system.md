@@ -44,7 +44,7 @@ Additional outputs:
 both build variants ship a lean vendor with no dev tooling.
 
 - `src/composer.lock` is committed so `composer install` is reproducible.
-- Dev tools (PHPStan, PHP-CS-Fixer) are `require-dev` and are **not** in the
+- Dev tools (PHPStan, phpcs) are `require-dev` and are **not** in the
   committed vendor or the archives. Developers and CI add them with `make dev-tools`
   (`composer install`); the `check-vendor-prod-only` gate fails if a dev package is
   ever committed under `src/vendor/`.

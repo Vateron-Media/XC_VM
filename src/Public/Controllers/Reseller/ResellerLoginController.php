@@ -6,7 +6,9 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\User\ResellerAPI;/**
+use XcVm\Domain\User\ResellerAPI;
+
+/**
  * ResellerLoginController — Login page for reseller panel.
  *
  * Migrated from reseller/login.php.

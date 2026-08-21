@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\Stream\CategoryService;/**
+use XcVm\Domain\Stream\CategoryService;
+
+/**
  * ResellerStreamsController — Streams listing (read-only).
  *
  * @package XC_VM_Public_Controllers_Reseller

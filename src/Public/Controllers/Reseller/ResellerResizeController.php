@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Core\Util\ImageResizeService;/**
+use XcVm\Core\Util\ImageResizeService;
+
+/**
  * ResellerResizeController — Image resize proxy for reseller panel.
  *
  * Migrated from reseller/resize.php.

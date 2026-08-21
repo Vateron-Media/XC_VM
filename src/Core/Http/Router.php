@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Http;
 
-use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleInterface;
 
 /**

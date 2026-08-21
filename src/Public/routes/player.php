@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Core\Http\Router;
 use XcVm\Public\Controllers\Player\EpisodesController;
 use XcVm\Public\Controllers\Player\HomeController;
 use XcVm\Public\Controllers\Player\ListingsController;

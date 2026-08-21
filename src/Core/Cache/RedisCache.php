@@ -2,7 +2,6 @@
 
 namespace XcVm\Core\Cache;
 
-use XcVm\Core\Container\ServiceContainer;
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**

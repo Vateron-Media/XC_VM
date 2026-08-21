@@ -3,8 +3,6 @@
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Http\Router;
-use XcVm\Core\Module\ModuleInterface;
 use XcVm\Core\Module\ModuleLoader;
 
 /**

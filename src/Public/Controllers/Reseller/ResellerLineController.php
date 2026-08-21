@@ -6,7 +6,9 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\User\UserRepository;/**
+use XcVm\Domain\User\UserRepository;
+
+/**
  * ResellerLineController — Line edit/create.
  *
  * @package XC_VM_Public_Controllers_Reseller

@@ -8,7 +8,9 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Util\NetworkUtils;
-use XcVm\Domain\User\UserRepository;/**
+use XcVm\Domain\User\UserRepository;
+
+/**
  * PlayerLoginController — Login page for player panel.
  *
  * Migrated from player/login.php.

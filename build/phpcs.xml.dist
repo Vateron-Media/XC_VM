@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<ruleset name="XC_VM">
+    <description>
+        Import / namespace hygiene only (NOT full PSR-12) — a 1:1 replacement for
+        the previous narrow PHP-CS-Fixer ruleset, using phpcs + Slevomat. The win
+        over PHP-CS-Fixer: UnusedUses is precise — it does not treat a class name
+        that merely appears in a PHPDoc description as "used".
+        Run via `make cs` (report) / `make cs-fix` (auto-fix, = phpcbf).
+    </description>
+
+    <!-- Analyzed set mirrors the old cs-fixer Finder (paths passed on the CLI by
+         the Makefile; these are the exclusions). -->
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/Infrastructure/Tmdb/lib/*</exclude-pattern>
+    <exclude-pattern>*/tmp/*</exclude-pattern>
+    <exclude-pattern>*/backups/*</exclude-pattern>
+    <exclude-pattern>*/Public/Views/*</exclude-pattern>
+    <exclude-pattern>*/Modules/*/views/*</exclude-pattern>
+
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+    <arg value="p"/><!-- show progress -->
+
+    <!-- no_unused_imports (precise): remove `use` that is not referenced. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.UnusedUses">
+        <properties>
+            <!-- true = also treat class names used in PHPDoc TYPE positions
+                 (@param/@return/@var/@throws) as "used", so imports referenced
+                 only from a docblock type are NOT removed. (searchAnnotations
+                 parses annotation types, not free-text descriptions.) -->
+            <property name="searchAnnotations" value="true"/>
+        </properties>
+    </rule>
+    <!-- Drop a `use` that points at the file's own namespace. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.UseFromSameNamespace"/>
+
+    <!-- no_leading_import_slash: `use \Foo;` -> `use Foo;` -->
+    <rule ref="SlevomatCodingStandard.Namespaces.UseDoesNotStartWithBackslash"/>
+
+    <!-- ordered_imports: alphabetically sorted `use` statements. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.AlphabeticallySortedUses"/>
+
+    <!-- single_line_after_imports + no_extra_blank_lines[use]:
+         exactly one blank line before/after the use block, none between. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.UseSpacing">
+        <properties>
+            <property name="linesCountBeforeFirstUse" value="1"/>
+            <property name="linesCountBetweenUseTypes" value="0"/>
+            <property name="linesCountAfterLastUse" value="1"/>
+        </properties>
+    </rule>
+
+    <!-- blank_line_after_namespace: exactly one blank line around `namespace`. -->
+    <rule ref="SlevomatCodingStandard.Namespaces.NamespaceSpacing">
+        <properties>
+            <property name="linesCountBeforeNamespace" value="1"/>
+            <property name="linesCountAfterNamespace" value="1"/>
+        </properties>
+    </rule>
+</ruleset>

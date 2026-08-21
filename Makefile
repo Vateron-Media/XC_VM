@@ -88,7 +88,7 @@ EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))
 
 # ─── Dev tooling ────────────────────────────────────────────────
 # The committed src/vendor/ is PRODUCTION-ONLY (composer install --no-dev). The
-# dev tools below (PHPStan, PHP-CS-Fixer) are require-dev packages — install them
+# dev tools below (PHPStan, phpcs) are require-dev packages — install them
 # into src/vendor/ once with `make dev-tools` before running phpstan / cs. CI runs
 # the equivalent `composer install` step itself. They are never committed (the
 # committed vendor stays prod-only — see tools/ci/check-vendor-prod-only.sh).
@@ -96,7 +96,7 @@ dev-tools:
 	@cd src && composer install --no-interaction
 
 # Inverse of dev-tools: once you no longer need the checks, remove the installed
-# dev libraries (PHPStan, PHP-CS-Fixer + transitive deps) and restore the
+# dev libraries (PHPStan, phpcs + transitive deps) and restore the
 # production-only vendor/. `composer install --no-dev` prunes vendor/ back to the
 # committed prod set, so `git status` stays clean and no dev package can be staged.
 dev-clean:
@@ -133,25 +133,26 @@ phpstan-stub:
 	@php tools/phpstan/gen-constants-stub.php > tools/phpstan/constants.stub.php
 	@echo "regenerated tools/phpstan/constants.stub.php ($$(grep -c 'define(' tools/phpstan/constants.stub.php) constants)"
 
-# ─── Code style (PHP-CS-Fixer) ──────────────────────────────────
-# Narrow ruleset — import/namespace hygiene only (no @PSR12 reformat). See
-# build/.php-cs-fixer.dist.php.
-CS_FIXER := src/vendor/bin/php-cs-fixer
+# ─── Code style (PHP_CodeSniffer + Slevomat) ────────────────────
+# Narrow ruleset — import/namespace hygiene only (no PSR-12 reformat). See
+# build/phpcs.xml.dist. Replaced PHP-CS-Fixer because Slevomat's UnusedUses is
+# precise (it does not treat a class name that merely appears in a PHPDoc
+# DESCRIPTION as "used", unlike PHP-CS-Fixer's no_unused_imports).
+PHPCS  := src/vendor/bin/phpcs
+PHPCBF := src/vendor/bin/phpcbf
+# View templates (`<?`/`<?=`) are excluded in the ruleset; analysed class files
+# use full `<?php`, so no short_open_tag handling is needed.
+PHPCS_FLAGS := --standard=build/phpcs.xml.dist --cache=build/.phpcs-cache src
 
-# short_open_tag=1 so the fixer analyses `<?`/`<?=` view templates as PHP (prod
-# runs with short tags on). Without it no_unused_imports cannot see class usage
-# inside short-tag blocks and would wrongly strip still-needed imports.
-CS_FLAGS := -d short_open_tag=1
-
-# Check only — fails (exit 8) on any diff. Used in CI.
+# Check only — non-zero exit on any violation. Used in CI.
 cs:
-	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
-	@php $(CS_FLAGS) "$(CS_FIXER)" fix --dry-run --diff --config=build/.php-cs-fixer.dist.php
+	@test -x "$(PHPCS)" || { echo "phpcs not found — run 'make dev-tools' (composer install) first."; exit 1; }
+	@php "$(PHPCS)" $(PHPCS_FLAGS)
 
-# Apply fixes in place.
+# Apply fixes in place (phpcbf).
 cs-fix:
-	@test -x "$(CS_FIXER)" || { echo "PHP-CS-Fixer not found — run 'make dev-tools' (composer install) first."; exit 1; }
-	@php $(CS_FLAGS) "$(CS_FIXER)" fix --config=build/.php-cs-fixer.dist.php
+	@test -x "$(PHPCBF)" || { echo "phpcbf not found — run 'make dev-tools' (composer install) first."; exit 1; }
+	@php "$(PHPCBF)" $(PHPCS_FLAGS)
 
 # ─── PSR-4 regression gates ─────────────────────────────────────
 # Helper: print a variable's resolved value (consumed by CI gate scripts).
@@ -168,7 +169,7 @@ verify-lb-archive:
 	@bash tools/ci/verify-lb-archive.sh
 
 # Assert the committed src/vendor/ is production-only (no require-dev packages).
-# Dev tools (PHPStan, PHP-CS-Fixer) are installed locally via `composer install`
+# Dev tools (PHPStan, phpcs) are installed locally via `composer install`
 # and must never be committed. Checks git-tracked files, so it is correct even
 # in a CI job that has already run `composer install`.
 check-vendor-prod-only:

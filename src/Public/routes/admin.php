@@ -1,7 +1,5 @@
 <?php
 
-use XcVm\Core\Http\Router;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
 use XcVm\Public\Controllers\Admin\AjaxController;

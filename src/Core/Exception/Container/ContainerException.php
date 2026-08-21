@@ -3,7 +3,6 @@
 namespace XcVm\Core\Exception\Container;
 
 use XcVm\Core\Container\Psr\ContainerExceptionInterface;
-use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Exception\XcVmException;
 
 /**

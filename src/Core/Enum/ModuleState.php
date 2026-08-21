@@ -1,9 +1,8 @@
 <?php
 
 declare(strict_types=1);
-namespace XcVm\Core\Enum;
 
-use XcVm\Core\Module\ModuleLoader;
+namespace XcVm\Core\Enum;
 
 /**
  * Module lifecycle state stored in config/modules.php overrides.

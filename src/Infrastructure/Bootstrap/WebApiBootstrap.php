@@ -5,7 +5,6 @@ namespace XcVm\Infrastructure\Bootstrap;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Init\LegacyInitializer;
-use XcVm\Core\Logging\Logger;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 

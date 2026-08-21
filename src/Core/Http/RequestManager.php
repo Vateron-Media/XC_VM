@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Http;
 
-use XcVm\Core\Init\LegacyInitializer;
-
 /**
  * RequestManager — singleton-хранилище распарсенных параметров запроса.
  *

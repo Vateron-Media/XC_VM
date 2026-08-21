@@ -3,7 +3,6 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Epg\EpgService;
 
 /**
