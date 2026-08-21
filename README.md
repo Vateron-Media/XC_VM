@@ -65,10 +65,10 @@ It enables:
 ## 📚 Documentation
 
 * 🇬🇧 **English Guide**
-  [https://vateron-media.github.io/XC_VM/#/en-us/](https://vateron-media.github.io/XC_VM/#/en-us/)
+  [https://vateron-media.github.io/XC_VM/](https://vateron-media.github.io/XC_VM/)
 
 * 🇷🇺 **Руководство на русском**
-  [https://vateron-media.github.io/XC_VM/#/ru-ru/](https://vateron-media.github.io/XC_VM/#/ru-ru/)
+  [https://vateron-media.github.io/XC_VM/ru/](https://vateron-media.github.io/XC_VM/ru/)
 
 ---
 
@@ -77,7 +77,7 @@ It enables:
 Migrating from Xtream Codes / XUI.one? Follow the step-by-step migration guide:
 
 * 📖 **Migration Guide**
-  [https://vateron-media.github.io/XC_VM/#/en-us/info/migration_guide](https://vateron-media.github.io/XC_VM/#/en-us/info/migration_guide)
+  [https://vateron-media.github.io/XC_VM/info/migration_guide/](https://vateron-media.github.io/XC_VM/info/migration_guide/)
 
 ---
 
