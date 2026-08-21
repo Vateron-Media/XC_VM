@@ -2,7 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Epg\EpgService;
 
 /**

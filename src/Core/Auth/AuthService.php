@@ -3,7 +3,6 @@
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Http\Request;
 
 /**
  * Консолидированный сервис аутентификации.

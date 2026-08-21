@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Cache;
 
-use XcVm\Core\Container\ServiceContainer;
-
 /**
  * Cache Interface (Contract)
  *

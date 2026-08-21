@@ -4,7 +4,6 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\ConfigReader;
-use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Streaming\Fanout\FanoutClient;
 
 /**

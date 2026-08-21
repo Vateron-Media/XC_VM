@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Updates;
 
-use XcVm\Core\Http\Request;
-
 /**
  * GitHubReleases PHP class - wrapper for GitHub Releases API
  *

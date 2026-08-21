@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Http\Pipeline;
 
-use XcVm\Core\Module\ModuleLoader;
-
 /**
  * Ordered middleware pipeline for stream lifecycle processing.
  *

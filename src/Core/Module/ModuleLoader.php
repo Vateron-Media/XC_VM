@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Module;
 
-use XcVm\Cli\Commands\StartupCommand;
-use XcVm\Cli\Commands\StatusCommand;
 use XcVm\Core\Http\Pipeline\StreamMiddlewareInterface;
 use XcVm\Core\Http\Pipeline\StreamPipeline;
 use XcVm\Core\Http\Router;

@@ -6,7 +6,9 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
-use XcVm\Domain\User\UserRepository;/**
+use XcVm\Domain\User\UserRepository;
+
+/**
  * Admin functions bootstrap (Front Controller path).
  *
  * Extracted from admin/functions.php for FC use.

@@ -6,7 +6,9 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\ResellerTableRenderer;/**
+use XcVm\Infrastructure\ResellerTableRenderer;
+
+/**
  * ResellerTableController — DataTables JSON endpoint for reseller panel.
  *
  * Migrated from reseller/table.php.

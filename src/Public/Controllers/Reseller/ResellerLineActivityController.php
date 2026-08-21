@@ -5,7 +5,9 @@ namespace XcVm\Public\Controllers\Reseller;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Domain\User\UserRepository;/**
+use XcVm\Domain\User\UserRepository;
+
+/**
  * ResellerLineActivityController — Line activity log.
  *
  * @package XC_VM_Public_Controllers_Reseller

@@ -5,7 +5,6 @@ namespace XcVm\Public\Controllers\Admin;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Http\Router;
 use XcVm\Core\Util\AdminHelpers;
 
 /**

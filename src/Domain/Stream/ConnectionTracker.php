@@ -4,7 +4,6 @@ namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Server\ServerRepository;
 
 /**

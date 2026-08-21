@@ -4,9 +4,10 @@ namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Infrastructure\Redis\RedisManager;
-use XcVm\Infrastructure\ResellerApiDispatcher;/**
+use XcVm\Infrastructure\ResellerApiDispatcher;
+
+/**
  * ResellerApiController — AJAX API handler for reseller panel.
  *
  * Migrated from reseller/api.php.

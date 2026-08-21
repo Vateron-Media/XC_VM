@@ -8,7 +8,6 @@ use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Epg\EpgService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;

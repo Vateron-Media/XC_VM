@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Core\Http\Router;
 use XcVm\Public\Controllers\Reseller\ResellerApiController;
 use XcVm\Public\Controllers\Reseller\ResellerCreatedChannelsController;
 use XcVm\Public\Controllers\Reseller\ResellerDashboardController;

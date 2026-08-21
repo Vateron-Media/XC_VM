@@ -5,7 +5,9 @@ namespace XcVm\Public\Controllers\Reseller;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Line\PackageService;/**
+use XcVm\Domain\Line\PackageService;
+
+/**
  * ResellerMagController — MAG device edit/create.
  *
  * @package XC_VM_Public_Controllers_Reseller

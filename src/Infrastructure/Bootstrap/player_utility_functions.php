@@ -4,7 +4,9 @@ use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Stream\StreamSorter;/**
+use XcVm\Domain\Stream\StreamSorter;
+
+/**
  * Player Utility Functions
  *
  * Extracted from player/functions.php — only the utility functions,

@@ -8,7 +8,6 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Server\ServerService;
 
 /**
 * Install/configure a server (Proxy/LB) via SSH.

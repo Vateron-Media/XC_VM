@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Player;
 
-use XcVm\Core\Util\ImageResizeService;/**
+use XcVm\Core\Util\ImageResizeService;
+
+/**
  * PlayerResizeController — Image resize proxy for player panel.
  *
  * Migrated from player/resize.php.

@@ -2,9 +2,6 @@
 
 namespace XcVm\Core\Module\Contract;
 
-use XcVm\Cli\Commands\StartupCommand;
-use XcVm\Cli\Commands\StatusCommand;
-
 /**
  * Optional contract for modules that need system-level crontab entries.
  *

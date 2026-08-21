@@ -4,7 +4,9 @@ namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Domain\Server\ServerRepository;/**
+use XcVm\Domain\Server\ServerRepository;
+
+/**
  * ResellerEditProfileController — Edit reseller profile.
  *
  * @package XC_VM_Public_Controllers_Reseller
