@@ -156,7 +156,7 @@ generateError('STREAM_OFFLINE', false);             // production: no output, no
 
 ### `generate404(bool $rKill = true)`
 
-Возвращает страницу в стиле nginx `404 Not Found` и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями для подавления страниц с ошибками, удобными для браузера, в MSIE и Chrome.
+Возвращает страницу в стиле nginx `404 Not Found` и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями, чтобы скрыть страницы ошибок, отображаемые в браузере MSIE и Chrome.
 
 ```php
 generate404();       // 404 + exit
@@ -196,7 +196,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 ### Отображение уровня ошибок
 
-`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала с помощью `mapErrorLevel()`:
+`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала через `mapErrorLevel()`:
 
 |PHP константа(ы)|Уровень регистрации|
 | --- | --- |

@@ -716,7 +716,7 @@ class MyModuleModule extends BaseModule implements MigratableInterface {
 - [ ] Поставьте постоянную отметку `hash_id` (`php -r 'echo bin2hex(random_bytes(16));'`; никогда не пишите ее от руки)
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
 - [ ] Укажите версию в ** как ** `module.json` `"version"`, так и `getVersion()` — они должны совпадать (измените обе версии перед публикацией)
-- [ ] Реализовать `boot()` для всех сервисов, предоставляемых модулем
+- [ ] Реализовать `boot()` для всех служб, предоставляемых модулем
 - [ ] Реализовать `registerRoutes()` для конечных точек HTTP/API
 - [ ] Внедрить `registerNavbar()` для элементов панели администратора (или оставить пустым)
 - [ ] (Если кроны) Создайте `MyCron.php` + `MyCronJob.php`, зарегистрируйтесь в `registerCommands()`
@@ -754,7 +754,7 @@ class MyModuleModule extends BaseModule implements MigratableInterface {
 
 **Вопрос: Для чего используется `StreamMiddlewareProviderInterface`?**
 Это позволяет модулю вводить значение `StreamMiddlewareInterface` в конвейер потоковой обработки
-без изменения `StreamProcess.php`. При необходимости реализуйте его вместе с `ModuleInterface`.
+без изменения `StreamProcess.php`. При необходимости реализуйте это вместе с `ModuleInterface`.
 
 ## Связанные файлы
 

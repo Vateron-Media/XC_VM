@@ -41,7 +41,10 @@ To see all available commands:
 | `service` | `ServiceCommand` | Manage XC_VM service: start, stop, restart, reload | root |
 | `tools` | `ToolsCommand` | Maintenance utilities (see Tools Command section) | root/xc_vm |
 | `certbot` | `CertbotCommand` | Generate SSL certificate via certbot | root |
-| `binaries` | `BinariesCommand` | Update binaries and GeoLite DB from GitHub | xc_vm |
+| `binaries` | `BinariesCommand` | Update the runtime bundle (php/nginx/…) from the `XC_VM_Binaries` release | xc_vm |
+| `fanout_binary` | `FanoutBinaryCommand` | Install/update the `xc_fanout` daemon binary from its release | root |
+| `xcvm_core` | `XcvmCoreCommand` | Install/update the `xcvm_core` PHP extension from the binaries repo | root |
+| `ytdlp` | `YtDlpCommand` | Install/update `yt-dlp` from its upstream GitHub release | root |
 | `startup` | `StartupCommand` | System initialization: daemons.sh, crontab, cache | root |
 | `monitor` | `MonitorCommand` | Monitor stream by ID (start/restart/track) | xc_vm |
 | `thumbnail` | `ThumbnailCommand` | Generate thumbnail frames for a stream | xc_vm |
@@ -99,7 +102,7 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:maxmind` | `MaxMindCronJob` | Update MaxMind GeoIP databases (Tuesdays only; `--force` to run manually) |
 | `cron:providers` | `ProvidersCronJob` | Update providers (optional) |
 | `cron:root_mysql` | `RootMysqlCronJob` | Database maintenance (root, optional) |
-| `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management (root) |
+| `cron:root_signals` | `RootSignalsCronJob` | Process signals, iptables, nginx, service management, and **binary self-heal** (root) |
 | `cron:series` | `SeriesCronJob` | Update series data (optional) |
 | `cron:servers` | `ServersCronJob` | Monitor server, launch daemons, update statistics |
 | `cron:stats` | `StatsCronJob` | Calculate and store statistics |
@@ -120,6 +123,30 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:watch` | `WatchCronJob` | watch | Process Watch library updates |
 
 > Optional cron jobs (conditionally registered): `cron:backups`, `cron:cache_engine`, `cron:epg`, `cron:providers`, `cron:root_mysql`, `cron:series`, `cron:tmdb`, `cron:tmdb_popular`, `cron:update`.
+
+---
+
+## Binary self-update (self-heal)
+
+Some bundled binaries are **not** shipped inside the heavy runtime bundle and would
+otherwise never refresh between panel releases (a fresh LB node, or a node left on
+an old build, would never converge). `cron:root_signals` (root, every minute) keeps
+them current by polling their idempotent per-binary updater commands on a
+stamp-throttled schedule — each downloads only on a version mismatch, verifies a
+checksum, run-tests the new binary, then swaps it in atomically (a broken download
+never replaces a working one). Runs on every node (main **and** LB).
+
+| Binary | Command | Source | Verify | Poll |
+| --- | --- | --- | --- | --- |
+| `xc_fanout` daemon | `fanout_binary` | `XC_VM_Fanout` release asset | `SHA256SUMS` | ~hourly |
+| `xcvm_core` extension | `xcvm_core` | `XC_VM_Binaries` repo tree (`bin/xcvm_core/`) | `SHA256SUMS` + load-test | ~hourly |
+| `yt-dlp` | `ytdlp` | upstream `yt-dlp/yt-dlp` release | `SHA2-256SUMS` + `--version` | daily |
+
+Stamps live in `CRONS_TMP_PATH` (`fanout_binary_check`, `xcvm_core_check`,
+`ytdlp_check`); the first pass (stamp absent) runs immediately, so a fresh
+install/LB gets the binary within a minute. The heavy runtime bundle
+(php/nginx/ffmpeg) is instead refreshed by the `binaries` command, triggered by an
+`update_binaries` signal from MAIN.
 
 ---
 

@@ -29,7 +29,7 @@ ProcessManager::isNamedProcessRunning(
 
 Соответствует шаблону командной строки `NAME[ID]` (для работников, основанных на названии процесса).
 
-### Проверка потокового процесса
+### Проверьте потоковый процесс
 
 ```php
 ProcessManager::isStreamRunning(int $pid, int $streamId): bool

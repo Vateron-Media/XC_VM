@@ -7,7 +7,7 @@
 ## Проблемы с потоками
 
 <details>
-<summary><b>❌ Мой стрим не запускается на MAIN или LB</b></summary>
+<summary><b>❌ Мой стрим не запускается ни на MAIN, ни на LB</b></summary>
 
 ---
 
@@ -216,7 +216,7 @@ sudo /home/xc_vm/console.php status
 ## SSL и Nginx
 
 <details>
-<summary><b>❌ Ошибка генерации SSL-сертификата</b></summary>
+<summary><b>❌ Сбой генерации SSL-сертификата</b></summary>
 
 ---
 
