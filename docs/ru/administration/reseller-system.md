@@ -53,7 +53,7 @@ if (isset($rOverride[$rPackage['id']]['official_credits'])) {
 
 ### Регистрация
 
-Все кредитные операции записываются в `users_logs`:
+Все кредитные операции отражаются в `users_logs`:
 
 |Поле|Описание|
 | --- | --- |
@@ -84,7 +84,7 @@ if (isset($rOverride[$rPackage['id']]['official_credits'])) {
 3. Сгенерируйте имя пользователя/пароль, если это разрешено разрешениями.
 4. Применить пакет: `exp_date`, `max_connections`, `bouquets`, `allowed_outputs`.
 5. Установите ограничения: `allowed_ips` (JSON), `allowed_ua`, `bypass_ua`, `is_isplock`.
-6. Вставьте в таблицу `lines` через `REPLACE INTO`.
+6. Вставить в таблицу `lines` через `REPLACE INTO`.
 7. Синхронизируйте записи устройства (`mag_devices` или `enigma2_devices`).
 8. Передача сигнала о событии на потоковые серверы.
 9. Вычтите кредиты и зарегистрируйте транзакцию.
@@ -100,12 +100,12 @@ if (isset($rOverride[$rPackage['id']]['official_credits'])) {
 
 ### МАГНИТНЫЕ устройства
 
-Управляемый `MagService` (`src/Domain/Device/MagService.php`).
+Управляется с помощью `MagService` (`src/Domain/Device/MagService.php`).
 Поля блокировки: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
 ### Устройства Enigma2
 
-Управляемый `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
+Управляется с помощью `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
 Поля блокировки: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
 Оба типа устройств поддерживают `lock_device` (аппаратная привязка), `is_isplock` (привязка к провайдеру) и `forced_country`.
@@ -114,7 +114,7 @@ if (isset($rOverride[$rPackage['id']]['official_credits'])) {
 
 ## Иерархия суб-реселлеров
 
-Реселлеры могут создавать суб-реселлеров (при наличии разрешения `create_sub_resellers`).:
+Реселлеры могут создавать суб-реселлеров (если получено разрешение `create_sub_resellers`).:
 
 - Суб-реселлеры связаны через поле `owner_id`.
 - Многоуровневый: суб-реселлер может создавать своих собственных суб-реселлеров.
@@ -140,7 +140,7 @@ AuthRepository::getGroupPermissions()  // builds all_reports recursively
 
 ## Разрешения
 
-Разрешения поступают из таблицы `users_groups`, загружаемой через `AuthRepository::getPermissions()`.
+Разрешения берутся из таблицы `users_groups`, загружаемой через `AuthRepository::getPermissions()`.
 
 ### Ключевые поля разрешений
 
@@ -152,7 +152,7 @@ AuthRepository::getGroupPermissions()  // builds all_reports recursively
 | `create_enigma` | `bool` |может создавать устройства Enigma2|
 | `create_sub_resellers` | `bool` |может создавать суб-реселлеров|
 | `create_sub_resellers_price` | `int` |стоимость кредита на одного суб-реселлера|
-| `allow_change_bouquets` | `bool` |можно выбрать bouquet подмножество|
+| `allow_change_bouquets` | `bool` |можно выбрать подмножество bouquet|
 | `allow_change_username` | `bool` |можно установить пользовательское имя пользователя|
 | `allow_change_password` | `bool` |можно установить пользовательский пароль|
 | `allow_restrictions` | `bool` |можно установить ограничения по IP/UA|
@@ -209,7 +209,7 @@ AuthRepository::getGroupPermissions()  // builds all_reports recursively
 |`activity_logs` / `live_connections`|данные о подключении|
 | `user_logs` |журналы действий суб-реселлеров|
 
-Класс `ResellerAPIWrapper` проверяет API-ключ, инициализирует сеанс с помощью `ResellerAPI` и возвращает отфильтрованные ответы в формате JSON.
+Класс `ResellerAPIWrapper` проверяет ключ API, инициализирует сеанс с помощью `ResellerAPI` и возвращает отфильтрованные ответы в формате JSON.
 
 ---
 

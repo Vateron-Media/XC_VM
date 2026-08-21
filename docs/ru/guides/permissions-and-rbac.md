@@ -1,6 +1,6 @@
 # Разрешения и RBAC
 
-XC_VM комбинации контроля доступа:
+XC_VM системы контроля доступа объединяют:
 
 - **Групповые разрешения** -- разрешенные возможности, назначенные группе администраторов
 - **Авторизация на уровне объекта** -- проверка прав собственности для конкретных объектов (пользователей, строк)
@@ -17,7 +17,7 @@ user -> member_group_id -> group
          -> advanced[] (array of permission keys)
 ```
 
-Состояние разрешений загружается в `$rPermissions` global во время инициализации сеанса и остается доступным на протяжении всего жизненного цикла запроса.
+Состояние разрешения загружается в глобальное значение `$rPermissions` во время инициализации сеанса и остается доступным на протяжении всего жизненного цикла запроса.
 
 Ключевые поля в `$rPermissions`:
 
@@ -37,7 +37,7 @@ user -> member_group_id -> group
 
 ## Ключи разрешений
 
-Ключи разрешений объявляются в `src/config/permissions.php` как массив `$rPermissionKeys`. Каждый ключ представляет собой строковый идентификатор, используемый с `Authorization::check('adv', $key)`.
+Ключи разрешений объявляются в `src/config/permissions.php` как массив `$rPermissionKeys`. Каждый ключ представляет собой строковый идентификатор, используемый в `Authorization::check('adv', $key)`.
 
 Категории:
 
@@ -68,11 +68,11 @@ user -> member_group_id -> group
 Authorization::check(string $type, mixed $id): bool
 ```
 
-**Предварительные условия:** Возвращает `false` немедленно, если `$rUserInfo`, `$rPermissions`, или `$db` не инициализированы.
+**Предварительные условия:** Возвращает `false` немедленно, если `$rUserInfo`, `$rPermissions` или `$db` не инициализированы.
 
 #### Тип: `user`
 
-Проверяет, может ли текущий пользователь получить доступ к целевому пользователю-администратору. Создает список из идентификатора текущего пользователя плюс его дерева `all_reports`, затем запрашивает таблицу `users`, чтобы убедиться, что целевой пользователь `owner_id` находится в этом списке (или целью является текущий пользователь).
+Проверяет, может ли текущий пользователь получить доступ к целевому пользователю-администратору. Создает список из идентификатора текущего пользователя и их дерева `all_reports`, затем запрашивает таблицу `users`, чтобы проверить, есть ли в этом списке имя целевого пользователя `owner_id` (или целевым пользователем является текущий пользователь).
 
 ```php
 Authorization::check('user', $userId);
@@ -95,7 +95,7 @@ Authorization::check('adv', 'edit_bouquet');
 Authorization::check('adv', 'block_isps');
 ```
 
-**Важно: `is_admin` gate.** Перед проверкой массива расширенных разрешений метод требует, чтобы значение `$rPermissions['is_admin']` было равно true. Если пользователь не является администратором, `check('adv', ...)` всегда возвращает `false`:
+**Важно: `is_admin` gate.** Перед проверкой массива расширенных разрешений метод требует, чтобы значение `$rPermissions['is_admin']` было равно true. Если пользователь не является администратором, `check('adv', ...)` всегда возвращает значение `false`:
 
 ```php
 if (!($rType == 'adv' && $rPermissions['is_admin'])) {
@@ -124,7 +124,7 @@ return true;
 Authorization::hasResellerPermissions(string $type): bool
 ```
 
-Возвращает, не является ли значение `$rPermissions[$type]` непустым. Используется для логических флагов, специфичных для реселлера, таких как `create_line`, `create_mag`, и т.д.
+Возвращает, не является ли значение `$rPermissions[$type]` непустым. Используется для логических флагов, специфичных для реселлера, таких как `create_line`, `create_mag` и т.д.
 
 ---
 
@@ -143,7 +143,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 
 #### Поведение, разрешенное по умолчанию
 
-Оба метода возвращают значение `true` для любой страницы, явно не указанной в их инструкциях switch. Это означает, что страницы без сопоставления доступны всем авторизованным пользователям соответствующего типа (администраторам или торговым посредникам). Доступ ограничен только к страницам с явно указанными записями.
+Оба метода возвращают значение `true` для любой страницы, явно не указанной в их инструкциях switch. Это означает, что страницы без сопоставления доступны всем авторизованным пользователям соответствующего типа (администраторам или торговым посредникам). Доступ ограничен только к страницам с явно заданными параметрами.
 
 ---
 
@@ -151,11 +151,11 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 
 Метод `checkPermissions()` сопоставляет страницы панели администратора с ключами доступа `adv`. Ниже приведено полное сопоставление, сгруппированное по категориям.
 
-### Шаблон для создания и редактирования
+### Шаблон создания или редактирования
 
 Многие страницы сущностей используют условную логику, основанную на параметрах запроса:
 
-- Если указан параметр `id`, проверяется разрешение **редактировать**
+- Если указан параметр `id`, то проверяется разрешение **редактировать**
 - Если параметр `id` отсутствует, проверяется разрешение **добавить**
 - Некоторые страницы (stream, movie) также проверяют наличие параметра `import` и требуют соответствующего разрешения на импорт
 
@@ -166,7 +166,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 |`streams`, `stream_view`, `provider`, `providers`, `epg_view`, `created_channels`, `stream_rank`, `archive`| `streams` | |
-| `stream` | `edit_stream` |Когда присутствует `id`|
+| `stream` | `edit_stream` | When `id` is present |
 | `stream` | `add_stream` |Когда нет `id`|
 | `stream` | `import_streams` |Когда присутствует параметр `import` (в дополнение к параметру `add_stream`)|
 | `stream_categories` | `categories` | |
@@ -176,7 +176,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 | `mass_edit_streams` | `edit_stream` | |
 | `review` | `import_streams` | |
 | `channel_order` | `channel_order` | |
-| `created_channel` | `edit_cchannel` |Когда присутствует `id`|
+| `created_channel` | `edit_cchannel` | When `id` is present |
 | `created_channel` | `create_channel` |Когда нет `id`|
 
 ### Фильмы и VOD
@@ -184,7 +184,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `movies` | `movies` | |
-| `movie` | `edit_movie` |Когда присутствует `id`|
+| `movie` | `edit_movie` | When `id` is present |
 | `movie` | `add_movie` |Когда нет `id`|
 | `movie` | `import_movies` |Когда присутствует параметр `import` (в дополнение к параметру `add_movie`)|
 | `movie_mass` | `mass_sedits_vod` | |
@@ -196,12 +196,12 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `series` | `series` | |
-| `serie` | `edit_series` |Когда присутствует `id`|
+| `serie` | `edit_series` | When `id` is present |
 | `serie` | `add_series` |Когда нет `id`|
 | `series_order` | `edit_series` | |
 | `episodes` | `episodes` | |
-| `episode` | `edit_episode` |Когда присутствует `id`|
-| `episode` | `add_episode` |Когда нет `id`; при отказе переключается на `episodes`|
+| `episode` | `edit_episode` | When `id` is present |
+| `episode` | `add_episode` |Когда нет `id`; при отказе переходит на `episodes`|
 |`series_mass`, `episodes_mass`| `mass_sedits` | |
 
 ### Радио
@@ -209,7 +209,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `radios` | `radio` | |
-| `radio` | `edit_radio` |Когда присутствует `id`|
+| `radio` | `edit_radio` | When `id` is present |
 | `radio` | `add_radio` |Когда нет `id`|
 | `radio_mass` | `mass_edit_radio` | |
 
@@ -218,7 +218,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `lines` | `users` | |
-| `line` | `edit_user` |Когда присутствует `id`|
+| `line` | `edit_user` | When `id` is present |
 | `line` | `add_user` |Когда нет `id`|
 | `line_mass` | `mass_edit_lines` | |
 |`line_activity`, `theft_detection`, `line_ips`| `connection_logs` | |
@@ -229,7 +229,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `mags` | `manage_mag` | |
-| `mag` | `edit_mag` |Когда присутствует `id`|
+| `mag` | `edit_mag` | When `id` is present |
 | `mag` | `add_mag` |Когда нет `id`|
 | `mag_events` | `manage_events` | |
 | `mag_mass` | `mass_edit_mags` | |
@@ -241,7 +241,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `users` | `mng_regusers` | |
-| `user` | `edit_reguser` |Когда присутствует `id`|
+| `user` | `edit_reguser` | When `id` is present |
 | `user` | `add_reguser` |Когда нет `id`|
 | `user_mass` | `mass_edit_users` | |
 | `user_logs` | `reg_userlog` | |
@@ -251,11 +251,11 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `bouquets` | `bouquets` | |
-| `bouquet` | `edit_bouquet` |Когда присутствует `id`|
-| `bouquet` | `add_bouquet` |Когда нет `id`; при отказе переключается на `edit_bouquet`|
+| `bouquet` | `edit_bouquet` | When `id` is present |
+| `bouquet` | `add_bouquet` |Когда нет `id`; при отказе переходит на `edit_bouquet`|
 |`bouquet_order`, `bouquet_sort`| `edit_bouquet` | |
 |`packages`, `addons`| `mng_packages` | |
-| `package` | `edit_package` |Когда присутствует `id`|
+| `package` | `edit_package` | When `id` is present |
 | `package` | `add_packages` |Когда нет `id`|
 
 ### Группы
@@ -263,23 +263,23 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `groups` | `mng_groups` | |
-| `group` | `edit_group` |Когда присутствует `id`|
-| `group` | `add_group` |Когда нет `id`; при отказе переключается на `mng_groups`|
+| `group` | `edit_group` | When `id` is present |
+| `group` | `add_group` |Когда нет `id`; при отказе переходит на `mng_groups`|
 
 ### EPG
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `epgs` | `epg` | |
-| `epg` | `epg_edit` |Когда присутствует `id`|
-| `epg` | `add_epg` |Когда нет `id`; при отказе переключается на `epg`|
+| `epg` | `epg_edit` | When `id` is present |
+| `epg` | `add_epg` |Когда нет `id`; при отказе переходит на `epg`|
 
 ### Серверы
 
 |Страница|Разрешение|Записи|
 | --- | --- | --- |
 |`servers`, `server_view`, `server_order`, `proxies`| `servers` | |
-|`server`, `proxy`| `edit_server` |Когда присутствует `id`|
+|`server`, `proxy`| `edit_server` | When `id` is present |
 |`server`, `proxy`| `add_server` |Когда нет `id`|
 | `server_install` | `add_server` | |
 
@@ -357,7 +357,7 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 |`epg_view`, `streams`, `created_channels`, `movies`, `episodes`, `radios`| `can_view_vod` |
 |`live_connections`, `line_activity`| `reseller_client_connection_logs` |
 
-Любая страница реселлера, не указанная выше, возвращает `true` (доступна по умолчанию).
+Любая страница реселлера, не указанная выше, возвращает значение `true` (доступно по умолчанию).
 
 ---
 
@@ -380,7 +380,7 @@ if (!Authorization::check('adv', 'my_new_permission')) {
 }
 ```
 
-3. Если разрешение должно открывать доступ к странице, добавьте обращение к `PageAuthorization::checkPermissions()`:
+3. Если разрешение должно указывать на страницу, добавьте регистр в `PageAuthorization::checkPermissions()`:
 
 ```php
 case 'my_new_page':
@@ -408,8 +408,8 @@ case 'my_entity':
 
 |Файл|Цель|
 | --- | --- |
-| `src/config/permissions.php` |Реестр ключей разрешений (`$rPermissionKeys` array)|
+| `src/config/permissions.php` |Реестр ключей разрешений (массив`$rPermissionKeys`)|
 | `src/Core/Auth/Authorization.php` |Проверка разрешений на уровне объекта и расширенные проверки разрешений|
 | `src/Core/Auth/PageAuthorization.php` |Настройка на уровне страницы для панелей администратора и реселлера|
-| `src/Core/Auth/SessionManager.php` |Контекст сеанса; заполняет `$rPermissions` и `$rUserInfo`|
+| `src/Core/Auth/SessionManager.php` |Контекст сеанса; заполняет значения `$rPermissions` и `$rUserInfo`|
 | `src/Core/Auth/Authenticator.php` |Аутентификация (вход в систему, проверка учетных данных)|

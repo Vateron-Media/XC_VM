@@ -1,8 +1,8 @@
 # Флаги функций разработки
 
-XC_VM использует константы и флаги, зависящие от настроек, для управления поведением среды.
+XC_VM использует константы и флаги, управляемые настройками, для управления поведением среды.
 
-Константы приложения хранятся в `src/Core/Config/AppConfig.php`.
+Константы приложения хранятся в виде `src/Core/Config/AppConfig.php`.
 
 ---
 
@@ -14,7 +14,7 @@ XC_VM использует константы и флаги, зависящие 
 define('PHP_ERRORS', $rShowErrors); // derived from $rSettings['debug_show_errors']
 ```
 
-`PHP_ERRORS` управляет PHP/детализирует детализацию и выводит данные с экрана регистратора:
+`PHP_ERRORS` управляет PHP детализацией/отладкой и выводом на экран регистратора:
 
 ```php
 Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log');
@@ -48,7 +48,7 @@ define('DB_ACCESS_ENABLED', false); // enables phpMiniAdmin tab/page in admin pa
 
 ## Статические константы приложения
 
-От `src/Core/Config/AppConfig.php`:
+Из `src/Core/Config/AppConfig.php`:
 
 ```php
 define('DB_ACCESS_ENABLED', false);
@@ -78,5 +78,5 @@ define('OPENSSL_EXTRA', '...');
 | --- | --- |
 | `src/Core/Config/AppConfig.php` |статические константы приложения|
 | `src/Core/Http/RequestGuard.php` |загружает `$rSettings`, устанавливает `PHP_ERRORS`|
-| `src/Core/Error/ErrorHandler.php` |использует `debug_show_errors` поведение|
+| `src/Core/Error/ErrorHandler.php` |использует поведение `debug_show_errors`|
 | `src/Core/Logging/Logger.php` |поведение при отладке/детализации|

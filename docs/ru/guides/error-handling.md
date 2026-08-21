@@ -115,7 +115,7 @@ Application code
 | `VOD_DOESNT_EXIST` |VOD файл не существует.|
 | `WAIT_TIME_EXPIRED` |Время начала трансляции истекло, запустить не удалось.|
 
-Коды, относящиеся к потоковой передаче данных (`CACHE_INCOMPLETE`, `SUBTITLE_DOESNT_EXIST`, `NO_SERVERS_AVAILABLE`, `PROXY_ACCESS_DENIED`) были перенесены из `stream/init.php` в централизованный реестр.
+Коды, относящиеся к потоковой передаче данных (`CACHE_INCOMPLETE`, `SUBTITLE_DOESNT_EXIST`, `NO_SERVERS_AVAILABLE`, `PROXY_ACCESS_DENIED`), были перенесены из `stream/init.php` в централизованный реестр.
 
 ---
 
@@ -125,7 +125,7 @@ Application code
 
 ### `generateError(string $rError, bool $rKill = true, ?int $rCode = null)`
 
-Выдает ответ об ошибке HTTP. Поведение зависит от параметра `debug_show_errors`.:
+Выдает ответ об ошибке HTTP. Поведение зависит от параметра `debug_show_errors`:
 
 ```text
 if debug_show_errors === true
@@ -156,7 +156,7 @@ generateError('STREAM_OFFLINE', false);             // production: no output, no
 
 ### `generate404(bool $rKill = true)`
 
-Возвращает страницу `404 Not Found` в стиле nginx и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями, чтобы скрыть страницы ошибок, отображаемые в браузере MSIE и Chrome.
+Возвращает страницу в стиле nginx `404 Not Found` и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями для подавления страниц с ошибками, удобными для браузера, в MSIE и Chrome.
 
 ```php
 generate404();       // 404 + exit
@@ -167,7 +167,7 @@ generate404(false);  // 404, continue execution
 
 ## Подсистема регистратора
 
-Определен в `src/Core/Logging/Logger.php`. Класс `final`, который регистрирует три глобальных обработчика PHP, чтобы фиксировать все ошибки во время выполнения и записывать их в файл.
+Определен в `src/Core/Logging/Logger.php`. Класс `final`, который регистрирует три глобальных обработчика PHP для отслеживания всех ошибок во время выполнения и записи их в файл.
 
 ### Инициализация
 
@@ -189,14 +189,14 @@ Logger::init(bool $showErrors, string $logFile): void
 
 |Путь входа|Файл|Как|
 | --- | --- | --- |
-|Bootstrap (все контексты)| `src/bootstrap.php` |`XC_Bootstrap::loadConstants()` звонков `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`|
+|Bootstrap (все контексты)| `src/bootstrap.php` |`XC_Bootstrap::loadConstants()` вызовы `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`|
 |Конечные точки потоковой передачи| `src/Core/Http/RequestGuard.php` |Загружает настройки из файлового кэша, определяет `PHP_ERRORS`, затем вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`|
 
-В обоих случаях `PHP_ERRORS` отражает настройку `debug_show_errors` (по умолчанию используется `false`, когда настройки недоступны).
+В обоих случаях параметр `PHP_ERRORS` соответствует параметру `debug_show_errors` (по умолчанию используется значение `false`, когда настройки недоступны).
 
 ### Отображение уровня ошибок
 
-`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала через `mapErrorLevel()`:
+`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала с помощью `mapErrorLevel()`:
 
 |PHP константа(ы)|Уровень регистрации|
 | --- | --- |
@@ -217,7 +217,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 ### Формат журнала
 
-Каждая запись в журнале записывается в виде одной строки: `base64_encode(json_encode($data))`, за которой следует новая строка. Это предотвращает искажение строк в многострочных сообщениях.
+Each log entry is written as a single line: `base64_encode(json_encode($data))` followed by a newline. This prevents line corruption from multi-line messages.
 
 Декодированная структура JSON:
 
@@ -241,13 +241,13 @@ Logger::init(bool $showErrors, string $logFile): void
 | `line` |Номер строки, в которой произошла ошибка|
 | `log_extra` |Трассировка стека (форматированная строка). Пусто для неустранимых ошибок.|
 | `time` |Временная метка Unix|
-| `env` |PHP имя SAPI (`cli`, `fpm-fcgi`, и т.д.)|
+| `env` |PHP Имя SAPI (`cli`, `fpm-fcgi` и т.д.)|
 
 ### Расположение файла журнала
 
 Путь по умолчанию: `LOGS_TMP_PATH . 'error_log.log'`
 
-Если каталог журнала не существует, Logger создает его с правами доступа `0775`. При запуске от имени root (распространенного в контейнерах) файлу присваивается имя `xc_vm:xc_vm` с режимом `0664`.
+Если каталог журнала не существует, Logger создает его с правами доступа `0775`. При запуске от имени root (распространенного в контейнерах) файлу присваивается значение `xc_vm:xc_vm` с режимом `0664`.
 
 ### Вывод на экран
 
@@ -260,12 +260,12 @@ Logger::init(bool $showErrors, string $logFile): void
 
 ## Конвейер ведения журнала: Передача файла в базу данных
 
-Регистратор записывает данные в `error_log.log` на диске. Отдельная подсистема считывает этот файл и сохраняет записи в таблице базы данных `panel_logs`:
+Программа ведения журнала записывает данные в файл `error_log.log` на диске. Отдельная подсистема считывает этот файл и сохраняет записи в таблице базы данных `panel_logs`:
 
 1. **Регистратор** записывает строки JSON в кодировке base64 в `error_log.log`
-2. **FileLogger** (`src/Core/Logging/FileLogger.php`) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, EPG и т.д.), который записывает данные в тот же файл в том же формате
+2. **FileLogger** (`src/Core/Logging/FileLogger.php`) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, ошибки EPG и т.д.), который записывает данные в тот же файл в том же формате
 3. Записи заносятся в таблицу `panel_logs`
-4. **Диагностический сервис** (`src/Core/Diagnostics/DiagnosticsService.php`) считывает данные из `panel_logs` для:
+4. **DiagnosticsService** (`src/Core/Diagnostics/DiagnosticsService.php`) считывает данные из `panel_logs` для:
    - `downloadPanelLogs()` -- извлекает до 1000 последних ошибок, не связанных с EPG, затем обрезает таблицу
    - `submitPanelLogs()` -- отправляет логи на центральный сервер API для анализа
 5. Панель администратора отображает эти журналы в разделе **Управление > Журналы > Ошибки панели**
@@ -275,7 +275,7 @@ Logger::init(bool $showErrors, string $logFile): void
 `FileLogger::log()` пропускает записи, которые соответствуют:
 
 - Сообщения, содержащие `panel_logs` в дополнительном поле (предотвращает рекурсивное ведение журнала)
-- Совпадающие сообщения `timeout exceeded`, `lock wait timeout`, или `duplicate entry` (ошибки с помехами MySQL)
+- Сообщения, соответствующие `timeout exceeded`, `lock wait timeout` или `duplicate entry` (зашумленные ошибки MySQL)
 
 ---
 
@@ -285,10 +285,10 @@ Logger::init(bool $showErrors, string $logFile): void
 
 |Класс|Файл|Цель|
 | --- | --- | --- |
-| `Logger` | `Logger.php` |Глобальный PHP обработчик ошибок/исключений/фатальных исходов (описанный выше)|
+| `Logger` | `Logger.php` |Обработчик глобальной PHP ошибки/исключения/фатального исхода (описанный выше)|
 | `FileLogger` | `FileLogger.php` |Ведение журнала на уровне приложения (ошибки PDO, EPG и т.д.) до `error_log.log`|
-| `DatabaseLogger` | `DatabaseLogger.php` |Клиентская потоковая передача событий запроса в `client_request.log` (вводится в таблицу `client_logs`)|
-| `UpdateLogger` | `UpdateLogger.php` |Операции обновления системы до `MAIN_HOME/update.log` (обычный текст, а не base64)|
+| `DatabaseLogger` | `DatabaseLogger.php` |Клиент передает события потокового запроса в `client_request.log` (вводимые в таблицу `client_logs`)|
+| `UpdateLogger` | `UpdateLogger.php` |Операции обновления системы до `MAIN_HOME/update.log` (обычный текст, не base64)|
 
 Все регистраторы, кроме `UpdateLogger`, реализуют `LoggerInterface` и записывают JSON в кодировке base64.
 
@@ -296,7 +296,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 ## Типы исключений в кодовой базе
 
-В кодовой базе определено небольшое количество пользовательских классов исключений. Все неперехваченные исключения перехватываются командой `Logger::handleException()`, которая регистрирует всю цепочку исключений (включая `getPrevious()`).
+Кодовая база определяет небольшое количество пользовательских классов исключений. Все неперехваченные исключения перехватываются параметром `Logger::handleException()`, который регистрирует всю цепочку исключений (включая `getPrevious()`).
 
 |Класс исключений|Базовый класс|Местоположение|
 | --- | --- | --- |
@@ -306,7 +306,7 @@ Logger::init(bool $showErrors, string $logFile): void
 | `DefinitionException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
 | `DumpingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
 
-В большинстве прикладных программ используются общие ошибки `Exception` или используется встроенная система ошибок PHP. Обработчик исключений регистратора принимает любые `Throwable`.
+Большая часть кода приложения использует общие ошибки `Exception` или полагается на встроенную систему ошибок PHP. Обработчик исключений регистратора принимает любые `Throwable`.
 
 ---
 
@@ -316,14 +316,14 @@ Logger::init(bool $showErrors, string $logFile): void
 
 - `generateError()` возвращает общую страницу 404 (или явный HTTP-код), скрывая внутреннюю причину сбоя
 - Регистратор по-прежнему записывает все ошибки в `error_log.log` на диск
-- `display_errors` и `display_startup_errors` имеют значение `'0'`
+- для `display_errors` и `display_startup_errors` заданы значения `'0'`
 - Ошибки видны только через панель администратора (страница ошибок панели) или файлы журналов
 
 ### Отладка (`debug_show_errors = true`)
 
 - `generateError()` показывает стилизованную страницу с ключом ошибки и сопоставленным описанием
 - Регистратор дополнительно отображает ошибки на экране (вывод CLI с цветовой кодировкой или встроенный HTML).
-- `display_errors` и `display_startup_errors` имеют значение `'1'`
+- для `display_errors` и `display_startup_errors` заданы значения `'1'`
 
 Не включайте отображение отладки на рабочих узлах.
 
@@ -333,14 +333,14 @@ Logger::init(bool $showErrors, string $logFile): void
 
 Инфраструктура обработки ошибок загружается на ранней стадии загрузки:
 
-1. `bootstrap.php` определяет `MAIN_HOME` и регистрирует Composer автозагрузчик
+1. `bootstrap.php` определяет `MAIN_HOME` и регистрирует автозагрузчик Composer
 2. `XC_Bootstrap::loadConstants()` загружает (по порядку):
    - `Core/Error/ErrorCodes.php` -- заполняет `$rErrorCodes`
    - `Core/Error/ErrorHandler.php` -- определяет `generateError()` и `generate404()`
    - Путь и конфигурационные файлы
    - `Core/Logging/Logger.php` -- определение класса
-3. @вызывается @0@@, регистрирующий три глобальных обработчика
-4. С этого момента фиксируются все PHP ошибки, неперехваченные исключения и фатальные сбои
+3. вызывается `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`, регистрирующий три глобальных обработчика
+4. Начиная с этого момента, фиксируются все ошибки PHP, неперехваченные исключения и фатальные сбои
 
 Для конечных точек потоковой передачи, которые обходят полную загрузку, `RequestGuard.php` выполняет шаги 2-3 независимо: загружает настройки из файлового кэша, определяет `PHP_ERRORS` и вызывает `Logger::init()`.
 
@@ -369,12 +369,12 @@ generateError('MY_NEW_ERROR');
 |Файл|Цель|
 | --- | --- |
 | `src/Core/Error/ErrorCodes.php` |Централизованная карта кодов ошибок (`$rErrorCodes`)|
-| `src/Core/Error/ErrorHandler.php` |@функции @0@@ и `generate404()`|
-| `src/Core/Logging/Logger.php` |Глобальные обработчики ошибок, исключений и фатальных исходов PHP|
+| `src/Core/Error/ErrorHandler.php` |функции `generateError()` и `generate404()`|
+| `src/Core/Logging/Logger.php` |Глобальные PHP обработчики ошибок, исключений и фатальных исходов|
 | `src/Core/Logging/LoggerInterface.php` |Интерфейс контракта ведения журнала|
 | `src/Core/Logging/FileLogger.php` |Ведение журнала файлов на уровне приложения (PDO, EPG и т.д.)|
 | `src/Core/Logging/DatabaseLogger.php` |Ведение журнала событий потокового запроса клиента|
 | `src/Core/Logging/UpdateLogger.php` |Ведение журнала операций обновления системы|
 | `src/Core/Http/RequestGuard.php` |Путь потоковой передачи: защита от наводнений, проверка хоста, запуск регистратора|
-| `src/Core/Diagnostics/DiagnosticsService.php` |Считывает таблицу `panel_logs` для отображения администратором и отправки API|
+| `src/Core/Diagnostics/DiagnosticsService.php` |Считывает таблицу `panel_logs` для отображения администратором и отправки по API|
 | `src/bootstrap.php` |Включает уровень ошибок и регистратор во всех контекстах начальной загрузки|

@@ -20,7 +20,7 @@
 
 ## 2. Скачать PHPUnit PHAR
 
-Этот проект привязан к PHP 8.1, поэтому используйте PHPUnit 10.
+Этот проект привязан к PHP версии 8.1, поэтому используйте PHPUnit 10.
 
 ```bash
 cd /home/xc_vm
@@ -63,7 +63,7 @@ chmod +x tools/.bin/phpunit.phar
 
 ## 7. Дополнительно: Выход покрытия
 
-Если установлен `xdebug` или `pcov`:
+Если установлено значение `xdebug` или `pcov`:
 
 ```bash
 XDEBUG_MODE=coverage /home/xc_vm/bin/php/bin/php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist --coverage-text

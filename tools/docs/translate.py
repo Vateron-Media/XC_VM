@@ -38,7 +38,7 @@ import time
 from pathlib import Path
 
 # Bumped when the translation prompt/rules change, to invalidate the cache.
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "4"
 
 LANG_NAMES = {
     "ru": "Russian",
@@ -148,10 +148,14 @@ def provider_deepl(text: str, lang: str, glossary: list[str]) -> str:
 # The `translators` library (UlionTse/translators) drives free web engines
 # (yandex/google/bing/...). They translate PLAIN TEXT and will happily mangle
 # Markdown, so we translate line-by-line and mask everything that must survive
-# verbatim (code, URLs, HTML tags, glossary terms) behind @@N@@ sentinels — which
-# the engines pass through unchanged — then restore them afterwards.
+# verbatim (code, URLs, HTML tags, glossary terms) behind {N} sentinels, then
+# restore them afterwards. Curly {N} is what MT engines are trained to preserve
+# (software format strings), so it survives code-heavy lines far better than
+# @@N@@ / ZZZ…ZZZ / 〔N〕 did. A trailing English possessive (`XC_VM's`) is
+# consumed INTO the masked span and dropped on restore (Russian has no `'s`).
 
-_TS_SENTINEL = re.compile(r"@@(\d+)@@")
+_TS_SENTINEL = re.compile(r"\{(\d+)\}")
+_POSS = r"(?:['’]s|['’])?"  # optional trailing possessive, dropped on restore
 _HR = re.compile(r"^\s*([-*_])( *\1){2,}\s*$")            # thematic break ---
 _TABLE_SEP = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")         # |---|:--:| row
 _HEADING = re.compile(r"^(\s{0,3}#{1,6}\s+)(.*)$")
@@ -162,17 +166,21 @@ _QUOTE = re.compile(r"^(\s*>+\s*)(.*)$")
 def _protect_inline(text: str, glossary: list[str]) -> tuple[str, list[str]]:
     store: list[str] = []
 
-    def keep(m: "re.Match[str]") -> str:
+    def keep(m: "re.Match[str]") -> str:            # store the whole match
         store.append(m.group(0))
-        return f"@@{len(store) - 1}@@"
+        return f"{{{len(store) - 1}}}"
 
-    text = re.sub(r"`[^`]*`", keep, text)                     # inline code
+    def keep1(m: "re.Match[str]") -> str:           # store group 1 (drops possessive)
+        store.append(m.group(1))
+        return f"{{{len(store) - 1}}}"
+
+    text = re.sub(rf"(`[^`]*`){_POSS}", keep1, text)          # inline code (+poss)
     text = re.sub(r"!\[[^\]]*\]\([^)]*\)", keep, text)        # images (whole)
     text = re.sub(r"(?<=\])\([^)]*\)", keep, text)            # link target (url)
     text = re.sub(r"https?://[^\s)]+", keep, text)            # bare URLs
     text = re.sub(r"</?[A-Za-z][^>]*>", keep, text)           # HTML tags
     for term in glossary:
-        text = re.sub(rf"(?<![\w-]){re.escape(term)}(?![\w-])", keep, text)
+        text = re.sub(rf"(?<![\w-])({re.escape(term)}){_POSS}(?![\w-])", keep1, text)
     return text, store
 
 
@@ -181,7 +189,14 @@ def _restore(text: str, store: list[str]) -> str:
 
 
 def _ts_span(text, tr, glossary, memo):
-    """Translate one run of prose, masking inline non-translatables."""
+    """Translate one run of prose, masking inline non-translatables.
+
+    An engine can still occasionally mangle a `{N}` sentinel (split/duplicate a
+    brace) non-deterministically. Every brace we insert must be gone after
+    restore, so a clean result has exactly as many `{`/`}` as the source span. If
+    a fragment survives, we retry (a fresh translation usually comes back clean);
+    after a few failures we keep the English span rather than emit broken tokens.
+    """
     if not text.strip():
         return text
     if text in memo:
@@ -190,7 +205,15 @@ def _ts_span(text, tr, glossary, memo):
     if not _TS_SENTINEL.sub("", protected).strip():
         out = text  # nothing left to translate (all masked)
     else:
-        out = _restore(tr(protected), store)
+        base_braces = text.count("{") + text.count("}")
+        out = None
+        for _ in range(4):
+            cand = _restore(tr(protected), store)
+            if cand.count("{") + cand.count("}") <= base_braces:  # no leftovers
+                out = cand
+                break
+        if out is None:
+            out = text  # give up: keep English, never emit a broken sentinel
     memo[text] = out
     return out
 

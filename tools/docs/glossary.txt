@@ -25,6 +25,11 @@ nginx
 Redis
 MariaDB
 MySQL
+KeyDB
+yt-dlp
+Ubuntu
+iptables
+MAGSCAN
 PHP
 PHP-FPM
 Composer

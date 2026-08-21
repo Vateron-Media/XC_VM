@@ -6,7 +6,7 @@
 
 ## Когда использовать
 
-- Вам нужно подтвердить `index.html` загрузку и `portal.php` вызовы с помощью пути к токену.
+- Вам нужно проверить загрузку `index.html` и вызовы `portal.php` с помощью пути к токену.
 - Вам нужно быстро отладить handshake/get_profile в браузере.
 - Вам нужно понять, почему устройство получает статус неактивного.
 
@@ -14,12 +14,12 @@
 
 ## Поддерживаемые URL-адреса
 
-Обычно используются два варианта (в зависимости от nginx config):
+Обычно используются два варианта (в зависимости от конфигурации nginx).:
 
 - `http://HOST/ACCESS_CODE/`
 - `http://HOST/c/`
 
-Для эмуляции браузера важно, чтобы `index.html` открывался, а шаги API переходили к `portal.php` внутри того же префикса.
+Для эмуляции браузера важно, чтобы открывался `index.html`, а шаги API переходили к `portal.php` внутри того же префикса.
 
 Для эмулятора STB точкой входа также должен быть базовый префикс (или `portal.php` без параметров запроса), а не предварительно созданный запрос `action=handshake`.
 
@@ -39,7 +39,7 @@ http://HOST/ACCESS_CODE/portal.php?type=stb&action=handshake&mac=...&token=&preh
 
 - `http://HOST/ACCESS_CODE/`
 - `http://HOST/c/`
-- `http://HOST/ACCESS_CODE/portal.php` (только если эмулятору требуется прямой путь `portal.php`, но без `type/action/token/prehash` в URL)
+- `http://HOST/ACCESS_CODE/portal.php` (только если эмулятору требуется прямой путь `portal.php`, но без указания `type/action/token/prehash` в URL)
 
 Параметры `type`, `action`, `JsHttpRequest`, `token`, и `prehash` должны генерироваться самим клиентом (эмулятором) на каждом шаге API.
 
@@ -97,14 +97,14 @@ http://192.168.110.251/HgBjUjSI/
 
 ## Что означает `your device is not active`
 
-Сообщение появляется, когда в ответе профиля содержится `status = 1` (сбой аутентификации/проверки подлинности устройства).
+Сообщение появляется, когда ответ профиля содержит `status = 1` (устройству не удалось выполнить аутентификацию/верификацию).
 
 Общие причины:
 
 1. MAC не найден в `mag_devices`.
-2. `sn`, `device_id`, `device_id2`, `hw_version` не совпадают, когда `lock_device = 1`.
-3. Модель STB не проходит через белый список `allowed_stb_types`.
-4. Токен подтверждения связи недействителен или отклонен на `get_profile`.
+2. `sn`, `device_id`, `device_id2`, `hw_version` не совпадают при `lock_device = 1`.
+3. Модель STB не попадает в белый список `allowed_stb_types`.
+4. Токен подтверждения связи недействителен или отклонен при `get_profile`.
 
 ---
 
@@ -116,16 +116,16 @@ http://192.168.110.251/HgBjUjSI/
 4. Подтверждающее подтверждение возвращает токен, а следующий `get_profile` отправляет предъявителю авторизации.
 5. Если авторизация не достигает PHP, временно включите `auth_via_query=1`.
 6. Если применяются ограничения по типу STB, добавьте `debug_key=1`.
-7. Если проблема не устранена, проверьте строку устройства в базе данных (`mag_devices`) и отметьте `lock_device` флагом.
+7. Если проблема не устранена, проверьте строку устройства в базе данных (`mag_devices`) и установите флажок `lock_device`.
 
 ---
 
 ## Рекомендации по внедрению
 
-- Параметры клиента и вызовы API: `src/Ministra/xpcom.common.js`
+- Client parameters and API calls: `src/Ministra/xpcom.common.js`
 - Инициализация параметра Debug/get: `src/Ministra/index.html`
-- Проверка устройств и профиль на стороне сервера: `src/Ministra/portal.php`
-- Согласование рукопожатия/get_profile: `src/Ministra/PortalHandler.php`
+- Server-side device checks and profile: `src/Ministra/portal.php`
+- Handshake/get_profile orchestration: `src/Ministra/PortalHandler.php`
 
 ## Связанные файлы
 

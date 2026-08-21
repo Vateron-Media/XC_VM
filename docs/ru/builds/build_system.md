@@ -40,15 +40,15 @@ XC_VM поддерживает две роли развертывания из �
 
 `src/vendor/` (автозагрузчик Composer PSR-4 плюс производственные зависимости) - это
 **зафиксировано** и отправлено как есть - путь развертывания не содержит Composer и никогда не выполняется
-`composer install`. Он поддерживается только в рабочем состоянии через `composer install --no-dev`, так что
+`composer install`. Он поддерживается только для производства через `composer install --no-dev`, так что
 оба варианта сборки предназначены для бережливого производства без инструментов разработки.
 
-- `src/composer.lock` фиксируется, поэтому `composer install` является воспроизводимым.
-- Инструменты разработки (PHPStan, PHP-CS-Fixer) являются `require-dev` и ** отсутствуют** в
+- `src/composer.lock` фиксируется таким образом, чтобы `composer install` можно было воспроизвести.
+- Инструменты разработки (PHPStan, PHP-CS-Fixer) имеют значение `require-dev` и ** отсутствуют** в
 зарегистрированный поставщик или архивы. Разработчики и CI добавляют их с помощью `make dev-tools`
 (`composer install`); шлюз `check-vendor-prod-only` завершается сбоем, если пакет разработчика
-когда-либо совершались под `src/vendor/`.
-- Нет шага поставщика во время сборки — `make main` / `make lb` скопируйте зафиксированный
+когда-либо совершенные под `src/vendor/`.
+- Нет шага поставщика во время сборки - `make main` / `make lb` скопируйте зафиксированный
 `vendor/` непосредственно в архив.
 
 ---
@@ -57,7 +57,7 @@ XC_VM поддерживает две роли развертывания из �
 
 ### ОСНОВНАЯ сборка
 
-ОСНОВНАЯ сборка содержит **весь ** каталог `src/`.
+ОСНОВНАЯ сборка содержит **весь** каталог `src/`.
 
 ### Каталоги— включенные в сборку LB
 
@@ -105,7 +105,7 @@ signals/    Streaming/  tmp/        www/
 |`www/player_api.php`, `www/epg.php`, `www/enigma2.php`|Конечные точки клиентского API (обслуживаемые MAIN)|
 | `www/stream/auth.php` |Конечная точка аутентификации удалена из пакета LB|
 |`www/admin/api.php`, `www/admin/proxy_api.php`|API администратора|
-| `bin/maxmind/GeoLite2-City.mmdb` |GeoIP DB поставляется отдельно|
+| `bin/maxmind/GeoLite2-City.mmdb` |GeoIP БД поставляется отдельно|
 | `config/rclone.conf` |Конфигурация резервного копирования|
 | `Domain/Epg/EPG.php` |EPG класс обработки|
 | `bin/nginx/conf/gzip.conf` |Конфигурация Gzip (LB использует собственную)|
@@ -132,7 +132,7 @@ signals/    Streaming/  tmp/        www/
 | `Cli/CronJobs/ProvidersCronJob.php` |Синхронизация с поставщиком (только для ОСНОВНОГО)|
 | `Cli/CronJobs/SeriesCronJob.php` |Метаданные серии (только для основной версии)|
 
-> ** Примечание:** Связанные с модулем crons (TMDB, Plex, Watch) теперь находятся внутри `modules/<name>/` и автоматически исключаются из сборок LB, поскольку `modules/` отсутствует в `LB_DIRS`.
+> ** Примечание:** Связанные с модулем cron (TMDB, Plex, Watch) теперь находятся внутри `modules/<name>/` и автоматически исключаются из сборок LB, поскольку `modules/` отсутствует в `LB_DIRS`.
 
 ### Конфигурации, замененные при сборке LB
 
@@ -141,7 +141,7 @@ signals/    Streaming/  tmp/        www/
 |Источник|Цель|Цель|
 | --- | --- | --- |
 | `lb_configs/nginx.conf` | `bin/nginx/conf/nginx.conf` |Настроенная производительность nginx для потоковой передачи|
-| `lb_configs/live.conf` | `bin/nginx_rtmp/conf/live.conf` |RTMP перехваты обратного вызова|
+| `lb_configs/live.conf` | `bin/nginx_rtmp/conf/live.conf` |RTMP перехватчики обратного вызова|
 
 ---
 
@@ -177,9 +177,9 @@ signals/    Streaming/  tmp/        www/
 |Gzip-файл|прочь|Потоковые данные уже сжаты|
 |Журналы доступа|прочь|Сократите накладные расходы на ввод-вывод|
 |Ограничение скорости|20 запросов в секунду на IP-адрес|Смягчение последствий DDoS-атак|
-|Тайм-аут отправки|20 мин|Поддержка длительных потоков|
+|Время ожидания отправки|20 мин|Поддержка длительных потоков|
 
-RTMP перехватывает (`lb_configs/live.conf`) маршрутизацию аутентификации через локальные HTTP-обратные вызовы вместо панели администратора:
+RTMP перехватывает (`lb_configs/live.conf`) аутентификацию маршрута с помощью локальных обратных вызовов HTTP вместо панели администратора:
 
 ```nginx
 on_play http://127.0.0.1:8080/stream/rtmp;
@@ -193,7 +193,7 @@ on_play_done http://127.0.0.1:8080/stream/rtmp;
 
 ### Загрузка условной команды
 
-`console.php` использует `file_exists()` guards для команд, которые могут отсутствовать на серверах LB:
+`console.php` использует защиту `file_exists()` для команд, которые могут отсутствовать на серверах LB:
 
 ```php
 if (file_exists(__DIR__ . '/Cli/Commands/CacheHandlerCommand.php')) {
@@ -233,7 +233,7 @@ LB_DIRS = bin cli config content core domain ... your_dir
 
 ### Новый каталог, доступный только для администратора
 
-Добавьте его в `LB_DIRS_TO_REMOVE`:
+Добавьте его к `LB_DIRS_TO_REMOVE`:
 
 ```makefile
 LB_DIRS_TO_REMOVE = ... your_dir/admin_stuff
@@ -241,7 +241,7 @@ LB_DIRS_TO_REMOVE = ... your_dir/admin_stuff
 
 ### Новый файл, доступный только для администратора
 
-Добавьте его в `LB_FILES_TO_REMOVE`:
+Добавьте его к `LB_FILES_TO_REMOVE`:
 
 ```makefile
 LB_FILES_TO_REMOVE = ... your_dir/admin_file.php
@@ -249,7 +249,7 @@ LB_FILES_TO_REMOVE = ... your_dir/admin_file.php
 
 ### Новая команда CLI (только для администратора)
 
-1. Добавить `file_exists()` guard в `console.php`
+1. Добавить `file_exists()` защиту в `console.php`
 2. Добавьте файл в `LB_FILES_TO_REMOVE`
 
 ---
