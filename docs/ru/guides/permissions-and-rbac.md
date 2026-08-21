@@ -1,10 +1,10 @@
-# Права доступа и RBAC
+# Разрешения и RBAC
 
-Контроль доступа в XC_VM объединяет:
+XC_VM системы контроля доступа объединяют:
 
-- **Права группы** — разрешённые возможности, назначаемые админ-группе
-- **Авторизация на уровне объектов** — проверки владения для конкретных сущностей (пользователи, линии)
-- **Авторизация на уровне страниц** — гейтинг маршрутов/страниц в admin- и reseller-панелях
+- **Групповые разрешения** -- разрешенные возможности, назначенные группе администраторов
+- **Авторизация на уровне объекта** -- проверка прав собственности для конкретных объектов (пользователей, строк)
+- **Авторизация на уровне страницы** -- настройка маршрута/страницы в панелях администратора и реселлера
 
 ---
 
@@ -14,45 +14,45 @@
 user -> member_group_id -> group
          -> is_admin (boolean)
          -> is_reseller (boolean)
-         -> advanced[] (массив ключей прав)
+         -> advanced[] (array of permission keys)
 ```
 
-Состояние прав загружается в глобальную переменную `$rPermissions` при инициализации сессии и остаётся доступным в течение всего жизненного цикла запроса.
+Состояние разрешения загружается в глобальное значение `$rPermissions` во время инициализации сеанса и остается доступным на протяжении всего жизненного цикла запроса.
 
 Ключевые поля в `$rPermissions`:
 
-| Поле | Тип | Описание |
+|Поле|Тип|Описание|
 | --- | --- | --- |
-| `is_admin` | bool | Является ли пользователь администратором |
-| `advanced` | array | Список выданных строковых ключей прав |
-| `all_reports` | array | Дерево подотчётных реселлеру (ID пользователей, которыми он управляет) |
-| `create_line` | bool | Реселлер: может создавать линии |
-| `create_sub_resellers` | bool | Реселлер: может создавать суб-реселлеров |
-| `create_mag` | bool | Реселлер: может создавать устройства MAG |
-| `create_enigma` | bool | Реселлер: может создавать устройства Enigma |
-| `can_view_vod` | bool | Реселлер: может просматривать контент VOD/потоков |
-| `reseller_client_connection_logs` | bool | Реселлер: может просматривать логи подключений |
+| `is_admin` |тип bool|Является ли пользователь администратором|
+| `advanced` |массив|Список предоставленных ключевых строк разрешений|
+| `all_reports` |массив|Дерево отчетов реселлера (идентификаторы пользователей, которыми управляет этот реселлер)|
+| `create_line` |тип bool|Реселлер: может создавать строки|
+| `create_sub_resellers` |тип bool|Реселлер: может создавать суб-реселлеров|
+| `create_mag` |тип bool|Реселлер: может создавать магнитные устройства|
+| `create_enigma` |тип bool|Реселлер: может создавать устройства Enigma|
+| `can_view_vod` |тип bool|Реселлер: может просматривать содержимое VOD/streams|
+| `reseller_client_connection_logs` |тип bool|Реселлер: может просматривать журналы подключений|
 
 ---
 
-## Ключи прав
+## Ключи разрешений
 
-Ключи прав объявляются в `src/config/permissions.php` как массив `$rPermissionKeys`. Каждый ключ — это строковый идентификатор, используемый с `Authorization::check('adv', $key)`.
+Ключи разрешений объявляются в `src/config/permissions.php` как массив `$rPermissionKeys`. Каждый ключ представляет собой строковый идентификатор, используемый в `Authorization::check('adv', $key)`.
 
 Категории:
 
-| Категория | Примеры |
+|Категория|Примеры|
 | --- | --- |
-| Создание/добавление | `add_stream`, `add_movie`, `add_user`, `add_server`, `add_bouquet`, `add_epg`, `add_code`, `add_hmac`, `add_rtmp` |
-| Редактирование | `edit_stream`, `edit_movie`, `edit_user`, `edit_server`, `edit_bouquet`, `edit_series`, `edit_reguser` |
-| Массовые операции | `mass_edit_streams`, `mass_edit_lines`, `mass_edit_mags`, `mass_edit_enigmas`, `mass_edit_radio`, `mass_edit_users`, `mass_sedits`, `mass_sedits_vod`, `mass_delete` |
-| Импорт | `import_streams`, `import_movies`, `import_episodes` |
-| Безопасность/блокировки | `block_ips`, `block_isps`, `block_uas`, `block_asns`, `fingerprint` |
-| Видимость разделов | `streams`, `movies`, `series`, `episodes`, `radio`, `users`, `servers`, `bouquets`, `epg`, `settings`, `database` |
-| Логи | `connection_logs`, `live_connections`, `client_request_log`, `credits_log`, `login_logs`, `panel_logs`, `reg_userlog`, `restream_logs` |
-| Инструменты | `quick_tools`, `stream_tools`, `process_monitor`, `stream_errors` |
-| Управление | `mng_regusers`, `mng_groups`, `mng_packages`, `manage_mag`, `manage_e2`, `manage_events`, `manage_tickets` |
-| Прочее | `categories`, `channel_order`, `player`, `tprofile`, `tprofiles`, `rtmp`, `folder_watch`, `folder_watch_add`, `folder_watch_output`, `folder_watch_settings`, `ticket`, `add_code`, `add_hmac` |
+|Создать/Добавить|`add_stream`, `add_movie`, `add_user`, `add_server`, `add_bouquet`, `add_epg`, `add_code`, `add_hmac`, `add_rtmp`|
+|Редактировать|`edit_stream`, `edit_movie`, `edit_user`, `edit_server`, `edit_bouquet`, `edit_series`, `edit_reguser`|
+|Массовые операции|`mass_edit_streams`, `mass_edit_lines`, `mass_edit_mags`, `mass_edit_enigmas`, `mass_edit_radio`, `mass_edit_users`, `mass_sedits`, `mass_sedits_vod`, `mass_delete`|
+|Импорт|`import_streams`, `import_movies`, `import_episodes`|
+|Безопасность/блокирование|`block_ips`, `block_isps`, `block_uas`, `block_asns`, `fingerprint`|
+|Видимость раздела|`streams`, `movies`, `series`, `episodes`, `radio`, `users`, `servers`, `bouquets`, `epg`, `settings`, `database`|
+|Бревна|`connection_logs`, `live_connections`, `client_request_log`, `credits_log`, `login_logs`, `panel_logs`, `reg_userlog`, `restream_logs`|
+|Инструменты|`quick_tools`, `stream_tools`, `process_monitor`, `stream_errors`|
+|Управление|`mng_regusers`, `mng_groups`, `mng_packages`, `manage_mag`, `manage_e2`, `manage_events`, `manage_tickets`|
+|Другой|`categories`, `channel_order`, `player`, `tprofile`, `tprofiles`, `rtmp`, `folder_watch`, `folder_watch_add`, `folder_watch_output`, `folder_watch_settings`, `ticket`, `add_code`, `add_hmac`|
 
 ---
 
@@ -62,17 +62,17 @@ user -> member_group_id -> group
 
 Файл: `src/Core/Auth/Authorization.php`
 
-Основной метод:
+Первичный метод:
 
 ```php
 Authorization::check(string $type, mixed $id): bool
 ```
 
-**Предусловия:** Возвращает `false` сразу, если `$rUserInfo`, `$rPermissions` или `$db` не инициализированы.
+**Предварительные условия:** Возвращает `false` немедленно, если `$rUserInfo`, `$rPermissions` или `$db` не инициализированы.
 
 #### Тип: `user`
 
-Проверяет, может ли текущий пользователь получить доступ к целевому admin-пользователю. Строит список из ID текущего пользователя и его дерева `all_reports`, затем запрашивает таблицу `users`, чтобы убедиться, что `owner_id` целевого пользователя есть в этом списке (или цель — сам текущий пользователь).
+Проверяет, может ли текущий пользователь получить доступ к целевому пользователю-администратору. Создает список из идентификатора текущего пользователя и их дерева `all_reports`, затем запрашивает таблицу `users`, чтобы проверить, есть ли в этом списке имя целевого пользователя `owner_id` (или целевым пользователем является текущий пользователь).
 
 ```php
 Authorization::check('user', $userId);
@@ -80,7 +80,7 @@ Authorization::check('user', $userId);
 
 #### Тип: `line`
 
-Проверяет, может ли текущий пользователь получить доступ к целевой линии. Тот же подход с деревом подотчётных — запрашивает таблицу `lines`, чтобы убедиться, что `member_id` целевой линии есть в дереве подотчётных текущего пользователя.
+Проверяет, может ли текущий пользователь получить доступ к целевой строке. Тот же подход к дереву отчетов - запрашивает таблицу `lines`, чтобы убедиться, что целевая строка `member_id` находится в дереве отчетов текущего пользователя.
 
 ```php
 Authorization::check('line', $lineId);
@@ -88,14 +88,14 @@ Authorization::check('line', $lineId);
 
 #### Тип: `adv`
 
-Проверяет, есть ли у текущего администратора конкретный продвинутый ключ права.
+Проверяет, есть ли у текущего пользователя-администратора определенный ключ расширенных прав доступа.
 
 ```php
 Authorization::check('adv', 'edit_bouquet');
 Authorization::check('adv', 'block_isps');
 ```
 
-**Важно: гейт `is_admin`.** Перед проверкой массива продвинутых прав метод требует `$rPermissions['is_admin'] = true`. Если пользователь не админ, `check('adv', ...)` всегда возвращает `false`:
+**Важно: `is_admin` gate.** Перед проверкой массива расширенных разрешений метод требует, чтобы значение `$rPermissions['is_admin']` было равно true. Если пользователь не является администратором, `check('adv', ...)` всегда возвращает значение `false`:
 
 ```php
 if (!($rType == 'adv' && $rPermissions['is_admin'])) {
@@ -103,11 +103,11 @@ if (!($rType == 'adv' && $rPermissions['is_admin'])) {
 }
 ```
 
-Это значит, что проверки `adv` предназначены исключительно для администраторов. Права реселлера используют отдельную систему (см. ниже).
+Это означает, что проверки `adv` предназначены исключительно для пользователей с правами администратора. Для разрешений реселлеров используется отдельная система (см. ниже).
 
-#### Обход для супер-админа
+#### Обход прав суперадминистратора
 
-`member_group_id = 1` — группа супер-админа. Когда массив продвинутых прав непуст, но пользователь принадлежит группе 1, проверка по конкретному ключу пропускается и метод возвращает `true`:
+`member_group_id = 1` - это группа суперадминистраторов. Если массив расширенных разрешений непустой, но пользователь принадлежит к группе 1, проверка для каждого ключа пропускается и метод возвращает значение `true`:
 
 ```php
 if (0 < count($rPermissions['advanced']) && $rUserInfo['member_group_id'] != 1) {
@@ -116,15 +116,15 @@ if (0 < count($rPermissions['advanced']) && $rUserInfo['member_group_id'] != 1) 
 return true;
 ```
 
-Это значит, что супер-админы проходят все проверки `adv` независимо от того, какие ключи назначены их группе.
+Это означает, что суперадминистраторы проходят все проверки `adv` независимо от того, какие ключи назначены их группе.
 
-#### Помощник для реселлеров
+#### Помощник реселлера
 
 ```php
 Authorization::hasResellerPermissions(string $type): bool
 ```
 
-Возвращает, является ли `$rPermissions[$type]` непустым. Используется для специфичных для реселлера булевых флагов вроде `create_line`, `create_mag` и т.д.
+Возвращает, не является ли значение `$rPermissions[$type]` непустым. Используется для логических флагов, специфичных для реселлера, таких как `create_line`, `create_mag` и т.д.
 
 ---
 
@@ -132,262 +132,262 @@ Authorization::hasResellerPermissions(string $type): bool
 
 Файл: `src/Core/Auth/PageAuthorization.php`
 
-Обеспечивает гейтинг на уровне страниц для admin- и reseller-панелей. Вызывается во время диспетчеризации запроса, чтобы определить, может ли текущий пользователь получить доступ к заданной странице.
+Обеспечивает управление на уровне страницы для панелей администратора и торгового посредника. Вызывается во время отправки запроса, чтобы определить, может ли текущий пользователь получить доступ к данной странице.
 
 ```php
 PageAuthorization::checkPermissions(?string $page = null): bool
 PageAuthorization::checkResellerPermissions(?string $page = null): bool
 ```
 
-Если `$page` опущен, имя страницы выводится из `SCRIPT_FILENAME` (basename без расширения `.php`, в нижнем регистре).
+Если `$page` опущено, название страницы выводится из `SCRIPT_FILENAME` (базовое имя без расширения `.php`, в нижнем регистре).
 
-#### Поведение по умолчанию — разрешить
+#### Поведение, разрешенное по умолчанию
 
-Оба метода возвращают `true` для любой страницы, явно не указанной в их switch-операторах. Это значит, что страницы без сопоставления доступны всем авторизованным пользователям соответствующего типа (admin или reseller). Ограничены только страницы с явными записями.
+Оба метода возвращают значение `true` для любой страницы, явно не указанной в их инструкциях switch. Это означает, что страницы без сопоставления доступны всем авторизованным пользователям соответствующего типа (администраторам или торговым посредникам). Доступ ограничен только к страницам с явно заданными параметрами.
 
 ---
 
-## Сопоставления прав admin-страниц
+## Сопоставления разрешений на странице администратора
 
-Метод `checkPermissions()` сопоставляет страницы admin-панели с `adv`-ключами прав. Полное сопоставление приведено ниже, сгруппировано по категориям.
+Метод `checkPermissions()` сопоставляет страницы панели администратора с ключами доступа `adv`. Ниже приведено полное сопоставление, сгруппированное по категориям.
 
-### Паттерн create-vs-edit
+### Шаблон создания или редактирования
 
-Многие страницы сущностей используют условную логику на основе параметров запроса:
+Многие страницы сущностей используют условную логику, основанную на параметрах запроса:
 
-- Если присутствует параметр `id`, проверяется право **edit**
-- Если параметра `id` нет, проверяется право **add**
-- Некоторые страницы (stream, movie) также проверяют параметр `import` и требуют соответствующего права импорта
+- Если указан параметр `id`, то проверяется разрешение **редактировать**
+- Если параметр `id` отсутствует, проверяется разрешение **добавить**
+- Некоторые страницы (stream, movie) также проверяют наличие параметра `import` и требуют соответствующего разрешения на импорт
 
-Если ни одно условие не выполнено, поведение зависит от страницы: некоторые проваливаются на связанное право листинга, другие — на default ветку switch (возвращающую `true`).
+Когда ни одно из условий не выполняется, поведение зависит от страницы: некоторые переходят к соответствующему разрешению на перечисление, другие переходят к переключателю по умолчанию (который возвращает `true`).
 
 ### Потоки и контент
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
-| `streams`, `stream_view`, `provider`, `providers`, `epg_view`, `created_channels`, `stream_rank`, `archive` | `streams` | |
-| `stream` | `edit_stream` | Когда есть `id` |
-| `stream` | `add_stream` | Когда нет `id` |
-| `stream` | `import_streams` | Когда присутствует параметр `import` (в дополнение к `add_stream`) |
+|`streams`, `stream_view`, `provider`, `providers`, `epg_view`, `created_channels`, `stream_rank`, `archive`| `streams` | |
+| `stream` | `edit_stream` | When `id` is present |
+| `stream` | `add_stream` |Когда нет `id`|
+| `stream` | `import_streams` |Когда присутствует параметр `import` (в дополнение к параметру `add_stream`)|
 | `stream_categories` | `categories` | |
 | `stream_category` | `add_cat` | |
 | `stream_errors` | `stream_errors` | |
-| `stream_mass`, `created_channel_mass` | `mass_edit_streams` | |
+|`stream_mass`, `created_channel_mass`| `mass_edit_streams` | |
 | `mass_edit_streams` | `edit_stream` | |
 | `review` | `import_streams` | |
 | `channel_order` | `channel_order` | |
-| `created_channel` | `edit_cchannel` | Когда есть `id` |
-| `created_channel` | `create_channel` | Когда нет `id` |
+| `created_channel` | `edit_cchannel` | When `id` is present |
+| `created_channel` | `create_channel` |Когда нет `id`|
 
 ### Фильмы и VOD
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `movies` | `movies` | |
-| `movie` | `edit_movie` | Когда есть `id` |
-| `movie` | `add_movie` | Когда нет `id` |
-| `movie` | `import_movies` | Когда присутствует параметр `import` (в дополнение к `add_movie`) |
+| `movie` | `edit_movie` | When `id` is present |
+| `movie` | `add_movie` |Когда нет `id`|
+| `movie` | `import_movies` |Когда присутствует параметр `import` (в дополнение к параметру `add_movie`)|
 | `movie_mass` | `mass_sedits_vod` | |
 | `record` | `add_movie` | |
 | `recordings` | `movies` | |
 
 ### Сериалы и эпизоды
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `series` | `series` | |
-| `serie` | `edit_series` | Когда есть `id` |
-| `serie` | `add_series` | Когда нет `id` |
+| `serie` | `edit_series` | When `id` is present |
+| `serie` | `add_series` |Когда нет `id`|
 | `series_order` | `edit_series` | |
 | `episodes` | `episodes` | |
-| `episode` | `edit_episode` | Когда есть `id` |
-| `episode` | `add_episode` | Когда нет `id`; проваливается на `episodes` при отказе |
-| `series_mass`, `episodes_mass` | `mass_sedits` | |
+| `episode` | `edit_episode` | When `id` is present |
+| `episode` | `add_episode` |Когда нет `id`; при отказе переходит на `episodes`|
+|`series_mass`, `episodes_mass`| `mass_sedits` | |
 
 ### Радио
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `radios` | `radio` | |
-| `radio` | `edit_radio` | Когда есть `id` |
-| `radio` | `add_radio` | Когда нет `id` |
+| `radio` | `edit_radio` | When `id` is present |
+| `radio` | `add_radio` |Когда нет `id`|
 | `radio_mass` | `mass_edit_radio` | |
 
-### Линии (пользователи-абоненты)
+### Линии (Абонентские пользователи)
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `lines` | `users` | |
-| `line` | `edit_user` | Когда есть `id` |
-| `line` | `add_user` | Когда нет `id` |
+| `line` | `edit_user` | When `id` is present |
+| `line` | `add_user` |Когда нет `id`|
 | `line_mass` | `mass_edit_lines` | |
-| `line_activity`, `theft_detection`, `line_ips` | `connection_logs` | |
+|`line_activity`, `theft_detection`, `line_ips`| `connection_logs` | |
 | `live_connections` | `live_connections` | |
 
 ### Устройства MAG и Enigma
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `mags` | `manage_mag` | |
-| `mag` | `edit_mag` | Когда есть `id` |
-| `mag` | `add_mag` | Когда нет `id` |
+| `mag` | `edit_mag` | When `id` is present |
+| `mag` | `add_mag` |Когда нет `id`|
 | `mag_events` | `manage_events` | |
 | `mag_mass` | `mass_edit_mags` | |
 | `enigmas` | `manage_e2` | |
 | `enigma_mass` | `mass_edit_enigmas` | |
 
-### Admin-пользователи (зарегистрированные пользователи)
+### Пользователи с правами администратора (Зарегистрированные пользователи)
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `users` | `mng_regusers` | |
-| `user` | `edit_reguser` | Когда есть `id` |
-| `user` | `add_reguser` | Когда нет `id` |
+| `user` | `edit_reguser` | When `id` is present |
+| `user` | `add_reguser` |Когда нет `id`|
 | `user_mass` | `mass_edit_users` | |
 | `user_logs` | `reg_userlog` | |
 
-### Букеты и пакеты
+### Букеты и посылки
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `bouquets` | `bouquets` | |
-| `bouquet` | `edit_bouquet` | Когда есть `id` |
-| `bouquet` | `add_bouquet` | Когда нет `id`; проваливается на `edit_bouquet` при отказе |
-| `bouquet_order`, `bouquet_sort` | `edit_bouquet` | |
-| `packages`, `addons` | `mng_packages` | |
-| `package` | `edit_package` | Когда есть `id` |
-| `package` | `add_packages` | Когда нет `id` |
+| `bouquet` | `edit_bouquet` | When `id` is present |
+| `bouquet` | `add_bouquet` |Когда нет `id`; при отказе переходит на `edit_bouquet`|
+|`bouquet_order`, `bouquet_sort`| `edit_bouquet` | |
+|`packages`, `addons`| `mng_packages` | |
+| `package` | `edit_package` | When `id` is present |
+| `package` | `add_packages` |Когда нет `id`|
 
 ### Группы
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `groups` | `mng_groups` | |
-| `group` | `edit_group` | Когда есть `id` |
-| `group` | `add_group` | Когда нет `id`; проваливается на `mng_groups` при отказе |
+| `group` | `edit_group` | When `id` is present |
+| `group` | `add_group` |Когда нет `id`; при отказе переходит на `mng_groups`|
 
 ### EPG
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `epgs` | `epg` | |
-| `epg` | `epg_edit` | Когда есть `id` |
-| `epg` | `add_epg` | Когда нет `id`; проваливается на `epg` при отказе |
+| `epg` | `epg_edit` | When `id` is present |
+| `epg` | `add_epg` |Когда нет `id`; при отказе переходит на `epg`|
 
 ### Серверы
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
-| `servers`, `server_view`, `server_order`, `proxies` | `servers` | |
-| `server`, `proxy` | `edit_server` | Когда есть `id` |
-| `server`, `proxy` | `add_server` | Когда нет `id` |
+|`servers`, `server_view`, `server_order`, `proxies`| `servers` | |
+|`server`, `proxy`| `edit_server` | When `id` is present |
+|`server`, `proxy`| `add_server` |Когда нет `id`|
 | `server_install` | `add_server` | |
 
-### Безопасность и блокировки
+### Безопасность и блокирование
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
-| `isps`, `isp`, `asns` | `block_isps` | |
-| `ip`, `ips` | `block_ips` | |
-| `useragents`, `useragent` | `block_uas` | |
+|`isps`, `isp`, `asns`| `block_isps` | |
+|`ip`, `ips`| `block_ips` | |
+|`useragents`, `useragent`| `block_uas` | |
 | `fingerprint` | `fingerprint` | |
 
-### Тикеты
+### Билеты
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `ticket` | `ticket` | |
-| `ticket_view`, `tickets` | `manage_tickets` | |
+|`ticket_view`, `tickets`| `manage_tickets` | |
 
 ### Инструменты и настройки
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `settings` | `settings` | |
-| `backups`, `cache`, `setup` | `database` | |
-| `settings_watch`, `settings_plex` | `folder_watch_settings` | |
-| `plex`, `watch` | `folder_watch` | |
-| `plex_add`, `watch_add` | `folder_watch_add` | |
+|`backups`, `cache`, `setup`| `database` | |
+|`settings_watch`, `settings_plex`| `folder_watch_settings` | |
+|`plex`, `watch`| `folder_watch` | |
+|`plex_add`, `watch_add`| `folder_watch_add` | |
 | `watch_output` | `folder_watch_output` | |
 | `mass_delete` | `mass_delete` | |
 | `quick_tools` | `quick_tools` | |
 | `stream_tools` | `stream_tools` | |
 | `process_monitor` | `process_monitor` | |
-| `queue` | `streams` ИЛИ `episodes` ИЛИ `series` | Доступ при наличии любого из них |
+| `queue` |`streams` ИЛИ `episodes` ИЛИ `series`|Доступ, если у пользователя есть какой-либо из этих|
 
 ### Профили и коды
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `profiles` | `tprofiles` | |
 | `profile` | `tprofile` | |
 | `player` | `player` | |
-| `code`, `codes` | `add_code` | |
-| `hmac`, `hmacs` | `add_hmac` | |
+|`code`, `codes`| `add_code` | |
+|`hmac`, `hmacs`| `add_hmac` | |
 
 ### RTMP
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `rtmp_ip` | `add_rtmp` | |
-| `rtmp_ips`, `rtmp_monitor` | `rtmp` | |
+|`rtmp_ips`, `rtmp_monitor`| `rtmp` | |
 
-### Логи
+### Бревна
 
-| Страница | Право | Заметки |
+|Страница|Разрешение|Записи|
 | --- | --- | --- |
 | `client_logs` | `client_request_log` | |
 | `credit_logs` | `credits_log` | |
-| `mysql_syslog`, `panel_logs` | `panel_logs` | |
+|`mysql_syslog`, `panel_logs`| `panel_logs` | |
 | `login_logs` | `login_logs` | |
 | `restream_logs` | `restream_logs` | |
 
 ---
 
-## Сопоставления прав reseller-страниц
+## Сопоставления разрешений на странице реселлера
 
-Метод `checkResellerPermissions()` сопоставляет страницы reseller-панели с булевыми флагами в `$rPermissions`. В отличие от admin-прав, использующих массив `advanced` через `Authorization::check('adv', ...)`, права реселлера — простые булевы поля, проверяемые напрямую.
+Метод `checkResellerPermissions()` сопоставляет страницы панели реселлера с логическими флагами в `$rPermissions`. В отличие от разрешений администратора, которые используют массив `advanced` через `Authorization::check('adv', ...)`, разрешения реселлера - это простые логические поля, которые проверяются напрямую.
 
-| Страницы | Требуемое право |
+|Страницы|Требуемое разрешение|
 | --- | --- |
-| `user`, `users` | `create_sub_resellers` |
-| `line`, `lines` | `create_line` |
-| `mag`, `mags` | `create_mag` |
-| `enigma`, `enigmas` | `create_enigma` |
-| `epg_view`, `streams`, `created_channels`, `movies`, `episodes`, `radios` | `can_view_vod` |
-| `live_connections`, `line_activity` | `reseller_client_connection_logs` |
+|`user`, `users`| `create_sub_resellers` |
+|`line`, `lines`| `create_line` |
+|`mag`, `mags`| `create_mag` |
+|`enigma`, `enigmas`| `create_enigma` |
+|`epg_view`, `streams`, `created_channels`, `movies`, `episodes`, `radios`| `can_view_vod` |
+|`live_connections`, `line_activity`| `reseller_client_connection_logs` |
 
-Любая страница reseller, не перечисленная выше, возвращает `true` (доступна по умолчанию).
+Любая страница реселлера, не указанная выше, возвращает значение `true` (доступно по умолчанию).
 
 ---
 
-## Добавление нового права
+## Добавление нового разрешения
 
-1. Добавьте ключ в `src/config/permissions.php`:
+1. Добавьте ключ к `src/config/permissions.php`:
 
 ```php
 $rPermissionKeys = array(
-    // ...существующие ключи...
+    // ...existing keys...
     'my_new_permission',
 );
 ```
 
-2. Используйте его в коде через `Authorization::check()`:
+2. Используйте это в коде через `Authorization::check()`:
 
 ```php
 if (!Authorization::check('adv', 'my_new_permission')) {
-    // отказать в доступе
+    // deny access
 }
 ```
 
-3. Если право должно гейтить страницу, добавьте case в `PageAuthorization::checkPermissions()`:
+3. Если разрешение должно указывать на страницу, добавьте регистр в `PageAuthorization::checkPermissions()`:
 
 ```php
 case 'my_new_page':
     return Authorization::check('adv', 'my_new_permission');
 ```
 
-4. Для страниц сущностей create/edit используйте условный паттерн:
+4. Для создания/редактирования страниц сущностей используйте условный шаблон:
 
 ```php
 case 'my_entity':
@@ -400,16 +400,16 @@ case 'my_entity':
     return true;
 ```
 
-5. Для прав реселлера добавьте булево поле в `$rPermissions` и case в `checkResellerPermissions()`.
+5. Для получения разрешений торгового посредника добавьте логическое поле в `$rPermissions` и регистр в `checkResellerPermissions()`.
 
 ---
 
 ## Связанные файлы
 
-| Файл | Назначение |
+|Файл|Цель|
 | --- | --- |
-| `src/config/permissions.php` | Реестр ключей прав (массив `$rPermissionKeys`) |
-| `src/Core/Auth/Authorization.php` | Проверки прав на уровне объектов и продвинутых |
-| `src/Core/Auth/PageAuthorization.php` | Гейтинг страниц admin- и reseller-панелей |
-| `src/Core/Auth/SessionManager.php` | Контекст сессии; заполняет `$rPermissions` и `$rUserInfo` |
-| `src/Core/Auth/Authenticator.php` | Аутентификация (вход, проверка учётных данных) |
+| `src/config/permissions.php` |Реестр ключей разрешений (массив`$rPermissionKeys`)|
+| `src/Core/Auth/Authorization.php` |Проверка разрешений на уровне объекта и расширенные проверки разрешений|
+| `src/Core/Auth/PageAuthorization.php` |Настройка на уровне страницы для панелей администратора и реселлера|
+| `src/Core/Auth/SessionManager.php` |Контекст сеанса; заполняет значения `$rPermissions` и `$rUserInfo`|
+| `src/Core/Auth/Authenticator.php` |Аутентификация (вход в систему, проверка учетных данных)|

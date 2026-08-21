@@ -1,0 +1,11 @@
+# Translation dependencies for tools/docs/translate.py — LOCAL only (run before a
+# release via `make docs-translate`; NOT installed or run in CI). Pick per
+# DOCS_TRANSLATE_PROVIDER:
+#   translators = free, NO API KEY (web engines: yandex/google/bing/...) — default
+#   anthropic   = highest quality for structure-heavy Markdown (ANTHROPIC_API_KEY)
+#   deepl       = DeepL API (DEEPL_AUTH_KEY)
+#   noop        = copy English verbatim (no dependency)
+
+translators>=5.9
+# anthropic>=0.40   # uncomment for DOCS_TRANSLATE_PROVIDER=anthropic
+# deepl>=1.18       # uncomment for DOCS_TRANSLATE_PROVIDER=deepl

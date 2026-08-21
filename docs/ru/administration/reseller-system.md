@@ -1,7 +1,7 @@
 # Система реселлеров
 
-Система реселлеров обеспечивает многоуровневое управление партнёрской сетью с выдачей линий на основе кредитов.
-Реселлеры создают и управляют IPTV-линиями, устройствами MAG и Enigma2 в рамках выделенных кредитов и прав доступа.
+Система реселлеров обеспечивает многоуровневое управление партнерскими отношениями с предоставлением кредитных линий.
+Реселлеры создают IPTV-линии, устройства MAG и Enigma2 и управляют ими в рамках выделенных им кредитов и разрешений.
 
 ---
 
@@ -9,36 +9,36 @@
 
 ```text
 Admin
-  └── выдаёт кредиты + права группы
-        └── Реселлер
-              ├── создаёт IPTV-линии (стоит кредитов)
-              ├── создаёт устройства MAG (стоит кредитов)
-              ├── создаёт устройства Enigma2 (стоит кредитов)
-              └── создаёт суб-реселлеров (стоит кредитов)
-                    └── суб-реселлер имеет свои линии и кредиты
+  └── assigns credits + group permissions
+        └── Reseller
+              ├── creates IPTV lines (costs credits)
+              ├── creates MAG devices (costs credits)
+              ├── creates Enigma2 devices (costs credits)
+              └── creates sub-resellers (costs credits)
+                    └── sub-reseller has own lines + credits
 ```
 
-Основная бизнес-логика находится в `src/Domain/User/ResellerAPI.php`. Веб-контроллеры — в `src/Public/Controllers/Reseller/`. REST API — в `src/Public/Controllers/Api/ResellerRestApiController.php`.
+Основная бизнес-логика находится в `src/Domain/User/ResellerAPI.php`. Веб-контроллеры находятся в `src/Public/Controllers/Reseller/`. REST API находится в `src/Public/Controllers/Api/ResellerRestApiController.php`.
 
 ---
 
 ## Кредитная система
 
-Кредиты — это валюта для всех операций реселлера. У каждого действия есть стоимость, и баланс реселлера должен её покрывать.
+Кредиты являются валютой для всех операций посредника. Каждое действие имеет определенную стоимость, и баланс посредника должен ее покрывать.
 
-### Стоимость в кредитах
+### Затраты по кредиту
 
-| Действие | Источник стоимости |
+|Действие|Источник затрат|
 | --- | --- |
-| Создание линии (официальная) | `package.official_credits` |
-| Создание линии (триал) | `package.trial_credits` |
-| Создание устройства MAG | как и линия |
-| Создание устройства Enigma2 | как и линия |
-| Создание суб-реселлера | `permissions.create_sub_resellers_price` |
+|Создать линию (официальную)| `package.official_credits` |
+|Создать строку (пробная версия)| `package.trial_credits` |
+|Создать магнитное устройство|то же, что линия|
+|Создание устройства Enigma2|то же, что линия|
+|Создать суб-реселлера| `permissions.create_sub_resellers_price` |
 
-### Переопределение цен
+### Переопределение ценообразования
 
-Реселлеры могут иметь индивидуальные цены по пакетам через JSON `override_packages` в записи пользователя:
+Реселлеры могут устанавливать индивидуальные цены для каждого пакета с помощью `override_packages` JSON в своей пользовательской записи:
 
 ```php
 $rOverride = json_decode($rUserInfo['override_packages'], true);
@@ -47,85 +47,85 @@ if (isset($rOverride[$rPackage['id']]['official_credits'])) {
 }
 ```
 
-### Перевод кредитов
+### Кредитный перевод
 
-Реселлеры могут переводить кредиты своим прямым подчинённым через API-действие `adjust_credits`. Оба баланса должны оставаться >= 0.
+Реселлеры могут переводить кредиты своим непосредственным подчиненным с помощью действия `adjust_credits` API. Оба баланса должны оставаться >= 0.
 
-### Логирование
+### Регистрация
 
-Все операции с кредитами фиксируются в `users_logs`:
+Все кредитные операции отражаются в `users_logs`:
 
-| Поле | Описание |
+|Поле|Описание|
 | --- | --- |
-| `owner` | ID пользователя-реселлера |
-| `type` | `line`, `mag`, `enigma`, `user` |
-| `action` | `new`, `extend`, `edit`, `adjust_credits` |
-| `cost` | потрачено кредитов |
-| `credits_after` | баланс после операции |
-| `package_id` | использованный пакет |
-| `date` | временная метка |
+| `owner` |идентификатор пользователя торгового посредника|
+| `type` |`line`, `mag`, `enigma`, `user`|
+| `action` |`new`, `extend`, `edit`, `adjust_credits`|
+| `cost` |потраченные кредиты|
+| `credits_after` |баланс после операции|
+| `package_id` |использованный пакет|
+| `date` |отметка времени|
 
 ---
 
-## Управление линиями
+## Линейное управление
 
-Линии — это IPTV-подписки пользователей. Типы:
+Строки - это подписки пользователей на IPTV. Типы:
 
-| Тип | Флаги |
+|Тип|Флаги|
 | --- | --- |
-| Стандартная IPTV-линия | `is_mag=0, is_e2=0` |
-| Устройство MAG | `is_mag=1` |
-| Устройство Enigma2 | `is_e2=1` |
+|Стандартная линия IPTV| `is_mag=0, is_e2=0` |
+|МАГНИТНОЕ устройство| `is_mag=1` |
+|Устройство Enigma2| `is_e2=1` |
 
 ### Процесс создания
 
-1. Проверка доступности пакета (должен быть в правах группы реселлера).
-2. Проверка `credits >= cost`.
-3. Генерация username/password, если разрешено правами.
-4. Применение пакета: `exp_date`, `max_connections`, `bouquets`, `allowed_outputs`.
-5. Установка ограничений: `allowed_ips` (JSON), `allowed_ua`, `bypass_ua`, `is_isplock`.
-6. Вставка в таблицу `lines` через `REPLACE INTO`.
-7. Синхронизация записей устройств (`mag_devices` или `enigma2_devices`).
-8. Рассылка сигнала на стриминговые серверы.
-9. Списание кредитов и запись транзакции.
+1. Проверьте доступность пакета (должен быть указан в разрешениях группы реселлеров).
+2. Проверьте `credits >= cost`.
+3. Сгенерируйте имя пользователя/пароль, если это разрешено разрешениями.
+4. Применить пакет: `exp_date`, `max_connections`, `bouquets`, `allowed_outputs`.
+5. Установите ограничения: `allowed_ips` (JSON), `allowed_ua`, `bypass_ua`, `is_isplock`.
+6. Вставить в таблицу `lines` через `REPLACE INTO`.
+7. Синхронизируйте записи устройства (`mag_devices` или `enigma2_devices`).
+8. Передача сигнала о событии на потоковые серверы.
+9. Вычтите кредиты и зарегистрируйте транзакцию.
 
-### Назначение букетов
+### Назначение букета
 
-Каждый пакет указывает доступные букеты через JSON-массив `bouquets`.
-Если включено право `allow_change_bouquets`, реселлер может выбрать подмножество букетов пакета. Иначе все букеты пакета назначаются автоматически.
+В каждом пакете указаны доступные букеты с помощью массива `bouquets` JSON.
+Если включено разрешение `allow_change_bouquets`, реселлер может выбрать набор букетов из пакета. В противном случае все букеты из пакета будут назначены автоматически.
 
 ---
 
 ## Управление устройствами
 
-### Устройства MAG
+### МАГНИТНЫЕ устройства
 
-Управляются через `MagService` (`src/Domain/Device/MagService.php`).
-Поля привязки: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
+Управляется с помощью `MagService` (`src/Domain/Device/MagService.php`).
+Поля блокировки: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
 
 ### Устройства Enigma2
 
-Управляются через `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
-Поля привязки: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
+Управляется с помощью `EnigmaService` (`src/Domain/Device/EnigmaService.php`).
+Поля блокировки: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
 
-Оба типа устройств поддерживают `lock_device` (привязка к железу), `is_isplock` (привязка к ISP) и `forced_country`.
+Оба типа устройств поддерживают `lock_device` (аппаратная привязка), `is_isplock` (привязка к провайдеру) и `forced_country`.
 
 ---
 
 ## Иерархия суб-реселлеров
 
-Реселлеры могут создавать суб-реселлеров (если предоставлено право `create_sub_resellers`):
+Реселлеры могут создавать суб-реселлеров (если получено разрешение `create_sub_resellers`).:
 
 - Суб-реселлеры связаны через поле `owner_id`.
-- Многоуровневость: суб-реселлер может создавать собственных суб-реселлеров.
+- Многоуровневый: суб-реселлер может создавать своих собственных суб-реселлеров.
 - Каждое создание стоит `create_sub_resellers_price` кредитов.
-- Назначаемый `member_group_id` должен быть в массиве разрешений `subresellers` родителя.
+- Присвоенный `member_group_id` должен находиться в родительском массиве разрешений `subresellers`.
 
-Запросы владения:
+Запросы о праве собственности:
 
 ```php
-Authorization::check('user', $rID)   // проверяет иерархию реселлера
-Authorization::check('line', $rID)   // проверяет, владеют ли подчинённые реселлера линией
+Authorization::check('user', $rID)   // checks reseller hierarchy
+Authorization::check('line', $rID)   // checks if reseller's reports own the line
 ```
 
 Методы:
@@ -133,56 +133,56 @@ Authorization::check('line', $rID)   // проверяет, владеют ли 
 ```php
 UserRepository::getResellers($rOwner, $rIncludeSelf)
 UserRepository::getDirectReports()
-AuthRepository::getGroupPermissions()  // рекурсивно строит all_reports
+AuthRepository::getGroupPermissions()  // builds all_reports recursively
 ```
 
 ---
 
-## Права доступа
+## Разрешения
 
-Права берутся из таблицы `users_groups`, загружаются через `AuthRepository::getPermissions()`.
+Разрешения берутся из таблицы `users_groups`, загружаемой через `AuthRepository::getPermissions()`.
 
-### Ключевые поля прав
+### Ключевые поля разрешений
 
-| Право | Тип | Описание |
+|Разрешение|Тип|Описание|
 | --- | --- | --- |
-| `is_reseller` | `bool` | пользователь является реселлером |
-| `create_line` | `bool` | может создавать IPTV-линии |
-| `create_mag` | `bool` | может создавать устройства MAG |
-| `create_enigma` | `bool` | может создавать устройства Enigma2 |
-| `create_sub_resellers` | `bool` | может создавать суб-реселлеров |
-| `create_sub_resellers_price` | `int` | стоимость в кредитах за суб-реселлера |
-| `allow_change_bouquets` | `bool` | может выбирать подмножество букетов |
-| `allow_change_username` | `bool` | может задавать собственное имя пользователя |
-| `allow_change_password` | `bool` | может задавать собственный пароль |
-| `allow_restrictions` | `bool` | может задавать ограничения IP/UA |
-| `can_view_vod` | `bool` | может просматривать VOD-контент |
-| `reseller_client_connection_logs` | `bool` | может просматривать логи подключений |
-| `minimum_username_length` | `int` | минимальная длина имени пользователя |
-| `minimum_password_length` | `int` | минимальная длина пароля |
+| `is_reseller` | `bool` |пользователь является реселлером|
+| `create_line` | `bool` |может создавать IPTV-линии|
+| `create_mag` | `bool` |может создавать магнитные устройства|
+| `create_enigma` | `bool` |может создавать устройства Enigma2|
+| `create_sub_resellers` | `bool` |может создавать суб-реселлеров|
+| `create_sub_resellers_price` | `int` |стоимость кредита на одного суб-реселлера|
+| `allow_change_bouquets` | `bool` |можно выбрать подмножество bouquet|
+| `allow_change_username` | `bool` |можно установить пользовательское имя пользователя|
+| `allow_change_password` | `bool` |можно установить пользовательский пароль|
+| `allow_restrictions` | `bool` |можно установить ограничения по IP/UA|
+| `can_view_vod` | `bool` |может просматривать содержимое VOD|
+| `reseller_client_connection_logs` | `bool` |можно просматривать журналы подключений|
+| `minimum_username_length` | `int` |минимальная длина имени пользователя|
+| `minimum_password_length` | `int` |минимальная длина пароля|
 
-### Проверки на уровне страниц
+### Проверки на уровне страницы
 
-`PageAuthorization::checkResellerPermissions()` сопоставляет страницы с правами:
+`PageAuthorization::checkResellerPermissions()` сопоставляет страницы с разрешениями:
 
-| Страницы | Требуемое право |
+|Страницы|Требуемое разрешение|
 | --- | --- |
-| `user`, `users` | `create_sub_resellers` |
-| `line`, `lines` | `create_line` |
-| `mag`, `mags` | `create_mag` |
-| `enigma`, `enigmas` | `create_enigma` |
-| `epg_view`, `streams`, `movies` | `can_view_vod` |
-| `live_connections`, `line_activity` | `reseller_client_connection_logs` |
+|`user`, `users`| `create_sub_resellers` |
+|`line`, `lines`| `create_line` |
+|`mag`, `mags`| `create_mag` |
+|`enigma`, `enigmas`| `create_enigma` |
+|`epg_view`, `streams`, `movies`| `can_view_vod` |
+|`live_connections`, `line_activity`| `reseller_client_connection_logs` |
 
 ### Границы
 
-Что реселлеры **не могут** делать:
+Что реселлеры ** не могут ** делать:
 
-- Доступ к линиям/пользователям вне своей иерархии.
-- Создавать или изменять пакеты.
-- Доступ к настройкам только-для-администратора.
-- Превышать свой баланс кредитов.
-- Обходить ограничения групп пакетов.
+- Линии доступа/пользователи за пределами их иерархии.
+- Создавайте или изменяйте пакеты.
+- Доступ к настройкам доступен только для администратора.
+- Превысить их кредитный баланс.
+- Обходите групповые ограничения пакетов.
 
 ---
 
@@ -190,47 +190,47 @@ AuthRepository::getGroupPermissions()  // рекурсивно строит all_
 
 Файл: `src/Public/Controllers/Api/ResellerRestApiController.php`
 
-Аутентификация через API-ключ. Действия:
+Аутентификация с помощью API-ключа. Действия:
 
-| Действие | Описание |
+|Действие|Описание|
 | --- | --- |
-| `user_info` | информация об аккаунте реселлера |
-| `packages` | доступные пакеты |
-| `get_lines` / `get_mags` / `get_enigmas` | список ресурсов |
-| `create_line` / `edit_line` / `delete_line` | CRUD линий |
-| `enable_line` / `disable_line` | переключение статуса линии |
-| `create_mag` / `edit_mag` / `delete_mag` | CRUD MAG |
-| `create_enigma` / `edit_enigma` / `delete_enigma` | CRUD Enigma |
-| `convert_mag` / `convert_enigma` | конвертация типа устройства |
-| `get_users` / `get_user` | список/просмотр суб-реселлеров |
-| `create_user` / `edit_user` / `delete_user` | CRUD суб-реселлеров |
-| `enable_user` / `disable_user` | переключение статуса суб-реселлера |
-| `adjust_credits` | перевод кредитов суб-реселлеру |
-| `activity_logs` / `live_connections` | данные подключений |
-| `user_logs` | логи активности суб-реселлеров |
+| `user_info` |информация об учетной записи реселлера|
+| `packages` |доступные пакеты|
+|`get_lines` / `get_mags` / `get_enigmas`|список ресурсов|
+|`create_line` / `edit_line` / `delete_line`|грубая линия|
+|`enable_line` / `disable_line`|переключение состояния линии|
+|`create_mag` / `edit_mag` / `delete_mag`|МАГИЧЕСКАЯ ДРЯНЬ|
+|`create_enigma` / `edit_enigma` / `delete_enigma`|Загадочная ДРЯНЬ|
+|`convert_mag` / `convert_enigma`|преобразовать тип устройства|
+|`get_users` / `get_user`|список/просмотр суб-реселлеров|
+|`create_user` / `edit_user` / `delete_user`|грубость субпродюсера|
+|`enable_user` / `disable_user`|переключение статуса суб-реселлера|
+| `adjust_credits` |перевод кредитов суб-реселлеру|
+|`activity_logs` / `live_connections`|данные о подключении|
+| `user_logs` |журналы действий суб-реселлеров|
 
-Класс `ResellerAPIWrapper` проверяет API-ключ, инициализирует сессию через `ResellerAPI` и возвращает отфильтрованные JSON-ответы.
+Класс `ResellerAPIWrapper` проверяет ключ API, инициализирует сеанс с помощью `ResellerAPI` и возвращает отфильтрованные ответы в формате JSON.
 
 ---
 
-## Сессия и bootstrap
+## Сессия и начальная загрузка
 
 ### Сессия
 
 Файл: `src/Infrastructure/Bootstrap/reseller_session.php`
 
-- Таймаут 60 минут с отслеживанием последней активности.
-- Детекция смены IP (если включена настройка `ip_logout`).
-- Ключи сессии: `reseller` (ID пользователя), `rip`, `rcode`, `rverify`, `rlast_activity`.
+- 60-минутный тайм-аут с отслеживанием последней активности.
+- Обнаружение изменения IP-адреса (если включена настройка `ip_logout`).
+- Ключи сеанса: `reseller` (идентификатор пользователя), `rip`, `rcode`, `rverify`, `rlast_activity`.
 
-### Bootstrap функций
+### Функции начальной загрузки
 
 Файл: `src/Infrastructure/Bootstrap/reseller_functions.php`
 
 - Загружает базу данных и утилиты.
 - Инициализирует `$rUserInfo` и `$rPermissions`.
-- Проверяет целостность сессии (проверка хеша username/password).
-- Устанавливает временную зону и языковые предпочтения.
+- Проверяет целостность сеанса (проверка хэша имени пользователя/пароля).
+- Устанавливает часовой пояс и языковые настройки.
 
 ---
 
@@ -243,7 +243,7 @@ AuthRepository::getGroupPermissions()  // рекурсивно строит all_
 ```text
 GET  /dashboard              → ResellerDashboardController
 GET  /edit_profile            → ResellerEditProfileController
-POST /post                    → ResellerPostController (обработчик форм)
+POST /post                    → ResellerPostController (form handler)
 GET  /api, POST /api          → ResellerApiController
 GET  /table, POST /table      → ResellerTableController
 
@@ -266,16 +266,16 @@ GET  /tickets                 → ResellerTicketsController
 
 ## Связанные файлы
 
-| Файл | Назначение |
+|Файл|Цель|
 | --- | --- |
-| `src/Domain/User/ResellerAPI.php` | основная бизнес-логика |
-| `src/Public/Controllers/Api/ResellerRestApiController.php` | REST API |
-| `src/Public/Controllers/Reseller/*.php` | веб-контроллеры |
-| `src/Public/routes/reseller.php` | URL-маршрутизация |
-| `src/Public/Views/reseller/*.php` | шаблоны представлений |
-| `src/Infrastructure/ResellerApiDispatcher.php` | маршрутизация AJAX-действий |
-| `src/Infrastructure/ResellerTableRenderer.php` | рендеринг DataTables |
-| `src/Infrastructure/Bootstrap/reseller_session.php` | управление сессией |
-| `src/Infrastructure/Bootstrap/reseller_functions.php` | инициализация |
-| `src/Core/Auth/Authorization.php` | проверки владения |
-| `src/Core/Auth/PageAuthorization.php` | контроль доступа на уровне страниц |
+| `src/Domain/User/ResellerAPI.php` |основная бизнес-логика|
+| `src/Public/Controllers/Api/ResellerRestApiController.php` |REST API|
+| `src/Public/Controllers/Reseller/*.php` |веб-контроллеры|
+| `src/Public/routes/reseller.php` |Маршрутизация URL-адресов|
+| `src/Public/Views/reseller/*.php` |просмотр шаблонов|
+| `src/Infrastructure/ResellerApiDispatcher.php` |Маршрутизация действий AJAX|
+| `src/Infrastructure/ResellerTableRenderer.php` |Рендеринг таблиц данных|
+| `src/Infrastructure/Bootstrap/reseller_session.php` |управление сеансами|
+| `src/Infrastructure/Bootstrap/reseller_functions.php` |инициализация|
+| `src/Core/Auth/Authorization.php` |проверки на право собственности|
+| `src/Core/Auth/PageAuthorization.php` |стробирование на уровне страницы|

@@ -1,31 +1,31 @@
-# Интерактивный справочник API (Swagger)
+# Интерактивная ссылка на API (Swagger)
 
-Интерактивный, всегда актуальный Swagger UI для всех API XC_VM, сформированный из спецификаций OpenAPI 3.0. Переключайтесь между API через **вкладки API** вверху страницы или открывайте нужный напрямую по ссылкам ниже.
+Интерактивный, всегда синхронизируемый пользовательский интерфейс Swagger для каждого XC_VM API, созданный на основе спецификаций OpenAPI версии 3.0. Используйте вкладки API в верхней части страницы для переключения между API или откройте один из них напрямую по ссылкам ниже.
 
-| API | Описание | Авторизация | Открыть |
+|интерфейс прикладного программирования|Описание|Автор|Открыть|
 | --- | --- | --- | --- |
-| **Admin API** | Администрирование (совместимо с XUI.ONE) — линии, пользователи, стримы, VOD, сериалы, серверы, настройки (104 эндпоинта) | `api_key` + код доступа | [Открыть ↗](_media/swagger-ui.html?spec=admin ':ignore :target=_blank') |
-| **System API** | Внутренний `/api.php` — управление стримами/VOD, статистика, процессы, файлы, соединения (31 действие) | `password` (`live_streaming_pass`) | [Открыть ↗](_media/swagger-ui.html?spec=system ':ignore :target=_blank') |
-| **Player API** | XtreamCodes-плеер — Live TV, VOD, сериалы, EPG | `username` + `password` | [Открыть ↗](_media/swagger-ui.html?spec=player ':ignore :target=_blank') |
-| **Playlist API** | `/playlist` — авторизация и генерация плейлистов | `username`/`password` или `token` | [Открыть ↗](_media/swagger-ui.html?spec=playlist ':ignore :target=_blank') |
+|**API администратора**|XUI.ONE-совместимое администрирование — линии, пользователи, потоки, VOD, серии, серверы, настройки (104 конечные точки)|`api_key` + код доступа|[Открыть ↗](../../_media/swagger-ui.html?spec=admin)|
+|**Системный API**|Внутренний `/api.php` — поток/VOD управление, статистика, процессы, файлы, соединения (31 действие)|`password` (`live_streaming_pass`)|[Открыть ↗](../../_media/swagger-ui.html?spec=system)|
+|**API для игроков**|Проигрыватель XtreamCodes — Прямые трансляции, VOD, Сериалы, EPG|`username` + `password`|[Открыть ↗](../../_media/swagger-ui.html?spec=player)|
+|**API списка воспроизведения**|`/playlist` аутентификация + создание списка воспроизведения|`username`/`password` или `token`|[Открыть ↗](../../_media/swagger-ui.html?spec=playlist)|
 
 ---
 
-## Как пользоваться «Try it out»
+## Используя "Попробуй это"
 
-1. Переключайте API **вкладками API**, а для каждого API — вкладками **Documentation / Interactive (Swagger)**.
-2. Разверните эндпоинт → **Try it out** → заполните параметры → **Execute**, чтобы увидеть реальный URL запроса, команду cURL и живой ответ.
-3. Для Admin API нажмите **Authorize 🔓** и вставьте API-ключ — далее он добавляется во все запросы автоматически.
+1. Откройте спецификацию, затем используйте вкладки **API** для переключения API и вкладки **Документация / Интерактивные (Swagger)** для каждого API.
+2. Разверните любую конечную точку → ** Попробуйте ** → заполните параметры → ** Выполните**, чтобы увидеть реальный URL-адрес запроса, команду cURL и оперативный ответ.
+3. Чтобы получить доступ к API администратора, нажмите "Авторизоваться" и вставьте свой API—ключ - затем он автоматически прикрепляется к каждому запросу.
 
-> **О CORS:** прямые вызовы «Try it out» из браузера к вашему серверу могут блокироваться политикой CORS. Это ожидаемо — используйте сгенерированную команду cURL, Postman или Insomnia. Ошибка не означает, что API сломан.
+> ** Примечание CORS:** CORS может заблокировать прямые вызовы "Попробуйте" из браузера на ваш сервер. Это ожидаемо — вместо этого используйте сгенерированную команду cURL, Postman или Insomnia. Ошибка не означает, что API не работает.
 
 ---
 
-## Исходные спецификации
+## Исходные технические характеристики
 
-Любую спецификацию можно импортировать в Postman, Insomnia или любой инструмент OpenAPI 3.0:
+Каждая спецификация может быть импортирована в Postman, Insomnia или любой другой инструментарий OpenAPI версии 3.0:
 
-- [`admin-api.openapi.yaml`](_media/admin-api.openapi.yaml ':ignore :target=_blank')
-- [`system-api.openapi.yaml`](_media/system-api.openapi.yaml ':ignore :target=_blank')
-- [`player-api.openapi.yaml`](_media/player-api.openapi.yaml ':ignore :target=_blank')
-- [`playlist-api.openapi.yaml`](_media/playlist-api.openapi.yaml ':ignore :target=_blank')
+- [`admin-api.openapi.yaml`](../../_media/admin-api.openapi.yaml)
+- [`system-api.openapi.yaml`](../../_media/system-api.openapi.yaml)
+- [`player-api.openapi.yaml`](../../_media/player-api.openapi.yaml)
+- [`playlist-api.openapi.yaml`](../../_media/playlist-api.openapi.yaml)

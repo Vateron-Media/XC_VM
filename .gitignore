@@ -22,3 +22,8 @@ coverage.xml
 build/.php-cs-fixer.cache
 tools/test-stream-generator/sample.mp4
 .understand-anything/*
+# Docs: MkDocs build output and the translation cache. docs/ru IS committed —
+# it is generated from docs/en (tools/docs/translate.py) and refreshed locally
+# before a release, so CI only has to build it.
+/site/
+.docs-cache/

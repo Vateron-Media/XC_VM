@@ -1,58 +1,58 @@
-# Флаги разработки
+# Флаги функций разработки
 
-XC_VM использует константы и флаги из настроек для управления поведением системы.
+XC_VM использует константы и флаги, управляемые настройками, для управления поведением среды.
 
-Константы приложения хранятся в `src/Core/Config/AppConfig.php`.
+Константы приложения хранятся в виде `src/Core/Config/AppConfig.php`.
 
 ---
 
-## Активные runtime-флаги
+## Активный флаг времени выполнения
 
 ### `PHP_ERRORS`
 
 ```php
-define('PHP_ERRORS', $rShowErrors); // из $rSettings['debug_show_errors']
+define('PHP_ERRORS', $rShowErrors); // derived from $rSettings['debug_show_errors']
 ```
 
-`PHP_ERRORS` используется для управления отображением ошибок PHP и уровнем debug-вывода в логгере:
+`PHP_ERRORS` управляет PHP детализацией/отладкой и выводом на экран регистратора:
 
 ```php
 Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log');
 ```
 
-При `PHP_ERRORS=true` логгер выводит расширенные сообщения на экран.
-
 ### `DB_ACCESS_ENABLED`
 
 ```php
-define('DB_ACCESS_ENABLED', false); // включает вкладку/страницу phpMiniAdmin в админ-панели
+define('DB_ACCESS_ENABLED', false); // enables phpMiniAdmin tab/page in admin panel
 ```
 
-`DB_ACCESS_ENABLED` управляет только доступом к phpMiniAdmin из admin UI.
-Этот флаг не блокирует основные подключения приложения к базе данных.
+`DB_ACCESS_ENABLED` управляет доступом к phpMiniAdmin только из пользовательского интерфейса администратора.
+Это не блокирует подключения к базе данных основного приложения.
 
 ---
 
-## Флаги из настроек (`$rSettings`)
+## Флаги, зависящие от настроек (`$rSettings`)
 
-Ряд поведенческих флагов хранится в настройках панели и загружается в `$rSettings`:
+Загружается из кэша настроек и используется в точках принятия решений во время выполнения.
 
-| Ключ | Тип | Описание |
+|Ключ|Тип|Значение|
 | --- | --- | --- |
-| `debug_show_errors` | `bool` | Показывать детальные ошибки вместо 404 (только dev) |
-| `recaptcha_enable` | `bool` | Включить reCAPTCHA v2 на форме входа |
-| `verify_host` | `bool` | Проверять домен из `allowed_domains` при каждом запросе |
-| `save_login_logs` | `bool` | Записывать все попытки входа в `login_logs` |
+| `debug_show_errors` | `bool` |показывать подробные результаты ошибок/отладки|
+| `recaptcha_enable` | `bool` |включите reCAPTCHA v2 при входе в систему|
+| `verify_host` | `bool` |принудительная проверка списка разрешений хоста|
+| `save_login_logs` | `bool` |постоянные попытки входа в систему в `login_logs`|
 
-Эти настройки загружаются из файлового кеша (`CACHE_TMP_PATH/settings`) через `RequestGuard`.
+Эти значения загружаются из `CACHE_TMP_PATH/settings` защитниками запросов.
 
 ---
 
 ## Статические константы приложения
 
+Из `src/Core/Config/AppConfig.php`:
+
 ```php
 define('DB_ACCESS_ENABLED', false);
-define('XC_VM_VERSION', '2.1.2');
+define('XC_VM_VERSION', '2.2.1');
 define('GIT_OWNER', 'Vateron-Media');
 define('GIT_REPO_MAIN', 'XC_VM');
 define('GIT_REPO_UPDATE', 'XC_VM_Update');
@@ -63,25 +63,20 @@ define('OPENSSL_EXTRA', '...');
 
 ---
 
-## Добавление нового флага
+## Добавление новых флагов
 
-Для добавления флага уровня приложения — добавьте `define()` в `AppConfig.php`:
+Используйте статические константы в `AppConfig.php` для фиксированных констант инфраструктуры/среды выполнения.
+Используйте настройки (`$rSettings`) для значений, которыми необходимо управлять из пользовательского интерфейса панели.
 
-```php
-define('MY_FEATURE_FLAG', false);
-```
-
-Для флагов, которыми должен управлять администратор через UI — добавьте ключ в таблицу `settings` и используйте `$rSettings['my_feature_flag']`.
-
-> Не дублируйте одну и ту же настройку в обоих местах. Статические константы — для инфраструктурных значений. `$rSettings` — для пользовательских настроек.
+Избегайте определения одного и того же поведения в обоих местах.
 
 ---
 
 ## Связанные файлы
 
-| Файл                              | Назначение                              |
-| --------------------------------- | --------------------------------------- |
-| `src/Core/Config/AppConfig.php`   | Статические флаги и константы           |
-| `src/Core/Http/RequestGuard.php`  | Загружает `$rSettings` из кеша          |
-| `src/Core/Error/ErrorHandler.php` | Использует `debug_show_errors`          |
-| `src/Core/Logging/Logger.php`     | Использует `PHP_ERRORS`                 |
+|Файл|Цель|
+| --- | --- |
+| `src/Core/Config/AppConfig.php` |статические константы приложения|
+| `src/Core/Http/RequestGuard.php` |загружает `$rSettings`, устанавливает `PHP_ERRORS`|
+| `src/Core/Error/ErrorHandler.php` |использует поведение `debug_show_errors`|
+| `src/Core/Logging/Logger.php` |поведение при отладке/детализации|

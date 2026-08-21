@@ -1,12 +1,12 @@
-# CLI-инструменты и обновление БД
+# Инструменты CLI и обновления баз данных
 
-Справочник по командной строке XC_VM, системным утилитам и процессу обновления базы данных после обновления версии. Покрывает повседневные операции, экстренный доступ и создание новых шагов обновления БД.
+Справочник по интерфейсу командной строки XC_VM, системным инструментам и процессу обновления базы данных после обновления версии. Содержит описание ежедневных операций, экстренного доступа и создания новых этапов обновления базы данных.
 
 ---
 
-## Точка входа консоли
+## Точка входа в консоль
 
-Все CLI-команды выполняются через `console.php`:
+Все команды CLI выполняются через `console.php`:
 
 ```bash
 /home/xc_vm/console.php <command> [args...]
@@ -14,15 +14,15 @@
 
 Консоль поддерживает три типа команд:
 
-| Тип | Кол-во | Описание |
+|Тип|Рассчитывать|Описание|
 | --- | --- | --- |
-| **Commands** | 28 | Разовые операции (update, status, tools и др.) |
-| **CronJobs** | 25 | Запланированные задачи (автозапуск через crontab) |
-| **Daemons** | 8 | Фоновые процессы-демоны (Commands, использующие `DaemonTrait`) |
+|**Команды**|28|Одноразовые операции (обновление, статус, инструменты и т.д.)|
+|**Закадычные друзья**|25|Запланированные задачи (автоматически вызываемые crontab)|
+|**Демоны**|8|Длительно выполняющиеся фоновые процессы (команды, использующие `DaemonTrait`)|
 
-> **Примечание:** Демоны — это обычные Commands с трейтом `DaemonTrait`. Отдельной директории `Daemons/` нет.
+> **Примечание:** Демоны - это обычные команды, которые используют `DaemonTrait`. Отдельного каталога `Daemons/` не существует.
 
-Для просмотра всех доступных команд:
+Чтобы просмотреть все доступные команды:
 
 ```bash
 /home/xc_vm/console.php list
@@ -32,114 +32,114 @@
 
 ## Полный реестр команд
 
-### Утилитарные команды
+### Служебные команды
 
-| Команда | Класс | Описание | Пользователь |
+|Команда|Класс|Описание|Пользователь|
 | --- | --- | --- | --- |
-| `status` | `StatusCommand` | Статус системы, обновление БД, проверка конфигурации | root |
-| `update` | `UpdateCommand` | Обновление системы (update / post-update) | xc_vm |
-| `service` | `ServiceCommand` | Управление сервисом XC_VM: start, stop, restart, reload | root |
-| `tools` | `ToolsCommand` | Утилиты обслуживания (см. раздел "Команда tools") | root/xc_vm |
-| `certbot` | `CertbotCommand` | Генерация SSL-сертификата через certbot | root |
-| `binaries` | `BinariesCommand` | Обновление бинарников и GeoLite из GitHub | xc_vm |
-| `startup` | `StartupCommand` | Инициализация системы: daemons.sh, crontab, кеш | root |
-| `monitor` | `MonitorCommand` | Мониторинг стрима по ID (запуск/перезапуск/отслеживание) | xc_vm |
-| `thumbnail` | `ThumbnailCommand` | Генерация превью-кадров для стрима | xc_vm |
-| `plex_item` | `PlexItemCommand` | Обработка элемента Plex (фильм/сериал) | xc_vm |
-| `watch_item` | `WatchItemCommand` | Обработка элемента Watch (поиск/обновление TMDB) | xc_vm |
-| `migrate` | `MigrateCommand` | Перенос данных из БД `xc_vm_migrate` | xc_vm |
-| `db:migrate` | `DbMigrateCommand` | Применить ожидающие миграции БД из каталога `migrations/` | xc_vm |
-| `server:install` | `ServerInstallCommand` | Установка/настройка сервера (Proxy/LB) по SSH | root |
-| `server:diagnose` | `ServerDiagnoseCommand` | Диагностика причины «молчания» proxy/LB-ноды (heartbeat, доступность, iptables, сервис) | root |
+| `status` | `StatusCommand` |Состояние системы, обновления базы данных, проверка конфигурации|корень|
+| `update` | `UpdateCommand` |Обновление системы (update / после обновления)|xc_vm|
+| `service` | `ServiceCommand` |Управление службой XC_VM: запуск, остановка, перезапуск, перезагрузка|корень|
+| `tools` | `ToolsCommand` |Утилиты технического обслуживания (см. раздел команды "Инструменты")|корень/xc_vm|
+| `certbot` | `CertbotCommand` |Сгенерируйте SSL-сертификат с помощью certbot|корень|
+| `binaries` | `BinariesCommand` |Обновите двоичные файлы и базу данных GeoLite с GitHub|xc_vm|
+| `startup` | `StartupCommand` |Инициализация системы: daemons.sh, crontab, кэш|корень|
+| `monitor` | `MonitorCommand` |Отслеживайте поток по идентификатору (запуск/перезапуск/отслеживание)|xc_vm|
+| `thumbnail` | `ThumbnailCommand` |Создание рамок миниатюр для потока|xc_vm|
+| `plex_item` | `PlexItemCommand` |Обработать один элемент Plex (фильм/сериал)|xc_vm|
+| `watch_item` | `WatchItemCommand` |Обработать один элемент наблюдения (поиск/обновление в базе данных TMDB)|xc_vm|
+| `migrate` | `MigrateCommand` |Перенос данных из базы данных `xc_vm_migrate`|xc_vm|
+| `db:migrate` | `DbMigrateCommand` |Применить ожидающие переноса базы данных из каталога `migrations/`|xc_vm|
+| `server:install` | `ServerInstallCommand` |Установка/настройка сервера (Proxy/LB) через SSH|корень|
+| `server:diagnose` | `ServerDiagnoseCommand` |Диагностировать, почему прокси-узел/LB-узел не подключен к главному (частота сердечных сокращений, доступность, iptables, сервис)|корень|
 
-> Команды, отмеченные как **опциональные**, условно регистрируются через `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
+> Команды, помеченные **необязательно**, условно регистрируются с помощью `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
 
-### Команды-демоны (фоновые процессы)
+### Команды демона (постоянные процессы)
 
-Эти команды используют `DaemonTrait` и работают непрерывно через `while(true)`:
+Эти команды используют `DaemonTrait` и выполняются непрерывно через циклы `while(true)`:
 
-| Команда | Класс | Описание |
+|Команда|Класс|Описание|
 | --- | --- | --- |
-| `signals` | `SignalsCommand` | Обработка kill/cache сигналов из БД и Redis |
-| `watchdog` | `WatchdogCommand` | Мониторинг системы: CPU, соединения, обновление серверов |
-| `queue` | `QueueCommand` | Обработка фоновых задач из очереди |
-| `scanner` | `ScannerCommand` | Сканирование новых стримов/устройств |
-| `cache_handler` | `CacheHandlerCommand` | Операции с кешем (опционально) |
+| `signals` | `SignalsCommand` |Обрабатывать сигналы уничтожения/кэширования из базы данных и Redis|
+| `watchdog` | `WatchdogCommand` |Мониторинг системы: процессор, подключения, обновления сервера|
+| `queue` | `QueueCommand` |Обрабатывать фоновые задачи в очереди|
+| `scanner` | `ScannerCommand` |Поиск новых потоков/устройств|
+| `cache_handler` | `CacheHandlerCommand` |Обрабатывать операции с кэшем (необязательно)|
 
-### Команды обработки стримов
+### Команды потоковой обработки
 
-| Команда | Класс | Описание |
+|Команда|Класс|Описание|
 | --- | --- | --- |
-| `proxy` | `ProxyCommand` | Проксирование MPEG-TS потоков через сокеты |
-| `archive` | `ArchiveCommand` | TV-архив — запись стрима в сегменты |
-| `created` | `CreatedCommand` | Created Channel — компоновка канала из источников |
-| `delay` | `DelayCommand` | Задержка воспроизведения HLS-стрима |
-| `loopback` | `LoopbackCommand` | Приём MPEG-TS с другого сервера |
-| `llod` | `LlodCommand` | Low-Latency On-Demand обработчик стримов |
-| `record` | `RecordCommand` | Запись стрима в MP4 |
-| `ondemand` | `OndemandCommand` | Завершение стримов без активных зрителей |
+| `proxy` | `ProxyCommand` |MPEG-TS потоковое проксирование через сокеты|
+| `archive` | `ArchiveCommand` |Телевизионный архив — запись потока на сегменты|
+| `created` | `CreatedCommand` |Созданный канал — создание канала из исходных текстов|
+| `delay` | `DelayCommand` |Задержка HLS воспроизведения потока|
+| `loopback` | `LoopbackCommand` |Получить MPEG-TS с другого сервера|
+| `llod` | `LlodCommand` |Потоковый процессор с низкой задержкой по требованию|
+| `record` | `RecordCommand` |Запись потока в формате MP4|
+| `ondemand` | `OndemandCommand` |Прерывать трансляции без активных зрителей|
 
-### Крон-задачи (всего 26: 22 core + 4 модульных)
+### Задания Cron (всего 26: 22 ядра + 4 модуля)
 
-Имена всех крон-задач имеют префикс `cron:`. Они используют `CronTrait` и вызываются системным crontab.
+Все имена заданий cron имеют префикс `cron:`. Для них используется `CronTrait`, и они вызываются системой crontab.
 
-**Core-крон-задачи** (в `src/Cli/CronJobs/`):
+**Основные задания cron** (в `src/Cli/CronJobs/`):
 
-| Команда | Класс | Описание |
+|Команда|Класс|Описание|
 | --- | --- | --- |
-| `cron:activity` | `ActivityCronJob` | Импорт логов активности пользователей в БД |
-| `cron:backups` | `BackupsCronJob` | Управление бэкапами (опционально) |
-| `cron:cache` | `CacheCronJob` | Управление кешем |
-| `cron:cache_engine` | `CacheEngineCronJob` | Генерация кеша для линий, стримов, сериалов, групп (опционально) |
-| `cron:certbot` | `CertbotCronJob` | Продление SSL-сертификата |
-| `cron:cleanup` | `CleanupCronJob` | Очистка временных файлов и логов |
-| `cron:epg` | `EpgCronJob` | Загрузка и обработка EPG (опционально) |
-| `cron:errors` | `ErrorsCronJob` | Обработка логов ошибок |
-| `cron:lines_logs` | `LinesLogsCronJob` | Импорт логов клиентских запросов в БД |
-| `cron:maxmind` | `MaxMindCronJob` | Обновление баз MaxMind GeoIP (только по вторникам; `--force` для ручного запуска) |
-| `cron:providers` | `ProvidersCronJob` | Обновление провайдеров (опционально) |
-| `cron:root_mysql` | `RootMysqlCronJob` | Обслуживание БД (root, опционально) |
-| `cron:root_signals` | `RootSignalsCronJob` | Обработка сигналов, iptables, nginx, управление сервисом (root) |
-| `cron:series` | `SeriesCronJob` | Обновление данных сериалов (опционально) |
-| `cron:servers` | `ServersCronJob` | Мониторинг сервера, запуск демонов, обновление статистики |
-| `cron:stats` | `StatsCronJob` | Подсчёт и сохранение статистики |
-| `cron:streams` | `StreamsCronJob` | Проверка и обновление статуса стримов |
-| `cron:streams_logs` | `StreamsLogsCronJob` | Импорт логов стримов |
-| `cron:tmp` | `TmpCronJob` | Очистка временных файлов |
-| `cron:update` | `UpdateCronJob` | Проверка и применение обновлений (опционально) |
-| `cron:users` | `UsersCronJob` | Управление пользовательскими соединениями, синхронизация Redis |
-| `cron:vod` | `VodCronJob` | Обработка VOD-контента |
+| `cron:activity` | `ActivityCronJob` |Импорт журналов действий пользователей в базу данных|
+| `cron:backups` | `BackupsCronJob` |Управление резервными копиями (необязательно)|
+| `cron:cache` | `CacheCronJob` |Управление кэшем|
+| `cron:cache_engine` | `CacheEngineCronJob` |Генерировать кэш для строк, потоков, серий, групп (необязательно)|
+| `cron:certbot` | `CertbotCronJob` |Обновление SSL-сертификата|
+| `cron:cleanup` | `CleanupCronJob` |Очистка временных файлов и журналов|
+| `cron:epg` | `EpgCronJob` |EPG загрузка и обработка (необязательно)|
+| `cron:errors` | `ErrorsCronJob` |Журналы ошибок процесса|
+| `cron:lines_logs` | `LinesLogsCronJob` |Импорт журналов клиентских запросов в базу данных|
+| `cron:maxmind` | `MaxMindCronJob` |Обновление баз данных MaxMind GeoIP (только по вторникам; `--force` для запуска вручную)|
+| `cron:providers` | `ProvidersCronJob` |Поставщики обновлений (необязательно)|
+| `cron:root_mysql` | `RootMysqlCronJob` |Обслуживание базы данных (root, необязательно)|
+| `cron:root_signals` | `RootSignalsCronJob` |Сигналы обработки, iptables, nginx, управление службами (root)|
+| `cron:series` | `SeriesCronJob` |Обновление данных серии (необязательно)|
+| `cron:servers` | `ServersCronJob` |Контролируйте сервер, запускайте демонов, обновляйте статистику|
+| `cron:stats` | `StatsCronJob` |Вычислять и хранить статистику|
+| `cron:streams` | `StreamsCronJob` |Проверка и обновление статуса потока|
+| `cron:streams_logs` | `StreamsLogsCronJob` |Импорт журналов потоков|
+| `cron:tmp` | `TmpCronJob` |Очистка временных файлов|
+| `cron:update` | `UpdateCronJob` |Проверять и применять обновления (необязательно)|
+| `cron:users` | `UsersCronJob` |Управление подключениями пользователей, синхронизацией Redis, расхождением|
+| `cron:vod` | `VodCronJob` |Содержание процесса VOD|
 
-**Модульные крон-задачи** (регистрируются через `ModuleInterface::registerCommands()`):
+**Модуль cron заданий** (зарегистрирован через `ModuleInterface::registerCommands()`):
 
-| Команда | Класс | Модуль | Описание |
+|Команда|Класс|Модуль|Описание|
 | --- | --- | --- | --- |
-| `cron:plex` | `PlexCronJob` | plex | Обработка обновлений Plex |
-| `cron:tmdb` | `TmdbCronJob` | tmdb | Получение метаданных TMDB (опционально) |
-| `cron:tmdb_popular` | `TmdbPopularCronJob` | tmdb | Получение популярного контента TMDB (опционально) |
-| `cron:watch` | `WatchCronJob` | watch | Обработка обновлений Watch-библиотеки |
+| `cron:plex` | `PlexCronJob` |сплетение|Обрабатывать обновления Plex|
+| `cron:tmdb` | `TmdbCronJob` |тмдб|Получение метаданных TMDB (необязательно)|
+| `cron:tmdb_popular` | `TmdbPopularCronJob` |тмдб|Выборка популярного содержимого TMDB (необязательно)|
+| `cron:watch` | `WatchCronJob` |часы|Обрабатывать обновления библиотеки отслеживания|
 
-> Опциональные крон-задачи (условная регистрация): `cron:backups`, `cron:cache_engine`, `cron:epg`, `cron:providers`, `cron:root_mysql`, `cron:series`, `cron:tmdb`, `cron:tmdb_popular`, `cron:update`.
+> Дополнительные задания cron (условно зарегистрированные): `cron:backups`, `cron:cache_engine`, `cron:epg`, `cron:providers`, `cron:root_mysql`, `cron:series`, `cron:tmdb`, `cron:tmdb_popular`, `cron:update`.
 
 ---
 
 ## Регистрация новой команды
 
-Все CLI-команды реализуют `CommandInterface`. Core-команды автоматически обнаруживаются из `src/Cli/` через рефлексию в `console.php`. Команды модулей регистрируются через `ModuleLoader::registerAllCommands()`.
+Все команды CLI реализуют `CommandInterface`. Основные команды автоматически обнаруживаются из `src/Cli/` с помощью отражения в `console.php`. Команды модуля регистрируются с помощью `ModuleLoader::registerAllCommands()`.
 
-### CommandInterface
+### Командный интерфейс
 
 ```php
 interface CommandInterface {
-    public function getName(): string;        // Уникальное имя команды (используется в CLI)
-    public function getDescription(): string; // Однострочное описание (показывается в `list`)
-    public function execute(array $rArgs): int; // Точка входа, возвращает код выхода
+    public function getName(): string;        // Unique command name (used in CLI)
+    public function getDescription(): string; // One-line help text (shown in `list`)
+    public function execute(array $rArgs): int; // Entry point, returns exit code
 }
 ```
 
 ### Шаг 1. Создайте класс
 
-Создайте файл в `src/Cli/Commands/` (или `src/Cli/CronJobs/` для крон-задач):
+Создайте новый файл в `src/Cli/Commands/` (или `src/Cli/CronJobs/` для заданий cron):
 
 ```php
 <?php
@@ -151,18 +151,18 @@ class MyNewCommand implements CommandInterface {
     }
 
     public function getDescription(): string {
-        return 'Краткое описание команды';
+        return 'Short description of what it does';
     }
 
     public function execute(array $rArgs): int {
-        // Ваша логика
+        // Your logic here
         echo "Done.\n";
-        return 0; // 0 = успех, 1 = ошибка
+        return 0; // 0 = success, 1 = error
     }
 }
 ```
 
-Для **команд-демонов** используйте также `DaemonTrait`:
+Для команд **daemon** также используйте `DaemonTrait`:
 
 ```php
 class MyDaemonCommand implements CommandInterface {
@@ -171,138 +171,138 @@ class MyDaemonCommand implements CommandInterface {
 }
 ```
 
-Для **крон-задач** используйте `CronTrait`:
+Для **заданий cron** используйте `CronTrait`:
 
 ```php
 class MyCronJob implements CommandInterface {
     use CronTrait;
 
     public function getName(): string {
-        return 'cron:my_job'; // Имена кронов имеют префикс cron:
+        return 'cron:my_job'; // Cron names are prefixed with cron:
     }
     // ...
 }
 ```
 
-### Шаг 2. Зарегистрируйте в console.php
+### Шаг 2. Зарегистрируйтесь в console.php
 
-Добавьте в `console.php`:
+Добавить к `console.php`:
 
 ```php
-// Всегда загружается
+// Always loaded
 $rRegistry->register(new MyNewCommand());
 
-// Или условно (для опциональных функций)
+// Or conditionally (for optional features)
 if (file_exists(CLI_PATH . 'Commands/MyNewCommand.php')) {
     $rRegistry->register(new MyNewCommand());
 }
 ```
 
-### Шаг 3. Добавьте в Makefile (если исключается из LB)
+### Шаг 3. Добавить в Makefile (если LB-исключен)
 
-Если команда НЕ должна входить в сборку Load Balancer, добавьте её путь в `LB_FILES_TO_REMOVE` в `Makefile`.
+Если команда не должна включаться в сборки подсистемы балансировки нагрузки, добавьте ее путь к `LB_FILES_TO_REMOVE` в поле `Makefile`.
 
 ### Шаг 4. Тестирование
 
 ```bash
-# Проверьте, что команда отображается в списке
+# Verify it appears in the list
 /home/xc_vm/console.php list
 
-# Запустите
+# Run it
 /home/xc_vm/console.php my_command
 ```
 
 ---
 
-## Команда tools
+## Команда инструментов
 
 Команда `tools` предоставляет утилиты для обслуживания системы.
 
 ```bash
-console.php tools <subcommand>
+/home/xc_vm/console.php  tools <subcommand>
 ```
 
-### Подкоманды (запуск от `root`)
+### Подкоманды (запускаются как `root`)
 
-| Подкоманда | Описание |
+|Подкомандование|Описание|
 | --- | --- |
-| `rescue` | Создать временный код доступа для экстренного входа в панель. Выводит URL. **Удалите код после использования!** |
-| `recaptcha` | Отключить reCAPTCHA (`recaptcha_enable = 0`), чтобы восстановить вход в админ-панель, когда проверка капчи не проходит. |
-| `access` | Перегенерировать все конфигурации кодов доступа nginx и перезагрузить nginx. Выводит URL всех кодов админ-панели. |
-| `ports` | Перегенерировать конфигурации портов nginx (HTTP, HTTPS, RTMP) из базы данных и перезагрузить nginx. |
-| `migration` | Очистить промежуточную БД (`xc_vm_migrate`) и опционально восстановить `.sql`-бэкап. |
-| `user` | Создать rescue-администратора со случайными учётными данными. Выводит логин и пароль. **Удалите пользователя после использования!** |
-| `mysql` | Переавторизовать привилегии MySQL для всех серверов балансировки нагрузки. |
-| `database` | Восстановить чистую БД XC_VM из `database.sql`. **Удаляет ВСЕ данные!** Требует флаг `--confirm`. |
-| `flush` | Сбросить все заблокированные IP — очищает правила iptables, удаляет файлы блокировок и очищает таблицу `blocked_ips`. |
+| `rescue` |Создайте временный код аварийного доступа для доступа к панели экстренной помощи. Введите URL-адрес. **Удалите этот код после использования!**|
+| `recaptcha` |Отключите reCAPTCHA (`recaptcha_enable = 0`), чтобы восстановить вход в панель администратора при сбое проверки captcha.|
+| `access` |Восстановите все настройки кода доступа nginx и перезагрузите nginx. Печатает URL-адреса для всех кодов панели администратора.|
+| `ports` |Восстановите настройки портов nginx (HTTP, HTTPS, RTMP) из базы данных и перезагрузите nginx.|
+| `migration` |Очистите промежуточную базу данных (`xc_vm_migrate`) и при необходимости восстановите в ней резервную копию `.sql`.|
+| `user` |Создайте пользователя rescue admin со случайными учетными данными. Введите имя пользователя и пароль. **Удалите этого пользователя после использования!**|
+| `mysql` |Повторно авторизуйте привилегии MySQL для всех серверов load balancer.|
+| `database` |Восстановите пустую базу данных XC_VM из `database.sql`. **Удаляет ВСЕ данные!** Требуется флажок `--confirm`.|
+| `flush` |Очистить все заблокированные IP—адреса - очищает правила iptables, удаляет файлы блокировки и обрезает таблицу `blocked_ips`.|
 
-### Подкоманды (запуск от `xc_vm`)
+### Подкоманды (запускаются как `xc_vm`)
 
-| Подкоманда | Описание |
+|Подкомандование|Описание|
 | --- | --- |
-| `images` | Скачать недостающие изображения стримов/фильмов/сериалов с TMDB. Сканирует БД и загружает отсутствующие файлы. |
-| `duplicates` | Найти и удалить дубликаты VOD-стримов. Группирует по одинаковому источнику, оставляет первый, удаляет остальные. **Деструктивная операция!** |
-| `bouquets` | Очистить устаревшие ссылки в букетах. Удаляет ID, которых больше нет в базе данных. |
+| `images` |Загрузите отсутствующие изображения потоковых передач/фильмов/сериалов из базы данных TMDB. Сканирует базу данных в поисках URL-адресов изображений и загружает отсутствующие файлы.|
+| `duplicates` |Найдите и удалите повторяющиеся потоки VOD. Группируйте по идентичному источнику, сохраняйте первый, удаляйте остальные. **Деструктивный!**|
+| `bouquets` |Удалите устаревшие ссылки из букетов. Удаляет идентификаторы, которые больше не существуют в базе данных.|
 
 ### Примеры
 
 ```bash
-# Экстренный доступ к панели (root)
+# Emergency panel access (root)
 sudo /home/xc_vm/console.php tools rescue
 
-# Отключить reCAPTCHA для восстановления входа в админку (root)
+# Disable reCAPTCHA to recover admin login (root)
 sudo /home/xc_vm/console.php tools recaptcha
 
-# Перегенерация кодов доступа (root) — требуется после изменения шаблона nginx
+# Regenerate access codes (root) — required after nginx template changes
 sudo /home/xc_vm/console.php tools access
 
-# Перегенерация конфигурации портов (root)
+# Regenerate port configuration (root)
 sudo /home/xc_vm/console.php tools ports
 
-# Очистить промежуточную БД (root)
+# Clear staging database (root)
 sudo /home/xc_vm/console.php tools migration
 
-# Очистить промежуточную БД и восстановить бэкап (root)
+# Clear staging database and restore a backup (root)
 sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 
-# Создать rescue-администратора (root)
+# Create rescue admin user (root)
 sudo /home/xc_vm/console.php tools user
 
-# Переавторизовать MySQL на всех серверах (root)
+# Reauthorise MySQL privileges on all servers (root)
 sudo /home/xc_vm/console.php tools mysql
 
-# Восстановить чистую базу данных (root) — ДЕСТРУКТИВНАЯ ОПЕРАЦИЯ!
+# Restore blank database (root) — DESTRUCTIVE!
 sudo /home/xc_vm/console.php tools database --confirm
 
-# Сбросить все заблокированные IP (root)
+# Flush all blocked IPs (root)
 sudo /home/xc_vm/console.php tools flush
 
-# Скачать недостающие изображения (xc_vm)
+# Download missing images (xc_vm)
 su - xc_vm -c '/home/xc_vm/console.php tools images'
 
-# Удалить дубликаты VOD (xc_vm)
+# Remove duplicate VOD entries (xc_vm)
 su - xc_vm -c '/home/xc_vm/console.php tools duplicates'
 
-# Очистить ссылки в букетах (xc_vm)
+# Clean orphaned bouquet references (xc_vm)
 su - xc_vm -c '/home/xc_vm/console.php tools bouquets'
 ```
 
-- ⚠️ **Внимание:** `duplicates` безвозвратно удаляет стримы и все связанные данные (логи, статистика, эпизоды, записи). Всегда делайте бэкап перед запуском.
-- ⚠️ **Внимание:** `database --confirm` стирает всю базу данных и заменяет её чистой схемой. Это необратимая операция.
-- 💡 **Совет:** После использования `rescue` всегда удаляйте код через админ-панель или запустив `tools access` после восстановления доступа.
-- 💡 **Совет:** После использования `user` немедленно смените пароль и удалите rescue-пользователя по завершении работы.
+- ❗️ **Внимание:** `duplicates` стримы и все связанные с ними данные (журналы, статистика, эпизоды, записи) удаляются безвозвратно. Всегда создавайте резервную копию перед запуском.
+- ❗️ **Внимание:** `database --confirm` удаляет всю базу данных и заменяет ее пустой схемой. Это необратимо.
+- 💡 ** Совет:** После запуска `rescue` всегда удаляйте код через панель администратора или запустив `tools access`, как только вы восстановите доступ.
+- 💡 ** Совет:** После запуска `user` немедленно измените пароль и по завершении удалите пользователя для восстановления.
 
 ---
 
-## Обновление БД после обновления версии
+## Обновления базы данных после Обновления Версии
 
-XC_VM использует файловую систему обновления БД для управления изменениями схемы между версиями. Обновление БД выполняется автоматически при обновлениях и проверке статуса системы.
+XC_VM использует файловую систему обновления базы данных для управления изменениями схемы между версиями. Обновления базы данных выполняются автоматически во время обновлений и проверок состояния системы.
 
-### Как это работает
+### как это работает
 
-- SQL-файлы обновления БД хранятся в `/home/xc_vm/migrations/`.
+- SQL-файлы для обновлений базы данных хранятся в `/home/xc_vm/migrations/`.
 
-- Каждый файл именуется с числовым префиксом, например:
+- Каждому файлу присваивается имя с префиксом последовательного номера, например:
 
 ```text
 001_drop_watch_folders_plex_token.sql
@@ -310,50 +310,50 @@ XC_VM использует файловую систему обновления 
 003_drop_settings_segment_type.sql
 ```
 
-- Применённые шаги обновления БД отслеживаются в таблице `migrations`. Каждый шаг выполняется **ровно один раз** - если шаг уже применён, он пропускается.
+- Применяемые шаги обновления базы данных отслеживаются в таблице базы данных `migrations`. Каждый шаг выполняется **ровно один раз** - если шаг уже был применен, он пропускается.
 
-- Обновление БД выполняется автоматически:
+- Обновления базы данных выполняются автоматически:
   - `console.php update post-update` - после обновления панели
-  - `console.php status` - при проверке статуса системы (только на MAIN-сервере)
+  - `console.php status` - во время проверки состояния системы (только для главного сервера)
 
-### Порядок выполнения обновления БД
+### Поток выполнения обновления базы данных
 
 ```text
-[ MigrationRunner::run() — запуск обновления БД ]
+[ MigrationRunner::run() — DB update execution ]
         │
         ▼
 [ CREATE TABLE IF NOT EXISTS `migrations` ]
         │
         ▼
-[ Чтение всех *.sql файлов из migrations/ ]
+[ Read all *.sql files from migrations/ ]
         │
         ▼
-[ Для каждого файла, отсутствующего в таблице `migrations`: ]
-    ├── Выполнить SQL-запросы
-    ├── Записать в таблицу `migrations`
-    └── Вывести [OK] или [WARN]
+[ For each file not in `migrations` table: ]
+    ├── Execute SQL statements
+    ├── Record in `migrations` table
+    └── Output [OK] or [WARN]
 ```
 
 ---
 
-## Создание нового шага обновления БД
+## Создание нового шага обновления базы данных
 
-Когда нужно изменить схему БД (добавить колонки, создать таблицы, вставить данные и т.д.), создайте новый SQL-файл шага обновления.
+Когда вам нужно изменить схему базы данных (добавить столбцы, создать таблицы, вставить данные и т.д.), создайте новый SQL-файл для этапа обновления базы данных.
 
 ### Шаг 1. Выберите имя файла
 
-Используйте следующий порядковый номер и описательное имя:
+Используйте следующий порядковый номер и описательное название:
 
 ```text
 NNN_short_description.sql
 ```
 
-**Правила формата:**
+**Правила форматирования:**
 
-- Числовой префикс: 3 цифры с ведущими нулями (например, `006`, `007`)
-- Разделитель: нижнее подчёркивание `_`
-- Имя: строчные буквы, подчёркивания, описание действия
-- Расширение: `.sql`
+- Числовой префикс: 3 цифры, дополненные нулем (например, `006`, `007`)
+- Разделитель: символ подчеркивания `_`
+- Название: нижний регистр, подчеркивание, описывающее, что делает шаг обновления
+- Добавочный номер: `.sql`
 
 **Примеры:**
 
@@ -363,22 +363,22 @@ NNN_short_description.sql
 008_insert_default_codec_settings.sql
 ```
 
-### Шаг 2. Напишите SQL
+### Шаг 2. Напишите SQL-код
 
-Поместите SQL-запросы в файл. Несколько запросов разделяются `;`.
+Поместите в файл необработанные инструкции SQL. Несколько инструкций разделяются символом `;`.
 
-**Правила для SQL-шагов обновления БД:**
+**Правила для этапов обновления базы данных SQL:**
 
-- **Используйте `IF EXISTS` / `IF NOT EXISTS`** для идемпотентности:
+- **Используйте `IF EXISTS` / `IF NOT EXISTS`**, чтобы сделать шаги обновления базы данных идемпотентными:
 
 ```sql
--- Добавление колонки (безопасно)
+-- Adding a column (safe)
 ALTER TABLE `settings` ADD COLUMN IF NOT EXISTS `timezone` VARCHAR(64) DEFAULT 'UTC';
 
--- Удаление колонки (безопасно)
+-- Dropping a column (safe)
 ALTER TABLE `settings` DROP COLUMN IF EXISTS `old_column`;
 
--- Создание таблицы (безопасно)
+-- Creating a table (safe)
 CREATE TABLE IF NOT EXISTS `audit_log` (
     `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
     `action` VARCHAR(255) NOT NULL,
@@ -386,7 +386,7 @@ CREATE TABLE IF NOT EXISTS `audit_log` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 ```
 
-- **Используйте условный `INSERT`** для избежания дубликатов:
+- **Используйте условное обозначение `INSERT`**, чтобы избежать дублирования:
 
 ```sql
 INSERT INTO `streams_arguments` (argument_key, argument_name, argument_cmd)
@@ -395,23 +395,23 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key');
 ```
 
-- **Не смешивайте DDL и DML**, зависящие друг от друга, в одном файле. Если нужно добавить колонку и затем заполнить её, используйте два SQL-файла обновления БД.
+- **Не смешивайте DDL и DML**, которые зависят друг от друга, в одном файле. Если вам нужно добавить столбец и затем заполнить его, используйте два файла шага обновления базы данных.
 
-- **Комментарии** поддерживаются с префиксом `--` (они пропускаются при выполнении).
+- **Комментарии** поддерживаются с префиксом `--` (они пропускаются во время выполнения).
 
-### Шаг 3. Разместите файл
+### Шаг 3. Поместите файл
 
-Скопируйте SQL-файл шага обновления БД в:
+Скопируйте SQL-файл для шага обновления базы данных в:
 
 ```text
 /home/xc_vm/migrations/
 ```
 
-> 💡 В репозитории исходного кода это `src/migrations/`.
+> 💡 В хранилище исходных текстов это значение равно `src/migrations/`.
 
-### Шаг 4. Проверка обновления БД
+### Шаг 4. Подтвердите обновление базы данных
 
-Запустите `db:migrate` для применения ожидающих шагов обновления БД:
+Запустите `db:migrate`, чтобы применить ожидающие обновления БД шаги:
 
 ```bash
 su - xc_vm -c '/home/xc_vm/console.php db:migrate'
@@ -423,7 +423,7 @@ su - xc_vm -c '/home/xc_vm/console.php db:migrate'
 sudo /home/xc_vm/console.php status first-run
 ```
 
-Ожидаемый вывод:
+Ожидаемый результат:
 
 ```text
 Migrations
@@ -432,59 +432,59 @@ Migrations
 
 ```
 
-Если запрос завершился с ошибкой, шаг всё равно будет записан, но покажет `[WARN]` — проверьте SQL и исправьте проблемы.
+Если инструкция не выполняется, шаг все равно будет записан, но покажет `[WARN]` — проверьте SQL и устраните любые проблемы.
 
 ---
 
-## Типичные CLI-операции
+## Общие операции CLI
 
-### Проверка статуса
+### Проверка состояния
 
 ```bash
 sudo /home/xc_vm/console.php status
 ```
 
-Проверяет, запущен ли XC_VM, подключается к БД, выполняет ожидающие шаги обновления БД, исправляет права доступа и валидирует конфигурацию nginx. Требуется после установки или восстановления.
+Проверяет, запущен ли параметр XC_VM, подключается к базе данных, выполняет ожидающие обновления шаги, исправляет разрешения и проверяет конфигурацию nginx. Требуется после установки или восстановления.
 
-С аргументом `first-run` пропускает проверку статуса — используется при первоначальной настройке:
+С аргументом `first-run` пропускает текущую проверку, используемую для начальной настройки:
 
 ```bash
 sudo /home/xc_vm/console.php status first-run
 ```
 
-### Управление сервисом
+### Управление услугами
 
 ```bash
 sudo /home/xc_vm/console.php service start|stop|restart|reload
 ```
 
-### Ручное обновление
+### Обновление вручную
 
 ```bash
 sudo -u xc_vm /home/xc_vm/console.php update update
 ```
 
-Скачивает и применяет последнее обновление с GitHub. Обычно запускается автоматически через веб-панель.
+Загружает и применяет последнее обновление с GitHub. Обычно запускается автоматически через веб-панель.
 
-### Диагностика стримов
+### Диагностика потока
 
 ```bash
 sudo -u xc_vm /home/xc_vm/console.php monitor <stream_id>
 ```
 
-Запускает стрим вручную и отображает ошибки. Полезно для диагностики проблем запуска стримов.
+Запускает поток вручную и отображает все ошибки. Полезно для диагностики сбоев при запуске потока.
 
-### Диагностика сервера (ноды)
+### Диагностика сервера (узла)
 
 ```bash
-# На MAIN — удалённая проверка ноды по её server id
+# On the MAIN — remote-probe a node by its server id
 sudo /home/xc_vm/console.php server:diagnose <server_id>
 
-# На самой LB/proxy-ноде — локальная самодиагностика (без аргументов)
+# On the LB/proxy node itself — local self-diagnosis (no arguments)
 sudo /home/xc_vm/console.php server:diagnose
 ```
 
-Выясняет, **почему** proxy/LB-нода отображается офлайн в панели: проверяет heartbeat, доступность (ICMP/TCP/HTTP `/api`), расхождение часов, очередь сигналов, а локально на ноде — не заблокировала ли нода IP главного сервера в собственном iptables, запущены ли сервис `xc_vm`/nginx и heartbeat-демон `watchdog`, и есть ли `cron:servers` в crontab пользователя `xc_vm`. Только чтение; код выхода `0` — проблем не найдено, `2` — выведены вероятные причины. Подробности — в [руководстве по диагностике серверов](ru-ru/administration/server-diagnostics.md).
+Выясняет, почему прокси—узел/LB—узел отображается в автономном режиме на панели: проверяет частоту сердечных сокращений, доступность (ICMP/TCP/HTTP `/api`), перекос часов, очередь сигналов и - локально на узле - выполняет ли узел брандмауэр на главном IP-адресе в своем собственном iptables, запущена ли служба `xc_vm`/nginx, запущен ли демон heartbeat `watchdog` и находится ли `cron:servers` в crontab `xc_vm`. Доступно только для чтения; код выхода `0` = проблем не обнаружено, `2` = указаны вероятные причины. Более подробную информацию смотрите в [Руководстве по диагностике сервера](../administration/server-diagnostics.md).
 
 ### SSL-сертификат
 
@@ -492,29 +492,29 @@ sudo /home/xc_vm/console.php server:diagnose
 sudo /home/xc_vm/console.php certbot
 ```
 
-### Применить миграции БД вручную
+### Применяйте перенос базы данных вручную
 
 ```bash
 su - xc_vm -c '/home/xc_vm/console.php db:migrate'
 ```
 
-Применяет все ожидающие `.sql`-файлы из `/home/xc_vm/migrations/`. Используется когда нужно накатить миграции без полного обновления системы.
+Применяет все ожидающие `.sql` файлы из `/home/xc_vm/migrations/`. Используйте это, когда вам нужно выполнить миграцию без полного обновления системы.
 
-### Обновление БД данными из других систем
+### Обновление базы данных данными из других систем
 
 ```bash
 /home/xc_vm/console.php migrate
 ```
 
-Переносит данные из промежуточной БД `xc_vm_migrate`. Подробности в [Руководстве по обновлению БД](ru-ru/info/migration_guide.md).
+Передает данные из промежуточной базы данных `xc_vm_migrate`. Подробности см. в [Руководстве по обновлению базы данных](../info/migration_guide.md).
 
 ---
 
 ## Связанные файлы
 
-| Файл | Роль |
+|Файл|Роль|
 | --- | --- |
-| `src/console.php` | Точка входа CLI + FQCN-discovery команд |
-| `src/Cli/Commands/` | Консольные команды |
-| `src/Cli/CronJobs/` | Классы cron-задач |
-| `src/migrations/` | Миграции БД |
+| `src/console.php` |Точка входа CLI + обнаружение команды FQCN|
+| `src/Cli/Commands/` |Консольные команды|
+| `src/Cli/CronJobs/` |Классы заданий Cron|
+| `src/migrations/` |Миграция баз данных|

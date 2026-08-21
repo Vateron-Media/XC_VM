@@ -402,3 +402,44 @@ new:
 	@rm -rf $(DIST_DIR)
 	@echo "==> Creating distribution directory: $(DIST_DIR)"
 	@mkdir -p ${DIST_DIR}
+
+# ─── Documentation (MkDocs Material + auto-translated ru) ────────────
+# EDIT ENGLISH ONLY (docs/en). docs/ru is a GENERATED tree that is committed and
+# refreshed by `make docs-translate` LOCALLY before a release — translation is
+# deliberately kept out of CI (it is slow). CI (pages.yml) only builds the
+# already-committed, already-translated tree. Never hand-edit docs/ru.
+#
+#   make docs-venv       # one-time: local venv (build + translation deps)
+#   make docs-serve      # live preview at :8000 (builds committed en+ru)
+#   make docs-build      # strict static build into ./site (what CI runs)
+#   make docs-translate  # release step: (re)generate docs/ru from docs/en, then commit
+#
+# Translation engine via DOCS_TRANSLATE_PROVIDER (default: translators = free, no key):
+#   make docs-translate                                     # free web engines (yandex/...)
+#   make docs-translate DOCS_TRANSLATE_PROVIDER=anthropic   # needs ANTHROPIC_API_KEY
+#   make docs-translate DOCS_TRANSLATE_PROVIDER=noop        # copy en (fast dry-run)
+DOCS_VENV := .docs-venv
+DOCS_PY := $(DOCS_VENV)/bin/python
+DOCS_TRANSLATE_PROVIDER ?= translators
+
+.PHONY: docs-venv docs-translate docs-build docs-serve
+
+# The venv's mkdocs binary doubles as the install stamp (built once). Installs
+# both the build toolchain and the (local-only) translation deps.
+$(DOCS_VENV)/bin/mkdocs:
+	@python3 -m venv $(DOCS_VENV)
+	@$(DOCS_VENV)/bin/pip install -q --upgrade pip
+	@$(DOCS_VENV)/bin/pip install -q -r docs/requirements.txt -r tools/docs/requirements.txt
+
+docs-venv: $(DOCS_VENV)/bin/mkdocs
+
+# Release-time step: regenerate the committed docs/ru from docs/en. Commit the
+# result with the release. NOT part of docs-build (CI builds the committed tree).
+docs-translate: $(DOCS_VENV)/bin/mkdocs
+	@DOCS_TRANSLATE_PROVIDER=$(DOCS_TRANSLATE_PROVIDER) $(DOCS_PY) tools/docs/translate.py --lang ru
+
+docs-build: $(DOCS_VENV)/bin/mkdocs
+	@$(DOCS_PY) -m mkdocs build --strict
+
+docs-serve: $(DOCS_VENV)/bin/mkdocs
+	@$(DOCS_PY) -m mkdocs serve

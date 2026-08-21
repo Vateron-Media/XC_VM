@@ -1,14 +1,14 @@
-# Подсистема стриминга
+# Подсистема потоковой передачи
 
-Подсистема стриминга обрабатывает доставку live, VOD и timeshift.
-Это горячий путь (~10K-100K запросов/мин, <50 мс p99), и она использует отдельный лёгкий bootstrap, чтобы не загружать полный административный стек.
+Подсистема потоковой передачи обрабатывает доставку в реальном времени, VOD и timeshift.
+Это быстрый путь (~10-100 тыс. запросов в минуту, <50 мс p99), и он использует отдельный облегченный bootstrap, чтобы избежать загрузки всего стека администратора.
 
 ---
 
-## Поток запроса
+## Поток запросов
 
 ```text
-запрос клиента
+client request
       |
 nginx rewrite (/auth/{token} -> /stream/live.php?token={token})
       |
@@ -18,25 +18,25 @@ StreamingBootstrap::bootstrap()
       |
 LegacyInitializer::initStreaming()
       |
-логика endpoint (live.php / vod.php / timeshift.php)
+endpoint logic (live.php / vod.php / timeshift.php)
       |
 ShutdownHandler::handle()
 ```
 
-nginx переписывает все стриминговые URL на PHP-точки входа в `www/stream/`:
+nginx переписывает все URL-адреса потоковой передачи на PHP точки входа в соответствии с `www/stream/`:
 
-| Шаблон URL | Точка входа | Назначение |
+|Шаблон URL-адреса|Точка входа|Цель|
 | --- | --- | --- |
-| `/auth/{token}` | `live.php` | Доставка live-потока |
-| `/vauth/{token}` | `vod.php` | Доставка видео по запросу |
-| `/tsauth/{token}` | `timeshift.php` | Воспроизведение архива/timeshift |
-| `/hls/{token}` | `segment.php` | Доставка HLS-сегментов |
-| `/key/{token}` | `key.php` | Ключ шифрования AES-128 |
-| `/subauth/{token}` | `subtitle.php` | Доставка субтитров |
+| `/auth/{token}` | `live.php` |Прямая трансляция|
+| `/vauth/{token}` | `vod.php` |Доставка видео по запросу|
+| `/tsauth/{token}` | `timeshift.php` |Архив/timeshift воспроизведение|
+| `/hls/{token}` | `segment.php` |HLS сегментная доставка|
+| `/key/{token}` | `key.php` |Ключ шифрования AES-128|
+| `/subauth/{token}` | `subtitle.php` |Передача субтитров|
 
 ---
 
-## Структура каталогов
+## Расположение каталога
 
 ```
 src/Streaming/
@@ -64,37 +64,37 @@ src/Streaming/
     └── ConnectionLimiter.php
 
 src/www/stream/
-├── init.php          # Прослойка legacy bootstrap (устарела)
-├── auth.php          # Шлюз валидации токена
-├── live.php          # Доставка live-стриминга
-├── vod.php           # Доставка VOD
-├── timeshift.php     # Воспроизведение архива/timeshift
-├── segment.php       # Доставка HLS-сегментов
-├── key.php           # Доставка ключа шифрования
-├── subtitle.php      # Доставка субтитров
-├── thumb.php         # Доставка превью
-└── rtmp.php          # Endpoint публикации RTMP
+├── init.php          # Legacy bootstrap shim (deprecated)
+├── auth.php          # Token validation gateway
+├── live.php          # Live streaming delivery
+├── vod.php           # VOD delivery
+├── timeshift.php     # Archive/timeshift playback
+├── segment.php       # HLS segment delivery
+├── key.php           # Encryption key delivery
+├── subtitle.php      # Subtitle delivery
+├── thumb.php         # Thumbnail delivery
+└── rtmp.php          # RTMP publishing endpoint
 ```
 
 ---
 
-## Bootstrap-конвейер
+## Конвейер начальной загрузки
 
 ### 1. StreamingRequestBootstrap::init()
 
 Файл: `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php`
 
-Действия по порядку:
+Действия в порядке:
 
-1. Загрузить коды ошибок, обработчик, пути, конфигурацию, бинарники.
-2. Защита от флуда (только HTTP): проверить `FLOOD_TMP_PATH . 'block_' . $rIP`.
-3. Загрузить настройки из файлового кэша (`CACHE_TMP_PATH . 'settings'`).
-4. Верификация хоста (только HTTP): проверить по `allowed_domains`.
-5. Инициализировать логгер.
-6. Fail-closed гейт: вернуть 404, если настройки отсутствуют (кроме `/status`).
-7. Вызвать `StreamingBootstrap::bootstrap()`.
+1. Загружайте коды ошибок, обработчик, пути, конфигурацию, двоичные файлы.
+2. Защита от наводнений (только HTTP): проверьте наличие `FLOOD_TMP_PATH . 'block_' . $rIP`.
+3. Загрузите настройки из файлового кэша (`CACHE_TMP_PATH . 'settings'`).
+4. Проверка хоста (только HTTP): проверка на соответствие `allowed_domains`.
+5. Инициализируйте регистратор.
+6. Аварийно закрытый шлюз: возвращает 404, если настройки отсутствуют (кроме `/status`).
+7. Вызовите `StreamingBootstrap::bootstrap()`.
 
-### 2. StreamingBootstrap::bootstrap()
+### 2. Потоковый загрузчик::bootstrap()
 
 Файл: `src/Streaming/StreamingBootstrap.php`
 
@@ -102,17 +102,17 @@ src/www/stream/
 public static function bootstrap($rFilename, $rSettings)
 ```
 
-Классифицирует endpoint:
+Классифицирует конечную точку:
 
-- **Probe endpoints:** `probe`, `player_api` (лёгкая нагрузка)
-- **Default endpoints:** `live`, `thumb`, `subtitle`, `timeshift`, `vod`, `status`
-- **Privileged endpoints:** `rtmp`, `portal`
+- **Конечные точки зондирования:** `probe`, `player_api` (небольшая нагрузка)
+- **Конечные точки по умолчанию:** `live`, `thumb`, `subtitle`, `timeshift`, `vod`, `status`
+- **Привилегированные конечные точки:** `rtmp`, `portal`
 
-Загружает `AsyncFileOperations.php` и `DatabaseHandler.php`, сохраняет настройки в `$GLOBALS['rSettings']` и данные доступа в `$GLOBALS['rAccess']`, затем вызывает `LegacyInitializer::initStreaming()`.
+Загружает `AsyncFileOperations.php` и `DatabaseHandler.php`, сохраняет настройки в `$GLOBALS['rSettings']` и получает доступ к данным в `$GLOBALS['rAccess']`, затем вызывает `LegacyInitializer::initStreaming()`.
 
-Возвращает экземпляр базы данных `$db` (используется legacy-точками входа).
+Возвращает экземпляр базы данных `$db` (используемый устаревшими точками входа).
 
-### 3. LegacyInitializer::initStreaming()
+### 3. LegacyInitializer::Инициализация потока()
 
 Файл: `src/Core/Init/LegacyInitializer.php`
 
@@ -123,9 +123,9 @@ public static function bootstrap($rFilename, $rSettings)
 - `$GLOBALS['rAllowedIPs']`, `$GLOBALS['rProxies']`, `$GLOBALS['rSegmentSettings']`
 - `$GLOBALS['rFFMPEG_CPU']`, `$GLOBALS['rFFMPEG_GPU']`, `$GLOBALS['rFFPROBE']`
 
-Подключается к базе данных/Redis в зависимости от `$rSettings['redis_handler']`.
+Подключается к базе данных/Redis на основе `$rSettings['redis_handler']`.
 
-> **Важно:** Стриминговый путь читает исключительно из файлового кэша. Он не обращается к базе данных за настройками или поиском пользователей в нормальной работе.
+> **Важно:** Путь к потоковой передаче считывается исключительно из файлового кэша. При обычной работе программа не запрашивает настройки в базе данных или запросы пользователей.
 
 ---
 
@@ -139,72 +139,107 @@ StreamAuthMiddleware::decryptToken($rToken, $rSettings, $rServers, $rIP): array
 
 Содержимое токена:
 
-| Поле | Описание |
+|Поле|Описание|
 | --- | --- |
-| `username` | Имя пользователя линии |
-| `password` | Пароль линии |
-| `stream_id` | ID целевого потока |
-| `expires` | Временная метка истечения токена |
-| `channel_info` | Метаданные потока (on_demand, proxy, pid) |
-| `user_info` | Права пользователя (max_connections, is_restreamer) |
-| `country_code` | Код страны GeoIP |
-| `video_codec` | Запрошенный видеокодек |
+| `username` |Имя пользователя строки|
+| `password` |Пароль к строке|
+| `stream_id` |Идентификатор целевого потока|
+| `expires` |Временная метка истечения срока действия токена|
+| `channel_info` |Потоковые метаданные (on_demand, прокси, pid)|
+| `user_info` |Разрешения пользователя (max_connections, is_restreamer)|
+| `country_code` |GeoIP код страны|
+| `video_codec` |Запрашиваемый видеокодек|
 
-Валидация:
+Утверждение:
 
-1. Расшифровать токен с помощью `live_streaming_pass`.
-2. Проверить срок: `$rTokenData['expires'] < time() - $rServers[SERVER_ID]['time_offset']`.
-3. Вернуть разобранные данные токена или сгенерировать ошибку.
+1. Расшифруйте токен, используя `live_streaming_pass`.
+2. Проверьте истечение срока действия: `$rTokenData['expires'] < time() - $rServers[SERVER_ID]['time_offset']`.
+3. Возвращает проанализированные данные токена или вызывает ошибку.
 
-Заголовки ответа устанавливаются через `StreamAuthMiddleware::sendStreamHeaders()`:
+Заголовки ответов задаются через `StreamAuthMiddleware::sendStreamHeaders()`:
 
 ```text
 Access-Control-Allow-Origin: *
 X-XSS-Protection: 0
 X-Content-Type-Options: nosniff
-Alt-Svc: h3-29, h3-T051, h3-Q050 (подсказки HTTP/3)
+Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 ```
 
 ---
 
-## Доставка потока
+## Потоковая доставка
 
-### Live (live.php)
+### Жить (live.php)
 
-Основная точка доставки (~650 строк):
+Основная конечная точка доставки (~650 строк):
 
-1. Расшифровать токен через `StreamAuthMiddleware::decryptToken()`.
-2. Определить сервер/прокси: `StreamAuth::checkAccess()` + `ProxySelector::availableProxy()`.
-3. Применить ограничения подключений: `StreamAuth::validateConnections()`.
-4. Создать запись о подключении: `ConnectionTracker::createConnection()`.
-5. Доставить контент:
-   - **M3U8:** `HLSGenerator::generateHLS()` → клиент получает сегменты через `segment.php`.
-   - **TS:** Зацикленные сегменты с использованием `AsyncFileOperations::awaitFileExists()`.
-6. Каждые 5 минут: обновить настройки, обновить `hls_last_read`, проверить жив ли процесс.
-7. При выходе: `ShutdownHandler::handle()` → закрыть запись подключения.
+1. Расшифруйте токен с помощью `StreamAuthMiddleware::decryptToken()`.
+2. Разрешить использование сервера/прокси-сервера: `StreamAuth::checkAccess()` + `ProxySelector::availableProxy()`.
+3. Установите ограничения на подключение: `StreamAuth::validateConnections()`.
+4. Создайте запись о подключении: `ConnectionTracker::createConnection()`.
+5. Hand delivery to the **`xc_fanout` daemon** (see below): PHP emits an
+`X-Accel-Redirect` и завершает байтовый путь — nginx передает байты в потоковом режиме.
+   - **ТС:** `X-Accel-Redirect: /xc_fanout/<id>?c=<uuid>&prebuffer=N` (nginx
+перезаписывается в файл демона `/live/<id>`).
+   - **HLS:** список воспроизведения указывает на выделенные сегменты; `segment.php` транслируется в прямом эфире
+сегментирует только через демон (`/xc_fanout_hls/<id>_<seq>`), иначе `404`.
+6. При выходе: `ShutdownHandler::handle()` → закрыть запись о подключении.
 
 ### VOD (vod.php)
 
-Та же логика аутентификации, что и у live. Читает из `VOD_PATH` вместо `STREAMS_PATH`.
+Тот же процесс аутентификации, что и в live. Считывается из `VOD_PATH` вместо `STREAMS_PATH`.
 
-### Timeshift (timeshift.php)
+### Временной сдвиг (timeshift.php)
 
-Отдаёт архивные сегменты. Использует `TimeshiftClient` для определения архивного файла.
+Обслуживает архивные сегменты. Использует `TimeshiftClient` для разрешения архивного файла.
+
+### Доставка демона — `xc_fanout`
+
+Live client delivery (TS **and** HLS) is **daemon-only**: PHP authorizes the
+средство просмотра, а затем полностью покидает байтовый путь, так что средство просмотра больше не закрепляет
+PHP-FPM работник, отвечающий за жизнедеятельность потока.
+
+- **Fan-out.** `xc_fanout` (a bundled Go daemon) pulls each source **once** and
+предоставляет его каждому пользователю через сокет unix с помощью встроенного в оперативную память сегментатора HLS.
+PHP не соответствует байтовому пути для каждого зрителя; старый цикл поиска и чтения
+(`AsyncFileOperations::awaitFileExists()`) и `HLSGenerator::generateHLS()`
+сервировочные дорожки были удалены при разделке.
+- **Два сокета.** Клиентский сокет (ориентированный на nginx) обслуживает `/live/<id>` и
+`/hls/...`; управляющий сокет, предназначенный только для PHP, регистрирует источники
+(`PUT /streams/<id>` / `/ingest/<id>`), отвечает на вопросы о статусе выхода в эфир
+(`GET /streams/<id>`, `GET /probe/<id>`) и предоставляет доступ к телеметрии.
+- **Telemetry / reconciliation.** `fanout_sync` polls `GET /rates` (per-uuid
+КБИТ/с → `lines_divergence`) и `GET /connections` (согласовывает `lines_live`
+строк, поскольку PHP не может видеть разъединение в `X-Accel`).
+- **Отключен.** Если демон сообщает об отсутствии данных (`has_data=false` / устаревшие), PHP
+показывает страницу "не в эфире" вместо того, чтобы позволить зрителю зависнуть.
+- **Сохранено на диске HLS** только для timeshift / миниатюр / `.analyse` /
+`MonitorCommand` — не для доставки клиенту.
+
+#### Наложение отправленного сообщения
+
+Действие администратора "Отправить сообщение" отображает текстовый баннер на видео **одного** зрителя.
+PHP отправляет его в сокет управления демоном
+(`FanoutClient::sendSignal` → `POST /signal/<uuid>`), и демон применяет
+ffmpeg `drawtext` наложение на следующий HLS сегмент этого просмотра (или короткий ~5-секундный фрагмент
+окно), однократный запуск, максимальное усилие - сигнал никогда не прерывает воспроизведение. Демон должен
+быть запущенным с помощью ffmpeg, который на самом деле имеет фильтр `drawtext`, так что
+`service` программа запуска выбирает сборку с поддержкой drawtext.
 
 ---
 
 ## Управление подключениями
 
-### ConnectionTracker
+### Средство отслеживания подключений
 
-Управляет состоянием активных подключений. Бэкенд выбирается через `$rSettings['redis_handler']`:
+Управляет текущим состоянием соединения. Серверная часть выбрана с помощью `$rSettings['redis_handler']`:
 
-**Redis (предпочтительно для масштаба):**
+**Redis (предпочтительно для масштабирования):**
 
-- Подключения хранятся в sorted sets:
-  - `LINE#{identity}` — подключения пользователя
-  - `STREAM#{stream_id}` — подключения к потоку
-  - `SERVER#{server_id}` — подключения на сервере
+- Соединения, хранящиеся в отсортированных наборах:
+  - `LINE#{identity}` — подключения для пользователя
+  - `STREAM#{stream_id}` — соединения для потока
+  - `SERVER#{server_id}` — соединения на сервере
 
 **MySQL (резервный вариант):**
 
@@ -220,37 +255,37 @@ ConnectionTracker::getLineConnections($user_id)
 ConnectionTracker::getCapacity()
 ```
 
-### ConnectionLimiter
+### Ограничитель подключения
 
 Файл: `src/Streaming/Protection/ConnectionLimiter.php`
 
-Применяет ограничения подключений на пользователя при превышении `max_connections`:
+Устанавливает ограничения на подключение для каждого пользователя при превышении значения `max_connections`:
 
-| Приоритет | Критерий | Действие |
+|Приоритет|Критерий|Действие|
 | --- | --- | --- |
-| 2 | Тот же IP + тот же User-Agent | Убить первым |
-| 1 | Тот же IP (любой UA) | Убить следующим |
-| 0 | Любое подключение | Убить как fallback |
+|2|Тот же IP + тот же пользовательский агент|Убей первым|
+|1|Тот же IP-адрес (любой UA)|Убей следующего|
+|0|Какая-либо связь|Убить в качестве запасного варианта|
 
 Настройки:
 
-- `disallow_2nd_ip_con` — требовать один IP на пользователя
-- `ip_subnet_match` — сопоставлять по подсети /24 вместо точного IP
-- `restrict_same_ip` — возвращать ошибку при несовпадении IP вместо убийства
+- `disallow_2nd_ip_con` — принудительно использовать один IP-адрес для каждого пользователя
+- `ip_subnet_match` — соответствует подсети /24 вместо точного IP-адреса
+- `restrict_same_ip` — возвращает ошибку при несоответствии IP-адресов вместо уничтожения
 
-### ShutdownHandler
+### Устройство для выключения
 
 Файл: `src/Streaming/Lifecycle/ShutdownHandler.php`
 
-Зарегистрирован через `register_shutdown_function()`. При завершении процесса PHP:
+Зарегистрирован с помощью `register_shutdown_function()`. При завершении процесса PHP:
 
-1. Закрыть запись подключения в `lines_live` или Redis.
-2. Удалить tmp-файлы по пути `CONS_TMP_PATH . $uuid`.
-3. Убрать on-demand поток из очереди, если применимо.
+1. Закройте запись о соединении в `lines_live` или Redis.
+2. Удалите tmp-файлы со значением `CONS_TMP_PATH . $uuid`.
+3. Удалите поток по требованию из очереди, если это применимо.
 
 ---
 
-## Балансировка нагрузки
+## балансировка нагрузки
 
 ### Выбор сервера (StreamAuth::checkAccess)
 
@@ -262,16 +297,16 @@ public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserIS
 
 Алгоритм:
 
-1. Получить доступные серверы: `server_online == true`, `server_type == 0`, `online_clients < total_clients`.
-2. Отсортировать по загрузке (по возрастанию) — наименее загруженные первыми.
-3. Применить GeoIP-маршрутизацию (если `enable_geoip == 1`):
-   - Точное совпадение по стране → выбрать сразу.
-   - `geoip_type == 'strict'` → исключить несоответствующие.
-   - Иначе → присвоить весовой приоритет.
-4. Применить ISP-маршрутизацию (если `enable_isp == 1`): та же логика, что и GeoIP.
-5. Вернуть сервер с наименьшей загрузкой из группы с наивысшим приоритетом.
+1. Получите доступные серверы: `server_online == true`, `server_type == 0`, `online_clients < total_clients`.
+2. Сортировка по вместимости (по возрастанию) — сначала загружается наименее загруженный.
+3. Применить маршрутизацию GeoIP (если `enable_geoip == 1`):
+   - Точное соответствие стране → выберите немедленно.
+   - `geoip_type == 'strict'` → исключить несоответствия.
+   - В противном случае → присвоить приоритетный вес.
+4. Примените маршрутизацию через интернет-провайдера (если `enable_isp == 1`): та же логика, что и GeoIP.
+5. Верните сервер с наименьшей пропускной способностью из группы с наивысшим приоритетом.
 
-### Выбор прокси (ProxySelector::availableProxy)
+### Выбор прокси-сервера (ProxySelector::Доступный прокси)
 
 Файл: `src/Streaming/Balancer/ProxySelector.php`
 
@@ -279,13 +314,13 @@ public static function checkAccess($rUserInfo, $rUserIP, $rCountryCode, $rUserIS
 public static function availableProxy($rProxies, $rCountryCode, $rUserISP = ''): int|null
 ```
 
-Тот же алгоритм, что и `StreamAuth::checkAccess()`, применённый к списку прокси-серверов.
+Тот же алгоритм, что и `StreamAuth::checkAccess()`, но примененный к списку прокси-серверов.
 
 ---
 
-## Rate limiting и защита от флуда
+## Ограничение скорости и защита от наводнений
 
-Три уровня:
+Три слоя:
 
 ### 1. nginx (уровень подключения)
 
@@ -294,9 +329,9 @@ limit_req_zone $binary_remote_addr zone=one:30m rate=20r/s;
 limit_req zone=one burst=8;
 ```
 
-20 запросов/секунду на IP с burst-окном на 8 запросов. Скользящее окно 30 минут.
+20 запросов в секунду на IP-адрес с пакетом из 8 запросов. 30-минутное скользящее окно.
 
-### 2. StreamingRequestBootstrap (блокировка IP)
+### 2. StreamingRequestBootstrap (IP-блокировка)
 
 ```php
 if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
@@ -305,15 +340,15 @@ if (file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
 }
 ```
 
-Файловая блокировка IP. Блокировочные файлы создаёт вышестоящая логика детекции флуда.
+IP-блокировка на основе файлов. Файлы блоков создаются с помощью вышестоящей логики обнаружения наводнений.
 
-### 3. ConnectionLimiter (на пользователя)
+### 3. Ограничитель подключений (для каждого пользователя)
 
-Применяется после валидации токена. Ограничивает одновременные потоки на пользователя на основе `max_connections`.
+Применяется после проверки токена. Ограничивает одновременные потоки для каждого пользователя на основе `max_connections`.
 
 ---
 
-## Шифрование HLS
+## HLS Шифрование
 
 Файл: `src/Streaming/Delivery/HLSGenerator.php`
 
@@ -324,32 +359,32 @@ public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
 
 Когда `encrypt_hls == true`:
 
-1. Сгенерировать токен AES-128 ключа из IP + StreamID + соль.
-2. Заменить IV содержимым `STREAMS_PATH . $rStreamID . '_.iv'`.
-3. Зашифровать ссылку на каждый сегмент: `IP/StreamID/Segment/UUID/SERVER_ID/VideoCodec/OnDemand`.
-4. Заменить имена сегментов на `/hls/{encrypted_token}`.
+1. Сгенерируйте ключевой токен AES-128 из IP + StreamID + salt.
+2. Замените IV содержимым из `STREAMS_PATH . $rStreamID . '_.iv'`.
+3. Encrypt each segment reference: `IP/StreamID/Segment/UUID/SERVER_ID/VideoCodec/OnDemand`.
+4. Замените названия сегментов на `/hls/{encrypted_token}`.
 
-Доставка ключа происходит через `key.php` с использованием того же механизма токенов.
+Доставка ключей происходит через `key.php` с использованием того же механизма токенов.
 
 ---
 
-## Производительность
+## Представление
 
-Ключевые проектные решения для пропускной способности и задержки:
+Ключевые проектные решения, касающиеся пропускной способности и задержки:
 
-| Особенность | Механизм |
+|Особенность|Механизм|
 | --- | --- |
-| Неблокирующее ожидание файла | `AsyncFileOperations::awaitFileExists()` использует inotify (Linux) или оптимизированный polling |
-| Нулевая CPU-нагрузка при ожидании | `time_nanosleep()` через `AsyncFileOperations::efficientSleep()` |
-| Буферизация nginx | 128 буферов по 32 КБ на запрос |
-| Пул подключений | Redis (предпочтительно) или persistent MySQL |
-| Чтения только из кэша | Настройки и данные пользователей читаются из файлового кэша, без запросов к БД |
-| Ранний выход | Мониторинг `connection_status()` каждые 5 секунд для определения отключения клиента |
-| Обновление настроек | Каждые 5 минут (300 с), чтобы подхватывать изменения конфигурации без перезапуска |
+|Ожидание неблокирующего файла|`AsyncFileOperations::awaitFileExists()` использует inotify (Linux) или оптимизированный опрос|
+|Нулевой режим работы процессора|`time_nanosleep()` через `AsyncFileOperations::efficientSleep()`|
+|nginx буферизация|128 буферов по 32 КБАЙТ на запрос|
+|Объединение подключений в пул|Redis (предпочтительно) или постоянный MySQL|
+|Чтение только из кэша|Настройки и пользовательские данные считываются из файлового кэша без запросов к базе данных|
+|Ранний выход|Отслеживает `connection_status()` каждые 5 секунд для обнаружения отключения клиента|
+|Обновление настроек|Каждые 5 минут (300 секунд) для отслеживания изменений конфигурации без перезапуска|
 
 ---
 
-## Пути файловой системы
+## Пути к файловой системе
 
 ```text
 STREAMS_PATH        = /home/xc_vm/www/stream/
@@ -364,97 +399,98 @@ VOD_PATH            = /home/xc_vm/www/vod/
 
 ---
 
-## Диагностика и инструменты
+## Диагностика и оснастка
 
-Два инструмента проверяют, что поток доставляется корректно — что сегменты приходят
-по порядку и очередь доставки не бьётся.
+Два инструмента проверяют правильность доставки потока — что сегменты поступают по порядку
+и очередь на доставку не прерывается.
 
-### `tools/stream_queue_check.py` (Python, только stdlib)
+### `tools/stream_queue_check.py` (Только Python, stdlib)
 
-Автономный монитор **целостности очереди сегментов/пакетов** с опциональным **live
-дэшбордом буфера**. Авто-детект HLS vs MPEG-TS.
+Автономный монитор **целостности сегмента/очереди пакетов** с дополнительным ** функцией live
+панель управления буфером**. Автоматически определяет HLS по сравнению с MPEG-TS.
 
 ```bash
-python3 tools/stream_queue_check.py "<url>" --duration 30        # разовая проверка
-python3 tools/stream_queue_check.py "<url>" --json               # cron / мониторинг
-python3 tools/stream_queue_check.py "<url>" --live --duration 0  # live дэшборд
+python3 tools/stream_queue_check.py "<url>" --duration 30        # batch check
+python3 tools/stream_queue_check.py "<url>" --json               # cron / monitoring
+python3 tools/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
 ```
 
-Что значит «очередь цела» по типу потока:
+Что означает "неповрежденная очередь" для каждого типа потока:
 
-| Поток | Проверка очереди |
+|Течение|Проверка очереди|
 | --- | --- |
-| HLS (`.m3u8`) | `EXT-X-MEDIA-SEQUENCE` монотонна и без пропусков (сегменты не выпадают и не откатываются), нет `EXT-X-DISCONTINUITY`, каждый новый сегмент скачивается. Master-плейлисты резолвятся в первый вариант. |
-| MPEG-TS (`.ts`, `/play/<token>/ts`) | per-PID `continuity_counter` (потеря / дубли / переупорядочивание пакетов = разрыв очереди), потеря sync-байта, transport-error indicator, стойла доставки. |
+|HLS (`.m3u8`)|`EXT-X-MEDIA-SEQUENCE` монотонный и непрерывный (никаких удаленных или перемотанных сегментов), нет `EXT-X-DISCONTINUITY`, каждый вновь появляющийся сегмент доступен для загрузки. Основные плейлисты отображаются в их первом варианте.|
+|MPEG-TS (`.ts`, `/play/<token>/ts`)|per-PID `continuity_counter` (потерянные / дублированные / переупорядоченные пакеты = разрыв очереди), потеря байта синхронизации, индикатор транспортной ошибки и задержка доставки.|
 
-Основные опции:
+Основные параметры:
 
-| Флаг | Назначение |
+|Флаг|Цель|
 | --- | --- |
-| `--duration N` | сколько секунд наблюдать (`0` = до Ctrl-C в `--live`) |
-| `--tolerance N` | допустить N транзиентных разрывов до вердикта `BROKEN` (игнор редких глитчей источника при `-c copy`) |
-| `--stall-timeout S` | пауза в доставке, считаемая стойлом; держи выше длительности сегмента (по умолч. 15) |
-| `--live` | цветной TUI-дэшборд (ниже) |
-| `--prebuffer S` / `--buffer-target S` | live: пребуфер виртуального плеера и шкала графика буфера |
-| `--json` / `--no-color` | машинный вывод / без ANSI |
+| `--duration N` |секунды для наблюдения (`0` = до нажатия Ctrl-C в `--live`)|
+| `--tolerance N` |разрешить N временных разрывов очереди, прежде чем сообщать о `BROKEN` (игнорируются редкие сбои источника, переданные `-c copy`)|
+| `--stall-timeout S` |перерыв в доставке засчитывается как задержка; не превышайте продолжительность сегмента (по умолчанию 15).|
+| `--live` |цветная приборная панель TUI (внизу)|
+|`--prebuffer S` / `--buffer-target S`|live: предварительный буфер для виртуального игрока и масштаб буферного графика|
+|`--json` / `--no-color`|машинный вывод / отключение ANSI|
 
-Код возврата: `0` здоров, `2` проблема очереди или стойло, `1` неверный вызов.
+Код выхода: `0` исправен, `2` проблема с очередью или задержка, `1` использование.
 
-#### Live дэшборд (`--live`)
+#### Оперативная панель мониторинга (`--live`)
 
-Моделирует виртуальный плеер: playhead идёт в реальном времени, пока контент
-«получается». Для **TS** таймлайн получения берётся из **PCR** (часы потока), для
-**HLS** — из длительностей `EXTINF` сегментов. Буфер («кеш») = получено − воспроизведено;
-если он доходит до нуля, playhead замирает (ребуферинг).
+Моделирует виртуального проигрывателя: проигрыватель перемещается со скоростью настенных часов, в то время как содержимое
+"получено". Для **TS** полученная временная шкала берется из **PCR** (часы потока).;
+для **HLS** из длительностей сегментов `EXTINF`. Буферизованное время воспроизведения ("кэш") =
+получено − воспроизведено; если значение достигает нуля, то начало воспроизведения зависает (событие отмены буферизации).
 
 ```text
   STREAM QUEUE / BUFFER MONITOR   TS   up 00:22
   cache buffer (s), last 60s:
-  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▄▄▇▇▇▆▆▆▅▅▅▄▄▇▇▇▆▆▆▅   <- burst-then-drain = пила доставки
+  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▄▄▇▇▇▆▆▆▅▅▅▄▄▇▇▇▆▆▆▅   <- burst-then-drain = delivery sawtooth
   IN CACHE : [█████████████████░░░░░░░░░░░░░]  11.6s / 20s
   PLAYING  : PLAYING     head 00:18   received 00:29
   rate 1000 kbit/s   received 4.1 MB   last data 7.0s ago
   QUEUE OK   cc:0 sync:0 gaps:0 disc:0   rebuffers:0
 ```
 
-График и gauge буфера цветные: зелёный (норма) / жёлтый (мало) / красный (голодание).
-Для HLS ряд блоков показывает сегменты, оставшиеся в кеше впереди playhead.
+График буфера и индикатор окрашены в зеленый (исправный) / желтый (низкий) / красный цвета
+(голодает). Для HLS строка блоков показывает сегменты, которые все еще находятся в кэше перед началом
+плейхед.
 
 ### `console.php stream:check` (PHP, компаньон)
 
-Пробует URL источника и с `--decode` скачивает/декодирует медиа, чтобы поймать
-битые сегменты. HLS проверяется посегментно; одноразовый TS-эндпоинт захватывается
-через cURL и декодируется офлайн (живой `-i` ffmpeg на нём зависает).
-Файл: `src/Cli/Commands/StreamCheckCommand.php`.
+Проверяет URL-адрес источника и с помощью `--decode` извлекает и декодирует медиафайл для перехвата
+поврежденные сегменты. HLS проверяется посегментно; сообщение об ошибке с одним сокетом
+конечная точка фиксируется с помощью cURL и декодируется в автономном режиме (ffmpeg в режиме реального времени `-i` зависает на
+it). Источник: `src/Cli/Commands/StreamCheckCommand.php`.
 
 ```bash
-console.php stream:check "<url>"                  # проба метаданных (тип, кодеки)
+console.php stream:check "<url>"                  # metadata probe (type, codecs)
 console.php stream:check "<url>" --decode=30 --json
 ```
 
-> **Замечание — пейсинг доставки.** Цикл отдачи live-TS в `live.php` сливает
-> доступные данные без throttle и делает паузу только когда догнал голову записи
-> ffmpeg. Прежняя версия спала одну секунду после каждого чтения, ограничивая
-> отдачу до `read_buffer_size` в секунду и вызывая голодание клиентов;
-> `stream_queue_check.py --live` визуализирует поведение буфера.
+> **Примечание — темп доставки.** Цикл доставки TS в реальном времени в `live.php` истощает
+> доступные данные без регулирования и приостанавливаются только при достижении значения ffmpeg
+> заголовок записи. Более ранняя версия отключалась на одну секунду после каждого чтения, ограничивая
+> пропускная способность составляет `read_buffer_size` в секунду, а клиенты голодают;
+> `stream_queue_check.py --live` визуализирует результирующее поведение буфера.
 
 ---
 
 ## Связанные файлы
 
-| Файл | Назначение |
+|Файл|Цель|
 | --- | --- |
-| `src/Streaming/StreamingBootstrap.php` | основной bootstrap стриминга |
-| `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` | инициализация на HTTP-уровне |
-| `src/Streaming/Auth/StreamAuth.php` | выбор сервера и валидация подключений |
-| `src/Streaming/Auth/StreamAuthMiddleware.php` | расшифровка токена и заголовки ответа |
-| `src/Streaming/Balancer/ProxySelector.php` | выбор прокси-сервера |
-| `src/Streaming/Protection/ConnectionLimiter.php` | ограничения подключений на пользователя |
-| `src/Streaming/Delivery/HLSGenerator.php` | генерация плейлиста M3U8 |
-| `src/Streaming/Delivery/StreamRedirector.php` | доступность потока и маршрутизация серверов |
-| `src/Streaming/AsyncFileOperations.php` | неблокирующие утилиты файловой системы |
-| `src/Streaming/Lifecycle/ShutdownHandler.php` | очистка подключения при выходе |
-| `src/Domain/Stream/ConnectionTracker.php` | состояние подключений в Redis/MySQL |
-| `src/Core/Init/LegacyInitializer.php` | настройка глобальных переменных для стриминга |
-| `src/Cli/Commands/StreamCheckCommand.php` | `stream:check` — проба/декод потока на битые сегменты |
-| `tools/stream_queue_check.py` | монитор целостности очереди + live дэшборд буфера |
+| `src/Streaming/StreamingBootstrap.php` |основной загрузчик потоковой передачи|
+| `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` |Инициализация на уровне HTTP|
+| `src/Streaming/Auth/StreamAuth.php` |выбор сервера и проверка подключения|
+| `src/Streaming/Auth/StreamAuthMiddleware.php` |расшифровка токенов и заголовки ответов|
+| `src/Streaming/Balancer/ProxySelector.php` |выбор прокси-сервера|
+| `src/Streaming/Protection/ConnectionLimiter.php` |ограничения на подключение для каждого пользователя|
+| `src/Streaming/Delivery/HLSGenerator.php` |Генерация плейлиста M3U8|
+| `src/Streaming/Delivery/StreamRedirector.php` |доступность потока и маршрутизация сервера|
+| `src/Streaming/AsyncFileOperations.php` |неблокирующие утилиты для файловой системы|
+| `src/Streaming/Lifecycle/ShutdownHandler.php` |очистка соединения при выходе|
+| `src/Domain/Stream/ConnectionTracker.php` |состояние соединения в Redis/MySQL|
+| `src/Core/Init/LegacyInitializer.php` |настройка глобальной переменной для потоковой передачи|
+| `src/Cli/Commands/StreamCheckCommand.php` |`stream:check` — проверка/декодирование потока на наличие фрагментарных сегментов|
+| `tools/stream_queue_check.py` |мониторинг целостности очереди + панель мониторинга динамического буфера|

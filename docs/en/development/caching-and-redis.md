@@ -98,6 +98,34 @@ Configuration:
 | `read_timeout` | hardcoded | `2.0s` |
 | `tcp_keepalive` | hardcoded | `60s` |
 
+### Surviving idle disconnects (long-lived daemons)
+
+Short-lived requests (PHP-FPM stream/admin) open a fresh connection per process
+and are unaffected by idle timeouts. Long-lived daemons — the `watchdog` loop,
+`fanout_sync` — instead hold **one** connection through the singleton for their
+whole lifetime, which exposes two failure modes on a busy or cross-server
+(LB → MAIN) link:
+
+- **Server idle-close.** Redis closes any client idle past its `timeout` (`300s`
+  in the bundled `bin/redis/redis.conf`). phpredis then transparently re-opens
+  the socket on the next command **without replaying AUTH**, so a later command
+  answers `NOAUTH` — or simply returns `false`.
+- **Debounced health-check gap.** `instance()` only pings every 30s, so between
+  pings a dropped connection is not yet noticed.
+
+Guards in place:
+
+- `instance()` treats any non-`PONG` ping reply (the silent-reconnect / `NOAUTH`
+  state) as a dead connection and forces a full, **re-authenticated** reconnect
+  via `\XC_VM::redis_connect()` — not just a socket-level retry.
+- Call sites that pipeline commands validate the pipeline object. For example
+  `ConnectionTracker::getCapacity()` checks that `$redis->multi()` returned a
+  `\Redis` (a broken socket returns `false`, and calling `zCard()` on that bool
+  would fatal outside the reconnect path) and throws so its retry loop reconnects.
+
+The server-side alternative (`timeout 0`) is deliberately **not** used — the
+client is made resilient instead, and `tcp-keepalive` still reaps dead peers.
+
 ---
 
 ## Cache Population
@@ -132,6 +160,18 @@ Full rebuild mode: regenerates all entries. Controlled by `cache_thread_count` s
 ### Cache readiness
 
 A `cache_complete` file is written after each full cache build. The streaming path checks for this file and exits with an error if missing.
+
+### Cold-cache safety
+
+The streaming bootstrap (`LegacyInitializer::initStreaming()`) reads `servers`,
+the blocklists and `proxy_servers` from the file cache. Before the first build
+(fresh boot, cleared tmp) those files do not exist and `CacheReader::get()`
+returns `null`, so every such global is defaulted to an empty array. A cold cache
+therefore **fails closed** — a request finds no servers and shows "not on air" —
+instead of a `foreach(null)` warning or an `in_array($x, null)` fatal (PHP 8)
+downstream. A genuinely broken cache *build* still surfaces separately via
+`FileCache`'s write-failure warning, so this default masks only the transient
+cold-start window, not a real failure.
 
 ---
 
