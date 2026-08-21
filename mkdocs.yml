@@ -77,6 +77,57 @@ plugins:
         - locale: ru
           name: Русский
           build: true
+          # Sidebar/tab labels are not part of the translated Markdown, so the
+          # i18n plugin maps each English nav title to its Russian label here.
+          nav_translations:
+            Home: Главная
+            User Guide: Руководство пользователя
+            Administration: Администрирование
+            SSL Certificate Generation: Генерация SSL-сертификата
+            Updating a Server: Обновление сервера
+            Server Diagnostics: Диагностика сервера
+            Update Mechanism: Механизм обновлений
+            Reseller System: Система реселлеров
+            Backup Strategy: Стратегия резервного копирования
+            API Reference: Справочник API
+            Interactive API (Swagger): Интерактивный API (Swagger)
+            Customization: Кастомизация
+            UI Translations: Переводы интерфейса
+            Diagnostics: Диагностика
+            Diagnostics Service: Сервис диагностики
+            Info & FAQ: Информация и FAQ
+            Migration Guide: Руководство по миграции
+            Watch Folder: Отслеживаемая папка
+            Developer Guide: Руководство разработчика
+            Architecture: Архитектура
+            Architecture Overview: Обзор архитектуры
+            Autoloading (PSR-4): Автозагрузка (PSR-4)
+            Bootstrap Contexts: Контексты бутстрапа
+            Module System: Система модулей
+            HTTP Request Handling: Обработка HTTP-запросов
+            Streaming Subsystem: Подсистема стриминга
+            Event System: Система событий
+            Exception Hierarchy: Иерархия исключений
+            Caching and Redis: Кэширование и Redis
+            Navbar Rendering: Рендеринг навбара
+            Developer Workflow: Рабочий процесс разработчика
+            Development Workflow: Процесс разработки
+            CLI Tools & Migrations: CLI-инструменты и миграции
+            PHPUnit Setup: Настройка PHPUnit
+            Feature Flags: Флаги функций
+            Process Management: Управление процессами
+            Security & Access: Безопасность и доступ
+            Authentication and Sessions: Аутентификация и сессии
+            Permissions and RBAC: Права и RBAC
+            Input Validation: Валидация ввода
+            Error Handling: Обработка ошибок
+            Integrations: Интеграции
+            GeoIP and Device Detection: GeoIP и определение устройств
+            Ministra STB Emulation: Эмуляция Ministra STB
+            UCS Integration: Интеграция UCS
+            Build & Release: Сборка и релиз
+            Build System (MAIN vs LB): Система сборки (MAIN и LB)
+            Pre-release Checklist: Чеклист перед релизом
 
 nav:
   - Home: en/README.md
