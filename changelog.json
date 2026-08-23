@@ -1,28 +1,11 @@
 {
-  "version": "2.4.0",
+  "version": "2.4.1",
   "changes": [
-    "Introduced the xc_fanout daemon as the new live streaming delivery layer",
-    "Migrated live HLS and TS delivery from the legacy PHP proxy path to the daemon",
-    "Added daemon-based encrypted HLS delivery and in-memory segmenting",
-    "Added automatic xc_fanout installation, updates, supervision and self-healing",
-    "Added automatic re-feed of streams after daemon restarts",
-    "Added disconnect accounting, off-air detection and viewer divergence telemetry",
-    "Added LB-to-MAIN Redis support and xcvm_core self-update",
-    "Improved Load Balancer installation, provisioning and binary management",
-    "Moved the Ministra/Stalker portal from a module into core and updated it to Ministra 5.6.10",
-    "Added automatic daily yt-dlp updates through cron:root_signals",
-    "Replaced PHP-CS-Fixer with PHP_CodeSniffer and Slevomat Coding Standard",
-    "Improved Redis health checks, recovery, watchdog behavior and connection resilience",
-    "Fixed database connection overflow and improved database lifecycle handling",
-    "Improved streaming stability during Redis failures, cold caches and daemon restarts",
-    "Fixed MPEG-TS segmentation with LLOD v2 and On Demand streams",
-    "Fixed symlink processing on Load Balancer servers",
-    "Improved null-safety and error handling across the application",
-    "Improved stream and database diagnostics and client log reporting",
-    "Added automatic GeoIP database recovery",
-    "Migrated documentation to MkDocs Material with generated Russian translations",
-    "Added extensive documentation for the new streaming daemon architecture",
-    "Removed legacy streaming proxy code and other obsolete components",
-    "Improved CI/CD workflows, release automation and development tooling"
+    "Added xc_fanout daemon status to the Service Status dashboard",
+    "Extracted xc_fanout keepalive logic into a dedicated run.sh script",
+    "Improved nginx configuration updates while preserving per-server custom configurations",
+    "Updated stream probe and scan headers to use RFC-compliant X-XC_VM-* names",
+    "Removed stray backslashes from XC_VM string literals",
+    "Updated actions/setup-python from v5 to v7"
   ]
 }
