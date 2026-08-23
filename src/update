@@ -6,11 +6,19 @@ rPHPDir = rBaseDir + "bin/php/bin/php"
 rConsole = rBaseDir + "console.php"
 LOG_FILE = rBaseDir + "update.log"
 
-# Directories excluded during update (binaries, user data, config).
+# Paths excluded during update (binaries, user data, per-server config).
 # These are removed from the temp copy before overwriting the live installation.
+#
+# NOTE on bin/nginx: the whole directory used to be excluded, which also froze
+# the canonical bin/nginx/conf/nginx.conf — so structural changes shipped in a
+# release (e.g. the /xc_fanout/ internal locations added in 2.4.0) never reached
+# updated servers and broke live delivery. nginx.conf is fully generic: every
+# server-specific setting lives in an `include` (ports/, codes/, ssl.conf,
+# custom.conf, balance.conf, realip_*, limit*). So we now update nginx.conf and
+# the other canonical statics (mime.types, fastcgi_params, …) while STILL
+# preserving the nginx binary and every per-server include below.
 UPDATE_EXCLUDE_DIRS = [
     "bin/ffmpeg_bin",
-    "bin/nginx",
     "bin/nginx_rtmp",
     "bin/php",
     "bin/redis",
@@ -22,6 +30,24 @@ UPDATE_EXCLUDE_DIRS = [
     "tmp",
     "config",
     "signals",
+    # nginx: keep the binary + per-server config, refresh the canonical statics.
+    "bin/nginx/sbin",                     # compiled nginx binary (never shipped in the app archive)
+    "bin/nginx/modules",
+    "bin/nginx/logs",
+    "bin/nginx/conf/ports",               # per-server listen ports
+    "bin/nginx/conf/servers",             # per-server upstream/proxy configs
+    "bin/nginx/conf/codes",               # per-server admin access codes
+    "bin/nginx/conf/ssl.conf",            # per-server SSL (Certbot / status)
+    "bin/nginx/conf/server.crt",          # per-server certificate
+    "bin/nginx/conf/server.key",          # per-server key
+    "bin/nginx/conf/custom.conf",         # operator custom config
+    "bin/nginx/conf/balance.conf",        # LB upstream (startup)
+    "bin/nginx/conf/limit.conf",          # tuned per node (empty on LBs)
+    "bin/nginx/conf/limit_queue.conf",
+    "bin/nginx/conf/realip_cdn.conf",     # CDN / real-ip, adjusted per deployment
+    "bin/nginx/conf/realip_cloudflare.conf",
+    "bin/nginx/conf/realip_xc_vm.conf",
+    "bin/nginx/conf/gzip.conf",
 ]
 
 
@@ -68,11 +94,30 @@ def doUpdate(rFilename):
         if os.path.exists(rUpdateLog):
             os.remove(rUpdateLog)
 
+        # Back up the live nginx.conf before overwriting it (it is no longer
+        # excluded). If the release's nginx.conf fails validation below we
+        # restore this copy, so a bad config can never take the node offline.
+        rNginxConf = rBaseDir + "bin/nginx/conf/nginx.conf"
+        rNginxBak = rNginxConf + ".preupdate"
+        if os.path.exists(rNginxConf):
+            os.system('sudo cp -a "%s" "%s"' % (rNginxConf, rNginxBak))
+
         log_msg("INFO", "Copying files to live installation...")
         os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir))
 
         log_msg("INFO", "Fixing file permissions...")
         os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
+
+        # Validate the (possibly refreshed) nginx.conf before the restart. On
+        # failure roll it back to the pre-update copy so nginx still starts.
+        rNginxBin = rBaseDir + "bin/nginx/sbin/nginx"
+        if os.path.exists(rNginxBak) and os.path.exists(rNginxBin):
+            if os.system('sudo -u xc_vm "%s" -t' % rNginxBin) != 0:
+                log_msg("ERROR", "Updated nginx.conf failed 'nginx -t' — restoring previous nginx.conf")
+                os.system('sudo cp -a "%s" "%s"' % (rNginxBak, rNginxConf))
+                os.system('sudo chown xc_vm:xc_vm "%s"' % rNginxConf)
+        if os.path.exists(rNginxBak):
+            os.system('sudo rm -f "%s"' % rNginxBak)
 
         log_msg("INFO", "Running post-update...")
         os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
