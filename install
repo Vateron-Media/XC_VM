@@ -2246,9 +2246,7 @@ if __name__ == "__main__":
 
     # Configure HTTP/HTTPS ports
     printc("Port Configuration", col.OKBLUE)
-    print(
-        "If you want to change the ports, enter new values, or leave empty to use the default ports"
-    )
+    printc("Enter new port values, or leave empty for defaults", col.OKBLUE)
 
     while True:
         http_port = input("HTTP port (default 80): ").strip()
