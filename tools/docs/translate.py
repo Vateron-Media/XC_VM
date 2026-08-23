@@ -304,7 +304,7 @@ def main() -> int:
                     help="source (English) docs dir")
     ap.add_argument("--dst", default=None,
                     help="destination dir (default: docs/<lang>)")
-    ap.add_argument("--cache", default=str(repo_root / ".docs-cache"),
+    ap.add_argument("--cache", default=str(repo_root / "build" / "docs-cache"),
                     help="per-file translation cache dir")
     ap.add_argument("--glossary", default=str(repo_root / "tools" / "docs" / "glossary.txt"),
                     help="do-not-translate term list")
@@ -339,6 +339,10 @@ def main() -> int:
             out = cache_file.read_text(encoding="utf-8")
             cached += 1
         else:
+            # Printed BEFORE the (potentially slow, network-bound) call so the run
+            # visibly shows which file it is on instead of going silent. flush keeps
+            # it live even when stdout is a pipe (make -u also helps).
+            print(f"→ translating {rel} …", flush=True)
             try:
                 out = translate(text, args.lang, glossary)
             except Exception as exc:  # noqa: BLE001

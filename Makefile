@@ -419,7 +419,7 @@ new:
 #   make docs-translate                                     # free web engines (yandex/...)
 #   make docs-translate DOCS_TRANSLATE_PROVIDER=anthropic   # needs ANTHROPIC_API_KEY
 #   make docs-translate DOCS_TRANSLATE_PROVIDER=noop        # copy en (fast dry-run)
-DOCS_VENV := .docs-venv
+DOCS_VENV := build/docs-venv
 DOCS_PY := $(DOCS_VENV)/bin/python
 DOCS_TRANSLATE_PROVIDER ?= translators
 
@@ -437,7 +437,7 @@ docs-venv: $(DOCS_VENV)/bin/mkdocs
 # Release-time step: regenerate the committed docs/ru from docs/en. Commit the
 # result with the release. NOT part of docs-build (CI builds the committed tree).
 docs-translate: $(DOCS_VENV)/bin/mkdocs
-	@DOCS_TRANSLATE_PROVIDER=$(DOCS_TRANSLATE_PROVIDER) $(DOCS_PY) tools/docs/translate.py --lang ru
+	@DOCS_TRANSLATE_PROVIDER=$(DOCS_TRANSLATE_PROVIDER) $(DOCS_PY) -u tools/docs/translate.py --lang ru
 
 docs-build: $(DOCS_VENV)/bin/mkdocs
 	@$(DOCS_PY) -m mkdocs build --strict
