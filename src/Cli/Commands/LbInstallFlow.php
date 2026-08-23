@@ -50,8 +50,8 @@ class LbInstallFlow {
 
 	public static function installArchive($rConn, callable $rRunSSH, string $rInstallFiles, string $rHash, int $rServerID, $db): bool {
 		echo "Download archive\n";
-		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O /tmp/\XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
-		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum /tmp/\XC_VM.tar.gz)); echo $md5;');
+		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O /tmp/XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
+		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
 		if (empty($rFileHash['output']) || $rHash != trim($rFileHash['output'])) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Invalid MD5 checksum! Exiting\n";
@@ -60,7 +60,7 @@ class LbInstallFlow {
 
 		echo "Extracting to directory\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
-		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf /tmp/\XC_VM.tar.gz -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf /tmp/XC_VM.tar.gz -C "' . MAIN_HOME . '"');
 		$rRemoteCheck = trim(call_user_func($rRunSSH, $rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
 		if ($rRemoteCheck !== 'OK') {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -68,7 +68,7 @@ class LbInstallFlow {
 			return false;
 		}
 
-		call_user_func($rRunSSH, $rConn, 'sudo rm -f "/tmp/\XC_VM.tar.gz"');
+		call_user_func($rRunSSH, $rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
 
 		return true;
 	}
@@ -109,7 +109,7 @@ class LbInstallFlow {
 	 * Securely provision config.enc onto a freshly-installed LB node.
 	 *
 	 * The DB password never enters PHP: we read the node's install_id over the
-	 * SSH channel, then \XC_VM::config_pack() pulls the credentials from MAIN's
+	 * SSH channel, then XC_VM::config_pack() pulls the credentials from MAIN's
 	 * own config.enc and returns a transport blob (XCVT) encrypted for that
 	 * install_id. The node re-encrypts it to its at-rest format on first read.
 	 *
@@ -151,7 +151,7 @@ class LbInstallFlow {
 
 		// Pack config.enc targeted at the node's install_id. Credentials are
 		// read from MAIN's config.enc inside the extension, never exposed here.
-		$rBlob = \XC_VM::config_pack($rInstallId, array(
+		$rBlob = XC_VM::config_pack($rInstallId, array(
 			'hostname'  => $rServers[SERVER_ID]['server_ip'],
 			'database'  => 'xc_vm',
 			'port'      => intval(ConfigReader::get('port')),

@@ -29,7 +29,7 @@ class UpdateCronJob implements CommandInterface {
     }
 
     public function getDescription(): string {
-        return 'Cron: check for \XC_VM updates';
+        return 'Cron: check for XC_VM updates';
     }
 
     public function execute(array $rArgs): int {

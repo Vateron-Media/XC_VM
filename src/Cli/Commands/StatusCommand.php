@@ -196,9 +196,9 @@ class StatusCommand implements CommandInterface {
 	private function installRootCrontab(): void {
 		$rCrons = array();
 
-		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # \XC_VM';
+		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/RootMysqlCronJob.php')) {
-			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # \XC_VM';
+			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
 		}
 
 		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
@@ -208,6 +208,18 @@ class StatusCommand implements CommandInterface {
 		$rWrite = false;
 		$rOutput = array();
 		exec('sudo crontab -l', $rOutput);
+
+		// Удаляем старые строки с нашим маркером (включая '# \XC_VM' от
+		// прошлой миграции), чтобы при апгрейде не появлялись дубликаты.
+		$rFiltered = array();
+		foreach ($rOutput as $rLine) {
+			if (strpos($rLine, '# XC_VM') !== false || strpos($rLine, '# \XC_VM') !== false) {
+				$rWrite = true;
+				continue;
+			}
+			$rFiltered[] = $rLine;
+		}
+		$rOutput = $rFiltered;
 
 		foreach ($rCrons as $rCron) {
 			if (!in_array($rCron, $rOutput)) {
@@ -417,7 +429,7 @@ class StatusCommand implements CommandInterface {
 		}
 
 		if ($rOffline === 0) {
-			echo "All servers are Online and reporting back to \XC_VM!\n\n";
+			echo "All servers are Online and reporting back to XC_VM!\n\n";
 		} else {
 			echo "\n";
 		}

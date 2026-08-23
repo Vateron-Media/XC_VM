@@ -297,14 +297,14 @@ class StreamsCronJob implements CommandInterface {
 
         $db->query('SELECT `stream_id` FROM `streams_servers` WHERE `on_demand` = 1 AND `server_id` = ?;', SERVER_ID);
         $rOnDemandIDs = array_keys($db->get_rows(true, 'stream_id'));
-        $rProcesses = shell_exec('ps aux | grep \XC_VM');
-        if (preg_match_all('/\XC_VM\\[(.*)\\]/', $rProcesses, $rMatches)) {
+        $rProcesses = shell_exec('ps aux | grep XC_VM');
+        if (preg_match_all('/XC_VM\\[(.*)\\]/', $rProcesses, $rMatches)) {
             $rRemove = array_diff($rMatches[1], $rStreamIDs);
             $rRemove = array_diff($rRemove, $rOnDemandIDs);
             foreach ($rRemove as $rStreamID) {
                 if (is_numeric($rStreamID)) {
                     echo 'Kill Stream ID: ' . $rStreamID . "\n";
-                    shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . '_.m3u8\\|\XC_VM\\[' . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
+                    shell_exec("kill -9 `ps -ef | grep '/" . intval($rStreamID) . '_.m3u8\\|XC_VM\\[' . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`;");
                     shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
                 }
             }

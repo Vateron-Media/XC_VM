@@ -11,7 +11,7 @@ namespace XcVm\Core\Updates;
  * @link https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  *
- * A PHP class created specifically for the \XC_VM project to interact with the GitHub Releases API.
+ * A PHP class created specifically for the XC_VM project to interact with the GitHub Releases API.
  * Provides methods to fetch release versions, changelogs, asset hashes, and GeoLite database information
  * with caching support.
  */
@@ -306,7 +306,7 @@ class GitHubReleases {
         curl_setopt($ch, CURLOPT_TIMEOUT, $this->timeout);
         curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->connect_timeout);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $this->headers);
-        curl_setopt($ch, CURLOPT_USERAGENT, 'Vateron-Media/\XC_VM');
+        curl_setopt($ch, CURLOPT_USERAGENT, 'Vateron-Media/XC_VM');
         curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 

@@ -94,7 +94,7 @@ class LegacyInitializer {
 		$rJobs = array();
 		$db->query('SELECT * FROM `crontab` WHERE `enabled` = 1;');
 		foreach ($db->get_rows() as $rRow) {
-			$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # \XC_VM';
+			$rJobs[] = $rRow['time'] . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:' . $rRow['filename'] . ' # XC_VM';
 		}
 
 		shell_exec('crontab -r');

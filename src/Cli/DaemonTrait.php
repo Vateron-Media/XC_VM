@@ -39,7 +39,7 @@ trait DaemonTrait {
 	 */
 	protected function assertRunAsXcVm(): bool {
 		if (posix_getpwuid(posix_geteuid())['name'] !== 'xc_vm') {
-			echo "Please run as \XC_VM!\n";
+			echo "Please run as XC_VM!\n";
 			return false;
 		}
 		return true;

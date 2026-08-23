@@ -57,7 +57,7 @@ class MonitorCommand implements CommandInterface {
 	 */
 	public function execute(array $rArgs): int {
 		if (posix_getpwuid(posix_geteuid())['name'] != 'xc_vm') {
-			echo "Please run as \XC_VM!\n";
+			echo "Please run as XC_VM!\n";
 			return 1;
 		}
 

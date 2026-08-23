@@ -17,7 +17,7 @@ namespace XcVm\Core\Process;
  *   // Check if a process with specific executable is running
  *   if (ProcessManager::isRunning($pid, 'ffmpeg')) { ... }
  *
- *   // Check named process (\XC_VM[123], Thumbnail[456], etc.)
+ *   // Check named process (XC_VM[123], Thumbnail[456], etc.)
  *   if (ProcessManager::isNamedProcessRunning($pid, 'XC_VM', $streamId, PHP_BIN)) { ... }
  *
  *   // Kill a process
@@ -82,7 +82,7 @@ class ProcessManager {
     }
 
     /**
-     * Check if a named process is running (e.g., \XC_VM[123])
+     * Check if a named process is running (e.g., XC_VM[123])
      *
      * Reads /proc/PID/cmdline and matches against "NAME[ID]" pattern.
      *
@@ -379,7 +379,7 @@ class ProcessManager {
      * Check if a monitor/proxy process is running.
      *
      * Extracted from ProcessManager::isMonitorAlive().
-     * Checks for \XC_VM[streamID] OR XC_VMProxy[streamID] in cmdline.
+     * Checks for XC_VM[streamID] OR XC_VMProxy[streamID] in cmdline.
      *
      * @param int $pid Process ID
      * @param int|string $streamID Stream identifier

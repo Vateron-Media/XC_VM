@@ -38,10 +38,10 @@ class ProxyInstallFlow {
 
 	public static function buildConfig(array $rServers, int $rServerID, int $rPrivateIP): string {
 		if ($rPrivateIP) {
-			return '; \XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[\XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['private_ip'] . '"' . "\n" . 'port        =   ' . intval($rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
+			return '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['private_ip'] . '"' . "\n" . 'port        =   ' . intval($rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
 		}
 
-		return '; \XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[\XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'port        =   ' . intval($rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
+		return '; XC_VM Configuration' . "\n" . '; -----------------' . "\n\n" . '[XC_VM]' . "\n" . 'hostname    =   "' . $rServers[SERVER_ID]['server_ip'] . '"' . "\n" . 'port        =   ' . intval($rServers[SERVER_ID]['http_broadcast_port']) . "\n" . 'server_id   =   ' . $rServerID;
 	}
 
 	public static function configureRuntime($rConn, callable $rSendFileSSH, callable $rRunSSH, array $rServers, array $rParentIDs, int $rPrivateIP, int $rHTTPPort, int $rHTTPSPort, int $rServerID): int {

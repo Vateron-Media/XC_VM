@@ -163,10 +163,10 @@ class StreamUtils {
 	}
 
 	/**
-	 * Heuristically detect whether a URL is an \XC_VM stream endpoint.
+	 * Heuristically detect whether a URL is an XC_VM stream endpoint.
 	 *
 	 * @param string $rURL URL to inspect.
-	 * @return bool True if the path matches a known \XC_VM stream pattern.
+	 * @return bool True if the path matches a known XC_VM stream pattern.
 	 */
 	public static function detectXC_VM($rURL) {
 		$rPath = parse_url($rURL)['path'];

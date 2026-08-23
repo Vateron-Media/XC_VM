@@ -13,7 +13,7 @@ use XcVm\Core\Util\GeoIP;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  *
- * A PHP class created for the \XC_VM project to update GeoIP databases.
+ * A PHP class created for the XC_VM project to update GeoIP databases.
  * Supports free GeoLite2 and paid GeoIP2 editions via MaxMind API,
  * downloads tar.gz archives, extracts .mmdb files, and updates version metadata.
  *
@@ -91,7 +91,7 @@ class MaxMindUpdater {
 		$destPath = self::MAXMIND_DIR . $edition . '.mmdb';
 		$result   = ['edition' => $edition, 'updated' => false, 'error' => null];
 
-		$headers = ['User-Agent: \XC_VM-MaxMind-Updater/1.0'];
+		$headers = ['User-Agent: XC_VM-MaxMind-Updater/1.0'];
 
 		if (!$force && file_exists($destPath)) {
 			$headers[] = 'If-Modified-Since: ' . gmdate('D, d M Y H:i:s', filemtime($destPath)) . ' GMT';

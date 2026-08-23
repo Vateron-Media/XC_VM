@@ -89,15 +89,15 @@ class StartupCommand implements CommandInterface {
 
 	private function installRootCrontab(): void {
 		$rCrons = array();
-		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # \XC_VM';
+		$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_signals # XC_VM';
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/RootMysqlCronJob.php')) {
-			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # \XC_VM';
+			$rCrons[] = '* * * * * ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:root_mysql # XC_VM';
 		}
 		// Renew per-machine ionCube licenses for platform modules before they
 		// expire (runs as xc_vm so the .lic is owned by the panel user). No-op
 		// when no licensed modules are installed.
 		if (file_exists(MAIN_HOME . 'Cli/CronJobs/ModuleLicensesCronJob.php')) {
-			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # \XC_VM';
+			$rCrons[] = '17 3 * * * sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:module_licenses # XC_VM';
 		}
 
 		foreach ((new ModuleLoader())->loadAll()->collectCronEntries() as $rEntry) {
@@ -108,10 +108,14 @@ class StartupCommand implements CommandInterface {
 		$rOutput = array();
 		exec('sudo crontab -l', $rOutput);
 
-		// Удаляем старые записи от \XC_VM v1.x.x, чтобы не было дубликатов, и проверяем наличие нужных записей
+		// Удаляем старые записи XC_VM: путь v1.x.x (crons/root_) и любые
+		// строки с нашим маркером — включая старый '# \XC_VM' от прошлой
+		// миграции — чтобы при апгрейде не появлялись дубликаты.
 		$rFiltered = array();
 		foreach ($rOutput as $rLine) {
-			if (strpos($rLine, MAIN_HOME . 'crons/root_') !== false) {
+			if (strpos($rLine, MAIN_HOME . 'crons/root_') !== false
+				|| strpos($rLine, '# XC_VM') !== false
+				|| strpos($rLine, '# \XC_VM') !== false) {
 				$rWrite = true;
 				continue;
 			}

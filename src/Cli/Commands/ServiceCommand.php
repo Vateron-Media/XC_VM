@@ -5,7 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 
 /**
- * Управление сервисом \XC_VM (start/stop/restart/reload).
+ * Управление сервисом XC_VM (start/stop/restart/reload).
  *
  * Команда: service {start|stop|restart|reload}
  * Требует: root
@@ -27,7 +27,7 @@ class ServiceCommand implements CommandInterface {
 	}
 
 	public function getDescription(): string {
-		return 'Manage \XC_VM service: start, stop, restart, reload';
+		return 'Manage XC_VM service: start, stop, restart, reload';
 	}
 
 	public function execute(array $rArgs): int {
@@ -60,7 +60,7 @@ class ServiceCommand implements CommandInterface {
 			return 1;
 		}
 
-		echo "Starting \XC_VM...\n";
+		echo "Starting XC_VM...\n";
 
 		exec('sudo chown -R xc_vm:xc_vm /sys/class/net');
 		exec('sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'content/streams');
@@ -93,7 +93,7 @@ class ServiceCommand implements CommandInterface {
 			return 1;
 		}
 
-		echo "Stopping \XC_VM...\n";
+		echo "Stopping XC_VM...\n";
 		exec('sudo killall -u xc_vm');
 		sleep(1);
 		exec('sudo killall -u xc_vm');
@@ -114,7 +114,7 @@ class ServiceCommand implements CommandInterface {
 			return 1;
 		}
 
-		echo "Reloading \XC_VM...\n";
+		echo "Reloading XC_VM...\n";
 		exec('sudo -u xc_vm ' . MAIN_HOME . 'bin/nginx/sbin/nginx -s reload');
 		exec('sudo -u xc_vm ' . MAIN_HOME . 'bin/nginx_rtmp/sbin/nginx_rtmp -s reload');
 		return 0;
