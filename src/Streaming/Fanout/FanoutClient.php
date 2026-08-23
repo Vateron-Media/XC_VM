@@ -283,6 +283,26 @@ class FanoutClient {
 	}
 
 	/**
+	 * Health probe for the admin "Service Status" panel: is the local xc_fanout
+	 * daemon up — control socket present AND answering? Reuses the /connections
+	 * control call, so a live socket that responds means the daemon is serving.
+	 *
+	 * @return array{running:bool,socket:bool,connections:int|null}
+	 *   running     — socket answered (daemon up),
+	 *   socket      — the control socket file exists (binary started at all),
+	 *   connections — live TS viewers on the daemon, or null when unreachable.
+	 */
+	public static function status(): array {
+		$rSocket = defined('FANOUT_CTL_SOCK') && file_exists(FANOUT_CTL_SOCK);
+		$rConns = self::activeConnections();
+		return [
+			'running'     => $rConns !== null,
+			'socket'      => $rSocket,
+			'connections' => is_array($rConns) ? count($rConns) : null,
+		];
+	}
+
+	/**
 	 * Every live-TS viewer uuid currently connected to the daemon (across all
 	 * streams), for the fanout_sync reconciler. Returns null when the daemon is
 	 * unreachable — the caller must then skip reconciliation (an empty array

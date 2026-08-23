@@ -11,6 +11,7 @@ use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * WatchdogCommand — watchdog command
@@ -128,6 +129,9 @@ class WatchdogCommand implements CommandInterface {
 				$rCPUAverage = array_slice($rCPUAverage, count($rCPUAverage) - 30, 30);
 			}
 			$rStats['cpu_average_array'] = $rCPUAverage;
+
+			// ── xc_fanout daemon health (admin "Service Status" panel) ──
+			$rStats['fanout'] = FanoutClient::status();
 
 			// ── PHP PIDs ─────────────────────────────────────────
 			$rPHPPIDs = array();

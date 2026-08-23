@@ -234,7 +234,24 @@ if (Authorization::check('adv', 'index')): ?>
 										<?php
 										}
 
-										// Additional conditions and outputs similar to the above
+										// xc_fanout live-delivery daemon — flag any reporting server where it is down
+										foreach ($rOrderedServers as $rFanoutSrv) {
+											$rFanoutWd = json_decode($rFanoutSrv['watchdog_data'] ?? '{}', true) ?: [];
+											$rFanoutFresh = (time() - intval($rFanoutSrv['last_check_ago'] ?? 0)) < 60;
+											if ($rFanoutFresh && isset($rFanoutWd['fanout']['running']) && !$rFanoutWd['fanout']['running']) {
+												$rHasError = true;
+										?>
+											<div class="timeline-item">
+												<i class="timeline-icon bg-danger"></i>
+												<div class="timeline-item-info">
+													<a href="javascript:void(0);" class="text-body font-weight-semibold mb-1 d-block bg"><strong>xc_fanout down<?php echo count($rOrderedServers) > 1 ? ' on ' . htmlspecialchars($rFanoutSrv['server_name']) : ''; ?></strong></a>
+													<small>The live-delivery daemon (xc_fanout) is not running &mdash; streaming falls back to the legacy path. It auto-restarts within ~2s; if it persists, (re)install the binary: <strong>sudo <?php echo PHP_BIN; ?> /home/xc_vm/console.php fanout_binary</strong></small><br />
+													<p><br /></p>
+												</div>
+											</div>
+										<?php
+											}
+										}
 
 										if (!$rHasError) {
 										?>
