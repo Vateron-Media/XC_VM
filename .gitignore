@@ -26,4 +26,9 @@ tools/test-stream-generator/sample.mp4
 # it is generated from docs/en (tools/docs/translate.py) and refreshed locally
 # before a release, so CI only has to build it.
 /build/site/
-.docs-cache/
+/build/docs-cache/
+/build/docs-venv/
+
+# e2e stream-test reports (test_release.sh streamtest)
+tools/test-install/out/
+tools/test-install/fixtures/

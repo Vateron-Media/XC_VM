@@ -11,9 +11,11 @@
 
 ```text
 tools/test-install/
-├── Dockerfile          # образ Ubuntu 24.04 + systemd + встроенный install-скрипт
-├── docker-compose.yml  # runtime-конфиг (volumes, ports, privileged, cgroup)
-├── test_release.sh     # управляющий скрипт (install / clean / logs / sync)
+├── Dockerfile                   # образ Ubuntu 24.04 + systemd + встроенный install-скрипт
+├── docker-compose.yml           # runtime-конфиг (volumes, ports, privileged, cgroup)
+├── test_release.sh              # управляющий скрипт (install / clean / logs / sync / streamtest*)
+├── streamtest_in_container.sh   # прогон стрим-теста внутри контейнера
+├── STREAMTEST.md                # инструкция по e2e стрим-тесту (ручная настройка → бэкап → прогон)
 └── README.md
 ```
 
@@ -43,6 +45,19 @@ XCVM_HTTP_PORT=18080 XCVM_HTTPS_PORT=18443 XCVM_INSTALL_HTTP_PORT=8081 XCVM_INST
 
 # Войти в контейнер вручную
 docker exec -it xcvm-test-install bash
+```
+
+## Стрим-тест (e2e)
+
+Сквозная проверка стриминга панели: генератор → рестрим панели → `stream_queue_check.py`
+(JSON-лог по каждому каналу). Панель настраивается один раз вручную, конфигурация
+снимается в дамп БД и восстанавливается для повторяемых прогонов — без прямых
+SQL-запросов. Полная инструкция: [STREAMTEST.md](STREAMTEST.md).
+
+```bash
+./tools/test-install/test_release.sh streamtest-gen        # генератор для ручной настройки
+./tools/test-install/test_release.sh streamtest-backup     # снять дамп настроенной БД
+./tools/test-install/test_release.sh streamtest            # восстановить дамп и прогнать checker
 ```
 
 ## Что проверяется
