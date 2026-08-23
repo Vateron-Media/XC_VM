@@ -134,7 +134,7 @@ class ToolsCommand implements CommandInterface {
 
 		if ($database !== null) {
 			echo 'Restoring: ' . $database . "\n";
-			if (!XC_VM::db_restore($database, 'xc_vm_migrate')) {
+			if (!\XC_VM::db_restore($database, 'xc_vm_migrate')) {
 				echo "Error: Restore failed. Check the SQL file and database credentials.\n";
 				return 1;
 			}

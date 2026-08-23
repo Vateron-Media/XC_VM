@@ -151,7 +151,7 @@ class LbInstallFlow {
 
 		// Pack config.enc targeted at the node's install_id. Credentials are
 		// read from MAIN's config.enc inside the extension, never exposed here.
-		$rBlob = XC_VM::config_pack($rInstallId, array(
+		$rBlob = \XC_VM::config_pack($rInstallId, array(
 			'hostname'  => $rServers[SERVER_ID]['server_ip'],
 			'database'  => 'xc_vm',
 			'port'      => intval(ConfigReader::get('port')),
