@@ -122,11 +122,11 @@ class ScannerCommand implements CommandInterface {
 						if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
 							continue;
 						}
-						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-\XC_VM-Detect:1';
+						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-XC_VM-Detect:1';
 						$rProcessed = true;
 					}
 					if (!$rProcessed) {
-						$rStreamArguments[] = array('value' => 'X-\XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
+						$rStreamArguments[] = array('value' => 'X-XC_VM-Detect:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
 					}
 				}
 
@@ -136,11 +136,11 @@ class ScannerCommand implements CommandInterface {
 						if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
 							continue;
 						}
-						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-\XC_VM-Prebuffer:1';
+						$rStreamArguments[$rID]['value'] .= "\r\n" . 'X-XC_VM-Prebuffer:1';
 						$rProcessed = true;
 					}
 					if (!$rProcessed) {
-						$rStreamArguments[] = array('value' => 'X-\XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
+						$rStreamArguments[] = array('value' => 'X-XC_VM-Prebuffer:1', 'argument_key' => 'headers', 'argument_cat' => 'fetch', 'argument_wprotocol' => 'http', 'argument_type' => 'text', 'argument_cmd' => "-headers '%s" . "\r\n" . "'");
 					}
 				}
 
