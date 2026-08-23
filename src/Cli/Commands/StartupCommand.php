@@ -69,6 +69,15 @@ class StartupCommand implements CommandInterface {
 			@chmod($rConsolePath, 0755);
 		}
 
+		// ── Права на bin/xc_fanout/run.sh (супервизор демона; режим теряется
+		//    при mode-роняющем деплое → service не может его запустить → xc_fanout
+		//    не поднимается → все потоки уходят в not-on-air). service запускает
+		//    его через `bash`, это лишь второй пояс на случай прямого вызова. ──
+		$rRunSh = MAIN_HOME . 'bin/xc_fanout/run.sh';
+		if (file_exists($rRunSh) && !is_executable($rRunSh)) {
+			@chmod($rRunSh, 0755);
+		}
+
 		// ── Установка crontab и запуск кэша ──────────────────
 		if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			$this->installRootCrontab();

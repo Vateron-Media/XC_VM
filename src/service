@@ -20,7 +20,7 @@ boot() {
   fi
   mkdir -p $SCRIPT/bin/xc_fanout/sockets
   sudo chown -R xc_vm:xc_vm $SCRIPT/bin/xc_fanout 2>/dev/null
-  sudo -u xc_vm $SCRIPT/bin/xc_fanout/run.sh &
+  sudo -u xc_vm bash $SCRIPT/bin/xc_fanout/run.sh &
   sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/daemons.sh

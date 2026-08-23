@@ -324,6 +324,8 @@ set_permissions:
 	@chmod 0750 $(TEMP_DIR)/service 2>/dev/null || true
 	@chmod 0750 $(TEMP_DIR)/update 2>/dev/null || true
 	@chmod 0750 $(TEMP_DIR)/bin/daemons.sh 2>/dev/null || true
+	@chmod 0755 $(TEMP_DIR)/bin/xc_fanout/run.sh 2>/dev/null || true
+	@chmod 0755 $(TEMP_DIR)/console.php 2>/dev/null || true
 	@chmod 0755 $(TEMP_DIR)/bin/guess 2>/dev/null || true
 	@chmod 0755 $(TEMP_DIR)/bin/yt-dlp 2>/dev/null || true
 	@chmod 0550 $(TEMP_DIR)/bin/network 2>/dev/null || true
