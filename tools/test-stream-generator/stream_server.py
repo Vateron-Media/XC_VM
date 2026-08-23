@@ -68,11 +68,20 @@ def _codec_args(for_hls):
     return ["-c", "copy"]
 
 
-def build_ts_cmd():
-    """Per-client continuous MPEG-TS to stdout (pipe:1)."""
-    return [
-        CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error",
-        "-re", "-stream_loop", "-1", "-i", CONFIG["input"],
+def build_ts_cmd(seek=0.0):
+    """Per-client continuous MPEG-TS to stdout (pipe:1).
+
+    ``seek`` (seconds) starts the client at the current LIVE position of the
+    looping file instead of t=0, so opening the channel does not rewind the clip
+    to the beginning. ``-ss`` before ``-i`` is input seeking (fast, lands on the
+    nearest preceding keyframe → immediate decodable frame). On loop the input
+    restarts from 0 and continues, so the stream never ends.
+    """
+    pre = [CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error", "-re"]
+    if seek and seek > 0:
+        pre += ["-ss", "%.3f" % seek]
+    return pre + [
+        "-stream_loop", "-1", "-i", CONFIG["input"],
         "-fflags", "+genpts",
         *_codec_args(for_hls=False),
         "-mpegts_flags", "+initial_discontinuity",
@@ -197,7 +206,11 @@ class Handler(BaseHTTPRequestHandler):
         self._send_text("\n".join(lines), content_type="audio/x-mpegurl")
 
     def _stream_ts(self):
-        """Continuous MPEG-TS — the LLOD-compatible endpoint."""
+        """Continuous MPEG-TS — the LLOD-compatible endpoint. A per-client ffmpeg
+        (which the panel LLOD probe/pull expects), but seeked to the CURRENT live
+        position of the looping file instead of t=0 — so opening the channel does
+        not rewind to the beginning. Clients connecting at the same wall-clock get
+        the same offset (in sync); a later client joins further along (live)."""
         self.send_response(200)
         self.send_header("Content-Type", "video/mp2t")
         self.send_header("Cache-Control", "no-cache")
@@ -205,8 +218,10 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         if self.command == "HEAD":
             return
+        dur = CONFIG.get("duration") or 0.0
+        seek = ((time.time() - CONFIG["start_time"]) % dur) if dur > 0 else 0.0
         proc = subprocess.Popen(
-            build_ts_cmd(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            build_ts_cmd(seek), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
         )
         try:
             while True:
@@ -296,6 +311,20 @@ def parse_args():
     return p.parse_args()
 
 
+def probe_duration(path, ffmpeg):
+    """Source duration in seconds (0 if it can't be determined). Used to seek
+    /stream.ts clients to the current live position of the loop."""
+    cand = os.path.join(os.path.dirname(os.path.abspath(ffmpeg)), "ffprobe")
+    ffprobe = cand if os.path.isfile(cand) else "ffprobe"
+    try:
+        out = subprocess.check_output(
+            [ffprobe, "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=nk=1:nw=1", path], stderr=subprocess.DEVNULL)
+        return float(out.decode("utf-8", "replace").strip() or 0)
+    except Exception:
+        return 0.0
+
+
 def detect_lan_ip():
     import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -346,6 +375,10 @@ def main():
         "ffmpeg": args.ffmpeg,
         "hls_dir": hls_dir,
     })
+
+    # For the live-position seek on /stream.ts (start viewers "now", not at t=0).
+    CONFIG["duration"] = probe_duration(CONFIG["input"], CONFIG["ffmpeg"])
+    CONFIG["start_time"] = time.time()
 
     writer = HlsWriter(hls_dir)
     writer.start()
