@@ -404,15 +404,15 @@ VOD_PATH            = /home/xc_vm/www/vod/
 Two tools verify that a stream delivers correctly — that segments arrive in order
 and the delivery queue does not break.
 
-### `tools/stream_queue_check.py` (Python, stdlib only)
+### `tools/stream-check/stream_queue_check.py` (Python, stdlib only)
 
 Standalone monitor for **segment/packet queue integrity** with an optional **live
 buffer dashboard**. Auto-detects HLS vs MPEG-TS.
 
 ```bash
-python3 tools/stream_queue_check.py "<url>" --duration 30        # batch check
-python3 tools/stream_queue_check.py "<url>" --json               # cron / monitoring
-python3 tools/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
+python3 tools/stream-check/stream_queue_check.py "<url>" --duration 30        # batch check
+python3 tools/stream-check/stream_queue_check.py "<url>" --json               # cron / monitoring
+python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
 ```
 
 What "queue intact" means per stream type:
@@ -493,4 +493,4 @@ console.php stream:check "<url>" --decode=30 --json
 | `src/Domain/Stream/ConnectionTracker.php` | connection state in Redis/MySQL |
 | `src/Core/Init/LegacyInitializer.php` | global variable setup for streaming |
 | `src/Cli/Commands/StreamCheckCommand.php` | `stream:check` — probe/decode a stream for broken segments |
-| `tools/stream_queue_check.py` | queue-integrity monitor + live buffer dashboard |
+| `tools/stream-check/stream_queue_check.py` | queue-integrity monitor + live buffer dashboard |

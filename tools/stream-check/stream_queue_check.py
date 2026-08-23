@@ -18,9 +18,9 @@ Two independent queues are checked, depending on the stream type:
 The type is auto-detected. Exit code: 0 = healthy, 2 = queue problem, 1 = usage.
 
 Run:
-    python3 tools/stream_queue_check.py <url> [options]
+    python3 tools/stream-check/stream_queue_check.py <url> [options]
     # the file is executable, so this also works:
-    tools/stream_queue_check.py <url> [options]
+    tools/stream-check/stream_queue_check.py <url> [options]
 
 Arguments:
     url                  Stream URL — HLS .m3u8 or MPEG-TS .ts
@@ -44,14 +44,15 @@ Options:
     --no-color           Disable ANSI colors.
 
 Examples:
-    python3 tools/stream_queue_check.py "http://host/live/user/pass/1.m3u8" --duration 60
-    python3 tools/stream_queue_check.py "http://host/play/<token>/ts" --json
-    python3 tools/stream_queue_check.py "http://host/live/user/pass/1.m3u8" --live --prebuffer 5
+    python3 tools/stream-check/stream_queue_check.py "http://host/live/user/pass/1.m3u8" --duration 60
+    python3 tools/stream-check/stream_queue_check.py "http://host/play/<token>/ts" --json
+    python3 tools/stream-check/stream_queue_check.py "http://host/live/user/pass/1.m3u8" --live --prebuffer 5
 
 @package XC_VM_Tools
 @license AGPL-3.0
 """
 
+import os
 import sys
 import time
 import json
@@ -816,10 +817,233 @@ def run_live(url, ua, args):
     return 0
 
 
+# ─────────────────────────── m3u playlist batch ──────────────────────────
+#
+# Parse an .m3u channel list (EXTINF name + URL pairs), test each stream for a
+# fixed duration, and emit ONE JSON document with a per-stream verdict plus a
+# per-second time-series (the "graph" from the live dashboard, as data).
+
+def slugify(name, fallback="stream"):
+    """Filesystem-safe slug for a per-stream log filename."""
+    out = []
+    for ch in (name or ""):
+        out.append(ch if (ch.isalnum() or ch in "-_.") else "_")
+    slug = "".join(out).strip("._") or fallback
+    return slug[:80]
+
+
+def parse_m3u(text):
+    """Extract channel entries from an .m3u/.m3u8 CHANNEL list (not a media
+    playlist): pairs of `#EXTINF:<dur> <attrs>,<name>` + the following URL line.
+    Bare URL lines (no EXTINF) are accepted too. Returns [{"name","url","attrs"}]."""
+    entries = []
+    name, attrs = None, ""
+    for raw in text.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("#EXTINF:"):
+            rest = line[len("#EXTINF:"):]
+            if "," in rest:
+                meta, nm = rest.rsplit(",", 1)
+                name, attrs = nm.strip(), meta.strip()
+            else:
+                name, attrs = None, rest.strip()
+        elif line.startswith("#"):
+            continue  # other tags (#EXTM3U, #EXTVLCOPT, …)
+        else:
+            entries.append({"name": name or line, "url": line, "attrs": attrs})
+            name, attrs = None, ""
+    return entries
+
+
+def load_playlist_source(src, ua):
+    """Read an .m3u from a local file path or an http(s) URL."""
+    if src.startswith("http://") or src.startswith("https://"):
+        _, _, body = http_get(src, ua)
+        return body.decode("utf-8", "replace")
+    with open(src, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
+
+
+def run_batch_stream(url, name, ua, duration, args):
+    """Headless per-stream test used by --playlist. Drives the same LiveModel +
+    reader worker as the live dashboard, but instead of rendering ANSI it samples
+    the metrics once per second into a JSON time-series and derives a queue verdict
+    from the accumulated counters. One connection per stream."""
+    rec = {"name": name, "url": url, "mode": "?", "duration": duration,
+           "healthy": False, "details": {}, "samples": [], "errors": []}
+    try:
+        kind, final_url, _head = detect_kind(url, ua)
+    except Exception as e:
+        rec["errors"].append("cannot open: %s" % e)
+        return rec
+
+    model = LiveModel()
+    model.mode = kind
+    model.url = url
+    rec["mode"] = kind
+    stop = threading.Event()
+    if kind == "ts":
+        worker = threading.Thread(target=ts_reader, args=(final_url, ua, model, stop), daemon=True)
+    else:
+        try:
+            _, _, body = http_get(final_url, ua)
+            media_url, _ = resolve_master(final_url, body.decode("utf-8", "replace"), ua)
+        except Exception as e:
+            rec["errors"].append("cannot start HLS: %s" % e)
+            return rec
+        worker = threading.Thread(target=hls_poller, args=(media_url, ua, model, stop), daemon=True)
+    worker.start()
+
+    played, rebuffers, max_gap = 0.0, 0, 0.0
+    playing = starving = stalled = False
+    deadline = model.start + duration
+    last_tick = time.time()
+    next_sample = model.start
+    try:
+        while time.time() < deadline:
+            now = time.time()
+            dt = now - last_tick
+            last_tick = now
+            with model.lock:
+                recv = model.received_seconds()
+                kbit, last_data = model.kbit_s, model.last_data
+                cc, sync = model.cc_errors, model.sync_errors
+                gaps, disc = model.hls_gaps, model.hls_disc
+                stopped, err = model.stopped, model.error
+            gap = now - last_data
+            max_gap = max(max_gap, gap)
+            if gap > args.stall_timeout:
+                stalled = True
+            if not playing and recv >= args.prebuffer:
+                playing = True
+            state = "PLAYING" if playing else "PREBUFFER"
+            if playing:
+                if recv - played > 1e-6:
+                    played = min(recv, played + dt)
+                    starving = False
+                else:
+                    state = "BUFFERING"
+                    if not starving:
+                        rebuffers += 1
+                        starving = True
+            buffer_ahead = max(0.0, recv - played)
+            if now >= next_sample:
+                rec["samples"].append({
+                    "t": round(now - model.start, 1), "kbit_s": kbit,
+                    "buffer_s": round(buffer_ahead, 1), "received_s": round(recv, 1),
+                    "state": state, "cc_errors": cc, "sync_errors": sync,
+                    "gaps": gaps, "disc": disc,
+                })
+                next_sample += 1.0
+            if err:
+                rec["errors"].append(err)
+                break
+            if stopped and buffer_ahead <= 0:
+                break
+            time.sleep(0.25)
+    finally:
+        stop.set()
+
+    with model.lock:
+        got = (model.total_bytes > 0) if kind == "ts" \
+            else any(s["downloaded"] for s in model.segments)
+        rec["details"] = {
+            "kbit_s": model.kbit_s, "total_bytes": model.total_bytes,
+            "cc_errors": model.cc_errors, "sync_errors": model.sync_errors,
+            "hls_gaps": model.hls_gaps, "hls_disc": model.hls_disc,
+            "received_s": round(model.received_seconds(), 1),
+            "rebuffers": rebuffers, "max_data_gap_s": round(max_gap, 1),
+            "stalled": stalled,
+        }
+    d = rec["details"]
+    queue_breaks = d["cc_errors"] + d["sync_errors"] + d["hls_gaps"] + d["hls_disc"]
+    # HLS segment length is often INTENTIONALLY variable (panels randomise it to
+    # defeat ISP traffic-pattern analysis), so a long inter-segment delivery gap
+    # is not a fault by itself — judge HLS by real playback starvation (a buffer
+    # that actually drained → rebuffer). A continuous TS byte stream has no such
+    # excuse: a gap beyond --stall-timeout is a genuine stall.
+    playback_ok = (rebuffers == 0) if kind == "hls" else (not stalled)
+    rec["healthy"] = bool(got and queue_breaks <= args.tolerance
+                          and playback_ok and not rec["errors"])
+    return rec
+
+
+def run_playlist(args):
+    duration = args.duration if args.duration is not None else 120
+    try:
+        text = load_playlist_source(args.playlist, args.ua)
+    except Exception as e:
+        print("cannot read playlist: %s" % e, file=sys.stderr)
+        return 1
+    entries = parse_m3u(text)
+    if not entries:
+        print("no streams found in playlist", file=sys.stderr)
+        return 1
+    if args.out_dir:
+        try:
+            os.makedirs(args.out_dir, exist_ok=True)
+        except OSError as e:
+            print("cannot create --out-dir %s: %s" % (args.out_dir, e), file=sys.stderr)
+            return 1
+    streams = []
+    for i, e in enumerate(entries, 1):
+        print("[%d/%d] %s — testing %ss …" % (i, len(entries), e["name"], duration),
+              file=sys.stderr, flush=True)
+        rec = run_batch_stream(e["url"], e["name"], args.ua, duration, args)
+        print("      %s (%s)" % ("OK" if rec["healthy"] else "FAIL",
+                                 "; ".join(rec["errors"]) or rec["mode"]),
+              file=sys.stderr, flush=True)
+        # Per-stream log file (written as each stream finishes, so logs appear live).
+        if args.out_dir:
+            fname = "%02d-%s.json" % (i, slugify(e["name"]))
+            fpath = os.path.join(args.out_dir, fname)
+            try:
+                with open(fpath, "w", encoding="utf-8") as fh:
+                    json.dump(rec, fh, indent=2, ensure_ascii=False)
+                print("      → %s" % fpath, file=sys.stderr, flush=True)
+            except OSError as err:
+                print("      (could not write %s: %s)" % (fpath, err), file=sys.stderr)
+        streams.append(rec)
+    healthy = sum(1 for s in streams if s["healthy"])
+    out = {
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "duration_per_stream": duration,
+        "streams": streams,
+        "summary": {"total": len(streams), "healthy": healthy,
+                    "failed": len(streams) - healthy},
+    }
+    # Interactive terminal → a short human summary (the full JSON dump floods the
+    # console). Redirected/piped stdout (a file, the harness) → the full JSON, so
+    # machine consumers keep working unchanged.
+    if sys.stdout.isatty():
+        s = out["summary"]
+        print("%d streams: %d healthy, %d failed  (%ss each)"
+              % (s["total"], s["healthy"], s["failed"], duration))
+        for st in out["streams"]:
+            extra = (" — " + "; ".join(st["errors"])) if st["errors"] else ""
+            print("  %-4s %-4s %s%s"
+                  % ("OK" if st["healthy"] else "FAIL", st["mode"], st["name"], extra))
+        if args.out_dir:
+            print("per-stream JSON → %s/" % args.out_dir)
+    else:
+        print(json.dumps(out, indent=2, ensure_ascii=False))
+    return 0 if healthy == len(streams) else 2
+
+
 def main():
     ap = argparse.ArgumentParser(description="Check stream segment/packet queue integrity.")
-    ap.add_argument("url", help="stream URL (HLS .m3u8 or MPEG-TS .ts)")
-    ap.add_argument("--duration", type=int, default=30, help="seconds to observe (default 30)")
+    ap.add_argument("url", nargs="?", help="stream URL (HLS .m3u8 or MPEG-TS .ts)")
+    ap.add_argument("--playlist", metavar="PATH|URL",
+                    help="test every stream in an .m3u channel list (local file or URL); emits one "
+                         "JSON document with a per-stream verdict and a per-second time-series "
+                         "('the graph as JSON'). Default per-stream duration is 120s")
+    ap.add_argument("--out-dir", metavar="DIR",
+                    help="--playlist mode: also write a separate JSON log per stream into DIR "
+                         "(one file '<NN>-<name>.json' each, written as that stream finishes)")
+    ap.add_argument("--duration", type=int, default=None,
+                    help="seconds to observe each stream (default 30, or 120 in --playlist mode)")
     ap.add_argument("--stall-timeout", type=float, default=15.0,
                     help="TS: gap in delivery (s) counted as a stall; keep it above the "
                          "segment duration so normal per-segment bursts aren't flagged (default 15)")
@@ -838,7 +1062,15 @@ def main():
     ap.add_argument("--no-color", action="store_true", help="disable ANSI colors")
     args = ap.parse_args()
 
+    if args.playlist:
+        return run_playlist(args)
+
+    if not args.url:
+        ap.error("a stream URL is required (or use --playlist)")
+    duration = args.duration if args.duration is not None else 30
+
     if args.live:
+        args.duration = duration
         return run_live(args.url, args.ua, args)
 
     report = {"url": args.url, "mode": "?", "healthy": False, "details": {}, "errors": []}
@@ -846,9 +1078,9 @@ def main():
     try:
         kind, final_url, head = detect_kind(args.url, args.ua)
         if kind == "hls":
-            check_hls(final_url, args.ua, args.duration, report)
+            check_hls(final_url, args.ua, duration, report)
         else:
-            check_ts(final_url, args.ua, args.duration, head, report, args.stall_timeout, args.tolerance)
+            check_ts(final_url, args.ua, duration, head, report, args.stall_timeout, args.tolerance)
     except urllib.error.HTTPError as e:
         report["errors"].append("HTTP %s: %s" % (e.code, e.reason))
     except Exception as e:
