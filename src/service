@@ -18,22 +18,9 @@ boot() {
   if [ -f $SCRIPT/bin/redis/redis-server ]; then
     sudo -u xc_vm $SCRIPT/bin/redis/redis-server $SCRIPT/bin/redis/redis.conf >/dev/null 2>/dev/null
   fi
-  # xc_fanout live fan-out daemon (ADR 0002/0003, P2/G). The keepalive loop runs
-  # UNCONDITIONALLY and re-checks for the binary each pass (2s backoff), so a node
-  # that receives the daemon later — fanout_binary pulls it on first install /
-  # update / the RootSignals hourly self-heal — starts serving within ~2s WITHOUT
-  # a service restart (closes the fresh-install bootstrap gap; fanout_binary only
-  # pkills and relies on this loop to respawn). A crash is auto-restarted (the
-  # Restart=always equivalent, no second systemd unit). The loop + daemon run as
-  # xc_vm, so `stop`'s `pkill -u xc_vm` ends both and nothing respawns on shutdown.
   mkdir -p $SCRIPT/bin/xc_fanout/sockets
   sudo chown -R xc_vm:xc_vm $SCRIPT/bin/xc_fanout 2>/dev/null
-  # -ffmpeg/-font power the admin "send message" drawtext overlay (Phase E): the
-  # daemon burns the banner onto a signalled viewer's HLS segment / TS window.
-  # FF picks the NEWEST bundled ffmpeg that actually has the drawtext filter — some
-  # bundled builds (8.0/7.1) lack it despite libfreetype, and without drawtext the
-  # overlay silently no-ops; fall back to the newest if none have it (overlay off).
-  sudo -u xc_vm bash -c 'while true; do if [ -x '"$SCRIPT"'/bin/xc_fanout/xc_fanout ]; then FF=""; for c in $(ls -d '"$SCRIPT"'/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -Vr); do "$c" -hide_banner -filters 2>/dev/null | grep -qw drawtext && { FF="$c"; break; }; done; [ -n "$FF" ] || FF=$(ls -d '"$SCRIPT"'/bin/ffmpeg_bin/*/ffmpeg 2>/dev/null | sort -V | tail -1); '"$SCRIPT"'/bin/xc_fanout/xc_fanout -sock '"$SCRIPT"'/bin/xc_fanout/sockets/http.sock -ctl '"$SCRIPT"'/bin/xc_fanout/sockets/control.sock -ffmpeg "${FF:-ffmpeg}" -font '"$SCRIPT"'/bin/free-sans.ttf >>'"$SCRIPT"'/tmp/xc_fanout.log 2>&1; fi; sleep 2; done' &
+  sudo -u xc_vm $SCRIPT/bin/xc_fanout/run.sh &
   sudo -u xc_vm $SCRIPT/bin/nginx/sbin/nginx >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/nginx_rtmp/sbin/nginx_rtmp >/dev/null 2>/dev/null
   sudo -u xc_vm $SCRIPT/bin/daemons.sh
