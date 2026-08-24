@@ -21,7 +21,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 						if (isset($rStream['id'])) {
 							echo $rStream['stream_display_name'];
 						} else {
-							if (isset(RequestManager::getAll()['import'])) {
+							if (RequestManager::has('import')) {
 								echo 'Import Streams';
 							} else {
 								echo 'Add Stream';
@@ -38,7 +38,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 				<div class="card">
 					<div class="card-body">
 						<form
-							<?php if (isset(RequestManager::getAll()['import'])): ?>
+							<?php if (RequestManager::has('import')): ?>
 							enctype="multipart/form-data"
 							<?php endif; ?>
 							action="#"
@@ -61,13 +61,13 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 									<li class="nav-item"><a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> <i class="mdi mdi-account-card-details-outline mr-1"></i><span class="d-none d-sm-inline"><?= $language::get('details') ?></span></a></li>
 
 									<?php
-									if (!isset(RequestManager::getAll()['import'])) {
+									if (!RequestManager::has('import')) {
 										echo ' <li class="nav-item"><a href="#stream-sources" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-arrow-up-down-bold-outline mr-1"></i><span class="d-none d-sm-inline">' . $language::get('sources') . '</span></a></li> ';
 									}
 
 									echo '<li class="nav-item"><a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-folder-alert-outline mr-1"></i><span class="d-none d-sm-inline">' . $language::get('advanced') . '</span></a></li>';
 
-									if (isset(RequestManager::getAll()['import'])) {
+									if (RequestManager::has('import')) {
 									} else {
 										echo '<li class="nav-item"><a href="#stream-map" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-map mr-1"></i><span class="d-none d-sm-inline">' . $language::get('map') . '</span></a></li>
 									<li class="nav-item"><a href="#epg-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"><i class="mdi mdi-television-guide mr-1"></i><span class="d-none d-sm-inline">' . $language::get('epg') . '</span></a></li> ';
@@ -85,15 +85,15 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 										<div class="row">
 											<div class="col-12">
 												<?php
-												if (!isset(RequestManager::getAll()['import'])) {
+												if (!RequestManager::has('import')) {
 													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="stream_display_name">' . $language::get('stream_name') . '</label>
 													<div class="col-md-9"><input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="';
 
 													if (isset($rStream)) {
 														echo htmlspecialchars($rStream['stream_display_name']);
 													} else {
-														if (isset(RequestManager::getAll()['title'])) {
-															echo str_replace('"', ' &quot;', RequestManager::getAll()['title']);
+														if (RequestManager::has('title')) {
+															echo str_replace('"', ' &quot;', RequestManager::get('title'));
 														}
 													}
 
@@ -102,8 +102,8 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													if (isset($rStream)) {
 														echo htmlspecialchars($rStream['stream_icon']);
 													} else {
-														if (isset(RequestManager::getAll()['icon'])) {
-															echo str_replace('"', '&quot;', RequestManager::getAll()['icon']);
+														if (RequestManager::has('icon')) {
+															echo str_replace('"', '&quot;', RequestManager::get('icon'));
 														}
 													}
 
@@ -155,7 +155,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 
 												echo '</textarea></div></div></div> </div> <ul class="list-inline wizard mb-0"><li class="nextb list-inline-item float-right"><a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a></li></ul></div>                                    ';
 
-												if (isset(RequestManager::getAll()['import'])) {
+												if (RequestManager::has('import')) {
 												} else {
 													echo '                                    <div class="tab-pane" id="stream-sources"><div class="row"><div class="col-12">                                                <table id="datatable-sources" class="table table-striped table-borderless mb-0">                                                    <thead>                                                        <tr>                                                            <th>' . $language::get('url') . '</th>                                                            ';
 
@@ -173,8 +173,8 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 															$rStreamSources = array('');
 														}
 													} else {
-														if (isset(RequestManager::getAll()['url'])) {
-															$rStreamSources = array(str_replace('"', '&quot;', RequestManager::getAll()['url']));
+														if (RequestManager::has('url')) {
+															$rStreamSources = array(str_replace('"', '&quot;', RequestManager::get('url')));
 														} else {
 															$rStreamSources = array('');
 														}
@@ -285,7 +285,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 
 												echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>                                                ';
 
-												if (!isset(RequestManager::getAll()['import'])) {
+												if (!RequestManager::has('import')) {
 												} else {
 													echo '                                                <div class="form-group row mb-4"><label class="col-md-3 col-form-label" for="add_source_as_backup">Add Source as Backup <i title="' . $language::get('if_an_identical_stream_name_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-3"><input name="add_source_as_backup" id="add_source_as_backup" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div><label class="col-md-4 col-form-label" for="update_existing">Update Existing <i title="' . $language::get('if_the_source_exists_overwrite_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label><div class="col-md-2"><input name="update_existing" id="update_existing" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/></div></div>                                                ';
 												}
@@ -520,7 +520,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 								</div>
 								<?php
 
-								if (!isset(RequestManager::getAll()['import'])) {
+								if (!RequestManager::has('import')) {
 									echo '<div class="tab-pane" id="stream-map">
 												<div class="row">
 													<div class="col-12">
@@ -994,7 +994,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 	echo (intval($rSettings['default_entries']) ?: 10);
 	echo "\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-provider-streams").css("width", "100%");' . "\r\n" . '            $("#provider-streams").click(function() {' . "\r\n" . '                $("#datatable-provider-streams").DataTable().search($("#stream_display_name").val()).draw();' . "\r\n" . '                $(".bs-provider-streams-modal-center").modal("show");' . "\r\n" . '            });' . "\r\n" . '            $("#epg_picon_save").click(function() {' . "\r\n" . '                $("#stream_icon").val($("#epg-picon").attr("src")).trigger("change");' . "\r\n" . '                $(".bs-picon-modal-center").modal("hide");' . "\r\n" . '                $.toast("Stream icon has been set.");' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#capture_server_id").change(function() {' . "\r\n\t\t\t\t" . 'if (window.rVideoDevices[$("#capture_server_id").val()]) {' . "\r\n\t\t\t\t\t" . '// Coming soon! :)' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if (window.rAudioDevices[$("#capture_server_id").val()]) {' . "\r\n\t\t\t\t\t" . '// Coming soon! :)' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'evaluateDirectSource();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t";
 
-	if (!isset(RequestManager::getAll()['import'])) {
+	if (!RequestManager::has('import')) {
 		echo "\t\t\t\t" . 'if ($("#stream_display_name").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("Enter a stream name.");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t";
 	} else {
 		echo "\t\t\t\t" . 'if ($("#m3u_file").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("Please select a M3U file to upload.");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t";
@@ -1002,7 +1002,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 
 	echo "\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));";
 
-	if (!isset(RequestManager::getAll()['import'])) {
+	if (!RequestManager::has('import')) {
 		echo '                var rRTMPPush = {};' . "\r\n" . '                $(".rtmp_info").each(function() {' . "\r\n" . '                    rServerID = $(this).find("select").val();' . "\r\n" . '                    rSource = $(this).find("input").val();' . "\r\n" . '                    if (rServerID > 0 && rSource.length > 0) {' . "\r\n" . '                        if (!rRTMPPush[rServerID]) {' . "\r\n" . '                            rRTMPPush[rServerID] = [];' . "\r\n" . '                        }' . "\r\n" . '                        rRTMPPush[rServerID].push(rSource);' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '                $("#external_push").val(JSON.stringify(rRTMPPush));' . "\r\n" . '                ';
 	}
 

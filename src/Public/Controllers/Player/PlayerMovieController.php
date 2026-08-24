@@ -24,7 +24,7 @@ class PlayerMovieController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (($rStream = getStream(RequestManager::getAll()['id'])) && in_array(RequestManager::getAll()['id'], $rUserInfo['vod_ids'])) {
+        if (($rStream = getStream(RequestManager::get('id'))) && in_array(RequestManager::get('id'), $rUserInfo['vod_ids'])) {
             $rProperties = json_decode($rStream['movie_properties'], true);
             $rSubtitles = array(getSubtitles($rStream['id'], $rProperties['subtitle'] ?? []));
             $rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);

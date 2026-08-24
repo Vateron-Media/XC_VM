@@ -77,7 +77,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                     <option value="" selected><?= $language::get('all_categories') ?></option>
                                                     <option value="-1"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach ($rCategories as $rCategory) { ?>
-                                                        <option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
+                                                        <option value="<?php echo intval($rCategory['id']); ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
                                                                                                                     echo ' selected';
                                                                                                                 } ?>>
                                                             <?php echo htmlspecialchars($rCategory['category_name']); ?>

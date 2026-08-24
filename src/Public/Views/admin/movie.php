@@ -19,7 +19,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 						if (isset($rMovie['id'])):
 							echo $rMovie['stream_display_name'];
 						else:
-							if (isset(RequestManager::getAll()['import'])):
+							if (RequestManager::has('import')):
 								echo $language::get('import_movies');
 							else:
 								echo $language::get('add_movie');
@@ -87,7 +87,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 
 				<div class="card">
 					<div class="card-body">
-						<form<?php if (isset(RequestManager::getAll()['import'])): ?> enctype="multipart/form-data" <?php endif; ?> action="#" method="POST" data-parsley-validate="">
+						<form<?php if (RequestManager::has('import')): ?> enctype="multipart/form-data" <?php endif; ?> action="#" method="POST" data-parsley-validate="">
 							<?php if (isset($rMovie['id'])): ?>
 								<input type="hidden" name="edit" value="<?php echo $rMovie['id']; ?>" />
 							<?php endif; ?>
@@ -103,7 +103,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 											<span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
 										</a>
 									</li>
-									<?php if (!isset(RequestManager::getAll()['import'])): ?>
+									<?php if (!RequestManager::has('import')): ?>
 										<li class="nav-item">
 											<a href="#movie-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-movie-outline mr-1"></i>
@@ -128,14 +128,14 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 									<div class="tab-pane" id="stream-details">
 										<div class="row">
 											<div class="col-12">
-												<?php if (!isset(RequestManager::getAll()['import'])): ?>
+												<?php if (!RequestManager::has('import')): ?>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="stream_display_name"><?php echo $language::get('movie_name'); ?></label>
 														<div class="col-md-6">
 															<input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="<?php if (isset($rMovie)) {
 																																									echo htmlspecialchars($rMovie['stream_display_name']);
-																																								} elseif (isset(RequestManager::getAll()['title'])) {
-																																									echo str_replace('"', '&quot;', RequestManager::getAll()['title']);
+																																								} elseif (RequestManager::has('title')) {
+																																									echo str_replace('"', '&quot;', RequestManager::get('title'));
 																																								} ?>" required data-parsley-trigger="change">
 														</div>
 														<div class="col-md-2">
@@ -165,7 +165,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													<div class="form-group row mb-4 stream-url">
 														<label class="col-md-4 col-form-label" for="stream_source"><?php echo $language::get('movie_path_or_url'); ?></label>
 														<div class="col-md-8 input-group">
-															<input type="text" id="stream_source" name="stream_source" class="form-control" value="<?php echo isset($rMovie) ? $rPathSources : (isset(RequestManager::getAll()['path']) ? htmlspecialchars(RequestManager::getAll()['path']) : ''); ?>" required data-parsley-trigger="change">
+															<input type="text" id="stream_source" name="stream_source" class="form-control" value="<?php echo isset($rMovie) ? $rPathSources : (RequestManager::has('path') ? htmlspecialchars(RequestManager::get('path')) : ''); ?>" required data-parsley-trigger="change">
 															<div class="input-group-append">
 																<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
 																<?php if (!$rMobile): ?>
@@ -220,7 +220,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 													</div>
 												<?php endif; ?>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="category_id"><?php if (!empty(RequestManager::getAll()['import'])) {
+													<label class="col-md-4 col-form-label" for="category_id"><?php if (!empty(RequestManager::get('import'))) {
 																													echo 'Fallback ';
 																												} ?>Categories</label>
 													<div class="col-md-8">
@@ -238,7 +238,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 												</div>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label"
-														for="bouquets"><?php if (!empty(RequestManager::getAll()['import'])) {
+														for="bouquets"><?php if (!empty(RequestManager::get('import'))) {
 																			echo 'Fallback ';
 																		} ?><?php echo $language::get('bouquets'); ?></label>
 													<div class="col-md-8">
@@ -252,7 +252,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 														</div>
 													</div>
 												</div>
-												<?php if (isset(RequestManager::getAll()['import'])): ?>
+												<?php if (RequestManager::has('import')): ?>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="disable_tmdb">Disable TMDb <i title="<?= $language::get('do_not_use_tmdb_to_match_the_content') ?>" class="tooltip text-secondary far fa-circle"></i></label>
 														<div class="col-md-2">
@@ -423,7 +423,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 																																} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
 													</div>
 												</div>
-												<?php if (!isset(RequestManager::getAll()['import'])): ?>
+												<?php if (!RequestManager::has('import')): ?>
 													<?php
 													$rSubFile = '';
 													if (isset($rMovie)) {
@@ -523,7 +523,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 											<div class="col-md-8">
 												<select id="server_id" class="form-control" data-toggle="select2">
 													<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
-														<option value="<?php echo htmlspecialchars($rServer['id']); ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']) echo ' selected'; ?>>
+														<option value="<?php echo htmlspecialchars($rServer['id']); ?>" <?php if (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']) echo ' selected'; ?>>
 															<?php echo htmlspecialchars($rServer['server_name']); ?>
 														</option>
 													<?php endforeach; ?>
@@ -539,7 +539,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 												</div>
 											</div>
 										</div>
-										<?php if (!isset(RequestManager::getAll()['import'])): ?>
+										<?php if (!RequestManager::has('import')): ?>
 											<div class="form-group row mb-4">
 												<label class="col-md-4 col-form-label" for="search"><?php echo htmlspecialchars($language::get('search_directory')); ?></label>
 												<div class="col-md-8 input-group">
@@ -575,7 +575,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 												</table>
 											</div>
 										</div>
-										<?php if (isset(RequestManager::getAll()['import'])): ?>
+										<?php if (RequestManager::has('import')): ?>
 											<div class="float-right">
 												<input id="select_folder" type="button" class="btn btn-info" value="Select" />
 											</div>
@@ -756,14 +756,14 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 		echo $language::get('no_results_found');
 		echo '", -1, true, true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . "\$(\"#tmdb_search\").val(-1).trigger('change');" . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'window.changeTitle = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#tmdb_search").change(function() {' . "\r\n\t\t\t\t" . 'if (($("#tmdb_search").val()) && ($("#tmdb_search").val() > -1)) {' . "\r\n\t\t\t\t\t" . '$.getJSON("./api?action=tmdb&type=movie&id=" + encodeURIComponent($("#tmdb_search").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {' . "\r\n\t\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t\t" . 'window.changeTitle = true;' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.release_date) {' . "\r\n" . '                                $("#year").val(data.data.release_date.substr(0, 4));' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n" . '                                $("#year").val("");' . "\r\n" . '                            }' . "\r\n\t\t\t\t\t\t\t" . '$("#stream_display_name").val(data.data.title);' . "\r\n\t\t\t\t\t\t\t" . '$("#movie_image").val("");' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.poster_path) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#movie_image").val("https://image.tmdb.org/t/p/w600_and_h900_bestv2" + data.data.poster_path);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$("#backdrop_path").val("");' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.backdrop_path) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#backdrop_path").val("https://image.tmdb.org/t/p/w1280" + data.data.backdrop_path);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$("#release_date").val(data.data.release_date);' . "\r\n\t\t\t\t\t\t\t" . '$("#episode_run_time").val(data.data.runtime);' . "\r\n\t\t\t\t\t\t\t" . '$("#youtube_trailer").val("");' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.trailer) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#youtube_trailer").val(data.data.trailer);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . 'rCast = "";' . "\r\n\t\t\t\t\t\t\t" . 'rMemberID = 0;' . "\r\n\t\t\t\t\t\t\t" . '$(data.data.credits.cast).each(function(id, member) {' . "\r\n\t\t\t\t\t\t\t\t" . 'rMemberID += 1;' . "\r\n\t\t\t\t\t\t\t\t" . 'if (rMemberID <= 5) {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'if (rCast) {' . "\r\n\t\t\t\t\t\t\t\t\t\t" . 'rCast += ", ";' . "\r\n\t\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t\t\t" . 'rCast += member.name;' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t\t" . '$("#cast").val(rCast);' . "\r\n\t\t\t\t\t\t\t" . 'rGenres = "";' . "\r\n\t\t\t\t\t\t\t" . 'rGenreID = 0;' . "\r\n\t\t\t\t\t\t\t" . '$(data.data.genres).each(function(id, genre) {' . "\r\n\t\t\t\t\t\t\t\t" . 'rGenreID += 1;' . "\r\n\t\t\t\t\t\t\t\t" . 'if (rGenreID <= 3) {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'if (rGenres) {' . "\r\n\t\t\t\t\t\t\t\t\t\t" . 'rGenres += ", ";' . "\r\n\t\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t\t\t" . 'rGenres += genre.name;' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t\t" . '$("#genre").val(rGenres);' . "\r\n" . '                            rDirectors = "";' . "\r\n" . '                            rDirectorID = 0;' . "\r\n\t\t\t\t\t\t\t" . '$(data.data.credits.crew).each(function(id, member) {' . "\r\n\t\t\t\t\t\t\t\t" . 'if ((member.department == "Directing") || (member.known_for_department == "Directing")) {' . "\r\n" . '                                    rDirectorID += 1;' . "\r\n" . '                                    if (rDirectorID <= 3) {' . "\r\n" . '                                        if (rDirectors) {' . "\r\n" . '                                            rDirectors += ", ";' . "\r\n" . '                                        }' . "\r\n" . '                                        rDirectors += member.name;' . "\r\n" . '                                    }' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '});' . "\r\n" . '                            $("#director").val(rDirectors);' . "\r\n\t\t\t\t\t\t\t" . '$("#country").val("");' . "\r\n\t\t\t\t\t\t\t" . '$("#plot").val(data.data.overview);' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.production_countries) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#country").val(data.data.production_countries[0].name);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$("#rating").val(data.data.vote_average);' . "\r\n\t\t\t\t\t\t\t" . '$("#tmdb_id").val(data.data.id);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t";
 
-		if (!(isset($rMovie) || isset(RequestManager::getAll()['title']))) {
+		if (!(isset($rMovie) || RequestManager::has('title'))) {
 		} else {
 			echo "\t\t\t" . "\$(\"#stream_display_name\").trigger('change');" . "\r\n\t\t\t";
 		}
 
 		echo "\t\t\t" . '$("#import_type_1").click(function() {' . "\r\n\t\t\t\t" . '$("#import_m3uf_toggle").show();' . "\r\n\t\t\t\t" . '$("#import_folder_toggle").hide();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#import_type_2").click(function() {' . "\r\n\t\t\t\t" . '$("#import_m3uf_toggle").hide();' . "\r\n\t\t\t\t" . '$("#import_folder_toggle").show();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t\r\n\t\t\t" . '$("#runtime").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#year").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . 'evaluateSymlink();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t";
 
-		if (!isset(RequestManager::getAll()['import'])) {
+		if (!RequestManager::has('import')) {
 			echo "\t\t\t\t" . 'if ($("#stream_display_name").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
 			echo $language::get('enter_movie_name');
 			echo '");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if ($("#stream_source").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';

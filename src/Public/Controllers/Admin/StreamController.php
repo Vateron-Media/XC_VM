@@ -28,9 +28,9 @@ class StreamController extends BaseAdminController {
 
         $rStream = null;
 
-        if (isset(RequestManager::getAll()['id'])) {
-            if (!isset(RequestManager::getAll()['import']) && Authorization::check('adv', 'edit_stream')) {
-                $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            if (!RequestManager::has('import') && Authorization::check('adv', 'edit_stream')) {
+                $rStream = StreamRepository::getById(RequestManager::get('id'));
                 if (!$rStream || $rStream['type'] != 1) {
                     $this->redirect('streams');
                     return;
@@ -64,8 +64,8 @@ class StreamController extends BaseAdminController {
         }
 
         if (isset($rStream)) {
-            $rStreamOptions = StreamRepository::getOptions(RequestManager::getAll()['id']);
-            $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
+            $rStreamOptions = StreamRepository::getOptions(RequestManager::get('id'));
+            $rStreamSys = StreamRepository::getSystemRows(RequestManager::get('id'));
 
             foreach ($rServers as $rServer) {
                 if (isset($rStreamSys[intval($rServer['id'])])) {

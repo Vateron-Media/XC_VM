@@ -36,7 +36,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 								<select id="server" class="form-control" data-toggle="select2">
 									<option value="" selected><?= $language::get('all_servers') ?></option>
 									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']): ?> selected<?php endif; ?>><?php echo $rServer['server_name']; ?></option>
+										<option value="<?php echo $rServer['id']; ?>" <?php if (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']): ?> selected<?php endif; ?>><?php echo $rServer['server_name']; ?></option>
 									<?php endforeach; ?>
 								</select>
 							</div>
@@ -44,16 +44,16 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 								<select id="category" class="form-control" data-toggle="select2">
 									<option value="" selected><?= $language::get('all_categories') ?></option>
 									<?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
-										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']): ?> selected<?php endif; ?>><?php echo $rCategory['category_name']; ?></option>
+										<option value="<?php echo $rCategory['id']; ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']): ?> selected<?php endif; ?>><?php echo $rCategory['category_name']; ?></option>
 									<?php endforeach; ?>
 								</select>
 							</div>
 							<div class="col-md-2">
 								<select id="filter" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['filter'])): ?> selected<?php endif; ?>><?php echo $language::get('no_filter'); ?></option>
-									<option value="1" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1): ?> selected<?php endif; ?>>Ready</option>
-									<option value="2" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2): ?> selected<?php endif; ?>>Down</option>
-									<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3): ?> selected<?php endif; ?>>Not Scanned</option>
+									<option value="" <?php if (!RequestManager::has('filter')): ?> selected<?php endif; ?>><?php echo $language::get('no_filter'); ?></option>
+									<option value="1" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 1): ?> selected<?php endif; ?>>Ready</option>
+									<option value="2" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 2): ?> selected<?php endif; ?>>Down</option>
+									<option value="3" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 3): ?> selected<?php endif; ?>>Not Scanned</option>
 								</select>
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="show_entries"><?= $language::get('show') ?></label>
@@ -237,9 +237,9 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo '                order: [[ ';
-	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 7);
+	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 7);
 	echo ', "';
-	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . "}).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n\t\t\t" . 'function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#category').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#category").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#category").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#server').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-activity").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
 	<?php if (SettingsManager::get('enable_search')): ?>

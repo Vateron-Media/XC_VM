@@ -34,13 +34,13 @@ if (!empty($rData['api_key']) && AdminAPIWrapper::createSession()) {
     $rStart = intval($rData['start'] ?? 0);
     $rLimit = intval($rData['limit'] ?? 50) ?: 50;
     unset($rData['api_key'], $rData['action'], $rData['start'], $rData['limit']);
-    if (isset(RequestManager::getAll()['show_columns'])) {
-        $rShowColumns = explode(',', RequestManager::getAll()['show_columns']);
+    if (RequestManager::has('show_columns')) {
+        $rShowColumns = explode(',', RequestManager::get('show_columns'));
     } else {
         $rShowColumns = null;
     }
-    if (isset(RequestManager::getAll()['hide_columns'])) {
-        $rHideColumns = explode(',', RequestManager::getAll()['hide_columns']);
+    if (RequestManager::has('hide_columns')) {
+        $rHideColumns = explode(',', RequestManager::get('hide_columns'));
     } else {
         $rHideColumns = null;
     }

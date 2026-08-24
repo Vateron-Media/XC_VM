@@ -27,19 +27,19 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
 																					echo ' collapse';
 																				} ?>">
 							<div class="col-md-2">
-								<input type="text" class="form-control" id="act_search" value="<?php if (!isset(RequestManager::getAll()['search'])) {
+								<input type="text" class="form-control" id="act_search" value="<?php if (!RequestManager::has('search')) {
 																								} else {
-																									echo htmlspecialchars(RequestManager::getAll()['search']);
+																									echo htmlspecialchars(RequestManager::get('search'));
 																								} ?>" placeholder="<?php echo $language::get('search_logs'); ?>...">
 							</div>
 							<div class="col-md-2">
 								<select id="act_server" class="form-control" data-toggle="select2">
-									<option value="" <?php if (isset(RequestManager::getAll()['server'])) {
+									<option value="" <?php if (RequestManager::has('server')) {
 														} else {
 															echo ' selected';
 														} ?>><?php echo $language::get('all_servers'); ?></option>
 									<?php foreach (ServerRepository::getAll() as $rServer) { ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']) {
+										<option value="<?php echo $rServer['id']; ?>" <?php if (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']) {
 																							echo ' selected';
 																						} ?>><?php echo $rServer['server_name']; ?></option>
 									<?php } ?>
@@ -62,9 +62,9 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
 								</select>
 							</div>
 							<div class="col-md-2">
-								<input type="text" class="form-control text-center date" id="act_range" name="range" value="<?php if (!isset(RequestManager::getAll()['range'])) {
+								<input type="text" class="form-control text-center date" id="act_range" name="range" value="<?php if (!RequestManager::has('range')) {
 																															} else {
-																																echo htmlspecialchars(RequestManager::getAll()['range']);
+																																echo htmlspecialchars(RequestManager::get('range'));
 																															} ?>" data-toggle="date-picker" data-single-date-picker="true" placeholder="<?= $language::get('all_dates') ?>">
 							</div>
 							<label class="col-md-1 col-form-label text-center" for="act_show_entries"><?php echo $language::get('show'); ?></label>
@@ -245,14 +245,14 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 7);
+	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 7);
 	echo ', "';
-	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
 	echo '" ]],' . "\r\n" . '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#act_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#act_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#act_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n\t\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t";
 
-	if (isset(RequestManager::getAll()['range'])) {
+	if (RequestManager::has('range')) {
 		echo "\t\t\t" . '$("#act_range").val("';
-		echo str_replace('"', '\\"', htmlspecialchars(RequestManager::getAll()['range']));
+		echo str_replace('"', '\\"', htmlspecialchars(RequestManager::get('range')));
 		echo "\").trigger('change');" . "\r\n\t\t\t";
 	}
 

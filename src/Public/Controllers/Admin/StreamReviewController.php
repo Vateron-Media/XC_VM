@@ -24,29 +24,29 @@ class StreamReviewController extends BaseAdminController {
 
         global $db;
 
-        if (isset(RequestManager::getAll()['save_changes'])) {
+        if (RequestManager::has('save_changes')) {
             $rChanges = array();
 
             foreach (array_keys(RequestManager::getAll()) as $rKey) {
                 $rSplit = explode('_', $rKey);
 
-                if (!($rSplit[0] == 'modified' && RequestManager::getAll()[$rKey] == 1)) {
+                if (!($rSplit[0] == 'modified' && RequestManager::get($rKey) == 1)) {
                 } else {
                     $rID = intval($rSplit[1]);
                     $rChanges[$rID] = array();
 
                     foreach (array('name', 'channel_id', 'epg_id') as $rChangeKey) {
-                        $rChanges[$rID][$rChangeKey] = RequestManager::getAll()[$rChangeKey . '_' . $rID];
+                        $rChanges[$rID][$rChangeKey] = RequestManager::get($rChangeKey . '_' . $rID);
                     }
 
                     foreach (array('bouquets', 'categories') as $rChangeKey) {
-                        $rChanges[$rID][$rChangeKey] = json_decode(RequestManager::getAll()[$rChangeKey . '_' . $rID], true);
+                        $rChanges[$rID][$rChangeKey] = json_decode(RequestManager::get($rChangeKey . '_' . $rID), true);
                     }
                 }
             }
 
             foreach ($rChanges as $rID => $rStream) {
-                if (!RequestManager::getAll()['save_bouquets']) {
+                if (!RequestManager::get('save_bouquets')) {
                 } else {
                     $rHasBouquets = array();
 
@@ -74,13 +74,13 @@ class StreamReviewController extends BaseAdminController {
                     }
                 }
 
-                if (RequestManager::getAll()['save_categories'] && RequestManager::getAll()['save_epg']) {
+                if (RequestManager::get('save_categories') && RequestManager::get('save_epg')) {
                     $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ?, `channel_id` = ?, `epg_id` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rID);
                 } else {
-                    if (RequestManager::getAll()['save_categories']) {
+                    if (RequestManager::get('save_categories')) {
                         $db->query('UPDATE `streams` SET `stream_display_name` = ?, `category_id` = ? WHERE `id` = ?;', $rStream['name'], '[' . implode(',', array_map('intval', $rStream['categories'])) . ']', $rID);
                     } else {
-                        if (RequestManager::getAll()['save_epg']) {
+                        if (RequestManager::get('save_epg')) {
                             $db->query('UPDATE `streams` SET `stream_display_name` = ?, `channel_id` = ?, `epg_id` = ?, WHERE `id` = ?;', $rStream['name'], ($rStream['channel_id'] ?: null), (is_null($rStream['epg_id']) ? null : $rStream['epg_id']), $rID);
                         } else {
                             $db->query('UPDATE `streams` SET `stream_display_name` = ? WHERE `id` = ?;', $rStream['name'], $rID);
@@ -92,9 +92,9 @@ class StreamReviewController extends BaseAdminController {
 
             exit();
         } else {
-            if (!isset(RequestManager::getAll()['streams'])) {
+            if (!RequestManager::has('streams')) {
             } else {
-                $rStreams = json_decode(RequestManager::getAll()['streams'], true);
+                $rStreams = json_decode(RequestManager::get('streams'), true);
                 $rCategories = CategoryService::getAllByType('live');
                 $rBouquets = BouquetService::getAllSimple();
                 $rStreamBouquets = array();
@@ -108,7 +108,7 @@ class StreamReviewController extends BaseAdminController {
                         }
                     }
                 }
-                $rOptions = array('categories' => isset(RequestManager::getAll()['edit_categories']), 'epg' => isset(RequestManager::getAll()['edit_epg']), 'bouquets' => isset(RequestManager::getAll()['edit_bouquets']));
+                $rOptions = array('categories' => RequestManager::has('edit_categories'), 'epg' => RequestManager::has('edit_epg'), 'bouquets' => RequestManager::has('edit_bouquets'));
                 $rWidth = array(25, 20, 20);
 
                 if ($rOptions['categories'] || $rOptions['bouquets'] || $rOptions['epg']) {

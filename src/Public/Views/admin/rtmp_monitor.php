@@ -81,7 +81,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                     <select id="live_filter" class="form-control" data-toggle="select2">
                                         <?php foreach ($rServers as $rServer) { ?>
                                             <option value="<?php echo $rServer['id']; ?>"
-                                                <?php if (RequestManager::getAll()['server'] == $rServer['id']) {
+                                                <?php if (RequestManager::get('server') == $rServer['id']) {
                                                     echo ' selected';
                                                 } ?>>
                                                 <?php echo $rServer['server_name']; ?>
@@ -139,7 +139,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                 ?>
                                     <tr>
                                         <td class="text-center"><?php echo $rStream['name']; ?></td>
-                                        <td><?php echo htmlspecialchars(ServerRepository::getAll()[intval(RequestManager::getAll()['server'])]['rtmp_server']) . $rStream['name']; ?>
+                                        <td><?php echo htmlspecialchars(ServerRepository::getAll()[intval(RequestManager::get('server'))]['rtmp_server']) . $rStream['name']; ?>
                                         </td>
                                         <td class="text-center"><?php echo $rPublisher; ?></td>
                                         <td class="text-center">
@@ -168,7 +168,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                         <td class="text-center">
                                             <button data-toggle="tooltip" title="<?= $language::get('kill_stream') ?>" type="button"
                                                 class="btn tooltip btn-light waves-effect waves-light btn-xs"
-                                                onClick="kill(<?php echo intval(RequestManager::getAll()['server']); ?>, '<?php echo $rStream['name']; ?>');"><i
+                                                onClick="kill(<?php echo intval(RequestManager::get('server')); ?>, '<?php echo $rStream['name']; ?>');"><i
                                                     class="mdi mdi-close"></ i></button>
                                         </td>
                                     </tr>

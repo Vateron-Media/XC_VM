@@ -28,8 +28,8 @@ class MovieController extends BaseAdminController {
         $rCategories = CategoryService::getAllByType('movie');
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rMovie = StreamRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rMovie = StreamRepository::getById(RequestManager::get('id'));
             if (!$rMovie || $rMovie['type'] != 2) {
                 $this->redirect('movies');
                 return;
@@ -47,14 +47,14 @@ class MovieController extends BaseAdminController {
         $rSource = '';
         $rPathSources = '';
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rMovie = StreamRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rMovie = StreamRepository::getById(RequestManager::get('id'));
             if (!$rMovie || $rMovie['type'] != 2) {
                 $this->redirect('movies');
                 return;
             }
             $rMovie['properties'] = json_decode($rMovie['movie_properties'], true);
-            $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
+            $rStreamSys = StreamRepository::getSystemRows(RequestManager::get('id'));
 
             $streamSourceJson = $rMovie['stream_source'] ?? '';
             $rMovieSource = json_decode($streamSourceJson, true);

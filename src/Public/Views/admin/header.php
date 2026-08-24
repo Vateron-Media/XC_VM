@@ -7,7 +7,7 @@ use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\NavbarRegistry;
 
 if (count(get_included_files()) != 1 || TRUE):
-    $rModal = isset(RequestManager::getAll()['modal']);
+    $rModal = RequestManager::has('modal');
     $rUpdate = (json_decode((string) SettingsManager::get('update_data'), true) ?: array());
 
 ?>

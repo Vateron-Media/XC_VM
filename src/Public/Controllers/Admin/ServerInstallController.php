@@ -24,7 +24,7 @@ class ServerInstallController extends BaseAdminController {
 
         global $allServers, $rProxyServers;
 
-        $rType = isset(\XcVm\Core\Http\RequestManager::getAll()['proxy']) ? 1 : 2;
+        $rType = \XcVm\Core\Http\RequestManager::has('proxy') ? 1 : 2;
         $rServerArr = null;
 
         if ($this->input('id')) {

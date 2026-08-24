@@ -29,7 +29,7 @@ class ResellerPostController extends BaseResellerController
         session_start();
         session_write_close();
 
-        $rAction = RequestManager::getAll()['action'] ?? '';
+        $rAction = RequestManager::get('action') ?? '';
         $rData = RequestManager::getAll();
         unset($rData['action']);
 

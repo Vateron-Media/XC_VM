@@ -48,9 +48,9 @@ class ResellerTableRenderer {
 			exit();
 		}
 
-		$rType = RequestManager::getAll()['id'];
-		$rStart = intval(RequestManager::getAll()['start']);
-		$rLimit = intval(RequestManager::getAll()['length']);
+		$rType = RequestManager::get('id');
+		$rStart = intval(RequestManager::get('start'));
+		$rLimit = intval(RequestManager::get('length'));
 		if (1000 < $rLimit || $rLimit <= 0) {
 			$rLimit = 1000;
 		}
@@ -112,36 +112,36 @@ class ResellerTableRenderer {
 		}
 		$rOrderBy = '';
 		$rOrder = array('`lines`.`id`', '`lines`.`username`', '`lines`.`password`', '`users`.`username`', '`lines`.`enabled` - `lines`.`admin_enabled`', '`active_connections` > 0', '`lines`.`is_trial`', '`active_connections`', '`lines`.`max_connections`', '`lines`.`exp_date`', '`last_activity`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0';
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
-		if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
 			foreach (range(1, 6) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`lines`.`username` LIKE ? OR `lines`.`password` LIKE ? OR `users`.`username` LIKE ? OR FROM_UNIXTIME(`exp_date`) LIKE ? OR `lines`.`max_connections` LIKE ? OR `lines`.`reseller_notes` LIKE ?)';
 		}
-		if (0 >= strlen(RequestManager::getAll()['filter'])) {
+		if (0 >= strlen(RequestManager::get('filter'))) {
 		} else {
-			if (RequestManager::getAll()['filter'] == 1) {
+			if (RequestManager::get('filter') == 1) {
 				$rWhere[] = '(`lines`.`admin_enabled` = 1 AND `lines`.`enabled` = 1 AND (`lines`.`exp_date` IS NULL OR `lines`.`exp_date` > UNIX_TIMESTAMP()))';
 			} else {
-				if (RequestManager::getAll()['filter'] == 2) {
+				if (RequestManager::get('filter') == 2) {
 					$rWhere[] = '`lines`.`enabled` = 0';
 				} else {
-					if (RequestManager::getAll()['filter'] == 3) {
+					if (RequestManager::get('filter') == 3) {
 						$rWhere[] = '`lines`.`admin_enabled` = 0';
 					} else {
-						if (RequestManager::getAll()['filter'] == 4) {
+						if (RequestManager::get('filter') == 4) {
 							$rWhere[] = '(`lines`.`exp_date` IS NOT NULL AND `lines`.`exp_date` <= UNIX_TIMESTAMP())';
 						} else {
-							if (RequestManager::getAll()['filter'] != 5) {
+							if (RequestManager::get('filter') != 5) {
 							} else {
 								$rWhere[] = '`lines`.`is_trial` = 1';
 							}
@@ -150,10 +150,10 @@ class ResellerTableRenderer {
 				}
 			}
 		}
-		if (0 >= strlen(RequestManager::getAll()['reseller'])) {
+		if (0 >= strlen(RequestManager::get('reseller'))) {
 		} else {
 			$rWhere[] = '`lines`.`member_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['reseller'];
+			$rWhereV[] = RequestManager::get('reseller');
 		}
 		if (0 < count($rWhere)) {
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
@@ -163,7 +163,7 @@ class ResellerTableRenderer {
 		$rCountQuery = 'SELECT COUNT(`lines`.`id`) AS `count` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` ' . $rWhereString . ';';
 		if (!$rOrder[$rOrderRow]) {
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
 		$db->query($rCountQuery, ...$rWhereV);
@@ -362,7 +362,7 @@ class ResellerTableRenderer {
 						}
 						$rReturn['data'][] = array("<a href='line?id=" . $rRow['id'] . "'>" . $rRow['id'] . '</a>', "<a href='line?id=" . $rRow['id'] . "'>" . $rRow['username'] . '</a>', $rRow['password'], $rOwner, $rStatus, $rActive, $rTrial, $rActiveConnections, $rMaxConnections, $rExpDate, $rLastActive, $rButtons);
 					} else {
-						$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
 				}
 			}
@@ -391,32 +391,32 @@ class ResellerTableRenderer {
 		}
 		$rOrderBy = '';
 		$rOrder = array('`lines`.`id`', '`lines`.`username`', '`mag_devices`.`mac`', '`mag_devices`.`stb_type`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
-		if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
 			foreach (range(1, 6) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `mag_devices`.`stb_type` LIKE ? OR `users`.`username` LIKE ? OR FROM_UNIXTIME(`exp_date`) LIKE ? OR `lines`.`reseller_notes` LIKE ?)';
 		}
-		if (0 >= strlen(RequestManager::getAll()['filter'])) {
+		if (0 >= strlen(RequestManager::get('filter'))) {
 		} else {
-			if (RequestManager::getAll()['filter'] == 1) {
+			if (RequestManager::get('filter') == 1) {
 				$rWhere[] = '(`lines`.`admin_enabled` = 1 AND `lines`.`enabled` = 1 AND (`lines`.`exp_date` IS NULL OR `lines`.`exp_date` > UNIX_TIMESTAMP()))';
 			} else {
-				if (RequestManager::getAll()['filter'] == 2) {
+				if (RequestManager::get('filter') == 2) {
 					$rWhere[] = '`lines`.`enabled` = 0';
 				} else {
-					if (RequestManager::getAll()['filter'] == 3) {
+					if (RequestManager::get('filter') == 3) {
 						$rWhere[] = '(`lines`.`exp_date` IS NOT NULL AND `lines`.`exp_date` <= UNIX_TIMESTAMP())';
 					} else {
-						if (RequestManager::getAll()['filter'] != 4) {
+						if (RequestManager::get('filter') != 4) {
 						} else {
 							$rWhere[] = '`lines`.`is_trial` = 1';
 						}
@@ -424,10 +424,10 @@ class ResellerTableRenderer {
 				}
 			}
 		}
-		if (0 >= strlen(RequestManager::getAll()['reseller'])) {
+		if (0 >= strlen(RequestManager::get('reseller'))) {
 		} else {
 			$rWhere[] = '`lines`.`member_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['reseller'];
+			$rWhereV[] = RequestManager::get('reseller');
 		}
 		if (0 < count($rWhere)) {
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
@@ -436,7 +436,7 @@ class ResellerTableRenderer {
 		}
 		if (!$rOrder[$rOrderRow]) {
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
 		$rCountQuery = 'SELECT COUNT(`lines`.`id`) AS `count` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` INNER JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` ' . $rWhereString . ';';
@@ -558,7 +558,7 @@ class ResellerTableRenderer {
 						}
 						$rReturn['data'][] = array("<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['mag_id'] . '</a>', $rRow['username'], "<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['mac'] . '</a>', $rRow['stb_type'], $rOwner, $rStatus, $rActive, $rTrial, $rExpDate, $rButtons);
 					} else {
-						$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
 				}
 			}
@@ -587,32 +587,32 @@ class ResellerTableRenderer {
 		}
 		$rOrderBy = '';
 		$rOrder = array('`lines`.`id`', '`lines`.`username`', '`enigma2_devices`.`mac`', '`enigma2_devices`.`public_ip`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
-		if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
 			foreach (range(1, 6) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`lines`.`username` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `enigma2_devices`.`public_ip` LIKE ? OR `users`.`username` LIKE ? OR FROM_UNIXTIME(`exp_date`) LIKE ? OR `lines`.`reseller_notes` LIKE ?)';
 		}
-		if (0 >= strlen(RequestManager::getAll()['filter'])) {
+		if (0 >= strlen(RequestManager::get('filter'))) {
 		} else {
-			if (RequestManager::getAll()['filter'] == 1) {
+			if (RequestManager::get('filter') == 1) {
 				$rWhere[] = '(`lines`.`admin_enabled` = 1 AND `lines`.`enabled` = 1 AND (`lines`.`exp_date` IS NULL OR `lines`.`exp_date` > UNIX_TIMESTAMP()))';
 			} else {
-				if (RequestManager::getAll()['filter'] == 2) {
+				if (RequestManager::get('filter') == 2) {
 					$rWhere[] = '`lines`.`enabled` = 0';
 				} else {
-					if (RequestManager::getAll()['filter'] == 3) {
+					if (RequestManager::get('filter') == 3) {
 						$rWhere[] = '(`lines`.`exp_date` IS NOT NULL AND `lines`.`exp_date` <= UNIX_TIMESTAMP())';
 					} else {
-						if (RequestManager::getAll()['filter'] != 4) {
+						if (RequestManager::get('filter') != 4) {
 						} else {
 							$rWhere[] = '`lines`.`is_trial` = 1';
 						}
@@ -620,10 +620,10 @@ class ResellerTableRenderer {
 				}
 			}
 		}
-		if (0 >= strlen(RequestManager::getAll()['reseller'])) {
+		if (0 >= strlen(RequestManager::get('reseller'))) {
 		} else {
 			$rWhere[] = '`lines`.`member_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['reseller'];
+			$rWhereV[] = RequestManager::get('reseller');
 		}
 		if (0 < count($rWhere)) {
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
@@ -632,7 +632,7 @@ class ResellerTableRenderer {
 		}
 		if (!$rOrder[$rOrderRow]) {
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
 		$rCountQuery = 'SELECT COUNT(`lines`.`id`) AS `count` FROM `lines` LEFT JOIN `users` ON `users`.`id` = `lines`.`member_id` INNER JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines`.`id` ' . $rWhereString . ';';
@@ -753,7 +753,7 @@ class ResellerTableRenderer {
 						}
 						$rReturn['data'][] = array("<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['device_id'] . '</a>', $rRow['username'], "<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['mac'] . '</a>', "<a onClick=\"whois('" . $rRow['public_ip'] . "');\" href='javascript: void(0);'>" . $rRow['public_ip'] . '</a>', $rOwner, $rStatus, $rActive, $rTrial, $rExpDate, $rButtons);
 					} else {
-						$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
 				}
 			}
@@ -783,12 +783,12 @@ class ResellerTableRenderer {
 		$rCategories = CategoryService::getAllByType('live');
 		$rOrderBy = '';
 		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
-		$rCreated = isset(RequestManager::getAll()['created']);
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
@@ -797,21 +797,21 @@ class ResellerTableRenderer {
 			} else {
 				$rWhere[] = '`type` = 1';
 			}
-			if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+			if (0 >= strlen(RequestManager::get('search')['value'])) {
 			} else {
 				foreach (range(1, 2) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
 				$rWhere[] = '(`id` LIKE ? OR `stream_display_name` LIKE ?)';
 			}
-			if (0 >= strlen(RequestManager::getAll()['category'])) {
+			if (0 >= strlen(RequestManager::get('category'))) {
 			} else {
 				$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-				$rWhereV[] = RequestManager::getAll()['category'];
+				$rWhereV[] = RequestManager::get('category');
 			}
 			if (!$rOrder[$rOrderRow]) {
 			} else {
-				$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+				$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 				$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 			}
 			if (0 < count($rWhere)) {
@@ -855,8 +855,8 @@ class ResellerTableRenderer {
 						}
 						if (!$rIsAPI) {
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
-							if (0 < strlen(RequestManager::getAll()['category'])) {
-								$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
+							if (0 < strlen(RequestManager::get('category'))) {
+								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
@@ -887,7 +887,7 @@ class ResellerTableRenderer {
 							}
 							$rReturn['data'][] = array($rRow['id'], $rIcon, $rRow['stream_display_name'], $rCategory, $rClients, $rButtons);
 						} else {
-							$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
 					}
 				}
@@ -920,31 +920,31 @@ class ResellerTableRenderer {
 		$rCategories = CategoryService::getAllByType('radio');
 		$rOrderBy = '';
 		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
-		$rCreated = isset(RequestManager::getAll()['created']);
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 			$rWhere[] = '`type` = 4';
-			if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+			if (0 >= strlen(RequestManager::get('search')['value'])) {
 			} else {
 				foreach (range(1, 2) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
 				$rWhere[] = '(`id` LIKE ? OR `stream_display_name` LIKE ?)';
 			}
-			if (0 >= strlen(RequestManager::getAll()['category'])) {
+			if (0 >= strlen(RequestManager::get('category'))) {
 			} else {
 				$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-				$rWhereV[] = RequestManager::getAll()['category'];
+				$rWhereV[] = RequestManager::get('category');
 			}
 			if (!$rOrder[$rOrderRow]) {
 			} else {
-				$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+				$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 				$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 			}
 			if (0 < count($rWhere)) {
@@ -990,8 +990,8 @@ class ResellerTableRenderer {
 						}
 						if (!$rIsAPI) {
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
-							if (0 < strlen(RequestManager::getAll()['category'])) {
-								$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
+							if (0 < strlen(RequestManager::get('category'))) {
+								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
@@ -1018,7 +1018,7 @@ class ResellerTableRenderer {
 							}
 							$rReturn['data'][] = array($rRow['id'], $rIcon, $rRow['stream_display_name'], $rCategory, $rClients, $rButtons);
 						} else {
-							$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
 					}
 				}
@@ -1051,31 +1051,31 @@ class ResellerTableRenderer {
 		$rCategories = CategoryService::getAllByType('movie');
 		$rOrderBy = '';
 		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
-		$rCreated = isset(RequestManager::getAll()['created']);
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 			$rWhere[] = '`type` = 2';
-			if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+			if (0 >= strlen(RequestManager::get('search')['value'])) {
 			} else {
 				foreach (range(1, 2) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
 				$rWhere[] = '(`id` LIKE ? OR `stream_display_name` LIKE ?)';
 			}
-			if (0 >= strlen(RequestManager::getAll()['category'])) {
+			if (0 >= strlen(RequestManager::get('category'))) {
 			} else {
 				$rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-				$rWhereV[] = RequestManager::getAll()['category'];
+				$rWhereV[] = RequestManager::get('category');
 			}
 			if (!$rOrder[$rOrderRow]) {
 			} else {
-				$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+				$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 				$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 			}
 			if (0 < count($rWhere)) {
@@ -1121,8 +1121,8 @@ class ResellerTableRenderer {
 						}
 						if (!$rIsAPI) {
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
-							if (0 < strlen(RequestManager::getAll()['category'])) {
-								$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
+							if (0 < strlen(RequestManager::get('category'))) {
+								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
@@ -1150,7 +1150,7 @@ class ResellerTableRenderer {
 							}
 							$rReturn['data'][] = array($rRow['id'], $rImage, $rRow['stream_display_name'], $rCategory, $rClients, $rButtons);
 						} else {
-							$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
 					}
 				}
@@ -1183,36 +1183,36 @@ class ResellerTableRenderer {
 		$rCategories = CategoryService::getAllByType('series');
 		$rOrderBy = '';
 		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
-		$rCreated = isset(RequestManager::getAll()['created']);
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
 			$rWhere[] = '`type` = 5';
-			if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+			if (0 >= strlen(RequestManager::get('search')['value'])) {
 			} else {
 				foreach (range(1, 3) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
 				$rWhere[] = '(`streams`.`id` LIKE ? OR `stream_display_name` LIKE ? OR `streams_series`.`title` LIKE ?)';
 			}
-			if (0 >= strlen(RequestManager::getAll()['category'])) {
+			if (0 >= strlen(RequestManager::get('category'))) {
 			} else {
 				$rWhere[] = "JSON_CONTAINS(`streams_series`.`category_id`, ?, '\$')";
-				$rWhereV[] = RequestManager::getAll()['category'];
+				$rWhereV[] = RequestManager::get('category');
 			}
-			if (0 >= strlen(RequestManager::getAll()['series'])) {
+			if (0 >= strlen(RequestManager::get('series'))) {
 			} else {
 				$rWhere[] = '`streams_series`.`id` = ?';
-				$rWhereV[] = RequestManager::getAll()['series'];
+				$rWhereV[] = RequestManager::get('series');
 			}
 			if (!$rOrder[$rOrderRow]) {
 			} else {
-				$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+				$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 				$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 			}
 			if (0 < count($rWhere)) {
@@ -1260,8 +1260,8 @@ class ResellerTableRenderer {
 							$rSeriesName = $rRow['title'] . ' - Season ' . $rRow['season_num'];
 							$rStreamName = '<b>' . $rRow['stream_display_name'] . "</b><br><span style='font-size:11px;'>" . $rSeriesName . '</span>';
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
-							if (0 < strlen(RequestManager::getAll()['category'])) {
-								$rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?: 'No Category');
+							if (0 < strlen(RequestManager::get('category'))) {
+								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
@@ -1289,7 +1289,7 @@ class ResellerTableRenderer {
 							}
 							$rReturn['data'][] = array($rRow['id'], $rImage, $rStreamName, $rCategory, $rClients, $rButtons);
 						} else {
-							$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
 					}
 				}
@@ -1320,24 +1320,24 @@ class ResellerTableRenderer {
 		}
 		$rOrderBy = '';
 		$rOrder = array('`username`', '`streams`.`stream_display_name`', '`lines_activity`.`user_agent`', '`lines_activity`.`isp`', '`lines_activity`.`user_ip`', '`lines_activity`.`date_start`', '`lines_activity`.`date_end`', '`lines_activity`.`date_end` - `lines_activity`.`date_start`', '`lines_activity`.`container`');
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
-		if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
 			foreach (range(1, 10) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`lines_activity`.`user_agent` LIKE ? OR `lines_activity`.`user_ip` LIKE ? OR `lines_activity`.`container` LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_start`) LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_end`) LIKE ? OR `lines_activity`.`geoip_country_code` LIKE ? OR `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `streams`.`stream_display_name` LIKE ?)';
 		}
-		if (0 >= strlen(RequestManager::getAll()['range'])) {
+		if (0 >= strlen(RequestManager::get('range'))) {
 		} else {
-			$rStartTime = substr(RequestManager::getAll()['range'], 0, 10);
-			$rEndTime = substr(RequestManager::getAll()['range'], strlen(RequestManager::getAll()['range']) - 10, 10);
+			$rStartTime = substr(RequestManager::get('range'), 0, 10);
+			$rEndTime = substr(RequestManager::get('range'), strlen(RequestManager::get('range')) - 10, 10);
 			if ($rStartTime = strtotime($rStartTime . ' 00:00:00')) {
 			} else {
 				$rStartTime = null;
@@ -1353,20 +1353,20 @@ class ResellerTableRenderer {
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if (0 >= strlen(RequestManager::getAll()['stream'])) {
+		if (0 >= strlen(RequestManager::get('stream'))) {
 		} else {
 			$rWhere[] = '`lines_activity`.`stream_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['stream'];
+			$rWhereV[] = RequestManager::get('stream');
 		}
-		if (0 >= strlen(RequestManager::getAll()['user'])) {
+		if (0 >= strlen(RequestManager::get('user'))) {
 		} else {
 			$rWhere[] = '`lines`.`member_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['user'];
+			$rWhereV[] = RequestManager::get('user');
 		}
-		if (0 >= strlen(RequestManager::getAll()['line'])) {
+		if (0 >= strlen(RequestManager::get('line'))) {
 		} else {
 			$rWhere[] = '`lines_activity`.`user_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['line'];
+			$rWhereV[] = RequestManager::get('line');
 		}
 		if (0 < count($rWhere)) {
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
@@ -1375,7 +1375,7 @@ class ResellerTableRenderer {
 		}
 		if (!$rOrder[$rOrderRow]) {
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
 		$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `lines_activity` LEFT JOIN `lines` ON `lines_activity`.`user_id` = `lines`.`id` LEFT JOIN `streams` ON `lines_activity`.`stream_id` = `streams`.`id` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines_activity`.`user_id` LEFT JOIN `enigma2_devices` ON `enigma2_devices`.`user_id` = `lines_activity`.`user_id` ' . $rWhereString . ';';
@@ -1448,7 +1448,7 @@ class ResellerTableRenderer {
 						$rDuration = "<button type='button' class='btn btn-" . $rColour . " btn-xs waves-effect waves-light btn-fixed'>" . $rDuration . '</button>';
 						$rReturn['data'][] = array($rUsername, $rChannel, $rPlayer, $rRow['isp'], $rIP, $rStart, $rStop, $rDuration, strtoupper($rRow['container']));
 					} else {
-						$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
 				}
 			}
@@ -1478,10 +1478,10 @@ class ResellerTableRenderer {
 		$rOrderBy = '';
 		$rRows = array();
 		if ($rRedis) {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? false : true);
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? false : true);
 			$rReports = array();
-			$rUserID = (0 < intval(RequestManager::getAll()['user']) ? intval(RequestManager::getAll()['user']) : null);
-			$rStreamID = (0 < intval(RequestManager::getAll()['stream_id']) ? intval(RequestManager::getAll()['stream_id']) : null);
+			$rUserID = (0 < intval(RequestManager::get('user')) ? intval(RequestManager::get('user')) : null);
+			$rStreamID = (0 < intval(RequestManager::get('stream_id')) ? intval(RequestManager::get('stream_id')) : null);
 			if ($rUserID && in_array($rUserID, $rUserInfo['reports'])) {
 				$db->query('SELECT `id` FROM `lines` WHERE `member_id` = ?;', $rUserID);
 			} else {
@@ -1520,8 +1520,8 @@ class ResellerTableRenderer {
 				}
 			}
 			$rOrder = array('uuid', 'divergence', 'identifier', 'stream_display_name', 'user_agent', 'isp', 'user_ip', 'active_time', 'container', null);
-			if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-				$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+			if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+				$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 			} else {
 				$rOrderRow = 0;
 			}
@@ -1587,37 +1587,37 @@ class ResellerTableRenderer {
 			$rReturn['recordsTotal'] = $rKeyCount;
 			$rReturn['recordsFiltered'] = ($rIsAPI ? ($rReturn['recordsTotal'] < $rLimit ? $rReturn['recordsTotal'] : $rLimit) : $rReturn['recordsTotal']);
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrder = array('`lines_live`.`activity_id`', '`lines_live`.`divergence`', '`username`', '`streams`.`stream_display_name`', '`lines_live`.`user_agent`', '`lines_live`.`isp`', '`lines_live`.`user_ip`', 'UNIX_TIMESTAMP() - `lines_live`.`date_start`', '`lines_live`.`container`', false);
-			if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-				$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+			if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+				$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 			} else {
 				$rOrderRow = 0;
 			}
 			$rWhere = $rWhereV = array();
 			$rWhere[] = '`hls_end` = 0';
 			$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
-			if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+			if (0 >= strlen(RequestManager::get('search')['value'])) {
 			} else {
 				foreach (range(1, 9) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
 				$rWhere[] = '(`lines_live`.`user_agent` LIKE ? OR `lines_live`.`user_ip` LIKE ? OR `lines_live`.`container` LIKE ? OR FROM_UNIXTIME(`lines_live`.`date_start`) LIKE ? OR `lines_live`.`geoip_country_code` LIKE ? OR `lines`.`username` LIKE ? OR `mag_devices`.`mac` LIKE ? OR `enigma2_devices`.`mac` LIKE ? OR `streams`.`stream_display_name` LIKE ?)';
 			}
-			if (0 >= intval(RequestManager::getAll()['stream'])) {
+			if (0 >= intval(RequestManager::get('stream'))) {
 			} else {
 				$rWhere[] = '`lines_live`.`stream_id` = ?';
-				$rWhereV[] = RequestManager::getAll()['stream'];
+				$rWhereV[] = RequestManager::get('stream');
 			}
-			if (0 >= intval(RequestManager::getAll()['user'])) {
+			if (0 >= intval(RequestManager::get('user'))) {
 			} else {
 				$rWhere[] = '`lines`.`member_id` = ?';
-				$rWhereV[] = RequestManager::getAll()['user'];
+				$rWhereV[] = RequestManager::get('user');
 			}
-			if (0 >= intval(RequestManager::getAll()['line'])) {
+			if (0 >= intval(RequestManager::get('line'))) {
 			} else {
 				$rWhere[] = '`lines_live`.`user_id` = ?';
-				$rWhereV[] = RequestManager::getAll()['line'];
+				$rWhereV[] = RequestManager::get('line');
 			}
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
 			if (!$rOrder[$rOrderRow]) {
@@ -1700,7 +1700,7 @@ class ResellerTableRenderer {
 					$rButtons = "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow['uuid'] . "', 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
 					$rReturn['data'][] = array($rRow['activity_id'], $rDivergence, $rUsername, $rChannel, $rPlayer, $rRow['isp'], $rIP, $rDuration, strtoupper($rRow['container']), $rButtons);
 				} else {
-					$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+					$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 				}
 			}
 		}
@@ -1724,24 +1724,24 @@ class ResellerTableRenderer {
 	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderBy = '';
 		$rOrder = array('`users_logs`.`id`', '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`');
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`users_logs`.`owner` IN (' . implode(',', $rUserInfo['reports']) . ')';
-		if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
 			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`users`.`username` LIKE ? OR `users_logs`.`type` LIKE ? OR `users_logs`.`action` LIKE ?)';
 		}
-		if (0 >= strlen(RequestManager::getAll()['range'])) {
+		if (0 >= strlen(RequestManager::get('range'))) {
 		} else {
-			$rStartTime = substr(RequestManager::getAll()['range'], 0, 10);
-			$rEndTime = substr(RequestManager::getAll()['range'], strlen(RequestManager::getAll()['range']) - 10, 10);
+			$rStartTime = substr(RequestManager::get('range'), 0, 10);
+			$rEndTime = substr(RequestManager::get('range'), strlen(RequestManager::get('range')) - 10, 10);
 			if ($rStartTime = strtotime($rStartTime . ' 00:00:00')) {
 			} else {
 				$rStartTime = null;
@@ -1757,10 +1757,10 @@ class ResellerTableRenderer {
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if (0 >= strlen(RequestManager::getAll()['reseller'])) {
+		if (0 >= strlen(RequestManager::get('reseller'))) {
 		} else {
 			$rWhere[] = '`users_logs`.`owner` = ?';
-			$rWhereV[] = RequestManager::getAll()['reseller'];
+			$rWhereV[] = RequestManager::get('reseller');
 		}
 		if (0 < count($rWhere)) {
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
@@ -1769,7 +1769,7 @@ class ResellerTableRenderer {
 		}
 		if (!$rOrder[$rOrderRow]) {
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
 		$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` ' . $rWhereString . ';';
@@ -1876,7 +1876,7 @@ class ResellerTableRenderer {
 						$rReturn['data'][] = array($rRow['id'], $rOwner, $rLineInfo, $rText, number_format($rRow['cost'], 0), number_format($rRow['credits_after'], 0), date($rSettings['datetime_format'], $rRow['date']));
 					} else {
 						unset($rRow['deleted_info']);
-						$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
 				}
 			}
@@ -1904,35 +1904,35 @@ class ResellerTableRenderer {
 		}
 		$rOrderBy = '';
 		$rOrder = array('`users`.`id`', '`users`.`username`', '`r`.`username`', '`users`.`ip`', '`users`.`status`', '`users`.`credits`', '`user_count`', '`users`.`last_login`', false);
-		if (isset(RequestManager::getAll()['order']) && 0 < strlen(RequestManager::getAll()['order'][0]['column'])) {
-			$rOrderRow = intval(RequestManager::getAll()['order'][0]['column']);
+		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
+			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`users`.`owner_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
-		if (0 >= strlen(RequestManager::getAll()['search']['value'])) {
+		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
 			foreach (range(1, 9) as $rInt) {
-				$rWhereV[] = '%' . RequestManager::getAll()['search']['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`users`.`id` LIKE ? OR `users`.`username` LIKE ? OR `users`.`notes` LIKE ? OR `r`.`username` LIKE ? OR FROM_UNIXTIME(`users`.`date_registered`) LIKE ? OR FROM_UNIXTIME(`users`.`last_login`) LIKE ? OR `users`.`email` LIKE ? OR `users`.`ip` LIKE ? OR `users_groups`.`group_name` LIKE ?)';
 		}
-		if (0 >= strlen(RequestManager::getAll()['filter'])) {
+		if (0 >= strlen(RequestManager::get('filter'))) {
 		} else {
-			if (RequestManager::getAll()['filter'] == 1) {
+			if (RequestManager::get('filter') == 1) {
 				$rWhere[] = '`users`.`status` = 1';
 			} else {
-				if (RequestManager::getAll()['filter'] != 2) {
+				if (RequestManager::get('filter') != 2) {
 				} else {
 					$rWhere[] = '`users`.`status` = 0';
 				}
 			}
 		}
-		if (0 >= strlen(RequestManager::getAll()['reseller'])) {
+		if (0 >= strlen(RequestManager::get('reseller'))) {
 		} else {
 			$rWhere[] = '`users`.`owner_id` = ?';
-			$rWhereV[] = RequestManager::getAll()['reseller'];
+			$rWhereV[] = RequestManager::get('reseller');
 		}
 		if (0 < count($rWhere)) {
 			$rWhereString = 'WHERE ' . implode(' AND ', $rWhere);
@@ -1941,7 +1941,7 @@ class ResellerTableRenderer {
 		}
 		if (!$rOrder[$rOrderRow]) {
 		} else {
-			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? 'desc' : 'asc');
+			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
 		$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` LEFT JOIN `users` AS `r` on `r`.`id` = `users`.`owner_id` ' . $rWhereString . ';';
@@ -2015,7 +2015,7 @@ class ResellerTableRenderer {
 						}
 						$rReturn['data'][] = array("<a href='user?id=" . intval($rRow['id']) . "'>" . $rRow['id'] . '</a>', $rUsername, $rOwner, $rIP, $rStatus, $rCredits, $rUserCount, $rRow['last_login'], $rButtons);
 					} else {
-						$rReturn['data'][] = self::filterRow($rRow, RequestManager::getAll()['show_columns'], RequestManager::getAll()['hide_columns']);
+						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
 				}
 			}

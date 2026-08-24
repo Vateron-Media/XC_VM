@@ -89,7 +89,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                         <?php foreach ($rArchive as $rItem) : ?>
                                             <?php
                                             $rDuration = $rItem['end'] - $rItem['start'];
-                                            $rItem['stream_id'] = RequestManager::getAll()['id'];
+                                            $rItem['stream_id'] = RequestManager::get('id');
                                             ?>
                                             <tr>
                                                 <td><?php echo $rItem['id']; ?></td>

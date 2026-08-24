@@ -84,7 +84,7 @@ include 'topbar.php'; ?>
                                                         <option value="" selected><?= $language::get('all_categories') ?></option>
                                                         <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
                                                             <option value="<?= intval($rCategory['id']) ?>"
-                                                                <?= isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id'] ? ' selected' : '' ?>>
+                                                                <?= RequestManager::has('category') && RequestManager::get('category') == $rCategory['id'] ? ' selected' : '' ?>>
                                                                 <?= htmlspecialchars($rCategory['category_name']) ?>
                                                             </option>
                                                         <?php endforeach; ?>

@@ -64,7 +64,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                     <option value="-2"><?= $language::get('no_categories') ?></option>
                                                     <?php foreach ($rCategories as $rCategory) : ?>
                                                         <option value="<?= $rCategory['id'] ?>"
-                                                            <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
+                                                            <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
                                                                 echo ' selected';
                                                             } ?>>
                                                             <?= $rCategory['category_name'] ?>

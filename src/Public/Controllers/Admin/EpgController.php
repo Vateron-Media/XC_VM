@@ -20,8 +20,8 @@ use XcVm\Domain\Epg\EpgService;
 class EpgController extends BaseAdminController {
     public function index() {
         $rEPGArr = null;
-        if (isset(RequestManager::getAll()['id'])) {
-            $rEPGArr = EpgService::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rEPGArr = EpgService::getById(RequestManager::get('id'));
             if (!$rEPGArr) {
                 exit();
             }

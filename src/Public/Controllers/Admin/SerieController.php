@@ -25,12 +25,12 @@ class SerieController extends BaseAdminController {
         global $rServers;
 
         $rSeriesArr = null;
-        if (isset(RequestManager::getAll()['id']) && !($rSeriesArr = SeriesService::getById(RequestManager::getAll()['id']))) {
+        if (RequestManager::has('id') && !($rSeriesArr = SeriesService::getById(RequestManager::get('id')))) {
             $this->redirect('series');
             return;
         }
 
-        if (isset($rSeriesArr) && isset(RequestManager::getAll()['import'])) {
+        if (isset($rSeriesArr) && RequestManager::has('import')) {
             unset(RequestManager::getAll()['import']);
         }
 

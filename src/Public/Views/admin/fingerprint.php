@@ -48,7 +48,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                 <select id="category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                     <?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
-                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
+                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
                                                                                                             echo ' selected';
                                                                                                         } ?>>
                                                             <?php echo $rCategory['category_name']; ?>
@@ -64,7 +64,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                 <select id="category_search" class="form-control" data-toggle="select2">
                                                     <option value="" selected><?php echo $language::get('all_categories'); ?></option>
                                                     <?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
-                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
+                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
                                                                                                             echo ' selected';
                                                                                                         } ?>><?php echo $rCategory['category_name']; ?></option>
                                                     <?php } ?>

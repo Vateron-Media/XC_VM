@@ -8,7 +8,7 @@ use XcVm\Domain\Server\ServerRepository;
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
 
-$selectedCategory = RequestManager::getAll()['category'] ?? null;
+$selectedCategory = RequestManager::get('category') ?? null;
 $rAutoRestart = ['days' => [], 'at' => '06:00'];
 ?>
 

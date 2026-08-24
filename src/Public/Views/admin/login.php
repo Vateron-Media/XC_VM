@@ -39,7 +39,7 @@ if (!isset($_SESSION['hash'])) {
         }
     }
 
-    if (!isset(RequestManager::getAll()['login'])) {
+    if (!RequestManager::has('login')) {
     } else {
         $rReturn = Authenticator::login(RequestManager::getAll(), $rBypassRecaptcha);
         $_STATUS = $rReturn['status'];
@@ -52,8 +52,8 @@ if (!isset($_SESSION['hash'])) {
                 exit();
             }
 
-            if (0 < strlen(RequestManager::getAll()['referrer'])) {
-                $rReferer = basename(RequestManager::getAll()['referrer']);
+            if (0 < strlen(RequestManager::get('referrer'))) {
+                $rReferer = basename(RequestManager::get('referrer'));
 
                 if (substr($rReferer, 0, 6) != 'logout') {
                 } else {
@@ -359,7 +359,7 @@ if (!isset($_SESSION['hash'])) {
                         <form action="./login" method="POST" data-parsley-validate class="login-form">
                             <div class="card">
                                 <div class="card-body">
-                                    <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::getAll()['referrer'] ?? '') ?>">
+                                    <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::get('referrer') ?? '') ?>">
 
                                     <div class="form-group mb-3" id="username_group">
                                         <label for="username"><?= $language::get('username') ?></label>

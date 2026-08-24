@@ -13,7 +13,7 @@ use XcVm\Domain\Server\ServerRepository;
                     <div class="page-title-right">
                         <ol class="breadcrumb m-0">
                             <li>
-                                <a href="process_monitor?server=<?= intval(RequestManager::getAll()['server']) ?>" style="margin-right:10px;">
+                                <a href="process_monitor?server=<?= intval(RequestManager::get('server')) ?>" style="margin-right:10px;">
                                     <button type="button" class="btn btn-dark waves-effect waves-light btn-sm">
                                         <i class="mdi mdi-refresh"></i> <?= $language::get('refresh') ?>
                                     </button>
@@ -64,13 +64,13 @@ if (!$rMobile) { ?>
                                                 <td class="text-center">
                                                     <div class="btn-group">
                                                         <?php if (substr($fs['mount'], -3) == 'tmp') { ?>
-                                                            <a href="./process_monitor?server=<?= intval(RequestManager::getAll()['server']) ?>&clear">
+                                                            <a href="./process_monitor?server=<?= intval(RequestManager::get('server')) ?>&clear">
                                                                 <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('clear_temp') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs">
                                                                     <i class="mdi mdi-close"></i>
                                                                 </button>
                                                             </a>
                                                         <?php } elseif (substr($fs['mount'], -7) == 'streams') { ?>
-                                                            <a href="./process_monitor?server=<?= intval(RequestManager::getAll()['server']) ?>&clear_s">
+                                                            <a href="./process_monitor?server=<?= intval(RequestManager::get('server')) ?>&clear_s">
                                                                 <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('clear_streams') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs">
                                                                     <i class="mdi mdi-close"></i>
                                                                 </button>
@@ -89,8 +89,8 @@ if (!$rMobile) { ?>
                                 <strong>You are running out of space on one or more of your mount points. You should resolve this before issues occur.</strong>
                             </div>
                         <?php }
-                        $ramdiskUsage = ServerRepository::getStreamsRamdisk(RequestManager::getAll()['server']);
-                        $db->query('SELECT `stream_id`, `stream_display_name`, `bitrate` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `server_id` = ? AND `pid` > 0;', RequestManager::getAll()['server']);
+                        $ramdiskUsage = ServerRepository::getStreamsRamdisk(RequestManager::get('server'));
+                        $db->query('SELECT `stream_id`, `stream_display_name`, `bitrate` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `server_id` = ? AND `pid` > 0;', RequestManager::get('server'));
                         $rStreamNames = $db->get_rows(true, 'stream_id');
                         $streamUsage = array();
                         foreach ($ramdiskUsage as $rStreamID => $rUsage) {
@@ -171,7 +171,7 @@ if (!$rMobile) { ?>
                                     <div class="col-md-3">
                                         <select id="live_filter" class="form-control" data-toggle="select2">
                                             <?php foreach ($rServers as $rServer) { ?>
-                                                <option value="<?= $rServer['id'] ?>" <?= RequestManager::getAll()['server'] == $rServer['id'] ? ' selected' : '' ?>><?= $rServer['server_name'] ?></option>
+                                                <option value="<?= $rServer['id'] ?>" <?= RequestManager::get('server') == $rServer['id'] ? ' selected' : '' ?>><?= $rServer['server_name'] ?></option>
                                             <?php } ?>
                                         </select>
                                     </div>
@@ -284,7 +284,7 @@ if (!$rMobile) { ?>
                                                     <?php } else { ?>
                                                         <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-eye"></i></button>
                                                     <?php } ?>
-                                                    <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('kill_process_info') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="kill(<?= intval(RequestManager::getAll()['server']) ?>, <?= $rProcess['pid'] ?>);"><i class="mdi mdi-close"></i></button>
+                                                    <button data-toggle="tooltip" data-placement="top" title="<?= $language::get('kill_process_info') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="kill(<?= intval(RequestManager::get('server')) ?>, <?= $rProcess['pid'] ?>);"><i class="mdi mdi-close"></i></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -435,7 +435,7 @@ renderUnifiedLayoutFooter('admin');
     echo $language::get('error_occured');
     echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . 'if ($("#datatable-activity").length) {' . "\r\n\t\t\t\t" . '$("#datatable-activity").DataTable({' . "\r\n\t\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4,5,6]}' . "\r\n\t\t\t\t\t" . '],' . "\r\n\t\t\t\t\t";
 
-    if (isset(RequestManager::getAll()['mem'])) {
+    if (RequestManager::has('mem')) {
         echo 'order: [[ 4, "desc" ]],' . "\r\n\t\t\t\t\t";
     } else {
         echo 'order: [[ 3, "desc" ]],' . "\r\n\t\t\t\t\t";

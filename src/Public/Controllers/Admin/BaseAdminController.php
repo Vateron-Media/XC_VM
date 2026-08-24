@@ -192,8 +192,8 @@ class BaseAdminController {
      */
     protected function input($key, $default = null) {
         // Приоритет: RequestManager → $_REQUEST
-        if (isset(RequestManager::getAll()[$key])) {
-            return RequestManager::getAll()[$key];
+        if (RequestManager::has($key)) {
+            return RequestManager::get($key);
         }
         return isset($_REQUEST[$key]) ? $_REQUEST[$key] : $default;
     }

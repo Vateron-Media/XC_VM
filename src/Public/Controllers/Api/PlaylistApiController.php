@@ -40,11 +40,11 @@ class PlaylistApiController extends BaseApiController {
 		$rCountry = GeoIP::getCountry($rIP);
 		$rCountryCode = (is_array($rCountry) && isset($rCountry['country']['iso_code']) ? $rCountry['country']['iso_code'] : null);
 		$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
-		$rDeviceKey = (empty(RequestManager::getAll()['type']) ? 'm3u_plus' : RequestManager::getAll()['type']);
-		$rTypeKey = (empty(RequestManager::getAll()['key']) ? null : explode(',', RequestManager::getAll()['key']));
-		$rOutputKey = (empty(RequestManager::getAll()['output']) ? '' : RequestManager::getAll()['output']);
-		$rNoCache = !empty(RequestManager::getAll()['nocache']);
-		$rUsername = RequestManager::getAll()['username'] ?? '';
+		$rDeviceKey = (empty(RequestManager::get('type')) ? 'm3u_plus' : RequestManager::get('type'));
+		$rTypeKey = (empty(RequestManager::get('key')) ? null : explode(',', RequestManager::get('key')));
+		$rOutputKey = (empty(RequestManager::get('output')) ? '' : RequestManager::get('output'));
+		$rNoCache = !empty(RequestManager::get('nocache'));
+		$rUsername = RequestManager::get('username') ?? '';
 
 		$rUserInfo = $this->authenticate($rIP, true);
 

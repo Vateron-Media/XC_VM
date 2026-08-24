@@ -29,12 +29,12 @@ class LiveController extends BasePlayerController
 
         $rCategories = getOrderedCategories($rUserInfo['category_ids'], 'live');
         $rFilterArray = array('all' => 'All Channels', 'timeshift' => 'Timeshift Only', 'epg' => 'Has EPG Only');
-        $rFilterBy = (isset($rFilterArray[RequestManager::getAll()['filter'] ?? '']) ? RequestManager::getAll()['filter'] : 'all');
+        $rFilterBy = (isset($rFilterArray[RequestManager::get('filter') ?? '']) ? RequestManager::get('filter') : 'all');
         $rPicking = array('filter' => $rFilterBy);
         $rSortArray = array('number' => 'Default', 'name' => 'Name A-Z', 'added' => 'Date Added');
-        $rSortBy = (isset($rSortArray[RequestManager::getAll()['sort'] ?? '']) ? RequestManager::getAll()['sort'] : 'number');
-        $rCategoryID = (intval(RequestManager::getAll()['category'] ?? 0) ?: $rCategories[0]['id']);
-        $rSearchBy = (RequestManager::getAll()['search'] ?? null);
+        $rSortBy = (isset($rSortArray[RequestManager::get('sort') ?? '']) ? RequestManager::get('sort') : 'number');
+        $rCategoryID = (intval(RequestManager::get('category') ?? 0) ?: $rCategories[0]['id']);
+        $rSearchBy = (RequestManager::get('search') ?? null);
         $rStreamIDs = array();
         $rStreams = getUserStreams($rUserInfo, array('live', 'created_live'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, null, null, true);
 

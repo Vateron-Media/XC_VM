@@ -62,7 +62,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))) : ?>
+                                                    <?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))) : ?>
                                                         <option value="<?php echo intval($rOwner['id']); ?>" selected="selected"><?php echo $rOwner['username']; ?></option>
                                                     <?php endif; ?>
                                                 </select>

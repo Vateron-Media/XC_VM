@@ -29,18 +29,18 @@ foreach (get_defined_constants(true)['user'] as $rKey => $rValue) {
 $rData = RequestManager::getAll();
 ResellerAPIWrapper::$db = &$db;
 ResellerAPIWrapper::$rKey = $rData['api_key'];
-if (!empty(RequestManager::getAll()['api_key']) && ResellerAPIWrapper::createSession()) {
+if (!empty(RequestManager::get('api_key')) && ResellerAPIWrapper::createSession()) {
     $rAction = $rData['action'];
     $rStart = (intval($rData['start']) ?: 0);
     $rLimit = (intval($rData['limit']) ?: 50);
     unset($rData['api_key'], $rData['action'], $rData['start'], $rData['limit']);
-    if (isset(RequestManager::getAll()['show_columns'])) {
-        $rShowColumns = explode(',', RequestManager::getAll()['show_columns']);
+    if (RequestManager::has('show_columns')) {
+        $rShowColumns = explode(',', RequestManager::get('show_columns'));
     } else {
         $rShowColumns = null;
     }
-    if (isset(RequestManager::getAll()['hide_columns'])) {
-        $rHideColumns = explode(',', RequestManager::getAll()['hide_columns']);
+    if (RequestManager::has('hide_columns')) {
+        $rHideColumns = explode(',', RequestManager::get('hide_columns'));
     } else {
         $rHideColumns = null;
     }
@@ -73,7 +73,7 @@ if (!empty(RequestManager::getAll()['api_key']) && ResellerAPIWrapper::createSes
             echo json_encode(ResellerAPIWrapper::TableAPI('reg_user_logs', $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
             break;
         case 'get_line':
-            echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getLine(RequestManager::getAll()['id']), $rShowColumns, $rHideColumns));
+            echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getLine(RequestManager::get('id')), $rShowColumns, $rHideColumns));
             break;
         case 'create_line':
             echo json_encode(ResellerAPIWrapper::createLine(RequestManager::getAll()));
@@ -81,19 +81,19 @@ if (!empty(RequestManager::getAll()['api_key']) && ResellerAPIWrapper::createSes
         case 'edit_line':
             $rData = RequestManager::getAll();
             unset($rData['id']);
-            echo json_encode(ResellerAPIWrapper::editLine(RequestManager::getAll()['id'], $rData));
+            echo json_encode(ResellerAPIWrapper::editLine(RequestManager::get('id'), $rData));
             break;
         case 'delete_line':
-            echo json_encode(ResellerAPIWrapper::deleteLine(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::deleteLine(RequestManager::get('id')));
             break;
         case 'disable_line':
-            echo json_encode(ResellerAPIWrapper::disableLine(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::disableLine(RequestManager::get('id')));
             break;
         case 'enable_line':
-            echo json_encode(ResellerAPIWrapper::enableLine(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::enableLine(RequestManager::get('id')));
             break;
         case 'get_mag':
-            echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getMAG(RequestManager::getAll()['id']), $rShowColumns, $rHideColumns));
+            echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getMAG(RequestManager::get('id')), $rShowColumns, $rHideColumns));
             break;
         case 'create_mag':
             echo json_encode(ResellerAPIWrapper::createMAG(RequestManager::getAll()));
@@ -101,22 +101,22 @@ if (!empty(RequestManager::getAll()['api_key']) && ResellerAPIWrapper::createSes
         case 'edit_mag':
             $rData = RequestManager::getAll();
             unset($rData['id']);
-            echo json_encode(ResellerAPIWrapper::editMAG(RequestManager::getAll()['id'], $rData));
+            echo json_encode(ResellerAPIWrapper::editMAG(RequestManager::get('id'), $rData));
             break;
         case 'delete_mag':
-            echo json_encode(ResellerAPIWrapper::deleteMAG(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::deleteMAG(RequestManager::get('id')));
             break;
         case 'disable_mag':
-            echo json_encode(ResellerAPIWrapper::disableMAG(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::disableMAG(RequestManager::get('id')));
             break;
         case 'enable_mag':
-            echo json_encode(ResellerAPIWrapper::enableMAG(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::enableMAG(RequestManager::get('id')));
             break;
         case 'convert_mag':
-            echo json_encode(ResellerAPIWrapper::convertMAG(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::convertMAG(RequestManager::get('id')));
             break;
         case 'get_enigma':
-            echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getEnigma(RequestManager::getAll()['id']), $rShowColumns, $rHideColumns));
+            echo json_encode(ResellerAPIWrapper::filterRow(ResellerAPIWrapper::getEnigma(RequestManager::get('id')), $rShowColumns, $rHideColumns));
             break;
         case 'create_enigma':
             echo json_encode(ResellerAPIWrapper::createEnigma(RequestManager::getAll()));
@@ -124,19 +124,19 @@ if (!empty(RequestManager::getAll()['api_key']) && ResellerAPIWrapper::createSes
         case 'edit_enigma':
             $rData = RequestManager::getAll();
             unset($rData['id']);
-            echo json_encode(ResellerAPIWrapper::editEnigma(RequestManager::getAll()['id'], $rData));
+            echo json_encode(ResellerAPIWrapper::editEnigma(RequestManager::get('id'), $rData));
             break;
         case 'delete_enigma':
-            echo json_encode(ResellerAPIWrapper::deleteEnigma(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::deleteEnigma(RequestManager::get('id')));
             break;
         case 'disable_enigma':
-            echo json_encode(ResellerAPIWrapper::disableEnigma(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::disableEnigma(RequestManager::get('id')));
             break;
         case 'enable_enigma':
-            echo json_encode(ResellerAPIWrapper::enableEnigma(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::enableEnigma(RequestManager::get('id')));
             break;
         case 'convert_enigma':
-            echo json_encode(ResellerAPIWrapper::convertEnigma(RequestManager::getAll()['id']));
+            echo json_encode(ResellerAPIWrapper::convertEnigma(RequestManager::get('id')));
             break;
         case 'get_user':
             if (in_array('password', $rHideColumns)) {

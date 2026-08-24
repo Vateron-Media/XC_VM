@@ -20,15 +20,15 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 						<div class="card-body">
 							<div id="collapse_filters" class="form-group row" style="margin-bottom: 0;">
 								<div class="col-md-3">
-									<input type="text" class="form-control" id="search" name="search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="<?= $language::get('search_streams_placeholder') ?>">
+									<input type="text" class="form-control" id="search" name="search" value="<?php echo RequestManager::has('search') ? htmlspecialchars(RequestManager::get('search')) : ''; ?>" placeholder="<?= $language::get('search_streams_placeholder') ?>">
 								</div>
 								<div class="col-md-3">
 									<select id="category" name="category" class="form-control" data-toggle="select2">
-										<option value="" <?php if (!isset(RequestManager::getAll()['category'])) {
+										<option value="" <?php if (!RequestManager::has('category')) {
 																echo ' selected';
 															} ?>><?php echo $language::get('all_categories'); ?></option>
 										<?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
-											<option value="<?php echo intval($rCategory['id']); ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) {
+											<option value="<?php echo intval($rCategory['id']); ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
 																										echo ' selected';
 																									} ?>><?php echo $rCategory['category_name']; ?></option>
 										<?php } ?>
@@ -37,7 +37,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 								<div class="col-md-2">
 									<select id="sort" name="sort" class="form-control" data-toggle="select2">
 										<?php foreach (array('' => 'Default Sort', 'name' => 'Alphabetical', 'added' => 'Date Added') as $rSort => $rText) { ?>
-											<option value="<?php echo $rSort; ?>" <?php if (isset(RequestManager::getAll()['sort']) && RequestManager::getAll()['sort'] == $rSort) {
+											<option value="<?php echo $rSort; ?>" <?php if (RequestManager::has('sort') && RequestManager::get('sort') == $rSort) {
 																						echo ' selected';
 																					} ?>><?php echo $rText; ?></option>
 										<?php } ?>
@@ -95,17 +95,17 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 				<ul class="paginator">
 					<?php if (1 < $rPageInt) { ?>
 						<li class="paginator__item paginator__item--prev">
-							<a href="epg_view?search=<?php echo urlencode(RequestManager::getAll()['search'] ?: '') ?>&category=<?php echo intval(RequestManager::getAll()['category'] ?: '') ?>&sort=<?php echo urlencode(RequestManager::getAll()['sort'] ?: '') ?>&entries=<?php echo intval(RequestManager::getAll()['entries'] ?: '') ?>&page=<?php echo ($rPageInt - 1) ?>"><i class="mdi mdi-chevron-left"></i></a>
+							<a href="epg_view?search=<?php echo urlencode(RequestManager::get('search') ?: '') ?>&category=<?php echo intval(RequestManager::get('category') ?: '') ?>&sort=<?php echo urlencode(RequestManager::get('sort') ?: '') ?>&entries=<?php echo intval(RequestManager::get('entries') ?: '') ?>&page=<?php echo ($rPageInt - 1) ?>"><i class="mdi mdi-chevron-left"></i></a>
 						</li>
 					<?php } ?>
 					<?php foreach ($rPagination as $i) { ?>
 						<li class="paginator__item<?php echo ($rPageInt == $i ? ' paginator__item--active' : '') ?>">
-							<a href="epg_view?search=<?php echo urlencode(RequestManager::getAll()['search'] ?: '') ?>&category=<?php echo intval(RequestManager::getAll()['category'] ?: '') ?>&sort=<?php echo urlencode(RequestManager::getAll()['sort'] ?: '') ?>&entries=<?php echo intval(RequestManager::getAll()['entries'] ?: '') ?>&page=<?php echo $i ?>"><?php echo $i ?></a>
+							<a href="epg_view?search=<?php echo urlencode(RequestManager::get('search') ?: '') ?>&category=<?php echo intval(RequestManager::get('category') ?: '') ?>&sort=<?php echo urlencode(RequestManager::get('sort') ?: '') ?>&entries=<?php echo intval(RequestManager::get('entries') ?: '') ?>&page=<?php echo $i ?>"><?php echo $i ?></a>
 						</li>
 					<?php } ?>
 					<?php if ($rPageInt < $rPages) { ?>
 						<li class="paginator__item paginator__item--next">
-							<a href="epg_view?search=<?php echo urlencode(RequestManager::getAll()['search'] ?: '') ?>&category=<?php echo intval(RequestManager::getAll()['category'] ?: '') ?>&sort=<?php echo urlencode(RequestManager::getAll()['sort'] ?: '') ?>&entries=<?php echo intval(RequestManager::getAll()['entries'] ?: '') ?>&page=<?php echo ($rPageInt + 1) ?>"><i class="mdi mdi-chevron-right"></i></a>
+							<a href="epg_view?search=<?php echo urlencode(RequestManager::get('search') ?: '') ?>&category=<?php echo intval(RequestManager::get('category') ?: '') ?>&sort=<?php echo urlencode(RequestManager::get('sort') ?: '') ?>&entries=<?php echo intval(RequestManager::get('entries') ?: '') ?>&page=<?php echo ($rPageInt + 1) ?>"><i class="mdi mdi-chevron-right"></i></a>
 						</li>
 					<?php } ?>
 				</ul>
@@ -255,9 +255,9 @@ renderUnifiedLayoutFooter('admin');
 	echo implode(',', $rStreamIDs);
 	echo '";' . "\r\n\t\t\t";
 
-	if (isset(RequestManager::getAll()['category']) && 0 < intval(RequestManager::getAll()['category'])) {
+	if (RequestManager::has('category') && 0 < intval(RequestManager::get('category'))) {
 		echo "\t\t\t" . 'window.XC_VM.Listings.Category = ';
-		echo intval(RequestManager::getAll()['category']);
+		echo intval(RequestManager::get('category'));
 		echo ';' . "\r\n\t\t\t";
 	}
 

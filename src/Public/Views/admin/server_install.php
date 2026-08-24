@@ -19,7 +19,7 @@ if ($rType == 1) {
     echo "\t\t\t\t\t" . '<h4 class="page-title">';
 
     if (isset($rServerArr)) {
-        if (isset(RequestManager::getAll()['update'])) {
+        if (RequestManager::has('update')) {
             echo 'Update Proxy';
         } else {
             echo 'Reinstall Proxy';
@@ -33,7 +33,7 @@ if ($rType == 1) {
     echo '                    <h4 class="page-title">';
 
     if (isset($rServerArr)) {
-        if (isset(RequestManager::getAll()['update'])) {
+        if (RequestManager::has('update')) {
             echo 'Update Server';
         } else {
             echo 'Reinstall Server';
@@ -113,7 +113,7 @@ if (isset($rServerArr) && $rServerArr['is_main'] == 1) {
         echo '                                                <div class="form-group row mb-4">' . "\n" . "                                                    <label class=\"col-md-3 col-form-label\" for=\"use_private_ip\">Use Private IP <i title=\"Use the private IP of the load balancer you've selected to route traffic internally.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="use_private_ip" id="use_private_ip" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n" . '                                                ';
     }
 
-    if (isset($rServerArr) && isset(RequestManager::getAll()['update'])) {
+    if (isset($rServerArr) && RequestManager::has('update')) {
         echo '                                                <div class="alert alert-info" role="alert">' . "\n" . '                                                    In order to update your XC_VM core from v';
         echo $rServerArr['xc_vm_version'];
         echo ' to v';

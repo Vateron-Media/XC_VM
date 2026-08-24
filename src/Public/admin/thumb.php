@@ -23,8 +23,8 @@ header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 
-if (!empty(RequestManager::getAll()['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
+if (!empty(RequestManager::get('uitoken'))) {
+	$rTokenData = json_decode(Encryption::decrypt(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id']);
 	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
 
@@ -38,7 +38,7 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 
 $db = new DatabaseHandler();
 DatabaseFactory::set($db);
-$rStreamID = intval(RequestManager::getAll()['stream']);
+$rStreamID = intval(RequestManager::get('stream'));
 $rStream = array();
 $db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 1 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
 
@@ -61,7 +61,7 @@ if (SERVER_ID == $rStream['vframes_server_id']) {
 	generate404();
 } else {
 	$rURL = ServerRepository::getAll()[$rStream['vframes_server_id']]['site_url'];
-	header('Location: ' . $rURL . 'admin/thumb?stream=' . $rStreamID . '&aid=' . intval(RequestManager::getAll()['aid']) . '&uitoken=' . urlencode(RequestManager::getAll()['uitoken']) . '&expires=' . intval(RequestManager::getAll()['expires']));
+	header('Location: ' . $rURL . 'admin/thumb?stream=' . $rStreamID . '&aid=' . intval(RequestManager::get('aid')) . '&uitoken=' . urlencode(RequestManager::get('uitoken')) . '&expires=' . intval(RequestManager::get('expires')));
 
 	exit();
 }

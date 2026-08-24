@@ -34,8 +34,8 @@ if (SettingsManager::get('use_buffer') != 0) {
 	header('X-Accel-Buffering: no');
 }
 
-if (!empty(RequestManager::getAll()['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
+if (!empty(RequestManager::get('uitoken'))) {
+	$rTokenData = json_decode(Encryption::decrypt(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id']);
 	RequestManager::update('extension', 'm3u8');
 	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
@@ -47,13 +47,13 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 
 	$rPrebuffer = $rSegmentSettings['seg_time'];
 } else {
-	if (empty(RequestManager::getAll()['password']) || SettingsManager::get('live_streaming_pass') != RequestManager::getAll()['password']) {
+	if (empty(RequestManager::get('password')) || SettingsManager::get('live_streaming_pass') != RequestManager::get('password')) {
 		generate404();
 	} else {
 		if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 			generate404();
 		} else {
-			$rPrebuffer = (isset(RequestManager::getAll()['prebuffer']) ? $rSegmentSettings['seg_time'] : 0);
+			$rPrebuffer = (RequestManager::has('prebuffer') ? $rSegmentSettings['seg_time'] : 0);
 
 			foreach (getallheaders() as $rKey => $rValue) {
 				if (strtoupper($rKey) != 'X-XC_VM-PREBUFFER') {
@@ -68,8 +68,8 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 $db = new DatabaseHandler();
 DatabaseFactory::set($db);
 $rPassword = SettingsManager::get('live_streaming_pass');
-$rStreamID = intval(RequestManager::getAll()['stream']);
-$rExtension = RequestManager::getAll()['extension'];
+$rStreamID = intval(RequestManager::get('stream'));
+$rExtension = RequestManager::get('extension');
 $rWaitTime = 20;
 $db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.server_id = ? WHERE t1.`id` = ?', SERVER_ID, $rStreamID);
 
@@ -150,7 +150,7 @@ if (0 < $db->num_rows()) {
 	}
 
 	if ($rRetries == intval($rWaitTime) * 10) {
-		if (isset(RequestManager::getAll()['odstart'])) {
+		if (RequestManager::has('odstart')) {
 			echo '0';
 
 			exit();
@@ -158,7 +158,7 @@ if (0 < $db->num_rows()) {
 
 		generate404();
 	} else {
-		if (!isset(RequestManager::getAll()['odstart'])) {
+		if (!RequestManager::has('odstart')) {
 		} else {
 			echo '1';
 
@@ -175,8 +175,8 @@ if (0 < $db->num_rows()) {
 		case 'm3u8':
 			if (!StreamUtils::isValidStream($rPlaylist, $rChannelInfo['pid'])) {
 			} else {
-				if (empty(RequestManager::getAll()['segment'])) {
-					if (!($rSource = StreamUtils::generateAdminHLS($rPlaylist, $rPassword, $rStreamID, RequestManager::getAll()['uitoken']))) {
+				if (empty(RequestManager::get('segment'))) {
+					if (!($rSource = StreamUtils::generateAdminHLS($rPlaylist, $rPassword, $rStreamID, RequestManager::get('uitoken')))) {
 					} else {
 						header('Content-Type: application/vnd.apple.mpegurl');
 						header('Content-Length: ' . strlen($rSource));
@@ -186,7 +186,7 @@ if (0 < $db->num_rows()) {
 						exit();
 					}
 				} else {
-					$rSegment = STREAMS_PATH . str_replace(array('\\', '/'), '', urldecode(RequestManager::getAll()['segment']));
+					$rSegment = STREAMS_PATH . str_replace(array('\\', '/'), '', urldecode(RequestManager::get('segment')));
 
 					if (!file_exists($rSegment)) {
 					} else {

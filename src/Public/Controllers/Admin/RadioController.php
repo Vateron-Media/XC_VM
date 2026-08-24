@@ -25,8 +25,8 @@ class RadioController extends BaseAdminController {
 
         global $db, $rServers;
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rStation = StreamRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rStation = StreamRepository::getById(RequestManager::get('id'));
             if (!$rStation || $rStation['type'] != 4) {
                 AdminHelpers::goHome();
             }
@@ -55,8 +55,8 @@ class RadioController extends BaseAdminController {
         );
 
         if (isset($rStation)) {
-            $rStationOptions = StreamRepository::getOptions(RequestManager::getAll()['id']);
-            $rStationSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
+            $rStationOptions = StreamRepository::getOptions(RequestManager::get('id'));
+            $rStationSys = StreamRepository::getSystemRows(RequestManager::get('id'));
 
             foreach ($rServers as $rServer) {
                 if (isset($rStationSys[intval($rServer['id'])])) {

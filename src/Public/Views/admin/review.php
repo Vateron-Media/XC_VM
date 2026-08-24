@@ -8,18 +8,18 @@ use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\StreamService;
 use XcVm\Domain\Vod\MovieService;
 
-if (isset(RequestManager::getAll()['type'])) {
-    $rType = intval(RequestManager::getAll()['type']);
+if (RequestManager::has('type')) {
+    $rType = intval(RequestManager::get('type'));
 } else {
-    if (isset(RequestManager::getAll()['type'])) {
-        $rType = intval(RequestManager::getAll()['type']);
+    if (RequestManager::has('type')) {
+        $rType = intval(RequestManager::get('type'));
     } else {
         $rType = 1;
     }
 }
 
-if (isset(RequestManager::getAll()['post_data'])) {
-    $rPostData = json_decode(base64_decode(RequestManager::getAll()['post_data']), true);
+if (RequestManager::has('post_data')) {
+    $rPostData = json_decode(base64_decode(RequestManager::get('post_data')), true);
     $rPostData['review'] = array();
     $rPostData['notes'] = '';
     $rPostData['custom_sid'] = $rPostData['notes'];
@@ -30,7 +30,7 @@ if (isset(RequestManager::getAll()['post_data'])) {
     }
     $rNewCategories = array();
 
-    foreach (RequestManager::getAll()['category_selection'] as $rCategory) {
+    foreach (RequestManager::get('category_selection') as $rCategory) {
         if (in_array($rCategory, $rCategoryIDs) || is_numeric($rCategory)) {
         } else {
             $rReturn = CategoryService::process(array('category_type' => array(1 => 'live', 2 => 'movie')[intval($rType)], 'category_name' => $rCategory));
@@ -43,11 +43,11 @@ if (isset(RequestManager::getAll()['post_data'])) {
         } else {
             $rID = intval(explode('import_', $rKey)[1]);
 
-            if (!RequestManager::getAll()['import_' . $rID]) {
+            if (!RequestManager::get('import_' . $rID)) {
             } else {
                 $rCategories = array();
 
-                foreach (json_decode(RequestManager::getAll()['category_id_' . $rID], true) as $rCategory) {
+                foreach (json_decode(RequestManager::get('category_id_' . $rID), true) as $rCategory) {
                     if (!is_numeric($rCategory) && isset($rNewCategories[$rCategory])) {
                         $rCategories[] = intval($rNewCategories[$rCategory]);
                     } else {
@@ -59,9 +59,9 @@ if (isset(RequestManager::getAll()['post_data'])) {
                 }
 
                 if ($rType == 1) {
-                    $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_icon' => RequestManager::getAll()['icon_' . $rID], 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'epg_lang' => null, 'channel_id' => (!empty(RequestManager::getAll()['channel_id_' . $rID]) ? RequestManager::getAll()['channel_id_' . $rID] : null), 'epg_api' => (!empty(RequestManager::getAll()['epg_type_' . $rID]) ? RequestManager::getAll()['epg_type_' . $rID] : 0), 'epg_id' => (!empty(RequestManager::getAll()['epg_id_' . $rID]) ? RequestManager::getAll()['epg_id_' . $rID] : 0), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                    $rPostData['review'][] = array('stream_source' => array(RequestManager::get('url_' . $rID)), 'stream_icon' => RequestManager::get('icon_' . $rID), 'stream_display_name' => RequestManager::get('name_' . $rID), 'epg_lang' => null, 'channel_id' => (!empty(RequestManager::get('channel_id_' . $rID)) ? RequestManager::get('channel_id_' . $rID) : null), 'epg_api' => (!empty(RequestManager::get('epg_type_' . $rID)) ? RequestManager::get('epg_type_' . $rID) : 0), 'epg_id' => (!empty(RequestManager::get('epg_id_' . $rID)) ? RequestManager::get('epg_id_' . $rID) : 0), 'bouquets' => json_decode(RequestManager::get('bouquets_' . $rID), true), 'category_id' => $rCategories);
                 } else {
-                    $rPostData['review'][] = array('stream_source' => array(RequestManager::getAll()['url_' . $rID]), 'stream_display_name' => RequestManager::getAll()['name_' . $rID], 'tmdb_id' => (!empty(RequestManager::getAll()['tmdb_id_' . $rID]) ? RequestManager::getAll()['tmdb_id_' . $rID] : null), 'bouquets' => json_decode(RequestManager::getAll()['bouquets_' . $rID], true), 'category_id' => $rCategories);
+                    $rPostData['review'][] = array('stream_source' => array(RequestManager::get('url_' . $rID)), 'stream_display_name' => RequestManager::get('name_' . $rID), 'tmdb_id' => (!empty(RequestManager::get('tmdb_id_' . $rID)) ? RequestManager::get('tmdb_id_' . $rID) : null), 'bouquets' => json_decode(RequestManager::get('bouquets_' . $rID), true), 'category_id' => $rCategories);
                 }
             }
         }
@@ -129,7 +129,7 @@ if (isset(RequestManager::getAll()['post_data'])) {
                     } else {
                         $rExists = in_array(str_replace('https://', 'http://', $rURL), $rSources);
 
-                        if ($rExists && !RequestManager::getAll()['duplicates']) {
+                        if ($rExists && !RequestManager::get('duplicates')) {
                         } else {
                             if (count($rImport) < 500) {
                                 if ($rType == 1) {
@@ -848,7 +848,7 @@ renderUnifiedLayoutFooter('admin');
         echo '        function clearEPG(elem) {' . "\r\n" . '            var rEPG = $("#epg_api_" + $(elem).data("id")).val();' . "\r\n" . '            if (rEPG) {' . "\r\n" . '                $("#epg_api_" + $(elem).data("id")).val("").trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n";
     } else {
         echo '        function scanTMDb(rIndivID=null) {' . "\r\n" . '            $("#datatable tr").each(function() {' . "\r\n" . '                try {' . "\r\n" . '                    var rID = $(this).data("id");' . "\r\n" . '                    if (($("#check_" + rID).is(":checked")) || (rID == rIndivID)) {' . "\r\n" . '                        if ((rID == rIndivID) || (!rIndivID)) {' . "\r\n" . '                            var rName = $("#name_" + rID).val();' . "\r\n" . '                            if (rName) {' . "\r\n" . '                                $("#tmdb_search_" + rID).empty().trigger("change");' . "\r\n" . '                                $.ajax({' . "\r\n" . "                                    url: './api?action=tmdb_search&type=movie&term=' + encodeURIComponent(rName) + \"&language=";
-        echo urlencode(htmlspecialchars((!empty(RequestManager::getAll()['tmdb_language']) ? RequestManager::getAll()['tmdb_language'] : $rSettings['tmdb_language'])));
+        echo urlencode(htmlspecialchars((!empty(RequestManager::get('tmdb_language')) ? RequestManager::get('tmdb_language') : $rSettings['tmdb_language'])));
         echo '",' . "\r\n" . '                                    success: function (data) {' . "\r\n" . '                                        var rJSON = $.parseJSON(data);' . "\r\n" . '                                        if (rJSON.result) {' . "\r\n" . '                                            $(rJSON.data).each(function() {' . "\r\n" . '                                                if (this.release_date) {' . "\r\n" . '                                                    ';
 
         if ($rSettings['movie_year_append'] == 0) {

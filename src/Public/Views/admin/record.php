@@ -84,7 +84,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                     <div class="card">
                         <div class="card-body">
                             <form
-                                <?php if (!isset(RequestManager::getAll()['import'])) {
+                                <?php if (!RequestManager::has('import')) {
                                 } else {
                                     echo ' enctype="multipart/form-data"';
                                 } ?>

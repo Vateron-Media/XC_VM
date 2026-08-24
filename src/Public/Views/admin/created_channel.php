@@ -40,7 +40,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                 ?>
                 <div class="card">
                     <div class="card-body">
-                        <form action="./created_channel<?php echo isset(RequestManager::getAll()['id']) ? '?id=' . intval(RequestManager::getAll()['id']) : ''; ?>" method="POST" id="stream_form" data-parsley-validate="">
+                        <form action="./created_channel<?php echo RequestManager::has('id') ? '?id=' . intval(RequestManager::get('id')) : ''; ?>" method="POST" id="stream_form" data-parsley-validate="">
                             <?php if (isset($rChannel)): ?>
                                 <input type="hidden" name="edit" value="<?php echo $rChannel['id']; ?>" />
                             <?php endif; ?>

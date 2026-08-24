@@ -29,10 +29,10 @@ class CreatedChannelController extends BaseAdminController {
         $rCategories = CategoryService::getAllByType('live');
         $rTranscodeProfiles = StreamConfigRepository::getTranscodeProfiles();
 
-        if (!isset(RequestManager::getAll()['id'])) {
+        if (!RequestManager::has('id')) {
             $rChannel = null;
         } else {
-            $rChannel = StreamRepository::getById(RequestManager::getAll()['id']);
+            $rChannel = StreamRepository::getById(RequestManager::get('id'));
 
             if (!$rChannel || $rChannel['type'] != 3) {
                 AdminHelpers::goHome();
@@ -66,7 +66,7 @@ class CreatedChannelController extends BaseAdminController {
                 $rProperties = ['type' => $rChannel['series_no'] > 0 ? 0 : 1];
             }
 
-            $rChannelSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
+            $rChannelSys = StreamRepository::getSystemRows(RequestManager::get('id'));
 
             foreach ($rServers as $rServer) {
                 if (isset($rChannelSys[intval($rServer['id'])])) {

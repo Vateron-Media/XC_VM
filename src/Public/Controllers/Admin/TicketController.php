@@ -21,7 +21,7 @@ class TicketController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
-        $rTicket = TicketRepository::getById(RequestManager::getAll()['id']);
+        $rTicket = TicketRepository::getById(RequestManager::get('id'));
         if (!$rTicket) {
             $this->redirect('tickets');
             return;
