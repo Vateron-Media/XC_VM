@@ -27,18 +27,18 @@ header('Access-Control-Allow-Origin: *');
 set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 $rPID = getmypid();
-$rSegmentSettings = array('seg_time' => intval(SettingsManager::getAll()['seg_time']), 'seg_list_size' => intval(SettingsManager::getAll()['seg_list_size']), 'seg_delete_threshold' => intval(SettingsManager::getAll()['seg_delete_threshold']));
+$rSegmentSettings = array('seg_time' => intval(SettingsManager::get('seg_time')), 'seg_list_size' => intval(SettingsManager::get('seg_list_size')), 'seg_delete_threshold' => intval(SettingsManager::get('seg_delete_threshold')));
 
-if (SettingsManager::getAll()['use_buffer'] != 0) {
+if (SettingsManager::get('use_buffer') != 0) {
 } else {
 	header('X-Accel-Buffering: no');
 }
 
 if (!empty(RequestManager::getAll()['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
+	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id']);
 	RequestManager::update('extension', 'm3u8');
-	$rIPMatch = (SettingsManager::getAll()['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
+	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
 
 	if ($rTokenData['expires'] >= time() && $rIPMatch) {
 	} else {
@@ -47,7 +47,7 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 
 	$rPrebuffer = $rSegmentSettings['seg_time'];
 } else {
-	if (empty(RequestManager::getAll()['password']) || SettingsManager::getAll()['live_streaming_pass'] != RequestManager::getAll()['password']) {
+	if (empty(RequestManager::getAll()['password']) || SettingsManager::get('live_streaming_pass') != RequestManager::getAll()['password']) {
 		generate404();
 	} else {
 		if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
@@ -67,7 +67,7 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 
 $db = new DatabaseHandler();
 DatabaseFactory::set($db);
-$rPassword = SettingsManager::getAll()['live_streaming_pass'];
+$rPassword = SettingsManager::get('live_streaming_pass');
 $rStreamID = intval(RequestManager::getAll()['stream']);
 $rExtension = RequestManager::getAll()['extension'];
 $rWaitTime = 20;
@@ -88,7 +88,7 @@ if (0 < $db->num_rows()) {
 		$rChannelInfo['monitor_pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 	}
 
-	if (!(SettingsManager::getAll()['on_demand_instant_off'] && $rChannelInfo['on_demand'] == 1)) {
+	if (!(SettingsManager::get('on_demand_instant_off') && $rChannelInfo['on_demand'] == 1)) {
 	} else {
 		ConnectionTracker::addToQueue($rStreamID, $rPID);
 	}
@@ -251,9 +251,9 @@ if (0 < $db->num_rows()) {
 			$rFails = 0;
 			$rTotalFails = $rSegmentSettings['seg_time'] * 2;
 
-			if (!(($rTotalFails < intval(SettingsManager::getAll()['segment_wait_time']) ?: 20))) {
+			if (!(($rTotalFails < intval(SettingsManager::get('segment_wait_time')) ?: 20))) {
 			} else {
-				$rTotalFails = (intval(SettingsManager::getAll()['segment_wait_time']) ?: 20);
+				$rTotalFails = (intval(SettingsManager::get('segment_wait_time')) ?: 20);
 			}
 
 			while (true) {
@@ -285,7 +285,7 @@ if (0 < $db->num_rows()) {
 				// The original always reopened $rCurrent+1 from offset 0 and had $rCurrent++ outside
 				// while(true) (unreachable), so it re-served the same ~6s segment in a loop → PCR frozen on the consumer.
 				while (true) {
-					$rData = stream_get_line($rFP, SettingsManager::getAll()['read_buffer_size']);
+					$rData = stream_get_line($rFP, SettingsManager::get('read_buffer_size'));
 
 					if ($rData !== '' && $rData !== false) {
 						echo $rData;
@@ -347,7 +347,7 @@ function shutdown() {
 		$db->close_mysql();
 	}
 
-	if (!(SettingsManager::getAll()['on_demand_instant_off'] && $rChannelInfo['on_demand'] == 1)) {
+	if (!(SettingsManager::get('on_demand_instant_off') && $rChannelInfo['on_demand'] == 1)) {
 	} else {
 		ConnectionTracker::removeFromQueue($rStreamID, $rPID);
 	}

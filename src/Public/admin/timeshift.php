@@ -24,13 +24,13 @@ set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 $rRequestData = RequestManager::getAll();
 
-if (SettingsManager::getAll()['use_buffer'] == 0) {
+if (SettingsManager::get('use_buffer') == 0) {
 	header('X-Accel-Buffering: no');
 }
 
 
 if (!empty($rRequestData['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt($rRequestData['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
+	$rTokenData = json_decode(Encryption::decrypt($rRequestData['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id']);
 	RequestManager::update('extension', 'm3u8');
 
@@ -42,7 +42,7 @@ if (!empty($rRequestData['uitoken'])) {
 		RequestManager::update('duration', $rTokenData['duration']);
 	}
 
-	$rIPMatch = (SettingsManager::getAll()['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
+	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
 
 	if ($rTokenData['expires'] >= time() && $rIPMatch) {
 	} else {
@@ -50,13 +50,13 @@ if (!empty($rRequestData['uitoken'])) {
 	}
 } elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 	generate404();
-} elseif (empty($rRequestData['password']) || SettingsManager::getAll()['live_streaming_pass'] != $rRequestData['password']) {
+} elseif (empty($rRequestData['password']) || SettingsManager::get('live_streaming_pass') != $rRequestData['password']) {
 	generate404();
 }
 
 $db = new DatabaseHandler();
 DatabaseFactory::set($db);
-$rPassword = SettingsManager::getAll()['live_streaming_pass'];
+$rPassword = SettingsManager::get('live_streaming_pass');
 $rStreamID = intval($rRequestData['stream']);
 $rExtension = $rRequestData['extension'];
 
@@ -214,7 +214,7 @@ if (0 < $db->num_rows()) {
 			$rFirstFile = false;
 			$rSeekTo = 0;
 			$rSizeToDate = 0;
-			$rBuffer = SettingsManager::getAll()['read_buffer_size'];
+			$rBuffer = SettingsManager::get('read_buffer_size');
 
 			foreach ($rQueue as $rKey => $rItem) {
 				$rSizeToDate += $rItem['filesize'];

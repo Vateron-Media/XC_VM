@@ -744,7 +744,7 @@ if (!$rMobile && $rSettings['header_stats']): ?>
 
 	echo "\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'setTimeout(reloadStream, 5000);' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

@@ -317,7 +317,7 @@ renderUnifiedLayoutFooter('admin');
 
     echo "\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

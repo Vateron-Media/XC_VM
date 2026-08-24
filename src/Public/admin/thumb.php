@@ -24,9 +24,9 @@ set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 
 if (!empty(RequestManager::getAll()['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
+	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id']);
-	$rIPMatch = (SettingsManager::getAll()['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
+	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
 
 	if ($rTokenData['expires'] >= time() && $rIPMatch) {
 	} else {

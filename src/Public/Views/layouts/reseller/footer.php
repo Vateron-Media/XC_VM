@@ -66,7 +66,7 @@ function callbackForm(rData) {
                         break;
 
                     case "STATUS_INVALID_PASSWORD":
-                        showError("Your password must be at least <?php echo SettingsManager::getAll()['pass_length'] ?? 6; ?> characters long.");
+                        showError("Your password must be at least <?php echo SettingsManager::get('pass_length') ?? 6; ?> characters long.");
                         break;
 
                     default:
@@ -259,7 +259,7 @@ function callbackForm(rData) {
 					echo intval($rSettings['default_entries']);
 					echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('user-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "enigmas",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3,5,6,7,8,9]},' . "\r\n\t\t\t\t\t";
 
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,9]},' . "\r\n\t\t\t\t\t";
 					} else {
 						echo "\t\t\t\t\t" . '{"orderable": false, "targets": [9]},' . "\r\n\t\t\t\t\t";
@@ -285,7 +285,7 @@ function callbackForm(rData) {
 						echo intval($rSettings['default_entries']);
 						echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n" . '                language: {' . "\r\n" . '                    paginate: {' . "\r\n" . "                        previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n" . "                        next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                },' . "\r\n" . '                createdRow: function(row, data, index) {' . "\r\n" . "                    \$(row).addClass('stream-' + data[0]);" . "\r\n" . '                },' . "\r\n" . '                responsive: false,' . "\r\n" . '                processing: true,' . "\r\n" . '                serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n" . '                ajax: {' . "\r\n" . '                    url: "./table",' . "\r\n" . '                    "data": function(d) {' . "\r\n" . '                        d.id = "episodes";' . "\r\n" . '                        d.series = getSeries();' . "\r\n" . '                        d.category = getCategory();' . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-						if (SettingsManager::getAll()['redis_handler']) {
+						if (SettingsManager::get('redis_handler')) {
 							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 						} else {
 							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -300,7 +300,7 @@ function callbackForm(rData) {
 
 						echo "\t\t\t\t";
 
-						if (SettingsManager::getAll()['redis_handler']) {
+						if (SettingsManager::get('redis_handler')) {
 							echo "\t\t\t\t" . 'order: [[ ';
 							echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 							echo ', "';
@@ -464,7 +464,7 @@ function callbackForm(rData) {
 									echo intval($rSettings['default_entries']);
 									echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('user-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "mags",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3,5,6,7,8,9]},' . "\r\n\t\t\t\t\t";
 
-									if (SettingsManager::getAll()['redis_handler']) {
+									if (SettingsManager::get('redis_handler')) {
 										echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,9]},' . "\r\n\t\t\t\t\t";
 									} else {
 										echo "\t\t\t\t\t" . '{"orderable": false, "targets": [9]},' . "\r\n\t\t\t\t\t";
@@ -500,7 +500,7 @@ function callbackForm(rData) {
 										echo intval($rSettings['default_entries']);
 										echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "movies";' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-										if (SettingsManager::getAll()['redis_handler']) {
+										if (SettingsManager::get('redis_handler')) {
 											echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 										} else {
 											echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -515,7 +515,7 @@ function callbackForm(rData) {
 
 										echo "\t\t\t\t";
 
-										if (SettingsManager::getAll()['redis_handler']) {
+										if (SettingsManager::get('redis_handler')) {
 											echo "\t\t\t\t" . 'order: [[ ';
 											echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 											echo ', "';
@@ -538,7 +538,7 @@ function callbackForm(rData) {
 											echo intval($rSettings['default_entries']);
 											echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "radios",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-											if (SettingsManager::getAll()['redis_handler']) {
+											if (SettingsManager::get('redis_handler')) {
 												echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 											} else {
 												echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -553,7 +553,7 @@ function callbackForm(rData) {
 
 											echo "\t\t\t\t";
 
-											if (SettingsManager::getAll()['redis_handler']) {
+											if (SettingsManager::get('redis_handler')) {
 												echo "\t\t\t\t" . 'order: [[ ';
 												echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 												echo ', "';
@@ -605,7 +605,7 @@ function callbackForm(rData) {
 																echo intval($rSettings['default_entries']);
 																echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-																if (SettingsManager::getAll()['redis_handler']) {
+																if (SettingsManager::get('redis_handler')) {
 																	echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 																} else {
 																	echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -620,7 +620,7 @@ function callbackForm(rData) {
 
 																echo "\t\t\t\t";
 
-																if (SettingsManager::getAll()['redis_handler']) {
+																if (SettingsManager::get('redis_handler')) {
 																	echo "\t\t\t\t" . 'order: [[ ';
 																	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 																	echo ', "';
@@ -643,7 +643,7 @@ function callbackForm(rData) {
 																	echo intval($rSettings['default_entries']);
 																	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('stream-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n" . '                        d.created = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5]},' . "\r\n\t\t\t\t\t";
 
-																	if (SettingsManager::getAll()['redis_handler']) {
+																	if (SettingsManager::get('redis_handler')) {
 																		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,5]},' . "\r\n\t\t\t\t\t";
 																	} else {
 																		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,5]},' . "\r\n\t\t\t\t\t";
@@ -658,7 +658,7 @@ function callbackForm(rData) {
 
 																	echo "\t\t\t\t";
 
-																	if (SettingsManager::getAll()['redis_handler']) {
+																	if (SettingsManager::get('redis_handler')) {
 																		echo "\t\t\t\t" . 'order: [[ ';
 																		echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 2);
 																		echo ', "';
@@ -845,14 +845,14 @@ function callbackForm(rData) {
 																						echo (intval($rSettings['default_entries']) ?: 10);
 																						echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().search(\$(\"#user_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().page.len(\$('#user_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-users\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "filter", "owner", "page", "entries"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "filter", "owner"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . '            $("#output_type").change(function() {' . "\r\n" . '                $("#download_type").trigger("change");' . "\r\n" . '            });' . "\r\n" . '            $("#download_type").change(function() {' . "\r\n" . '                if ($("#download_type").val()) {' . "\r\n" . '                    ';
 																						$rServerInfo = ServerRepository::getAll()[SERVER_ID];
-																						$rURL = (empty($rUserInfo['reseller_dns']) ? rtrim($rServerInfo['site_url'], '/') : (SettingsManager::getAll()['reseller_ssl_domain'] && $rServerInfo['enable_https'] ? 'https://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval($rServerInfo['https_broadcast_port']) : 'http://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval($rServerInfo['http_broadcast_port'])));
+																						$rURL = (empty($rUserInfo['reseller_dns']) ? rtrim($rServerInfo['site_url'], '/') : (SettingsManager::get('reseller_ssl_domain') && $rServerInfo['enable_https'] ? 'https://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval($rServerInfo['https_broadcast_port']) : 'http://' . htmlspecialchars($rUserInfo['reseller_dns']) . ':' . intval($rServerInfo['http_broadcast_port'])));
 																						echo '                    rText = "';
 																						echo $rURL;
 																						echo "/playlist/\" + \$('.downloadModal').data('username') + \"/\" + \$('.downloadModal').data('password') + \"/\" + decodeURIComponent(\$('.downloadModal select').val());" . "\r\n" . '                    if ($("#output_type").val().length > 0) {' . "\r\n" . "                        if (rText.indexOf('?output=') != -1) {" . "\r\n" . '                            rText = rText + "&key=" + $("#output_type").val().join(",");' . "\r\n" . '                        } else {' . "\r\n" . '                            rText = rText + "?key=" + $("#output_type").val().join(",");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . "                    if (\$(\"#download_type\").find(':selected').data('text')) {" . "\r\n" . "                        rText = \$(\"#download_type\").find(':selected').data('text').replace(\"{DEVICE_LINK}\", '\"' + rText + '\"');" . "\r\n" . '                        $("#download_button").attr("disabled", true);' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#download_button").attr("disabled", false);' . "\r\n" . '                    }' . "\r\n" . '                    $("#download_url").val(rText);' . "\r\n" . '                } else {' . "\r\n" . '                    $("#download_url").val("");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
 																						echo intval($rSettings['default_entries']);
 																						echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'createdRow: function(row, data, index) {' . "\r\n\t\t\t\t\t" . "\$(row).addClass('user-' + data[0]);" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "lines";' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter();' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,4,5,6,7,8,9,10,11]},' . "\r\n\t\t\t\t\t";
 
-																						if (SettingsManager::getAll()['redis_handler']) {
+																						if (SettingsManager::get('redis_handler')) {
 																							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [5,7,11]}' . "\r\n\t\t\t\t\t";
 																						} else {
 																							echo "\t\t\t\t\t" . '{"orderable": false, "targets": [11]}' . "\r\n\t\t\t\t\t";

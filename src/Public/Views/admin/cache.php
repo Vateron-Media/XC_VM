@@ -39,18 +39,18 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
 
                             $rMessage = "You're using neither Caching or Redis Connection Handler, the server will perform poorly compared to having either enabled."; // Default message
 
-                            if (SettingsManager::getAll()['enable_cache'] || SettingsManager::getAll()['redis_handler']) {
+                            if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler')) {
                                 $rHeader = 'Good';
                                 $rColour = 'info';
                                 $rMessage = "Redis Connection Handler is disabled on your service, if you have a lot of throughput you will see better performance with Redis enabled.<br/>If you maintain active connections of over 10,000 for example you should consider this. Below this amount you're unlikely to see any benefit.";
                                 $rSize = 75;
 
-                                if (!SettingsManager::getAll()['enable_cache']) {
+                                if (!SettingsManager::get('enable_cache')) {
                                     $rSize = 50;
                                     $rMessage = 'Caching is disabled on your service, this will impact performance significantly under load compared to having it enabled.';
                                 }
 
-                                if (SettingsManager::getAll()['enable_cache'] && SettingsManager::getAll()['redis_handler']) {
+                                if (SettingsManager::get('enable_cache') && SettingsManager::get('redis_handler')) {
                                     $rSize = 100;
                                     $rColour = 'pink';
                                     $rHeader = 'Maximum';
@@ -199,7 +199,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                     }
 
                                                     try {
-                                                        $rTestRedis->auth(SettingsManager::getAll()['redis_password']);
+                                                        $rTestRedis->auth(SettingsManager::get('redis_password'));
                                                         $rAuth = true;
                                                     } catch (Exception $e) {
                                                         $rAuth = false;
@@ -458,7 +458,7 @@ renderUnifiedLayoutFooter('admin');
             submitForm(window.rCurrentPage, new FormData($("form")[0]));
         });
     });
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

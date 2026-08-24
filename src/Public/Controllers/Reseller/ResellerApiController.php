@@ -40,7 +40,7 @@ class ResellerApiController extends BaseResellerController
             }
         }
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if (SettingsManager::get('redis_handler')) {
             RedisManager::ensureConnected();
         }
 

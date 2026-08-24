@@ -37,7 +37,7 @@ class BaseApiController {
 		}
 
 		if ($this->downloading) {
-			NetworkUtils::stopDownload($this->downloadType, $this->userInfo, getmypid(), intval(SettingsManager::getAll()['max_simultaneous_downloads']));
+			NetworkUtils::stopDownload($this->downloadType, $this->userInfo, getmypid(), intval(SettingsManager::get('max_simultaneous_downloads')));
 		}
 	}
 
@@ -89,11 +89,11 @@ class BaseApiController {
 			generateError('DISABLED');
 		}
 
-		if (!SettingsManager::getAll()['restrict_playlists']) {
+		if (!SettingsManager::get('restrict_playlists')) {
 			return;
 		}
 
-		if (empty($rUserAgent) && SettingsManager::getAll()['disallow_empty_user_agents'] == 1) {
+		if (empty($rUserAgent) && SettingsManager::get('disallow_empty_user_agents') == 1) {
 			generateError('EMPTY_USER_AGENT');
 		}
 
@@ -108,7 +108,7 @@ class BaseApiController {
 				generateError('FORCED_COUNTRY_INVALID');
 			}
 
-			if (!$rForceCountry && !in_array('ALL', SettingsManager::getAll()['allow_countries']) && !in_array($rCountryCode, SettingsManager::getAll()['allow_countries'])) {
+			if (!$rForceCountry && !in_array('ALL', SettingsManager::get('allow_countries')) && !in_array($rCountryCode, SettingsManager::get('allow_countries'))) {
 				generateError('NOT_IN_ALLOWED_COUNTRY');
 			}
 		}

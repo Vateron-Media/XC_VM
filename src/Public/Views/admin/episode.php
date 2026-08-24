@@ -115,7 +115,7 @@ if (empty($rMulti)) {
 
 	echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
 
-	if (0 >= strlen(SettingsManager::getAll()['tmdb_api_key'])) {
+	if (0 >= strlen(SettingsManager::get('tmdb_api_key'))) {
 	} else {
 		echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="tmdb_search">';
 		echo $language::get('tmdb_results');
@@ -1009,7 +1009,7 @@ renderUnifiedLayoutFooter('admin'); ?>
 
 
 
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

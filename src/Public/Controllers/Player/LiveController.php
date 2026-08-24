@@ -22,7 +22,7 @@ class LiveController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (!in_array(1, $rUserInfo['allowed_outputs']) || SettingsManager::getAll()['disable_hls']) {
+        if (!in_array(1, $rUserInfo['allowed_outputs']) || SettingsManager::get('disable_hls')) {
             header('Location: index');
             exit;
         }

@@ -144,7 +144,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 																																								} ?>">
 														</div>
 													</div>
-													<?php if (0 < strlen(SettingsManager::getAll()['tmdb_api_key'])): ?>
+													<?php if (0 < strlen(SettingsManager::get('tmdb_api_key'))): ?>
 														<div class="form-group row mb-4">
 															<label class="col-md-4 col-form-label" for="tmdb_search"><?php echo $language::get('tmdb_results'); ?></label>
 															<div class="col-md-5">
@@ -777,7 +777,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 
 		echo "\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 		?>
-		<?php if (SettingsManager::getAll()['enable_search']): ?>
+		<?php if (SettingsManager::get('enable_search')): ?>
 			$(document).ready(function() {
 				initSearch();
 			});

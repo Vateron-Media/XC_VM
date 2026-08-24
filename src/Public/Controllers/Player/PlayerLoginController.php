@@ -135,7 +135,7 @@ class PlayerLoginController
 				BruteforceGuard::checkFlood();
 				return CLIENT_DISALLOWED;
 			}
-			if (!$rForceCountry && !in_array('ALL', SettingsManager::getAll()['allow_countries']) && !in_array($rCountryCode, SettingsManager::getAll()['allow_countries'])) {
+			if (!$rForceCountry && !in_array('ALL', SettingsManager::get('allow_countries')) && !in_array($rCountryCode, SettingsManager::get('allow_countries'))) {
 				BruteforceGuard::checkFlood();
 				return CLIENT_DISALLOWED;
 			}

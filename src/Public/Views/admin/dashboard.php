@@ -206,7 +206,7 @@ if (Authorization::check('adv', 'index')): ?>
 										<?php
 										}
 
-										if (empty(SettingsManager::getAll()['status_uuid']) || SettingsManager::getAll()['status_uuid'] != md5(XC_VM_VERSION)) {
+										if (empty(SettingsManager::get('status_uuid')) || SettingsManager::get('status_uuid') != md5(XC_VM_VERSION)) {
 											$rHasError = true;
 										?>
 											<div class="timeline-item">
@@ -865,7 +865,7 @@ renderUnifiedLayoutFooter('admin');
 
 	echo '            $("#server_id").change(function() {' . "\r\n" . '                if ($(this).val().length > 0) {' . "\r\n" . '                    navigate("./dashboard?server_id=" + $(this).val());' . "\r\n" . '                } else {' . "\r\n" . '                    navigate("./dashboard");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

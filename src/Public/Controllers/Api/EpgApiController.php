@@ -28,7 +28,7 @@ class EpgApiController extends BaseApiController {
 		$rRequestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
 		$rLegacyAction = strtolower(explode('.', ltrim((string) $rRequestPath, '/'))[0] ?? '');
 
-		if ($rLegacyAction == 'xmltv' && !SettingsManager::getAll()['legacy_xmltv']) {
+		if ($rLegacyAction == 'xmltv' && !SettingsManager::get('legacy_xmltv')) {
 			$this->deny = false;
 			generateError('LEGACY_EPG_DISABLED');
 		}
@@ -51,11 +51,11 @@ class EpgApiController extends BaseApiController {
 		$this->userInfo = $rUserInfo;
 		ini_set('memory_limit', -1);
 
-		if (!$rUserInfo['is_restreamer'] && SettingsManager::getAll()['disable_xmltv']) {
+		if (!$rUserInfo['is_restreamer'] && SettingsManager::get('disable_xmltv')) {
 			generateError('EPG_DISABLED');
 		}
 
-		if ($rUserInfo['is_restreamer'] && SettingsManager::getAll()['disable_xmltv_restreamer']) {
+		if ($rUserInfo['is_restreamer'] && SettingsManager::get('disable_xmltv_restreamer')) {
 			generateError('EPG_DISABLED');
 		}
 
@@ -89,7 +89,7 @@ class EpgApiController extends BaseApiController {
 			generateError('EPG_FILE_MISSING');
 		}
 
-		if (NetworkUtils::startDownload('epg', $rUserInfo, getmypid(), intval(SettingsManager::getAll()['max_simultaneous_downloads']))) {
+		if (NetworkUtils::startDownload('epg', $rUserInfo, getmypid(), intval(SettingsManager::get('max_simultaneous_downloads')))) {
 			$this->downloading = true;
 			header('Content-disposition: attachment; filename="' . $rFilename . '"');
 

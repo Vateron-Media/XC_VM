@@ -318,7 +318,7 @@ renderUnifiedLayoutFooter('admin');
     echo (intval($rSettings['default_entries']) ?: 10);
     echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#live_search').keyup(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_show_entries').change(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#live_filter').change(function(){" . "\r\n\t\t\t\t" . 'navigate("./rtmp_monitor?server=" + $(this).val());' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().search(\$('#live_search').val()).draw();" . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

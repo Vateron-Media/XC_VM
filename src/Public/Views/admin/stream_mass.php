@@ -1043,7 +1043,7 @@ renderUnifiedLayoutFooter('admin');
             }
         });
 
-        <?php if (SettingsManager::getAll()['enable_search']): ?>
+        <?php if (SettingsManager::get('enable_search')): ?>
         initSearch();
         <?php endif; ?>
     });

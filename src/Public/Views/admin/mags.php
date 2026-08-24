@@ -248,7 +248,7 @@ renderUnifiedLayoutFooter('admin');
 
 	echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "mags",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3,5,6,7,8,9,10]},' . "\r\n\t\t\t\t\t";
 
-	if (SettingsManager::getAll()['redis_handler']) {
+	if (SettingsManager::get('redis_handler')) {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,10]},' . "\r\n\t\t\t\t\t";
 	} else {
 		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [10]},' . "\r\n\t\t\t\t\t";
@@ -277,7 +277,7 @@ renderUnifiedLayoutFooter('admin');
 	echo $language::get('mag_toast_4');
 	echo '.");' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#mag_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#mag_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-users").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

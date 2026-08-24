@@ -3193,7 +3193,7 @@ renderUnifiedLayoutFooter('admin');
 		});
 	}
 
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

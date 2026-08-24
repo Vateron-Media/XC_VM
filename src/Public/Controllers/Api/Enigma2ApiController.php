@@ -242,7 +242,7 @@ class Enigma2ApiController {
 		$rCategory->addChild('category_title', 'TV Series [ ' . $rCategoryName . ' ]');
 
 		if (count($this->userInfo['series_ids']) > 0) {
-			if (SettingsManager::getAll()['vod_sort_newest']) {
+			if (SettingsManager::get('vod_sort_newest')) {
 				$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $this->userInfo['series_ids'])) . ') ORDER BY `last_modified` DESC;');
 			} else {
 				$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $this->userInfo['series_ids'])) . ') ORDER BY FIELD(`id`,' . implode(',', $this->userInfo['series_ids']) . ') ASC;');

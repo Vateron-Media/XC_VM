@@ -29,7 +29,7 @@ class EpgViewController extends BaseAdminController {
         }
 
         $rPageInt = max(intval(RequestManager::getAll()['page']), 1);
-        $rLimit = max(intval(RequestManager::getAll()['entries']), SettingsManager::getAll()['default_entries']);
+        $rLimit = max(intval(RequestManager::getAll()['entries']), SettingsManager::get('default_entries'));
         $rStart = ($rPageInt - 1) * $rLimit;
         $rWhere = $rWhereV = array();
         $rWhere[] = '`type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL';
@@ -60,7 +60,7 @@ class EpgViewController extends BaseAdminController {
             if (file_exists(CACHE_TMP_PATH . 'channel_order')) {
                 $rChannelOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order')) ?: array();
             }
-            if (SettingsManager::getAll()['channel_number_type'] != 'manual' && count($rChannelOrder) > 0) {
+            if (SettingsManager::get('channel_number_type') != 'manual' && count($rChannelOrder) > 0) {
                 $rOrderBy = 'FIELD(`id`,' . implode(',', array_map('intval', $rChannelOrder)) . ')';
             } else {
                 $rOrderBy = '`order` ASC';

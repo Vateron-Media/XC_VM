@@ -930,7 +930,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                 };
                 (rNetworkChart = new ApexCharts(document.querySelector("#network_chart"), rNetworkOptions)).render();
             });
-            <?php if (SettingsManager::getAll()['enable_search']): ?>
+            <?php if (SettingsManager::get('enable_search')): ?>
                 $(document).ready(function() {
                     initSearch();
                 });

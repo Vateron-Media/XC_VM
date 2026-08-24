@@ -171,7 +171,7 @@ if (isset($rUserInfo['reports'])) {
                         foreach ($db->get_rows() as $rRow) {
                             $rLineInfo[$rRow['id']]['owner_name'] = $rRow['username'];
                         }
-                        if (SettingsManager::getAll()['redis_handler']) {
+                        if (SettingsManager::get('redis_handler')) {
                             $rConnectionCount = array();
                             $rConnectionMap = ConnectionTracker::getUserConnections($rLineIDs, false);
                             $rStreamIDs = array();
@@ -221,7 +221,7 @@ if (isset($rUserInfo['reports'])) {
                     }
                     foreach ($rRows as $rRow) {
                         $rRow = array_merge($rRow, $rLineInfo[$rRow['id']]);
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
                         }
@@ -412,7 +412,7 @@ if (isset($rUserInfo['reports'])) {
                     }
                     if (0 >= count($rLineIDs)) {
                     } else {
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rConnectionCount = array();
                             $rConnectionMap = ConnectionTracker::getUserConnections($rLineIDs, false);
@@ -423,7 +423,7 @@ if (isset($rUserInfo['reports'])) {
                         }
                     }
                     foreach ($rRows as $rRow) {
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
                         }
@@ -592,7 +592,7 @@ if (isset($rUserInfo['reports'])) {
                     }
                     if (0 >= count($rLineIDs)) {
                     } else {
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rConnectionCount = array();
                             $rConnectionMap = ConnectionTracker::getUserConnections($rLineIDs, false);
@@ -603,7 +603,7 @@ if (isset($rUserInfo['reports'])) {
                         }
                     }
                     foreach ($rRows as $rRow) {
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
                         }
@@ -751,7 +751,7 @@ if (isset($rUserInfo['reports'])) {
                     if (0 >= $db->num_rows()) {
                     } else {
                         $rRows = $db->get_rows();
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rConnectionCount = $rReports = array();
                             $db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -768,7 +768,7 @@ if (isset($rUserInfo['reports'])) {
                             }
                         }
                         foreach ($rRows as $rRow) {
-                            if (!SettingsManager::getAll()['redis_handler']) {
+                            if (!SettingsManager::get('redis_handler')) {
                             } else {
                                 $rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
                             }
@@ -870,7 +870,7 @@ if (isset($rUserInfo['reports'])) {
                     if (0 >= $db->num_rows()) {
                     } else {
                         $rRows = $db->get_rows();
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rConnectionCount = $rReports = array();
                             $db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -887,7 +887,7 @@ if (isset($rUserInfo['reports'])) {
                             }
                         }
                         foreach ($rRows as $rRow) {
-                            if (!SettingsManager::getAll()['redis_handler']) {
+                            if (!SettingsManager::get('redis_handler')) {
                             } else {
                                 $rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
                             }
@@ -985,7 +985,7 @@ if (isset($rUserInfo['reports'])) {
                     if (0 >= $db->num_rows()) {
                     } else {
                         $rRows = $db->get_rows();
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rConnectionCount = $rReports = array();
                             $db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -1002,7 +1002,7 @@ if (isset($rUserInfo['reports'])) {
                             }
                         }
                         foreach ($rRows as $rRow) {
-                            if (!SettingsManager::getAll()['redis_handler']) {
+                            if (!SettingsManager::get('redis_handler')) {
                             } else {
                                 $rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
                             }
@@ -1106,7 +1106,7 @@ if (isset($rUserInfo['reports'])) {
                     if (0 >= $db->num_rows()) {
                     } else {
                         $rRows = $db->get_rows();
-                        if (!SettingsManager::getAll()['redis_handler']) {
+                        if (!SettingsManager::get('redis_handler')) {
                         } else {
                             $rConnectionCount = $rReports = array();
                             $db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -1123,7 +1123,7 @@ if (isset($rUserInfo['reports'])) {
                             }
                         }
                         foreach ($rRows as $rRow) {
-                            if (!SettingsManager::getAll()['redis_handler']) {
+                            if (!SettingsManager::get('redis_handler')) {
                             } else {
                                 $rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
                             }
@@ -1317,7 +1317,7 @@ if (isset($rUserInfo['reports'])) {
     if ($rType == 'live_connections') {
         if ($rPermissions['reseller_client_connection_logs']) {
             $rRows = array();
-            if (SettingsManager::getAll()['redis_handler']) {
+            if (SettingsManager::get('redis_handler')) {
                 $rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? false : true);
                 $rReports = array();
                 $rUserID = (0 < intval(RequestManager::getAll()['user']) ? intval(RequestManager::getAll()['user']) : null);

@@ -47,10 +47,10 @@ if (isset(RequestManager::getAll()['id'])) {
         }
 
         if ($rServerID) {
-            $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
+            $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
 
             if ($rOnDemand) {
-                $rStartURL = 'http://' . $rServers[$rServerID]['server_ip'] . ':' . $rServers[$rServerID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . intval(RequestManager::getAll()['id']) . '&extension=.m3u8&odstart=1';
+                $rStartURL = 'http://' . $rServers[$rServerID]['server_ip'] . ':' . $rServers[$rServerID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::get('live_streaming_pass') . '&stream=' . intval(RequestManager::getAll()['id']) . '&extension=.m3u8&odstart=1';
 
                 if (intval(@file_get_contents($rStartURL, false, stream_context_create(array('http' => array('timeout' => 20))))) == 0) {
                     exit();
