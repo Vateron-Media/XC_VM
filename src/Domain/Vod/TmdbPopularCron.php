@@ -182,11 +182,11 @@ class TmdbPopularCron {
 
         TMDbService::requireLibrary();
 
-        if (strlen(SettingsManager::getAll()['tmdb_api_key'] ?? '') > 0) {
-            $lang = SettingsManager::getAll()['tmdb_language'] ?? '';
+        if (SettingsManager::getString('tmdb_api_key') !== '') {
+            $lang = SettingsManager::getString('tmdb_language');
             $rTMDB = $lang !== ''
-                ? new \TMDB(SettingsManager::getAll()['tmdb_api_key'], $lang)
-                : new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
+                ? new \TMDB(SettingsManager::getString('tmdb_api_key'), $lang)
+                : new \TMDB(SettingsManager::getString('tmdb_api_key'));
 
             $rPages = 100;
             $rTMDBIDs = [];
