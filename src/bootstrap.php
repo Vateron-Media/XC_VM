@@ -481,7 +481,7 @@ class XC_Bootstrap {
         LegacyInitializer::initCore($cached);
 
         // If cache was used and is incomplete — reconnect to DB
-        if ($cached && !SettingsManager::getAll()['enable_cache']) {
+        if ($cached && !SettingsManager::get('enable_cache')) {
             $db = new DatabaseHandler();
             DatabaseFactory::set($db);
             self::wireDomainDatabase($db);
