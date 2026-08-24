@@ -50,4 +50,17 @@ class RequestManager {
 	public static function update(string $key, $value): void {
 		self::$request[$key] = $value;
 	}
+
+	/**
+	 * Проверяет наличие ключа (isset-семантика: ключ задан и не null).
+	 *
+	 * Прямая замена `isset(getAll()['key'])` — `isset()` нельзя применять к
+	 * результату get(), поэтому для проверок существования нужен этот метод.
+	 *
+	 * @param string $key
+	 * @return bool
+	 */
+	public static function has(string $key): bool {
+		return isset(self::$request[$key]);
+	}
 }
