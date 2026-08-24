@@ -22,7 +22,7 @@ use XcVm\Domain\User\UserRepository;
 class BaseApiController {
 	protected $deny = true;
 	protected $downloading = false;
-	protected $userInfo = null;
+	protected array|false|null $userInfo = null;
 	protected $downloadType = '';
 
 	public function shutdown() {
