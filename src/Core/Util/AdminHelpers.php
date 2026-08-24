@@ -402,7 +402,7 @@ class AdminHelpers {
 	 * @return array|null Parsed metadata, or null on failure.
 	 */
 	public static function parserelease($rRelease) {
-		if (SettingsManager::getAll()['parse_type'] == 'guessit') {
+		if (SettingsManager::get('parse_type') == 'guessit') {
 			$rCommand = MAIN_HOME . 'bin/guess ' . escapeshellarg(pathinfo($rRelease)['filename'] . '.mkv');
 		} else {
 			$rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(pathinfo(str_replace('-', '_', $rRelease))['filename']);

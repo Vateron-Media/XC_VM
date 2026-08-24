@@ -107,7 +107,7 @@ class BackupService {
 
 		try {
 			$rClient = new DropboxClient();
-			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->SetBearerToken(array('t' => SettingsManager::get('dropbox_token')));
 			$rClient->GetFiles();
 
 			return true;
@@ -126,7 +126,7 @@ class BackupService {
 
 		try {
 			$rClient = new DropboxClient();
-			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->SetBearerToken(array('t' => SettingsManager::get('dropbox_token')));
 			$rFiles = $rClient->GetFiles();
 		} catch (\exception $e) {
 			$rFiles = array();
@@ -161,7 +161,7 @@ class BackupService {
 		$rClient = new DropboxClient();
 
 		try {
-			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->SetBearerToken(array('t' => SettingsManager::get('dropbox_token')));
 			$rClient->downloadFile($rPath, $rFilename);
 
 			return true;
@@ -183,7 +183,7 @@ class BackupService {
 		$rClient = new DropboxClient();
 
 		try {
-			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->SetBearerToken(array('t' => SettingsManager::get('dropbox_token')));
 
 			return $rClient->UploadFile($rFilename, $rPath, $rOverwrite);
 		} catch (\exception $e) {
@@ -202,7 +202,7 @@ class BackupService {
 		$rClient = new DropboxClient();
 
 		try {
-			$rClient->SetBearerToken(array('t' => SettingsManager::getAll()['dropbox_token']));
+			$rClient->SetBearerToken(array('t' => SettingsManager::get('dropbox_token')));
 			$rClient->Delete($rPath);
 
 			return true;

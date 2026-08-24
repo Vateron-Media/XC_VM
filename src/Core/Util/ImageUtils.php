@@ -136,7 +136,7 @@ class ImageUtils {
 				}
 			}
 			if (in_array(strtolower($rExt), array('jpg', 'jpeg', 'png'))) {
-				$rFilename = Encryption::encrypt($rImage, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
+				$rFilename = Encryption::encrypt($rImage, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
 				// A single filename component is capped at 255 bytes on ext4/most
 				// filesystems. Long source URLs produce an encrypted name that
 				// exceeds this, so file_put_contents fails with "File name too
