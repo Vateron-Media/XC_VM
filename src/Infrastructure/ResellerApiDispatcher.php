@@ -79,7 +79,7 @@ class ResellerApiDispatcher {
 	private static function handleDashboard(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('open_connections' => 0, 'online_users' => 0, 'active_accounts' => 0, 'credits' => 0, 'credits_assigned' => 0);
 
-		if (SettingsManager::getAll()['redis_handler']) {
+		if (SettingsManager::getBool('redis_handler')) {
 			$rReports = array();
 			$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 			foreach ($db->get_rows() as $rRow) {
@@ -123,7 +123,7 @@ class ResellerApiDispatcher {
 			$rSub = RequestManager::getAll()['sub'];
 
 			if ($rSub == 'purge') {
-				if (SettingsManager::getAll()['redis_handler']) {
+				if (SettingsManager::getBool('redis_handler')) {
 					$rReports = array();
 					$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 					foreach ($db->get_rows() as $rRow) {
@@ -195,7 +195,7 @@ class ResellerApiDispatcher {
 
 				if ($rSub == 'kill_line') {
 					if ($rPermissions['reseller_client_connection_logs']) {
-						if (SettingsManager::getAll()['redis_handler']) {
+						if (SettingsManager::getBool('redis_handler')) {
 							foreach (ConnectionTracker::getUserConnections(array($rUserID), false)[$rUserID] as $rConnection) {
 								ConnectionTracker::closeConnection($rConnection);
 							}
@@ -236,7 +236,7 @@ class ResellerApiDispatcher {
 			$rSub = RequestManager::getAll()['sub'];
 
 			if ($rSub == 'kill') {
-				if (SettingsManager::getAll()['redis_handler']) {
+				if (SettingsManager::getBool('redis_handler')) {
 					$raw = RedisManager::instance()->get(RequestManager::getAll()['uuid']);
 					$rActivityInfo = ($raw !== false) ? igbinary_unserialize($raw) : null;
 					if ($rActivityInfo) {
@@ -447,7 +447,7 @@ class ResellerApiDispatcher {
 
 					if ($rSub == 'kill_line') {
 						if ($rPermissions['reseller_client_connection_logs']) {
-							if (SettingsManager::getAll()['redis_handler']) {
+							if (SettingsManager::getBool('redis_handler')) {
 								foreach (ConnectionTracker::getUserConnections(array($rMagDetails['user_id']), false)[$rMagDetails['user_id']] as $rConnection) {
 									ConnectionTracker::closeConnection($rConnection);
 								}
@@ -527,7 +527,7 @@ class ResellerApiDispatcher {
 
 					if ($rSub == 'kill_line') {
 						if ($rPermissions['reseller_client_connection_logs']) {
-							if (SettingsManager::getAll()['redis_handler']) {
+							if (SettingsManager::getBool('redis_handler')) {
 								foreach (ConnectionTracker::getUserConnections(array($rE2Details['user_id']), false)[$rE2Details['user_id']] as $rConnection) {
 									ConnectionTracker::closeConnection($rConnection);
 								}
@@ -653,7 +653,7 @@ class ResellerApiDispatcher {
 	private static function handleHeaderStats(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('total_connections' => 0, 'total_users' => 0);
 
-		if (SettingsManager::getAll()['redis_handler']) {
+		if (SettingsManager::getBool('redis_handler')) {
 			$rReports = array();
 			$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 			foreach ($db->get_rows() as $rRow) {
@@ -689,7 +689,7 @@ class ResellerApiDispatcher {
 	private static function handleStats(array $rUserInfo, array $rPermissions, $db): void {
 		$rReturn = array('open_connections' => 0, 'online_users' => 0, 'total_lines' => 0, 'total_users' => 0, 'owner_credits' => 0, 'user_credits' => 0, 'total_credits' => 0);
 
-		if (SettingsManager::getAll()['redis_handler']) {
+		if (SettingsManager::getBool('redis_handler')) {
 			$rReports = array();
 			$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 			foreach ($db->get_rows() as $rRow) {

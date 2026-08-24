@@ -106,6 +106,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleLines(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_line']) {
 			exit();
 		}
@@ -199,7 +200,7 @@ class ResellerTableRenderer {
 					foreach ($db->get_rows() as $rRow) {
 						$rLineInfo[$rRow['id']]['owner_name'] = $rRow['username'];
 					}
-					if (SettingsManager::getAll()['redis_handler']) {
+					if ($rRedis) {
 						$rConnectionCount = array();
 						$rConnectionMap = ConnectionTracker::getUserConnections($rLineIDs, false);
 						$rStreamIDs = array();
@@ -252,7 +253,7 @@ class ResellerTableRenderer {
 				}
 				foreach ($rRows as $rRow) {
 					$rRow = array_merge($rRow, $rLineInfo[$rRow['id']]);
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
 					}
@@ -384,6 +385,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleMags(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_mag']) {
 			exit();
 		}
@@ -461,7 +463,7 @@ class ResellerTableRenderer {
 				}
 				if (0 >= count($rLineIDs)) {
 				} else {
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rConnectionCount = array();
 						$rConnectionMap = ConnectionTracker::getUserConnections($rLineIDs, false);
@@ -472,7 +474,7 @@ class ResellerTableRenderer {
 					}
 				}
 				foreach ($rRows as $rRow) {
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
 					}
@@ -579,6 +581,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleEnigmas(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_enigma']) {
 			exit();
 		}
@@ -656,7 +659,7 @@ class ResellerTableRenderer {
 				}
 				if (0 >= count($rLineIDs)) {
 				} else {
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rConnectionCount = array();
 						$rConnectionMap = ConnectionTracker::getUserConnections($rLineIDs, false);
@@ -667,7 +670,7 @@ class ResellerTableRenderer {
 					}
 				}
 				foreach ($rRows as $rRow) {
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
 					}
@@ -773,6 +776,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleStreams(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
 		}
@@ -829,7 +833,7 @@ class ResellerTableRenderer {
 				$db->query($rQuery, ...$rWhereV);
 				if ($db->num_rows() > 0) {
 					$rRows = $db->get_rows();
-					if (SettingsManager::getAll()['redis_handler']) {
+					if ($rRedis) {
 						$rConnectionCount = $rReports = array();
 						$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
 						foreach ($db->get_rows() as $rRow) {
@@ -845,7 +849,7 @@ class ResellerTableRenderer {
 						}
 					}
 					foreach ($rRows as $rRow) {
-						if (!SettingsManager::getAll()['redis_handler']) {
+						if (!$rRedis) {
 						} else {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
@@ -909,6 +913,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleRadios(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
 		}
@@ -962,7 +967,7 @@ class ResellerTableRenderer {
 				if (0 >= $db->num_rows()) {
 				} else {
 					$rRows = $db->get_rows();
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rConnectionCount = $rReports = array();
 						$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -979,7 +984,7 @@ class ResellerTableRenderer {
 						}
 					}
 					foreach ($rRows as $rRow) {
-						if (!SettingsManager::getAll()['redis_handler']) {
+						if (!$rRedis) {
 						} else {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
@@ -1039,6 +1044,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleMovies(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
 		}
@@ -1092,7 +1098,7 @@ class ResellerTableRenderer {
 				if (0 >= $db->num_rows()) {
 				} else {
 					$rRows = $db->get_rows();
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rConnectionCount = $rReports = array();
 						$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -1109,7 +1115,7 @@ class ResellerTableRenderer {
 						}
 					}
 					foreach ($rRows as $rRow) {
-						if (!SettingsManager::getAll()['redis_handler']) {
+						if (!$rRedis) {
 						} else {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
@@ -1170,6 +1176,7 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleEpisodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
 		}
@@ -1228,7 +1235,7 @@ class ResellerTableRenderer {
 				if (0 >= $db->num_rows()) {
 				} else {
 					$rRows = $db->get_rows();
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!$rRedis) {
 					} else {
 						$rConnectionCount = $rReports = array();
 						$db->query('SELECT `id` FROM `lines` WHERE `member_id` IN (' . implode(',', $rUserInfo['reports']) . ');');
@@ -1245,7 +1252,7 @@ class ResellerTableRenderer {
 						}
 					}
 					foreach ($rRows as $rRow) {
-						if (!SettingsManager::getAll()['redis_handler']) {
+						if (!$rRedis) {
 						} else {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
@@ -1464,12 +1471,13 @@ class ResellerTableRenderer {
 	 * @return void
 	 */
 	private static function handleLiveConnections(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
 		}
 		$rOrderBy = '';
 		$rRows = array();
-		if (SettingsManager::getAll()['redis_handler']) {
+		if ($rRedis) {
 			$rOrderDirection = (strtolower(RequestManager::getAll()['order'][0]['dir']) === 'desc' ? false : true);
 			$rReports = array();
 			$rUserID = (0 < intval(RequestManager::getAll()['user']) ? intval(RequestManager::getAll()['user']) : null);

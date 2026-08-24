@@ -100,7 +100,7 @@ if (isset($_SESSION['hash'])) {
 	}
 	$updateRequired = false;
 
-	if (isset($rServers[SERVER_ID]) && !version_compare($rServers[SERVER_ID]['xc_vm_version'], SettingsManager::getAll()['update_version'], '>=')) {
+	if (isset($rServers[SERVER_ID]) && !version_compare($rServers[SERVER_ID]['xc_vm_version'], SettingsManager::getString('update_version'), '>=')) {
 		$updateRequired = true;
 	}
 }

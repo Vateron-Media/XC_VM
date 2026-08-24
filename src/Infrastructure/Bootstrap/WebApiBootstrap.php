@@ -62,13 +62,13 @@ class WebApiBootstrap {
 
 		LegacyInitializer::initCore($rUseCache);
 
-		if ($rUseCache && !SettingsManager::getAll()['enable_cache']) {
+		if ($rUseCache && !SettingsManager::getBool('enable_cache')) {
 			$db = new DatabaseHandler();
 			DatabaseFactory::set($db);
 			DomainDatabaseWiring::wire($db);
 		}
 
 		// ── 6. GithubReleases ────────────────────────────────────
-		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getAll()['update_channel']);
+		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getString('update_channel'));
 	}
 }
