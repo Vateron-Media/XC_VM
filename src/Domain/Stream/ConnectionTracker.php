@@ -1036,7 +1036,7 @@ class ConnectionTracker {
 	public static function getLiveConnections(int $rServerID, bool $rProxy = false): int {
 		$db = self::db();
 
-		if (SettingsManager::getAll()['redis_handler']) {
+		if (SettingsManager::get('redis_handler')) {
 			$rCount = 0;
 
 			if ($rProxy) {

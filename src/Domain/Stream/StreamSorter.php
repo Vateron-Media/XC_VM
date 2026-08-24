@@ -24,10 +24,10 @@ class StreamSorter {
 	 */
 	public static function formatTitle($rTitle, $rYear) {
 		if (is_numeric($rYear) && 1900 <= $rYear && $rYear <= intval(date('Y') + 1)) {
-			if (SettingsManager::getAll()['movie_year_append'] == 0) {
+			if (SettingsManager::get('movie_year_append') == 0) {
 				return trim($rTitle) . ' (' . $rYear . ')';
 			}
-			if (SettingsManager::getAll()['movie_year_append'] == 1) {
+			if (SettingsManager::get('movie_year_append') == 1) {
 				return trim($rTitle) . ' - ' . $rYear;
 			}
 		}
@@ -44,7 +44,7 @@ class StreamSorter {
 	 * @return int[] Reordered channel ids.
 	 */
 	public static function sortChannels($rChannels) {
-		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && SettingsManager::getAll()['channel_number_type'] != 'bouquet')) {
+		if (!(0 < count($rChannels) && file_exists(CACHE_TMP_PATH . 'channel_order') && SettingsManager::get('channel_number_type') != 'bouquet')) {
 			return $rChannels;
 		}
 
