@@ -37,8 +37,8 @@ class EpgApiController extends BaseApiController {
 		$rCountry = GeoIP::getCountry($rIP);
 		$rCountryCode = (is_array($rCountry) && isset($rCountry['country']['iso_code']) ? $rCountry['country']['iso_code'] : null);
 		$rUserAgent = (empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlentities(trim($_SERVER['HTTP_USER_AGENT'])));
-		$rGZ = !empty(RequestManager::getAll()['gzip']) && intval(RequestManager::getAll()['gzip']) == 1;
-		$rUsername = RequestManager::getAll()['username'] ?? '';
+		$rGZ = !empty(RequestManager::get('gzip')) && intval(RequestManager::get('gzip')) == 1;
+		$rUsername = RequestManager::get('username') ?? '';
 
 		$rUserInfo = $this->authenticate($rIP);
 

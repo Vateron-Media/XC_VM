@@ -28,15 +28,15 @@ class TmdbController {
             exit();
         }
 
-        $term = RequestManager::getAll()['term'] ?? '';
+        $term = RequestManager::get('term') ?? '';
         if (strlen($term) === 0) {
             echo json_encode(['result' => false]);
             exit();
         }
 
-        $type     = RequestManager::getAll()['type']     ?? 'movie';
-        $language = RequestManager::getAll()['language']  ?? null;
-        $season   = isset(RequestManager::getAll()['season']) ? intval(RequestManager::getAll()['season']) : null;
+        $type     = RequestManager::get('type')     ?? 'movie';
+        $language = RequestManager::get('language')  ?? null;
+        $season   = RequestManager::has('season') ? intval(RequestManager::get('season')) : null;
 
         $response = TmdbApiService::search($term, $type, $language ?: null, $season);
         echo json_encode($response);
@@ -49,9 +49,9 @@ class TmdbController {
             exit();
         }
 
-        $id       = intval(RequestManager::getAll()['id']       ?? 0);
-        $type     = RequestManager::getAll()['type']             ?? '';
-        $language = RequestManager::getAll()['language']         ?? null;
+        $id       = intval(RequestManager::get('id')       ?? 0);
+        $type     = RequestManager::get('type')             ?? '';
+        $language = RequestManager::get('language')         ?? null;
 
         $response = TmdbApiService::getDetails($id, $type, $language ?: null);
         echo json_encode($response);

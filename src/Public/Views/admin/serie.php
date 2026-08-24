@@ -16,7 +16,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 					<h4 class="page-title">
 						<?php if (isset($rSeriesArr['id'])) {
 							echo $rSeriesArr['title'];
-						} elseif (isset(RequestManager::getAll()['import'])) {
+						} elseif (RequestManager::has('import')) {
 							echo 'Import Series';
 						} else {
 							echo 'Add Series';
@@ -29,8 +29,8 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 			<div class="col-xl-12">
 				<div class="card">
 					<div class="card-body">
-						<form<?php if (isset(RequestManager::getAll()['import'])) echo ' enctype="multipart/form-data"'; ?> action="#" method="POST" data-parsley-validate="">
-							<?php if (!isset(RequestManager::getAll()['import'])): ?>
+						<form<?php if (RequestManager::has('import')) echo ' enctype="multipart/form-data"'; ?> action="#" method="POST" data-parsley-validate="">
+							<?php if (!RequestManager::has('import')): ?>
 								<?php if (isset($rSeriesArr)): ?>
 									<input type="hidden" name="edit" value="<?= $rSeriesArr['id']; ?>" />
 								<?php endif; ?>
@@ -50,7 +50,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 											<span class="d-none d-sm-inline"><?= $language::get('details') ?></span>
 										</a>
 									</li>
-									<?php if (!isset(RequestManager::getAll()['import'])): ?>
+									<?php if (!RequestManager::has('import')): ?>
 										<li class="nav-item">
 											<a href="#movie-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
 												<i class="mdi mdi-movie-outline mr-1"></i>
@@ -80,7 +80,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 									<div class="tab-pane" id="stream-details">
 										<div class="row">
 											<div class="col-12">
-												<?php if (!isset(RequestManager::getAll()['import'])): ?>
+												<?php if (!RequestManager::has('import')): ?>
 													<div class="form-group row mb-4">
 														<label class="col-md-4 col-form-label" for="title"><?= $language::get('series_name') ?></label>
 														<div class="col-md-5">
@@ -160,7 +160,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 													</div>
 												<?php endif; ?>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="category_id"><?= (isset(RequestManager::getAll()['import']) ? 'Fallback ' : ''); ?>Categories</label>
+													<label class="col-md-4 col-form-label" for="category_id"><?= (RequestManager::has('import') ? 'Fallback ' : ''); ?>Categories</label>
 													<div class="col-md-8">
 														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 															<?php foreach (CategoryService::getAllByType('series') as $category): ?>
@@ -184,7 +184,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 													</div>
 												</div>
 												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="bouquets"><?= (isset(RequestManager::getAll()['import']) ? 'Fallback ' : ''); ?>Bouquets</label>
+													<label class="col-md-4 col-form-label" for="bouquets"><?= (RequestManager::has('import') ? 'Fallback ' : ''); ?>Bouquets</label>
 													<div class="col-md-8">
 														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
 															<?php foreach (BouquetService::getAllSimple() as $bouquet): ?>
@@ -215,7 +215,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 											</li>
 										</ul>
 									</div>
-									<?php if (!isset(RequestManager::getAll()['import'])): ?>
+									<?php if (!RequestManager::has('import')): ?>
 										<div class="tab-pane" id="movie-information">
 											<div class="row">
 												<div class="col-12">
@@ -977,7 +977,7 @@ renderUnifiedLayoutFooter('admin');
 		<?php endif; ?>
 		$("form").submit(function(e) {
 			e.preventDefault();
-			<?php if (!isset(RequestManager::getAll()['import'])): ?>
+			<?php if (!RequestManager::has('import')): ?>
 				if ($("#title").val().length === 0) {
 					$.toast("Enter a series name.");
 				} else {

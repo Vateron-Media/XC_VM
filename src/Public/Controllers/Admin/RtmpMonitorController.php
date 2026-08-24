@@ -23,11 +23,11 @@ class RtmpMonitorController extends BaseAdminController {
 
         global $rServers;
 
-        if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
+        if (!RequestManager::has('server') || !isset($rServers[RequestManager::get('server')])) {
             RequestManager::update('server', SERVER_ID);
         }
 
-        $rRTMPInfo = ServerRepository::getRTMPStats(RequestManager::getAll()['server']);
+        $rRTMPInfo = ServerRepository::getRTMPStats(RequestManager::get('server'));
 
         $this->setTitle('RTMP Monitor');
         $this->render('rtmp_monitor', compact('rRTMPInfo'));

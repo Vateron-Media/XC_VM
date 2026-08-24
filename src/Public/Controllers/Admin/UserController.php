@@ -24,7 +24,7 @@ class UserController extends BaseAdminController {
 
         global $db;
 
-        $rUser = isset(RequestManager::getAll()['id']) ? UserRepository::getRegisteredUserById(RequestManager::getAll()['id']) : null;
+        $rUser = RequestManager::has('id') ? UserRepository::getRegisteredUserById(RequestManager::get('id')) : null;
         if ($rUser === false) {
             $this->redirect('users');
             return;

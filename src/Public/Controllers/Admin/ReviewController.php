@@ -22,7 +22,7 @@ class ReviewController extends BaseAdminController {
     public function index() {
         $this->requirePermission();
 
-        $rType = isset(RequestManager::getAll()['type']) ? intval(RequestManager::getAll()['type']) : 1;
+        $rType = RequestManager::has('type') ? intval(RequestManager::get('type')) : 1;
         $rCategorySet = [];
         $rLogoSet = [];
 

@@ -24,8 +24,8 @@ class TicketViewController extends BaseAdminController {
         $this->requirePermission();
 
         $rTicketInfo = null;
-        if (isset(RequestManager::getAll()['id'])) {
-            $rTicketInfo = TicketRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rTicketInfo = TicketRepository::getById(RequestManager::get('id'));
         }
         if (!$rTicketInfo) {
             $this->redirect('tickets');
@@ -33,7 +33,7 @@ class TicketViewController extends BaseAdminController {
         }
 
         if ($rUserInfo['id'] != $rTicketInfo['member_id']) {
-            $db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', RequestManager::getAll()['id']);
+            $db->query('UPDATE `tickets` SET `admin_read` = 1 WHERE `id` = ?;', RequestManager::get('id'));
         }
 
         $this->setTitle('View Ticket');

@@ -27,12 +27,12 @@ class LiveConnectionsController extends BaseAdminController {
         $rSearchUser = null;
         $rSearchStream = null;
 
-        if (isset(RequestManager::getAll()['user_id'])) {
-            $rSearchUser = UserRepository::getLineById(RequestManager::getAll()['user_id']);
+        if (RequestManager::has('user_id')) {
+            $rSearchUser = UserRepository::getLineById(RequestManager::get('user_id'));
         }
 
-        if (isset(RequestManager::getAll()['stream_id'])) {
-            $rSearchStream = StreamRepository::getById(RequestManager::getAll()['stream_id']);
+        if (RequestManager::has('stream_id')) {
+            $rSearchStream = StreamRepository::getById(RequestManager::get('stream_id'));
         }
 
         $this->setTitle('Live Connections');

@@ -28,7 +28,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                     <div class="card-body">
                         <form action="#" method="POST">
                             <input type="hidden" id="stream_order_array" name="stream_order_array" value="" />
-                            <input type="hidden" name="reorder" value="<?= intval(RequestManager::getAll()['id']); ?>" />
+                            <input type="hidden" name="reorder" value="<?= intval(RequestManager::get('id')); ?>" />
                             <div id="basicwizard">
                                 <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
                                     <li class="nav-item">

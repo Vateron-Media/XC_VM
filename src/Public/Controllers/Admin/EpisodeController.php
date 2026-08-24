@@ -26,14 +26,14 @@ class EpisodeController extends BaseAdminController {
         global $db, $rServers;
 
         // Resolve series_id from episode if not provided
-        if (!empty(RequestManager::getAll()['id']) && empty(RequestManager::getAll()['sid'])) {
-            $db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(RequestManager::getAll()['id']));
+        if (!empty(RequestManager::get('id')) && empty(RequestManager::get('sid'))) {
+            $db->query('SELECT `series_id` FROM `streams_episodes` WHERE `stream_id` = ?;', intval(RequestManager::get('id')));
             if ($db->num_rows() > 0) {
                 RequestManager::update('sid', intval($db->get_row()['series_id']));
             }
         }
 
-        if (!($rSeriesArr = SeriesService::getById(RequestManager::getAll()['sid'] ?? null))) {
+        if (!($rSeriesArr = SeriesService::getById(RequestManager::get('sid') ?? null))) {
             $this->redirect('series');
             return;
         }
@@ -41,8 +41,8 @@ class EpisodeController extends BaseAdminController {
         $rEpisode = null;
         $rStreamSys = [];
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rEpisode = StreamRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rEpisode = StreamRepository::getById(RequestManager::get('id'));
             if (!$rEpisode || $rEpisode['type'] != 5) {
                 $this->redirect('episodes');
                 return;
@@ -67,7 +67,7 @@ class EpisodeController extends BaseAdminController {
             }
 
             $rEpisode['properties'] = json_decode($rEpisode['movie_properties'], true);
-            $rStreamSys = StreamRepository::getSystemRows(RequestManager::getAll()['id']);
+            $rStreamSys = StreamRepository::getSystemRows(RequestManager::get('id'));
 
             foreach ($rServers as $rServer) {
                 $rParent = isset($rStreamSys[intval($rServer['id'])]) ? 'source' : 'offline';
@@ -80,7 +80,7 @@ class EpisodeController extends BaseAdminController {
             foreach ($rServers as $rServer) {
                 $rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
             }
-            if (isset(RequestManager::getAll()['multi']) && Authorization::check('adv', 'import_episodes')) {
+            if (RequestManager::has('multi') && Authorization::check('adv', 'import_episodes')) {
                 $rMulti = true;
             }
         }

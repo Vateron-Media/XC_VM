@@ -63,7 +63,7 @@ class PlayerLoginController
 
 		$_STATUS = null;
 
-		if (!empty(RequestManager::getAll()['username']) && !empty(RequestManager::getAll()['password'])) {
+		if (!empty(RequestManager::get('username')) && !empty(RequestManager::get('password'))) {
 			$_STATUS = $this->processLogin();
 			if ($_STATUS === null) {
 				// Success — redirect already sent
@@ -85,7 +85,7 @@ class PlayerLoginController
 	{
 		$rIP = NetworkUtils::getUserIP();
 		$rCountryCode = GeoIP::getCountry($rIP)['country']['iso_code'];
-		$rUserInfo = UserRepository::getUserInfo(null, RequestManager::getAll()['username'], RequestManager::getAll()['password'], true);
+		$rUserInfo = UserRepository::getUserInfo(null, RequestManager::get('username'), RequestManager::get('password'), true);
 		$rUserAgent = empty($_SERVER['HTTP_USER_AGENT']) ? '' : htmlspecialchars(trim($_SERVER['HTTP_USER_AGENT']));
 
 		if (!$rUserInfo) {

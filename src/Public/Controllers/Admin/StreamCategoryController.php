@@ -23,8 +23,8 @@ class StreamCategoryController extends BaseAdminController {
         $this->requirePermission();
         $rCategoryArr = null;
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rCategoryArr = CategoryService::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rCategoryArr = CategoryService::getById(RequestManager::get('id'));
             if (!$rCategoryArr || !Authorization::check('adv', 'edit_cat')) {
                 exit();
             }

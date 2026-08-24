@@ -22,7 +22,7 @@ class ChannelOrderController extends BaseAdminController {
 
         global $db;
 
-        $rOverride = isset(RequestManager::getAll()['override']);
+        $rOverride = RequestManager::has('override');
         $rOrdered = array('stream' => array(), 'movie' => array(), 'series' => array(), 'radio' => array());
         $db->query('SELECT COUNT(`id`) AS `count` FROM `streams`;');
         $rCount = $db->get_row()['count'];

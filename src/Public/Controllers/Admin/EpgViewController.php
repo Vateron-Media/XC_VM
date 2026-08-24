@@ -28,29 +28,29 @@ class EpgViewController extends BaseAdminController {
             exit;
         }
 
-        $rPageInt = max(intval(RequestManager::getAll()['page']), 1);
-        $rLimit = max(intval(RequestManager::getAll()['entries']), SettingsManager::get('default_entries'));
+        $rPageInt = max(intval(RequestManager::get('page')), 1);
+        $rLimit = max(intval(RequestManager::get('entries')), SettingsManager::get('default_entries'));
         $rStart = ($rPageInt - 1) * $rLimit;
         $rWhere = $rWhereV = array();
         $rWhere[] = '`type` = 1 AND `epg_id` IS NOT NULL AND `channel_id` IS NOT NULL';
 
-        if (isset(RequestManager::getAll()['category']) && intval(RequestManager::getAll()['category']) > 0) {
+        if (RequestManager::has('category') && intval(RequestManager::get('category')) > 0) {
             $rWhere[] = "JSON_CONTAINS(`category_id`, ?, '\$')";
-            $rWhereV[] = json_encode(intval(RequestManager::getAll()['category']));
+            $rWhereV[] = json_encode(intval(RequestManager::get('category')));
         }
 
-        if (!empty(RequestManager::getAll()['search'])) {
+        if (!empty(RequestManager::get('search'))) {
             $rWhere[] = '(`stream_display_name` LIKE ? OR `id` LIKE ?)';
-            $rWhereV[] = '%' . RequestManager::getAll()['search'] . '%';
-            $rWhereV[] = RequestManager::getAll()['search'];
+            $rWhereV[] = '%' . RequestManager::get('search') . '%';
+            $rWhereV[] = RequestManager::get('search');
         }
 
         $rWhereString = (count($rWhere) > 0) ? 'WHERE ' . implode(' AND ', $rWhere) : '';
 
         $rOrderBy = '`stream_display_name` ASC';
         $rOrder = ['name' => '`stream_display_name` ASC', 'added' => '`added` DESC'];
-        if (!empty(RequestManager::getAll()['sort']) && isset($rOrder[RequestManager::getAll()['sort']])) {
-            $rOrderBy = $rOrder[RequestManager::getAll()['sort']];
+        if (!empty(RequestManager::get('sort')) && isset($rOrder[RequestManager::get('sort')])) {
+            $rOrderBy = $rOrder[RequestManager::get('sort')];
         } else {
             // Honour the configured "Channel Sorting Type" like the playlists and
             // the reseller guide do: manual => the `order` column, otherwise the

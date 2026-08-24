@@ -126,7 +126,7 @@ if ($_PAGE == 'profile') {
 				echo '&season=" + rSplit[rSplit.length-1];' . "\r\n" . '        });' . "\r\n" . '        ';
 			}
 
-			if (!isset(RequestManager::getAll()['season'])) {
+			if (!RequestManager::has('season')) {
 			} else {
 				echo "        \$('html,body').animate({" . "\r\n" . '            scrollTop: $(".seasons").offset().top - 90' . "\r\n" . '        });' . "\r\n" . '        ';
 			}

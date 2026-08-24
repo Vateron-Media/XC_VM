@@ -442,7 +442,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
+                                                    <?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -513,7 +513,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="user_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
+                                                    <?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -576,7 +576,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="mag_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
+                                                    <?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>
@@ -642,7 +642,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                             </div>
                                             <div class="col-md-3">
                                                 <select id="enigma_reseller_search" class="form-control" data-toggle="select2">
-                                                    <?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))): ?>
+                                                    <?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))): ?>
                                                         <option value="<?= intval($rOwner['id']) ?>" selected="selected"><?= $rOwner['username'] ?></option>
                                                     <?php endif; ?>
                                                 </select>

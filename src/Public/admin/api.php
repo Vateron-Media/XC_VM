@@ -28,15 +28,15 @@ if (in_array($rIP, ServerRepository::getAllowedIPs()) || in_array($rIP, Settings
 	generate404();
 }
 
-if (empty(SettingsManager::get('api_pass')) || RequestManager::getAll()['api_pass'] == SettingsManager::get('api_pass')) {
+if (empty(SettingsManager::get('api_pass')) || RequestManager::get('api_pass') == SettingsManager::get('api_pass')) {
 } else {
 	generate404();
 }
 
 $db = new DatabaseHandler();
 DatabaseFactory::set($db);
-$rAction = (!empty(RequestManager::getAll()['action']) ? RequestManager::getAll()['action'] : '');
-$rSubAction = (!empty(RequestManager::getAll()['sub']) ? RequestManager::getAll()['sub'] : '');
+$rAction = (!empty(RequestManager::get('action')) ? RequestManager::get('action') : '');
+$rSubAction = (!empty(RequestManager::get('sub')) ? RequestManager::get('sub') : '');
 $rAllServers = ServerRepository::getAll();
 
 switch ($rAction) {
@@ -95,8 +95,8 @@ switch ($rAction) {
 	case 'stream':
 		switch ($rSubAction) {
 			case 'start':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
-				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rStreamIDs = array_map('intval', RequestManager::get('stream_ids') ?? array());
+				$rServerIDs = (empty(RequestManager::get('servers')) ? array_keys($rAllServers) : array_map('intval', RequestManager::get('servers')));
 				$rURLs = array();
 
 				foreach ($rServerIDs as $rServerID) {
@@ -108,8 +108,8 @@ switch ($rAction) {
 				exit();
 
 			case 'stop':
-				$rStreamIDs = array_map('intval', RequestManager::getAll()['stream_ids'] ?? array());
-				$rServerIDs = (empty(RequestManager::getAll()['servers']) ? array_keys($rAllServers) : array_map('intval', RequestManager::getAll()['servers']));
+				$rStreamIDs = array_map('intval', RequestManager::get('stream_ids') ?? array());
+				$rServerIDs = (empty(RequestManager::get('servers')) ? array_keys($rAllServers) : array_map('intval', RequestManager::get('servers')));
 				$rURLs = array();
 
 				foreach ($rServerIDs as $rServerID) {
@@ -161,9 +161,9 @@ switch ($rAction) {
 	case 'line':
 		switch ($rSubAction) {
 			case 'info':
-				if (!empty(RequestManager::getAll()['username']) && !empty(RequestManager::getAll()['password'])) {
-					$rUsername = RequestManager::getAll()['username'];
-					$rPassword = RequestManager::getAll()['password'];
+				if (!empty(RequestManager::get('username')) && !empty(RequestManager::get('password'))) {
+					$rUsername = RequestManager::get('username');
+					$rPassword = RequestManager::get('password');
 					$rUserInfo = UserRepository::getUserInfo(false, $rUsername, $rPassword, true, true);
 
 					if (!empty($rUserInfo)) {

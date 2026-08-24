@@ -32,34 +32,34 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 					<div class="card-body" style="overflow-x:auto;">
 						<div id="collapse_filters" class="form-group row mb-4 <?php echo $rMobile ? 'collapse' : ''; ?>">
 							<div class="col-md-3">
-								<input type="text" class="form-control" id="e2_search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="<?php echo $language::get('search_devices'); ?>...">
+								<input type="text" class="form-control" id="e2_search" value="<?php echo RequestManager::has('search') ? htmlspecialchars(RequestManager::get('search')) : ''; ?>" placeholder="<?php echo $language::get('search_devices'); ?>...">
 							</div>
 							<label class="col-md-2 col-form-label text-center" for="e2_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
 							<div class="col-md-3">
 								<select id="e2_reseller" class="form-control" data-toggle="select2">
-									<?php if (isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner'])))) { ?>
+									<?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))) { ?>
 										<option value="<?php echo intval($rOwner['id']); ?>" selected="selected"><?php echo $rOwner['username']; ?></option>
 									<?php } ?>
 								</select>
 							</div>
 							<div class="col-md-2">
 								<select id="e2_filter" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['filter'])) {
+									<option value="" <?php if (!RequestManager::has('filter')) {
 															echo 'selected';
 														} ?>><?php echo $language::get('no_filter'); ?></option>
-									<option value="1" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1) {
+									<option value="1" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 1) {
 															echo 'selected';
 														} ?>><?php echo $language::get('active'); ?></option>
-									<option value="2" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2) {
+									<option value="2" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 2) {
 															echo 'selected';
 														} ?>><?php echo $language::get('disabled'); ?></option>
-									<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3) {
+									<option value="3" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 3) {
 															echo 'selected';
 														} ?>><?php echo $language::get('banned'); ?></option>
-									<option value="4" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4) {
+									<option value="4" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 4) {
 															echo 'selected';
 														} ?>><?php echo $language::get('expired'); ?></option>
-									<option value="5" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5) {
+									<option value="5" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 5) {
 															echo 'selected';
 														} ?>><?php echo $language::get('trial'); ?></option>
 								</select>
@@ -68,7 +68,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							<div class="col-md-1">
 								<select id="e2_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
-										<option value="<?php echo $rShow; ?>" <?php if ((isset(RequestManager::getAll()['entries']) && RequestManager::getAll()['entries'] == $rShow) || (!isset(RequestManager::getAll()['entries']) && $rSettings['default_entries'] == $rShow)) {
+										<option value="<?php echo $rShow; ?>" <?php if ((RequestManager::has('entries') && RequestManager::get('entries') == $rShow) || (!RequestManager::has('entries') && $rSettings['default_entries'] == $rShow)) {
 																					echo 'selected';
 																				} ?>><?php echo $rShow; ?></option>
 									<?php } ?>
@@ -269,9 +269,9 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
+	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
 	echo ', "';
-	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#e2_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#e2_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#e2_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#e2_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#e2_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#e2_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#e2_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#e2_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#e2_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#e2_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#e2_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-users").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
 	<?php if (SettingsManager::get('enable_search')): ?>

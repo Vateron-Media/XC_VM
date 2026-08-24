@@ -27,7 +27,7 @@ class MovieMassController extends BaseAdminController {
 
         $rCategories = CategoryService::getAllByType('movie');
 
-        if (isset(RequestManager::getAll()['submit_stream'])) {
+        if (RequestManager::has('submit_stream')) {
             $rReturn = MovieService::massEdit(RequestManager::getAll());
             $_STATUS = $rReturn['status'];
             $GLOBALS['_STATUS'] = $_STATUS;

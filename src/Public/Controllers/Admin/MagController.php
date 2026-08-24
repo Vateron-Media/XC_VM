@@ -22,8 +22,8 @@ class MagController extends BaseAdminController {
         $this->requirePermission();
 
         $rDevice = null;
-        if (isset(RequestManager::getAll()['id'])) {
-            $rDevice = MagService::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rDevice = MagService::getById(RequestManager::get('id'));
             if (!$rDevice['user_id']) {
                 exit();
             }

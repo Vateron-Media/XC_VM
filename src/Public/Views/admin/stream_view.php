@@ -147,7 +147,7 @@ if ($rStream['type'] == 1) {
 		echo "\t\t\t\t\t\t\t\t\t\t" . '<tr class="stream_info" data-id="';
 		echo $i - 1;
 		echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\r\n" . '                                                <button onClick="overrideSource(';
-		echo intval(RequestManager::getAll()['id']);
+		echo intval(RequestManager::get('id'));
 		echo ', ';
 		echo $i - 1;
 		echo ');" type="button" title="' . $language::get('override_source') . '" class="tooltip btn btn-info btn-xs waves-effect waves-light btn-fixed-xs">';
@@ -309,7 +309,7 @@ if ($rStream['type'] == 1) {
 
 		foreach ($rArchive as $rItem) {
 			$rDuration = $rItem['end'] - $rItem['start'];
-			$rItem['stream_id'] = RequestManager::getAll()['id'];
+			$rItem['stream_id'] = RequestManager::get('id');
 			echo "\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n" . '                                            <td class="text-center">';
 			echo date($rSettings['date_format'], $rItem['start']);
 			echo '<br/>';

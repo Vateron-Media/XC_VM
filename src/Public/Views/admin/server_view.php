@@ -521,17 +521,17 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
             });
 
             <?php
-            $rViewServerId = intval(RequestManager::getAll()['id']);
+            $rViewServerId = intval(RequestManager::get('id'));
             if (in_array($allServers[$rViewServerId]['status'] ?? 0, array(3, 4)) || in_array($rProxyServers[$rViewServerId]['status'] ?? 0, array(3, 4))): ?>
 
                 function getInstallStatus() {
-                    $.getJSON("./api?action=install_status&server_id=<?= intval(RequestManager::getAll()['id']); ?>", function(data) {
+                    $.getJSON("./api?action=install_status&server_id=<?= intval(RequestManager::get('id')); ?>", function(data) {
                         if (data.result === true) {
                             $("#server_install").html(data.data);
                             if (data.status == 3) {
                                 setTimeout(getInstallStatus, 1000);
                             } else if (data.status == 1) {
-                                setTimeout(navigate, 3000, './server_view?id=<?= intval(RequestManager::getAll()['id']); ?>');
+                                setTimeout(navigate, 3000, './server_view?id=<?= intval(RequestManager::get('id')); ?>');
                             }
                         } else {
                             $("#server_install").html("No status available...");
@@ -590,7 +590,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 
             function getStats(auto = true) {
                 var rStart = Date.now();
-                rURL = "./api?action=server_view&server_id=<?= intval(RequestManager::getAll()['id']); ?>";
+                rURL = "./api?action=server_view&server_id=<?= intval(RequestManager::get('id')); ?>";
                 $.getJSON(rURL, function(data) {
                     $("#open_connections").html(data.data.open_connections);
                     $("#total_running_streams").html(data.data.total_running_streams);
@@ -722,7 +722,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                         url: "./table",
                         "data": function(d) {
                             d.id = "streams";
-                            d.server = <?= RequestManager::getAll()['id']; ?>;
+                            d.server = <?= RequestManager::get('id'); ?>;
                             d.filter = 1;
                             d.simple = true;
                         }
@@ -761,7 +761,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                         url: "./table",
                         "data": function(d) {
                             d.id = "live_connections";
-                            d.server_id = <?= RequestManager::getAll()['id']; ?>;
+                            d.server_id = <?= RequestManager::get('id'); ?>;
                         }
                     },
                     columnDefs: [{

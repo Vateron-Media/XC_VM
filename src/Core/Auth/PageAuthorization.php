@@ -89,11 +89,11 @@ class PageAuthorization {
 				return Authorization::check('adv', 'block_isps');
 
 			case 'bouquet':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_bouquet')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_bouquet')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_bouquet')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_bouquet')) {
 				} else {
 					return true;
 				}
@@ -113,11 +113,11 @@ class PageAuthorization {
 				return Authorization::check('adv', 'client_request_log');
 
 			case 'created_channel':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_cchannel')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_cchannel')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'create_channel')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'create_channel')) {
 				} else {
 					return true;
 				}
@@ -138,11 +138,11 @@ class PageAuthorization {
 				return Authorization::check('adv', 'manage_e2');
 
 			case 'epg':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'epg_edit')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'epg_edit')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_epg')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_epg')) {
 				} else {
 					return true;
 				}
@@ -152,11 +152,11 @@ class PageAuthorization {
 				return Authorization::check('adv', 'epg');
 
 			case 'episode':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_episode')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_episode')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_episode')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_episode')) {
 				} else {
 					return true;
 				}
@@ -173,11 +173,11 @@ class PageAuthorization {
 				return Authorization::check('adv', 'fingerprint');
 
 			case 'group':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_group')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_group')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_group')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_group')) {
 				} else {
 					return true;
 				}
@@ -194,10 +194,10 @@ class PageAuthorization {
 				return Authorization::check('adv', 'live_connections');
 
 			case 'mag':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_mag')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_mag')) {
 					return true;
 				}
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_mag')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_mag')) {
 					break;
 				}
 				return true;
@@ -216,12 +216,12 @@ class PageAuthorization {
 			case 'queue':
 				return Authorization::check('adv', 'streams') || Authorization::check('adv', 'episodes') || Authorization::check('adv', 'series');
 			case 'movie':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_movie')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_movie')) {
 					return true;
 				}
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_movie')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_movie')) {
 				} else {
-					if (isset(RequestManager::getAll()['import']) && !Authorization::check('adv', 'import_movies')) {
+					if (RequestManager::has('import') && !Authorization::check('adv', 'import_movies')) {
 					} else {
 						return true;
 					}
@@ -232,11 +232,11 @@ class PageAuthorization {
 			case 'movies':
 				return Authorization::check('adv', 'movies');
 			case 'package':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_package')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_package')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_packages')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_packages')) {
 					break;
 				}
 				return true;
@@ -257,10 +257,10 @@ class PageAuthorization {
 				return Authorization::check('adv', 'tprofiles');
 
 			case 'radio':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_radio')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_radio')) {
 					return true;
 				}
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_radio')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_radio')) {
 					break;
 				}
 				return true;
@@ -269,11 +269,11 @@ class PageAuthorization {
 			case 'radios':
 				return Authorization::check('adv', 'radio');
 			case 'user':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_reguser')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_reguser')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_reguser')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_reguser')) {
 					break;
 				}
 				return true;
@@ -287,11 +287,11 @@ class PageAuthorization {
 			case 'rtmp_monitor':
 				return Authorization::check('adv', 'rtmp');
 			case 'serie':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_series')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_series')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_series')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_series')) {
 					break;
 				}
 				return true;
@@ -301,10 +301,10 @@ class PageAuthorization {
 				return Authorization::check('adv', 'edit_series');
 			case 'server':
 			case 'proxy':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_server')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_server')) {
 					return true;
 				}
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_server')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_server')) {
 					break;
 				}
 				return true;
@@ -325,13 +325,13 @@ class PageAuthorization {
 				return Authorization::check('adv', 'database');
 
 			case 'stream':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_stream')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_stream')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_stream')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_stream')) {
 				} else {
-					if (isset(RequestManager::getAll()['import']) && !Authorization::check('adv', 'import_streams')) {
+					if (RequestManager::has('import') && !Authorization::check('adv', 'import_streams')) {
 					} else {
 						return true;
 					}
@@ -391,11 +391,11 @@ class PageAuthorization {
 				return Authorization::check('adv', 'manage_tickets');
 
 			case 'line':
-				if (isset(RequestManager::getAll()['id']) && Authorization::check('adv', 'edit_user')) {
+				if (RequestManager::has('id') && Authorization::check('adv', 'edit_user')) {
 					return true;
 				}
 
-				if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_user')) {
+				if (RequestManager::has('id') || !Authorization::check('adv', 'add_user')) {
 					break;
 				}
 

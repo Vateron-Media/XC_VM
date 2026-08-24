@@ -33,14 +33,14 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <input type="text" class="form-control" id="stream_search" value="';
 
-if (!isset(RequestManager::getAll()['search'])) {
+if (!RequestManager::has('search')) {
 } else {
-	echo htmlspecialchars(RequestManager::getAll()['search']);
+	echo htmlspecialchars(RequestManager::get('search'));
 }
 
 echo '" placeholder="' . $language::get('search_streams_placeholder') . '">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="stream_server_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['server'])) {
+if (RequestManager::has('server')) {
 } else {
 	echo ' selected';
 }
@@ -49,7 +49,7 @@ echo '>';
 echo $language::get('all_servers');
 echo '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == -1)) {
+if (!(RequestManager::has('server') && RequestManager::get('server') == -1)) {
 } else {
 	echo ' selected';
 }
@@ -61,7 +61,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo intval($rServer['id']);
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id'])) {
+	if (!(RequestManager::has('server') && RequestManager::get('server') == $rServer['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -72,7 +72,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="stream_category_id" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['category'])) {
+if (RequestManager::has('category')) {
 } else {
 	echo ' selected';
 }
@@ -81,7 +81,7 @@ echo '>';
 echo $language::get('all_categories');
 echo '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -1)) {
+if (!(RequestManager::has('category') && RequestManager::get('category') == -1)) {
 } else {
 	echo ' selected';
 }
@@ -93,7 +93,7 @@ foreach (CategoryService::getAllByType('live') as $rCategory) {
 	echo intval($rCategory['id']);
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id'])) {
+	if (!(RequestManager::has('category') && RequestManager::get('category') == $rCategory['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -104,112 +104,112 @@ foreach (CategoryService::getAllByType('live') as $rCategory) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="stream_filter" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['filter'])) {
+if (RequestManager::has('filter')) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('no_filter') . '</option>' . "\n" . '                                    <option value="1"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 1)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('online') . '</option>' . "\n" . '                                    <option value="2"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 2)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('down') . '</option>' . "\n" . '                                    <option value="3"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 3)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('stopped') . '</option>' . "\n" . '                                    <option value="4"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 4)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('starting') . '</option>' . "\n" . '                                    <option value="5"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 5)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('on_demand') . '</option>' . "\n" . '                                    <option value="6"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 6)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 6)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('direct') . '</option>' . "\n" . '                                    <option value="7"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 7)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 7)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('timeshift') . '</option>' . "\n" . '                                    <option value="8"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 8)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 8)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('looping') . '</option>' . "\n" . '                                    <option value="9"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 9)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 9)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('has_epg') . '</option>' . "\n" . '                                    <option value="10"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 10)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 10)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('no_epg') . '</option>' . "\n" . '                                    <option value="11"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 11)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 11)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('adaptive_link') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="12"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 12)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 12)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('title_sync') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="13"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 13)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 13)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('transcoding') . '</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="stream_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['audio'])) {
+if (RequestManager::has('audio')) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('audio') . '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == '-1')) {
+if (!(RequestManager::has('audio') && RequestManager::get('audio') == '-1')) {
 } else {
 	echo ' selected';
 }
@@ -221,7 +221,7 @@ foreach ($rAudioCodecs as $rCodec) {
 	echo $rCodec;
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == $rCodec)) {
+	if (!(RequestManager::has('audio') && RequestManager::get('audio') == $rCodec)) {
 	} else {
 		echo ' selected';
 	}
@@ -232,14 +232,14 @@ foreach ($rAudioCodecs as $rCodec) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="stream_video" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['video'])) {
+if (RequestManager::has('video')) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('video') . '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == '-1')) {
+if (!(RequestManager::has('video') && RequestManager::get('video') == '-1')) {
 } else {
 	echo ' selected';
 }
@@ -251,7 +251,7 @@ foreach ($rVideoCodecs as $rCodec) {
 	echo $rCodec;
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == $rCodec)) {
+	if (!(RequestManager::has('video') && RequestManager::get('video') == $rCodec)) {
 	} else {
 		echo ' selected';
 	}
@@ -262,7 +262,7 @@ foreach ($rVideoCodecs as $rCodec) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="stream_resolution" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['resolution'])) {
+if (RequestManager::has('resolution')) {
 } else {
 	echo ' selected';
 }
@@ -274,7 +274,7 @@ foreach (array(240, 360, 480, 576, 720, 1080, 1440, 2160) as $rResolution) {
 	echo $rResolution;
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['resolution']) && RequestManager::getAll()['resolution'] == $rResolution)) {
+	if (!(RequestManager::has('resolution') && RequestManager::get('resolution') == $rResolution)) {
 	} else {
 		echo ' selected';
 	}
@@ -288,8 +288,8 @@ echo '                                </select>' . "\n" . '                     
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '                                    <option';
 
-	if (isset(RequestManager::getAll()['entries'])) {
-		if (RequestManager::getAll()['entries'] != $rShow) {
+	if (RequestManager::has('entries')) {
+		if (RequestManager::get('entries') != $rShow) {
 		} else {
 			echo ' selected';
 		}
@@ -478,9 +478,9 @@ renderUnifiedLayoutFooter('admin'); ?>
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
+	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
 	echo ', "';
-	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . "}).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-streampage").css("width", "100%");' . "\r\n\t\t\t" . "\$('#stream_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#stream_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#stream_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#stream_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_category_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_category_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#stream_category_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_server_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_server_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#stream_server_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#stream_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#stream_audio').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#stream_audio").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("audio", $("#stream_audio").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("audio");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#stream_video').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#stream_video").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("video", $("#stream_video").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("video");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#stream_resolution').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#stream_resolution").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("resolution", $("#stream_resolution").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("resolution");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#stream_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#stream_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
 	<?php if (SettingsManager::get('enable_search')): ?>

@@ -22,9 +22,9 @@ class HomeController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (isset(RequestManager::getAll()['search']) && isset(RequestManager::getAll()['type'])) {
-            if (in_array(RequestManager::getAll()['type'], array('live', 'movies', 'series'))) {
-                header('Location: ' . RequestManager::getAll()['type'] . '?search=' . urlencode(RequestManager::getAll()['search']));
+        if (RequestManager::has('search') && RequestManager::has('type')) {
+            if (in_array(RequestManager::get('type'), array('live', 'movies', 'series'))) {
+                header('Location: ' . RequestManager::get('type') . '?search=' . urlencode(RequestManager::get('search')));
                 exit();
             }
         }

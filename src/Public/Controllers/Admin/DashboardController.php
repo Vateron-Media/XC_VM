@@ -33,7 +33,7 @@ class DashboardController extends BaseAdminController {
         }
 
         // Server ID validation
-        if (!isset(RequestManager::getAll()['server_id']) || isset($rServers[RequestManager::getAll()['server_id']])) {
+        if (!RequestManager::has('server_id') || isset($rServers[RequestManager::get('server_id')])) {
         } else {
             $this->redirect('dashboard');
             return;
@@ -43,8 +43,8 @@ class DashboardController extends BaseAdminController {
         $rConnectionMap = array();
         $rConnectionCount = 0;
 
-        if (isset(RequestManager::getAll()['server_id'])) {
-            $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(RequestManager::getAll()['server_id']), intval(RequestManager::getAll()['server_id']));
+        if (RequestManager::has('server_id')) {
+            $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` WHERE (`server_id` = ? OR `proxy_id` = ?) GROUP BY `geoip_country_code` ORDER BY `count` DESC;', intval(RequestManager::get('server_id')), intval(RequestManager::get('server_id')));
         } else {
             $db->query('SELECT `geoip_country_code`, COUNT(`geoip_country_code`) AS `count` FROM `lines_activity` GROUP BY `geoip_country_code` ORDER BY `count` DESC;');
         }
@@ -71,7 +71,7 @@ class DashboardController extends BaseAdminController {
 
         // Server stats (when no server filter)
         $rServerStats = array();
-        if (!isset(RequestManager::getAll()['server_id'])) {
+        if (!RequestManager::has('server_id')) {
             $rLimit = 3600;
             $rTime = time();
             $rNearestRange = $rTime - $rLimit;

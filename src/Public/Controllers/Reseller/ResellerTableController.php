@@ -41,12 +41,12 @@ class ResellerTableController extends BaseResellerController
             }
         }
 
-        $rReturn = array('draw' => intval(RequestManager::getAll()['draw']), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array());
+        $rReturn = array('draw' => intval(RequestManager::get('draw')), 'recordsTotal' => 0, 'recordsFiltered' => 0, 'data' => array());
         $rIsAPI = false;
 
-        if (isset(RequestManager::getAll()['api_key'])) {
+        if (RequestManager::has('api_key')) {
             $rReturn = array('status' => 'STATUS_SUCCESS', 'data' => array());
-            $db->query('SELECT `id` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_reseller` = 1 AND `status` = 1;', RequestManager::getAll()['api_key']);
+            $db->query('SELECT `id` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `api_key` = ? AND LENGTH(`api_key`) > 0 AND `is_reseller` = 1 AND `status` = 1;', RequestManager::get('api_key'));
             if ($db->num_rows() != 0) {
                 $rUserID = $db->get_row()['id'];
                 $rIsAPI = true;

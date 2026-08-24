@@ -29,8 +29,8 @@ class ArchiveController extends BaseAdminController {
         $rStream = null;
         $rArchive = null;
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rStream = StreamRepository::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rStream = StreamRepository::getById(RequestManager::get('id'));
 
             if (!$rStream || $rStream['type'] != 1 || $rStream['tv_archive_duration'] == 0 || $rStream['tv_archive_server_id'] == 0) {
                 $this->redirect('archive');

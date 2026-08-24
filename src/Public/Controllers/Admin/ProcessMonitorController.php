@@ -25,25 +25,25 @@ class ProcessMonitorController extends BaseAdminController {
 
         $this->requirePermission();
 
-        if (!isset(RequestManager::getAll()['server']) || !isset($rServers[RequestManager::getAll()['server']])) {
+        if (!RequestManager::has('server') || !isset($rServers[RequestManager::get('server')])) {
             RequestManager::update('server', SERVER_ID);
         }
 
-        if (isset(RequestManager::getAll()['clear'])) {
-            ServerRepository::freeTemp(RequestManager::getAll()['server']);
-            header('Location: ./process_monitor?server=' . RequestManager::getAll()['server']);
+        if (RequestManager::has('clear')) {
+            ServerRepository::freeTemp(RequestManager::get('server'));
+            header('Location: ./process_monitor?server=' . RequestManager::get('server'));
             exit();
         }
 
-        if (isset(RequestManager::getAll()['clear_s'])) {
-            ServerRepository::freeStreams(RequestManager::getAll()['server']);
-            header('Location: ./process_monitor?server=' . RequestManager::getAll()['server']);
+        if (RequestManager::has('clear_s')) {
+            ServerRepository::freeStreams(RequestManager::get('server'));
+            header('Location: ./process_monitor?server=' . RequestManager::get('server'));
             exit();
         }
 
-        $rStreams = StreamRepository::getPIDs(RequestManager::getAll()['server']) ?: array();
-        $rFS = ServerRepository::getFreeSpace(RequestManager::getAll()['server']) ?: array();
-        $rProcesses = DiagnosticsService::getPIDs(RequestManager::getAll()['server']) ?: array();
+        $rStreams = StreamRepository::getPIDs(RequestManager::get('server')) ?: array();
+        $rFS = ServerRepository::getFreeSpace(RequestManager::get('server')) ?: array();
+        $rProcesses = DiagnosticsService::getPIDs(RequestManager::get('server')) ?: array();
         $rStatus = array('D' => 'Uninterruptible Sleep', 'I' => 'Idle', 'R' => 'Running', 'S' => 'Interruptible Sleep', 'T' => 'Stopped', 'W' => 'Paging', 'X' => 'Dead', 'Z' => 'Zombie');
 
         $this->setTitle('Process Monitor');

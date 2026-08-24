@@ -38,14 +38,14 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 					<div class="card-body" style="overflow-x:auto;">
 						<div id="collapse_filters" class="form-group row mb-4 <?php if ($rMobile) echo 'collapse'; ?>">
 							<div class="col-md-2">
-								<input type="text" class="form-control" id="movies_search" value="<?php echo isset(RequestManager::getAll()['search']) ? htmlspecialchars(RequestManager::getAll()['search']) : ''; ?>" placeholder="<?php echo $language::get('search_movies'); ?>...">
+								<input type="text" class="form-control" id="movies_search" value="<?php echo RequestManager::has('search') ? htmlspecialchars(RequestManager::get('search')) : ''; ?>" placeholder="<?php echo $language::get('search_movies'); ?>...">
 							</div>
 							<div class="col-md-2">
 								<select id="movies_server" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['server'])) echo ' selected'; ?>><?php echo $language::get('all_servers'); ?></option>
-									<option value="-1" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == -1) echo ' selected'; ?>>No Servers</option>
+									<option value="" <?php if (!RequestManager::has('server')) echo ' selected'; ?>><?php echo $language::get('all_servers'); ?></option>
+									<option value="-1" <?php if (RequestManager::has('server') && RequestManager::get('server') == -1) echo ' selected'; ?>>No Servers</option>
 									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id']) echo ' selected'; ?>>
+										<option value="<?php echo $rServer['id']; ?>" <?php if (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']) echo ' selected'; ?>>
 											<?php echo $rServer['server_name']; ?>
 										</option>
 									<?php endforeach; ?>
@@ -53,10 +53,10 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							</div>
 							<div class="col-md-2">
 								<select id="movies_category_id" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['category'])) echo ' selected'; ?>><?php echo $language::get('all_categories'); ?></option>
-									<option value="-1" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == -1) echo ' selected'; ?>>No Categories</option>
+									<option value="" <?php if (!RequestManager::has('category')) echo ' selected'; ?>><?php echo $language::get('all_categories'); ?></option>
+									<option value="-1" <?php if (RequestManager::has('category') && RequestManager::get('category') == -1) echo ' selected'; ?>>No Categories</option>
 									<?php foreach ($rCategories as $rCategory): ?>
-										<option value="<?php echo $rCategory['id']; ?>" <?php if (isset(RequestManager::getAll()['category']) && RequestManager::getAll()['category'] == $rCategory['id']) echo ' selected'; ?>>
+										<option value="<?php echo $rCategory['id']; ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) echo ' selected'; ?>>
 											<?php echo $rCategory['category_name']; ?>
 										</option>
 									<?php endforeach; ?>
@@ -64,23 +64,23 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							</div>
 							<div class="col-md-2">
 								<select id="movies_filter" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['filter'])) echo ' selected'; ?>><?php echo $language::get('no_filter'); ?></option>
-									<option value="1" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1) echo ' selected'; ?>><?php echo $language::get('encoded'); ?></option>
-									<option value="2" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2) echo ' selected'; ?>><?php echo $language::get('encoding'); ?></option>
-									<option value="3" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3) echo ' selected'; ?>><?php echo $language::get('down'); ?></option>
-									<option value="4" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4) echo ' selected'; ?>><?php echo $language::get('ready'); ?></option>
-									<option value="5" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5) echo ' selected'; ?>><?php echo $language::get('direct'); ?></option>
-									<option value="6" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 6) echo ' selected'; ?>><?php echo $language::get('no_tmdb_match'); ?></option>
-									<option value="7" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 7) echo ' selected'; ?>>Duplicate</option>
-									<option value="8" <?php if (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 8) echo ' selected'; ?>>Transcoding</option>
+									<option value="" <?php if (!RequestManager::has('filter')) echo ' selected'; ?>><?php echo $language::get('no_filter'); ?></option>
+									<option value="1" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 1) echo ' selected'; ?>><?php echo $language::get('encoded'); ?></option>
+									<option value="2" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 2) echo ' selected'; ?>><?php echo $language::get('encoding'); ?></option>
+									<option value="3" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 3) echo ' selected'; ?>><?php echo $language::get('down'); ?></option>
+									<option value="4" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 4) echo ' selected'; ?>><?php echo $language::get('ready'); ?></option>
+									<option value="5" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 5) echo ' selected'; ?>><?php echo $language::get('direct'); ?></option>
+									<option value="6" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 6) echo ' selected'; ?>><?php echo $language::get('no_tmdb_match'); ?></option>
+									<option value="7" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 7) echo ' selected'; ?>>Duplicate</option>
+									<option value="8" <?php if (RequestManager::has('filter') && RequestManager::get('filter') == 8) echo ' selected'; ?>>Transcoding</option>
 								</select>
 							</div>
 							<div class="col-md-1">
 								<select id="movies_audio" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['audio'])) echo ' selected'; ?>>Audio</option>
-									<option value="-1" <?php if (isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == '-1') echo ' selected'; ?>>None</option>
+									<option value="" <?php if (!RequestManager::has('audio')) echo ' selected'; ?>>Audio</option>
+									<option value="-1" <?php if (RequestManager::has('audio') && RequestManager::get('audio') == '-1') echo ' selected'; ?>>None</option>
 									<?php foreach ($rAudioCodecs as $rCodec): ?>
-										<option value="<?php echo $rCodec; ?>" <?php if (isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == $rCodec) echo ' selected'; ?>>
+										<option value="<?php echo $rCodec; ?>" <?php if (RequestManager::has('audio') && RequestManager::get('audio') == $rCodec) echo ' selected'; ?>>
 											<?php echo $rCodec; ?>
 										</option>
 									<?php endforeach; ?>
@@ -88,10 +88,10 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							</div>
 							<div class="col-md-1">
 								<select id="movies_video" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['video'])) echo ' selected'; ?>>Video</option>
-									<option value="-1" <?php if (isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == '-1') echo ' selected'; ?>>None</option>
+									<option value="" <?php if (!RequestManager::has('video')) echo ' selected'; ?>>Video</option>
+									<option value="-1" <?php if (RequestManager::has('video') && RequestManager::get('video') == '-1') echo ' selected'; ?>>None</option>
 									<?php foreach ($rVideoCodecs as $rCodec): ?>
-										<option value="<?php echo $rCodec; ?>" <?php if (isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == $rCodec) echo ' selected'; ?>>
+										<option value="<?php echo $rCodec; ?>" <?php if (RequestManager::has('video') && RequestManager::get('video') == $rCodec) echo ' selected'; ?>>
 											<?php echo $rCodec; ?>
 										</option>
 									<?php endforeach; ?>
@@ -99,9 +99,9 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							</div>
 							<div class="col-md-1">
 								<select id="movies_resolution" class="form-control" data-toggle="select2">
-									<option value="" <?php if (!isset(RequestManager::getAll()['resolution'])) echo ' selected'; ?>>Quality</option>
+									<option value="" <?php if (!RequestManager::has('resolution')) echo ' selected'; ?>>Quality</option>
 									<?php foreach (array(240, 360, 480, 576, 720, 1080, 1440, 2160) as $rResolution): ?>
-										<option value="<?php echo $rResolution; ?>" <?php if (isset(RequestManager::getAll()['resolution']) && RequestManager::getAll()['resolution'] == $rResolution) echo ' selected'; ?>>
+										<option value="<?php echo $rResolution; ?>" <?php if (RequestManager::has('resolution') && RequestManager::get('resolution') == $rResolution) echo ' selected'; ?>>
 											<?php echo $rResolution; ?>p
 										</option>
 									<?php endforeach; ?>
@@ -110,7 +110,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							<div class="col-md-1">
 								<select id="movies_show_entries" class="form-control" data-toggle="select2">
 									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
-										<option value="<?php echo $rShow; ?>" <?php if ((isset(RequestManager::getAll()['entries']) && RequestManager::getAll()['entries'] == $rShow) || (!isset(RequestManager::getAll()['entries']) && $rSettings['default_entries'] == $rShow)) echo ' selected'; ?>>
+										<option value="<?php echo $rShow; ?>" <?php if ((RequestManager::has('entries') && RequestManager::get('entries') == $rShow) || (!RequestManager::has('entries') && $rSettings['default_entries'] == $rShow)) echo ' selected'; ?>>
 											<?php echo $rShow; ?>
 										</option>
 									<?php endforeach; ?>
@@ -320,9 +320,9 @@ renderUnifiedLayoutFooter('admin');
 	}
 
 	echo "\t\t\t\t" . 'order: [[ ';
-	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
+	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
 	echo ', "';
-	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
 	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . "}).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-streampage").css("width", "100%");' . "\r\n\t\t\t" . "\$('#movies_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#movies_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#movies_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#movies_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#movies_category_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_category_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#movies_category_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#movies_server').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#movies_server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#movies_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#movies_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#movies_audio').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_audio").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("audio", $("#movies_audio").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("audio");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#movies_video').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_video").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("video", $("#movies_video").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("video");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#movies_resolution').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#movies_resolution").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("resolution", $("#movies_resolution").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("resolution");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#movies_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#movies_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
 	?>
 	<?php if (SettingsManager::get('enable_search')): ?>

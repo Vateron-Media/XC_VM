@@ -25,23 +25,23 @@ class ListingsController extends BasePlayerController
         global $db, $rUserInfo;
 
         $rFlip = array_flip($rUserInfo['channel_ids']);
-        $rTimezone = (RequestManager::getAll()['timezone'] ?? 'Europe/London');
+        $rTimezone = (RequestManager::get('timezone') ?? 'Europe/London');
         date_default_timezone_set($rTimezone);
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rReturn = array('id' => RequestManager::getAll()['id'], 'title' => 'LIVE TV', 'epg_title' => 'No Programme Information...', 'epg_description' => '', 'url' => null);
+        if (RequestManager::has('id')) {
+            $rReturn = array('id' => RequestManager::get('id'), 'title' => 'LIVE TV', 'epg_title' => 'No Programme Information...', 'epg_description' => '', 'url' => null);
 
-            if (!isset($rFlip[RequestManager::getAll()['id']])) {
+            if (!isset($rFlip[RequestManager::get('id')])) {
             } else {
-                $rStart = intval(RequestManager::getAll()['start'] ?? time());
-                $rDuration = intval(RequestManager::getAll()['duration'] ?? 0);
-                $db->query('SELECT `id`, `stream_display_name`, `channel_id`, `epg_id` FROM `streams` WHERE `id` = ?;', RequestManager::getAll()['id']);
+                $rStart = intval(RequestManager::get('start') ?? time());
+                $rDuration = intval(RequestManager::get('duration') ?? 0);
+                $db->query('SELECT `id`, `stream_display_name`, `channel_id`, `epg_id` FROM `streams` WHERE `id` = ?;', RequestManager::get('id'));
 
                 if ($db->num_rows() != 1) {
                 } else {
                     $rStream = $db->get_row();
                     $rReturn['title'] = $rStream['stream_display_name'];
-                    $rEPGRow = (EpgService::getStreamEpg(RequestManager::getAll()['id'], $rStart, $rStart + 86400)[0] ?? null);
+                    $rEPGRow = (EpgService::getStreamEpg(RequestManager::get('id'), $rStart, $rStart + 86400)[0] ?? null);
 
                     if (!$rEPGRow) {
                     } else {
@@ -53,9 +53,9 @@ class ListingsController extends BasePlayerController
                 $rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
 
                 if ($rStart + $rDuration * 60 < time() && 0 < $rDuration) {
-                    $rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rStart . '/' . intval(RequestManager::getAll()['id']) . '.m3u8';
+                    $rReturn['url'] = $rDomainName . 'timeshift/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rDuration . '/' . $rStart . '/' . intval(RequestManager::get('id')) . '.m3u8';
                 } else {
-                    $rReturn['url'] = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(RequestManager::getAll()['id']) . '.m3u8';
+                    $rReturn['url'] = $rDomainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . intval(RequestManager::get('id')) . '.m3u8';
                 }
             }
 
@@ -63,9 +63,9 @@ class ListingsController extends BasePlayerController
         } else {
             $rReturn = array('Channels' => array());
             $rChannels = array();
-            $rHideEmpty = (intval(RequestManager::getAll()['hideempty']) ?: 0);
+            $rHideEmpty = (intval(RequestManager::get('hideempty')) ?: 0);
 
-            foreach (array_map('intval', explode(',', RequestManager::getAll()['channels'])) as $rChannelID) {
+            foreach (array_map('intval', explode(',', RequestManager::get('channels'))) as $rChannelID) {
                 if (!($rChannelID && isset($rFlip[$rChannelID]))) {
                 } else {
                     $rChannels[] = $rChannelID;
@@ -73,8 +73,8 @@ class ListingsController extends BasePlayerController
             }
 
             if (count($rChannels) != 0) {
-                $rHours = (intval(RequestManager::getAll()['hours']) ?: 3);
-                $rStartDate = (intval(strtotime(RequestManager::getAll()['startdate'])) ?: time());
+                $rHours = (intval(RequestManager::get('hours')) ?: 3);
+                $rStartDate = (intval(strtotime(RequestManager::get('startdate'))) ?: time());
                 $rFinishDate = $rStartDate + $rHours * 3600;
                 $rPerUnit = floatval(100 / ($rHours * 60));
                 $rChannelsSort = $rChannels;
@@ -148,8 +148,8 @@ class ListingsController extends BasePlayerController
                             $rCategoryIDs = json_decode($rStream['category_id'], true);
                             $rCategories = CategoryService::getFromDatabase('live');
 
-                            if (0 < strlen(RequestManager::getAll()['category'] ?? '')) {
-                                $rCategory = ($rCategories[intval(RequestManager::getAll()['category'])]['category_name'] ?? 'No Category');
+                            if (0 < strlen(RequestManager::get('category') ?? '')) {
+                                $rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?? 'No Category');
                             } else {
                                 $rCategory = ($rCategories[$rCategoryIDs[0] ?? null]['category_name'] ?? 'No Category');
                             }

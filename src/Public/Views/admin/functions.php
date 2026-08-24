@@ -94,8 +94,8 @@ if (isset($_SESSION['hash'])) {
 	}
 }
 
-if (isset(RequestManager::getAll()['status'])) {
-	$_STATUS = intval(RequestManager::getAll()['status']);
+if (RequestManager::has('status')) {
+	$_STATUS = intval(RequestManager::get('status'));
 	$rArgs = RequestManager::getAll();
 	unset($rArgs['status']);
 	$customScript = AdminHelpers::setArgs($rArgs);

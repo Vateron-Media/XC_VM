@@ -56,12 +56,12 @@ class ResellerLoginController
 
         // Process login POST
         $_STATUS = null;
-        if (isset(RequestManager::getAll()['login'])) {
+        if (RequestManager::has('login')) {
             $rReturn = ResellerAPI::processLogin(RequestManager::getAll());
             $_STATUS = $rReturn['status'];
 
             if ($_STATUS === STATUS_SUCCESS) {
-                $rReferer = RequestManager::getAll()['referrer'] ?? '';
+                $rReferer = RequestManager::get('referrer') ?? '';
                 if (strlen($rReferer) > 0) {
                     $rReferer = basename($rReferer);
                     if (substr($rReferer, 0, 6) === 'logout') {
@@ -77,7 +77,7 @@ class ResellerLoginController
 
         // Render login view
         $__viewFile = MAIN_HOME . 'Public/Views/reseller/login.php';
-        $referrer = htmlspecialchars(RequestManager::getAll()['referrer'] ?? '');
+        $referrer = htmlspecialchars(RequestManager::get('referrer') ?? '');
 
         if (file_exists($__viewFile)) {
             require $__viewFile;

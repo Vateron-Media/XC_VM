@@ -26,7 +26,7 @@ class EpisodesController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (($rSeries = SeriesService::getById(RequestManager::getAll()['id'])) && in_array(RequestManager::getAll()['id'], $rUserInfo['series_ids'])) {
+        if (($rSeries = SeriesService::getById(RequestManager::get('id'))) && in_array(RequestManager::get('id'), $rUserInfo['series_ids'])) {
             $rDomainName = DomainResolver::resolve(SERVER_ID, !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443);
             $rTMDB = null;
 
@@ -61,7 +61,7 @@ class EpisodesController extends BasePlayerController
                     $rSeasons[] = $rRow['season_num'];
                 }
             }
-            $rSeasonNo = (intval(RequestManager::getAll()['season'] ?? 0) ?: ($rSeasons[0] ?: 1));
+            $rSeasonNo = (intval(RequestManager::get('season') ?? 0) ?: ($rSeasons[0] ?: 1));
 
             if (SettingsManager::get('player_hide_incompatible')) {
                 $db->query('SELECT * FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `series_id` = ? AND `season_num` = ? AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 ORDER BY `episode_num` ASC;', $rSeries['id'], $rSeasonNo);

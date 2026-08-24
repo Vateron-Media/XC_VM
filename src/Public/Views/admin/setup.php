@@ -10,7 +10,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
 
 include 'functions.php';
-if (!isset(RequestManager::getAll()['update'])):
+if (!RequestManager::has('update')):
     $rFirstRun = true;
     $db->query('SELECT COUNT(`id`) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` WHERE `users_groups`.`is_admin` = 1;');
 
@@ -33,7 +33,7 @@ if (!isset(RequestManager::getAll()['update'])):
         }
     }
 
-    if (isset(RequestManager::getAll()['migrate'])) {
+    if (RequestManager::has('migrate')) {
         $rMigrateOptions = array();
 
         foreach (RequestManager::getAll() as $rKey => $rValue) {
@@ -59,15 +59,15 @@ if (!isset(RequestManager::getAll()['update'])):
             exit();
         }
     } else {
-        if (isset(RequestManager::getAll()['new_user']) && $rFirstRun) {
-            if (strlen(RequestManager::getAll()['password']) < 8 || strlen(RequestManager::getAll()['username']) < 8) {
+        if (RequestManager::has('new_user') && $rFirstRun) {
+            if (strlen(RequestManager::get('password')) < 8 || strlen(RequestManager::get('username')) < 8) {
                 RequestManager::update('new', 1);
                 $_STATUS = STATUS_FAILURE;
             } else {
                 $rArray = QueryHelper::verifyPostTable('users');
-                $rArray['username'] = RequestManager::getAll()['username'];
-                $rArray['password'] = Authenticator::hashPassword(RequestManager::getAll()['password']);
-                $rArray['email'] = RequestManager::getAll()['email'];
+                $rArray['username'] = RequestManager::get('username');
+                $rArray['password'] = Authenticator::hashPassword(RequestManager::get('password'));
+                $rArray['email'] = RequestManager::get('email');
                 $rArray['last_login'] = time();
                 $rArray['date_registered'] = $rArray['last_login'];
                 $rArray['member_group_id'] = 1;
@@ -177,7 +177,7 @@ if (!isset(RequestManager::getAll()['update'])):
                                 </div>
                             </div>
                             <?php } else {
-                            if (isset(RequestManager::getAll()['new']) && $rFirstRun) { ?>
+                            if (RequestManager::has('new') && $rFirstRun) { ?>
                                 <form action="./setup" method="POST" data-parsley-validate="">
                                     <div class="row">
                                         <div class="col-12">

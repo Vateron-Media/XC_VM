@@ -37,15 +37,15 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                                                     echo 'collapse';
                                                                                 } ?>">
                             <div class="col-md-3">
-                                <input type="text" class="form-control" id="user_search" value="<?php if (!isset(RequestManager::getAll()['search'])) {
+                                <input type="text" class="form-control" id="user_search" value="<?php if (!RequestManager::has('search')) {
                                                                                                 } else {
-                                                                                                    echo htmlspecialchars(RequestManager::getAll()['search']);
+                                                                                                    echo htmlspecialchars(RequestManager::get('search'));
                                                                                                 } ?>" placeholder="<?= $language::get('search_lines') ?>">
                             </div>
                             <label class="col-md-2 col-form-label text-center" for="user_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
                             <div class="col-md-3">
                                 <select id="user_reseller" class="form-control" data-toggle="select2">
-                                    <?php if (!(isset(RequestManager::getAll()['owner']) && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::getAll()['owner']))))): ?>
+                                    <?php if (!(RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner')))))): ?>
                                     <?php else: ?>
                                         <option value="<?php echo intval($rOwner['id']); ?>" selected="selected"><?php echo $rOwner['username']; ?></option>
                                     <?php endif; ?>
@@ -53,7 +53,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                             </div>
                             <div class="col-md-2">
                                 <select id="user_filter" class="form-control" data-toggle="select2">
-                                    <option value="" <?php if (!isset(RequestManager::getAll()['filter'])) {
+                                    <option value="" <?php if (!RequestManager::has('filter')) {
                                                             echo ' selected';
                                                         } ?>>No Filter</option>
                                     <?php
@@ -68,7 +68,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                         8 => 'Expiring Soon',
                                     ];
                                     foreach ($filters as $key => $value) {
-                                        $selected = (isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == $key) ? ' selected' : '';
+                                        $selected = (RequestManager::has('filter') && RequestManager::get('filter') == $key) ? ' selected' : '';
                                         echo "<option value=\"$key\"$selected>$value</option>\n";
                                     }
                                     ?>
@@ -80,7 +80,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                     <?php
                                     $entriesOptions = [10, 25, 50, 250, 500, 1000];
                                     foreach ($entriesOptions as $rShow) {
-                                        $selected = (isset(RequestManager::getAll()['entries']) && RequestManager::getAll()['entries'] == $rShow) || ($rSettings['default_entries'] == $rShow) ? ' selected' : '';
+                                        $selected = (RequestManager::has('entries') && RequestManager::get('entries') == $rShow) || ($rSettings['default_entries'] == $rShow) ? ' selected' : '';
                                         echo "<option value=\"$rShow\"$selected>$rShow</option>\n";
                                     }
                                     ?>
@@ -275,9 +275,9 @@ renderUnifiedLayoutFooter('admin');
     }
 
     echo "\t\t\t\t" . 'order: [[ ';
-    echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
+    echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
     echo ', "';
-    echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+    echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
     echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n" . "            \$('#user_reseller').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#user_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#user_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#user_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#user_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#user_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#user_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#user_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-users").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
     <?php if (SettingsManager::get('enable_search')): ?>

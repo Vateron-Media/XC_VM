@@ -28,16 +28,16 @@ if (!$rMobile) {
 
 echo ' form-group row mb-4">' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <input type="text" class="form-control" id="episodes_search" value="';
 
-if (!isset(RequestManager::getAll()['search'])) {
+if (!RequestManager::has('search')) {
 } else {
-	echo htmlspecialchars(RequestManager::getAll()['search']);
+	echo htmlspecialchars(RequestManager::get('search'));
 }
 
 echo '" placeholder="';
 echo $language::get('search_episodes');
 echo '...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="episodes_server" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['server'])) {
+if (RequestManager::has('server')) {
 } else {
 	echo ' selected';
 }
@@ -46,7 +46,7 @@ echo '>';
 echo $language::get('all_servers');
 echo '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == -1)) {
+if (!(RequestManager::has('server') && RequestManager::get('server') == -1)) {
 } else {
 	echo ' selected';
 }
@@ -58,7 +58,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo $rServer['id'];
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id'])) {
+	if (!(RequestManager::has('server') && RequestManager::get('server') == $rServer['id'])) {
 	} else {
 		echo ' selected';
 	}
@@ -69,7 +69,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <label class="col-md-1 col-form-label text-center" for="episodes_series">Series &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearSeries();"><i class="mdi mdi-close"></i></button></label>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="episodes_series" class="form-control" data-toggle="select2">' . "\n" . '                                    ';
 
-if (!(isset(RequestManager::getAll()['series']) && ($rSeries = SeriesService::getById(intval(RequestManager::getAll()['series']))))) {
+if (!(RequestManager::has('series') && ($rSeries = SeriesService::getById(intval(RequestManager::get('series')))))) {
 } else {
 	echo '                                    <option value="';
 	echo intval($rSeries['id']);
@@ -80,7 +80,7 @@ if (!(isset(RequestManager::getAll()['series']) && ($rSeries = SeriesService::ge
 
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_filter" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['filter'])) {
+if (RequestManager::has('filter')) {
 } else {
 	echo ' selected';
 }
@@ -89,7 +89,7 @@ echo '>';
 echo $language::get('no_filter');
 echo '</option>' . "\n" . '                                    <option value="1"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 1)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 1)) {
 } else {
 	echo ' selected';
 }
@@ -98,7 +98,7 @@ echo '>';
 echo $language::get('encoded');
 echo '</option>' . "\n" . '                                    <option value="2"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 2)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 2)) {
 } else {
 	echo ' selected';
 }
@@ -107,7 +107,7 @@ echo '>';
 echo $language::get('encoding');
 echo '</option>' . "\n" . '                                    <option value="3"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 3)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 3)) {
 } else {
 	echo ' selected';
 }
@@ -116,7 +116,7 @@ echo '>';
 echo $language::get('down');
 echo '</option>' . "\n" . '                                    <option value="4"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 4)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 4)) {
 } else {
 	echo ' selected';
 }
@@ -125,7 +125,7 @@ echo '>';
 echo $language::get('ready');
 echo '</option>' . "\n" . '                                    <option value="5"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 5)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 5)) {
 } else {
 	echo ' selected';
 }
@@ -134,28 +134,28 @@ echo '>';
 echo $language::get('direct');
 echo '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="6"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 6)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 6)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('duplicate') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="7"';
 
-if (!(isset(RequestManager::getAll()['filter']) && RequestManager::getAll()['filter'] == 7)) {
+if (!(RequestManager::has('filter') && RequestManager::get('filter') == 7)) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('transcoding') . '</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['audio'])) {
+if (RequestManager::has('audio')) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('audio') . '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == '-1')) {
+if (!(RequestManager::has('audio') && RequestManager::get('audio') == '-1')) {
 } else {
 	echo ' selected';
 }
@@ -167,7 +167,7 @@ foreach ($rAudioCodecs as $rCodec) {
 	echo $rCodec;
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['audio']) && RequestManager::getAll()['audio'] == $rCodec)) {
+	if (!(RequestManager::has('audio') && RequestManager::get('audio') == $rCodec)) {
 	} else {
 		echo ' selected';
 	}
@@ -178,14 +178,14 @@ foreach ($rAudioCodecs as $rCodec) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_video" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['video'])) {
+if (RequestManager::has('video')) {
 } else {
 	echo ' selected';
 }
 
 echo '>' . $language::get('video') . '</option>' . "\n" . '                                    <option value="-1"';
 
-if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == '-1')) {
+if (!(RequestManager::has('video') && RequestManager::get('video') == '-1')) {
 } else {
 	echo ' selected';
 }
@@ -197,7 +197,7 @@ foreach ($rVideoCodecs as $rCodec) {
 	echo $rCodec;
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['video']) && RequestManager::getAll()['video'] == $rCodec)) {
+	if (!(RequestManager::has('video') && RequestManager::get('video') == $rCodec)) {
 	} else {
 		echo ' selected';
 	}
@@ -208,7 +208,7 @@ foreach ($rVideoCodecs as $rCodec) {
 }
 echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_resolution" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
 
-if (isset(RequestManager::getAll()['resolution'])) {
+if (RequestManager::has('resolution')) {
 } else {
 	echo ' selected';
 }
@@ -220,7 +220,7 @@ foreach (array(240, 360, 480, 576, 720, 1080, 1440, 2160) as $rResolution) {
 	echo $rResolution;
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['resolution']) && RequestManager::getAll()['resolution'] == $rResolution)) {
+	if (!(RequestManager::has('resolution') && RequestManager::get('resolution') == $rResolution)) {
 	} else {
 		echo ' selected';
 	}
@@ -234,8 +234,8 @@ echo '                                </select>' . "\n" . '                     
 foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
 	echo '                                    <option';
 
-	if (isset(RequestManager::getAll()['entries'])) {
-		if (RequestManager::getAll()['entries'] != $rShow) {
+	if (RequestManager::has('entries')) {
+		if (RequestManager::get('entries') != $rShow) {
 		} else {
 			echo ' selected';
 		}
@@ -456,9 +456,9 @@ if (!$rMobile && $rSettings['header_stats']): ?>
 	}
 
 	echo '                order: [[ ';
-	echo (isset(RequestManager::getAll()['order']) ? intval(RequestManager::getAll()['order']) : 0);
+	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
 	echo ', "';
-	echo (in_array(strtolower(RequestManager::getAll()['dir'] ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::getAll()['dir']) : 'desc');
+	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
 	echo '" ]],' . "\r\n" . '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n" . "            }).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n" . '            $("#datatable-streampage").css("width", "100%");' . "\r\n" . "            \$('#episodes_search').keyup(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#episodes_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    doSearch($(this).val());' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_show_entries').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#episodes_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n" . '                    rTable.page.len($(this).val()).draw();' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_series').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_series").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("series", $("#episodes_series").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("series");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    rTable.ajax.reload( null, false );' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_server').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#episodes_server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    rTable.ajax.reload( null, false );' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_filter').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#episodes_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    rTable.ajax.reload( null, false );' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_audio').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_audio").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("audio", $("#episodes_audio").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("audio");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#episodes_video').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_video").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("video", $("#episodes_video").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("video");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#episodes_resolution').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_resolution").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("resolution", $("#episodes_resolution").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("resolution");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            if (\$('#episodes_search').val()) {" . "\r\n" . "                rTable.search(\$('#episodes_search').val()).draw();" . "\r\n" . '            }' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n" . '        ';
 	?>
 	<?php if (SettingsManager::get('enable_search')): ?>

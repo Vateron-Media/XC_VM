@@ -54,7 +54,7 @@ class ResellerApiController extends BaseResellerController
             exit();
         }
 
-        $action = RequestManager::getAll()['action'] ?? '';
+        $action = RequestManager::get('action') ?? '';
 
         ResellerApiDispatcher::dispatch($action, $rUserInfo, $rPermissions);
     }

@@ -42,9 +42,9 @@ class BaseApiController {
 	}
 
 	protected function authenticate($rIP, $rFullLoad = false) {
-		if (isset(RequestManager::getAll()['username']) && isset(RequestManager::getAll()['password'])) {
-			$rUsername = RequestManager::getAll()['username'];
-			$rPassword = RequestManager::getAll()['password'];
+		if (RequestManager::has('username') && RequestManager::has('password')) {
+			$rUsername = RequestManager::get('username');
+			$rPassword = RequestManager::get('password');
 
 			if (empty($rUsername) || empty($rPassword)) {
 				generateError('NO_CREDENTIALS');
@@ -53,8 +53,8 @@ class BaseApiController {
 			return UserRepository::getUserInfo(null, $rUsername, $rPassword, $rFullLoad, false, $rIP);
 		}
 
-		if (isset(RequestManager::getAll()['token'])) {
-			$rToken = RequestManager::getAll()['token'];
+		if (RequestManager::has('token')) {
+			$rToken = RequestManager::get('token');
 
 			if (empty($rToken)) {
 				generateError('NO_CREDENTIALS');

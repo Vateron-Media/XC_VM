@@ -9,8 +9,8 @@ if (count(get_included_files()) != 1) {
 		$rMobile = $GLOBALS['rMobile'] ?? false;
 	}
 	$rPage = AdminHelpers::getPageName();
-	$rID = (isset(RequestManager::getAll()['id']) ? intval(RequestManager::getAll()['id']) : null);
-	$rSID = (isset(RequestManager::getAll()['sid']) ? intval(RequestManager::getAll()['sid']) : null);
+	$rID = (RequestManager::has('id') ? intval(RequestManager::get('id')) : null);
+	$rSID = (RequestManager::has('sid') ? intval(RequestManager::get('sid')) : null);
 	$rDropdown = array(
 		'ondemand' => array('Manage Streams' => array('streams', 'streams'), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('stream_mass', 'mass_edit_streams'), 'Stream Tools' => array('stream_tools', 'stream_tools'), 'Stream Error Logs' => array('stream_errors', 'stream_errors'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
 		'streams' => array('Add Stream' => array('stream', 'add_stream'), 'Import & Review' => ($rMobile ? array() : array('review?type=1', 'import_streams')), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), "EPG's" => array('epgs', 'epg'), 'Fingerprint' => array('fingerprint', 'fingerprint'), 'On-Demand Scanner' => array('ondemand', 'streams'), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('stream_mass', 'mass_edit_streams'), 'Quick Tools' => array('quick_tools', 'quick_tools'), 'Stream Tools' => array('stream_tools', 'stream_tools'), 'Stream Error Logs' => array('stream_errors', 'stream_errors'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"')),
@@ -151,7 +151,7 @@ if (count(get_included_files()) != 1) {
 		case 'movie':
 		case 'stream':
 			if (!isset($rStream) && !isset($rMovie)) {
-				if (!isset(RequestManager::getAll()['import'])) {
+				if (!RequestManager::has('import')) {
 					unset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[2]]);
 				} else {
 					unset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[1]]);
@@ -182,7 +182,7 @@ if (count(get_included_files()) != 1) {
 				unset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[3]]);
 			}
 
-			if (!isset(RequestManager::getAll()['import'])) {
+			if (!RequestManager::has('import')) {
 				unset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[1]]);
 			} else {
 				unset($rDropdown[$rPage][array_keys($rDropdown[$rPage])[0]]);

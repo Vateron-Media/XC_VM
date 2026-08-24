@@ -21,7 +21,7 @@ class SeriesController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (isset(RequestManager::getAll()['sort']) && RequestManager::getAll()['sort'] == 'popular') {
+        if (RequestManager::has('sort') && RequestManager::get('sort') == 'popular') {
             $rPopular = true;
             $rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['series'] ?: array());
 
@@ -35,13 +35,13 @@ class SeriesController extends BasePlayerController
             }
         } else {
             $rPopular = false;
-            $rPage = (intval(RequestManager::getAll()['page'] ?? 0) ?: 1);
+            $rPage = (intval(RequestManager::get('page') ?? 0) ?: 1);
             $rLimit = 48;
             $rSortArray = array('number' => 'Default', 'added' => 'Last Updated', 'release' => 'Air Date', 'name' => 'Title A-Z', 'top' => 'Rating');
-            $rSortBy = (isset($rSortArray[RequestManager::getAll()['sort'] ?? '']) ? RequestManager::getAll()['sort'] : 'number');
+            $rSortBy = (isset($rSortArray[RequestManager::get('sort') ?? '']) ? RequestManager::get('sort') : 'number');
             $rPicking = array();
-            $rYearStart = (intval(RequestManager::getAll()['year_s'] ?? 0) ?: 1900);
-            $rYearEnd = (intval(RequestManager::getAll()['year_e'] ?? 0) ?: date('Y'));
+            $rYearStart = (intval(RequestManager::get('year_s') ?? 0) ?: 1900);
+            $rYearEnd = (intval(RequestManager::get('year_e') ?? 0) ?: date('Y'));
 
             if (!($rYearStart < 1900 || date('Y') < $rYearStart)) {
             } else {
@@ -58,8 +58,8 @@ class SeriesController extends BasePlayerController
                 $rPicking['year_range'] = array($rYearStart, $rYearEnd);
             }
 
-            $rRatingStart = (intval(RequestManager::getAll()['rating_s'] ?? 0) ?: 0);
-            $rRatingEnd = (intval(RequestManager::getAll()['rating_e'] ?? 0) ?: 10);
+            $rRatingStart = (intval(RequestManager::get('rating_s') ?? 0) ?: 0);
+            $rRatingEnd = (intval(RequestManager::get('rating_e') ?? 0) ?: 10);
 
             if (!($rRatingStart < 0 || 10 < $rRatingStart)) {
             } else {
@@ -76,8 +76,8 @@ class SeriesController extends BasePlayerController
                 $rPicking['rating_range'] = array($rRatingStart, $rRatingEnd);
             }
 
-            $rCategoryID = (intval(RequestManager::getAll()['category'] ?? 0) ?: null);
-            $rSearchBy = (RequestManager::getAll()['search'] ?? null);
+            $rCategoryID = (intval(RequestManager::get('category') ?? 0) ?: null);
+            $rSearchBy = (RequestManager::get('search') ?? null);
 
             if (!$rSearchBy) {
             } else {

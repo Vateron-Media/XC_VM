@@ -423,7 +423,7 @@ foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
 	echo $rServer['id'];
 	echo '"';
 
-	if (!(isset(RequestManager::getAll()['server']) && RequestManager::getAll()['server'] == $rServer['id'])) {
+	if (!(RequestManager::has('server') && RequestManager::get('server') == $rServer['id'])) {
 	} else {
 		echo ' selected';
 	}

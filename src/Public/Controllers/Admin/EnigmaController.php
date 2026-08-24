@@ -22,8 +22,8 @@ class EnigmaController extends BaseAdminController {
         $this->requirePermission();
 
         $rDevice = null;
-        if (isset(RequestManager::getAll()['id'])) {
-            $rDevice = EnigmaService::getById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rDevice = EnigmaService::getById(RequestManager::get('id'));
             if (!$rDevice['user_id']) {
                 exit();
             }

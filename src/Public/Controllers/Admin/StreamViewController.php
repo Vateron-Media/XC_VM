@@ -30,7 +30,7 @@ class StreamViewController extends BaseAdminController {
 
         global $db;
 
-        if (isset(RequestManager::getAll()['id']) && ($rStream = StreamRepository::getById(RequestManager::getAll()['id']))) {
+        if (RequestManager::has('id') && ($rStream = StreamRepository::getById(RequestManager::get('id')))) {
         } else {
             AdminHelpers::goHome();
         }
@@ -52,7 +52,7 @@ class StreamViewController extends BaseAdminController {
             if (0 >= $rStream['vframes_server_id']) {
             } else {
                 $rExpires = time() + 3600;
-                $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::getAll()['id']), 'ip' => NetworkUtils::getUserIP());
+                $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::get('id')), 'ip' => NetworkUtils::getUserIP());
                 $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
 
                 if (AdminHelpers::issecure()) {

@@ -25,8 +25,8 @@ class LineController extends BaseAdminController {
 
         $db = $GLOBALS['db'];
 
-        if (isset(RequestManager::getAll()['id'])) {
-            $rLine = UserRepository::getLineById(RequestManager::getAll()['id']);
+        if (RequestManager::has('id')) {
+            $rLine = UserRepository::getLineById(RequestManager::get('id'));
 
             if (!$rLine || !Authorization::check('adv', 'edit_user')) {
                 AdminHelpers::goHome();

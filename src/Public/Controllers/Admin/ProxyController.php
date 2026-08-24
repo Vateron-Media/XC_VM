@@ -22,8 +22,8 @@ class ProxyController extends BaseAdminController {
 
         $this->requirePermission();
 
-        if (isset(RequestManager::getAll()['id']) && isset($rProxyServers[RequestManager::getAll()['id']])) {
-            $rServerArr = $rProxyServers[RequestManager::getAll()['id']];
+        if (RequestManager::has('id') && isset($rProxyServers[RequestManager::get('id')])) {
+            $rServerArr = $rProxyServers[RequestManager::get('id')];
             if ($rServerArr['server_type'] != 1) {
                 $this->redirect('proxies');
                 return;
