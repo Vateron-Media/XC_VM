@@ -70,7 +70,7 @@ class QueueCommand implements CommandInterface {
 						}
 					}
 				}
-				$rFreeSlots = (0 < SettingsManager::getAll()['max_encode_movies'] ? intval(SettingsManager::getAll()['max_encode_movies']) - count($rInProgress) : 50);
+				$rFreeSlots = (0 < SettingsManager::get('max_encode_movies') ? intval(SettingsManager::get('max_encode_movies')) - count($rInProgress) : 50);
 				if ($rFreeSlots > 0) {
 					if ($db->query("SELECT `id`, `stream_id` FROM `queue` WHERE `server_id` = ? AND `pid` IS NULL AND `type` = 'movie' ORDER BY `added` ASC LIMIT " . $rFreeSlots . ';', SERVER_ID)) {
 						if ($db->num_rows() > 0) {
@@ -98,7 +98,7 @@ class QueueCommand implements CommandInterface {
 							}
 						}
 					}
-					$rFreeSlots = (0 < SettingsManager::getAll()['max_encode_cc'] ? intval(SettingsManager::getAll()['max_encode_cc']) - count($rInProgress) : 1);
+					$rFreeSlots = (0 < SettingsManager::get('max_encode_cc') ? intval(SettingsManager::get('max_encode_cc')) - count($rInProgress) : 1);
 					if ($rFreeSlots > 0) {
 						if ($db->query("SELECT `id`, `stream_id` FROM `queue` WHERE `server_id` = ? AND `pid` IS NULL AND `type` = 'channel' ORDER BY `added` ASC LIMIT " . $rFreeSlots . ';', SERVER_ID)) {
 							if ($db->num_rows() > 0) {
@@ -140,7 +140,7 @@ class QueueCommand implements CommandInterface {
 					if (count($rDelete) > 0) {
 						$db->query('DELETE FROM `queue` WHERE `id` IN (' . implode(',', $rDelete) . ');');
 					}
-					sleep((0 < SettingsManager::getAll()['queue_loop'] ? intval(SettingsManager::getAll()['queue_loop']) : 5));
+					sleep((0 < SettingsManager::get('queue_loop') ? intval(SettingsManager::get('queue_loop')) : 5));
 				}
 				break;
 			}

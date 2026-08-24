@@ -47,7 +47,7 @@ class ScannerCommand implements CommandInterface {
 		$this->killStaleProcesses('console.php scanner');
 		$this->initDaemonMD5();
 
-		if (!SettingsManager::getAll()['on_demand_checker']) {
+		if (!SettingsManager::get('on_demand_checker')) {
 			echo "On-Demand - Source Scanner is disabled.\n";
 			return 0;
 		}
@@ -80,7 +80,7 @@ class ScannerCommand implements CommandInterface {
 	}
 
 	private function scanOnDemandStreams(Database $db): void {
-		$rScanTime = SettingsManager::getAll()['on_demand_scan_time'] ?: 3600;
+		$rScanTime = SettingsManager::get('on_demand_scan_time') ?: 3600;
 
 		if (!$db->query('SELECT `streams`.* FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams_servers`.`pid` IS NULL AND `streams_servers`.`on_demand` = 1 AND `streams_servers`.`parent_id` IS NULL AND `streams`.`type` = 1 AND `streams`.`direct_source` = 0 AND `streams_servers`.`server_id` = ? AND (UNIX_TIMESTAMP() - (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) > ? OR (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) IS NULL);', SERVER_ID, $rScanTime)) {
 			return;
@@ -96,10 +96,10 @@ class ScannerCommand implements CommandInterface {
 			$rStreamArguments = $db->get_rows();
 			$rProbesize = (intval($rRow['probesize_ondemand']) ?: 512000);
 			$rAnalyseDuration = '10000000';
-			$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::getAll()['probe_extra_wait'];
+			$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::get('probe_extra_wait');
 
-			if (SettingsManager::getAll()['on_demand_max_probe'] < $rTimeout && 0 < SettingsManager::getAll()['on_demand_max_probe']) {
-				$rTimeout = intval(SettingsManager::getAll()['on_demand_max_probe']);
+			if (SettingsManager::get('on_demand_max_probe') < $rTimeout && 0 < SettingsManager::get('on_demand_max_probe')) {
+				$rTimeout = intval(SettingsManager::get('on_demand_max_probe'));
 			}
 
 			$rFFProbee = 'timeout ' . $rTimeout . ' ' . FfmpegPaths::probe() . ' {FETCH_OPTIONS} -probesize ' . $rProbesize . ' -analyzeduration ' . $rAnalyseDuration . ' -i {STREAM_SOURCE} -loglevel error -print_format json -show_streams -show_format 2>' . STREAMS_TMP_PATH . $rRow['id'] . '._errors';
@@ -117,7 +117,7 @@ class ScannerCommand implements CommandInterface {
 				$rURLInfo = parse_url($rStreamSource);
 				$rIsXC_VM = StreamUtils::detectXC_VM($rStreamSource);
 
-				if ($rIsXC_VM && SettingsManager::getAll()['send_xc_vm_header']) {
+				if ($rIsXC_VM && SettingsManager::get('send_xc_vm_header')) {
 					foreach (array_keys($rStreamArguments) as $rID) {
 						if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
 							continue;
@@ -130,7 +130,7 @@ class ScannerCommand implements CommandInterface {
 					}
 				}
 
-				if ($rIsXC_VM && SettingsManager::getAll()['request_prebuffer'] == 1) {
+				if ($rIsXC_VM && SettingsManager::get('request_prebuffer') == 1) {
 					$rProcessed = false;
 					foreach (array_keys($rStreamArguments) as $rID) {
 						if ($rStreamArguments[$rID]['argument_key'] != 'headers') {
@@ -147,7 +147,7 @@ class ScannerCommand implements CommandInterface {
 				$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
 				$rFetchOptions = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
 
-				if ($rIsXC_VM && SettingsManager::getAll()['api_probe']) {
+				if ($rIsXC_VM && SettingsManager::get('api_probe')) {
 					$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ':' . $rURLInfo['port'] . '/probe/' . base64_encode($rURLInfo['path']);
 					$rTime = round(microtime(true) * 1000);
 					$rFFProbeOutput = json_decode(CurlClient::getURL($rProbeURL), true);

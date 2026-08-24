@@ -54,7 +54,7 @@ class EpgCronJob implements CommandInterface {
 
         global $db;
 
-        if (SettingsManager::getAll()['force_epg_timezone']) {
+        if (SettingsManager::get('force_epg_timezone')) {
             date_default_timezone_set('UTC');
             $this->printLog("[SYSTEM] Forced timezone to UTC");
         }
@@ -177,7 +177,7 @@ class EpgCronJob implements CommandInterface {
             $this->printLog("[XMLTV] Generating EPG for bouquet: " . ($rBouquet === 'all' ? 'ALL' : $rBouquet));
 
             $rOutput = '';
-            $rServerName = htmlspecialchars(SettingsManager::getAll()['server_name'], ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
+            $rServerName = htmlspecialchars(SettingsManager::get('server_name'), ENT_XML1 | ENT_QUOTES | ENT_DISALLOWED, 'UTF-8');
             $rOutput .= '<?xml version="1.0" encoding="utf-8" ?><!DOCTYPE tv SYSTEM "xmltv.dtd">' . "\n";
             $rOutput .= '<tv generator-info-name="' . $rServerName . '">' . "\n";
 

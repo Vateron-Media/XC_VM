@@ -207,7 +207,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 
 		// 6c. A hung cron:servers holds its lock and blocks every relaunch for up
 		// to 30 min (ProcessManager::acquireCronLock stale timeout is 1800s).
-		$rLock = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass'] ?? '') . ServersCronJob::class);
+		$rLock = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::get('live_streaming_pass') ?? '') . ServersCronJob::class);
 		if (file_exists($rLock)) {
 			$rLockPID = intval(trim((string) @file_get_contents($rLock)));
 			$rLockAge = time() - filemtime($rLock);

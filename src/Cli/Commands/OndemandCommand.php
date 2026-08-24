@@ -54,12 +54,12 @@ class OndemandCommand implements CommandInterface {
 			@posix_kill($rOtherPID, 9);
 		}
 
-		if (!SettingsManager::getAll()['on_demand_instant_off']) {
+		if (!SettingsManager::get('on_demand_instant_off')) {
 			echo 'On-Demand - Instant Off setting is disabled.' . "\n";
 			return 0;
 		}
 
-		if (SettingsManager::getAll()['redis_handler']) {
+		if (SettingsManager::get('redis_handler')) {
 			RedisManager::ensureConnected();
 		}
 
@@ -69,7 +69,7 @@ class OndemandCommand implements CommandInterface {
 		$rMD5 = md5_file(__FILE__);
 
 		while (true) {
-			if (!$db || !$db->ping() || (SettingsManager::getAll()['redis_handler'] && RedisManager::instance() && !RedisManager::instance()->ping())) {
+			if (!$db || !$db->ping() || (SettingsManager::get('redis_handler') && RedisManager::instance() && !RedisManager::instance()->ping())) {
 				break;
 			}
 
@@ -90,7 +90,7 @@ class OndemandCommand implements CommandInterface {
 
 			// Viewer counts come from Redis when enabled (per-server slice of the
 			// stream's connection set), else from the lines_live table.
-			if (SettingsManager::getAll()['redis_handler'] && RedisManager::instance()) {
+			if (SettingsManager::get('redis_handler') && RedisManager::instance()) {
 				$rConnections = ConnectionTracker::getStreamConnections($rStreamIDs, false, false);
 				$rOnline = [];
 				foreach ($rStreamIDs as $rStreamID) {

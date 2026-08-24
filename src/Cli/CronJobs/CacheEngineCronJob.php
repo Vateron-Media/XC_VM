@@ -50,7 +50,7 @@ class CacheEngineCronJob implements CommandInterface {
         ini_set('max_execution_time', 0);
 
         SettingsManager::set(SettingsRepository::getAll(true));
-        $this->rThreadCount = (SettingsManager::getAll()['cache_thread_count'] ?: 10);
+        $this->rThreadCount = (SettingsManager::get('cache_thread_count') ?: 10);
 
         $rType = null;
         $rGroupStart = $rGroupMax = null;
@@ -123,7 +123,7 @@ class CacheEngineCronJob implements CommandInterface {
                         $rReturn['changes'][] = $rRow['id'];
                     }
                     $cacheRevalidationCheck[] = $rRow['id'];
-                    $cacheDataCompression[] = (SettingsManager::getAll()['case_sensitive_line'] ? $rRow['username'] . '_' . $rRow['password'] : strtolower($rRow['username'] . '_' . $rRow['password']));
+                    $cacheDataCompression[] = (SettingsManager::get('case_sensitive_line') ? $rRow['username'] . '_' . $rRow['password'] : strtolower($rRow['username'] . '_' . $rRow['password']));
                     if ($rRow['access_token']) {
                         $cacheDataDecompression[] = $rRow['access_token'];
                     }
@@ -158,7 +158,7 @@ class CacheEngineCronJob implements CommandInterface {
         global $db;
         $rStartTime = time();
         if (ProcessManager::isNginxRunning()) {
-            if (SettingsManager::getAll()['enable_cache'] || !empty($this->rUpdateIDs)) {
+            if (SettingsManager::get('enable_cache') || !empty($this->rUpdateIDs)) {
                 switch ($rType) {
                     case 'lines':
                         $this->generateLines($rGroupStart, $rGroupMax);
@@ -205,7 +205,7 @@ class CacheEngineCronJob implements CommandInterface {
                         file_put_contents(SERIES_TMP_PATH . 'series_categories', igbinary_serialize($rSeriesCategories));
                         $rDelete = ['streams' => [], 'lines_i' => [], 'lines_c' => [], 'lines_t' => []];
                         $cacheDataKey = [];
-                        if (SettingsManager::getAll()['cache_changes']) {
+                        if (SettingsManager::get('cache_changes')) {
                             $rChanges = $this->getChangedLines();
                             $rDelete['lines_i'] = $rChanges['delete_i'];
                             $rDelete['lines_c'] = $rChanges['delete_c'];
@@ -247,7 +247,7 @@ class CacheEngineCronJob implements CommandInterface {
                         } else {
                             $cacheDataKey[] = PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine "series" 0 0';
                         }
-                        if (SettingsManager::getAll()['cache_changes']) {
+                        if (SettingsManager::get('cache_changes')) {
                             $rChanges = $this->getChangedStreams();
                             $rDelete['streams'] = $rChanges['delete'];
                             if (count($rChanges['changes']) > 0) {
@@ -308,7 +308,7 @@ class CacheEngineCronJob implements CommandInterface {
                         foreach ($rSeriesEpisodes as $rSeriesID => $rSeasons) {
                             file_put_contents(SERIES_TMP_PATH . 'episodes_' . $rSeriesID, igbinary_serialize($rSeasons));
                         }
-                        if (SettingsManager::getAll()['cache_changes']) {
+                        if (SettingsManager::get('cache_changes')) {
                             foreach ($rDelete['streams'] as $rStreamID) {
                                 @unlink(STREAMS_TMP_PATH . 'stream_' . $rStreamID);
                             }
@@ -399,7 +399,7 @@ class CacheEngineCronJob implements CommandInterface {
                         foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rUserInfo) {
                             $rExists[] = $rUserInfo['id'];
                             file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
-                            $rKey = (SettingsManager::getAll()['case_sensitive_line'] ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
+                            $rKey = (SettingsManager::get('case_sensitive_line') ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
                             file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, $rUserInfo['id']);
                             if (!empty($rUserInfo['access_token'])) {
                                 file_put_contents(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], $rUserInfo['id']);

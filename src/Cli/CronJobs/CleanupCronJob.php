@@ -53,7 +53,7 @@ class CleanupCronJob implements CommandInterface {
     private function loadCron(): void {
         global $db;
 
-        if (intval(SettingsManager::getAll()['cleanup']) == 1) {
+        if (intval(SettingsManager::get('cleanup')) == 1) {
             $rStreams = array();
             $db->query('SELECT `id` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams`.`type` IN (1,3,4) AND `streams_servers`.`server_id` = ?;', SERVER_ID);
             foreach ($db->get_rows() as $rRow) {
@@ -107,7 +107,7 @@ class CleanupCronJob implements CommandInterface {
             }
         }
 
-        if (intval(SettingsManager::getAll()['check_vod']) == 1) {
+        if (intval(SettingsManager::get('check_vod')) == 1) {
             $db->query('SELECT `server_stream_id`, `id`, `target_container`, `movie_properties`, `stream_status` FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `server_id` = ? AND `type` IN (2,5) AND `streams`.`direct_source` = 0 AND `streams_servers`.`pid` > 0;', SERVER_ID);
             if ($db->num_rows() > 0) {
                 $rRows = $db->get_rows();
@@ -140,7 +140,7 @@ class CleanupCronJob implements CommandInterface {
                             if (!(isset($rMovieProperties['audio']) && $rFFProbee['codecs']['audio']['codec_name'] == $rMovieProperties['audio'])) {
                                 $rMovieProperties['audio'] = $rFFProbee['codecs']['audio'];
                             }
-                            if (SettingsManager::getAll()['extract_subtitles']) {
+                            if (SettingsManager::get('extract_subtitles')) {
                                 if (!(isset($rMovieProperties['subtitle']) && $rFFProbee['codecs']['subtitle']['codec_name'] == $rMovieProperties['subtitle'])) {
                                     $rMovieProperties['subtitle'] = $rFFProbee['codecs']['subtitle'];
                                 }
@@ -152,7 +152,7 @@ class CleanupCronJob implements CommandInterface {
                                     $rBitrate = $rMovieProperties['bitrate'];
                                 }
                             }
-                            if (isset($rFFProbee['codecs']['subtitle']) && SettingsManager::getAll()['extract_subtitles']) {
+                            if (isset($rFFProbee['codecs']['subtitle']) && SettingsManager::get('extract_subtitles')) {
                                 $i = 0;
                                 foreach ($rFFProbee['codecs']['subtitle'] as $rSubtitle) {
                                     FFmpegCommand::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
@@ -162,7 +162,7 @@ class CleanupCronJob implements CommandInterface {
                             $rCompatible = 0;
                             $rAudioCodec = $rVideoCodec = $rResolution = null;
                             if ($rFFProbee) {
-                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::getAll()['player_allow_hevc']));
+                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::get('player_allow_hevc')));
                                 $rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
                                 $rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
                                 $rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);

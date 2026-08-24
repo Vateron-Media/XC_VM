@@ -131,7 +131,7 @@ class VodCronJob implements CommandInterface {
                             if (!(isset($rMovieProperties['audio']) && $rFFProbee['codecs']['audio']['codec_name'] == $rMovieProperties['audio'])) {
                                 $rMovieProperties['audio'] = $rFFProbee['codecs']['audio'];
                             }
-                            if (SettingsManager::getAll()['extract_subtitles']) {
+                            if (SettingsManager::get('extract_subtitles')) {
                                 if (!(isset($rMovieProperties['subtitle']) && $rFFProbee['codecs']['subtitle']['codec_name'] == $rMovieProperties['subtitle'])) {
                                     $rMovieProperties['subtitle'] = $rFFProbee['codecs']['subtitle'];
                                 }
@@ -143,7 +143,7 @@ class VodCronJob implements CommandInterface {
                                     $rBitrate = $rMovieProperties['bitrate'];
                                 }
                             }
-                            if (isset($rFFProbee['codecs']['subtitle']) && SettingsManager::getAll()['extract_subtitles']) {
+                            if (isset($rFFProbee['codecs']['subtitle']) && SettingsManager::get('extract_subtitles')) {
                                 $i = 0;
                                 foreach ($rFFProbee['codecs']['subtitle'] as $rSubtitle) {
                                     FFmpegCommand::extractSubtitle($rRow['stream_id'], $rMoviePath, $i);
@@ -153,7 +153,7 @@ class VodCronJob implements CommandInterface {
                             $rCompatible = 0;
                             $rAudioCodec = $rVideoCodec = $rResolution = null;
                             if ($rFFProbee) {
-                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::getAll()['player_allow_hevc']));
+                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::get('player_allow_hevc')));
                                 $rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
                                 $rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
                                 $rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);

@@ -44,7 +44,7 @@ class UpdateCommand implements CommandInterface {
 		});
 
 		global $db;
-		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getAll()['update_channel']);
+		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::get('update_channel'));
 		$gitRelease->setTimeout(30);
 
 		$rCommand = $rArgs[0];
@@ -141,7 +141,7 @@ class UpdateCommand implements CommandInterface {
 				UpdateLogger::info('Running file cleanup...');
 				MigrationRunner::runFileCleanup();
 
-				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && SettingsManager::getAll()['auto_update_lbs']) {
+				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && SettingsManager::get('auto_update_lbs')) {
 					UpdateLogger::info('Broadcasting update signal to LB servers');
 					foreach (ServerRepository::getAll() as $rServer) {
 						if (($rServer['enabled'] && $rServer['status'] == 1 && time() - $rServer['last_check_ago'] <= 180) || !$rServer['is_main']) {

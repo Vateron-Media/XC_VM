@@ -367,7 +367,7 @@ class ToolsCommand implements CommandInterface {
 				if (strncmp($rImage, 'h_', 2) === 0) {
 					continue;
 				}
-				$rOriginalURL = Encryption::decrypt($rImage, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
+				$rOriginalURL = Encryption::decrypt($rImage, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
 				if (!empty($rOriginalURL) && substr($rOriginalURL, 0, 4) == 'http') {
 					if (!file_exists(IMAGES_PATH . $rPathInfo['basename'])) {
 						echo 'Downloading: ' . $rOriginalURL . "\n";

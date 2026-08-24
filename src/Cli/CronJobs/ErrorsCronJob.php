@@ -165,7 +165,7 @@ class ErrorsCronJob implements CommandInterface {
                             foreach ($rErrors as $rError) {
                                 $rError = trim((string) $rError);
                                 if (!(empty($rError) || $this->inArray($rIgnoreErrors, $rError))) {
-                                    if (SettingsManager::getAll()['stream_logs_save']) {
+                                    if (SettingsManager::get('stream_logs_save')) {
                                         $rQuery .= '(' . $rStreamID . ',' . SERVER_ID . ',' . time() . ',' . $db->escape($rError) . '),';
                                     }
                                 }
@@ -178,7 +178,7 @@ class ErrorsCronJob implements CommandInterface {
             }
         }
 
-        if (SettingsManager::getAll()['stream_logs_save'] && !empty($rQuery)) {
+        if (SettingsManager::get('stream_logs_save') && !empty($rQuery)) {
             $rQuery = rtrim($rQuery, ',');
             $db->query('INSERT INTO `streams_errors` (`stream_id`,`server_id`,`date`,`error`) VALUES ' . $rQuery . ';');
         }

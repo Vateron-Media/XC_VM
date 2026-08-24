@@ -53,7 +53,7 @@ class WatchdogCommand implements CommandInterface {
 		$this->initDaemonMD5();
 		$this->initRedisIfEnabled();
 
-		$this->rRefreshInterval = (intval(SettingsManager::getAll()['online_capacity_interval']) ?: 10);
+		$this->rRefreshInterval = (intval(SettingsManager::get('online_capacity_interval')) ?: 10);
 		$rLastRequests = $rLastRequestsTime = $rPrevStat = null;
 		$this->rLastCheck = null;
 
@@ -144,7 +144,7 @@ class WatchdogCommand implements CommandInterface {
 
 			// ── Update servers table ─────────────────────────────
 			$rConnections = $rUsers = 0;
-			if (!SettingsManager::getAll()['redis_handler']) {
+			if (!SettingsManager::get('redis_handler')) {
 				$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0 AND `server_id` = ?;', SERVER_ID);
 				$rConnections = $db->get_row()['count'];
 				$db->query('SELECT `activity_id` FROM `lines_live` WHERE `hls_end` = 0 AND `server_id` = ? GROUP BY `user_id`;', SERVER_ID);
@@ -156,7 +156,7 @@ class WatchdogCommand implements CommandInterface {
 
 			if ($rResult) {
 				if ($rServers[SERVER_ID]['is_main']) {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						// Redis down: keep the last known connections/users totals
 						// for this round instead of overwriting them with garbage.
 						if ($rRedisAlive) {

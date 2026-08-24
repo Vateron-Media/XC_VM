@@ -46,7 +46,7 @@ class ModuleLicensesCronJob implements CommandInterface {
             return 0;
         }
 
-        $apiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+        $apiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
         if ($apiKey === '') {
             echo "No platform API key configured — skipping.\n";
             return 0;

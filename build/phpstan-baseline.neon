@@ -204,17 +204,7 @@ parameters:
 			count: 1
 			path: ../src/Cli/CronJobs/RootSignalsCronJob.php
 
-		-
-			message: '#^Variable \$rLiveKeys might not be defined\.$#'
-			identifier: variable.undefined
-			count: 1
-			path: ../src/Cli/CronJobs/UsersCronJob.php
 
-		-
-			message: '#^Variable \$rRedisDelete might not be defined\.$#'
-			identifier: variable.undefined
-			count: 11
-			path: ../src/Cli/CronJobs/UsersCronJob.php
 
 		-
 			message: '#^If condition is always true\.$#'
