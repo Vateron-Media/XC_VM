@@ -115,7 +115,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                             </td>
                                             <td class="text-center">
                                                 <?php
-                                                if (SettingsManager::getAll()['redis_handler']) {
+                                                if (SettingsManager::get('redis_handler')) {
                                                     $rClients = $rServer['connections'];
                                                 } else {
                                                     $rClients = ConnectionTracker::getLiveConnections($rServer['id']);
@@ -186,7 +186,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                             </td>
                                             <td class="text-center">
                                                 <?php if (Authorization::check('adv', 'edit_server')): ?>
-                                                    <?php if (SettingsManager::getAll()['group_buttons']): ?>
+                                                    <?php if (SettingsManager::get('group_buttons')): ?>
                                                         <div class="btn-group dropdown">
                                                             <a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false">
                                                                 <i class="mdi mdi-menu"></i>
@@ -826,7 +826,7 @@ renderUnifiedLayoutFooter('admin');
         });
         $("#datatable").css("width", "100%");
     });
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

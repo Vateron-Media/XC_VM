@@ -8,7 +8,7 @@ use XcVm\Core\Module\NavbarRegistry;
 
 if (count(get_included_files()) != 1 || TRUE):
     $rModal = isset(RequestManager::getAll()['modal']);
-    $rUpdate = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: array());
+    $rUpdate = (json_decode((string) SettingsManager::get('update_data'), true) ?: array());
 
 ?>
 
@@ -164,7 +164,7 @@ if (count(get_included_files()) != 1 || TRUE):
                                         </div>
                                     </a>
                                 </li>
-                                <?php if (SettingsManager::getAll()['enable_search']): ?>
+                                <?php if (SettingsManager::get('enable_search')): ?>
                                     <li class="dropdown notification-list" id="search-mobile">
                                         <a href="javascript:void(0);"
                                             class="search-toggle pad-15 nav-link right-bar-toggle waves-effect text-white">

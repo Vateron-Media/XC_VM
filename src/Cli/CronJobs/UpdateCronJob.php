@@ -45,7 +45,7 @@ class UpdateCronJob implements CommandInterface {
 
         if (!$gitRelease) {
             if (defined('GIT_OWNER') && defined('GIT_REPO_MAIN')) {
-                $gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getAll()['update_channel']);
+                $gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::get('update_channel'));
             }
         }
 

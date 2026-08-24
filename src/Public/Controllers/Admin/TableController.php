@@ -724,7 +724,7 @@ class TableController extends BaseAdminController {
 							}
 							if (Authorization::check("adv", "edit_mag")) {
 								$username = str_replace('"', '&quot;', str_replace("'", "\\'", $rRow['username'] ?? ''));
-								$rButtons .= "<a class=\"dropdown-item\" href=\"mag?id=" . $rRow['id'] . "\" " . (SettingsManager::getAll()['modal_edit'] ? "onClick=\"editModal(event, 'mag', " . (int) ($rRow['mag_id'] ?? 0) . ", '$username')\" data-modal=\"true\"" : "") . ">Edit Device</a>";
+								$rButtons .= "<a class=\"dropdown-item\" href=\"mag?id=" . $rRow['id'] . "\" " . (SettingsManager::get('modal_edit') ? "onClick=\"editModal(event, 'mag', " . (int) ($rRow['mag_id'] ?? 0) . ", '$username')\" data-modal=\"true\"" : "") . ">Edit Device</a>";
 								if ($rRow["admin_enabled"]) {
 									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["mag_id"] . ", 'ban');\">Ban Device</a>";
 								} else {

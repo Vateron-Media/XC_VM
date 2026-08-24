@@ -182,7 +182,7 @@ trait DaemonTrait {
 	 * Инициализировать Redis если включён в настройках.
 	 */
 	protected function initRedisIfEnabled(): void {
-		if (SettingsManager::getAll()['redis_handler'] ?? false) {
+		if (SettingsManager::get('redis_handler') ?? false) {
 			RedisManager::ensureConnected();
 		}
 	}
@@ -193,7 +193,7 @@ trait DaemonTrait {
 	 * @return bool true = OK или Redis не используется, false = соединение потеряно
 	 */
 	protected function checkRedisHealth(): bool {
-		if (!(SettingsManager::getAll()['redis_handler'] ?? false)) {
+		if (!(SettingsManager::get('redis_handler') ?? false)) {
 			return true;
 		}
 		try {

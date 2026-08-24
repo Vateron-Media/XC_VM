@@ -138,7 +138,7 @@ class RadioService {
 						$rArray['category_id'] = '[' . implode(',', array_map('intval', $rCategories)) . ']';
 						$rImportArray = $rArray;
 
-						if (!SettingsManager::getAll()['download_images']) {
+						if (!SettingsManager::get('download_images')) {
 						} else {
 							$rImportStream['stream_icon'] = ImageUtils::downloadImage($rImportStream['stream_icon'], 4);
 						}

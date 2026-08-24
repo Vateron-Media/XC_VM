@@ -83,7 +83,7 @@ class MonitorCommand implements CommandInterface {
 		$rStreamInfo = $db->get_row();
 		$db->query('UPDATE `streams_servers` SET `monitor_pid` = ? WHERE `server_stream_id` = ?', getmypid(), $rStreamInfo['server_stream_id']);
 
-		if (SettingsManager::getAll()['enable_cache']) {
+		if (SettingsManager::get('enable_cache')) {
 			StreamProcess::updateStream($rStreamID);
 		}
 
@@ -94,7 +94,7 @@ class MonitorCommand implements CommandInterface {
 		$rParentID = $rStreamInfo['parent_id'];
 		$rStreamProbe = false;
 		$rSources = array();
-		$rSegmentTime = intval(SettingsManager::getAll()['seg_time']);
+		$rSegmentTime = intval(SettingsManager::get('seg_time'));
 		$rPrioritySwitch = false;
 		$rMaxFails = 0;
 
@@ -140,7 +140,7 @@ class MonitorCommand implements CommandInterface {
 			file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
 		}
 
-		if (SettingsManager::getAll()['kill_rogue_ffmpeg']) {
+		if (SettingsManager::get('kill_rogue_ffmpeg')) {
 			exec('ps aux | grep -v grep | grep \'/' . $rStreamID . '_.m3u8\' | awk \'{print $2}\'', $rRoguePIDs);
 			foreach ($rRoguePIDs as $rRoguePID) {
 				if (is_numeric($rRoguePID) && intval($rRoguePID) > 0 && intval($rRoguePID) != intval($rPID)) {
@@ -187,12 +187,12 @@ class MonitorCommand implements CommandInterface {
 							file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
 						}
 					}
-					if (($rStreamInfo['fps_restart'] == 1) && (SettingsManager::getAll()['fps_delay'] < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check')) {
+					if (($rStreamInfo['fps_restart'] == 1) && (SettingsManager::get('fps_delay') < (time() - $rStartedTime)) && file_exists(STREAMS_PATH . $rStreamID . '_.progress_check')) {
 						echo "Checking FPS...\n";
 						$rFps = floatval(json_decode(file_get_contents(STREAMS_PATH . $rStreamID . '_.progress_check'), true)['fps']) ?: 0;
 						if (0 < $rFps) {
 							if (!$rBaselineFps) {
-								if (SettingsManager::getAll()['fps_check_type'] == 1) {
+								if (SettingsManager::get('fps_check_type') == 1) {
 									$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
 									if (!empty($rSegment)) {
 										$rProbe = FFprobeRunner::probeStream($rFolder . $rSegment);
@@ -215,7 +215,7 @@ class MonitorCommand implements CommandInterface {
 						}
 						unlink(STREAMS_PATH . $rStreamID . '_.progress_check');
 					}
-					if ((SettingsManager::getAll()['audio_restart_loss'] == 1) && (300 < (time() - $rAudioChecked))) {
+					if ((SettingsManager::get('audio_restart_loss') == 1) && (300 < (time() - $rAudioChecked))) {
 						echo "Checking audio...\n";
 						$rSegment = StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
 						if (!empty($rSegment)) {
@@ -235,7 +235,7 @@ class MonitorCommand implements CommandInterface {
 						if ($rMD5 != $rNewMd5) {
 							$rMD5 = $rNewMd5;
 							$rCheckedTime = time();
-							if (SettingsManager::getAll()['encrypt_hls']) {
+							if (SettingsManager::get('encrypt_hls')) {
 								foreach (glob(STREAMS_PATH . $rStreamID . '_*.ts.enc') as $rFile) {
 									if (!file_exists(rtrim($rFile, '.enc'))) {
 										unlink($rFile);
@@ -250,7 +250,7 @@ class MonitorCommand implements CommandInterface {
 							break;
 						}
 					}
-					if (((SettingsManager::getAll()['priority_backup'] == 1) && (1 < count($rSources)) && ($rParentID == 0) && (300 < (time() - $rBackupsChecked)))) {
+					if (((SettingsManager::get('priority_backup') == 1) && (1 < count($rSources)) && ($rParentID == 0) && (300 < (time() - $rBackupsChecked)))) {
 						echo "Checking backups...\n";
 						$rBackupsChecked = time();
 						$rKey = array_search($rCurrentSource, $rSources);
@@ -324,7 +324,7 @@ class MonitorCommand implements CommandInterface {
 					file_put_contents(STREAMS_PATH . $rStreamID . '_.monitor', getmypid());
 					$rOffset = 0;
 					$rTotalCalls++;
-					if ((0 < $rStreamInfo['parent_id']) && SettingsManager::getAll()['php_loopback']) {
+					if ((0 < $rStreamInfo['parent_id']) && SettingsManager::get('php_loopback')) {
 						$rData = StreamProcess::startLoopback($rStreamID);
 					} elseif ((0 < $rStreamInfo['llod']) && $rStreamInfo['on_demand'] && $rFirstRun && $rStreamInfo['type'] != 3) {
 						if ($rStreamInfo['llod'] == 1) {
@@ -336,7 +336,7 @@ class MonitorCommand implements CommandInterface {
 							$rData = StreamProcess::startStream($rStreamID, false, $rStartSource, true);
 						} else {
 							if ($rStreamInfo['parent_id']) {
-								$rForceSource = (!is_null(ServerRepository::getAll()[SERVER_ID]['private_url_ip']) && !is_null(ServerRepository::getAll()[$rStreamInfo['parent_id']]['private_url_ip']) ? ServerRepository::getAll()[$rStreamInfo['parent_id']]['private_url_ip'] : ServerRepository::getAll()[$rStreamInfo['parent_id']]['public_url_ip']) . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(SettingsManager::getAll()['live_streaming_pass']) . '&extension=ts';
+								$rForceSource = (!is_null(ServerRepository::getAll()[SERVER_ID]['private_url_ip']) && !is_null(ServerRepository::getAll()[$rStreamInfo['parent_id']]['private_url_ip']) ? ServerRepository::getAll()[$rStreamInfo['parent_id']]['private_url_ip'] : ServerRepository::getAll()[$rStreamInfo['parent_id']]['public_url_ip']) . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode(SettingsManager::get('live_streaming_pass')) . '&extension=ts';
 							}
 							$rData = StreamProcess::startLLOD($rStreamID, $rStreamInfo, $rStreamInfo['parent_id'] ? array() : $rStreamArguments, $rForceSource);
 						}
@@ -354,12 +354,12 @@ class MonitorCommand implements CommandInterface {
 					if ((is_numeric($rData) && ($rData == 0))) {
 						$rStartFailed = true;
 						$rMaxFails++;
-						if (((0 < SettingsManager::getAll()['stop_failures']) && ($rMaxFails >= SettingsManager::getAll()['stop_failures']))) {
+						if (((0 < SettingsManager::get('stop_failures')) && ($rMaxFails >= SettingsManager::get('stop_failures')))) {
 							echo "Failure limit reached, exiting.\n";
 							return 0;
 						}
-						echo 'Stream start failed (attempt ' . $rMaxFails . '). Sleeping ' . SettingsManager::getAll()['stream_fail_sleep'] . " seconds...\n";
-						sleep(SettingsManager::getAll()['stream_fail_sleep']);
+						echo 'Stream start failed (attempt ' . $rMaxFails . '). Sleeping ' . SettingsManager::get('stream_fail_sleep') . " seconds...\n";
+						sleep(SettingsManager::get('stream_fail_sleep'));
 						continue;
 					}
 					break;
@@ -447,7 +447,7 @@ class MonitorCommand implements CommandInterface {
 					}
 
 					// Defining video/Audio parameters
-					list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rStreamInfo['stream_info'], SettingsManager::getAll()['player_allow_hevc']);
+					list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rStreamInfo['stream_info'], SettingsManager::get('player_allow_hevc'));
 
 					if (!$rSegmentSeen && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
 						if ($rStreamInfo['stream_info']) {
@@ -458,7 +458,7 @@ class MonitorCommand implements CommandInterface {
 					} else {
 						$db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0 WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), $rStreamInfo['server_stream_id']);
 					}
-					if (SettingsManager::getAll()['enable_cache']) {
+					if (SettingsManager::get('enable_cache')) {
 						StreamProcess::updateStream($rStreamID);
 					}
 					echo "End start process\n";
@@ -471,12 +471,12 @@ class MonitorCommand implements CommandInterface {
 						shell_exec('kill -9 ' . intval($rPID));
 					}
 					$db->query('UPDATE `streams_servers` SET `pid` = null, `stream_status` = 1 WHERE `server_stream_id` = ?;', $rStreamInfo['server_stream_id']);
-					if (SettingsManager::getAll()['enable_cache']) {
+					if (SettingsManager::get('enable_cache')) {
 						StreamProcess::updateStream($rStreamID);
 					}
-					echo 'Sleep for ' . SettingsManager::getAll()['stream_fail_sleep'] . " seconds...";
-					sleep(SettingsManager::getAll()['stream_fail_sleep']);
-					if (SettingsManager::getAll()['on_demand_failure_exit'] && $rStreamInfo['on_demand']) {
+					echo 'Sleep for ' . SettingsManager::get('stream_fail_sleep') . " seconds...";
+					sleep(SettingsManager::get('stream_fail_sleep'));
+					if (SettingsManager::get('on_demand_failure_exit') && $rStreamInfo['on_demand']) {
 						echo "On-demand failed to run!\n";
 						return 0;
 					}

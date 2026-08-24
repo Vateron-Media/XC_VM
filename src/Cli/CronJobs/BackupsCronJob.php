@@ -55,13 +55,13 @@ class BackupsCronJob implements CommandInterface {
             $rForce = true;
         }
 
-        $rBackups = SettingsManager::getAll()['automatic_backups'];
-        $rLastBackup = intval(SettingsManager::getAll()['last_backup']);
+        $rBackups = SettingsManager::get('automatic_backups');
+        $rLastBackup = intval(SettingsManager::get('last_backup'));
         $rPeriod = array('hourly' => 3600, 'daily' => 86400, 'weekly' => 604800, 'monthly' => 2419200);
 
         if (!$rForce) {
             $rPID = getmypid();
-            if (file_exists('/proc/' . SettingsManager::getAll()['backups_pid']) && 0 < strlen(SettingsManager::getAll()['backups_pid'])) {
+            if (file_exists('/proc/' . SettingsManager::get('backups_pid')) && 0 < strlen(SettingsManager::get('backups_pid'))) {
                 return 0;
             }
             $db->query('UPDATE `settings` SET `backups_pid` = ?;', $rPID);
@@ -78,7 +78,7 @@ class BackupsCronJob implements CommandInterface {
                 BackupService::create($rFilename);
 
                 if (0 < filesize($rFilename)) {
-                    if (SettingsManager::getAll()['dropbox_remote']) {
+                    if (SettingsManager::get('dropbox_remote')) {
                         file_put_contents($rFilename . '.uploading', time());
                         $rResponse = BackupService::uploadRemote(basename($rFilename), $rFilename);
                         if (!isset($rResponse->error)) {
@@ -104,8 +104,8 @@ class BackupsCronJob implements CommandInterface {
         }
 
         $rBackups = BackupService::getLocal();
-        if (intval(SettingsManager::getAll()['backups_to_keep']) < count($rBackups) && 0 < intval(SettingsManager::getAll()['backups_to_keep'])) {
-            $rDelete = array_slice($rBackups, 0, count($rBackups) - intval(SettingsManager::getAll()['backups_to_keep']));
+        if (intval(SettingsManager::get('backups_to_keep')) < count($rBackups) && 0 < intval(SettingsManager::get('backups_to_keep'))) {
+            $rDelete = array_slice($rBackups, 0, count($rBackups) - intval(SettingsManager::get('backups_to_keep')));
             foreach ($rDelete as $rItem) {
                 if (file_exists(MAIN_HOME . 'backups/' . $rItem['filename'])) {
                     unlink(MAIN_HOME . 'backups/' . $rItem['filename']);
@@ -113,10 +113,10 @@ class BackupsCronJob implements CommandInterface {
             }
         }
 
-        if (SettingsManager::getAll()['dropbox_remote']) {
+        if (SettingsManager::get('dropbox_remote')) {
             $rRemoteBackups = BackupService::getRemote();
-            if (intval(SettingsManager::getAll()['dropbox_keep']) < count($rRemoteBackups) && 0 < intval(SettingsManager::getAll()['dropbox_keep'])) {
-                $rDelete = array_slice($rRemoteBackups, 0, count($rRemoteBackups) - intval(SettingsManager::getAll()['dropbox_keep']));
+            if (intval(SettingsManager::get('dropbox_keep')) < count($rRemoteBackups) && 0 < intval(SettingsManager::get('dropbox_keep'))) {
+                $rDelete = array_slice($rRemoteBackups, 0, count($rRemoteBackups) - intval(SettingsManager::get('dropbox_keep')));
                 foreach ($rDelete as $rItem) {
                     try {
                         BackupService::deleteRemote($rItem['path']);

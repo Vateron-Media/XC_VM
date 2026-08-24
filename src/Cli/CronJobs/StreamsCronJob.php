@@ -50,20 +50,21 @@ class StreamsCronJob implements CommandInterface {
     }
 
     private function loadCron(): void {
+        $rRedis = SettingsManager::getBool('redis_handler');
         global $db;
 
         if (!ProcessManager::isNginxRunning()) {
             echo 'XC_VM not running...' . "\n";
         }
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if ($rRedis) {
             RedisManager::ensureConnected();
         }
 
         $rActivePIDs = array();
         $rStreamIDs = array();
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if ($rRedis) {
             $db->query('SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
         } else {
             $db->query("SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, clients.online_clients, clients_hls.online_clients_hls, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0 GROUP BY stream_id) AS clients ON clients.stream_id = t1.stream_id LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients_hls FROM `lines_live` WHERE `server_id` = ? AND `container` = 'hls' AND `hls_end` = 0 GROUP BY stream_id) AS clients_hls ON clients_hls.stream_id = t1.stream_id WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1", SERVER_ID, SERVER_ID, SERVER_ID, SERVER_ID);
@@ -76,7 +77,7 @@ class StreamsCronJob implements CommandInterface {
 
                 if (ProcessManager::isMonitorAlive($rStream['monitor_pid'], $rStream['stream_id']) || $rStream['on_demand']) {
                     if ($rStream['on_demand'] == 1 && $rStream['attached'] == 0) {
-                        if (SettingsManager::getAll()['redis_handler']) {
+                        if ($rRedis) {
                             $rCount = 0;
                             $rRedis = RedisManager::instance();
                             if ($rRedis) {
@@ -94,7 +95,7 @@ class StreamsCronJob implements CommandInterface {
                         }
 
                         $rAdminQueue = $rQueue = 0;
-                        if (SettingsManager::getAll()['on_demand_instant_off'] && file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStream['stream_id']))) {
+                        if (SettingsManager::getBool('on_demand_instant_off') && file_exists(SIGNALS_TMP_PATH . 'queue_' . intval($rStream['stream_id']))) {
                             foreach ((igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStream['stream_id']))) ?: array()) as $rPID) {
                                 if (ProcessManager::isRunning($rPID, 'php-fpm')) {
                                     $rQueue++;
@@ -108,7 +109,7 @@ class StreamsCronJob implements CommandInterface {
                                 unlink(SIGNALS_TMP_PATH . 'admin_' . intval($rStream['stream_id']));
                             }
                         }
-                        if ($rQueue == 0 && $rAdminQueue == 0 && $rStream['online_clients'] == 0 && (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.m3u8') || intval(SettingsManager::getAll()['on_demand_wait_time']) < time() - intval($rStream['stream_started']) || $rStream['stream_status'] == 1)) {
+                        if ($rQueue == 0 && $rAdminQueue == 0 && $rStream['online_clients'] == 0 && (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.m3u8') || SettingsManager::getInt('on_demand_wait_time') < time() - intval($rStream['stream_started']) || $rStream['stream_status'] == 1)) {
                             echo 'Stop on-demand stream...' . "\n\n";
                             StreamProcess::stopStream($rStream['stream_id'], true);
                         }
@@ -220,7 +221,7 @@ class StreamsCronJob implements CommandInterface {
                         $rAudioCodec = $rVideoCodec = $rResolution = null;
                         if ($rStreamInfo) {
                             $rStreamJSON = json_decode($rStreamInfo, true);
-                            $rCompatible = intval(DiagnosticsService::checkCompatibility($rStreamJSON, SettingsManager::getAll()['player_allow_hevc']));
+                            $rCompatible = intval(DiagnosticsService::checkCompatibility($rStreamJSON, SettingsManager::getBool('player_allow_hevc')));
                             if (is_array($rStreamJSON) && isset($rStreamJSON['codecs']) && is_array($rStreamJSON['codecs'])) {
                                 $rAudioCodec = isset($rStreamJSON['codecs']['audio']['codec_name']) ? $rStreamJSON['codecs']['audio']['codec_name'] : null;
                                 $rVideoCodec = isset($rStreamJSON['codecs']['video']['codec_name']) ? $rStreamJSON['codecs']['video']['codec_name'] : null;
@@ -255,7 +256,7 @@ class StreamsCronJob implements CommandInterface {
                     $rBitrate = $rCompatible = $rAudioCodec = $rVideoCodec = $rResolution = null;
                     if ($rFFProbeOutput) {
                         $rBitrate = $rFFProbeOutput['bitrate'] / 1024;
-                        $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']));
+                        $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbeOutput, SettingsManager::getBool('player_allow_hevc')));
                         if (is_array($rFFProbeOutput) && isset($rFFProbeOutput['codecs']) && is_array($rFFProbeOutput['codecs'])) {
                             $rAudioCodec = isset($rFFProbeOutput['codecs']['audio']['codec_name']) ? $rFFProbeOutput['codecs']['audio']['codec_name'] : null;
                             $rVideoCodec = isset($rFFProbeOutput['codecs']['video']['codec_name']) ? $rFFProbeOutput['codecs']['video']['codec_name'] : null;
@@ -310,7 +311,7 @@ class StreamsCronJob implements CommandInterface {
             }
         }
 
-        if (SettingsManager::getAll()['kill_rogue_ffmpeg']) {
+        if (SettingsManager::getBool('kill_rogue_ffmpeg')) {
             exec("ps aux | grep -v grep | grep '/*_.m3u8' | awk '{print \$2}'", $rRoguePIDs);
             foreach ($rRoguePIDs as $rPID) {
                 if (is_numeric($rPID) && intval($rPID) > 0 && !in_array($rPID, $rActivePIDs)) {

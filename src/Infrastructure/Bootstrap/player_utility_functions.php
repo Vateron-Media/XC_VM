@@ -171,7 +171,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 	$rKey = $rStart + 1;
 	$rWhereV = $rWhere = array();
 
-	if (SettingsManager::getAll()['player_hide_incompatible']) {
+	if (SettingsManager::getBool('player_hide_incompatible')) {
 		$rWhere[] = '(SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1';
 	}
 
@@ -261,7 +261,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 
 			case 'number':
 			default:
-				if (SettingsManager::getAll()['channel_number_type'] != 'manual' && 0 < count($rChannels)) {
+				if (SettingsManager::getString('channel_number_type') != 'manual' && 0 < count($rChannels)) {
 					$rOrder = 'FIELD(id,' . implode(',', $rChannels) . ')';
 				} else {
 					$rOrder = '`order` ASC';
@@ -341,7 +341,7 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 	$rKey = $rStart + 1;
 	$rWhereV = $rWhere = array();
 
-	if (SettingsManager::getAll()['player_hide_incompatible']) {
+	if (SettingsManager::getBool('player_hide_incompatible')) {
 		$rWhere[] = '(SELECT MAX(`compatible`) FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) = 1';
 	}
 
@@ -398,7 +398,7 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 
 			case 'number':
 			default:
-				if (SettingsManager::getAll()['vod_sort_newest']) {
+				if (SettingsManager::getBool('vod_sort_newest')) {
 					$rOrder = '`last_modified` DESC';
 				} else {
 					$rOrder = 'FIELD(id,' . implode(',', $rSeries) . ')';

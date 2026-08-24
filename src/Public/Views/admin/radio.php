@@ -451,7 +451,7 @@ renderUnifiedLayoutFooter('admin');
     echo $language::get('enter_a_radio_station_name');
     echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
     ?>
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

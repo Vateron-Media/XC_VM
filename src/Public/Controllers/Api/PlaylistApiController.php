@@ -31,7 +31,7 @@ class PlaylistApiController extends BaseApiController {
 		$rRequestPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
 		$rLegacyAction = strtolower(explode('.', ltrim((string) $rRequestPath, '/'))[0] ?? '');
 
-		if ($rLegacyAction == 'get' && !SettingsManager::getAll()['legacy_get']) {
+		if ($rLegacyAction == 'get' && !SettingsManager::get('legacy_get')) {
 			$this->deny = false;
 			generateError('LEGACY_GET_DISABLED');
 		}
@@ -57,11 +57,11 @@ class PlaylistApiController extends BaseApiController {
 		$this->userInfo = $rUserInfo;
 		ini_set('memory_limit', -1);
 
-		if (!$rUserInfo['is_restreamer'] && SettingsManager::getAll()['disable_playlist']) {
+		if (!$rUserInfo['is_restreamer'] && SettingsManager::get('disable_playlist')) {
 			generateError('PLAYLIST_DISABLED');
 		}
 
-		if ($rUserInfo['is_restreamer'] && SettingsManager::getAll()['disable_playlist_restreamer']) {
+		if ($rUserInfo['is_restreamer'] && SettingsManager::get('disable_playlist_restreamer')) {
 			generateError('PLAYLIST_DISABLED');
 		}
 
@@ -69,7 +69,7 @@ class PlaylistApiController extends BaseApiController {
 
 		$this->downloading = true;
 
-		if (NetworkUtils::startDownload('playlist', $rUserInfo, getmypid(), intval(SettingsManager::getAll()['max_simultaneous_downloads']))) {
+		if (NetworkUtils::startDownload('playlist', $rUserInfo, getmypid(), intval(SettingsManager::get('max_simultaneous_downloads')))) {
 			global $db;
 			$db = new DatabaseHandler();
 			DatabaseFactory::set($db);

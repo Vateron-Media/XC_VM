@@ -42,10 +42,10 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                         <?php if ($rStream) { ?>
                                             <td><?php echo $rStream['stream_display_name']; ?></td>
                                             <td class="text-center">
-                                                <?php echo date(SettingsManager::getAll()['date_format'], $rProgramme['start']); ?><br /><?php echo date('H:i', $rProgramme['start']); ?>
+                                                <?php echo date(SettingsManager::get('date_format'), $rProgramme['start']); ?><br /><?php echo date('H:i', $rProgramme['start']); ?>
                                             </td>
                                             <td class="text-center">
-                                                <?php echo date(SettingsManager::getAll()['date_format'], $rProgramme['end']); ?><br /><?php echo date('H:i', $rProgramme['end']); ?>
+                                                <?php echo date(SettingsManager::get('date_format'), $rProgramme['end']); ?><br /><?php echo date('H:i', $rProgramme['end']); ?>
                                             </td>
                                         <?php } else { ?>
                                             <td><select id="stream_id" name="stream_id" class="form-control"
@@ -402,7 +402,7 @@ renderUnifiedLayoutFooter('admin');
             return /^\d*$/.test(value);
         });
     });
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

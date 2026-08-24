@@ -50,7 +50,7 @@ class EpisodesController extends BasePlayerController
             $db->query('SELECT DISTINCT(`season_num`) AS `season_num` FROM `streams_episodes` WHERE `series_id` = ? ORDER BY `season_num` ASC;', $rSeries['id']);
 
             foreach ($db->get_rows() as $rRow) {
-                if (SettingsManager::getAll()['player_hide_incompatible']) {
+                if (SettingsManager::get('player_hide_incompatible')) {
                     $db->query('SELECT MAX(`compatible`) AS `compatible` FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `series_id` = ? AND `season_num` = ?;', $rSeries['id'], $rRow['season_num']);
 
                     if (!$db->get_row()['compatible']) {
@@ -63,7 +63,7 @@ class EpisodesController extends BasePlayerController
             }
             $rSeasonNo = (intval(RequestManager::getAll()['season'] ?? 0) ?: ($rSeasons[0] ?: 1));
 
-            if (SettingsManager::getAll()['player_hide_incompatible']) {
+            if (SettingsManager::get('player_hide_incompatible')) {
                 $db->query('SELECT * FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `series_id` = ? AND `season_num` = ? AND (SELECT MAX(`compatible`) FROM `streams_servers` WHERE `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) = 1 ORDER BY `episode_num` ASC;', $rSeries['id'], $rSeasonNo);
             } else {
                 $db->query('SELECT * FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` WHERE `series_id` = ? AND `season_num` = ? ORDER BY `episode_num` ASC;', $rSeries['id'], $rSeasonNo);
@@ -82,7 +82,7 @@ class EpisodesController extends BasePlayerController
                     $rProxySubtitles = array();
 
                     foreach ($rSubtitles[$rEpisodes[$i]['id']] as $rSubtitle) {
-                        $rSubtitle['file'] = 'proxy.php?url=' . Encryption::encrypt($rSubtitle['file'], SettingsManager::getAll()['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33');
+                        $rSubtitle['file'] = 'proxy.php?url=' . Encryption::encrypt($rSubtitle['file'], SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33');
                         $rProxySubtitles[] = $rSubtitle;
                     }
                     $rSubtitles[$rEpisodes[$i]['id']] = $rProxySubtitles;
@@ -125,7 +125,7 @@ class EpisodesController extends BasePlayerController
 
             if (0 >= count($rSimilarArray)) {
             } else {
-                if (SettingsManager::getAll()['player_hide_incompatible']) {
+                if (SettingsManager::get('player_hide_incompatible')) {
                     $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') AND (SELECT MAX(`compatible`) FROM `streams_servers` LEFT JOIN `streams_episodes` ON `streams_episodes`.`stream_id` = `streams_servers`.`stream_id` WHERE `streams_episodes`.`series_id` = `streams_series`.`id`) = 1 LIMIT 6;');
                 } else {
                     $db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` IN (' . implode(',', $rSimilarArray) . ') LIMIT 6;');

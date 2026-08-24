@@ -144,7 +144,7 @@ class SignalsCommand implements CommandInterface {
 					}
 
 					// ── Redis kill-сигналы ──────────────────────
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						$rSignals = array();
 						foreach (RedisManager::instance()->sMembers('SIGNALS#' . SERVER_ID) as $rKey) {
 							$rSignals[] = $rKey;

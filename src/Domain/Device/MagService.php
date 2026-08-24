@@ -240,7 +240,7 @@ class MagService {
 			} else {
 				if (Authorization::check('adv', 'add_mag')) {
 					$rArray = QueryHelper::verifyPostTable('mag_devices', $rData);
-					$rArray['theme_type'] = SettingsManager::getAll()['mag_default_type'];
+					$rArray['theme_type'] = SettingsManager::get('mag_default_type');
 					$rUserArray = QueryHelper::verifyPostTable('lines', $rData);
 					$rUserArray['created_at'] = time();
 					unset($rArray['mag_id'], $rUserArray['id']);

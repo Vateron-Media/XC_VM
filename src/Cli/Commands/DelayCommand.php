@@ -71,7 +71,7 @@ class DelayCommand implements CommandInterface {
 		$db->close_mysql();
 		$rDelayDuration = intval($rStreamInfo['delay_minutes']) + 5;
 		$this->cleanUpSegments($rStreamID, $rDelayDuration);
-		$rSegmentSettings = array('seg_time' => intval(SettingsManager::getAll()['seg_time']), 'seg_list_size' => intval(SettingsManager::getAll()['seg_list_size']), 'seg_delete_threshold' => intval(SettingsManager::getAll()['seg_delete_threshold']));
+		$rSegmentSettings = array('seg_time' => intval(SettingsManager::get('seg_time')), 'seg_list_size' => intval(SettingsManager::get('seg_list_size')), 'seg_delete_threshold' => intval(SettingsManager::get('seg_delete_threshold')));
 		$rTotalSegments = intval($rSegmentSettings['seg_list_size']) + 5;
 		$rOldSegments = array();
 		if (file_exists($rPlaylistOld)) {

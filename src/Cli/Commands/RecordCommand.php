@@ -91,9 +91,9 @@ class RecordCommand implements CommandInterface {
 			}
 			if ($recordingData['archive']) {
 				$rDuration = intval(($recordingData['end'] - $recordingData['start']) / 60);
-				$rSource = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/timeshift?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&start=' . $recordingData['start'] . '&duration=' . $rDuration . '&extension=ts';
+				$rSource = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/timeshift?password=' . SettingsManager::get('live_streaming_pass') . '&stream=' . $recordingData['stream_id'] . '&start=' . $recordingData['start'] . '&duration=' . $rDuration . '&extension=ts';
 			} else {
-				$rSource = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::getAll()['live_streaming_pass'] . '&stream=' . $recordingData['stream_id'] . '&extension=ts';
+				$rSource = 'http://127.0.0.1:' . ServerRepository::getAll()[SERVER_ID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::get('live_streaming_pass') . '&stream=' . $recordingData['stream_id'] . '&extension=ts';
 			}
 			$rFP = @fopen($rSource, 'r');
 			if ($rFP) {

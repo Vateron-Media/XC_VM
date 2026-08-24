@@ -289,7 +289,7 @@ renderUnifiedLayoutFooter('admin');
             $('#datatable-users').DataTable().search($('#asn_search_box').val()).draw();
         }
     });
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

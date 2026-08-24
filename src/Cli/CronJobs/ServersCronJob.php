@@ -77,7 +77,7 @@ class ServersCronJob implements CommandInterface {
             return;
         }
 
-        if ($rServers[SERVER_ID]['is_main'] && SettingsManager::getAll()['redis_handler']) {
+        if ($rServers[SERVER_ID]['is_main'] && SettingsManager::get('redis_handler')) {
             exec('pgrep -u xc_vm redis-server', $rRedis);
             if (count($rRedis) == 0) {
                 echo 'Restarting Redis!' . "\n";
@@ -95,9 +95,9 @@ class ServersCronJob implements CommandInterface {
 
         if ($rServers[SERVER_ID]['is_main']) {
             $rCachePIDs = ProcessManager::findProcessPIDs(array('XC_VM[CacheHandler]', 'console.php cache_handler'));
-            if (SettingsManager::getAll()['enable_cache'] && count($rCachePIDs) == 0) {
+            if (SettingsManager::get('enable_cache') && count($rCachePIDs) == 0) {
                 shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php cache_handler > /dev/null 2>/dev/null &');
-            } elseif (!SettingsManager::getAll()['enable_cache'] && count($rCachePIDs) > 0) {
+            } elseif (!SettingsManager::get('enable_cache') && count($rCachePIDs) > 0) {
                 echo 'Killing Cache Handler' . "\n";
                 foreach ($rCachePIDs as $rPID) {
                     shell_exec('kill -9 ' . intval($rPID));
@@ -133,9 +133,9 @@ class ServersCronJob implements CommandInterface {
         }
 
         $rOnDemandPIDs = ProcessManager::findProcessPIDs(array('XC_VM[Ondemand]', 'console.php ondemand'));
-        if (SettingsManager::getAll()['on_demand_instant_off'] && count($rOnDemandPIDs) == 0) {
+        if (SettingsManager::get('on_demand_instant_off') && count($rOnDemandPIDs) == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php ondemand > /dev/null 2>/dev/null &');
-        } elseif (!SettingsManager::getAll()['on_demand_instant_off'] && count($rOnDemandPIDs) > 0) {
+        } elseif (!SettingsManager::get('on_demand_instant_off') && count($rOnDemandPIDs) > 0) {
             echo 'Killing On-Demand Instant-Off' . "\n";
             foreach ($rOnDemandPIDs as $rPID) {
                 shell_exec('kill -9 ' . intval($rPID));
@@ -143,9 +143,9 @@ class ServersCronJob implements CommandInterface {
         }
 
         $rScannerPIDs = ProcessManager::findProcessPIDs(array('XC_VM[Scanner]', 'console.php scanner'));
-        if (SettingsManager::getAll()['on_demand_checker'] && count($rScannerPIDs) == 0) {
+        if (SettingsManager::get('on_demand_checker') && count($rScannerPIDs) == 0) {
             shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php scanner > /dev/null 2>/dev/null &');
-        } elseif (!SettingsManager::getAll()['on_demand_checker'] && count($rScannerPIDs) > 0) {
+        } elseif (!SettingsManager::get('on_demand_checker') && count($rScannerPIDs) > 0) {
             echo 'Killing On-Demand Scanner' . "\n";
             foreach ($rScannerPIDs as $rPID) {
                 shell_exec('kill -9 ' . intval($rPID));
@@ -167,7 +167,7 @@ class ServersCronJob implements CommandInterface {
             $rRemoteStatus = false;
         }
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if (SettingsManager::get('redis_handler')) {
             $rConnections = $rServers[SERVER_ID]['connections'];
             $rUsers = $rServers[SERVER_ID]['users'];
             $rAllUsers = 0;

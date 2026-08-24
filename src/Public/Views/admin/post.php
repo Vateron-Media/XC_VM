@@ -1132,7 +1132,7 @@ if (1 < $rICount) { ?>
 							$db->query('SELECT `server_stream_id`, `stream_info`, `compatible` FROM `streams_servers` WHERE `stream_info` IS NOT NULL LIMIT ' . $rStep . ', 1000;');
 
 							foreach ($db->get_rows() as $rRow) {
-								$rCompatible = DiagnosticsService::checkCompatibility($rRow['stream_info'], SettingsManager::getAll()['player_allow_hevc']);
+								$rCompatible = DiagnosticsService::checkCompatibility($rRow['stream_info'], SettingsManager::get('player_allow_hevc'));
 
 								if ($rCompatible == $rRow['compatible']) {
 								} else {

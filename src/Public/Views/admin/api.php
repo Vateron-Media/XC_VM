@@ -53,7 +53,7 @@ if (!PHP_ERRORS) {
 }
 
 if (isset($_SESSION['hash'])) {
-	if (SettingsManager::getAll()['redis_handler']) {
+	if (SettingsManager::get('redis_handler')) {
 		RedisManager::ensureConnected();
 	}
 
@@ -119,7 +119,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if ($rSub == 'purge') {
-						if (SettingsManager::getAll()['redis_handler']) {
+						if (SettingsManager::get('redis_handler')) {
 							foreach (ConnectionTracker::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
 								ConnectionTracker::closeConnection($rConnection);
 							}
@@ -192,7 +192,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if ($rSub == 'purge') {
-						if (SettingsManager::getAll()['redis_handler']) {
+						if (SettingsManager::get('redis_handler')) {
 							foreach (ConnectionTracker::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
 								ConnectionTracker::closeConnection($rConnection);
 							}
@@ -265,7 +265,7 @@ if (isset($_SESSION['hash'])) {
 					}
 
 					if ($rSub == 'purge') {
-						if (SettingsManager::getAll()['redis_handler']) {
+						if (SettingsManager::get('redis_handler')) {
 							foreach (ConnectionTracker::getRedisConnections(null, ($rServerID == -1 ? null : $rServerID), $rStreamID, true, false, false) as $rConnection) {
 								ConnectionTracker::closeConnection($rConnection);
 							}
@@ -341,7 +341,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'kill') {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
 							ConnectionTracker::closeConnection($rConnection);
 						}
@@ -548,7 +548,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'kill') {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						foreach (ConnectionTracker::getRedisConnections($rMagDetails['user_id'], null, null, true, false, false) as $rConnection) {
 							ConnectionTracker::closeConnection($rConnection);
 						}
@@ -626,7 +626,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'kill') {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						foreach (ConnectionTracker::getRedisConnections($rE2Details['user_id'], null, null, true, false, false) as $rConnection) {
 							ConnectionTracker::closeConnection($rConnection);
 						}
@@ -1005,7 +1005,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'kill') {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						foreach (ConnectionTracker::getRedisConnections(null, RequestManager::getAll()['server_id'], null, true, false, false) as $rConnection) {
 							ConnectionTracker::closeConnection($rConnection);
 						}
@@ -1125,7 +1125,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if ($rSub == 'kill') {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						foreach (ServerRepository::getAll()[$rServerID]['parent_id'] as $rParentID) {
 							foreach (ConnectionTracker::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
 								if ($rConnection['proxy_id'] != RequestManager::getAll()['server_id']) {
@@ -1475,8 +1475,8 @@ if (isset($_SESSION['hash'])) {
 
 				/** @var Database $db */
 
-				if (SettingsManager::getAll()['redis_handler']) {
-					$rReturn['total_users'] = SettingsManager::getAll()['total_users'];
+				if (SettingsManager::get('redis_handler')) {
+					$rReturn['total_users'] = SettingsManager::get('total_users');
 				} else {
 					$db->query('SELECT `activity_id` FROM `lines_live` WHERE `hls_end` = 0 GROUP BY `user_id`;');
 
@@ -1517,7 +1517,7 @@ if (isset($_SESSION['hash'])) {
 
 					$rReturn['requests_per_second'] = $rServers[$rServerID]['requests_per_second'];
 
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						$rReturn['open_connections'] = $rServers[$rServerID]['connections'];
 						$rReturn['online_users'] = $rServers[$rServerID]['users'];
 
@@ -1575,7 +1575,7 @@ if (isset($_SESSION['hash'])) {
 				} else {
 					$rUptime = 0;
 
-					if (!SettingsManager::getAll()['redis_handler']) {
+					if (!SettingsManager::get('redis_handler')) {
 						$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0;');
 
 						if (0 < $db->num_rows()) {
@@ -1628,7 +1628,7 @@ if (isset($_SESSION['hash'])) {
 						if ($rServers[$rServerID]['server_online']) {
 							$rArray = array();
 
-							if (SettingsManager::getAll()['redis_handler']) {
+							if (SettingsManager::get('redis_handler')) {
 								$rArray['open_connections'] = $rServers[$rServerID]['connections'];
 								$rReturn['open_connections'] += $rServers[$rServerID]['connections'];
 								$rReturn['total_connections'] += $rServers[$rServerID]['connections'];
@@ -1682,7 +1682,7 @@ if (isset($_SESSION['hash'])) {
 						$rReturn['total_running_streams'] += $rServerArray['total_running_streams'];
 						$rReturn['offline_streams'] += $rServerArray['offline_streams'];
 					}
-					$rReturn['online_users'] = SettingsManager::getAll()['total_users'];
+					$rReturn['online_users'] = SettingsManager::get('total_users');
 				}
 
 				echo json_encode($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
@@ -1698,7 +1698,7 @@ if (isset($_SESSION['hash'])) {
 			if (Authorization::check('adv', 'index')) {
 				$rReturn = array('bytes_sent' => 0, 'bytes_received' => 0, 'total_connections' => 0, 'total_users' => 0, 'total_running_streams' => 0, 'offline_streams' => 0);
 
-				if (!SettingsManager::getAll()['redis_handler']) {
+				if (!SettingsManager::get('redis_handler')) {
 					$db->query('SELECT COUNT(*) AS `count` FROM `lines_live` WHERE `hls_end` = 0;');
 
 					if (0 >= $db->num_rows()) {
@@ -1713,7 +1713,7 @@ if (isset($_SESSION['hash'])) {
 						$rReturn['total_users'] = $db->num_rows();
 					}
 				} else {
-					$rReturn['total_users'] = SettingsManager::getAll()['total_users'];
+					$rReturn['total_users'] = SettingsManager::get('total_users');
 				}
 
 				$rOnlineCount = $rOfflineCount = array();
@@ -1731,7 +1731,7 @@ if (isset($_SESSION['hash'])) {
 				foreach (array_keys($rServers) as $rServerID) {
 					if (!$rServers[$rServerID]['server_online']) {
 					} else {
-						if (!SettingsManager::getAll()['redis_handler']) {
+						if (!SettingsManager::get('redis_handler')) {
 						} else {
 							$rReturn['total_connections'] += $rServers[$rServerID]['connections'];
 						}
@@ -2151,7 +2151,7 @@ if (isset($_SESSION['hash'])) {
 
 				if (!(0 < $rData['id'] && 0 < $rData['font_size'] && 0 < strlen($rData['font_color']) && 0 < strlen($rData['xy_offset']) && (0 < strlen($rData['message']) || $rData['type'] < 3))) {
 				} else {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						if (isset($rData['user'])) {
 							$rRows = ConnectionTracker::getRedisConnections($rData['id'], null, null, true, false, false);
 						} else {
@@ -2197,7 +2197,7 @@ if (isset($_SESSION['hash'])) {
 								if ($rData['type'] == 1) {
 									$rArray['message'] = $rRow['uuid'];
 								} elseif ($rData['type'] == 2) {
-									$rArray['message'] = (SettingsManager::getAll()['redis_handler'] ? $rUserMap[$rRow['user_id']] : $rRow['username']);
+									$rArray['message'] = (SettingsManager::get('redis_handler') ? $rUserMap[$rRow['user_id']] : $rRow['username']);
 								} elseif ($rData['type'] == 3) {
 									$rArray['message'] = $rData['message'];
 								}
@@ -2297,8 +2297,8 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (RequestManager::getAll()['action'] == 'probe_stream') {
 			if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'edit_stream')) {
-				$rAnalyseDuration = abs(intval(SettingsManager::getAll()['stream_max_analyze']));
-				$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::getAll()['probe_extra_wait'];
+				$rAnalyseDuration = abs(intval(SettingsManager::get('stream_max_analyze')));
+				$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::get('probe_extra_wait');
 				set_time_limit(intval($rTimeout));
 				ini_set('max_execution_time', intval($rTimeout));
 				ini_set('default_socket_timeout', intval($rTimeout));
@@ -2315,7 +2315,7 @@ if (isset($_SESSION['hash'])) {
 				if (!empty(RequestManager::getAll()['url'])) {
 					$rURL = StreamUtils::parseStreamURL(RequestManager::getAll()['url']);
 
-					if (StreamUtils::detectXC_VM($rURL) && SettingsManager::getAll()['api_probe']) {
+					if (StreamUtils::detectXC_VM($rURL) && SettingsManager::get('api_probe')) {
 						$rURLInfo = parse_url($rURL);
 						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ((isset($rURLInfo['port']) ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path'] ?? '');
 
@@ -2395,8 +2395,8 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (RequestManager::getAll()['action'] == 'check_stream') {
 			if (Authorization::check('adv', 'add_stream') || Authorization::check('adv', 'edit_stream')) {
-				$rAnalyseDuration = abs(intval(SettingsManager::getAll()['stream_max_analyze']));
-				$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::getAll()['probe_extra_wait'];
+				$rAnalyseDuration = abs(intval(SettingsManager::get('stream_max_analyze')));
+				$rTimeout = intval($rAnalyseDuration / 1000000) + SettingsManager::get('probe_extra_wait');
 				set_time_limit(intval($rTimeout));
 				ini_set('max_execution_time', intval($rTimeout));
 				ini_set('default_socket_timeout', intval($rTimeout));
@@ -2439,7 +2439,7 @@ if (isset($_SESSION['hash'])) {
 					$rStreamInfoText = "<table style='width: 300px;' class='table-data' align='center'><tbody><tr><td colspan='4'>Stream probe failed!</td></tr></tbody></table>";
 					$rStreamInfo = null;
 
-					if (!(StreamUtils::detectXC_VM($rURL) && SettingsManager::getAll()['api_probe'])) {
+					if (!(StreamUtils::detectXC_VM($rURL) && SettingsManager::get('api_probe'))) {
 					} else {
 						$rURLInfo = parse_url($rURL);
 						$rProbeURL = $rURLInfo['scheme'] . '://' . $rURLInfo['host'] . ((isset($rURLInfo['port']) ? ':' . $rURLInfo['port'] : '')) . '/probe/' . base64_encode($rURLInfo['path'] ?? '');
@@ -3358,7 +3358,7 @@ if (isset($_SESSION['hash'])) {
 
 							if (!empty($rDecoded)) {
 								try {
-									$rDecrypted = Encryption::decrypt($rPiece, SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA);
+									$rDecrypted = Encryption::decrypt($rPiece, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
 								} catch (Exception $e) {
 									$rDecrypted = null;
 								}
@@ -3399,7 +3399,7 @@ if (isset($_SESSION['hash'])) {
 
 				$rInput = array();
 
-				if (SettingsManager::getAll()['parse_type'] == 'guessit') {
+				if (SettingsManager::get('parse_type') == 'guessit') {
 					foreach ($rData as $rEpisodeID => $rName) {
 						$rInput[$rEpisodeID] = pathinfo($rName)['filename'];
 					}
@@ -3664,7 +3664,7 @@ if (isset($_SESSION['hash'])) {
 					}
 				}
 				array_multisort(array_column($rItems, 'score'), SORT_DESC, $rItems);
-				$rItems = array_slice($rItems, 0, (intval(SettingsManager::getAll()['search_items']) ?: 50));
+				$rItems = array_slice($rItems, 0, (intval(SettingsManager::get('search_items')) ?: 50));
 				$rStreamNameIDs = $rDeviceIDs = $rLineIDs = $rOwnerIDs = $rUserIDs = $rSeriesIDs = $rStreamIDs = array();
 
 				foreach ($rItems as $rItem) {
@@ -3766,7 +3766,7 @@ if (isset($_SESSION['hash'])) {
 						array_multisort(array_column($rServerItems[$rStreamID], 'priority'), SORT_DESC, $rServerItems[$rStreamID]);
 					}
 
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						$rConnectionCount = ConnectionTracker::getStreamConnections($rStreamIDs, true, true);
 					} else {
 						$db->query('SELECT `stream_id`, COUNT(*) AS `count` FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ') AND `hls_end` = 0;');
@@ -3819,7 +3819,7 @@ if (isset($_SESSION['hash'])) {
 
 				if (0 >= count($rLineIDs)) {
 				} else {
-					if (SettingsManager::getAll()['redis_handler']) {
+					if (SettingsManager::get('redis_handler')) {
 						$rLineConnectionCount = ConnectionTracker::getUserConnections($rLineIDs, true);
 						$rConnectionMap = ConnectionTracker::getFirstConnection($rLineIDs);
 						$rLStreamIDs = array();
@@ -4363,13 +4363,13 @@ if (isset($_SESSION['hash'])) {
 								if ($rLastInfo['online']) {
 									$rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . TimeUtils::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
 								} else {
-									$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::getAll()['date_format'], $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
+									$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::get('date_format'), $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
 								}
 							} else {
 								$rLastInfoText = "Last Active<br/><small class='text-lighter'>Never</small>";
 							}
 
-							$rExpires = ($rItem['exp_date'] ? date(SettingsManager::getAll()['datetime_format'], $rItem['exp_date']) : null);
+							$rExpires = ($rItem['exp_date'] ? date(SettingsManager::get('datetime_format'), $rItem['exp_date']) : null);
 							$rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['username'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rExpires ? '<span class="text-white">expires:</span> ' . $rExpires . '<br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1">' . $rLastInfoText . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-pink btn-xs waves-effect waves-light no-border">' . (($rItem['is_restreamer'] ? "<i title='Restreamer' class='mdi mdi-swap-horizontal tooltip'></i> " : ($rItem['is_trial'] ? "<i title='Trial' class='mdi mdi-gavel tooltip'></i> " : ''))) . 'LINE</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format(($rLineConnectionCount[$rItem['id']] ?: 0), 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
 
 							if (!$rHasButtons) {
@@ -4439,13 +4439,13 @@ if (isset($_SESSION['hash'])) {
 									if ($rLastInfo['online']) {
 										$rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . TimeUtils::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
 									} else {
-										$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::getAll()['date_format'], $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
+										$rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::get('date_format'), $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
 									}
 								} else {
 									$rLastInfoText = "Last Active<br/><small class='text-lighter'>Never</small>";
 								}
 
-								$rExpires = ($rLineInfo['exp_date'] ? date(SettingsManager::getAll()['datetime_format'], $rLineInfo['exp_date']) : null);
+								$rExpires = ($rLineInfo['exp_date'] ? date(SettingsManager::get('datetime_format'), $rLineInfo['exp_date']) : null);
 								$rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['mac'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rExpires ? '<span class="text-white">expires:</span> ' . $rExpires . '<br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1">' . $rLastInfoText . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-pink btn-xs waves-effect waves-light no-border">' . (($rLineInfo['is_trial'] ? "<i class='mdi mdi-gavel'></i> " : '')) . strtoupper($rDeviceType) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format(($rLineConnectionCount[$rLineInfo['id']] ?: 0), 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
 
 								if (!$rHasButtons) {
@@ -4547,7 +4547,7 @@ if (isset($_SESSION['hash'])) {
 										} else {
 											if ($rSub != 'purge') {
 											} else {
-												if (SettingsManager::getAll()['redis_handler']) {
+												if (SettingsManager::get('redis_handler')) {
 													foreach ($rRequestIDs as $rUserID) {
 														foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
 															ConnectionTracker::closeConnection($rConnection);
@@ -4614,7 +4614,7 @@ if (isset($_SESSION['hash'])) {
 												$db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` IN (' . implode(',', array_map('intval', $rUserIDs)) . ');');
 											} else {
 												if ($rSub == 'purge') {
-													if (SettingsManager::getAll()['redis_handler']) {
+													if (SettingsManager::get('redis_handler')) {
 														foreach ($rUserIDs as $rUserID) {
 															foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
 																ConnectionTracker::closeConnection($rConnection);
@@ -4714,7 +4714,7 @@ if (isset($_SESSION['hash'])) {
 						} else {
 							if ($rSub == 'purge') {
 								foreach ($rRequestIDs as $rServerID) {
-									if (SettingsManager::getAll()['redis_handler']) {
+									if (SettingsManager::get('redis_handler')) {
 										if ($rType == 'proxy') {
 											foreach (ServerRepository::getAll()[$rServerID]['parent_id'] as $rParentID) {
 												foreach (ConnectionTracker::getRedisConnections(null, $rParentID, null, true, false, false) as $rConnection) {
@@ -4857,7 +4857,7 @@ if (isset($_SESSION['hash'])) {
 									if ($rSub != 'purge') {
 									} else {
 										foreach ($rStreamMap as $rServerID => $rStreamIDs) {
-											if (SettingsManager::getAll()['redis_handler']) {
+											if (SettingsManager::get('redis_handler')) {
 												foreach ($rStreamIDs as $rStreamID) {
 													foreach (ConnectionTracker::getRedisConnections(null, $rServerID, $rStreamID, true, false, false) as $rConnection) {
 														ConnectionTracker::closeConnection($rConnection);

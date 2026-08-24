@@ -331,7 +331,7 @@ class LineService {
 	 */
 	public static function updateLineSignal($rUserID, $rForce = false) {
 		$db = self::db();
-		$rCached = SettingsManager::getAll()['enable_cache'];
+		$rCached = SettingsManager::get('enable_cache');
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_line', 'id' => $rUserID)));
@@ -352,7 +352,7 @@ class LineService {
 	 */
 	public static function updateLinesSignal($rUserIDs) {
 		$db = self::db();
-		$rCached = SettingsManager::getAll()['enable_cache'];
+		$rCached = SettingsManager::get('enable_cache');
 		$rMainID = ConnectionTracker::getMainID();
 		if ($rCached) {
 			$db->query('SELECT COUNT(*) AS `count` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 AND `custom_data` = ?;', $rMainID, json_encode(array('type' => 'update_lines', 'id' => $rUserIDs)));
@@ -388,7 +388,7 @@ class LineService {
 
 		if (!$rCloseCons) {
 		} else {
-			if (SettingsManager::getAll()['redis_handler']) {
+			if (SettingsManager::get('redis_handler')) {
 				foreach (ConnectionTracker::getRedisConnections($rID, null, null, true, false, false) as $rConnection) {
 					ConnectionTracker::closeConnection($rConnection);
 				}

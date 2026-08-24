@@ -43,7 +43,7 @@ class RootSignalsCronJob implements CommandInterface {
         set_time_limit(0);
         register_shutdown_function([$this, 'shutdown']);
 
-        $this->rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . static::class);
+        $this->rIdentifier = CRONS_TMP_PATH . md5(Encryption::generateUniqueCode(SettingsManager::get('live_streaming_pass')) . static::class);
         ProcessManager::acquireCronLock($this->rIdentifier);
 
         $pids = shell_exec("pgrep -f 'XC_VM\[Signals\]'");
@@ -241,7 +241,7 @@ class RootSignalsCronJob implements CommandInterface {
             }
         }
         $rReload = false;
-        $rMinistraLegacyConf = 'set $ministra_legacy_redirect ' . (SettingsManager::getAll()['mag_legacy_redirect'] ? '1' : '0') . ';';
+        $rMinistraLegacyConf = 'set $ministra_legacy_redirect ' . (SettingsManager::get('mag_legacy_redirect') ? '1' : '0') . ';';
         $rCurrentMinistraLegacyConf = (trim(@file_get_contents(BIN_PATH . 'nginx/conf/ministra_legacy.conf')) ?: '');
         if ($rMinistraLegacyConf != $rCurrentMinistraLegacyConf) {
             echo 'Updating Ministra legacy /c toggle...' . "\n";
@@ -266,7 +266,7 @@ class RootSignalsCronJob implements CommandInterface {
             $rReload = true;
         }
         $rCurrentList = (trim(file_get_contents(BIN_PATH . 'nginx/conf/realip_cloudflare.conf')) ?: '');
-        if (SettingsManager::getAll()['cloudflare']) {
+        if (SettingsManager::get('cloudflare')) {
             if (empty($rCurrentList)) {
                 echo 'Enabling Cloudflare...' . "\n";
                 file_put_contents(BIN_PATH . 'nginx/conf/realip_cloudflare.conf', 'set_real_ip_from 103.21.244.0/22;' . "\n" . 'set_real_ip_from 103.22.200.0/22;' . "\n" . 'set_real_ip_from 103.31.4.0/22;' . "\n" . 'set_real_ip_from 104.16.0.0/13;' . "\n" . 'set_real_ip_from 104.24.0.0/14;' . "\n" . 'set_real_ip_from 108.162.192.0/18;' . "\n" . 'set_real_ip_from 131.0.72.0/22;' . "\n" . 'set_real_ip_from 141.101.64.0/18;' . "\n" . 'set_real_ip_from 162.158.0.0/15;' . "\n" . 'set_real_ip_from 172.64.0.0/13;' . "\n" . 'set_real_ip_from 173.245.48.0/20;' . "\n" . 'set_real_ip_from 188.114.96.0/20;' . "\n" . 'set_real_ip_from 190.93.240.0/20;' . "\n" . 'set_real_ip_from 197.234.240.0/22;' . "\n" . 'set_real_ip_from 198.41.128.0/17;' . "\n" . 'set_real_ip_from 2400:cb00::/32;' . "\n" . 'set_real_ip_from 2606:4700::/32;' . "\n" . 'set_real_ip_from 2803:f800::/32;' . "\n" . 'set_real_ip_from 2405:b500::/32;' . "\n" . 'set_real_ip_from 2405:8100::/32;' . "\n" . 'set_real_ip_from 2c0f:f248::/32;' . "\n" . 'set_real_ip_from 2a06:98c0::/29;');
@@ -302,7 +302,7 @@ class RootSignalsCronJob implements CommandInterface {
                 $rServers[SERVER_ID]['server_ip'] = $rServerIP;
             }
 
-            if (empty(SettingsManager::getAll()['live_streaming_pass']) || SettingsManager::getAll()['live_streaming_pass'] === null) {
+            if (empty(SettingsManager::get('live_streaming_pass')) || SettingsManager::get('live_streaming_pass') === null) {
                 $db->query('UPDATE `settings` SET `live_streaming_pass` = ?', Encryption::randomString(40));
             }
         }
@@ -376,7 +376,7 @@ class RootSignalsCronJob implements CommandInterface {
         if ($rReload) {
             shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
         }
-        if (SettingsManager::getAll()['restart_php_fpm']) {
+        if (SettingsManager::get('restart_php_fpm')) {
             $rPHP = count(glob(BIN_PATH . 'php/sockets/*.pid') ?: []);
             $rNginx = 0;
             foreach (glob('/proc/*/cmdline') ?: [] as $rCmdFile) {

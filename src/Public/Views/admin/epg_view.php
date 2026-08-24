@@ -263,7 +263,7 @@ renderUnifiedLayoutFooter('admin');
 
 	echo "\t\t\t\r\n\t\t\t" . 'XC_VM.Listings.Settings.init();' . "\r\n\t\t\t" . 'XC_VM.Listings.Grid.init();' . "\r\n\t\t\t" . 'XC_VM.Listings.Nav.init();' . "\r\n\t\t" . '});' . "\r\n\t\t\r\n\t\t";
 	?>
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

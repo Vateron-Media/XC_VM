@@ -15,16 +15,16 @@ use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 class Enigma2ApiController {
-	private $deny = true;
-	private $userInfo;
-	private $url;
-	private $username;
-	private $password;
-	private $liveCategories;
-	private $vodCategories;
-	private $seriesCategories;
-	private $liveStreams = [];
-	private $vodStreams = [];
+	private bool $deny = true;
+	private array|false|null $userInfo = null;
+	private ?string $url = null;
+	private ?string $username = null;
+	private ?string $password = null;
+	private array $liveCategories = [];
+	private array $vodCategories = [];
+	private array $seriesCategories = [];
+	private array $liveStreams = [];
+	private array $vodStreams = [];
 
 	public function shutdown() {
 		global $db;
@@ -110,7 +110,7 @@ class Enigma2ApiController {
 		$this->dispatch($rType, $rCatID, $sCatID, $rSeriesID, $rSeason);
 	}
 
-	private function dispatch($rType, $rCatID, $sCatID, $rSeriesID, $rSeason) {
+	private function dispatch(?string $rType, ?int $rCatID, ?int $sCatID, ?int $rSeriesID, ?int $rSeason) {
 		switch ($rType) {
 			case 'get_live_categories':
 				$this->getLiveCategories();
@@ -220,7 +220,7 @@ class Enigma2ApiController {
 		$this->outputXml($rXML);
 	}
 
-	private function getSeries($rCatID, $sCatID) {
+	private function getSeries(?int $rCatID, ?int $sCatID) {
 		global $db;
 
 		if (!(isset($rCatID) || is_null($rCatID) || isset($sCatID) || is_null($sCatID))) {
@@ -242,7 +242,7 @@ class Enigma2ApiController {
 		$rCategory->addChild('category_title', 'TV Series [ ' . $rCategoryName . ' ]');
 
 		if (count($this->userInfo['series_ids']) > 0) {
-			if (SettingsManager::getAll()['vod_sort_newest']) {
+			if (SettingsManager::get('vod_sort_newest')) {
 				$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $this->userInfo['series_ids'])) . ') ORDER BY `last_modified` DESC;');
 			} else {
 				$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', array_map('intval', $this->userInfo['series_ids'])) . ') ORDER BY FIELD(`id`,' . implode(',', $this->userInfo['series_ids']) . ') ASC;');
@@ -273,7 +273,7 @@ class Enigma2ApiController {
 		$this->outputXml($rXML);
 	}
 
-	private function getSeasons($rSeriesID) {
+	private function getSeasons(?int $rSeriesID) {
 		global $db;
 
 		if (!isset($rSeriesID)) {
@@ -303,7 +303,7 @@ class Enigma2ApiController {
 		$this->outputXml($rXML);
 	}
 
-	private function getSeriesStreams($rSeriesID, $rSeason, $rCatID) {
+	private function getSeriesStreams(?int $rSeriesID, ?int $rSeason, ?int $rCatID) {
 		global $db;
 
 		if (!(isset($rSeriesID) && isset($rSeason))) {
@@ -340,7 +340,7 @@ class Enigma2ApiController {
 		$this->outputXml($rXML);
 	}
 
-	private function getLiveStreams($rCatID) {
+	private function getLiveStreams(?int $rCatID) {
 		$rSettings = SettingsManager::getAll();
 		$rCategoryID = is_null($rCatID) ? null : $rCatID;
 
@@ -412,7 +412,7 @@ class Enigma2ApiController {
 		$this->outputXml($rXML);
 	}
 
-	private function getVodStreams($rCatID) {
+	private function getVodStreams(?int $rCatID) {
 		$rSettings = SettingsManager::getAll();
 		$rCategoryID = is_null($rCatID) ? null : $rCatID;
 
@@ -500,7 +500,7 @@ class Enigma2ApiController {
 		$this->outputXml($rXML);
 	}
 
-	private function outputXml($rXML) {
+	private function outputXml(SimpleXMLExtended $rXML) {
 		header('Content-Type: application/xml; charset=utf-8');
 		echo $rXML->asXML();
 	}

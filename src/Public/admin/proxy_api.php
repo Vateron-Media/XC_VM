@@ -44,7 +44,7 @@ if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
 		$rPing = 0;
 	}
 
-	if (SettingsManager::getAll()['redis_handler']) {
+	if (SettingsManager::get('redis_handler')) {
 		$rConnections = $rServers[$rServerIDRequest]['connections'];
 		$rUsers = $rServers[$rServerIDRequest]['users'];
 		$rAllUsers = 0;

@@ -38,12 +38,12 @@ class TmdbCron {
      */
     private static function createTmdbClient(?string $streamLang = null): \TMDB {
         if (0 < strlen($streamLang)) {
-            return new \TMDB(SettingsManager::getAll()['tmdb_api_key'], $streamLang);
+            return new \TMDB(SettingsManager::getString('tmdb_api_key'), $streamLang);
         }
-        if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-            return new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+        if (0 < strlen(SettingsManager::getString('tmdb_language'))) {
+            return new \TMDB(SettingsManager::getString('tmdb_api_key'), SettingsManager::getString('tmdb_language'));
         }
-        return new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
+        return new \TMDB(SettingsManager::getString('tmdb_api_key'));
     }
 
     /**
@@ -62,10 +62,10 @@ class TmdbCron {
     private static function findBestMatch(\TMDB $tmdb, string $title, ?string $altTitle, ?string $year, string $searchType = 'movie'): int {
         $rMatch = null;
         $rMatches = array();
+        $rPercentageMatch = SettingsManager::getInt('percentage_match');
 
         foreach (range(0, 1) as $rIgnoreYear) {
-            if (!$rIgnoreYear) {
-            } else {
+            if ($rIgnoreYear) {
                 if ($year) {
                     $year = null;
                 } else {
@@ -97,8 +97,8 @@ class TmdbCron {
                     );
                 }
 
-                if (!(SettingsManager::getAll()['percentage_match'] <= $rPercentage
-                    || SettingsManager::getAll()['percentage_match'] <= $rPercentageAlt)) {
+                if (!($rPercentageMatch <= $rPercentage
+                    || $rPercentageMatch <= $rPercentageAlt)) {
                 } else {
                     if ($year && !in_array(
                         intval(substr((string)($rResultArr->get('release_date') ?: $rResultArr->get('first_air_date')), 0, 4)),
@@ -221,7 +221,7 @@ class TmdbCron {
                 ? 'https://image.tmdb.org/t/p/w1280' . $rMovieData['backdrop_path']
                 : '');
 
-            if (!SettingsManager::getAll()['download_images']) {
+            if (!SettingsManager::getBool('download_images')) {
             } else {
                 if (empty($rThumb)) {
                 } else {
@@ -407,7 +407,7 @@ class TmdbCron {
                 ? 'https://image.tmdb.org/t/p/w1280' . $rShowData['backdrop_path']
                 : '');
 
-            if (!SettingsManager::getAll()['download_images']) {
+            if (!SettingsManager::getBool('download_images')) {
             } else {
                 if (empty($rSeriesArray['cover'])) {
                 } else {
@@ -546,6 +546,7 @@ class TmdbCron {
 
         $rEpisodes  = json_decode($rTMDB->getSeason($rShowData['id'], intval($rReleaseSeason))->getJSON(), true);
         $rProperties = array();
+        $rDownloadImages = SettingsManager::getBool('download_images');
 
         foreach ($rEpisodes['episodes'] as $rEpisode) {
             if (intval($rEpisode['episode_number']) != $rReleaseEpisode) {
@@ -554,8 +555,7 @@ class TmdbCron {
                 if (0 >= strlen($rEpisode['still_path'])) {
                 } else {
                     $rImage = 'https://image.tmdb.org/t/p/w1280' . $rEpisode['still_path'];
-                    if (!SettingsManager::getAll()['download_images']) {
-                    } else {
+                    if ($rDownloadImages) {
                         $rImage = ImageUtils::downloadImage($rImage, 5);
                     }
                 }

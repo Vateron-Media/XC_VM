@@ -153,7 +153,7 @@ class CacheCronJob implements CommandInterface {
         }
 
         $rChannelOrder = array();
-        if (SettingsManager::getAll()['channel_number_type'] == 'manual') {
+        if (SettingsManager::get('channel_number_type') == 'manual') {
             $db->query('SELECT `id`, `order` FROM `streams` ORDER BY `order` ASC;');
             foreach ($db->get_rows() as $rRow) {
                 $rChannelOrder[] = intval($rRow['id']);
@@ -233,7 +233,7 @@ class CacheCronJob implements CommandInterface {
             $rCategoryMap[$rID] = array_unique($rAllowedCategories);
         }
 
-        if (SettingsManager::getAll()['channel_number_type'] != 'manual') {
+        if (SettingsManager::get('channel_number_type') != 'manual') {
             foreach (array('channels', 'radios', 'movies', 'episodes') as $rKey) {
                 if (0 < count($rStreamIDs[$rKey])) {
                     $rWhere = 'AND `id` NOT IN (' . implode(',', array_map('intval', $rStreamIDs[$rKey])) . ')';
@@ -254,7 +254,7 @@ class CacheCronJob implements CommandInterface {
                 }
             }
 
-            if (SettingsManager::getAll()['vod_sort_newest']) {
+            if (SettingsManager::get('vod_sort_newest')) {
                 $rStreamIDs['movies'] = array();
                 $rStreamIDs['episodes'] = array();
                 $db->query('SELECT `type`, `id` FROM `streams` WHERE `type` IN (2,5) ORDER BY `added` DESC, `id` DESC;');

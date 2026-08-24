@@ -32,7 +32,7 @@ class ResellerEpgViewController extends BaseResellerController
         $db           = $GLOBALS['db'];
 
         $rPageInt = (intval($rRequest['page'] ?? 0) > 0 ? intval($rRequest['page']) : 1);
-        $rLimit   = (intval($rRequest['entries'] ?? 0) > 0 ? intval($rRequest['entries']) : SettingsManager::getAll()['default_entries']);
+        $rLimit   = (intval($rRequest['entries'] ?? 0) > 0 ? intval($rRequest['entries']) : SettingsManager::get('default_entries'));
         $rStart   = ($rPageInt - 1) * $rLimit;
 
         $rStreamIDs = [];
@@ -64,7 +64,7 @@ class ResellerEpgViewController extends BaseResellerController
             } else {
                 $rChannelOrder = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'channel_order'));
 
-                if (SettingsManager::getAll()['channel_number_type'] != 'manual' && count($rChannelOrder) > 0) {
+                if (SettingsManager::get('channel_number_type') != 'manual' && count($rChannelOrder) > 0) {
                     $rOrderBy = 'FIELD(`id`,' . implode(',', $rChannelOrder) . ')';
                 } else {
                     $rOrderBy = '`order` ASC';

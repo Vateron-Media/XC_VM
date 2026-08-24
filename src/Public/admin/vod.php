@@ -24,9 +24,9 @@ set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 
 if (!empty(RequestManager::getAll()['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::getAll()['live_streaming_pass'], OPENSSL_EXTRA), true);
+	$rTokenData = json_decode(Encryption::decrypt(RequestManager::getAll()['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
 	RequestManager::update('stream', $rTokenData['stream_id'] . '.' . $rTokenData['container']);
-	$rIPMatch = (SettingsManager::getAll()['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
+	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
 
 	if ($rTokenData['expires'] >= time() && $rIPMatch) {
 	} else {
@@ -36,7 +36,7 @@ if (!empty(RequestManager::getAll()['uitoken'])) {
 	if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 		generate404();
 	} else {
-		if (!(empty(RequestManager::getAll()['password']) || SettingsManager::getAll()['live_streaming_pass'] != RequestManager::getAll()['password'])) {
+		if (!(empty(RequestManager::getAll()['password']) || SettingsManager::get('live_streaming_pass') != RequestManager::getAll()['password'])) {
 		} else {
 
 
@@ -58,7 +58,7 @@ $rStreamID = intval($rStream['filename']);
 $rExtension = $rStream['extension'];
 $db->query("SELECT t1.* FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.pid IS NOT NULL AND t2.server_id = ? INNER JOIN `streams_types` t3 ON t3.type_id = t1.type AND t3.type_key IN ('movie', 'series') WHERE t1.`id` = ?", SERVER_ID, $rStreamID);
 
-if (SettingsManager::getAll()['use_buffer'] != 0) {
+if (SettingsManager::get('use_buffer') != 0) {
 } else {
 	header('X-Accel-Buffering: no');
 }

@@ -31,7 +31,7 @@ class StreamProcess {
 	 * @param string $rSource
 	 */
 	public static function streamLog($rStreamID, $rServerID, $rAction, $rSource = '') {
-		if (SettingsManager::getAll()['save_restart_logs'] != 0) {
+		if (SettingsManager::get('save_restart_logs') != 0) {
 			$rData = array('server_id' => $rServerID, 'stream_id' => $rStreamID, 'action' => $rAction, 'source' => $rSource, 'time' => time());
 			file_put_contents(LOGS_TMP_PATH . 'stream_log.log', base64_encode(json_encode($rData)) . "\n", FILE_APPEND);
 		}
@@ -133,7 +133,7 @@ class StreamProcess {
 	 * @return mixed Update result.
 	 */
 	public static function updateStream($rStreamID, $rForce = false) {
-		if (!SettingsManager::getAll()['enable_cache']) {
+		if (!SettingsManager::get('enable_cache')) {
 			return false;
 		}
 		self::insertCacheSignalOnce(array('type' => 'update_stream', 'id' => $rStreamID));
@@ -147,7 +147,7 @@ class StreamProcess {
 	 * @return void
 	 */
 	public static function updateStreams($rStreamIDs) {
-		if (!SettingsManager::getAll()['enable_cache']) {
+		if (!SettingsManager::get('enable_cache')) {
 			return;
 		}
 		self::insertCacheSignalOnce(array('type' => 'update_streams', 'id' => $rStreamIDs));
@@ -1555,7 +1555,7 @@ class StreamProcess {
 					$rFFProbeOutput = array();
 				}
 
-				list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rFFProbeOutput, SettingsManager::getAll()['player_allow_hevc']);
+				list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rFFProbeOutput, SettingsManager::get('player_allow_hevc'));
 
 				$rFFProbeOutputSafe = isset($rFFProbeOutput) && is_array($rFFProbeOutput) ? $rFFProbeOutput : [];
 				$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`audio_codec` = ?, `video_codec` = ?, `resolution` = ?,`compatible` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDelayStartAt, time(), json_encode($rFFProbeOutputSafe), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rPID, json_encode(array()), $rSource, $rStreamID, SERVER_ID);

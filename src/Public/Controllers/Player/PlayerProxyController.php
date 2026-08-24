@@ -27,7 +27,7 @@ class PlayerProxyController extends BasePlayerController
 
 		$rURL = Encryption::decrypt(
 			$_GET['url'] ?? '',
-			SettingsManager::getAll()['live_streaming_pass'],
+			SettingsManager::get('live_streaming_pass'),
 			'd8de497ebccf4f4697a1da20219c7c33'
 		);
 
@@ -37,7 +37,7 @@ class PlayerProxyController extends BasePlayerController
 			if (strlen($rData) > 0) {
 				header('Content-Description: File Transfer');
 				header('Content-type: application/octet-stream');
-				header('Content-Disposition: attachment; filename="' . md5($rURL . SettingsManager::getAll()['live_streaming_pass']) . '.vtt"');
+				header('Content-Disposition: attachment; filename="' . md5($rURL . SettingsManager::get('live_streaming_pass')) . '.vtt"');
 				header('X-Content-Type-Options: nosniff');
 				header('Content-Length: ' . strlen($rData));
 				echo $rData;

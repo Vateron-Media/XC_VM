@@ -29,19 +29,30 @@ class TMDbService {
 	}
 
 	/**
+	 * Build a \TMDB client from panel settings (api key + optional language).
+	 *
+	 * Единая точка сборки клиента: раньше блок language/api_key дублировался
+	 * в getMovie/getSeries/getSeason/addCategories.
+	 *
+	 * @return \TMDB
+	 */
+	private static function client(): \TMDB {
+		self::requireLibrary();
+
+		$rApiKey = SettingsManager::getString('tmdb_api_key');
+		$rLanguage = SettingsManager::getString('tmdb_language');
+
+		return $rLanguage !== '' ? new \TMDB($rApiKey, $rLanguage) : new \TMDB($rApiKey);
+	}
+
+	/**
 	 * Fetch movie metadata from \TMDB.
 	 *
 	 * @param int $rID \TMDB movie id.
 	 * @return array|null Movie metadata, or null on failure.
 	 */
 	public static function getMovie($rID) {
-		self::requireLibrary();
-
-		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-		} else {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
-		}
+		$rTMDB = self::client();
 
 		return ($rTMDB->getMovie($rID) ?: null);
 	}
@@ -53,13 +64,7 @@ class TMDbService {
 	 * @return array|null Series metadata, or null on failure.
 	 */
 	public static function getSeries($rID) {
-		self::requireLibrary();
-
-		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-		} else {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
-		}
+		$rTMDB = self::client();
 
 		return (json_decode($rTMDB->getTVShow($rID)->getJSON(), true) ?: null);
 	}
@@ -72,13 +77,7 @@ class TMDbService {
 	 * @return array|null Season metadata, or null on failure.
 	 */
 	public static function getSeason($rID, $rSeason) {
-		self::requireLibrary();
-
-		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-		} else {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
-		}
+		$rTMDB = self::client();
 
 		return json_decode($rTMDB->getSeason($rID, intval($rSeason))->getJSON(), true);
 	}
@@ -91,14 +90,14 @@ class TMDbService {
 	 * @return string|null Trailer reference, or null if none.
 	 */
 	public static function getSeriesTrailer($rTMDBID, $rLanguage = null) {
-		$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
+		$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/videos?api_key=' . urlencode(SettingsManager::getString('tmdb_api_key'));
 
 		if ($rLanguage) {
 			$rURL .= '&language=' . urlencode($rLanguage);
 		} else {
-			if (0 >= strlen(SettingsManager::getAll()['tmdb_language'])) {
+			if (0 >= strlen(SettingsManager::getString('tmdb_language'))) {
 			} else {
-				$rURL .= '&language=' . urlencode(SettingsManager::getAll()['tmdb_language']);
+				$rURL .= '&language=' . urlencode(SettingsManager::getString('tmdb_language'));
 			}
 		}
 
@@ -123,11 +122,11 @@ class TMDbService {
 	 * @return array Still image references.
 	 */
 	public static function getStills($rTMDBID, $rSeason, $rEpisode) {
-		$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/season/' . intval($rSeason) . '/episode/' . intval($rEpisode) . '/images?api_key=' . urlencode(SettingsManager::getAll()['tmdb_api_key']);
+		$rURL = 'https://api.themoviedb.org/3/tv/' . intval($rTMDBID) . '/season/' . intval($rSeason) . '/episode/' . intval($rEpisode) . '/images?api_key=' . urlencode(SettingsManager::getString('tmdb_api_key'));
 
-		if (0 >= strlen(SettingsManager::getAll()['tmdb_language'])) {
+		if (0 >= strlen(SettingsManager::getString('tmdb_language'))) {
 		} else {
-			$rURL .= '&language=' . urlencode(SettingsManager::getAll()['tmdb_language']);
+			$rURL .= '&language=' . urlencode(SettingsManager::getString('tmdb_language'));
 		}
 
 		return json_decode(file_get_contents($rURL), true);
@@ -140,13 +139,7 @@ class TMDbService {
 	 */
 	public static function addCategories() {
 		$db = self::db();
-		self::requireLibrary();
-
-		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
-		} else {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
-		}
+		$rTMDB = self::client();
 
 		$rCurrentCats = array('movie' => array(), 'series' => array());
 

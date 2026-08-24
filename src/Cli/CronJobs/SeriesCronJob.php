@@ -49,7 +49,7 @@ class SeriesCronJob implements CommandInterface {
     private function loadCron(): void {
         global $db;
 
-        if (time() - SettingsManager::getAll()['cc_time'] < 3600) {
+        if (time() - SettingsManager::get('cc_time') < 3600) {
             return;
         }
 

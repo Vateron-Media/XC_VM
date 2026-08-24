@@ -67,7 +67,7 @@ class TmpCronJob implements CommandInterface {
                 continue;
             }
             if (is_file($fullPath)) {
-                if (SettingsManager::getAll()['cache_playlists'] <= time() - filemtime($fullPath)) {
+                if (SettingsManager::get('cache_playlists') <= time() - filemtime($fullPath)) {
                     unlink($fullPath);
                 }
             }

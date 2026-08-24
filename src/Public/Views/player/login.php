@@ -11,7 +11,7 @@
 	<title><?php 
 use XcVm\Core\Config\SettingsManager;
 
-echo SettingsManager::getAll()['server_name']; ?></title>
+echo SettingsManager::get('server_name'); ?></title>
 </head>
 <body class="body" style="padding-bottom: 0 !important;">
 	<div class="sign">

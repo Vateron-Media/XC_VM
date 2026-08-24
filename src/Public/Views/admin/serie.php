@@ -90,7 +90,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 															<input type="text" class="form-control text-center" placeholder="<?= $language::get('year') ?>" id="year" name="year" value="<?= isset($rSeriesArr) ? htmlspecialchars($rSeriesArr['year']) : ''; ?>">
 														</div>
 													</div>
-													<?php if (strlen(SettingsManager::getAll()['tmdb_api_key']) > 0): ?>
+													<?php if (strlen(SettingsManager::get('tmdb_api_key')) > 0): ?>
 														<div class="form-group row mb-4">
 															<label class="col-md-4 col-form-label" for="tmdb_search"><?= $language::get('tmdb_results') ?></label>
 															<div class="col-md-5">
@@ -999,7 +999,7 @@ renderUnifiedLayoutFooter('admin');
 			<?php endif; ?>
 		});
 	});
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

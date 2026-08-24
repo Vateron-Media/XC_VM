@@ -125,7 +125,7 @@ class UsersCronJob implements CommandInterface {
             }
         }
 
-        if (SettingsManager::getAll()['redis_handler'] && $this->rServers[SERVER_ID]['is_main']) {
+        if (SettingsManager::getBool('redis_handler') && $this->rServers[SERVER_ID]['is_main']) {
             $this->rServers = ServerRepository::getAll(true);
 
             foreach ($this->rServers as $rServer) {
@@ -140,10 +140,11 @@ class UsersCronJob implements CommandInterface {
     }
 
     private function processDeletions($rDelete, $rDelStream = array()) {
+        $rRedis = SettingsManager::getBool('redis_handler');
         global $db;
         $rTime = time();
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if ($rRedis) {
             // Redis can die mid-run — postpone cleanup instead of crashing the
             // cron; the entries stay in LIVE/ENDED and are re-detected next run.
             if ($rDelete['count'] > 0 && ($rRedisInstance = RedisManager::instance())) {
@@ -186,7 +187,7 @@ class UsersCronJob implements CommandInterface {
             }
         }
 
-        foreach ((SettingsManager::getAll()['redis_handler'] ? $rDelete['server'] : $rDelete) as $rServerID => $rConnections) {
+        foreach (($rRedis ? $rDelete['server'] : $rDelete) as $rServerID => $rConnections) {
             if ($rServerID != SERVER_ID) {
                 $rQuery = '';
 
@@ -207,7 +208,7 @@ class UsersCronJob implements CommandInterface {
             }
         }
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if ($rRedis) {
             return array('line' => array(), 'server' => array(), 'server_lines' => array(), 'proxy' => array(), 'stream' => array(), 'uuid' => array(), 'count' => 0);
         }
 
@@ -234,23 +235,25 @@ class UsersCronJob implements CommandInterface {
     }
 
     private function loadCron(): void {
+        $rRedis = SettingsManager::getBool('redis_handler');
         global $db;
 
         $rServers = $this->rServers;
         $rPHPPIDs = $this->rPHPPIDs;
 
-        if (SettingsManager::getAll()['redis_handler']) {
+        if ($rRedis) {
             RedisManager::ensureConnected();
         }
 
         $rStartTime = time();
+        $rLiveKeys = array();
 
-        if (!SettingsManager::getAll()['redis_handler'] || $rServers[SERVER_ID]['is_main']) {
-            $rAutoKick = SettingsManager::getAll()['user_auto_kick_hours'] * 3600;
+        if (!$rRedis || $rServers[SERVER_ID]['is_main']) {
+            $rAutoKick = SettingsManager::getInt('user_auto_kick_hours') * 3600;
             $rLiveKeys = $rDelete = $rDeleteStream = array();
+            $rRedisDelete = array('line' => array(), 'server' => array(), 'server_lines' => array(), 'proxy' => array(), 'stream' => array(), 'uuid' => array(), 'count' => 0);
 
-            if (SettingsManager::getAll()['redis_handler']) {
-                $rRedisDelete = array('line' => array(), 'server' => array(), 'server_lines' => array(), 'proxy' => array(), 'stream' => array(), 'uuid' => array(), 'count' => 0);
+            if ($rRedis) {
                 $rUsers = array();
                 $rResult = ConnectionTracker::getConnections();
                 $rKeys = $rResult[0] ?? [];
@@ -286,7 +289,7 @@ class UsersCronJob implements CommandInterface {
                 }
             }
 
-            if (SettingsManager::getAll()['redis_handler'] && $rServers[SERVER_ID]['is_main']) {
+            if ($rRedis && $rServers[SERVER_ID]['is_main']) {
                 foreach (ConnectionTracker::getEnded() as $rConnection) {
                     if (is_array($rConnection)) {
                         $rConnection['identity'] = $this->connectionIdentity($rConnection);
@@ -325,7 +328,7 @@ class UsersCronJob implements CommandInterface {
                 $rIsRestreamer = !empty($rRestreamerArray[$rUserID]);
 
                 foreach ($rConnections as $rKey => $rConnection) {
-                    if ($rConnection['server_id'] == SERVER_ID || SettingsManager::getAll()['redis_handler']) {
+                    if ($rConnection['server_id'] == SERVER_ID || $rRedis) {
                         if (!isset($rConnection['exp_date']) || is_null($rConnection['exp_date']) || $rConnection['exp_date'] >= $rStartTime) {
                             $rTotalTime = $rStartTime - $rConnection['date_start'];
 
@@ -335,7 +338,7 @@ class UsersCronJob implements CommandInterface {
                                         echo 'Close connection: ' . $rConnection['uuid'] . "\n";
                                         ConnectionTracker::closeConnection($rConnection, false, false);
 
-                                        if (SettingsManager::getAll()['redis_handler']) {
+                                        if ($rRedis) {
                                             $rRedisDelete['count']++;
                                             $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                             $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -376,7 +379,7 @@ class UsersCronJob implements CommandInterface {
                                             echo 'Close connection: ' . $rConnection['uuid'] . "\n";
                                             ConnectionTracker::closeConnection($rConnection, false, false);
 
-                                            if (SettingsManager::getAll()['redis_handler']) {
+                                            if ($rRedis) {
                                                 $rRedisDelete['count']++;
                                                 $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                                 $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -401,7 +404,7 @@ class UsersCronJob implements CommandInterface {
                                 echo 'Close connection: ' . $rConnection['uuid'] . "\n";
                                 ConnectionTracker::closeConnection($rConnection, false, false);
 
-                                if (SettingsManager::getAll()['redis_handler']) {
+                                if ($rRedis) {
                                     $rRedisDelete['count']++;
                                     $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                     $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -424,7 +427,7 @@ class UsersCronJob implements CommandInterface {
                             echo 'Close connection: ' . $rConnection['uuid'] . "\n";
                             ConnectionTracker::closeConnection($rConnection, false, false);
 
-                            if (SettingsManager::getAll()['redis_handler']) {
+                            if ($rRedis) {
                                 $rRedisDelete['count']++;
                                 $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                 $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -456,7 +459,7 @@ class UsersCronJob implements CommandInterface {
                             echo 'Close connection: ' . $rConnection['uuid'] . "\n";
                             ConnectionTracker::closeConnection($rConnection, false, false);
 
-                            if (SettingsManager::getAll()['redis_handler']) {
+                            if ($rRedis) {
                                 $rRedisDelete['count']++;
                                 $rRedisDelete['line'][$rConnection['identity']][] = $rConnection['uuid'];
                                 $rRedisDelete['stream'][$rConnection['stream_id']][] = $rConnection['uuid'];
@@ -484,19 +487,19 @@ class UsersCronJob implements CommandInterface {
                     }
                 }
 
-                if (SettingsManager::getAll()['redis_handler'] && 1000 <= $rRedisDelete['count']) {
+                if ($rRedis && 1000 <= $rRedisDelete['count']) {
                     $rRedisDelete = $this->processDeletions($rRedisDelete, $rRedisDelete['stream']);
                 } else {
-                    if (!SettingsManager::getAll()['redis_handler'] && count($rDelete) >= 1000) {
+                    if (!$rRedis && count($rDelete) >= 1000) {
                         $rDelete = $this->processDeletions($rDelete, $rDeleteStream);
                     }
                 }
             }
 
-            if (SettingsManager::getAll()['redis_handler'] && 0 < $rRedisDelete['count']) {
+            if ($rRedis && 0 < $rRedisDelete['count']) {
                 $this->processDeletions($rRedisDelete, $rRedisDelete['stream']);
             } else {
-                if (!SettingsManager::getAll()['redis_handler'] && count($rDelete) > 0) {
+                if (!$rRedis && count($rDelete) > 0) {
                     $this->processDeletions($rDelete, $rDeleteStream);
                 }
             }
@@ -507,7 +510,7 @@ class UsersCronJob implements CommandInterface {
         if (count($rConnectionSpeeds) > 0) {
             $rBitrates = [];
 
-            if (SettingsManager::getAll()['redis_handler']) {
+            if ($rRedis) {
                 $rStreamMap = [];
 
                 $db->query('SELECT `stream_id`, `bitrate` FROM `streams_servers` WHERE `server_id` = ? AND `bitrate` IS NOT NULL;', SERVER_ID);
@@ -564,7 +567,7 @@ class UsersCronJob implements CommandInterface {
                 }
             }
 
-            if (!SettingsManager::getAll()['redis_handler']) {
+            if (!$rRedis) {
                 $rUUIDMap = array();
                 $db->query('SELECT `uuid`, `activity_id` FROM `lines_live`;');
                 foreach ($db->get_rows() as $rRow) {
@@ -585,7 +588,7 @@ class UsersCronJob implements CommandInterface {
                 if (!isset($rBitrates[$rUUID]) || $rBitrates[$rUUID] <= 0) {
                     $rDivergenceUpdate[] = "('" . $rUUID . "', 0)";
 
-                    if (!SettingsManager::getAll()['redis_handler'] && isset($rUUIDMap[$rUUID])) {
+                    if (!$rRedis && isset($rUUIDMap[$rUUID])) {
                         $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', 0)';
                     }
 
@@ -601,7 +604,7 @@ class UsersCronJob implements CommandInterface {
 
                 $rDivergenceUpdate[] = "('" . $rUUID . "', " . abs($rDivergence) . ')';
 
-                if (!SettingsManager::getAll()['redis_handler'] && isset($rUUIDMap[$rUUID])) {
+                if (!$rRedis && isset($rUUIDMap[$rUUID])) {
                     $rLiveQuery[] = '(' . $rUUIDMap[$rUUID] . ', ' . abs($rDivergence) . ')';
                 }
             }
@@ -611,7 +614,7 @@ class UsersCronJob implements CommandInterface {
                 $db->query('INSERT INTO `lines_divergence`(`uuid`,`divergence`) VALUES ' . $rUpdateQuery . ' ON DUPLICATE KEY UPDATE `divergence`=VALUES(`divergence`);');
             }
 
-            if (!SettingsManager::getAll()['redis_handler'] && count($rLiveQuery) > 0) {
+            if (!$rRedis && count($rLiveQuery) > 0) {
                 $rLiveQueryStr = implode(',', $rLiveQuery);
                 $db->query('INSERT INTO `lines_live`(`activity_id`,`divergence`) VALUES ' . $rLiveQueryStr . ' ON DUPLICATE KEY UPDATE `divergence`=VALUES(`divergence`);');
             }
@@ -620,7 +623,7 @@ class UsersCronJob implements CommandInterface {
         }
 
         if ($rServers[SERVER_ID]['is_main']) {
-            if (SettingsManager::getAll()['redis_handler']) {
+            if ($rRedis) {
                 $rDeleteQuery = "DELETE FROM `lines_divergence` WHERE `uuid` NOT IN ('" . implode("','", $rLiveKeys) . "');";
                 for ($rRetry = 0; $rRetry < 3; $rRetry++) {
                     if ($db->query($rDeleteQuery)) {

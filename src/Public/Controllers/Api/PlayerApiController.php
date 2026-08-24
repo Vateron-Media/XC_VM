@@ -23,7 +23,7 @@ use XcVm\Infrastructure\Cache\CacheReader;
 
 class PlayerApiController {
 	private $deny = true;
-	private $userInfo;
+	private array|false|null $userInfo = null;
 	private $domainName;
 	private $domain;
 	private $panelAPI = false;

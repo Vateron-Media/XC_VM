@@ -28,7 +28,7 @@
 							<?php 
 use XcVm\Core\Config\SettingsManager;
 
-if (SettingsManager::getAll()['player_allow_bouquet']): ?>
+if (SettingsManager::get('player_allow_bouquet')): ?>
 							<li class="nav-item">
 								<a class="nav-link" data-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a>
 							</li>
@@ -42,7 +42,7 @@ if (SettingsManager::getAll()['player_allow_bouquet']): ?>
 							<div class="content__mobile-tabs-menu dropdown-menu" aria-labelledby="mobile-tabs">
 								<ul class="nav nav-tabs" role="tablist">
 									<li class="nav-item"><a class="nav-link active" id="profile-tab" data-toggle="tab" href="#tab-profile" role="tab" aria-controls="tab-profile" aria-selected="true">Profile</a></li>
-									<?php if (SettingsManager::getAll()['player_allow_bouquet']): ?>
+									<?php if (SettingsManager::get('player_allow_bouquet')): ?>
 									<li class="nav-item"><a class="nav-link" id="bouquets-tab" data-toggle="tab" href="#tab-bouquets" role="tab" aria-controls="tab-bouquets" aria-selected="false">Bouquets</a></li>
 									<?php endif; ?>
 								</ul>
@@ -60,7 +60,7 @@ if (SettingsManager::getAll()['player_allow_bouquet']): ?>
 		<div class="tab-content">
 			<div class="tab-pane fade show active" id="tab-profile" role="tabpanel" aria-labelledby="profile-tab">
 				<div class="row">
-					<div class="col-12<?= SettingsManager::getAll()['player_allow_playlist'] ? ' col-lg-6' : '' ?>">
+					<div class="col-12<?= SettingsManager::get('player_allow_playlist') ? ' col-lg-6' : '' ?>">
 						<form action="#" class="profile__form">
 							<div class="row">
 								<div class="col-12">
@@ -87,7 +87,7 @@ if (SettingsManager::getAll()['player_allow_bouquet']): ?>
 							</div>
 						</form>
 					</div>
-					<?php if (SettingsManager::getAll()['player_allow_playlist']): ?>
+					<?php if (SettingsManager::get('player_allow_playlist')): ?>
 					<div class="col-12 col-lg-6">
 						<form action="#" class="profile__form">
 							<div class="row">
@@ -141,7 +141,7 @@ if (SettingsManager::getAll()['player_allow_bouquet']): ?>
 					<?php endif; ?>
 				</div>
 			</div>
-			<?php if (SettingsManager::getAll()['player_allow_bouquet']): ?>
+			<?php if (SettingsManager::get('player_allow_bouquet')): ?>
 			<div class="tab-pane fade hide" id="tab-bouquets" role="tabpanel" aria-labelledby="bouquets-tab">
 				<div class="row">
 					<div class="col-12 col-lg-12">

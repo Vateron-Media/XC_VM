@@ -94,10 +94,10 @@ class MovieService {
 			if (isset($rData['review'])) {
 				TMDbService::requireLibrary();
 
-				if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-					$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+				if (0 < strlen(SettingsManager::getString('tmdb_language'))) {
+					$rTMDB = new \TMDB(SettingsManager::getString('tmdb_api_key'), SettingsManager::getString('tmdb_language'));
 				} else {
-					$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
+					$rTMDB = new \TMDB(SettingsManager::getString('tmdb_api_key'));
 				}
 
 				$rReview = true;
@@ -114,7 +114,7 @@ class MovieService {
 							$rThumb = 'https://image.tmdb.org/t/p/w600_and_h900_bestv2' . $rMovieData['poster_path'];
 							$rBG = 'https://image.tmdb.org/t/p/w1280' . $rMovieData['backdrop_path'];
 
-							if (!SettingsManager::getAll()['download_images']) {
+							if (!SettingsManager::getBool('download_images')) {
 							} else {
 								$rThumb = ImageUtils::downloadImage($rThumb, 2);
 								$rBG = ImageUtils::downloadImage($rBG);
@@ -285,7 +285,7 @@ class MovieService {
 							$rTMDBURL = '';
 						}
 
-						if (!SettingsManager::getAll()['download_images']) {
+						if (!SettingsManager::getBool('download_images')) {
 						} else {
 							$rData['movie_image'] = ImageUtils::downloadImage($rData['movie_image'], 2);
 							$rData['backdrop_path'] = ImageUtils::downloadImage($rData['backdrop_path']);
@@ -704,7 +704,7 @@ class MovieService {
 						: array();
 
 					foreach ($rImportStreams as $rImportStream) {
-						$rData = array('import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => array(), 'category_id' => array(), 'language' => SettingsManager::getAll()['tmdb_language'], 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => intval(SettingsManager::getAll()['max_genres']), 'duplicate_tmdb' => true);
+						$rData = array('import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => array(), 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => array(), 'category_id' => array(), 'language' => SettingsManager::getString('tmdb_language'), 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => SettingsManager::getInt('max_genres'), 'duplicate_tmdb' => true);
 						$rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php watch_item "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '" > /dev/null 2>/dev/null &';
 						shell_exec($rCommand);
 					}
@@ -974,10 +974,10 @@ class MovieService {
 	public static function getSimilar($rID, $rPage = 1) {
 		TMDbService::requireLibrary();
 
-		if (0 < strlen(SettingsManager::getAll()['tmdb_language'])) {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key'], SettingsManager::getAll()['tmdb_language']);
+		if (0 < strlen(SettingsManager::getString('tmdb_language'))) {
+			$rTMDB = new \TMDB(SettingsManager::getString('tmdb_api_key'), SettingsManager::getString('tmdb_language'));
 		} else {
-			$rTMDB = new \TMDB(SettingsManager::getAll()['tmdb_api_key']);
+			$rTMDB = new \TMDB(SettingsManager::getString('tmdb_api_key'));
 		}
 
 		return json_decode(json_encode($rTMDB->getSimilarMovies($rID, $rPage)), true);

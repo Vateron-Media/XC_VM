@@ -24,7 +24,7 @@ class PlayerProfileController extends BasePlayerController
     {
         global $db, $rUserInfo;
 
-        if (!SettingsManager::getAll()['player_allow_bouquet']) {
+        if (!SettingsManager::get('player_allow_bouquet')) {
         } else {
             $rBouquetNames = array();
 
@@ -40,7 +40,7 @@ class PlayerProfileController extends BasePlayerController
                 $rUserInfo['bouquet'] = array_map('intval', AdminHelpers::sortArrayByArray($rUserInfo['bouquet'], $rBouquetOrder));
                 $db->query('UPDATE `lines` SET `bouquet` = ? WHERE `id` = ?;', '[' . implode(',', $rUserInfo['bouquet']) . ']', $rUserInfo['id']);
 
-                if (!SettingsManager::getAll()['enable_cache']) {
+                if (!SettingsManager::get('enable_cache')) {
                 } else {
                     LineService::updateLineSignal($rUserInfo['id']);
                 }

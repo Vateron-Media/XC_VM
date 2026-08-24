@@ -245,7 +245,7 @@ renderUnifiedLayoutFooter('admin');
 			rTable.search($(this).val()).draw();
 		});
 	});
-	<?php if (SettingsManager::getAll()['enable_search']): ?>
+	<?php if (SettingsManager::get('enable_search')): ?>
 		$(document).ready(function() {
 			initSearch();
 		});

@@ -538,7 +538,7 @@ class ModuleManager {
 
         // platform — the store install flow handles download/decrypt/license/LB.
         if ($update['source'] === 'platform') {
-            $apiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+            $apiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
             $slug   = $update['slug'] !== '' ? $update['slug'] : (string) ($entry['name'] ?? '');
             $this->downloadFromPlatform($slug, '', $apiKey);
             return;
@@ -962,7 +962,7 @@ class ModuleManager {
 
         // platform — reuse the full store flow (self-contained rollback + LB fan-out).
         if ($source === 'platform') {
-            $apiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+            $apiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
             $this->downloadFromPlatform(($update['slug'] !== '' ? $update['slug'] : $name), '', $apiKey);
             $this->recordAvailableVersion($name, null);
             return $this->manifestVersion($name);

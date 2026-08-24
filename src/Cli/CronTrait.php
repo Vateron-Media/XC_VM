@@ -60,7 +60,7 @@ trait CronTrait {
      */
     protected function acquireCronLock(): void {
         $this->rIdentifier = CRONS_TMP_PATH . md5(
-            Encryption::generateUniqueCode(SettingsManager::getAll()['live_streaming_pass']) . static::class
+            Encryption::generateUniqueCode(SettingsManager::get('live_streaming_pass')) . static::class
         );
         ProcessManager::acquireCronLock($this->rIdentifier);
     }

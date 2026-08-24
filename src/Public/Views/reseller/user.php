@@ -66,7 +66,7 @@ use XcVm\Domain\User\UserRepository;/**
                                                 <div class="form-group row mb-4">
                                                     <label class="col-md-4 col-form-label" for="password"><?php if (isset($rUser)) echo 'Change '; ?>Password</label>
                                                     <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="password" name="password"<?php if (isset($rUser)) echo ' placeholder="Enter a new password here to change it"'; ?> value="<?= isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? AdminHelpers::generateString(max(10, SettingsManager::getAll()['pass_length'])) : '') ?>" data-indicator="pwindicator">
+                                                        <input type="text" class="form-control" id="password" name="password"<?php if (isset($rUser)) echo ' placeholder="Enter a new password here to change it"'; ?> value="<?= isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? AdminHelpers::generateString(max(10, SettingsManager::get('pass_length'))) : '') ?>" data-indicator="pwindicator">
                                                         <div id="pwindicator">
                                                             <div class="bar"></div>
                                                             <div class="label"></div>

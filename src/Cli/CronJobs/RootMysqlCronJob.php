@@ -47,8 +47,8 @@ class RootMysqlCronJob implements CommandInterface {
 
         $rIgnoreErrors = array('innodb: page_cleaner', 'aborted connection', 'got an error reading communication packets', 'got packets out of order', 'got timeout reading communication packets');
 
-        if (SettingsManager::getAll()['mysql_sleep_kill'] > 0) {
-            $db->query("SELECT `id` FROM `INFORMATION_SCHEMA`.`PROCESSLIST` WHERE `COMMAND` = 'Sleep' AND `TIME` > ?;", intval(SettingsManager::getAll()['mysql_sleep_kill']));
+        if (SettingsManager::get('mysql_sleep_kill') > 0) {
+            $db->query("SELECT `id` FROM `INFORMATION_SCHEMA`.`PROCESSLIST` WHERE `COMMAND` = 'Sleep' AND `TIME` > ?;", intval(SettingsManager::get('mysql_sleep_kill')));
             foreach ($db->get_rows() as $rRow) {
                 $db->query('KILL ?;', $rRow['id']);
             }

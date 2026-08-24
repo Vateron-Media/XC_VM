@@ -27,7 +27,7 @@ class ResellerLiveConnectionsController extends BaseResellerController
 
         $rRequest = RequestManager::getAll();
         $data = [
-            'redisEnabled' => (bool) SettingsManager::getAll()['redis_handler'],
+            'redisEnabled' => (bool) SettingsManager::get('redis_handler'),
         ];
 
         if (isset($rRequest['line'])) {

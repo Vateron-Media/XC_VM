@@ -252,7 +252,7 @@ renderUnifiedLayoutFooter('admin');
 		});
 		$("#datatable").css("width", "100%");
 	});
-    <?php if (SettingsManager::getAll()['enable_search']): ?>
+    <?php if (SettingsManager::get('enable_search')): ?>
         $(document).ready(function() {
             initSearch();
         });

@@ -51,7 +51,7 @@ foreach (json_decode($rStream['category_id'], true) as $rCategoryID): ?>
 								<video controls width="100%" autoplay>
 									<source src="<?= $rURLs[0] ?>" type="video/mp4" />
 									<?php foreach ($rSubtitles[0] as $rSubtitle): ?>
-									<track label="<?= $rSubtitle['label'] ?>" kind="subtitles" src="proxy.php?url=<?= Encryption::encrypt($rSubtitle['file'], SettingsManager::getAll()['live_streaming_pass'], 'd8de497ebccf4f4697a1da20219c7c33') ?>">
+									<track label="<?= $rSubtitle['label'] ?>" kind="subtitles" src="proxy.php?url=<?= Encryption::encrypt($rSubtitle['file'], SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33') ?>">
 									<?php endforeach; ?>
 								</video>
 								<?php else: ?>

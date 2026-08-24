@@ -66,7 +66,7 @@ class ModuleInstallCommand implements CommandInterface {
 
         try {
             if ($rSource === 'platform') {
-                $rApiKey = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+                $rApiKey = (string) (SettingsManager::get('platform_api_key') ?? '');
                 if ($rApiKey === '') {
                     echo "module:install: platform_api_key is not set in settings.\n";
                     return 1;
@@ -125,7 +125,7 @@ class ModuleInstallCommand implements CommandInterface {
             throw new \RuntimeException('Could not locate the MAIN server to fetch the module archive.');
         }
 
-        $rPass = (string) (SettingsManager::getAll()['live_streaming_pass'] ?? '');
+        $rPass = (string) (SettingsManager::get('live_streaming_pass') ?? '');
         $rUrl  = 'http://' . $rMain['server_ip'] . ':' . intval($rMain['http_broadcast_port'])
             . '/api?password=' . urlencode($rPass)
             . '&action=getFile&filename=' . urlencode($rArchivePath);

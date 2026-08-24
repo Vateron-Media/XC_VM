@@ -47,7 +47,7 @@ class TmdbApiService {
             return new \TMDB($apiKey, $language);
         }
 
-        $settingsLang = SettingsManager::getAll()['tmdb_language'] ?? '';
+        $settingsLang = SettingsManager::getString('tmdb_language');
         if (strlen($settingsLang) > 0) {
             return new \TMDB($apiKey, $settingsLang);
         }
@@ -69,7 +69,7 @@ class TmdbApiService {
      * @return array ['result' => bool, 'data' => array|null]
      */
     public static function search(string $term, string $type, ?string $language = null, ?int $season = null): array {
-        $apiKey = SettingsManager::getAll()['tmdb_api_key'] ?? '';
+        $apiKey = SettingsManager::getString('tmdb_api_key');
         if (strlen($apiKey) === 0) {
             return ['result' => false];
         }
@@ -116,7 +116,7 @@ class TmdbApiService {
      * @return array ['result' => bool, 'data' => array|null]
      */
     public static function getDetails(int $id, string $type, ?string $language = null): array {
-        $apiKey = SettingsManager::getAll()['tmdb_api_key'] ?? '';
+        $apiKey = SettingsManager::getString('tmdb_api_key');
         if (strlen($apiKey) === 0) {
             return ['result' => false];
         }
@@ -132,7 +132,7 @@ class TmdbApiService {
         } elseif ($type === 'series') {
             $rSeries = $rTMDB->getTVShow($id);
             $rResult = json_decode($rSeries->getJSON(), true);
-            $settingsLang = SettingsManager::getAll()['tmdb_language'] ?? '';
+            $settingsLang = SettingsManager::getString('tmdb_language');
             $rResult['trailer'] = TMDbService::getSeriesTrailer($id, ($language ?: $settingsLang));
         }
 

@@ -64,7 +64,7 @@ class ModulesController extends BaseAdminController {
 
                     case 'platform_install':
                         $slug = trim((string) $this->input('module_slug', ''));
-                        $key  = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+                        $key  = (string) (SettingsManager::get('platform_api_key') ?? '');
 
                         if ($key === '') {
                             throw new \RuntimeException('Set the platform API key before installing from the store.');
@@ -80,7 +80,7 @@ class ModulesController extends BaseAdminController {
                         break;
 
                     case 'platform_rollback':
-                        $key = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+                        $key = (string) (SettingsManager::get('platform_api_key') ?? '');
                         if ($key === '') {
                             throw new \RuntimeException('Set the platform API key before rolling back.');
                         }
@@ -89,7 +89,7 @@ class ModulesController extends BaseAdminController {
                         break;
 
                     case 'renew_license':
-                        $key = (string) (SettingsManager::getAll()['platform_api_key'] ?? '');
+                        $key = (string) (SettingsManager::get('platform_api_key') ?? '');
                         if ($key === '') {
                             throw new \RuntimeException('Set the platform API key before renewing the license.');
                         }
