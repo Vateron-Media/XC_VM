@@ -1121,7 +1121,7 @@ if (1 < $rICount) { ?>
 
 					if (0 >= $rCount) {
 					} else {
-						$rSteps = range(0, $rCount, 1000);
+						$rSteps = ($rCount < 1000) ? array(0) : range(0, $rCount, 1000);
 
 						if ($rSteps) {
 						} else {

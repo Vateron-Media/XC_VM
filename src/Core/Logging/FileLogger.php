@@ -101,11 +101,12 @@ class FileLogger implements LoggerInterface {
 
         $logLine = base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . "\n";
 
-        file_put_contents(
-            self::getLogFile(),
-            $logLine,
-            FILE_APPEND | LOCK_EX
-        );
+        $rFile = self::getLogFile();
+        $rDir = dirname($rFile);
+        if (!is_dir($rDir)) {
+            @mkdir($rDir, 0775, true);
+        }
+        file_put_contents($rFile, $logLine, FILE_APPEND | LOCK_EX);
     }
 
     /**

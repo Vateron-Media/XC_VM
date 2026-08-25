@@ -112,7 +112,7 @@ if ($rSearchBy): ?>
 						<a href="movies.php?page=<?= $rPage - 1 ?>"><i class="icon ion-ios-arrow-back"></i></a>
 					</li>
 					<?php endif; ?>
-					<?php if ($rPagination[0] > 1): ?>
+					<?php if (!empty($rPagination) && $rPagination[0] > 1): ?>
 					<li class="paginator__item<?= $rPage == 1 ? ' paginator__item--active' : '' ?>"><a href="movies.php?page=1">1</a></li>
 					<?php if (count($rPagination) > 1): ?>
 					<li class="paginator__item"><a href="javascript: void(0);">...</a></li>
@@ -121,7 +121,7 @@ if ($rSearchBy): ?>
 					<?php foreach ($rPagination as $i): ?>
 					<li class="paginator__item<?= $rPage == $i ? ' paginator__item--active' : '' ?>"><a href="movies.php?page=<?= $i ?>"><?= $i ?></a></li>
 					<?php endforeach; ?>
-					<?php if ($rPagination[count($rPagination) - 1] < $rPages): ?>
+					<?php if (!empty($rPagination) && $rPagination[count($rPagination) - 1] < $rPages): ?>
 					<?php if (count($rPagination) > 1): ?>
 					<li class="paginator__item"><a href="javascript: void(0);">...</a></li>
 					<?php endif; ?>
@@ -140,7 +140,9 @@ if ($rSearchBy): ?>
 </div>
 <?php
 if (!$rPopular):
-	$rPopular = (igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'))['movies'] ?: array());
+	$rPopularRaw = @file_get_contents(CONTENT_PATH . 'tmdb_popular');
+	$rPopularData = ($rPopularRaw !== false) ? igbinary_unserialize($rPopularRaw) : false;
+	$rPopular = (is_array($rPopularData) ? ($rPopularData['movies'] ?? array()) : array());
 	if (count($rPopular) > 0 && count($rUserInfo['vod_ids']) > 0):
 		$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', $rPopular) . ') AND `id` IN (' . implode(',', $rUserInfo['vod_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular) . ') ASC LIMIT 6;');
 		$rStreams = $db->get_rows();
