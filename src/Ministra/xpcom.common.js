@@ -1,4 +1,18 @@
 /**
+ * xc_vm client-side box-rejection gates.
+ *
+ * Upstream Ministra 5.6.10 (re-)introduced client-side cut_off() gates that the
+ * XC_VM fork deliberately keeps OFF (in 2.3.9 the STB-type gate was commented out
+ * and the firmware gate did not exist). They reject legit boxes ("your set-top box
+ * is not supported" / "outdated_firmware") even though Allowed STB Types is already
+ * enforced SERVER-side in portal.php (get_profile / $rVerified) and the backend
+ * sends no autoupdate data. Leave these false; flip to true only to restore the
+ * upstream behaviour.
+ */
+var XCVM_ENFORCE_STB_TYPE = false; // client gate: cut_off("stb_type_not_supported")
+var XCVM_ENFORCE_FIRMWARE = false; // client gate: cut_off("outdated_firmware")
+
+/**
  * Common XPCOM STB constructor.
  * @constructor
  */
@@ -1780,6 +1794,7 @@ function common_xpcom() {
 		}
 
 		if (
+			XCVM_ENFORCE_STB_TYPE &&
 			this.allowed_stb_types &&
 			this.allowed_stb_types.indexOf(cut_type.toLowerCase()) == -1 &&
 			!_GET["debug_key"]
@@ -1793,6 +1808,7 @@ function common_xpcom() {
 		_debug("allowed_stb_types", this.allowed_stb_types);
 		// @TODO check for the whole STB list
 		if (
+			XCVM_ENFORCE_FIRMWARE &&
 			(this.allowed_stb_types || []).indexOf(this.type.toLowerCase()) === -1 &&
 			!_GET["debug_key"]
 		) {
