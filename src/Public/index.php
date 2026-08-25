@@ -178,6 +178,22 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
     exit;
 }
 
+// 6b. Stalker STB compatibility. The box firmware pings <portal_base>/server/load.php
+// (load-balancer handshake) and may follow to server/login. These have no file and
+// no route, so under the ministra scope they fall through to the admin session check
+// (unknown scope -> admin fallback below), whose relative ./login redirect resolves
+// to the same /server/... path and self-loops — the STB hangs on "authorization".
+// Redirect them to the portal in the SAME base (portal.php answers the handshake).
+if ($scope === 'ministra') {
+    $rReqPath = (string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+    if (preg_match('#/server/(load\.php|login)$#', $rReqPath)) {
+        $rPortalBase = preg_replace('#/server/[^/]+$#', '/', $rReqPath);
+        $rQuery = $_SERVER['QUERY_STRING'] ?? '';
+        header('Location: ' . $rPortalBase . 'portal.php' . ($rQuery !== '' ? '?' . $rQuery : ''), true, 302);
+        exit;
+    }
+}
+
 // 7. Scope bootstrap — working directory + session/functions files
 $adminDir = ($scope === 'admin') ? MAIN_HOME . 'Public/Views/admin/' : MAIN_HOME . $scope . '/';
 @chdir(is_dir($adminDir) ? $adminDir : MAIN_HOME);
