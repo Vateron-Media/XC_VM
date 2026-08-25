@@ -40,7 +40,14 @@ class SettingsRepository {
 		$decodedAllowedSTB = json_decode($rOutput['allowed_stb_types'] ?? '', true);
 		$rOutput['allowed_stb_types'] = array();
 		if (is_array($decodedAllowedSTB)) {
-			$rOutput['allowed_stb_types'] = array_map('strtolower', $decodedAllowedSTB);
+			// Drop blank entries so an "empty" selection (an unset multiselect is
+			// commonly stored as [""]) collapses to a truly empty array. An empty
+			// Allowed STB Types list means every STB type is accepted — see the
+			// get_profile gate in Ministra/portal.php, which allows when this is empty.
+			$rOutput['allowed_stb_types'] = array_values(array_filter(
+				array_map(static fn ($rType) => strtolower(trim((string) $rType)), $decodedAllowedSTB),
+				static fn ($rType) => $rType !== ''
+			));
 		}
 
 		$rOutput['stalker_lock_images'] = json_decode($rOutput['stalker_lock_images'] ?? '', true);
