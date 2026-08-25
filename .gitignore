@@ -32,3 +32,8 @@ tools/test-stream-generator/sample.mp4
 # e2e stream-test reports (test_release.sh streamtest)
 tools/test-install/out/
 tools/test-install/fixtures/
+
+graphify-out/
+
+# sync-dev.sh incremental-deploy watermark (per-checkout, not shared)
+.dev-sync-state
