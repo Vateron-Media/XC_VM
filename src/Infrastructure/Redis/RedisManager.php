@@ -154,7 +154,14 @@ class RedisManager {
 	 */
 	public static function close(?\Redis $rRedis): ?\Redis {
 		if (is_object($rRedis)) {
-			$rRedis->close();
+			try {
+				$rRedis->close();
+			} catch (\Throwable $e) {
+				// A half-dead socket can throw on close ("read error on
+				// connection"). We are discarding the instance anyway, so
+				// swallow it — teardown must never fatal (this runs from
+				// reconnect(), inside the watchdog capacity path).
+			}
 		}
 		return null;
 	}

@@ -2564,7 +2564,7 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
-						if ($rRow["hmac_id"]) {
+						if (!empty($rRow["hmac_id"])) {
 							if (Authorization::check("adv", "add_hmac")) {
 								$rUsername = "<a href='hmac?id=" . $rRow["hmac_id"] . "'>HMAC - " . $rRow["hmac_identifier"] . "</a>";
 							} else {
@@ -2888,7 +2888,7 @@ class TableController extends BaseAdminController {
 					} else {
 						$rDivergence = "<i class=\"text-danger fas fa-square tooltip\" title=\"" . (int) (100 - $rRow["divergence"]) . "%\"></i>";
 					}
-					if ($rRow["hmac_id"]) {
+					if (!empty($rRow["hmac_id"])) {
 						if (Authorization::check("adv", "add_hmac")) {
 							$rUsername = "<a href='hmac?id=" . $rRow["hmac_id"] . "'>HMAC - " . $rRow["hmac_identifier"] . "</a>";
 						} else {
