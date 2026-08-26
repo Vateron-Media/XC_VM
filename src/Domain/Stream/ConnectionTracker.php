@@ -657,6 +657,35 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * Deterministic connection id for an HLS viewer.
+	 *
+	 * HLS is stateless: the player re-fetches the playlist and re-selects
+	 * channels, and each request through auth.php previously minted a fresh
+	 * random uuid — so every (re)select created a NEW tracked connection that the
+	 * 30s/60s reaper only cleared slowly, ballooning the live-connection count on
+	 * channel switch. Deriving the id from line identity + stream + IP +
+	 * user-agent makes the same player reuse ONE connection instead.
+	 *
+	 * Deliberately per (identity, stream, IP, user-agent): different streams, IPs
+	 * or players (user-agents) stay distinct connections — preserving multiple
+	 * streams from one IP and multi-device counting — while the same player
+	 * re-requesting the same channel from the same IP collapses to one.
+	 *
+	 * @param int|null   $rIsHMAC     HMAC id, or null for a regular line.
+	 * @param string     $rIdentifier HMAC identifier ('' for a regular line).
+	 * @param int|string $rUserId     Line id (used when not HMAC).
+	 * @param int        $rStreamId   Stream id being watched.
+	 * @param string     $rIp         Client IP.
+	 * @param string     $rUserAgent  Client user-agent ('' when absent).
+	 * @return string 32-char hex connection id.
+	 */
+	public static function hlsConnectionKey($rIsHMAC, $rIdentifier, $rUserId, $rStreamId, $rIp, $rUserAgent): string {
+		$rIdentity = is_null($rIsHMAC) ? ('u' . intval($rUserId)) : ('h' . $rIsHMAC . '_' . (string) $rIdentifier);
+
+		return md5('hls#' . $rIdentity . '#' . intval($rStreamId) . '#' . (string) $rIp . '#' . (string) $rUserAgent);
+	}
+
+	/**
 	 * Create a new connection in Redis.
 	 *
 	 * Atomically (MULTI/EXEC) adds UUID to all sorted sets:

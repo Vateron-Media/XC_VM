@@ -255,6 +255,17 @@ if ($rChannelInfo) {
         }
     }
 
+    // Deterministic HLS connection id (see ConnectionTracker::hlsConnectionKey):
+    // repeated playlist requests / channel re-selects by the same player reuse
+    // ONE tracked connection instead of piling up a fresh random-uuid row each
+    // time — which the reaper clears only slowly, ballooning the live count on
+    // channel switch. Overriding the token uuid here (before $rConnCtx) keeps the
+    // connection id, segment auth and the heartbeat file consistent. TS/VOD keep
+    // their per-request random uuid.
+    if ($rExtension === "m3u8") {
+        $rTokenData["uuid"] = ConnectionTracker::hlsConnectionKey($rIsHMAC, $rIdentifier, $rUserInfo["id"], $rStreamID, $rIP, $rUserAgent);
+    }
+
     // Shared connection context for ConnectionTracker::createLive(); the HLS
     // and TS switch arms differ only in the container and pid they pass.
     $rConnCtx = array(
