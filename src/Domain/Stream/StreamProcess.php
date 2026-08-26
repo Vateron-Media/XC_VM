@@ -737,17 +737,20 @@ class StreamProcess {
 		// (PHP-FPM cannot read ffmpeg's open-ended chunked progress POST, so the HTTP
 		// /progress endpoint only ever ran at stream end -> speed was stuck at "1x".)
 		$rProgressFile = STREAMS_PATH . intval($rStreamID) . '_.progress';
-		// LLOD input resilience: an on-demand HTTP source that drops the
-		// connection makes ffmpeg exit ("Stream ends prematurely"), which the
-		// watchdog then restarts — turning a brief upstream hiccup into a
-		// multi-second re-probe gap and client re-buffering. Reconnecting keeps
-		// ffmpeg alive across drops instead of dying. Guarded to HTTP(S): these
-		// options are http-protocol-only and are a fatal "Option not found"
-		// error on udp/rtmp/file inputs.
-		$rLLODReconnect = ($rLLOD && !$rLoopback && is_string($rSource) && preg_match('#^https?://#i', $rSource))
+		// HTTP(S) input resilience: an HTTP source that drops the connection makes
+		// ffmpeg exit ("Stream ends prematurely"), which the watchdog then kills and
+		// restarts — turning a brief upstream hiccup into a full stream restart and
+		// client re-buffering. Reconnecting keeps ffmpeg alive across drops instead
+		// of dying. Applied to EVERY non-loopback http(s) live source (not just LLOD):
+		// a flaky upstream flaps the watchdog the same way whether or not it is
+		// on-demand. Guarded to HTTP(S): these options are http-protocol-only and a
+		// fatal "Option not found" error on udp/rtmp/file inputs.
+		$rReconnect = (!$rLoopback && is_string($rSource) && preg_match('#^https?://#i', $rSource))
 			? '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 '
 			: '';
-		$rLLODInputFlags = ($rLLOD && !$rLoopback ? $rLLODReconnect . '-fflags +discardcorrupt ' : '');
+		// +discardcorrupt tolerates corrupt packets from the source; keep it scoped
+		// to the on-demand (LLOD) path where it originally shipped.
+		$rLLODInputFlags = $rReconnect . (($rLLOD && !$rLoopback) ? '-fflags +discardcorrupt ' : '');
 
 		// Command-template defaults: only the non-custom_ffmpeg branch below
 		// assigns these, yet the {MAP}/{GEN_PTS}/{READ_NATIVE} substitution and
