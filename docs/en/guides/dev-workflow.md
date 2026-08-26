@@ -6,6 +6,8 @@ How to set up the project locally, run the quality checks, and deploy code to a 
 
 ## Local Setup
 
+**Prerequisites:** PHP **8.1** (the codebase pins `php: 8.1.33`; newer majors are not supported) and Composer available locally.
+
 The committed `src/vendor/` is **production-only**, so the dev tools (PHPStan,
 phpcs) are not in the tree. Install them once from the committed lock:
 
@@ -28,14 +30,19 @@ Run these before pushing — CI runs the same set:
 | `make cs` | Code style — import/namespace hygiene (phpcs + Slevomat) |
 | `make cs-fix` | Apply the style fixes in place |
 | `make gates` | PSR-4 regression gates (below) |
-| `php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests |
+| `php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests — see [PHPUnit Setup](phpunit-phar.md) |
 
 `make phpstan` and `make cs` need the dev tools — run `make dev-tools` first.
+
+The PHPStan baseline lives at `build/phpstan-baseline.neon` — it freezes all *pre-existing*
+issues so only **new** ones fail CI. If you intentionally change the level or accept a batch of
+findings, regenerate it with `make phpstan-baseline` and commit the result. Don't regenerate it
+just to silence a real new error — fix the code.
 
 `make gates` bundles three guards:
 
 - **check-procedural-use** — procedural / view files import every migrated class they use (PHP imports are positional, so the `use` must precede the usage);
-- **verify-lb-archive** — the Load Balancer build excludes privileged code (admin/reseller controllers, user/device domain, install/root commands);
+- **verify-lb-archive** — the Load Balancer build excludes privileged code (admin/reseller controllers, user/device domain, install/root commands) — see [Build System (MAIN vs LB)](../builds/build_system.md) for the exclusion boundary;
 - **check-vendor-prod-only** — no `require-dev` package is committed under `src/vendor/`.
 
 ## Deploying Code to VDS via SFTP
@@ -113,6 +120,11 @@ Create `.vscode/sftp.json`:
 - **`context: "./tests/"`** — maps local `tests/` to remote `/home/xc_vm/tests/`
 - **`uploadOnSave: true`** — every Ctrl+S pushes the file to VDS instantly
 - **`ignore`** — protects server-specific files (`bin/`, `config/`, `tmp/`)
+
+> ⚠️ **`watcher.autoDelete: true`** — deleting a file locally deletes it on the VDS too. Handy
+> for keeping the tree in sync, but a mis-deleted local file (or a bad rename) will remove the
+> remote copy. Keep the `ignore` list tight, or set it to `false` if you don't want the watcher
+> to propagate deletions.
 
 > **Security:** Use SSH keys instead of password. The `.vscode/` directory is in `.gitignore`, so credentials won't leak to git.
 

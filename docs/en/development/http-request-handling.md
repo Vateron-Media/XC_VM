@@ -28,7 +28,7 @@ Entry point: `src/Public/index.php`
 ```text
 nginx -> Public/index.php
   -> URL parsing (scope + pageName)
-  -> XC_Bootstrap::boot(CONTEXT_ADMIN)
+  -> XC_Bootstrap::boot(BootContext::Admin)
        -> floodProtection()          (block banned IPs)
        -> hostVerification()         (check allowed domains)
        -> initSession()
@@ -69,7 +69,7 @@ When `XC_SCOPE` is `includes/api/admin` or `includes/api/reseller`:
 
 ```text
 nginx -> Public/index.php
-  -> XC_Bootstrap::boot(CONTEXT_ADMIN)
+  -> XC_Bootstrap::boot(BootContext::Admin)
   -> new AdminApiController() or new ResellerRestApiController()
   -> $controller->index()
   -> exit
@@ -325,6 +325,12 @@ $router->dispatchApi($action);            // returns true if matched
 
 Important: `dispatchApi()` does NOT run middleware. This is a deliberate difference from page dispatch.
 
+#### When nothing matches
+
+Both `dispatch()` and `dispatchApi()` return `false` when no route matches. `Public/index.php` then responds with `http_response_code(404); echo '404 Not Found';` — there is **no** catch-all controller. (A mistyped asset path that reaches the front controller, rather than being served by nginx, lands on the same 404.)
+
+> **Pitfall — two sanitization APIs + a global.** Input can be reached three ways: `InputValidator` (the global request-sanitization layer), the `Request` class's static `sanitize*()` methods (kept for backward compatibility), and the global-static `RequestManager`. They are not interchangeable and the sanitization one applies depends on the bootstrap path — pick the layer the surrounding code already uses rather than mixing them, and remember `RequestManager`'s static state makes it order-dependent and awkward to isolate in tests (set it explicitly in a test rather than relying on prior request state).
+
 ### Module route registration
 
 Modules register routes via `ModuleInterface::registerRoutes()`. The router supports a safe registration mode to prevent modules from overwriting core routes:
@@ -377,10 +383,15 @@ Static helper for sending HTTP responses. Replaces scattered `header()` + `echo`
 
 | Context | What it initializes |
 | --- | --- |
-| `CONTEXT_MINIMAL` | Autoload + constants + config + Logger. No DB connection. |
-| `CONTEXT_CLI` | + Database + `LegacyInitializer::initCore()` (input sanitization, settings, FFmpeg paths). Optional Redis. |
-| `CONTEXT_STREAM` | + Database only (lightweight, no `LegacyInitializer`). Streaming endpoints use `StreamingRequestBootstrap` instead. |
-| `CONTEXT_ADMIN` | + Session + Database + `LegacyInitializer::initCore()` + Redis + Admin API + Translator + admin globals. Full initialization. |
+| `BootContext::Minimal` | Autoload + constants + config + Logger. No DB connection. |
+| `BootContext::Cli` | + Database + `LegacyInitializer::initCore()` (input sanitization, settings, FFmpeg paths). Optional Redis. |
+| `BootContext::Stream` | + Database only (lightweight, no `LegacyInitializer`). Streaming endpoints use `StreamingRequestBootstrap` instead. |
+| `BootContext::Admin` | + Session + Database + `LegacyInitializer::initCore()` + Redis + Admin API + Translator + admin globals. Full initialization. |
+
+> `boot()` accepts the `BootContext` enum (preferred). The legacy string
+> constants `XC_Bootstrap::CONTEXT_{MINIMAL,CLI,STREAM,ADMIN}` are `@deprecated`
+> aliases kept for backward compatibility — you'll still see them in older call
+> sites. See [Bootstrap Contexts](bootstrap-contexts.md) for the full matrix.
 
 All HTTP contexts (not CLI) also run flood protection and host verification before context-specific initialization.
 

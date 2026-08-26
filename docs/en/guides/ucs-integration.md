@@ -1,6 +1,10 @@
 # UCS Integration — Per-Line Wildcard Subdomains
 
-This feature supports **UCS integration** by giving each client a unique load-balancer subdomain based on their **line ID** when stream redirects are built.
+This feature gives each client a **stable, unique load-balancer subdomain derived from their line ID** (e.g. line `10` → `10.example.com`) when stream redirects are built.
+
+> **What is UCS here?** XC_VM only *produces* the `{line_id}.<zone>` hostname. "UCS" refers to the
+> **upstream/external system** — your DNS, CDN, or proxy edge — that consumes those per-line
+> hostnames to route or apply per-line policy. The panel does not itself implement UCS; it feeds it.
 
 ## Overview
 
@@ -19,6 +23,9 @@ Each line gets a stable subdomain. UCS (or upstream DNS/proxy) can route `*.exam
 2. **Serve Random IP / Domain** enabled on that LB (`random_ip` checkbox on the server edit page).
 3. A domain entry that starts with **`wildcard.`** (e.g. `wildcard.example.com`).
 4. DNS: a wildcard record for the base zone (e.g. `*.example.com`) pointing at the LB or your UCS edge.
+5. **TLS (if serving over HTTPS): a wildcard certificate `*.example.com`.** Every line resolves to a
+   *different* host (`10.example.com`, `42.example.com`, …), so a per-host cert won't do — without a
+   wildcard cert those clients get TLS errors. This is the single most common deployment mistake.
 
 ## Setup
 
@@ -48,6 +55,22 @@ If the client connected using a matching `Host` header, the existing host is kep
 4. Auth picks `wildcard.example.com` from the domain list
 5. Redirect URL host becomes `10.example.com`
 
+## Edge cases & pitfalls
+
+- **Missing / wrong wildcard DNS** — if `*.zone` doesn't resolve, the client gets an unresolvable
+  host and the stream fails. Test with `dig 999.example.com` before issuing lines.
+- **Multiple domains on the LB** — "Serve Random IP / Domain" picks one domain at random. If the
+  pick is a non-`wildcard.` entry, no substitution happens and the client gets that plain host.
+  Keep the LB's domain list consistent (all wildcard, or understand the mix).
+- **Only the host label changes** — the substitution replaces just the `wildcard.` segment; the URL
+  scheme (http/https) and path are untouched, so an HTTPS deployment stays HTTPS (hence the cert
+  requirement above).
+- **`Host`-match skip** — if the client already connected using a host that matches the LB's
+  configured domain, the existing host is kept and substitution is skipped (e.g. a client that
+  reached `wildcard.example.com` directly keeps it rather than becoming `10.example.com`).
+
+---
+
 ## Implementation
 
 Logic lives in `StreamRedirector::getStreamingURL()`:
@@ -66,6 +89,9 @@ Called from `Public/stream/auth.php` with `$rUserID = $rUserInfo['id']` for live
 - Use the literal prefix **`wildcard.`** in the domain string; only that segment is replaced.
 - The line ID is the internal **lines** table ID (`users.id` in streaming auth), not the username.
 - Wildcard substitution applies to LB redirect URLs only; it does not change playlist or API hostnames unless those paths also call `getStreamingURL()` with a line ID.
+- **Security:** line IDs become publicly visible in hostnames (`10.example.com`), so the subdomain
+  is an enumeration surface — it exposes that line IDs are sequential integers. It is not a secret;
+  don't rely on the subdomain for access control (auth still runs in `auth.php`).
 
 ## Related files
 

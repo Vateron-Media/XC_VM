@@ -65,7 +65,7 @@ File: `src/Core/Auth/Authorization.php`
 Primary method:
 
 ```php
-Authorization::check(string $type, mixed $id): bool
+Authorization::check(string $rType, string|int|null $rID): bool
 ```
 
 **Preconditions:** Returns `false` immediately if `$rUserInfo`, `$rPermissions`, or `$db` are not initialized.

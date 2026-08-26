@@ -65,12 +65,19 @@ EventDispatcher::hasListeners(StreamStartedEvent::class); // bool
 
 ```php
 public function getEventSubscribers(): array {
+    // One entry per event class (it is an array key). The value is either a
+    // plain callable, or a [callable, int $priority] tuple (higher = called first).
     return [
         StreamStartedEvent::class => [$this, 'onStreamStarted'],
-        StreamStartedEvent::class => [[$this, 'onStreamStarted'], 20], // with priority
+        StreamStoppedEvent::class => [[$this, 'onStreamStopped'], 20], // with priority
     ];
 }
 ```
+
+> An event class may appear only once in this array. To attach **several**
+> listeners to the **same** event from one module, use the repeatable
+> `#[ListensTo]` attribute (Option 2) instead — `getEventSubscribers()` keeps a
+> single handler entry per event.
 
 ### Option 2 — #[ListensTo] attribute
 
@@ -96,6 +103,8 @@ class MyModuleModule extends BaseModule {
 Both mechanisms work simultaneously and can coexist in the same module.
 `ModuleLoader::bootAll()` runs both passes for every loaded module.
 
+> The examples above write `use ListensTo;` / `use AbstractEvent;` for brevity. The real classes are `XcVm\Core\Events\ListensTo` and `XcVm\Core\Events\AbstractEvent` — import those FQCNs (there is no global alias).
+
 ---
 
 ## Stoppable events
@@ -117,6 +126,8 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 
 Listeners are skipped once `isPropagationStopped()` returns `true`.
 
+> **Listener errors are not caught.** `EventDispatcher::dispatch()` calls listeners in a plain loop with no `try/catch`, so if a listener throws, the exception propagates out of `dispatch()` and the remaining listeners for that event do **not** run. Keep listeners defensive (catch your own errors) if one failing subscriber must not abort the others.
+
 ---
 
 ## Built-in core events
@@ -128,6 +139,7 @@ Listeners are skipped once `isPropagationStopped()` returns `true`.
 | `PackageInstalledEvent` | `Events/Module/` | After marketplace install | No |
 | `UserAuthenticatedEvent` | `Events/Auth/` | After successful login | Yes |
 | `UserLoggedOutEvent` | `Events/Auth/` | After logout | No |
+| `StreamStartingEvent` | `Events/Stream/` | Before a stream starts (gate — extends `AbstractEvent`) | Yes |
 | `StreamStartedEvent` | `Events/Stream/` | After stream started | No |
 | `StreamStoppedEvent` | `Events/Stream/` | After stream stopped | No |
 | `SettingsChangedEvent` | `Events/Settings/` | After settings saved | No |

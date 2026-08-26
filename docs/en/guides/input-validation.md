@@ -105,7 +105,7 @@ if ($error !== null) {
 ### confirmIDs($ids)
 
 ```php
-InputValidator::confirmIDs(array $ids): array
+InputValidator::confirmIDs($ids)   // untyped params/return; yields a filtered array of positive int IDs
 ```
 
 Filters an array to contain only positive integer IDs. Any value where `intval($id) <= 0` is dropped. Used extensively across the codebase (30+ call sites) wherever user-supplied ID lists need to be sanitized before database queries.

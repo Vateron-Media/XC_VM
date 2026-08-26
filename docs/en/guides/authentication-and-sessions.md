@@ -101,7 +101,7 @@ Authenticator::hashPassword(string $password, ?string $salt = null, int $rounds 
 Uses `crypt()` with SHA-512 (`$6$`). The salt format is `$6$rounds=20000$<salt>$` where `<salt>` is 16 hex characters derived from `openssl_random_pseudo_bytes(16)`. Passwords are re-hashed on every successful login, which rotates the salt.
 
 ```php
-Authenticator::checkPassword(string $password, string $storedHash): string
+Authenticator::checkPassword(string $password, string $storedHash): bool
 ```
 
 Verifies a plaintext password against a stored hash using `crypt($password, $storedHash)` with timing-safe comparison via `hash_equals()`. The stored hash contains the algorithm, rounds, and salt, so `crypt()` reproduces the correct hash for comparison.
@@ -235,7 +235,7 @@ Checks for an authenticated session. If the request is to `session.php` directly
 
 Non-blocking check. Returns `true` if the session has been started and the `auth` key is set.
 
-**`getUser(): ?string`**
+**`getUser(): mixed`**
 
 Returns the value stored in the `auth` session key (user ID for admin/reseller, or line ID for player), or `null` if not authenticated.
 
@@ -247,7 +247,7 @@ Returns a session value by its logical name (`auth`, `activity`, `ip`, `code`, `
 
 Sets a session value by logical name.
 
-**`login(string $hash, ?string $ip = null): void`**
+**`login(mixed $hash, ?string $ip = null): void`**
 
 Creates an authenticated session by setting the `auth` and `activity` values. Optionally stores the client IP.
 
@@ -281,7 +281,7 @@ File: `src/Core/Auth/BruteforceGuard.php`
 
 Centralized rate-limiting and brute-force protection. All methods use file-based state stored at `FLOOD_TMP_PATH` (`/home/xc_vm/tmp/flood/`). Allowed IPs (server IPs) and IPs listed in the `flood_ips_exclude` setting are always exempted.
 
-### `checkFlood(?string $ip = null, bool $useCachedMode = false): null`
+### `checkFlood(?string $ip = null, bool $useCachedMode = false): void`
 
 Rate-limits requests per IP within a configurable time window.
 
@@ -290,7 +290,7 @@ Rate-limits requests per IP within a configurable time window.
 - **Behavior:** Tracks request count within the time window. If the count exceeds `flood_limit`, the IP is blocked (inserted into `blocked_ips` table or signaled via Redis in cached/streaming mode). The state file is deleted after blocking.
 - **Used by:** Player login (called on every failed login attempt), streaming endpoints.
 
-### `checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): null`
+### `checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void`
 
 Detects brute-force attacks based on the number of unique MAC addresses or usernames seen from a single IP.
 
@@ -299,7 +299,7 @@ Detects brute-force attacks based on the number of unique MAC addresses or usern
 - **Behavior:** Expired attempts (outside the frequency window) are pruned via `truncateAttempts()`. If the number of unique terms exceeds the limit, the IP is blocked.
 - **Used by:** Streaming authentication endpoints.
 
-### `checkAuthFlood(array $user, ?string $ip = null): null`
+### `checkAuthFlood(array $user, ?string $ip = null): void`
 
 Rate-limits authentication requests for a specific user+IP combination. Designed to throttle repeated auth attempts without fully blocking.
 

@@ -1,4 +1,4 @@
-# CLI Tools & Database Updates
+# CLI Tools & Console Reference
 
 Reference for XC_VM command-line interface, system tools, and the database update process after version upgrades. Covers daily operations, emergency access, and creating new DB update steps.
 
@@ -55,7 +55,7 @@ To see all available commands:
 | `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
 | `server:diagnose` | `ServerDiagnoseCommand` | Diagnose why a proxy/LB node is silent to the main (heartbeat, reachability, iptables, service) | root |
 
-> Commands marked **optional** are conditionally registered via `file_exists()` guard: `cache_handler`, `server:install`, `migrate`.
+> `console.php` registers **every** class it discovers in `Cli/Commands/` and `Cli/CronJobs/` (glob + reflection) — there is **no** `file_exists()` guard. A command is "optional" only in that it may be **stripped from the LB build** (`Makefile` `LB_FILES_TO_REMOVE`) or **provided by an installed module**. `plex_item` and `watch_item` above are **module-provided** (Plex/Watch) — their command classes are not in the committed core tree and exist only when that module is installed.
 
 ### Daemon Commands (persistent processes)
 
@@ -82,7 +82,9 @@ These commands use `DaemonTrait` and run continuously via `while(true)` loops:
 | `record` | `RecordCommand` | Record stream to MP4 |
 | `ondemand` | `OndemandCommand` | Kill streams with no active viewers |
 
-### Cron Jobs (26 total: 22 core + 4 module)
+### Cron Jobs
+
+> The command/cron/daemon tables below are hand-maintained and can drift. The source of truth is `console.php list` — run it to see the live registry.
 
 All cron job names are prefixed with `cron:`. They use `CronTrait` and are invoked by the system crontab.
 
@@ -112,17 +114,20 @@ All cron job names are prefixed with `cron:`. They use `CronTrait` and are invok
 | `cron:update` | `UpdateCronJob` | Check and apply updates (optional) |
 | `cron:users` | `UsersCronJob` | Manage user connections, Redis sync, divergence |
 | `cron:vod` | `VodCronJob` | Process VOD content |
+| `cron:proxy` | `ProxyArchiveCronJob` | Archive/rotate proxy stream data |
+| `cron:module_licenses` | `ModuleLicensesCronJob` | Refresh installed-module licenses |
+| `cron:module_updates` | `ModuleUpdatesCronJob` | Check for module updates |
+| `cron:tmdb` | `TmdbCronJob` | Fetch TMDB metadata (optional) |
+| `cron:tmdb_popular` | `TmdbPopularCronJob` | Fetch popular TMDB content (optional) |
 
-**Module cron jobs** (registered via `ModuleInterface::registerCommands()`):
+**Module-provided cron jobs.** Registered by optional modules via `CronProviderInterface::getCronEntries()`; they exist only when that module is installed and are **not** in the committed core tree (`src/Modules/` ships empty). (`cron:tmdb`/`cron:tmdb_popular` are **core**, listed above — not module cron jobs.)
 
 | Command | Class | Module | Description |
 | --- | --- | --- | --- |
 | `cron:plex` | `PlexCronJob` | plex | Process Plex updates |
-| `cron:tmdb` | `TmdbCronJob` | tmdb | Fetch TMDB metadata (optional) |
-| `cron:tmdb_popular` | `TmdbPopularCronJob` | tmdb | Fetch popular TMDB content (optional) |
 | `cron:watch` | `WatchCronJob` | watch | Process Watch library updates |
 
-> Optional cron jobs (conditionally registered): `cron:backups`, `cron:cache_engine`, `cron:epg`, `cron:providers`, `cron:root_mysql`, `cron:series`, `cron:tmdb`, `cron:tmdb_popular`, `cron:update`.
+> "Optional" cron jobs are **not** conditionally registered — every discovered `CronJob` class is registered. "Optional" means the job no-ops unless its feature/setting is enabled (e.g. `cron:epg`, `cron:series`, `cron:update`), or the job is stripped from the LB build.
 
 ---
 
@@ -211,19 +216,12 @@ class MyCronJob implements CommandInterface {
 }
 ```
 
-### Step 2. Register in console.php
+### Step 2. Registration is automatic
 
-Add to `console.php`:
-
-```php
-// Always loaded
-$rRegistry->register(new MyNewCommand());
-
-// Or conditionally (for optional features)
-if (file_exists(CLI_PATH . 'Commands/MyNewCommand.php')) {
-    $rRegistry->register(new MyNewCommand());
-}
-```
+There is **nothing to add to `console.php`**. On startup it globs `Cli/Commands/*.php` and
+`Cli/CronJobs/*.php` and, via reflection, `register()`s every non-abstract class implementing
+`CommandInterface`. Dropping your class in the right directory (with a `getName()` that returns
+its command name) is all that is required — see [Core Wiring → CLI command registration](../development/core-wiring.md#cli-command-registration).
 
 ### Step 3. Add to Makefile (if LB-excluded)
 
@@ -321,145 +319,9 @@ su - xc_vm -c '/home/xc_vm/console.php tools bouquets'
 
 ---
 
-## Database Updates After Version Upgrade
+## Database updates / migrations
 
-XC_VM uses a file-based DB update system to manage schema changes between versions. DB updates are executed automatically during updates and system status checks.
-
-### How It Works
-
-- SQL files for DB updates are stored in `/home/xc_vm/migrations/`.
-
-- Each file is named with a sequential number prefix, for example:
-
-```text
-001_drop_watch_folders_plex_token.sql
-002_panel_logs_add_file_env.sql
-003_drop_settings_segment_type.sql
-```
-
-- Applied DB update steps are tracked in the `migrations` database table. Each step runs **exactly once** - if a step has already been applied, it is skipped.
-
-- DB updates are executed automatically by:
-  - `console.php update post-update` - after a panel update
-  - `console.php status` - during system status check (MAIN server only)
-
-### DB Update Execution Flow
-
-```text
-[ MigrationRunner::run() — DB update execution ]
-        │
-        ▼
-[ CREATE TABLE IF NOT EXISTS `migrations` ]
-        │
-        ▼
-[ Read all *.sql files from migrations/ ]
-        │
-        ▼
-[ For each file not in `migrations` table: ]
-    ├── Execute SQL statements
-    ├── Record in `migrations` table
-    └── Output [OK] or [WARN]
-```
-
----
-
-## Creating a New DB Update Step
-
-When you need to modify the database schema (add columns, create tables, insert data, etc.), create a new SQL file for a DB update step.
-
-### Step 1. Choose a File Name
-
-Use the next sequential number and a descriptive name:
-
-```text
-NNN_short_description.sql
-```
-
-**Format rules:**
-
-- Number prefix: 3 digits, zero-padded (e.g., `006`, `007`)
-- Separator: underscore `_`
-- Name: lowercase, underscores, describing what the update step does
-- Extension: `.sql`
-
-**Examples:**
-
-```text
-006_add_user_timezone.sql
-007_create_audit_log_table.sql
-008_insert_default_codec_settings.sql
-```
-
-### Step 2. Write the SQL
-
-Place raw SQL statements in the file. Multiple statements are separated by `;`.
-
-**Rules for SQL DB update steps:**
-
-- **Use `IF EXISTS` / `IF NOT EXISTS`** to make DB update steps idempotent:
-
-```sql
--- Adding a column (safe)
-ALTER TABLE `settings` ADD COLUMN IF NOT EXISTS `timezone` VARCHAR(64) DEFAULT 'UTC';
-
--- Dropping a column (safe)
-ALTER TABLE `settings` DROP COLUMN IF EXISTS `old_column`;
-
--- Creating a table (safe)
-CREATE TABLE IF NOT EXISTS `audit_log` (
-    `id` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `action` VARCHAR(255) NOT NULL,
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
-```
-
-- **Use conditional `INSERT`** to avoid duplicates:
-
-```sql
-INSERT INTO `streams_arguments` (argument_key, argument_name, argument_cmd)
-SELECT 'my_key', 'My Argument', '-my_flag %s'
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM `streams_arguments` WHERE argument_key = 'my_key');
-```
-
-- **Do not mix DDL and DML** that depend on each other in the same file. If you need to add a column and then populate it, use two DB update step files.
-
-- **Comments** are supported with `--` prefix (they are skipped during execution).
-
-### Step 3. Place the File
-
-Copy the SQL file for the DB update step to:
-
-```text
-/home/xc_vm/migrations/
-```
-
-> 💡 In the source repository, this is `src/migrations/`.
-
-### Step 4. Validate DB Update
-
-Run `db:migrate` to apply pending DB update steps:
-
-```bash
-su - xc_vm -c '/home/xc_vm/console.php db:migrate'
-```
-
-Or via `status first-run` (also runs migrations):
-
-```bash
-sudo /home/xc_vm/console.php status first-run
-```
-
-Expected output:
-
-```text
-Migrations
-------------------------------
-  [OK]   006_add_user_timezone.sql
-
-```
-
-If a statement fails, the step will still be recorded but show `[WARN]` — review the SQL and fix any issues.
+The file-based DB update system (authoring a `.sql` step, the `migrations` table, `db:migrate`, execution flow) now lives in its own page — see [Database Updates / Migrations](database-migrations.md).
 
 ---
 
@@ -519,21 +381,9 @@ Finds out **why** a proxy/LB node shows offline in the panel: checks the heartbe
 sudo /home/xc_vm/console.php certbot
 ```
 
-### Apply Database Migrations Manually
+### Database migrations
 
-```bash
-su - xc_vm -c '/home/xc_vm/console.php db:migrate'
-```
-
-Applies all pending `.sql` files from `/home/xc_vm/migrations/`. Use this when you need to run migrations without a full system update.
-
-### Database Update with Data from Other Systems
-
-```bash
-/home/xc_vm/console.php migrate
-```
-
-Transfers data from the staging database `xc_vm_migrate`. See the [Database Update Guide](../info/migration_guide.md) for details.
+Apply pending `.sql` steps by hand, or import data from another system — see [Database Updates / Migrations](database-migrations.md#applying-migrations-manually).
 
 ---
 

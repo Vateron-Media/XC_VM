@@ -25,9 +25,14 @@ XC_VM supports two deployment roles from a single source tree:
 | --- | --- | --- |
 | `make main` | `dist/xc_vm.tar.gz` | Full MAIN build |
 | `make lb` | `dist/loadbalancer.tar.gz` | LB build (streaming-only subset) |
-| `make main_update` | `dist/update.tar.gz` | Incremental MAIN update |
-| `make lb_update` | `dist/loadbalancer_update.tar.gz` | Incremental LB update |
-| `make new` | Both full builds | Shortcut: `main` + `lb` |
+| `make new` | (resets `dist/`) | Remove and recreate the empty `dist/` output dir — run before a build; builds nothing itself |
+| `make generate_deleted_files` | `src/migrations/deleted_files.txt` | List files removed since the last tag (see below) |
+
+> **Updates reuse the full archive.** There is no separate incremental-update target — the same
+> `xc_vm.tar.gz` / `loadbalancer.tar.gz` is used for both install and update; filtering happens on
+> the server at update time (see [Update Mechanism](../administration/update-system.md)). To delete
+> files that were *removed* between releases, `make generate_deleted_files [LAST_TAG=vX.Y.Z]` diffs
+> git and writes `deleted_files.txt`, which the updater applies.
 
 Additional outputs:
 
@@ -65,8 +70,8 @@ Only these directories are copied into the LB archive:
 
 ```text
 bin/        Cli/        config/     content/    Core/
-Domain/     Infrastructure/         public/     resources/
-signals/    Streaming/  tmp/        www/
+Domain/     Infrastructure/         Public/     resources/
+signals/    Streaming/  tmp/        vendor/     www/
 ```
 
 Plus root files: `bootstrap.php`, `console.php`, `service`, `update`.
@@ -94,16 +99,21 @@ After copying, admin-specific content is **removed** from the LB build:
 | `resources/langs/` | Language resource files |
 | `resources/libs/` | Admin library resources |
 
-**Files removed:**
+**Files removed** (these mirror `LB_FILES_TO_REMOVE` in the Makefile):
+
+> ⚠️ Several entries here use the legacy `www/…` prefix (e.g. `www/stream/auth.php`,
+> `www/xplugin.php`). `src/www/` no longer exists — the streaming/API endpoints moved under
+> `src/Public/stream/` and `src/Public/…`. These `www/…` removal entries are therefore **no-ops**
+> today and are worth auditing in the Makefile (a file that should be stripped from LB may in fact
+> still ship under its `Public/` path).
 
 | File | Reason |
 | --- | --- |
 | `Public/Controllers/Api/AdminApiController.php` | Full admin API removed from LB |
 | `Public/Controllers/Api/ResellerRestApiController.php` | Reseller API removed from LB |
-| `Infrastructure/legacy/reseller_api.php` | Legacy reseller API bootstrap not needed on LB |
 | `www/xplugin.php`, `www/probe.php`, `www/playlist.php` | Admin endpoints |
 | `www/player_api.php`, `www/epg.php`, `www/enigma2.php` | Client API endpoints (served by MAIN) |
-| `www/stream/auth.php` | Auth endpoint removed from LB package |
+| `www/stream/auth.php` | Auth endpoint (legacy path — see note) |
 | `www/admin/api.php`, `www/admin/proxy_api.php` | Admin API |
 | `bin/maxmind/GeoLite2-City.mmdb` | GeoIP DB shipped separately |
 | `config/rclone.conf` | Backup config |
@@ -132,7 +142,11 @@ After copying, admin-specific content is **removed** from the LB build:
 | `Cli/CronJobs/ProvidersCronJob.php` | Provider sync (MAIN-only) |
 | `Cli/CronJobs/SeriesCronJob.php` | Series metadata (MAIN-only) |
 
-> **Note:** Module-related crons (TMDB, Plex, Watch) now live inside `modules/<name>/` and are excluded from LB builds automatically since `modules/` is not in `LB_DIRS`.
+> **Note:** Module-related crons (TMDB, Plex, Watch) live inside `src/Modules/<name>/` and are excluded from LB builds automatically — `Modules/` is not in `LB_DIRS`.
+>
+> **Ministra** (`src/Ministra/`, the Stalker portal — ~50 MB of assets) is likewise excluded by
+> **omission**: it isn't listed in `LB_DIRS`, so it's never copied into the LB archive (there is no
+> explicit removal rule for it — hence the `ministra` absence check in *Build Verification* below).
 
 ### LB Build — Replaced Configs
 
@@ -228,7 +242,8 @@ www/stream/*.php
 Add it to `LB_DIRS` in the Makefile:
 
 ```makefile
-LB_DIRS = bin cli config content core domain ... your_dir
+LB_DIRS := bin Cli config content Core Domain \
+    Infrastructure Public resources signals Streaming tmp vendor www your_dir
 ```
 
 ### New admin-only directory

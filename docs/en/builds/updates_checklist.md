@@ -28,7 +28,7 @@ git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 }
 ```
 
-The panel fetches this file from the release tag automatically via `GithubReleases::getChangelog()`.
+The panel fetches this file from the release tag automatically via `GitHubReleases::getChangelog()`.
 
 > 💬 Keep descriptions concise — focus on user-facing improvements and fixes.
 
@@ -43,6 +43,11 @@ Set the version variable once and reuse it in all commands below:
 ```bash
 VERSION="X.Y.Z"
 ```
+
+**Choosing `X.Y.Z`:** `MAJOR.MINOR.PATCH` — bump **PATCH** for fixes/small changes (e.g.
+`2.4.0 → 2.4.1`), **MINOR** for backward-compatible features (`2.4.x → 2.5.0`), **MAJOR** for
+breaking changes. Hotfixes are a PATCH bump on top of the current release. `XC_VM_VERSION`
+(set in step 5) must match the tag you publish in step 7.
 
 > ⚠️ Do not create a separate version-bump commit/push at this step.
 > Otherwise `dist/changes.md` will include extra release commits and force additional edits.
@@ -90,7 +95,7 @@ make generate_deleted_files LAST_TAG=1.2.16
 cat src/migrations/deleted_files.txt
 ```
 
-After validation, `make main` / `make lb` will pack the file into the archive via `delete_files_list` / `lb_delete_files_list`.
+After validation, `make lb` packs the file into the LB archive via the `lb_delete_files_list` target; on MAIN the file simply rides along in the full-tree copy (there is no separate `delete_files_list` target).
 
 During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically.
 
@@ -119,6 +124,12 @@ make dev-clean   # remove the dev tools afterwards, restoring the prod-only vend
 ## 5. Update Version and Create a Single Release Commit
 
 Edit the version constant, disable the phpMiniAdmin access flag, and clear its password in:
+
+> **Why disable `DB_ACCESS_ENABLED` / clear `DB_ACCESS_PWD`?** phpMiniAdmin is a raw
+> database console handy in development, but shipping it **enabled** would expose the DB to
+> anyone who reaches the panel. This step is a security hardening gate — a release must never
+> go out with it on.
+
 
 ```text
 src/Core/Config/AppConfig.php
@@ -207,10 +218,30 @@ After publishing, the workflow will automatically:
 
 ## 8. Post-Release
 
+> **MAIN before LB.** Update the **MAIN** node first. Its `post-update` broadcasts an `update`
+> signal to every LB when `auto_update_lbs` is on, so LBs follow automatically; keep MAIN and LB
+> on the **same version** — LBs read MAIN's database and a schema/behaviour skew can break
+> streaming. Don't leave LBs a release behind.
+
+
 - [ ] Verify all 4 assets are attached to the release
 - [ ] Run `md5sum -c hashes.md5` on downloaded files
 - [ ] Check Telegram notification was sent
 - [ ] Close related GitHub issues/milestones
+
+---
+
+## If something goes wrong
+
+- **Actions build failed after publishing** — the release has no (or partial) assets. Re-run the
+  failed workflow from the Actions tab; if the tag itself is wrong, delete the release **and** the
+  tag (`git push --delete origin vX.Y.Z`), fix, and re-tag. Don't leave a published release with
+  missing assets — panels fetch `hashes.md5` / archives from it.
+- **A released asset is broken** — publish a **PATCH** hotfix release (new tag) rather than editing
+  a published one; clients pin to a tag.
+- **A bad release already reached servers** — operators can downgrade per-server from the panel
+  (**Servers → Rollback Version**, see [Update Mechanism → Rollback](../administration/update-system.md#rollback-downgrade)); on MAIN a DB backup is taken automatically first. Migrations are
+  forward-only, so prefer a roll-*forward* hotfix when the fix is small.
 
 ---
 

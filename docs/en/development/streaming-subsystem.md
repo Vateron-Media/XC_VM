@@ -23,7 +23,7 @@ endpoint logic (live.php / vod.php / timeshift.php)
 ShutdownHandler::handle()
 ```
 
-nginx rewrites all streaming URLs to PHP entry points under `www/stream/`:
+nginx rewrites all streaming URLs to PHP entry points under `Public/stream/`:
 
 | URL pattern | Entry point | Purpose |
 | --- | --- | --- |
@@ -42,7 +42,6 @@ nginx rewrites all streaming URLs to PHP entry points under `www/stream/`:
 src/Streaming/
 ├── StreamingBootstrap.php
 ├── AsyncFileOperations.php
-├── TimeshiftClient.php
 ├── Auth/
 │   ├── StreamAuth.php
 │   └── StreamAuthMiddleware.php
@@ -56,6 +55,8 @@ src/Streaming/
 │   ├── HLSGenerator.php
 │   ├── OffAirHandler.php
 │   └── StreamRedirector.php
+├── Fanout/
+│   └── FanoutClient.php
 ├── Health/
 │   └── ProcessChecker.php
 ├── Lifecycle/
@@ -63,8 +64,8 @@ src/Streaming/
 └── Protection/
     └── ConnectionLimiter.php
 
-src/www/stream/
-├── init.php          # Legacy bootstrap shim (deprecated)
+src/Public/stream/
+├── index.php         # Entry router for the stream endpoints
 ├── auth.php          # Token validation gateway
 ├── live.php          # Live streaming delivery
 ├── vod.php           # VOD delivery
@@ -73,6 +74,7 @@ src/www/stream/
 ├── key.php           # Encryption key delivery
 ├── subtitle.php      # Subtitle delivery
 ├── thumb.php         # Thumbnail delivery
+├── probe.php         # Stream probe / off-air status
 └── rtmp.php          # RTMP publishing endpoint
 ```
 
@@ -191,7 +193,7 @@ Same auth flow as live. Reads from `VOD_PATH` instead of `STREAMS_PATH`.
 
 ### Timeshift (timeshift.php)
 
-Serves archived segments. Uses `TimeshiftClient` for archive file resolution.
+Serves archived segments (timeshift / catch-up) from the archive path.
 
 ### Daemon delivery — `xc_fanout`
 
@@ -201,9 +203,12 @@ PHP-FPM worker for the life of the stream.
 
 - **Fan-out.** `xc_fanout` (a bundled Go daemon) pulls each source **once** and
   fans it out to every viewer over a unix socket, with an in-RAM HLS segmenter.
-  PHP is out of the per-viewer byte path; the old chase-read loop
-  (`AsyncFileOperations::awaitFileExists()`) and `HLSGenerator::generateHLS()`
-  serving path were removed in the cutover.
+  PHP is out of the per-viewer byte path: the worker-per-viewer chase-read
+  serving loop and the `HLSGenerator::generateHLS()` client-serving path are no
+  longer used for live delivery (`generateHLS()` is retained in the class but has
+  no callers). `AsyncFileOperations::awaitFileExists()` is **not** removed — it is
+  still used for stream-startup waits and the VOD/timeshift byte path (see the
+  Performance table).
 - **Two sockets.** A client socket (nginx-facing) serves `/live/<id>` and
   `/hls/...`; a PHP-only control socket registers sources
   (`PUT /streams/<id>` / `/ingest/<id>`), answers off-air status
@@ -350,21 +355,14 @@ Enforced after token validation. Limits concurrent streams per user based on `ma
 
 ## HLS Encryption
 
-File: `src/Streaming/Delivery/HLSGenerator.php`
+Client HLS is served by the `xc_fanout` daemon (see [Daemon delivery](#daemon-delivery-xc_fanout)), so encryption happens **daemon-side**:
 
-```php
-public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
-    $rStreamID, $rUUID, $rIP, ...): string|false
-```
+1. `StreamProcess` writes the stream's AES-128 key/IV to `content/streams/<id>_.key` / `_.iv`.
+2. At ingest registration (`FanoutClient::registerIngest`), when `encrypt_hls` is on, the key/IV are handed to the daemon, which encrypts the HLS segments it serves and emits a matching `#EXT-X-KEY`.
+3. `HLSGenerator::tokenizeDaemonPlaylist()` rewrites the daemon playlist's segment URLs into per-segment auth'd `/hls/<token>` links that `segment.php` proxies from the daemon.
+4. The AES key is delivered to players by `key.php` (`src/Public/stream/key.php`) using the same token mechanism.
 
-When `encrypt_hls == true`:
-
-1. Generate AES-128 key token from IP + StreamID + salt.
-2. Replace IV with content from `STREAMS_PATH . $rStreamID . '_.iv'`.
-3. Encrypt each segment reference: `IP/StreamID/Segment/UUID/SERVER_ID/VideoCodec/OnDemand`.
-4. Replace segment names with `/hls/{encrypted_token}`.
-
-Key delivery happens via `key.php` using the same token mechanism.
+> The legacy `HLSGenerator::generateHLS()` (which built and encrypted an on-disk HLS playlist for PHP to serve) is retained in the class but is **no longer on the client path** after the daemon cutover.
 
 ---
 
@@ -374,12 +372,12 @@ Key design decisions for throughput and latency:
 
 | Feature | Mechanism |
 | --- | --- |
-| Non-blocking file wait | `AsyncFileOperations::awaitFileExists()` uses inotify (Linux) or optimized polling |
+| Stream-online wait | `AsyncFileOperations::awaitFileExists()` waits for `_.pid`/`_.monitor`/first segment as a stream comes up (and in the VOD/timeshift byte path). Live client delivery is daemon-served — not chase-read by PHP. |
 | Zero-CPU sleep | `time_nanosleep()` via `AsyncFileOperations::efficientSleep()` |
 | nginx buffering | 128 x 32KB buffers per request |
 | Connection pooling | Redis (preferred) or persistent MySQL |
 | Cache-only reads | Settings and user data read from file cache, no DB queries |
-| Early exit | Monitors `connection_status()` every 5 seconds to detect client disconnect |
+| Early exit (VOD/timeshift) | Those byte loops poll `connection_status()` to stop when the client disconnects. Live has no per-viewer PHP byte loop (daemon-served). |
 | Settings refresh | Every 5 minutes (300s) to catch config changes without restart |
 
 ---
@@ -387,92 +385,34 @@ Key design decisions for throughput and latency:
 ## File System Paths
 
 ```text
-STREAMS_PATH        = /home/xc_vm/www/stream/
-CONS_TMP_PATH       = /home/xc_vm/tmp/
+STREAMS_PATH        = /home/xc_vm/content/streams/
+VOD_PATH            = /home/xc_vm/content/vod/
+ARCHIVE_PATH        = /home/xc_vm/content/archive/
+VIDEO_PATH          = /home/xc_vm/content/video/
+CONS_TMP_PATH       = /home/xc_vm/tmp/opened_cons/
 CACHE_TMP_PATH      = /home/xc_vm/tmp/cache/
 FLOOD_TMP_PATH      = /home/xc_vm/tmp/flood/
-SIGNALS_PATH        = /home/xc_vm/tmp/signals/
-VIDEO_PATH          = /home/xc_vm/www/video/
-ARCHIVE_PATH        = /home/xc_vm/www/archive/
-VOD_PATH            = /home/xc_vm/www/vod/
+SIGNALS_TMP_PATH    = /home/xc_vm/tmp/signals/
+SIGNALS_PATH        = /home/xc_vm/signals/
 ```
 
 ---
 
 ## Diagnostics & Tooling
 
-Two tools verify that a stream delivers correctly — that segments arrive in order
-and the delivery queue does not break.
+The standalone stream-integrity tool (`tools/stream-check/stream_queue_check.py`) now lives on its own page — see [Streaming Diagnostics & Tooling](streaming-diagnostics.md).
 
-### `tools/stream-check/stream_queue_check.py` (Python, stdlib only)
+---
 
-Standalone monitor for **segment/packet queue integrity** with an optional **live
-buffer dashboard**. Auto-detects HLS vs MPEG-TS.
+## Design rationale (ADRs)
 
-```bash
-python3 tools/stream-check/stream_queue_check.py "<url>" --duration 30        # batch check
-python3 tools/stream-check/stream_queue_check.py "<url>" --json               # cron / monitoring
-python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
-```
+Why live delivery moved off tmpfs and out of the PHP byte path — the decisions behind the current
+`xc_fanout` architecture — is recorded in the Architecture Decision Records (repo-internal notes,
+not part of the published site):
 
-What "queue intact" means per stream type:
-
-| Stream | Queue check |
-| --- | --- |
-| HLS (`.m3u8`) | `EXT-X-MEDIA-SEQUENCE` monotonic and contiguous (no dropped or rewound segments), no `EXT-X-DISCONTINUITY`, every newly appearing segment downloadable. Master playlists are resolved to their first variant. |
-| MPEG-TS (`.ts`, `/play/<token>/ts`) | per-PID `continuity_counter` (lost / duplicated / reordered packets = queue break), sync-byte loss, transport-error indicator, and delivery stalls. |
-
-Key options:
-
-| Flag | Purpose |
-| --- | --- |
-| `--duration N` | seconds to observe (`0` = until Ctrl-C in `--live`) |
-| `--tolerance N` | allow N transient queue breaks before reporting `BROKEN` (ignores rare source glitches relayed by `-c copy`) |
-| `--stall-timeout S` | delivery gap counted as a stall; keep it above the segment duration (default 15) |
-| `--live` | colored TUI dashboard (below) |
-| `--prebuffer S` / `--buffer-target S` | live: virtual-player prebuffer and buffer-graph scale |
-| `--json` / `--no-color` | machine output / disable ANSI |
-
-Exit code: `0` healthy, `2` queue problem or stall, `1` usage.
-
-#### Live dashboard (`--live`)
-
-Models a virtual player: the playhead advances at wall-clock rate while content is
-"received". For **TS** the received timeline comes from **PCR** (the stream clock);
-for **HLS** from the segments' `EXTINF` durations. Buffered playtime ("cache") =
-received − played; if it reaches zero the playhead freezes (a rebuffer event).
-
-```text
-  STREAM QUEUE / BUFFER MONITOR   TS   up 00:22
-  cache buffer (s), last 60s:
-  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▄▄▇▇▇▆▆▆▅▅▅▄▄▇▇▇▆▆▆▅   <- burst-then-drain = delivery sawtooth
-  IN CACHE : [█████████████████░░░░░░░░░░░░░]  11.6s / 20s
-  PLAYING  : PLAYING     head 00:18   received 00:29
-  rate 1000 kbit/s   received 4.1 MB   last data 7.0s ago
-  QUEUE OK   cc:0 sync:0 gaps:0 disc:0   rebuffers:0
-```
-
-The buffer graph and gauge are colored green (healthy) / yellow (low) / red
-(starving). For HLS a row of blocks shows the segments still in cache ahead of the
-playhead.
-
-### `console.php stream:check` (PHP, companion)
-
-Probes a source URL and, with `--decode`, pulls and decodes the media to catch
-broken/corrupt segments. HLS is checked segment-by-segment; a single-socket TS
-endpoint is captured with cURL and decoded offline (ffmpeg's live `-i` hangs on
-it). Source: `src/Cli/Commands/StreamCheckCommand.php`.
-
-```bash
-console.php stream:check "<url>"                  # metadata probe (type, codecs)
-console.php stream:check "<url>" --decode=30 --json
-```
-
-> **Note — delivery pacing.** The live TS delivery loop in `live.php` drains
-> available data without throttling and only pauses when caught up to ffmpeg's
-> write head. An earlier version slept one second after every read, capping
-> throughput at `read_buffer_size` per second and starving clients;
-> `stream_queue_check.py --live` visualises the resulting buffer behaviour.
+- [ADR 0001 — Tmpfs-free streaming](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0001-tmpfs-free-streaming.md) — PHP out of the byte path, native fan-out, in-RAM HLS.
+- [ADR 0002 — `xc_fanout` daemon](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md) — the native live fan-out daemon.
+- [ADR 0003 — Full daemon cutover](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0003-full-daemon-cutover.md) — retiring the legacy byte path for live.
 
 ---
 
@@ -492,5 +432,4 @@ console.php stream:check "<url>" --decode=30 --json
 | `src/Streaming/Lifecycle/ShutdownHandler.php` | connection cleanup on exit |
 | `src/Domain/Stream/ConnectionTracker.php` | connection state in Redis/MySQL |
 | `src/Core/Init/LegacyInitializer.php` | global variable setup for streaming |
-| `src/Cli/Commands/StreamCheckCommand.php` | `stream:check` — probe/decode a stream for broken segments |
 | `tools/stream-check/stream_queue_check.py` | queue-integrity monitor + live buffer dashboard |

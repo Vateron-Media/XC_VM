@@ -205,7 +205,7 @@ Migration `.sql` files from `migrations/` run automatically during updates. If o
 2. Open the file in `migrations/` and inspect the SQL.
 3. Fix the issue manually in MySQL, then the next update will continue from where it stopped.
 
-See [Database Migrations](../guides/cli-tools.md#database-updates-after-version-upgrade) for details.
+See [Database Migrations](../guides/database-migrations.md) for details.
 
 ---
 

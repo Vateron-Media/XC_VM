@@ -12,6 +12,26 @@ Quick reference for running Ministra in a regular browser (without a real MAG se
 
 ---
 
+## Portal flow (handshake → profile)
+
+The box (or emulator) drives the portal in a fixed sequence; understanding it makes the
+checklist steps 4-5 concrete:
+
+1. **handshake** — `GET portal.php?type=stb&action=handshake&mac=…&prehash=…` → the server returns
+   a **token**. `prehash` is a client-computed handshake hash (derived by the box/emulator from its
+   identity + the MAC); you do **not** set it in the URL — the client generates it per request.
+2. **get_profile** — `GET portal.php?type=stb&action=get_profile` with `Authorization: Bearer <token>`
+   and the device identifiers (`mac`, `sn`, `stb_type`, `device_id…`). The server validates the
+   device (MAC row, `lock_device` fields, `allowed_stb_types`) and returns the **profile**, whose
+   `status` says whether the box is authorized.
+3. Subsequent calls (channel list, EPG, create_link) reuse the same Bearer token.
+
+Server side, `PortalHandler.php` orchestrates handshake/get_profile and `portal.php` runs the device
+checks. (In some builds the box first hits `/server/load.php` for a load-balancer handshake before
+the portal calls — that is normal.)
+
+---
+
 ## Supported URLs
 
 Usually two variants are used (depending on nginx config):
@@ -20,6 +40,10 @@ Usually two variants are used (depending on nginx config):
 - `http://HOST/c/`
 
 For browser emulation it is important that `index.html` opens, and API steps go to `portal.php` inside the same prefix.
+
+`/ACCESS_CODE/` is the panel's per-install **access-code** path (the code from the panel URL);
+`/c/` is a short alias that nginx rewrites to the same portal handler. Either works — use whichever
+your nginx/emulator setup expects; they reach the same `portal.php`.
 
 For STB Emulator, the entry point must also be the base prefix (or `portal.php` without query parameters), not a prebuilt `action=handshake` request.
 
@@ -97,7 +121,7 @@ http://192.168.110.251/HgBjUjSI/
 
 ## What `your device is not active` Means
 
-The message appears when profile response contains `status = 1` (device failed authentication/verification).
+The profile `status` field reports the outcome: **`status = 0`** — device authorized/active (normal); **`status = 1`** — device failed authentication/verification, which surfaces as *your device is not active*. (Only `0`/`1` are used for this gate.)
 
 Common causes:
 
@@ -116,7 +140,7 @@ Common causes:
 4. Verify handshake returns token and the next `get_profile` sends Authorization Bearer.
 5. If Authorization does not reach PHP, temporarily enable `auth_via_query=1`.
 6. If STB type restrictions apply, add `debug_key=1`.
-7. If issue persists, verify device row in DB (`mag_devices`) and `lock_device` flag.
+7. If issue persists, verify the device in the admin panel: **MAG Devices** page (the `mag_devices` row, MAC + `lock_device` toggle) and the Ministra settings' **allowed STB types** list (`allowed_stb_types`).
 
 ---
 

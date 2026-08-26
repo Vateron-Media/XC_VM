@@ -1,7 +1,8 @@
-# GeoIP and Device Detection
+# GeoIP, ISP Detection & Geo Routing
 
-XC_VM uses MaxMind GeoIP2/GeoLite2 databases for geolocation and ISP detection, and the Mobile_Detect library for user agent parsing.
-These systems are integrated into streaming authentication for access control, geographic routing, and activity logging.
+XC_VM uses MaxMind GeoIP2/GeoLite2 databases for geolocation and ISP/ASN detection. These feed streaming authentication (country/ISP/ASN/proxy access control), geographic server + proxy selection, and activity logging.
+
+> For User-Agent parsing and set-top-box hardware locking, see the companion page [Device Detection & STB Locking](device-detection-and-stb-locking.md). Both this page and that one converge in `src/Public/stream/auth.php`.
 
 ---
 
@@ -66,44 +67,9 @@ AND enable_isp_lock = 1
 
 ---
 
-## Device Detection
+## Access Control Checks (geo)
 
-### Mobile_Detect
-
-File: `src/Core/Device/MobileDetect.php`
-
-Library (v2.8.45) for user agent parsing:
-
-```php
-$detect = new Mobile_Detect();
-$detect->isMobile();    // phones
-$detect->isTablet();    // tablets
-$detect->isAndroid();   // brand-specific
-```
-
-Used in `src/bootstrap.php` to detect mobile devices for responsive admin UI.
-
-### Set-Top Box Devices
-
-**EnigmaService** (`src/Domain/Device/EnigmaService.php`):
-
-Manages Enigma2 STB accounts. Lock fields: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
-
-**MagService** (`src/Domain/Device/MagService.php`):
-
-Manages MAG STB accounts. Lock fields: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
-
-Both support:
-
-- `lock_device` — hardware lock
-- `is_isplock` — ISP binding
-- `forced_country` — force user to specific country
-
----
-
-## Access Control Checks
-
-All checks happen in `src/www/stream/auth.php` during token validation:
+These run in `src/Public/stream/auth.php` during token validation. Checks 5-6 (User-Agent, device type) live on the [Device Detection & STB Locking](device-detection-and-stb-locking.md) page.
 
 ### 1. Country validation
 
@@ -141,25 +107,7 @@ GeoIPService::matchCIDR($asn, $ip)
     flag[4] = proxy → error: PROXY_DETECT
 ```
 
-Also checks `X-XC_VM-DETECT` header for restream detection.
-
-### 5. User-Agent blocking
-
-```text
-check against BlocklistService::checkBlockedUAs()
-error: BLOCKED_USER_AGENT
-
-if user has allowed_ua set:
-    user_agent must match one entry
-    error: NOT_IN_ALLOWED_UAS
-```
-
-### 6. Device type validation
-
-```text
-MAG device flag must match token
-error: DEVICE_NOT_ALLOWED or TOKEN_EXPIRED
-```
+Also checks the `X-XC_VM-DETECT` header for restream detection.
 
 ---
 
@@ -242,7 +190,7 @@ Output statuses:
 
 ## Activity Logging
 
-All streaming sessions log GeoIP and device data to `lines_live`:
+Streaming sessions log GeoIP (and device) data to `lines_live`:
 
 | Column | Source |
 | --- | --- |
@@ -253,14 +201,11 @@ All streaming sessions log GeoIP and device data to `lines_live`:
 | `user_ip` | client IP |
 
 Logged in `live.php`, `vod.php`, `timeshift.php`, and `rtmp.php`.
-
 Periodically archived from `lines_live` to `lines_activity` by `ActivityCronJob`.
 
 ---
 
-## Configuration
-
-### Settings
+## Configuration (geo settings)
 
 | Setting | Type | Description |
 | --- | --- | --- |
@@ -272,10 +217,11 @@ Periodically archived from `lines_live` to `lines_activity` by `ActivityCronJob`
 | `county_override_1st` | `0/1` | auto-assign forced_country on first connection |
 | `allow_countries` | `array` | whitelist of allowed country codes |
 | `detect_restream_block_user` | `0/1` | auto-disable user on restream detection |
-| `disallow_empty_user_agents` | `0/1` | reject requests without User-Agent |
 | `maxmind_account_id` | `string` | MaxMind API account |
 | `maxmind_license_key` | `string` | MaxMind API key |
 | `maxmind_editions` | `JSON` | array of downloaded editions |
+
+(User-Agent settings such as `disallow_empty_user_agents` live on the device page.)
 
 ---
 
@@ -286,11 +232,9 @@ Periodically archived from `lines_live` to `lines_activity` by `ActivityCronJob`
 | `src/Core/Util/GeoIP.php` | low-level GeoIP lookups with file caching |
 | `src/Core/GeoIP/GeoIPService.php` | high-level GeoIP + CIDR matching |
 | `src/Core/GeoIP/MaxMindUpdater.php` | MaxMind database downloader |
+| `src/Cli/CronJobs/MaxMindCronJob.php` | Tuesday / `--force` database update cron |
 | `src/Core/Config/Binaries.php` | GeoIP database file path constants |
-| `src/Core/Device/MobileDetect.php` | Mobile_Detect library |
-| `src/Domain/Device/EnigmaService.php` | Enigma2 STB management |
-| `src/Domain/Device/MagService.php` | MAG STB management |
 | `src/Domain/User/UserRepository.php` | GeoIP enrichment on user records |
-| `src/www/stream/auth.php` | streaming auth with all geo/device checks |
+| `src/Public/stream/auth.php` | streaming auth with the geo checks (1-4) |
 | `src/Streaming/Auth/StreamAuth.php` | GeoIP-aware server selection |
 | `src/Streaming/Balancer/ProxySelector.php` | GeoIP-aware proxy selection |

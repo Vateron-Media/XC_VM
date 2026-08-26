@@ -300,11 +300,11 @@ The codebase defines a small number of custom exception classes. All uncaught ex
 
 | Exception class | Base class | Location |
 | --- | --- | --- |
-| `DropboxException` | `Exception` | `src/Core/Storage/DropboxClient.php` |
-| `M3uParser\Exception` | `\Exception` | `src/Core/Parsing/M3uParser/src/Exception.php` |
-| `DataBuildingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Parser/DataBuildingException.php` |
-| `DefinitionException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
-| `DumpingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
+| `DropboxException` | `\Exception` | `src/Core/Storage/DropboxException.php` |
+| `M3uParser\Exception` | `\Exception` | `src/vendor/gemorroj/m3u-parser/src/Exception.php` |
+| `DataBuildingException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Parser/DataBuildingException.php` |
+| `DefinitionException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Definition/DefinitionException.php` |
+| `DumpingException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Dumper/DumpingException.php` |
 
 Most application code uses generic `Exception` throws or relies on PHP's built-in error system. The Logger's exception handler accepts any `Throwable`.
 

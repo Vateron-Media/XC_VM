@@ -1,7 +1,14 @@
 # Exception Hierarchy
 
-All XC_VM exceptions extend `XcVmException` so callers can catch the entire tree with
-one `catch` block or target a specific subsystem.
+XC_VM's framework exceptions extend `XcVmException` — an empty **marker** base
+(`class XcVmException extends \RuntimeException {}`, it adds no extra data) — so callers can
+catch the whole family with one `catch (XcVmException)` or target a specific subsystem.
+
+> **Scope.** This typed hierarchy covers the **DI container** and **module system** only.
+> It is not the whole panel: streaming/auth endpoints report failures through
+> `generateError()` (not exceptions), and much domain/CLI code throws plain
+> `\RuntimeException` or SPL exceptions — those still match `catch (XcVmException)` only when
+> the class actually extends it.
 
 ---
 
@@ -9,19 +16,24 @@ one `catch` block or target a specific subsystem.
 
 ```
 \Exception
-└── XcVmException
-    ├── Container
-    │   └── ContainerException          (PSR-11 ContainerExceptionInterface)
-    │       ├── CircularDependencyException
-    │       ├── ServiceCreationException
-    │       └── NotFoundException       (PSR-11 NotFoundExceptionInterface)
-    └── Module
-        └── ModuleException
-            ├── ModuleNotFoundException
-            ├── ModuleLoadException
-            ├── ModuleManifestException
-            └── ModuleCycleException
+└── \RuntimeException
+    └── XcVmException
+        ├── Container
+        │   └── ContainerException      (PSR-11 ContainerExceptionInterface)
+        │       ├── CircularDependencyException
+        │       ├── ServiceCreationException
+        │       └── NotFoundException   (PSR-11 NotFoundExceptionInterface) *
+        └── Module
+            └── ModuleException
+                ├── ModuleNotFoundException
+                ├── ModuleLoadException
+                ├── ModuleManifestException
+                └── ModuleCycleException
 ```
+
+> \* `NotFoundException` extends `ContainerException` (so it belongs in this tree), but it
+> physically lives at `src/Core/Container/Psr/NotFoundException.php` under the namespace
+> `XcVm\Core\Container\Psr` — **not** in `Core/Exception/Container/`.
 
 ---
 
@@ -54,7 +66,7 @@ try {
 | `ModuleNotFoundException` | Required dependency module is missing |
 | `ModuleLoadException` | Module file cannot be loaded or class not found |
 | `ModuleManifestException` | `module.json` is missing, malformed, or fails validation |
-| `ModuleCycleException` | Dependency graph has a cycle |
+| `ModuleCycleException` | Dependency graph has a cycle — thrown by `ModuleLoader`'s topological sort with the cycle path (`a -> b -> a`) in the message. (Some `@throws` docblocks say `\RuntimeException`; that's just the base type — `ModuleCycleException` extends it via `XcVmException`.) |
 
 ---
 
@@ -85,6 +97,19 @@ try {
 
 ---
 
+## Adding or choosing an exception
+
+- **Which to throw:** use the most specific existing type (e.g. `ModuleManifestException`
+  for a bad `module.json`). If nothing fits and it's a framework-level failure, throw
+  `XcVmException` (or a new subclass) so it stays catchable as one family. Domain/business
+  errors that aren't framework concerns may throw a plain `\RuntimeException` /
+  `\InvalidArgumentException`.
+- **Adding a category:** create the class under `src/Core/Exception/<Subsystem>/`, extend the
+  subsystem base (`ContainerException` / `ModuleException`) — or `XcVmException` for a new
+  subsystem — and add it to the tree above. No registration is needed; it's plain PHP.
+
+---
+
 ## Location
 
 ```
@@ -93,8 +118,7 @@ src/Core/Exception/
 ├── Container/
 │   ├── ContainerException.php
 │   ├── CircularDependencyException.php
-│   ├── ServiceCreationException.php
-│   └── NotFoundException.php
+│   └── ServiceCreationException.php
 └── Module/
     ├── ModuleException.php
     ├── ModuleNotFoundException.php

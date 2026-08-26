@@ -48,7 +48,7 @@ Checks are performed in `_xc_nav_visible()`:
 A module adds items only through `registerNavbar()`:
 
 ```php
-public function registerNavbar(): void {
+public function registerNavbar(NavbarRegistry $registry): void {
     NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
         ->parent('management.service_setup')
         ->url('my_module')
@@ -64,6 +64,46 @@ public function registerNavbar(): void {
         ->order(170));
 }
 ```
+
+## NavbarItem builder API
+
+`NavbarItem` is a fluent value object (`src/Core/Module/NavbarItem.php`) — chain setters off `new NavbarItem($key)`:
+
+| Method | Purpose |
+| --- | --- |
+| `new NavbarItem($key)` | create a node; `$key` is its unique `section.group.item` id |
+| `->parent($parentKey)` | attach under an existing node (omit for a top-level node) |
+| `->url($url)` | target path; `'#'` makes it a non-navigating **group** header |
+| `->label($key, $fallback = '')` | translation key, or `('', 'Literal')` for fixed text |
+| `->icon($icon)` | icon CSS class for the item |
+| `->permissions([...])` | OR-list of permission keys; node hidden unless the viewer has one |
+| `->order($n)` | sort position within the parent |
+| `->desktopOnly()` | hide on mobile |
+| `->noMobileSubmenu()` | don't expand this node's submenu on mobile |
+| `->submenuClass('megamenu')` | two-column rendering for long child lists |
+| `->settingDisabled($settingKey)` | hide the node when that panel setting flag is truthy |
+| `->makeDivider()` | render this node as a separator (no link) |
+
+### Group node and divider
+
+```php
+public function registerNavbar(NavbarRegistry $registry): void {
+    // A group header (url('#')) — shown only if at least one child is visible
+    NavbarRegistry::add((new NavbarItem('management.my_group'))
+        ->parent('management')
+        ->url('#')
+        ->label('my_group')
+        ->order(50));
+
+    // A divider inside that group
+    NavbarRegistry::add((new NavbarItem('management.my_group.sep1'))
+        ->parent('management.my_group')
+        ->makeDivider()
+        ->order(55));
+}
+```
+
+> `settingDisabled('some_setting')` hides the node whenever that setting is truthy (gate a feature behind a toggle). Visibility is also **viewer-scoped**: the `permissions` OR-check runs against the current user via `Authorization::check('adv', …)`, so an admin and a reseller can see different subsets of the same tree.
 
 ## Practical rules for modules
 

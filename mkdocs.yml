@@ -103,16 +103,21 @@ plugins:
             Architecture Overview: Обзор архитектуры
             Autoloading (PSR-4): Автозагрузка (PSR-4)
             Bootstrap Contexts: Контексты бутстрапа
-            Module System: Система модулей
+            Core Wiring & Registration: Сборка и регистрация ядра
+            Module Authoring: Создание модулей
+            Module Lifecycle: Жизненный цикл модулей
+            Module Extension Points: Точки расширения модулей
             HTTP Request Handling: Обработка HTTP-запросов
             Streaming Subsystem: Подсистема стриминга
+            Streaming Diagnostics: Диагностика стриминга
             Event System: Система событий
             Exception Hierarchy: Иерархия исключений
             Caching and Redis: Кэширование и Redis
             Navbar Rendering: Рендеринг навбара
             Developer Workflow: Рабочий процесс разработчика
             Development Workflow: Процесс разработки
-            CLI Tools & Migrations: CLI-инструменты и миграции
+            CLI Tools & Console Reference: CLI-инструменты и консоль
+            Database Migrations: Миграции базы данных
             PHPUnit Setup: Настройка PHPUnit
             Feature Flags: Флаги функций
             Process Management: Управление процессами
@@ -122,7 +127,8 @@ plugins:
             Input Validation: Валидация ввода
             Error Handling: Обработка ошибок
             Integrations: Интеграции
-            GeoIP and Device Detection: GeoIP и определение устройств
+            GeoIP, ISP Detection & Geo Routing: GeoIP, ISP и гео-маршрутизация
+            Device Detection & STB Locking: Определение устройств и STB-блокировки
             Ministra STB Emulation: Эмуляция Ministra STB
             UCS Integration: Интеграция UCS
             Build & Release: Сборка и релиз
@@ -154,16 +160,21 @@ nav:
           - Architecture Overview: en/development/architecture.md
           - Autoloading (PSR-4): en/development/autoloader.md
           - Bootstrap Contexts: en/development/bootstrap-contexts.md
-          - Module System: en/development/modules.md
+          - Core Wiring & Registration: en/development/core-wiring.md
+          - Module Authoring: en/development/module-authoring.md
+          - Module Lifecycle: en/development/module-lifecycle.md
+          - Module Extension Points: en/development/module-extension-points.md
           - HTTP Request Handling: en/development/http-request-handling.md
           - Streaming Subsystem: en/development/streaming-subsystem.md
+          - Streaming Diagnostics: en/development/streaming-diagnostics.md
           - Event System: en/development/event-system.md
           - Exception Hierarchy: en/development/exception-hierarchy.md
           - Caching and Redis: en/development/caching-and-redis.md
           - Navbar Rendering: en/development/navbar-rendering.md
       - Developer Workflow:
           - Development Workflow: en/guides/dev-workflow.md
-          - CLI Tools & Migrations: en/guides/cli-tools.md
+          - CLI Tools & Console Reference: en/guides/cli-tools.md
+          - Database Migrations: en/guides/database-migrations.md
           - PHPUnit Setup: en/guides/phpunit-phar.md
           - Feature Flags: en/guides/feature-flags.md
           - Process Management: en/guides/process-management.md
@@ -173,7 +184,8 @@ nav:
           - Input Validation: en/guides/input-validation.md
           - Error Handling: en/guides/error-handling.md
       - Integrations:
-          - GeoIP and Device Detection: en/guides/geoip-and-device-detection.md
+          - GeoIP, ISP Detection & Geo Routing: en/guides/geoip-isp-and-geo-routing.md
+          - Device Detection & STB Locking: en/guides/device-detection-and-stb-locking.md
           - Ministra STB Emulation: en/guides/ministra-browser-emulation.md
           - UCS Integration: en/guides/ucs-integration.md
       - Build & Release:

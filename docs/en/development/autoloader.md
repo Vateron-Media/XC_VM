@@ -19,9 +19,7 @@ The mapping is declared in `src/composer.json`:
 ```json
 "autoload": {
     "psr-4": {
-        "XcVm\\": "./",
-        "M3uParser\\": "Core/Parsing/M3uParser/src/",
-        "Chrisyue\\PhpM3u8\\": "Core/Parsing/PhpM3u8/src/"
+        "XcVm\\": "./"
     }
 }
 ```
@@ -78,8 +76,11 @@ Some files are intentionally **not** namespaced and are loaded by explicit
 - global constants and functions (`Core/Config/*`, error handler);
 - the ioncube `XC_VM` class and bundled `Infrastructure/Tmdb/lib/*`.
 
-The vendored `M3uParser` and `Chrisyue\PhpM3u8` packages have their own PSR-4
-prefixes (above) and autoload normally.
+Third-party libraries (e.g. `gemorroj/m3u-parser`, `chrisyue/php-m3u8`,
+`mobiledetect/mobiledetectlib`, `geoip2/geoip2`) are ordinary Composer `require`
+dependencies declared in `src/composer.json`; they live under `src/vendor/` and
+autoload through the Composer vendor autoloader — they are **not** listed in the
+`psr-4` block above.
 
 ## Modules
 
@@ -87,7 +88,7 @@ Module classes use the `XcVm\Module\<Name>\…` namespace but are **not** regist
 in `composer.json` (module/marketplace slug directories — `plex`, `watch-d2bho` —
 do not fit a single PSR-4 rule). They are resolved by `ModuleLoader`'s own PSR-4
 resolver: it strips the module's base namespace and maps the remainder onto a
-sub-path under the module directory. See [Module System](modules.md).
+sub-path under the module directory. See [Module Authoring](module-authoring.md).
 
 ## Dev tooling
 
