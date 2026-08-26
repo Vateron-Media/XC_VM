@@ -595,6 +595,14 @@ class RootSignalsCronJob implements CommandInterface {
                             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', 'Updating XC_VM...', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
                             shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php update update 2>&1 &');
                             break;
+                        case 'rollback':
+                            $rRbVersion = isset($rData['version']) ? trim((string) $rData['version']) : '';
+                            if (preg_match('/^\d+\.\d+\.\d+$/', $rRbVersion)) {
+                                echo 'Rolling back to ' . $rRbVersion . '...' . "\n";
+                                $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'UPDATE', ?, 'root', 'localhost', NULL, ?);", SERVER_ID, 'Rolling back XC_VM to ' . $rRbVersion . '...', time());
+                                shell_exec('sudo ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php update rollback ' . escapeshellarg($rRbVersion) . ' 2>&1 &');
+                            }
+                            break;
                         case 'set_services':
                             echo 'Setting PHP Services' . "\n";
                             $rServices = intval($rData['count']);

@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Logging\UpdateLogger;
@@ -123,6 +124,92 @@ class UpdateCommand implements CommandInterface {
 				UpdateLogger::info('Server status set to 5 (updating), launching system update...');
 
 				echo "Launching system update...\n";
+				$rLogFile = UpdateLogger::getLogFile();
+				$rCmd = 'sudo /usr/bin/python3 ' . MAIN_HOME . 'update '
+					. escapeshellarg($rOutputDir) . ' '
+					. escapeshellarg($UpdateData['md5'])
+					. ' >> ' . escapeshellarg($rLogFile) . ' 2>&1 &';
+				shell_exec($rCmd);
+				exit(1);
+
+			case 'rollback':
+				UpdateLogger::reset();
+				$rTarget = isset($rArgs[1]) ? trim((string) $rArgs[1]) : '';
+
+				if (!preg_match('/^\d+\.\d+\.\d+$/', $rTarget)) {
+					echo "ERROR: invalid target version.\n";
+					UpdateLogger::error('Rollback aborted: invalid target version "' . $rTarget . '"');
+					return 1;
+				}
+				if (version_compare($rTarget, XC_VM_VERSION, '>=')) {
+					echo "ERROR: target {$rTarget} is not older than current " . XC_VM_VERSION . ".\n";
+					UpdateLogger::error('Rollback aborted: target ' . $rTarget . ' >= current ' . XC_VM_VERSION);
+					return 1;
+				}
+
+				$rIsMain = ServerRepository::getAll()[SERVER_ID]['is_main'];
+				$rServerType = $rIsMain ? 'MAIN' : 'LB';
+				echo "Rolling back {$rServerType} from " . XC_VM_VERSION . " to {$rTarget}...\n";
+				UpdateLogger::info('Rollback started; server=' . $rServerType . ', ' . XC_VM_VERSION . ' -> ' . $rTarget);
+
+				// Safety net: dump the DB before applying the older tree (MAIN only —
+				// the DB lives there). Migrations are forward-only, so a downgrade
+				// cannot undo them; this backup is the recovery path if the older code
+				// mishandles newer schema. Abort the rollback if the dump fails.
+				if ($rIsMain) {
+					$rBackupFile = MAIN_HOME . 'backups/pre_rollback_' . XC_VM_VERSION . '_to_' . $rTarget . '_' . date('Y-m-d_H-i-s') . '.sql';
+					echo "Backing up database to " . basename($rBackupFile) . "...\n";
+					UpdateLogger::info('Creating pre-rollback DB backup: ' . basename($rBackupFile));
+					$db->close_mysql();
+					BackupService::create($rBackupFile);
+					$db->db_connect();
+
+					if (!file_exists($rBackupFile) || filesize($rBackupFile) <= 0) {
+						echo "ERROR: DB backup failed, aborting rollback.\n";
+						UpdateLogger::error('Pre-rollback DB backup failed (empty/missing), aborting');
+						return 1;
+					}
+					UpdateLogger::info('Pre-rollback DB backup OK (' . filesize($rBackupFile) . ' bytes)');
+				}
+
+				$UpdateData = $gitRelease->getVersionFile($rIsMain ? 'main' : 'lb_update', $rTarget);
+
+				if (!$UpdateData || empty($UpdateData['url'])) {
+					echo "ERROR: failed to resolve release asset for {$rTarget}.\n";
+					UpdateLogger::error('Failed to resolve rollback asset URL for ' . $rTarget);
+					return 1;
+				}
+				if (empty($UpdateData['md5'])) {
+					echo "ERROR: could not fetch MD5 for {$rTarget} (missing hashes.md5?).\n";
+					UpdateLogger::error('Missing MD5 for rollback version ' . $rTarget);
+					return 1;
+				}
+
+				echo "Downloading {$rTarget}...\n";
+				UpdateLogger::info('Downloading rollback archive...');
+				$rOutputDir = TMP_PATH . '.update.tar.gz';
+
+				if (!$this->downloadFile($UpdateData['url'], $rOutputDir)) {
+					echo "ERROR: download failed.\n";
+					UpdateLogger::error('Rollback download failed from: ' . $UpdateData['url']);
+					return 1;
+				}
+
+				$rFileMd5 = md5_file($rOutputDir);
+				if ($rFileMd5 !== $UpdateData['md5']) {
+					echo "ERROR: MD5 checksum mismatch.\n";
+					UpdateLogger::error('Rollback MD5 mismatch: expected=' . $UpdateData['md5'] . ', got=' . $rFileMd5);
+					@unlink($rOutputDir);
+					return 1;
+				}
+
+				echo "Download OK, MD5 verified (" . filesize($rOutputDir) . " bytes).\n";
+				UpdateLogger::info('Rollback download OK, MD5 verified, size=' . filesize($rOutputDir) . ' bytes');
+
+				$db->query('UPDATE `servers` SET `status` = 5 WHERE `id` = ?;', SERVER_ID);
+				UpdateLogger::info('Server status set to 5 (updating), launching system rollback...');
+
+				echo "Launching system rollback...\n";
 				$rLogFile = UpdateLogger::getLogFile();
 				$rCmd = 'sudo /usr/bin/python3 ' . MAIN_HOME . 'update '
 					. escapeshellarg($rOutputDir) . ' '

@@ -198,6 +198,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                                 <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'stop');">Stop All Streams</a>
                                                                 <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'kill');">Kill Connections</a>
                                                                 <a class="dropdown-item" href="./server?id=<?= $rServer['id'] ?>">Edit Server</a>
+                                                                <a class="dropdown-item" href="javascript:void(0);" onClick="rollbackServer(<?= $rServer['id'] ?>, '<?= $rServer['xc_vm_version'] ?>');">Rollback Version</a>
                                                                 <?php if ($rServer['enable_proxy']): ?>
                                                                     <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'disable_proxy');">Disable Proxy</a>
                                                                 <?php else: ?>
@@ -235,6 +236,9 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                                     <i class="mdi mdi-pencil-outline"></i>
                                                                 </button>
                                                             </a>
+                                                            <button type="button" title="Rollback Version" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="rollbackServer(<?= $rServer['id'] ?>, '<?= $rServer['xc_vm_version'] ?>');">
+                                                                <i class="mdi mdi-history"></i>
+                                                            </button>
                                                             <?php if ($rServer['enable_proxy']): ?>
                                                                 <button type="button" title="<?= $language::get('disable_proxy') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable_proxy');">
                                                                     <i class="mdi mdi-shield-off-outline"></i>
@@ -463,6 +467,43 @@ renderUnifiedLayoutFooter('admin');
                 $.toast("Binaries are being updated in the background...");
             });
         }
+    }
+
+    function rollbackServer(rID, rVersion) {
+        if ((window.rSelected) && (window.rSelected.length > 0)) {
+            $.toast("Individual actions disabled in multi-select mode.");
+            return;
+        }
+        $.getJSON("./api?action=rollback_versions&version=" + encodeURIComponent(rVersion || ""), function(data) {
+            if (!data || !data.result || !data.versions || !data.versions.length) {
+                $.toast("No earlier versions available for this server.");
+                return;
+            }
+            var rOpts = "";
+            $.each(data.versions, function(i, v) {
+                var rLabel = "v" + v.version + (v.beta ? " (beta)" : "");
+                rOpts += '<option value="' + v.version + '">' + rLabel + '</option>';
+            });
+            new jBox("Confirm", {
+                title: "Rollback server to an earlier version",
+                confirmButton: "Rollback",
+                cancelButton: "Cancel",
+                content: '<p class="mb-2">Select the version to roll this server back to. On the MAIN server a database backup is taken first. Downgrading does <b>not</b> undo database migrations — use only as a recovery step. The server restarts during rollback.</p><select id="rollback_server_version" class="form-control">' + rOpts + "</select>",
+                confirm: function() {
+                    var rVersionSel = $("#rollback_server_version").val();
+                    if (!rVersionSel) {
+                        return;
+                    }
+                    $.getJSON("./api?action=server&sub=rollback&server_id=" + rID + "&version=" + encodeURIComponent(rVersionSel), function(res) {
+                        if (res.result === true) {
+                            $.toast("Rollback to v" + rVersionSel + " started in the background...");
+                        } else {
+                            $.toast("Rollback request failed (invalid version?).");
+                        }
+                    });
+                }
+            }).open();
+        });
     }
 
     function api(rID, rType, rConfirm = false) {

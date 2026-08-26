@@ -160,6 +160,32 @@ Final steps are executed in the `post-update` phase of `UpdateCommand`:
 
 ---
 
+## Rollback (Downgrade)
+
+A server can also be rolled back to an **earlier** release. This mirrors the update flow above but targets a chosen version instead of the latest — the same signal → CRON → PHP → Python pipeline and the same `src/update` applier are reused. Rollback is per-server, so `MAIN` and each `LB` can be downgraded independently.
+
+1. **Initiation.** In **Servers → Manage Servers**, the per-server actions menu has a **Rollback Version** item. It opens a dialog listing earlier releases (pre-releases tagged `(beta)`), fetched via the `rollback_versions` API action (`GitHubReleases::getPreviousVersions()`). Choosing a version inserts a signal — `{"action":"rollback","version":"X.Y.Z"}` — for that server.
+
+2. **CRON trigger.** `cron:root_signals` handles the `rollback` signal by launching:
+
+   ```bash
+   /home/xc_vm/console.php update rollback X.Y.Z
+   ```
+
+3. **PHP layer (`UpdateCommand`, `rollback` case).**
+   - Validate the target (`X.Y.Z`, strictly older than the current version).
+   - On **MAIN** only: take an automatic database backup to `backups/pre_rollback_<from>_to_<to>_<timestamp>.sql`, aborting if it fails. LB nodes have no database and skip this.
+   - Resolve the **exact** version's archive via `GitHubReleases::getVersionFile()` (MAIN → `xc_vm.tar.gz`, LB → `loadbalancer.tar.gz`), download it, and verify the MD5.
+   - Hand over to the same Python updater (`src/update`).
+
+4. **System + completion.** Identical to an update: the Python script stops the panel, replaces the tree (preserving binaries/config/data), and `post-update` sets the version in the database to the rolled-back release and restarts the panel.
+
+The version list is channel-aware: the `stable` channel offers only stable releases, `unstable` also offers `(beta)` pre-releases.
+
+> ⚠️ A downgrade **does not undo database migrations** (they are forward-only). The schema is kept backward-compatible, and the automatic MAIN backup is the recovery path. The Python applier copies over the tree (`cp -a`) without deleting files, so files added by a newer release remain until a subsequent update.
+
+---
+
 ## Key Features
 
 - **Double integrity check** (both PHP and Python layers verify the hash).

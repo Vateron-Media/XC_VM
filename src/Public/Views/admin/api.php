@@ -10,6 +10,7 @@ use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
@@ -952,6 +953,32 @@ if (isset($_SESSION['hash'])) {
 
 			exit();
 		}
+		if (RequestManager::get('action') == 'rollback_versions') {
+			if (Authorization::check('adv', 'edit_server')) {
+				// Optional base version (a specific server's version); defaults to
+				// the MAIN panel version. Previous releases are resolved relative to it.
+				$rBaseVersion = trim((string) RequestManager::get('version'));
+				if (!preg_match('/^\d+\.\d+\.\d+$/', $rBaseVersion)) {
+					$rBaseVersion = XC_VM_VERSION;
+				}
+				$rVersions = array();
+
+				try {
+					$rGit = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::get('update_channel'));
+					$rGit->setTimeout(15);
+					$rVersions = $rGit->getPreviousVersions($rBaseVersion, 5);
+				} catch (\Throwable $rE) {
+					$rVersions = array();
+				}
+				echo json_encode(array('result' => true, 'current' => $rBaseVersion, 'versions' => $rVersions));
+
+				exit();
+			}
+
+			echo json_encode(array('result' => false));
+
+			exit();
+		}
 		if (RequestManager::get('action') == 'server') {
 			if (Authorization::check('adv', 'edit_server')) {
 				$rSub = RequestManager::get('sub');
@@ -978,6 +1005,29 @@ if (isset($_SESSION['hash'])) {
 
 					foreach ($rIDs as $rID) {
 						$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rID, time(), json_encode(array('action' => 'update')));
+					}
+					echo json_encode(array('result' => true));
+
+					exit();
+				}
+
+				if ($rSub == 'rollback') {
+					$rVersion = trim((string) RequestManager::get('version'));
+
+					if (!preg_match('/^\d+\.\d+\.\d+$/', $rVersion) || version_compare($rVersion, XC_VM_VERSION, '>=')) {
+						echo json_encode(array('result' => false, 'error' => 'invalid_version'));
+
+						exit();
+					}
+
+					if (!is_numeric(RequestManager::get('server_id'))) {
+						$rIDs = json_decode(RequestManager::get('server_id'), true);
+					} else {
+						$rIDs = array(intval(RequestManager::get('server_id')));
+					}
+
+					foreach ($rIDs as $rID) {
+						$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rID, time(), json_encode(array('action' => 'rollback', 'version' => $rVersion)));
 					}
 					echo json_encode(array('result' => true));
 

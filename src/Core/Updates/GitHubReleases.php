@@ -135,12 +135,24 @@ class GitHubReleases {
      * @throws \Exception If the request fails.
      */
     public function getReleases(): array {
+        return array_values(array_map(fn($r) => $r['tag_name'], $this->getFilteredReleases()));
+    }
+
+    /**
+     * Fetch the channel-filtered release objects (with the tag_name AND the
+     * prerelease flag), newest first, using the cache when valid. Shared by
+     * getReleases() and the rollback picker, which needs the prerelease flag to
+     * mark beta builds.
+     *
+     * @return array<int,array<string,mixed>> Filtered GitHub release objects.
+     * @throws \Exception If the request fails.
+     */
+    private function getFilteredReleases(): array {
         if ($this->isCacheValid()) {
             error_log("Using cached releases (channel: {$this->channel}) from {$this->cache_file}");
             $cache = $this->loadCache();
             if ($cache !== null) {
-                $releases = $this->filterReleasesByChannel($cache);
-                return array_values(array_map(fn($r) => $r['tag_name'], $releases));
+                return array_values($this->filterReleasesByChannel($cache));
             }
         }
 
@@ -152,12 +164,10 @@ class GitHubReleases {
                 throw new \Exception("Failed to parse API response: " . json_last_error_msg());
             }
 
-            $filtered = $this->filterReleasesByChannel($data);
             $this->saveCache($data); // Сохраняем полные данные, фильтруем при использовании
-
-            $releases = array_values(array_map(fn($r) => $r['tag_name'], $filtered));
-            error_log("Retrieved " . count($releases) . " releases for channel '{$this->channel}'");
-            return $releases;
+            $filtered = array_values($this->filterReleasesByChannel($data));
+            error_log("Retrieved " . count($filtered) . " releases for channel '{$this->channel}'");
+            return $filtered;
         } catch (\Exception $e) {
             error_log("Failed to fetch releases: " . $e->getMessage());
             throw $e;
@@ -370,6 +380,57 @@ class GitHubReleases {
 
         $data = ["url" => $upd_archive_url, "md5" => $hash_md5];
         return $data;
+    }
+
+    /**
+     * Build the download URL + MD5 for a SPECIFIC release version's asset.
+     *
+     * Unlike getUpdateFile(), which always resolves to the latest via
+     * getLatestVersion(), this targets the exact $version passed — used by the
+     * rollback flow to fetch an older release.
+     *
+     * @param string $file_type "main" (panel) or "lb"/"lb_update" (load balancer).
+     * @param string $version   Exact release tag to fetch (e.g. "2.4.0").
+     * @return array{url:string,md5:?string}
+     * @throws \Exception On an invalid file type.
+     */
+    public function getVersionFile(string $file_type, string $version): array {
+        switch ($file_type) {
+            case "main":
+                $update_file = "xc_vm.tar.gz";
+                break;
+            case "lb":
+            case "lb_update":
+                $update_file = "loadbalancer.tar.gz";
+                break;
+            default:
+                throw new \Exception("Not valid file type");
+        }
+        $url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$version}/{$update_file}";
+
+        return ["url" => $url, "md5" => $this->getAssetHash($version, $update_file)];
+    }
+
+    /**
+     * List the newest $limit released versions strictly older than
+     * $current_version, newest first. Populates the rollback version picker. Each
+     * entry carries a `beta` flag (GitHub prerelease) so the UI can tag it.
+     *
+     * @param string $current_version Current version tag (e.g. "2.4.1").
+     * @param int    $limit           Max versions to return.
+     * @return array<int,array{version:string,beta:bool}> Older releases, newest first.
+     */
+    public function getPreviousVersions(string $current_version, int $limit = 5): array {
+        $older = array();
+        foreach ($this->getFilteredReleases() as $rRelease) {
+            $tag = (string) ($rRelease['tag_name'] ?? '');
+            if ($tag !== '' && version_compare($tag, $current_version, '<')) {
+                $older[] = array('version' => $tag, 'beta' => !empty($rRelease['prerelease']));
+            }
+        }
+        usort($older, static fn($a, $b) => version_compare($b['version'], $a['version']));
+
+        return array_slice($older, 0, max(1, $limit));
     }
 
     /**
