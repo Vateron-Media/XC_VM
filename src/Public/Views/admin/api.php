@@ -38,6 +38,7 @@ use XcVm\Domain\Vod\SeriesService;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Module\Watch\WatchService;
+use XcVm\Public\Controllers\Admin\TableController;
 use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Health\ProcessChecker;
 
@@ -47,8 +48,15 @@ include 'functions.php';
 session_write_close();
 
 if (!PHP_ERRORS) {
-	if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-		exit();
+	// The report/export download is opened via a full-page navigation (window.location),
+	// which never carries the X-Requested-With header. It stays gated by the session check
+	// below and the per-action `backups` permission, so exempt it from the XHR guard.
+	$rDirectActions = array('report');
+
+	if (!in_array(RequestManager::get('action'), $rDirectActions, true)) {
+		if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+			exit();
+		}
 	}
 }
 
@@ -3080,26 +3088,52 @@ if (isset($_SESSION['hash'])) {
 		}
 		if (RequestManager::get('action') == 'report') {
 			if (Authorization::check('adv', 'backups')) {
-				$rURL = pathinfo('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . $_SERVER['REQUEST_URI'])['dirname'] . '/table';
 				set_time_limit(60);
 				ini_set('memory_limit', '-1');
-				$rParams = json_decode(RequestManager::get('params'), true);
-
-				foreach (array() as $rKey) {
-					unset($rParams[$rKey]);
-				}
-				$rParams['api_user_id'] = $rUserInfo['id'];
+				$rParams = json_decode(RequestManager::get('params'), true) ?: array();
 				$rParams['report'] = true;
 				$rParams['start'] = 0;
 				$rParams['length'] = 100000;
-				$rData = json_decode(AdminHelpers::generateReport($rURL, $rParams), true);
-				header('Content-Type: text/csv; charset=utf-8');
-				header('Content-Disposition: attachment; filename=report_' . preg_replace('/[^A-Za-z0-9 ]/', '', $rParams['id']) . '_' . date('YmdHis') . '.csv');
+				$rParams['draw'] = 0;
 
-				if (0 >= count(($rData['data'] ?: array()))) {
-				} else {
-					echo file_get_contents(AdminHelpers::convertToCSV($rData['data']));
-				}
+				$rReportName = preg_replace('/[^A-Za-z0-9 ]/', '', ($rParams['id'] ?? 'report')) . '_' . date('YmdHis');
+				$rWantJson = RequestManager::get('format') === 'json';
+
+				// The old loopback curl to 127.0.0.1:<broadcast_port>/table is unreachable
+				// under the Front Controller, so dispatch the DataTables handler in-process
+				// (same pattern as AdminAPIWrapper::TableAPI). TableController echoes the JSON
+				// then exit()s, so capture that output from a shutdown hook and convert it to
+				// the requested download format.
+				register_shutdown_function(static function () use ($rReportName, $rWantJson) {
+					$rJson = ob_get_level() > 0 ? ob_get_clean() : '';
+					$rDecoded = json_decode((string) $rJson, true);
+					$rRows = (is_array($rDecoded) && !empty($rDecoded['data'])) ? $rDecoded['data'] : array();
+
+					if ($rWantJson) {
+						header('Content-Type: application/json; charset=utf-8');
+						header('Content-Disposition: attachment; filename=report_' . $rReportName . '.json');
+						echo json_encode($rRows, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+						return;
+					}
+
+					header('Content-Type: text/csv; charset=utf-8');
+					header('Content-Disposition: attachment; filename=report_' . $rReportName . '.csv');
+
+					if (0 < count($rRows)) {
+						echo file_get_contents(AdminHelpers::convertToCSV($rRows));
+					}
+				});
+
+				// Authenticate the in-process dispatch via the loopback + api_user_id branch
+				// in TableController::index() (avoids its session/functions.php include path).
+				$rParams['api_user_id'] = $rUserInfo['id'];
+				RequestManager::set(array_merge(RequestManager::getAll(), $rParams));
+				$_SERVER['HTTP_X_REQUESTED_WITH'] = 'xmlhttprequest';
+				$_SERVER['REMOTE_ADDR'] = '127.0.0.1';
+
+				ob_start();
+				(new TableController())->index();
 
 				exit();
 			} else {

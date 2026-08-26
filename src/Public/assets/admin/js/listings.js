@@ -4451,3 +4451,26 @@ window.XC_VM = window.XC_VM || {}, window.XC_VM.Affixer = function () {
             O(), p(f()), h(), m(), v(), j(), I(), g(), L(), T(s.startDateTime), XC_VM.Listings.TimeSelector.init()
         }, t
     }(jQuery, window.XC_VM.EnvConfigHelper), window.XC_VM = window.XC_VM || {}, window.XC_VM.Listings = window.XC_VM.Listings || {}, (jQuery), window.XC_VM = window.XC_VM || {}, window.XC_VM.Listings = window.XC_VM.Listings || {};
+;(function ($) {
+    // Export the current listing as JSON, mirroring the "Export as CSV" button.
+    // The button is rendered by the topbar, so the handler is delegated. It targets the
+    // visible server-side "./table" DataTable (the main listing), ignoring hidden modal tables.
+    $(document).on('click', '#btn-export-json', function () {
+        if (!$.fn.dataTable) { return; }
+        var picked = null;
+        $($.fn.dataTable.tables({ visible: true })).each(function () {
+            if (picked) { return; }
+            var api = $(this).DataTable();
+            var url = '';
+            try { url = api.ajax.url() || ''; } catch (e) {}
+            if (/(^|\/)table(\?|$)/.test(url)) { picked = api; }
+        });
+        if (!picked) {
+            var visible = $.fn.dataTable.tables({ visible: true });
+            if (visible.length) { picked = $(visible[0]).DataTable(); }
+        }
+        if (!picked) { return; }
+        $.toast('Generating JSON report...');
+        window.location.href = 'api?action=report&format=json&params=' + encodeURIComponent(JSON.stringify(picked.ajax.params()));
+    });
+})(jQuery);
