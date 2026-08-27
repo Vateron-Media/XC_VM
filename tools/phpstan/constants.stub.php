@@ -78,7 +78,7 @@ if (!defined('PLAYER_TMP_PATH')) define('PLAYER_TMP_PATH', (string) mt_rand());
 if (!defined('PLAYLIST_PATH')) define('PLAYLIST_PATH', (string) mt_rand());
 if (!defined('SEGMENT_DURATION')) define('SEGMENT_DURATION', mt_rand());
 if (!defined('SERIES_TMP_PATH')) define('SERIES_TMP_PATH', (string) mt_rand());
-if (!defined('SERVER_ID')) define('SERVER_ID', (string) mt_rand());
+if (!defined('SERVER_ID')) define('SERVER_ID', mt_rand());
 if (!defined('SIGNALS_PATH')) define('SIGNALS_PATH', (string) mt_rand());
 if (!defined('SIGNALS_TMP_PATH')) define('SIGNALS_TMP_PATH', (string) mt_rand());
 if (!defined('STATUS_CERTBOT')) define('STATUS_CERTBOT', mt_rand());

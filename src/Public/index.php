@@ -2,6 +2,7 @@
 
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\ModuleLoader;
+use XcVm\Infrastructure\Bootstrap\ScopeBootstrapFactory;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
 use XcVm\Public\Controllers\Api\AdminApiController;
@@ -198,16 +199,6 @@ if ($scope === 'ministra') {
 $adminDir = ($scope === 'admin') ? MAIN_HOME . 'Public/Views/admin/' : MAIN_HOME . $scope . '/';
 @chdir(is_dir($adminDir) ? $adminDir : MAIN_HOME);
 
-// scope → [session file, functions file]; unknown scopes (e.g. ministra) use admin.
-$rBootstrapFiles = [
-    'reseller' => ['reseller_session.php', 'reseller_functions.php'],
-    'player'   => ['player_session.php',   'player_functions.php'],
-    'admin'    => ['admin_session_fc.php', 'admin_functions_fc.php'],
-];
-[$rSessionName, $rFunctionsName] = $rBootstrapFiles[$scope] ?? $rBootstrapFiles['admin'];
-$sessionFile   = MAIN_HOME . 'Infrastructure/Bootstrap/' . $rSessionName;
-$functionsFile = MAIN_HOME . 'Infrastructure/Bootstrap/' . $rFunctionsName;
-
 if ($scope === 'player') {
     $noBootstrapPages = ['login'];
 } else {
@@ -229,14 +220,10 @@ if (in_array($pageName, $noBootstrapPages, true)) {
     exit;
 }
 
-// 7b. Bootstrap (session → functions → includes/admin)
-if (file_exists($sessionFile)) {
-    require $sessionFile;
-}
-
-if (file_exists($functionsFile)) {
-    require $functionsFile;
-}
+// 7b. Bootstrap the request scope: session lifecycle → framework + user context.
+// Replaces the former per-scope <scope>_session.php + <scope>_functions.php
+// includes; unknown scopes (e.g. ministra) fall back to admin.
+ScopeBootstrapFactory::create($scope)->boot();
 
 // 8. Загрузка маршрутов
 $router = Router::getInstance();

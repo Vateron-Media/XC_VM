@@ -36,7 +36,7 @@ class BasePlayerController extends BaseAdminController
      */
     protected function requirePermission()
     {
-        // Player авторизация обрабатывается bootstrap (player_session.php).
+        // Player авторизация обрабатывается bootstrap (PlayerScopeBootstrap).
         // Если пользователь дошёл до контроллера — он уже аутентифицирован.
     }
 
