@@ -2679,6 +2679,7 @@ class TableController extends BaseAdminController {
 				$rStart = 0;
 				$rLimit = 1000;
 				$rKeys = explode(",", RequestManager::get("refresh"));
+				$rKeyCount = count($rKeys);
 			} else {
 				$rServerID = 0 < (int)(RequestManager::get("server_id") ?? 0) ? (int)(RequestManager::get("server_id") ?? 0) : NULL;
 				$rStreamID = 0 < (int)(RequestManager::get("stream_id") ?? 0) ? (int)(RequestManager::get("stream_id") ?? 0) : NULL;
