@@ -66,7 +66,7 @@ class SeriesService {
 			$rArray['cover_big'] = $rData['cover'];
 			$rBouquetCreate = array();
 
-			foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+			foreach ((json_decode($rData['bouquet_create_list'] ?? '', true) ?: array()) as $rBouquet) {
 				$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 				$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -78,7 +78,7 @@ class SeriesService {
 			}
 			$rCategoryCreate = array();
 
-			foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+			foreach ((json_decode($rData['category_create_list'] ?? '', true) ?: array()) as $rCategory) {
 				$rPrepare = QueryHelper::prepareArray(array('category_type' => 'series', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 				$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -273,7 +273,7 @@ class SeriesService {
 				if (0 < count($rImportStreams)) {
 					$rBouquets = array();
 
-					foreach (json_decode($rData['bouquet_create_list'], true) as $rBouquet) {
+					foreach ((json_decode($rData['bouquet_create_list'] ?? '', true) ?: array()) as $rBouquet) {
 						$rPrepare = QueryHelper::prepareArray(array('bouquet_name' => $rBouquet, 'bouquet_channels' => array(), 'bouquet_movies' => array(), 'bouquet_series' => array(), 'bouquet_radios' => array()));
 						$rQuery = 'INSERT INTO `bouquets`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -293,7 +293,7 @@ class SeriesService {
 
 					$rCategories = array();
 
-					foreach (json_decode($rData['category_create_list'], true) as $rCategory) {
+					foreach ((json_decode($rData['category_create_list'] ?? '', true) ?: array()) as $rCategory) {
 						$rPrepare = QueryHelper::prepareArray(array('category_type' => 'series', 'category_name' => $rCategory, 'parent_id' => 0, 'cat_order' => 99, 'is_adult' => 0));
 						$rQuery = 'INSERT INTO `streams_categories`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 

@@ -765,12 +765,12 @@ class PlayerApiController {
 
 				$rating = isset($output['info']['rating']) && is_numeric($output['info']['rating']) ? floatval($output['info']['rating']) : 0.0;
 
-				$output['info'] = json_decode($rRow['movie_properties'], true);
-				$output['info']['tmdb_id'] = intval($output['info']['tmdb_id']);
-				$output['info']['episode_run_time'] = intval($output['info']['episode_run_time']);
-				$output['info']['releasedate'] = $output['info']['release_date'];
-				$output['info']['cover_big'] = ImageUtils::validateURL($output['info']['cover_big']);
-				$output['info']['movie_image'] = ImageUtils::validateURL($output['info']['movie_image']);
+				$output['info'] = json_decode($rRow['movie_properties'] ?? '', true) ?: array();
+				$output['info']['tmdb_id'] = intval($output['info']['tmdb_id'] ?? 0);
+				$output['info']['episode_run_time'] = intval($output['info']['episode_run_time'] ?? 0);
+				$output['info']['releasedate'] = $output['info']['release_date'] ?? '';
+				$output['info']['cover_big'] = ImageUtils::validateURL($output['info']['cover_big'] ?? '');
+				$output['info']['movie_image'] = ImageUtils::validateURL($output['info']['movie_image'] ?? '');
 				$output['info']['rating'] = number_format($rating, 2) + 0;
 
 				if (!empty($output['info']['backdrop_path']) && is_array($output['info']['backdrop_path'])) {

@@ -2316,7 +2316,7 @@ class TableController extends BaseAdminController {
 						} else {
 							$rPlayer = "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-play\"></i></button>";
 						}
-						if (0 < strlen($rProperties["movie_image"]) && SettingsManager::getAll()["show_images"]) {
+						if (0 < strlen($rProperties["movie_image"] ?? "") && SettingsManager::getAll()["show_images"]) {
 							$rImage = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties["movie_image"] . "'><img loading='lazy' src='resize?maxh=58&maxw=32&url=" . $rProperties["movie_image"] . "' /></a>";
 						} else {
 							$rImage = "";
@@ -3325,7 +3325,7 @@ class TableController extends BaseAdminController {
 						}
 						$rYear = $rRow["year"] ? "<strong>" . $rRow["year"] . "</strong> &nbsp;" : "";
 						$rStreamName = $rRow["stream_display_name"] . "<br><span style='font-size:11px;'>" . $rYear . $rRatingText . "</span>";
-						if (0 < strlen($rProperties["movie_image"]) && SettingsManager::getAll()["show_images"]) {
+						if (0 < strlen($rProperties["movie_image"] ?? "") && SettingsManager::getAll()["show_images"]) {
 							$rImage = "<a href='javascript: void(0);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties["movie_image"] . "'><img loading='lazy' src='resize?maxh=58&maxw=32&url=" . $rProperties["movie_image"] . "' /></a>";
 						} else {
 							$rImage = "";

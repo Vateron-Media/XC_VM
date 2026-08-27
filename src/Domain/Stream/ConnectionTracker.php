@@ -240,16 +240,20 @@ class ConnectionTracker {
 	 * @return void
 	 */
 	public static function removeFromQueue(int $rStreamID, int $rPID): void {
+		$rQueueFile = SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID);
+		if (!file_exists($rQueueFile)) {
+			return;
+		}
 		$rActivePIDs = array();
-		foreach ((igbinary_unserialize(file_get_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID))) ?: array()) as $rActivePID) {
+		foreach ((igbinary_unserialize(file_get_contents($rQueueFile)) ?: array()) as $rActivePID) {
 			if (ProcessManager::isRunning($rActivePID, 'php-fpm') && $rPID != $rActivePID) {
 				$rActivePIDs[] = $rActivePID;
 			}
 		}
 		if (0 < count($rActivePIDs)) {
-			file_put_contents(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID), igbinary_serialize($rActivePIDs), LOCK_EX);
+			file_put_contents($rQueueFile, igbinary_serialize($rActivePIDs), LOCK_EX);
 		} else {
-			@unlink(SIGNALS_TMP_PATH . 'queue_' . intval($rStreamID));
+			@unlink($rQueueFile);
 		}
 	}
 
@@ -946,6 +950,7 @@ class ConnectionTracker {
 				}
 			}
 			if (is_array($rActivityInfo)) {
+				$rActivityInfo += array('server_id' => 0, 'pid' => 0, 'activity_id' => null, 'stream_id' => 0, 'uuid' => '', 'hls_end' => 1);
 				if (($rActivityInfo['container'] ?? '') == 'rtmp') {
 					if ($rActivityInfo['server_id'] == SERVER_ID) {
 						shell_exec('wget --timeout=2 -O /dev/null -o /dev/null "' . $rServers[SERVER_ID]['rtmp_mport_url'] . 'control/drop/client?clientid=' . intval($rActivityInfo['pid']) . '" >/dev/null 2>/dev/null &');

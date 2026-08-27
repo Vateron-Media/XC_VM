@@ -1475,7 +1475,7 @@ if (isset($_SESSION['hash'])) {
 					$rIOStat = json_decode($rData['iostat_info'], true);
 
 					if ($rIOStat) {
-						$rTotalIO += $rIOStat['avg-cpu']['iowait'];
+						$rTotalIO += $rIOStat['avg-cpu']['iowait'] ?? 0;
 						$rIOCount++;
 					}
 
@@ -1561,7 +1561,7 @@ if (isset($_SESSION['hash'])) {
 
 						if (!isset($rWatchDog['iostat_info'])) {
 						} else {
-							$rReturn['io'] = round($rWatchDog['iostat_info']['avg-cpu']['iowait'], 0);
+							$rReturn['io'] = round($rWatchDog['iostat_info']['avg-cpu']['iowait'] ?? 0, 0);
 						}
 
 						if (!isset($rWatchDog['total_disk_space'])) {
@@ -1713,7 +1713,7 @@ if (isset($_SESSION['hash'])) {
 								$rArray['cpu'] = round($rWatchDog['cpu'], 0);
 
 								if (isset($rWatchDog['iostat_info'])) {
-									$rArray['io'] = round($rWatchDog['iostat_info']['avg-cpu']['iowait'], 0);
+									$rArray['io'] = round($rWatchDog['iostat_info']['avg-cpu']['iowait'] ?? 0, 0);
 								}
 
 								if (isset($rWatchDog['total_disk_space'])) {
@@ -2401,7 +2401,7 @@ if (isset($_SESSION['hash'])) {
 				}
 
 				if (!empty($rStreamInfo['streams']) && is_array($rStreamInfo['streams'])) {
-					$rInfo = array();
+					$rInfo = array('width' => 0, 'height' => 0, 'vbitrate' => 0, 'vcodec' => '', 'fps' => 0, 'abitrate' => 0, 'acodec' => '');
 
 					foreach ($rStreamInfo['streams'] as $rCodec) {
 						if ($rCodec['codec_type'] == 'video') {

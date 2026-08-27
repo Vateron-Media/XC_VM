@@ -33,7 +33,7 @@ class ShutdownHandler {
         $rSettings = CacheReader::get('settings');
 
         if ($rCloseCon) {
-            if ($rSettings['redis_handler']) {
+            if (!empty($rSettings['redis_handler'])) {
                 if (!RedisManager::isConnected()) {
                     RedisManager::ensureConnected();
                 }
@@ -71,9 +71,9 @@ class ShutdownHandler {
         }
 
         // Закрытие ресурсов
-        if (!$rSettings['redis_handler'] && is_object($db)) {
+        if (empty($rSettings['redis_handler']) && is_object($db)) {
             DatabaseFactory::close();
-        } elseif ($rSettings['redis_handler'] && RedisManager::isConnected()) {
+        } elseif (!empty($rSettings['redis_handler']) && RedisManager::isConnected()) {
             RedisManager::closeInstance();
         }
     }
