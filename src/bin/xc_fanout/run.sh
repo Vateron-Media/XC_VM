@@ -39,7 +39,7 @@ while true; do
       -ctl "$FANOUT_DIR/sockets/control.sock" \
       -ffmpeg "${FF:-ffmpeg}" \
       -font "$SCRIPT/bin/free-sans.ttf" \
-      >>"$SCRIPT/tmp/xc_fanout.log" 2>&1
+      >"$FANOUT_DIR/xc_fanout.log" 2>&1
   fi
   sleep 2
 done
