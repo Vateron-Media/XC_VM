@@ -20,8 +20,6 @@ use XcVm\Streaming\Health\ProcessChecker;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once __DIR__ . '/../DaemonTrait.php';
-
 class QueueCommand implements CommandInterface {
 	use DaemonTrait;
 

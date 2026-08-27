@@ -16,8 +16,6 @@ use XcVm\Domain\Stream\StreamProcess;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once __DIR__ . '/../CronTrait.php';
-
 class ProvidersCronJob implements CommandInterface {
     use CronTrait;
 

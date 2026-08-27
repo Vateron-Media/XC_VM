@@ -8,8 +8,6 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Updates\GitHubReleases;
 
-require_once __DIR__ . '/../CronTrait.php';
-
 /**
  * MaxMindCronJob — weekly GeoIP database update via MaxMind API or GitHub fallback.
  *

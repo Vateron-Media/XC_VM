@@ -19,8 +19,6 @@ use XcVm\Core\Process\ProcessManager;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once __DIR__ . '/../CronTrait.php';
-
 class CacheEngineCronJob implements CommandInterface {
     use CronTrait;
 
@@ -71,9 +69,6 @@ class CacheEngineCronJob implements CommandInterface {
         } else {
             shell_exec("kill -9 \$(ps aux | grep 'cache_engine' | grep -v grep | grep -v " . $this->rPID . " | awk '{print \$2}')");
         }
-
-        require_once MAIN_HOME . 'Core/Process/Thread.php';
-        require_once MAIN_HOME . 'Core/Process/Multithread.php';
 
         $this->loadCron($rType, $rGroupStart, $rGroupMax);
 

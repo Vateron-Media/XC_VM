@@ -19,8 +19,6 @@ use XcVm\Core\Updates\GitHubReleases;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once __DIR__ . '/../CronTrait.php';
-
 class UpdateCronJob implements CommandInterface {
     use CronTrait;
 

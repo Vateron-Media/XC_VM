@@ -81,7 +81,7 @@ use XcVm\Infrastructure\Redis\RedisManager;
 // require_once paths below. Defined here now that the legacy autoload.php (which
 // used to define it) has been removed.
 if (!defined('MAIN_HOME')) {
-	define('MAIN_HOME', __DIR__ . '/');
+    define('MAIN_HOME', __DIR__ . '/');
 }
 
 // Composer PSR-4 autoloader — resolves every XcVm\* class; modules load via
@@ -343,7 +343,6 @@ class XC_Bootstrap {
         require_once MAIN_HOME . 'Core/Config/Paths.php';
         require_once MAIN_HOME . 'Core/Config/AppConfig.php';
         require_once MAIN_HOME . 'Core/Config/Binaries.php';
-        require_once MAIN_HOME . 'Core/Logging/Logger.php';
 
         self::$devMode = DEV_MODE;
 
@@ -447,8 +446,6 @@ class XC_Bootstrap {
 
         global $db;
 
-        require_once MAIN_HOME . 'Core/Database/DatabaseHandler.php';
-
         $db = new DatabaseHandler();
 
         self::$databaseReady = true;
@@ -469,8 +466,6 @@ class XC_Bootstrap {
         }
 
         global $db;
-
-        require_once MAIN_HOME . 'Core/Init/LegacyInitializer.php';
 
         DatabaseFactory::set($db);
 
@@ -531,8 +526,6 @@ class XC_Bootstrap {
      * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
-        require_once MAIN_HOME . 'Core/Localization/Translator.php';
-
         $language = Translator::class;
         $language::init(MAIN_HOME . 'resources/langs/');
     }
@@ -646,7 +639,7 @@ class XC_Bootstrap {
         if ($missing !== []) {
             throw new RuntimeException(
                 'ServiceContainer health check failed — missing required services: '
-                . implode(', ', $missing)
+                    . implode(', ', $missing)
             );
         }
     }
@@ -672,8 +665,8 @@ class XC_Bootstrap {
      */
     private static function initAdminGlobals(): void {
         global $rDetect, $rMobile, $rTimeout, $rSQLTimeout, $rProtocol,
-               $allServers, $rServers, $rSettings, $rProxyServers,
-               $rPermissions, $language, $allowedLangs;
+            $allServers, $rServers, $rSettings, $rProxyServers,
+            $rPermissions, $language, $allowedLangs;
 
         if (!defined('SERVER_ID')) {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));

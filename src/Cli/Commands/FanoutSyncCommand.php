@@ -9,8 +9,6 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Fanout\FanoutClient;
 
-require_once __DIR__ . '/../DaemonTrait.php';
-
 /**
  * FanoutSyncCommand — reconcile xc_fanout live-TS connections (ADR 0003, Phase C).
  *

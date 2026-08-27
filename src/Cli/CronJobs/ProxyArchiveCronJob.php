@@ -8,8 +8,6 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
 
-require_once __DIR__ . '/../CronTrait.php';
-
 /**
  * ProxyArchiveCronJob — keep the local proxy.tar.gz fresh from XC_VM_Proxy releases.
  *

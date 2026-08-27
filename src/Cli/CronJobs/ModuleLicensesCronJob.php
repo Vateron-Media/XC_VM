@@ -8,8 +8,6 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleManager;
 
-require_once __DIR__ . '/../CronTrait.php';
-
 /**
  * ModuleLicensesCronJob — keep per-machine ionCube licenses for platform modules
  * fresh.

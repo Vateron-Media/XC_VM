@@ -16,8 +16,6 @@ use XcVm\Core\Module\ModuleLoader;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once __DIR__ . '/../DaemonTrait.php';
-
 class StartupCommand implements CommandInterface {
 	use DaemonTrait;
 

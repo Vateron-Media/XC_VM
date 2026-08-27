@@ -18,8 +18,6 @@ use XcVm\Domain\Epg\EPG;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-require_once __DIR__ . '/../CronTrait.php';
-
 class EpgCronJob implements CommandInterface {
     use CronTrait;
 
@@ -46,8 +44,6 @@ class EpgCronJob implements CommandInterface {
 
         set_time_limit(0);
         ini_set('memory_limit', -1);
-
-        require MAIN_HOME . 'Core/Parsing/XmlStringStreamer.php';
 
         shell_exec('kill -9 `ps -ef | grep \'XC_VM\\[EPG\\]\' | grep -v grep | awk \'{print $2}\'`;');
         cli_set_process_title('XC_VM[EPG]');

@@ -21,11 +21,26 @@ use XcVm\Core\Storage\DropboxClient;
 class BackupService {
 
 	private static array $ignoreTables = [
-		'detect_restream_logs', 'epg_data', 'lines_activity', 'lines_live',
-		'lines_logs', 'login_logs', 'mag_claims', 'mag_logs', 'mysql_syslog',
-		'panel_logs', 'panel_stats', 'servers_stats', 'signals',
-		'streams_errors', 'streams_logs', 'streams_stats', 'syskill_log',
-		'users_credits_logs', 'users_logs', 'watch_logs',
+		'detect_restream_logs',
+		'epg_data',
+		'lines_activity',
+		'lines_live',
+		'lines_logs',
+		'login_logs',
+		'mag_claims',
+		'mag_logs',
+		'mysql_syslog',
+		'panel_logs',
+		'panel_stats',
+		'servers_stats',
+		'signals',
+		'streams_errors',
+		'streams_logs',
+		'streams_stats',
+		'syskill_log',
+		'users_credits_logs',
+		'users_logs',
+		'watch_logs',
 	];
 
 	/**
@@ -103,7 +118,6 @@ class BackupService {
 	 * @return bool True if the Dropbox token works and files can be listed.
 	 */
 	public static function checkRemoteConnection() {
-		require_once MAIN_HOME . 'Core/Storage/DropboxClient.php';
 
 		try {
 			$rClient = new DropboxClient();
@@ -122,7 +136,6 @@ class BackupService {
 	 * @return array[] Backup file metadata (with a 'time' timestamp).
 	 */
 	public static function getRemote() {
-		require_once MAIN_HOME . 'Core/Storage/DropboxClient.php';
 
 		try {
 			$rClient = new DropboxClient();
@@ -157,7 +170,6 @@ class BackupService {
 	 * @return bool True on success.
 	 */
 	public static function downloadRemote($rPath, $rFilename) {
-		require_once MAIN_HOME . 'Core/Storage/DropboxClient.php';
 		$rClient = new DropboxClient();
 
 		try {
@@ -179,7 +191,6 @@ class BackupService {
 	 * @return mixed Upload result, or an object with an 'error' key on failure.
 	 */
 	public static function uploadRemote($rPath, $rFilename, $rOverwrite = true) {
-		require_once MAIN_HOME . 'Core/Storage/DropboxClient.php';
 		$rClient = new DropboxClient();
 
 		try {
@@ -198,7 +209,6 @@ class BackupService {
 	 * @return bool True on success.
 	 */
 	public static function deleteRemote($rPath) {
-		require_once MAIN_HOME . 'Core/Storage/DropboxClient.php';
 		$rClient = new DropboxClient();
 
 		try {
