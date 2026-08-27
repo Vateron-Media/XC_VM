@@ -143,7 +143,7 @@ class Authenticator {
 			return array('status' => STATUS_SUCCESS);
 		}
 
-		if ($rPermissions && ($rPermissions['is_admin'] || $rPermissions['is_reseller']) && !$rUserInfo['status']) {
+		if (!$rUserInfo['status']) {
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('ADMIN', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'DISABLED', $rIP, time());
 			}
@@ -208,7 +208,7 @@ class Authenticator {
 			return array('status' => STATUS_SUCCESS);
 		}
 
-		if ($rPermissions && ($rPermissions['is_admin'] || $rPermissions['is_reseller']) && !$rUserInfo['status']) {
+		if (!$rUserInfo['status']) {
 			if (!empty($rSettings['save_login_logs'])) {
 				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, ?, ?, ?, ?);", $rAccessCode['id'], $rUserInfo['id'], 'DISABLED', $rIP, time());
 			}

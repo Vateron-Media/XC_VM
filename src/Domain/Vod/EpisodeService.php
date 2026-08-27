@@ -63,7 +63,7 @@ class EpisodeService {
 		if (0 < strlen($rMovieSubtitles)) {
 			$rSplit = explode(':', $rMovieSubtitles);
 			if (2 < count($rSplit) && 0 < strlen($rSplit[2])) {
-				$rArray['movie_subtitles'] = array('files' => array($rSplit[2]), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => intval($rSplit[1] ?? 0));
+				$rArray['movie_subtitles'] = array('files' => array($rSplit[2]), 'names' => array('Subtitles'), 'charset' => array('UTF-8'), 'location' => intval($rSplit[1]));
 			} else {
 				$rArray['movie_subtitles'] = null;
 			}
@@ -187,6 +187,7 @@ class EpisodeService {
 		}
 
 		$rRestartIDs = array();
+		$rInsertID = 0;
 
 		foreach ($rProcessArray as $rImportArray) {
 			$rArray['stream_source'] = array($rImportArray['filename']);

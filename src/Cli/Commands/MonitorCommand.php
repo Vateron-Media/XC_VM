@@ -352,7 +352,6 @@ class MonitorCommand implements CommandInterface {
 						$rData = StreamProcess::startStream($rStreamID, $rTotalCalls < MONITOR_CALLS, $rForceSource);
 					}
 					if ((is_numeric($rData) && ($rData == 0))) {
-						$rStartFailed = true;
 						$rMaxFails++;
 						if (((0 < SettingsManager::get('stop_failures')) && ($rMaxFails >= SettingsManager::get('stop_failures')))) {
 							echo "Failure limit reached, exiting.\n";
@@ -367,62 +366,60 @@ class MonitorCommand implements CommandInterface {
 				if (!$rData) {
 					return 0;
 				}
-				if (!$rStartFailed) {
-					$rPID = intval($rData['main_pid']);
-					if ($rPID) {
-						file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
+				$rPID = intval($rData['main_pid']);
+				if ($rPID) {
+					file_put_contents(STREAMS_PATH . $rStreamID . '_.pid', $rPID);
+				}
+				$rPlaylist = $rData['playlist'];
+				$rDelay = $rData['delay_enabled'];
+				$rStreamInfo['delay_available_at'] = $rData['delay_start_at'];
+				$rParentID = $rData['parent_id'];
+				if (0 >= $rParentID) {
+					$rCurrentSource = trim($rData['stream_source'], '\'"');
+				} else {
+					$rCurrentSource = 'Loopback: #' . $rParentID;
+				}
+				$rOffset = $rData['offset'];
+				$rStreamProbe = true;
+				echo "Stream started\n";
+				echo $rCurrentSource . "\n";
+				if ($rPrioritySwitch) {
+					$rForceSource = null;
+					$rPrioritySwitch = false;
+				}
+				if (!$rDelay) {
+					$rFolder = STREAMS_PATH;
+				} else {
+					$rFolder = DELAY_PATH;
+				}
+				$rFirstSegment = $rFolder . $rStreamID . '_0.ts';
+				$rSegmentSeen = false;
+				$rChecks = 0;
+				$rMaxChecks = max(20, min($rSegmentTime * 3, 30));
+				while (true) {
+					echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $rMaxChecks . "...\n";
+					if (!ProcessManager::isStreamRunning($rPID, $rStreamID)) {
+						echo "Ffmpeg stopped running\n";
+						$rStartFailed = true;
+						break;
 					}
-					$rPlaylist = $rData['playlist'];
-					$rDelay = $rData['delay_enabled'];
-					$rStreamInfo['delay_available_at'] = $rData['delay_start_at'];
-					$rParentID = $rData['parent_id'];
-					if (0 >= $rParentID) {
-						$rCurrentSource = trim($rData['stream_source'], '\'"');
-					} else {
-						$rCurrentSource = 'Loopback: #' . $rParentID;
+					if (file_exists($rPlaylist)) {
+						echo "Playlist exists!\n";
+						break;
 					}
-					$rOffset = $rData['offset'];
-					$rStreamProbe = true;
-					echo "Stream started\n";
-					echo $rCurrentSource . "\n";
-					if ($rPrioritySwitch) {
-						$rForceSource = null;
-						$rPrioritySwitch = false;
+					if ((file_exists($rFirstSegment) && !$rSegmentSeen && $rStreamInfo['on_demand'])) {
+						echo "Segment exists!\n";
+						$rSegmentSeen = true;
+						$rChecks = 0;
+						$db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
 					}
-					if (!$rDelay) {
-						$rFolder = STREAMS_PATH;
-					} else {
-						$rFolder = DELAY_PATH;
+					if (($rChecks == $rMaxChecks)) {
+						echo "Reached max failures\n";
+						$rStartFailed = true;
+						break;
 					}
-					$rFirstSegment = $rFolder . $rStreamID . '_0.ts';
-					$rSegmentSeen = false;
-					$rChecks = 0;
-					$rMaxChecks = max(20, min($rSegmentTime * 3, 30));
-					while (true) {
-						echo 'Checking for playlist ' . ($rChecks + 1) . '/' . $rMaxChecks . "...\n";
-						if (!ProcessManager::isStreamRunning($rPID, $rStreamID)) {
-							echo "Ffmpeg stopped running\n";
-							$rStartFailed = true;
-							break;
-						}
-						if (file_exists($rPlaylist)) {
-							echo "Playlist exists!\n";
-							break;
-						}
-						if ((file_exists($rFirstSegment) && !$rSegmentSeen && $rStreamInfo['on_demand'])) {
-							echo "Segment exists!\n";
-							$rSegmentSeen = true;
-							$rChecks = 0;
-							$db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
-						}
-						if (($rChecks == $rMaxChecks)) {
-							echo "Reached max failures\n";
-							$rStartFailed = true;
-							break;
-						}
-						$rChecks++;
-						sleep(1);
-					}
+					$rChecks++;
+					sleep(1);
 				}
 				SettingsManager::set(SettingsRepository::getAll());
 				if (ProcessManager::isStreamRunning($rPID, $rStreamID) && !$rStartFailed) {
@@ -435,6 +432,7 @@ class MonitorCommand implements CommandInterface {
 					}
 					$rSegment = $rFolder . StreamUtils::getPlaylistSegments($rPlaylist, 10)[0];
 					$rStreamInfo['stream_info'] = null;
+					$rBitrate = 0;
 					if (file_exists($rSegment)) {
 						$rProbe = FFprobeRunner::probeStream($rSegment);
 						list($rProbe, $rSegmentTime) = self::persistSegmentDuration($rProbe, $rStreamID, $rSegmentTime);
@@ -450,11 +448,7 @@ class MonitorCommand implements CommandInterface {
 					list($rCompatible, $rAudioCodec, $rVideoCodec, $rResolution) = self::resolveStreamCodecMeta($rStreamInfo['stream_info'], SettingsManager::get('player_allow_hevc'));
 
 					if (!$rSegmentSeen && $rStreamInfo['stream_info'] && $rStreamInfo['on_demand']) {
-						if ($rStreamInfo['stream_info']) {
-							$db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), time() - $rOffset, $rStreamInfo['server_stream_id']);
-						} else {
-							$db->query('UPDATE `streams_servers` SET `stream_status` = 0, `stream_info` = NULL, `compatible` = 0, `audio_codec` = NULL, `video_codec` = NULL, `resolution` = NULL, `stream_started` = ? WHERE `server_stream_id` = ?', time() - $rOffset, $rStreamInfo['server_stream_id']);
-						}
+						$db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0, `stream_started` = ? WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), time() - $rOffset, $rStreamInfo['server_stream_id']);
 					} else {
 						$db->query('UPDATE `streams_servers` SET `stream_info` = ?, `compatible` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `bitrate` = ?, `stream_status` = 0 WHERE `server_stream_id` = ?', $rStreamInfo['stream_info'], $rCompatible, $rAudioCodec, $rVideoCodec, $rResolution, intval($rBitrate), $rStreamInfo['server_stream_id']);
 					}
@@ -467,7 +461,7 @@ class MonitorCommand implements CommandInterface {
 					if (($rParentID == 0)) {
 						StreamProcess::streamLog($rStreamID, SERVER_ID, 'STREAM_START_FAIL', $rCurrentSource);
 					}
-					if ((is_numeric($rPID) && (0 < $rPID) && ProcessManager::isStreamRunning($rPID, $rStreamID))) {
+					if (((0 < $rPID) && ProcessManager::isStreamRunning($rPID, $rStreamID))) {
 						shell_exec('kill -9 ' . intval($rPID));
 					}
 					$db->query('UPDATE `streams_servers` SET `pid` = null, `stream_status` = 1 WHERE `server_stream_id` = ?;', $rStreamInfo['server_stream_id']);
@@ -592,7 +586,7 @@ class MonitorCommand implements CommandInterface {
 		} else {
 			if (file_exists('/proc/' . $rPID)) {
 				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-				if ($rCommand == 'XC_VM[' . $rStreamID . ']' && is_numeric($rPID) && $rPID > 0) {
+				if ($rCommand == 'XC_VM[' . $rStreamID . ']' && $rPID > 0) {
 					posix_kill($rPID, 9);
 				}
 			}

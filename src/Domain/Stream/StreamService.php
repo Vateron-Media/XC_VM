@@ -139,6 +139,7 @@ class StreamService {
 							foreach ($rResults as $rResult) {
 								$rTags = $rResult->getExtTags();
 								$rTag = $rTags[0] ?? null;
+								$rTag = ($rTag instanceof \M3uParser\Tag\ExtInf) ? $rTag : null;
 
 								if ($rTag && $rTag->getAttribute('tvg-id')) {
 									$rID = $rTag->getAttribute('tvg-id');
@@ -175,6 +176,7 @@ class StreamService {
 							foreach ($rResults as $rResult) {
 								$rTags = $rResult->getExtTags();
 								$rTag = $rTags[0] ?? null;
+								$rTag = ($rTag instanceof \M3uParser\Tag\ExtInf) ? $rTag : null;
 								$rURL = $rResult->getPath();
 
 								if ($rURL) {
@@ -284,6 +286,8 @@ class StreamService {
 					}
 				}
 			}
+
+			$rInsertID = 0;
 
 			foreach ($rImportStreams as $rImportStream) {
 				if (!($rImportStream['update'] ?? false)) {
@@ -808,7 +812,7 @@ class StreamService {
 	 *
 	 * @param mixed $rData Playlist file path or raw M3U content.
 	 * @param bool  $rFile Treat $rData as a file path (true) or content (false).
-	 * @return array Parsed playlist entries (iterable, countable).
+	 * @return \M3uParser\M3uData Parsed playlist entries (iterable, countable).
 	 */
 	public static function parseM3U($rData, $rFile = true) {
 		$rParser = new \M3uParser\M3uParser();
@@ -840,6 +844,7 @@ class StreamService {
 	 */
 	public static function getArchive($rStreamID) {
 		$db = self::db();
+		/** @var array<int, array<string, mixed>> $rReturn Archive ranges keyed by EPG index, accumulated across $rFiles. */
 		$rReturn = array();
 		$rStream = StreamRepository::getById($rStreamID);
 		$rEPG = EpgService::getChannelEpg($rStream, true);

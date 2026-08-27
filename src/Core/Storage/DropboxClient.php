@@ -34,11 +34,9 @@ class DropboxClient {
 	 *
 	 * @param array $app_params ['app_key' => ..., 'app_secret' => ..., 'app_full_access' => ...]
 	 *
-	 * @param string $_deprecatedLocale Deprecated.
-	 *
 	 * @throws DropboxException
 	 */
-	public function __construct($app_params = array(), $_deprecatedLocale = 'en') {
+	public function __construct($app_params = array()) {
 		$this->appParams = $app_params;
 		$this->consumerToken = array('t' => $this->appParams['app_key'], 's' => $this->appParams['app_secret']);
 		$this->rootPath = (empty($app_params['app_full_access']) ? 'sandbox' : 'dropbox');
@@ -265,6 +263,7 @@ class DropboxClient {
 		}
 
 		if ($this->useCurl) {
+			/** @var \CurlHandle $context cURL handle returned by createRequestContext when useCurl is true */
 			curl_setopt($context, CURLOPT_BINARYTRANSFER, true);
 			curl_setopt($context, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($context, CURLOPT_FILE, $fh);
@@ -521,7 +520,7 @@ class DropboxClient {
 	 * @param string $query           Search query.
 	 * @param int    $max_results     Maximum results to return.
 	 * @param bool   $include_deleted Include deleted entries.
-	 * @return object Search response.
+	 * @return array<object> Matched metadata entries.
 	 */
 	public function Search($path, $query, $max_results = 1000, $include_deleted = false) {
 		$path = self::toPath($path);
@@ -623,7 +622,7 @@ class DropboxClient {
 	 *
 	 * @param string $url          Request URL.
 	 * @param array  $http_context Context with method, header and optional content.
-	 * @return \CurlHandle|resource Configured cURL handle.
+	 * @return \CurlHandle Configured cURL handle.
 	 */
 	private function createCurl($url, $http_context) {
 		$ch = curl_init($url);
@@ -698,7 +697,7 @@ class DropboxClient {
 	 * @param string $content
 	 * @param int $bearer_token
 	 *
-	 * @return resource
+	 * @return \CurlHandle|resource cURL handle (when useCurl) or a stream context resource
 	 */
 	private function createRequestContext($url, $params, &$content = '', $bearer_token = -1) {
 		if ($bearer_token === -1) {
@@ -764,14 +763,16 @@ class DropboxClient {
 	 * @return object
 	 * @throws DropboxException
 	 */
-	private function doSingleCall($path, $params = array(), $content_call = false, &$content = null) {
+	private function doSingleCall($path, $params = array(), $content_call = false, &$content = '') {
 		$url = self::cleanUrl(($content_call ? 'https://content.dropboxapi.com/' : 'https://api.dropboxapi.com/') . $path);
 		$context = $this->createRequestContext($url, $params, $content);
 		$json = ($this->useCurl ? self::execCurlAndClose($context) : file_get_contents($url, false, $context));
 		$resp = json_decode($json);
 
 		if (is_null($resp) && $content_call) {
-			return null;
+			// Content calls (e.g. upload_session/append) may return an empty body;
+			// hand back an empty object so the declared object return type holds.
+			return (object) array();
 		}
 
 		if (is_null($resp) && !empty($json)) {
@@ -811,7 +812,7 @@ class DropboxClient {
 	 * @return object
 	 * @throws DropboxException
 	 */
-	private function apiCall($path, $params = array(), $content_call = false, &$content = null) {
+	private function apiCall($path, $params = array(), $content_call = false, &$content = '') {
 		$resp = $this->doSingleCall($path, $params, $content_call, $content);
 
 		if (!empty($resp->has_more) && (strpos($path, '/continue') === false)) {

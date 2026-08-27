@@ -673,9 +673,9 @@ class PortalHelpers
 				"stream_id" => $rMovie["id"],
 				"target_container" => $rMovie["target_container"],
 			];
-			$rThisMM = date("m");
-			$rThisDD = date("d");
-			$rThisYY = date("Y");
+			$rThisMM = (int) date("m");
+			$rThisDD = (int) date("d");
+			$rThisYY = (int) date("Y");
 
 			if (mktime(0, 0, 0, $rThisMM, $rThisDD, $rThisYY) < $rMovie["added"]) {
 				$rAddedKey = "today";
@@ -886,9 +886,9 @@ class PortalHelpers
 			}
 
 			$rPostData = ["series_id" => $rMovieID, "season_num" => $rKey, "type" => "series"];
-			$rThisMM = date("m");
-			$rThisDD = date("d");
-			$rThisYY = date("Y");
+			$rThisMM = (int) date("m");
+			$rThisDD = (int) date("d");
+			$rThisYY = (int) date("Y");
 
 			if (mktime(0, 0, 0, $rThisMM, $rThisDD, $rThisYY) < $rMaxAdded) {
 				$rAddedKey = "today";

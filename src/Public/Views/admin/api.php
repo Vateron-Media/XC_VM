@@ -19,7 +19,6 @@ use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Epg\EPG;
 use XcVm\Domain\Epg\EpgService;
 use XcVm\Domain\Line\LineRepository;
 use XcVm\Domain\Line\LineService;

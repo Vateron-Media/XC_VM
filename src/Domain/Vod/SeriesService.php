@@ -252,7 +252,7 @@ class SeriesService {
 							foreach ($rFiles as $rFile) {
 								$rFilePath = 's:' . intval($rParts[1]) . ':' . $rFile;
 
-								if (empty($rFilePath) || in_array($rFilePath, $rStreamDatabase)) {
+								if (in_array($rFilePath, $rStreamDatabase)) {
 								} else {
 									$rPathInfo = pathinfo($rFile);
 
@@ -593,7 +593,7 @@ class SeriesService {
 		$db->query('SELECT * FROM `streams_series` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
-			return null;
+			return false;
 		}
 
 		return $db->get_row();
@@ -629,7 +629,7 @@ class SeriesService {
 		$db->query('SELECT * FROM `streams_series` WHERE `tmdb_id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
-			return null;
+			return false;
 		}
 
 		return $db->get_row();

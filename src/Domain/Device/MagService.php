@@ -53,6 +53,7 @@ class MagService {
 		if (InputValidator::validate('massEditMags', $rData)) {
 			$rArray = array();
 			$rUserArray = array();
+			$rEvent = array('event' => '', 'need_confirm' => 0, 'msg' => '', 'reboot_after_ok' => 0);
 
 			foreach (array('lock_device') as $rItem) {
 				if (isset($rData['c_' . $rItem])) {

@@ -302,7 +302,7 @@ class RootSignalsCronJob implements CommandInterface {
                 $rServers[SERVER_ID]['server_ip'] = $rServerIP;
             }
 
-            if (empty(SettingsManager::get('live_streaming_pass')) || SettingsManager::get('live_streaming_pass') === null) {
+            if (empty(SettingsManager::get('live_streaming_pass'))) {
                 $db->query('UPDATE `settings` SET `live_streaming_pass` = ?', Encryption::randomString(40));
             }
         }
@@ -616,7 +616,7 @@ class RootSignalsCronJob implements CommandInterface {
                             foreach (range(1, $rServices) as $i) {
                                 $rNewScript .= 'start-stop-daemon --start --quiet --pidfile ' . MAIN_HOME . 'bin/php/sockets/' . $i . '.pid --exec ' . MAIN_HOME . 'bin/php/sbin/php-fpm -- --daemonize --fpm-config ' . MAIN_HOME . 'bin/php/etc/' . $i . '.conf' . "\n";
                                 $rNewBalance .= '    server unix:' . MAIN_HOME . 'bin/php/sockets/' . $i . '.sock;' . "\n";
-                                file_put_contents(MAIN_HOME . 'bin/php/etc/' . $i . '.conf', str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', $i, $rTemplate)));
+                                file_put_contents(MAIN_HOME . 'bin/php/etc/' . $i . '.conf', str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', (string) $i, $rTemplate)));
                             }
                             file_put_contents(MAIN_HOME . 'bin/daemons.sh', $rNewScript);
                             file_put_contents(MAIN_HOME . 'bin/nginx/conf/balance.conf', $rNewBalance . '}');
@@ -631,7 +631,7 @@ class RootSignalsCronJob implements CommandInterface {
                                 $rGovernors = array_filter(explode(' ', trim(shell_exec('cpufreq-info -g'))));
                                 $rGovernor = explode(' ', trim(shell_exec('cpufreq-info -p')));
                                 if ($rGovernor[2] != $rNewGovernor && in_array($rNewGovernor, $rGovernors)) {
-                                    shell_exec("sudo bash -c 'for ((i=0;i<\$(nproc);i++)); do cpufreq-set -c " . $i . ' -g ' . $rNewGovernor . "; done'");
+                                    shell_exec("sudo bash -c 'for ((i=0;i<\$(nproc);i++)); do cpufreq-set -c \$i -g " . $rNewGovernor . "; done'");
                                     sleep(2);
                                     $rGovernor = explode(' ', trim(shell_exec('cpufreq-info -p')));
                                     $db->query('UPDATE `servers` SET `governor` = ? WHERE `id` = ?;', json_encode($rGovernor), SERVER_ID);

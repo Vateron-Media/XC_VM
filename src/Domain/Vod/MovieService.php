@@ -611,7 +611,7 @@ class MovieService {
 							foreach ($rFiles as $rFile) {
 								$rFilePath = 's:' . intval($rParts[1]) . ':' . $rFile;
 
-								if (empty($rFilePath) || in_array($rFilePath, $rStreamDatabase)) {
+								if (in_array($rFilePath, $rStreamDatabase)) {
 								} else {
 									$rPathInfo = pathinfo($rFile);
 

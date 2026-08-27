@@ -25,6 +25,11 @@ if (!defined('MAIN_HOME')) {
 	define('MAIN_HOME', '/home/xc_vm/');
 }
 
+// Импорт глобальных переменных bootstrap'а.
+// XC_Bootstrap::boot(CONTEXT_ADMIN) записывает переменные через `global`.
+// При включении из метода контроллера нужен явный global.
+global $db, $rSettings, $rMobile, $language, $rPermissions, $rUserInfo;
+
 require_once MAIN_HOME . 'bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
 
@@ -54,7 +59,7 @@ if (isset($_SESSION['reseller'])) {
 	$rIP = NetworkUtils::getUserIP();
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $_SESSION['rip']), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $_SESSION['rip'] == $rIP);
 
-	if (!$rUserInfo || !$rPermissions || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
+	if (!$rUserInfo || !$rPermissions['is_reseller'] || !$rIPMatch && $rSettings['ip_logout'] || $_SESSION['rverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])) {
 		unset($rUserInfo, $rPermissions);
 
 		SessionManager::clearContext('reseller');

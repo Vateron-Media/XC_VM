@@ -134,7 +134,7 @@ class TmdbCron {
         }, $rMatches));
         list($rMatch) = array_values($rKeys);
 
-        return $rMatch ? intval($rMatch->get('id')) : 0;
+        return intval($rMatch->get('id'));
     }
 
     /**

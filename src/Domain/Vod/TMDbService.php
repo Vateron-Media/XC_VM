@@ -49,7 +49,7 @@ class TMDbService {
 	 * Fetch movie metadata from \TMDB.
 	 *
 	 * @param int $rID \TMDB movie id.
-	 * @return array|null Movie metadata, or null on failure.
+	 * @return \Movie|null Movie metadata object, or null on failure.
 	 */
 	public static function getMovie($rID) {
 		$rTMDB = self::client();

@@ -345,7 +345,7 @@ class EpgCronJob implements CommandInterface {
                 'bouquets' => $rBouquets
             ];
         }
-        $count = count($ApiDependencyIdentifier ?? []);
+        $count = count($ApiDependencyIdentifier);
         $this->printLog("[XMLTV] Found $count bouquet groups (including 'all')");
 
         foreach ($ApiDependencyIdentifier as $rGroup => $CacheFlushInterval) {

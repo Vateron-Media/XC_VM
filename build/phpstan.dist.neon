@@ -226,10 +226,21 @@ parameters:
         -
             message: '#=== between resource and false will always evaluate to false#'
             path: ../src/Streaming/AsyncFileOperations.php
-
-includes:
-    # Pre-existing errors frozen so CI is green and only NEW code is checked.
-    # NOT a list of accepted bugs — most are false positives (DB-row shape
-    # narrowing, template vars) or cosmetic. Shrink over time and regenerate
-    # with `make phpstan-baseline` after fixing a batch.
-    - phpstan-baseline.neon
+        # CacheHandlerCommand force-reloads settings from the DB mid-run via
+        # SettingsManager::set(SettingsRepository::getAll(true)); PHPStan does not
+        # model that static mutation, so it carries the earlier enable_cache
+        # narrowing and reads the re-check as always-false. At runtime enable_cache
+        # can genuinely flip, so the guard (and its break) is meaningful.
+        -
+            message: '#^Negated boolean expression is always false\.$#'
+            identifier: booleanNot.alwaysFalse
+            path: ../src/Cli/Commands/CacheHandlerCommand.php
+        # EpgCronJob reconnect-verify: after $db->db_connect() the inner
+        # $db->ping() really can return true. ping() is marked @phpstan-impure,
+        # but PHPStan still memoizes the outer ping()===false from the else branch
+        # across the intervening reconnect. Removing the check would break real
+        # reconnect verification.
+        -
+            message: '#^If condition is always false\.$#'
+            identifier: if.alwaysFalse
+            path: ../src/Cli/CronJobs/EpgCronJob.php

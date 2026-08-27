@@ -237,7 +237,7 @@ class AdminHelpers {
 
 		try {
 			foreach (timezone_identifiers_list() as $key => $zone) {
-				if (empty($zone) || !is_string($zone)) {
+				if (empty($zone)) {
 					continue;
 				}
 

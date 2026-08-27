@@ -458,11 +458,11 @@ class UserRepository {
 		$rUserInfo = null;
 
 		if (!($rUserInfo = self::loadUserRow($db, $rCached, $rSettings, $rUserID, $rUsername, $rPassword))) {
-			return false;
+			return null;
 		}
 
 		if ($rCached && !self::verifyCachedCredentials($rUserInfo, $rUserID, $rUsername, $rPassword)) {
-			return false;
+			return null;
 		}
 
 		$rUserInfo = self::applyForcedCountry($rUserInfo, $rSettings, $rCached, $rIP, $db);
@@ -512,7 +512,7 @@ class UserRepository {
 			$db->query('SELECT * FROM `enigma2_devices` WHERE `device_id` = ?', $rDevice['device_id']);
 		}
 		if (0 >= $db->num_rows()) {
-			return false;
+			return null;
 		}
 		$rReturn = array(
 			'enigma2' => $db->get_row(),

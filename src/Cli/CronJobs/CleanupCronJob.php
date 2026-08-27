@@ -159,16 +159,12 @@ class CleanupCronJob implements CommandInterface {
                                     $i++;
                                 }
                             }
-                            $rCompatible = 0;
-                            $rAudioCodec = $rVideoCodec = $rResolution = null;
-                            if ($rFFProbee) {
-                                $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::get('player_allow_hevc')));
-                                $rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
-                                $rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
-                                $rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);
-                                if ($rResolution) {
-                                    $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
-                                }
+                            $rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::get('player_allow_hevc')));
+                            $rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
+                            $rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
+                            $rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);
+                            if ($rResolution) {
+                                $rResolution = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), $rResolution);
                             }
                             $db->query('UPDATE `streams` SET `movie_properties` = ? WHERE `id` = ?', json_encode($rMovieProperties, JSON_UNESCAPED_UNICODE), $rRow['id']);
                             $db->query('UPDATE `streams_servers` SET `bitrate` = ?,`to_analyze` = 0,`stream_status` = 0,`stream_info` = ?, `audio_codec` = ?, `video_codec` = ?, `resolution` = ?, `compatible` = ? WHERE `server_stream_id` = ?', $rBitrate, json_encode($rFFProbee, JSON_UNESCAPED_UNICODE), $rAudioCodec, $rVideoCodec, $rResolution, $rCompatible, $rRow['server_stream_id']);

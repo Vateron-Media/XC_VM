@@ -94,7 +94,7 @@ class ResellerAPI {
 
 
 			if (0 < strlen($rData['password'])) {
-				if (!(strlen($rData['password']) < intval(self::$rPermissions['minimum_password_length']) && 0 < intval(self::$rPermissions['minimum_password_length']))) {
+				if (!(strlen($rData['password']) < intval(self::$rPermissions['minimum_password_length']))) {
 					$rPassword = Authenticator::hashPassword($rData['password']);
 				} else {
 					return array('status' => STATUS_INVALID_PASSWORD);
@@ -142,7 +142,7 @@ class ResellerAPI {
 	 * Create or update a MAG device line on behalf of a reseller.
 	 *
 	 * @param array $rData Submitted MAG/line data.
-	 * @return array Result status payload.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processMAG($rData) {
 		$db = self::db();
@@ -174,6 +174,7 @@ class ResellerAPI {
 			$rUserArray['is_mag'] = 1;
 			$rUserArray['is_e2'] = 0;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
+			$rCost = 0;
 
 			if (!empty($rData['package'])) {
 				$rPackage = PackageService::getById($rData['package']);
@@ -429,7 +430,7 @@ class ResellerAPI {
 	 * Create or update an Enigma2 device line on behalf of a reseller.
 	 *
 	 * @param array $rData Submitted Enigma2/line data.
-	 * @return array Result status payload.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processEnigma($rData) {
 		$db = self::db();
@@ -460,6 +461,7 @@ class ResellerAPI {
 			$rUserArray['is_mag'] = 0;
 			$rUserArray['is_e2'] = 1;
 			$rGenTrials = LineService::canGenerateTrials(self::$rUserInfo['id']);
+			$rCost = 0;
 
 			if (!empty($rData['package'])) {
 				$rPackage = PackageService::getById($rData['package']);
@@ -714,7 +716,7 @@ class ResellerAPI {
 	 * Create or update a sub-user on behalf of a reseller.
 	 *
 	 * @param array $rData Submitted user data.
-	 * @return array Result status payload.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processUser($rData) {
 		$db = self::db();
@@ -842,7 +844,7 @@ class ResellerAPI {
 	 * Submit a support ticket on behalf of a reseller.
 	 *
 	 * @param array $rData Ticket payload.
-	 * @return array Result status payload.
+	 * @return array|false Result status payload, or false on authorization failure.
 	 */
 	public static function submitTicket($rData) {
 		$db = self::db();
@@ -908,7 +910,7 @@ class ResellerAPI {
 	 * Create or update a line on behalf of a reseller.
 	 *
 	 * @param array $rData Submitted line data.
-	 * @return array Result status payload.
+	 * @return array|false Result status payload, or false on authorization/validation failure.
 	 */
 	public static function processLine($rData) {
 		$db = self::db();
@@ -929,6 +931,7 @@ class ResellerAPI {
 				$rArray = QueryHelper::verifyPostTable('lines', $rData);
 				$rArray['created_at'] = time();
 				unset($rArray['id']);
+				$rOrigCredentials = array('username' => '', 'password' => '');
 			}
 
 			$rArray['is_mag'] = 0;

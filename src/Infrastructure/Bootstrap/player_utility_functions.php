@@ -261,7 +261,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 
 			case 'number':
 			default:
-				if (SettingsManager::getString('channel_number_type') != 'manual' && 0 < count($rChannels)) {
+				if (SettingsManager::getString('channel_number_type') != 'manual') {
 					$rOrder = 'FIELD(id,' . implode(',', $rChannels) . ')';
 				} else {
 					$rOrder = '`order` ASC';
@@ -269,30 +269,26 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 				break;
 		}
 
-		if (0 < count($rChannels)) {
-			$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` ' . $rWhereString . ';', ...$rWhereV);
+		$db->query('SELECT COUNT(`id`) AS `count` FROM `streams` ' . $rWhereString . ';', ...$rWhereV);
 
-			$rStreams['count'] = $db->get_row()['count'];
+		$rStreams['count'] = $db->get_row()['count'];
 
-			if ($rLimit) {
-				if ($rIDs) {
-					$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-				} else {
-					$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-				}
+		if ($rLimit) {
+			if ($rIDs) {
+				$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 			} else {
-				if ($rIDs) {
-					$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-				} else {
-					$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-				}
+				$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 			}
-
-			$db->query($rQuery, ...$rWhereV);
-			$rRows = $db->get_rows();
 		} else {
-			$rRows = array();
+			if ($rIDs) {
+				$rQuery = 'SELECT `id` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
+			} else {
+				$rQuery = 'SELECT (SELECT `stream_info` FROM `streams_servers` WHERE `streams_servers`.`pid` IS NOT NULL AND `streams_servers`.`stream_id` = `streams`.`id` LIMIT 1) AS `stream_info`, `id`, `stream_display_name`, `movie_properties`, `target_container`, `added`, `year`, `category_id`, `channel_id`, `epg_id`, `tv_archive_duration`, `stream_icon`, `allow_record`, `type` FROM `streams` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
+			}
 		}
+
+		$db->query($rQuery, ...$rWhereV);
+		$rRows = $db->get_rows();
 
 		if ($rIDs) {
 			return $rRows;
@@ -407,26 +403,18 @@ function getUserSeries($rUserInfo, $rCategoryID = null, $rFav = null, $rOrderBy 
 				break;
 		}
 
-		if (0 < count($rSeries)) {
-			$db->query('SELECT COUNT(`id`) AS `count` FROM `streams_series` ' . $rWhereString . ';', ...$rWhereV);
+		$db->query('SELECT COUNT(`id`) AS `count` FROM `streams_series` ' . $rWhereString . ';', ...$rWhereV);
 
-			$rStreams['count'] = $db->get_row()['count'];
+		$rStreams['count'] = $db->get_row()['count'];
 
-			if ($rLimit) {
-				$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
-			} else {
-				$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
-			}
-
-			$db->query($rQuery, ...$rWhereV);
-			$rRows = $db->get_rows();
+		if ($rLimit) {
+			$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 		} else {
-			if ($additionalOptions) {
-				return null;
-			}
-
-			$rRows = array();
+			$rQuery = 'SELECT `id`, `title`, `category_id`, `cover`, `rating`, `release_date`, `last_modified`, `tmdb_id`, `seasons`, `backdrop_path`, `year` FROM `streams_series` ' . $rWhereString . ' ORDER BY ' . $rOrder . ';';
 		}
+
+		$db->query($rQuery, ...$rWhereV);
+		$rRows = $db->get_rows();
 
 		foreach ($rRows as $rStream) {
 			$rStream['number'] = $rKey;

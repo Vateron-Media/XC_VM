@@ -63,8 +63,8 @@ class Thread {
         $t = new Thread();
         $descriptor = array(array('pipe', 'r'), array('pipe', 'w'), array('pipe', 'w'));
         $t->process = proc_open($command, $descriptor, $t->pipes);
-        stream_set_blocking($t->pipes[1], 0);
-        stream_set_blocking($t->pipes[2], 0);
+        stream_set_blocking($t->pipes[1], false);
+        stream_set_blocking($t->pipes[2], false);
         return $t;
     }
 

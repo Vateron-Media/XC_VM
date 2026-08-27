@@ -45,7 +45,7 @@ class CurlClient {
 			curl_setopt($rCurl[$rKey], CURLOPT_CONNECTTIMEOUT, 5);
 			curl_setopt($rCurl[$rKey], CURLOPT_TIMEOUT, $rTimeout);
 			curl_setopt($rCurl[$rKey], CURLOPT_SSL_VERIFYHOST, 0);
-			curl_setopt($rCurl[$rKey], CURLOPT_SSL_VERIFYPEER, 0);
+			curl_setopt($rCurl[$rKey], CURLOPT_SSL_VERIFYPEER, false);
 
 			if ($rValue['postdata'] == null) {
 			} else {
@@ -127,7 +127,7 @@ class CurlClient {
 			$rCurl = curl_init();
 			curl_setopt($rCurl, CURLOPT_URL, $rURL);
 			curl_setopt($rCurl, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:9.0) Gecko/20100101 Firefox/9.0');
-			curl_setopt($rCurl, CURLOPT_HEADER, 0);
+			curl_setopt($rCurl, CURLOPT_HEADER, false);
 			curl_setopt($rCurl, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($rCurl, CURLOPT_CONNECTTIMEOUT, 10);
 			curl_setopt($rCurl, CURLOPT_TIMEOUT, 10);
@@ -135,7 +135,7 @@ class CurlClient {
 			curl_setopt($rCurl, CURLOPT_FRESH_CONNECT, true);
 			curl_setopt($rCurl, CURLOPT_FORBID_REUSE, true);
 			curl_setopt($rCurl, CURLOPT_SSL_VERIFYHOST, 0);
-			curl_setopt($rCurl, CURLOPT_SSL_VERIFYPEER, 0);
+			curl_setopt($rCurl, CURLOPT_SSL_VERIFYPEER, false);
 			if (empty($rPostData)) {
 			} else {
 				curl_setopt($rCurl, CURLOPT_POST, true);
@@ -147,8 +147,9 @@ class CurlClient {
 			@curl_close($rCurl);
 			if ($rError != 0 || $rResponseCode != 200) {
 				$i++;
-				break;
+				continue;
 			}
+			break;
 		}
 
 		return $rOutput;

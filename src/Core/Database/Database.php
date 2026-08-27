@@ -87,6 +87,7 @@ class Database {
 	 * Check whether the connection is alive.
 	 *
 	 * @return bool True if a `SELECT 1` succeeds.
+	 * @phpstan-impure Return value reflects live connection state and can differ between calls.
 	 */
 	public function ping() {
 		if (!$this->dbh) {
@@ -186,10 +187,6 @@ class Database {
 	public function db_explicit_connect($rHost, $rPort, $rDatabase, $rUsername, $rPassword) {
 		try {
 			$this->dbh = new \PDO('mysql:host=' . $this->normalizeHost($rHost) . ';port=' . $rPort . ';dbname=' . $rDatabase, $rUsername, $rPassword);
-
-			if (!$this->dbh) {
-				return false;
-			}
 		} catch (\PDOException $e) {
 			return false;
 		}
@@ -468,6 +465,7 @@ class Database {
 	 * Number of rows in/affected by the current result set.
 	 *
 	 * @return int Row count (0 if none).
+	 * @phpstan-impure Return value reflects the current result set and changes as queries run.
 	 */
 	public function num_rows() {
 		if (!($this->dbh && $this->result)) {

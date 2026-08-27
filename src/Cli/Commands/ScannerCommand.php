@@ -54,7 +54,7 @@ class ScannerCommand implements CommandInterface {
 
 		$this->rRefreshInterval = 60;
 
-		while (true && $db && $db->ping()) {
+		while ($db && $db->ping()) {
 			if (!$this->shouldRefreshSettings()) {
 				// skip
 			} else {

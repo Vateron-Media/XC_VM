@@ -32,9 +32,9 @@ if (!$odb->connected) {
     exit();
 }
 echo 'Connected to migration database.' . "\n";
+$AdminAccesCode = '';
 $odb->query("SHOW TABLES LIKE 'access_codes';");
 if ($odb->num_rows() > 0) {
-    $AdminAccesCode = '';
     if (count($rMigrateOptions) == 0) {
         $rMigrateOptions = $rXUITableList;
     }
@@ -804,11 +804,9 @@ if ($odb->num_rows() > 0) {
                     $rResult['bouquet_movies'] = $rResult['bouquet_radios'];
                     $rResult['bouquet_channels'] = $rResult['bouquet_movies'];
                     foreach ($rChannels as $rStreamID) {
-                        if (!isset($rBouquetMap[intval($rStreamID)])) {
-                        } else {
-                            $rType = array(1 => 'channels', 2 => 'movies', 3 => 'channels', 4 => 'radio')[$rBouquetMap[intval($rStreamID)]];
-                            if (!$rType) {
-                            } else {
+                        if (isset($rBouquetMap[intval($rStreamID)])) {
+                            $rType = (array(1 => 'channels', 2 => 'movies', 3 => 'channels', 4 => 'radio')[$rBouquetMap[intval($rStreamID)]] ?? null);
+                            if ($rType) {
                                 $rResult['bouquet_' . $rType][] = intval($rStreamID);
                             }
                         }
@@ -1540,10 +1538,6 @@ if ($odb->num_rows() > 0) {
                     echo 'Error: ' . $e . "\n";
                 }
             }
-            try {
-            } catch (\Exception $e) {
-                echo 'Error: ' . $e . "\n";
-            }
         }
     }
     if (in_array('watch_folders', $rMigrateOptions)) {
@@ -1598,6 +1592,4 @@ if (in_array('access_codes', $rMigrateOptions)) {
 echo "\n" . 'Migration has been completed!' . "\n\n" . 'Your settings have been reset to the XC_VM default, please take some time to review the settings page and make the desired changes.' . "\n";
 
 file_put_contents(TMP_PATH . '.migration.status', 2);
-if (is_object($odb)) {
-    $odb->close_mysql();
-}
+$odb->close_mysql();

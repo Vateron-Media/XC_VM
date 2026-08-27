@@ -135,10 +135,8 @@ class OndemandCommand implements CommandInterface {
 
 				$rAdminQueue = (file_exists(SIGNALS_TMP_PATH . 'admin_' . $rStreamID) && time() - @filemtime(SIGNALS_TMP_PATH . 'admin_' . $rStreamID) <= 30) ? 1 : 0;
 
-				$rStreamAge = 0;
-				if (file_exists($pidFile)) {
-					$rStreamAge = time() - @filemtime($pidFile);
-				}
+				$rPidMtime = @filemtime($pidFile);
+				$rStreamAge = ($rPidMtime === false) ? 0 : time() - $rPidMtime;
 
 				if ($rQueue > 0 || $rAdminQueue > 0 || $rStreamAge < 30) {
 					continue;

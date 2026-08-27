@@ -25,7 +25,7 @@ class TicketRepository {
 		$db->query('SELECT * FROM `tickets` WHERE `id` = ?;', $rID);
 
 		if (0 >= $db->num_rows()) {
-			return null;
+			return false;
 		}
 
 		$rRow = $db->get_row();

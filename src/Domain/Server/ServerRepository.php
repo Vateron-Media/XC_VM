@@ -537,7 +537,7 @@ class ServerRepository {
 		$db->query('SELECT * FROM `servers` WHERE `id` = ?;', $rID);
 
 		if ($db->num_rows() != 1) {
-			return false;
+			return null;
 		}
 
 		return $db->get_row();

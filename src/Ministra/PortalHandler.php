@@ -16,8 +16,7 @@ use XcVm\Core\Util\TimeUtils;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class PortalHandler
-{
+class PortalHandler {
 	/**
 	 * Phase 1: Pre-init stub responses (no DB needed).
 	 * Exits immediately if the action is handled, otherwise returns void.
@@ -25,8 +24,7 @@ class PortalHandler
 	 * @param string|null $rReqType
 	 * @param string|null $rReqAction
 	 */
-	public static function handlePreInit($rReqType, $rReqAction)
-	{
+	public static function handlePreInit($rReqType, $rReqAction) {
 		if ($rReqType && $rReqAction) {
 			switch ($rReqType) {
 				case "stb":
@@ -143,8 +141,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array with device, profile, language, theme, authenticated, etc.
 	 */
-	public static function handleStbPublic($rReqAction, &$ctx)
-	{
+	public static function handleStbPublic($rReqAction, &$ctx) {
 		global $rSettings, $rServers;
 
 		switch ($rReqAction) {
@@ -164,9 +161,7 @@ class PortalHandler
 				$rTotal["allowed_stb_types"] = $rSettings["allowed_stb_types"];
 				$rTotal["allowed_stb_types_for_local_recording"] = $rSettings["allowed_stb_types"];
 				$rTotal["storages"] = [];
-				$rTotal["tv_channel_default_aspect"] = empty(
-					$rSettings["tv_channel_default_aspect"]
-				)
+				$rTotal["tv_channel_default_aspect"] = empty($rSettings["tv_channel_default_aspect"])
 					? "fit"
 					: $rSettings["tv_channel_default_aspect"];
 				$rTotal["playback_limit"] = empty($rSettings["playback_limit"])
@@ -179,12 +174,8 @@ class PortalHandler
 				}
 
 				$rTotal["show_tv_channel_logo"] = !empty($rSettings["show_tv_channel_logo"]);
-				$rTotal["show_channel_logo_in_preview"] = !empty(
-					$rSettings["show_channel_logo_in_preview"]
-				);
-				$rTotal["enable_connection_problem_indication"] = !empty(
-					$rSettings["enable_connection_problem_indication"]
-				);
+				$rTotal["show_channel_logo_in_preview"] = !empty($rSettings["show_channel_logo_in_preview"]);
+				$rTotal["enable_connection_problem_indication"] = !empty($rSettings["enable_connection_problem_indication"]);
 				$rTotal["hls_fast_start"] = "1";
 				$rTotal["check_ssl_certificate"] = 0;
 				$rTotal["enable_buffering_indication"] = 1;
@@ -203,8 +194,7 @@ class PortalHandler
 				exit(json_encode(["js" => $rTotal], JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 			case "get_types_list":
-				exit(
-					json_encode([
+				exit(json_encode([
 						"js" => [
 							"allowed_stb_types" => array_values(
 								(array) ($rSettings["allowed_stb_types"] ?? []),
@@ -213,8 +203,7 @@ class PortalHandler
 								? ""
 								: $rSettings["strict_stb_type_check"],
 						],
-					])
-				);
+					]));
 
 			case "get_localization":
 				exit(json_encode(["js" => $ctx["language"][$ctx["device"]["locale"]]]));
@@ -287,8 +276,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleAuthenticated($rReqType, $rReqAction, &$ctx)
-	{
+	public static function handleAuthenticated($rReqType, $rReqAction, &$ctx) {
 		$ctx["device"]["mag_player"] = trim($ctx["device"]["mag_player"], "'\"");
 		$ctx["player"] = !empty($ctx["device"]["mag_player"])
 			? $ctx["device"]["mag_player"] . " "
@@ -357,8 +345,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleStbSettings($rReqAction, &$ctx)
-	{
+	public static function handleStbSettings($rReqAction, &$ctx) {
 		global $db, $rSettings, $rRequest;
 
 		switch ($rReqAction) {
@@ -703,8 +690,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleWatchdog($rReqAction, &$ctx)
-	{
+	public static function handleWatchdog($rReqAction, &$ctx) {
 		global $db, $rRequest;
 
 		$ctx["device"]["last_watchdog"] = time();
@@ -777,8 +763,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleAudioclub($rReqAction, &$ctx)
-	{
+	public static function handleAudioclub($rReqAction, &$ctx) {
 		global $rSettings, $rCategories;
 		$rCategories = is_array($rCategories ?? null) ? $rCategories : [];
 
@@ -824,8 +809,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleItv($rReqAction, &$ctx)
-	{
+	public static function handleItv($rReqAction, &$ctx) {
 		global $db, $rSettings, $rServers, $rRequest, $rCategories;
 		$rCategories = is_array($rCategories ?? null) ? $rCategories : [];
 		$rCategoryIDs = is_array($ctx["device"]["category_ids"] ?? null)
@@ -874,15 +858,13 @@ class PortalHandler
 					$rURL = $ctx["player"] . $rStreamValue;
 				}
 
-				exit(
-					json_encode([
+				exit(json_encode([
 						"js" => ["id" => $rStreamID, "cmd" => $rURL],
 						"streamer_id" => 0,
 						"link_id" => 0,
 						"load" => 0,
 						"error" => "",
-					])
-				);
+					]));
 
 			case "set_claim":
 				if (empty($rRequest["id"]) || empty($rRequest["real_type"])) {
@@ -920,8 +902,8 @@ class PortalHandler
 			case "get_all_channels":
 				$rGenre =
 					empty($rRequest["genre"]) || !is_numeric($rRequest["genre"])
-						? null
-						: intval($rRequest["genre"]);
+					? null
+					: intval($rRequest["genre"]);
 
 				exit(getStreams($rGenre, true));
 
@@ -930,8 +912,8 @@ class PortalHandler
 				$rSortBy = !empty($rRequest["sortby"]) ? $rRequest["sortby"] : null;
 				$rGenre =
 					empty($rRequest["genre"]) || !is_numeric($rRequest["genre"])
-						? null
-						: intval($rRequest["genre"]);
+					? null
+					: intval($rRequest["genre"]);
 				$rSearch = !empty($rRequest["search"]) ? $rRequest["search"] : null;
 
 				exit(getStreams($rGenre, false, $rFav, $rSortBy, $rSearch));
@@ -939,8 +921,8 @@ class PortalHandler
 			case "get_all_fav_channels":
 				$rGenre =
 					empty($rRequest["genre"]) || !is_numeric($rRequest["genre"])
-						? null
-						: intval($rRequest["genre"]);
+					? null
+					: intval($rRequest["genre"]);
 
 				exit(getStreams($rGenre, true, 1));
 
@@ -948,10 +930,9 @@ class PortalHandler
 				exit(json_encode(["js" => ["data" => []]], JSON_PARTIAL_OUTPUT_ON_ERROR));
 
 			case "get_short_epg":
-				if (empty($rRequest["ch_id"])) {
-				} else {
+				$rEPG = ["js" => []];
+				if (!empty($rRequest["ch_id"])) {
 					$rChannelID = $rRequest["ch_id"];
-					$rEPG = ["js" => []];
 					$rTime = time();
 					$rEPGData = [];
 
@@ -1080,8 +1061,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleVod($rReqAction, &$ctx)
-	{
+	public static function handleVod($rReqAction, &$ctx) {
 		global $db, $rSettings, $rServers, $rRequest, $rCategories;
 		$rCategories = is_array($rCategories ?? null) ? $rCategories : [];
 		$rCategoryIDs = is_array($ctx["device"]["category_ids"] ?? null)
@@ -1204,8 +1184,8 @@ class PortalHandler
 			case "get_ordered_list":
 				$rCategory =
 					!empty($rRequest["category"]) && is_numeric($rRequest["category"])
-						? $rRequest["category"]
-						: null;
+					? $rRequest["category"]
+					: null;
 				$rFav = !empty($rRequest["fav"]) ? 1 : null;
 				$rSortBy = !empty($rRequest["sortby"]) ? $rRequest["sortby"] : "added";
 				$rSearch = !empty($rRequest["search"]) ? $rRequest["search"] : null;
@@ -1324,8 +1304,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleSeries($rReqAction, &$ctx)
-	{
+	public static function handleSeries($rReqAction, &$ctx) {
 		global $db, $rSettings, $rRequest, $rCategories;
 		$rCategories = is_array($rCategories ?? null) ? $rCategories : [];
 		$rCategoryIDs = is_array($ctx["device"]["category_ids"] ?? null)
@@ -1448,8 +1427,8 @@ class PortalHandler
 			case "get_ordered_list":
 				$rCategory =
 					!empty($rRequest["category"]) && is_numeric($rRequest["category"])
-						? $rRequest["category"]
-						: null;
+					? $rRequest["category"]
+					: null;
 				$rFav = !empty($rRequest["fav"]) ? 1 : null;
 				$rSortBy = !empty($rRequest["sortby"]) ? $rRequest["sortby"] : "added";
 				$rSearch = !empty($rRequest["search"]) ? $rRequest["search"] : null;
@@ -1473,8 +1452,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleAccountInfo($rReqAction, &$ctx)
-	{
+	public static function handleAccountInfo($rReqAction, &$ctx) {
 		global $rSettings;
 
 		switch ($rReqAction) {
@@ -1485,8 +1463,7 @@ class PortalHandler
 					$rExpiry = date("F j, Y, g:i a", $ctx["device"]["exp_date"]);
 				}
 
-				exit(
-					json_encode([
+				exit(json_encode([
 						"js" => [
 							"mac" => $ctx["mac"],
 							"phone" => $rExpiry,
@@ -1494,8 +1471,7 @@ class PortalHandler
 								str_replace("\n", "<br/>", $rSettings["mag_message"]),
 							),
 						],
-					])
-				);
+					]));
 		}
 	}
 
@@ -1506,8 +1482,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleRadio($rReqAction, &$ctx)
-	{
+	public static function handleRadio($rReqAction, &$ctx) {
 		global $db, $rRequest;
 
 		switch ($rReqAction) {
@@ -1547,8 +1522,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleTvArchive($rReqAction, &$ctx)
-	{
+	public static function handleTvArchive($rReqAction, &$ctx) {
 		global $db, $rSettings, $rServers, $rRequest;
 
 		switch ($rReqAction) {
@@ -1707,8 +1681,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleEpg($rReqAction, &$ctx)
-	{
+	public static function handleEpg($rReqAction, &$ctx) {
 		global $db, $rRequest;
 
 		switch ($rReqAction) {
@@ -1853,9 +1826,9 @@ class PortalHandler
 						!empty($rStreamRow["tv_archive_duration"]) &&
 						$rEndTime->getTimestamp() < time() &&
 						strtotime("-" . $rStreamRow["tv_archive_duration"] . " days") <=
-							$rEndTime->getTimestamp()
-							? 1
-							: 0;
+						$rEndTime->getTimestamp()
+						? 1
+						: 0;
 				}
 
 				if ($rDefaultPage) {
@@ -1938,8 +1911,7 @@ class PortalHandler
 	 * @param string $rReqAction
 	 * @param array  &$ctx Context array
 	 */
-	public static function handleUnauthenticated($rReqType, $rReqAction, &$ctx)
-	{
+	public static function handleUnauthenticated($rReqType, $rReqAction, &$ctx) {
 		if (!($rReqType == "stb" && $rReqAction == "get_profile")) {
 		} else {
 			BruteforceGuard::checkBruteforce($ctx["ip"], $ctx["mac"]);
@@ -1955,15 +1927,14 @@ class PortalHandler
 	 *
 	 * @param string $rMAC
 	 */
-	public static function handleHandshake($rMAC)
-	{
+	public static function handleHandshake($rMAC) {
 		global $db, $rSettings, $rDevice;
 
 		$rDevice = getdevice(null, $rMAC);
 		$rVerifyToken = null;
 
 		if ($rDevice) {
-			$rDevice["token"] = strtoupper(md5(uniqid(rand(), true)));
+			$rDevice["token"] = strtoupper(md5(uniqid((string) rand(), true)));
 			$rVerifyToken = Encryption::encrypt(
 				igbinary_serialize(["id" => $rDevice["mag_id"], "token" => $rDevice["token"]]),
 				$rSettings["live_streaming_pass"],

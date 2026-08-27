@@ -48,7 +48,7 @@ class QueueCommand implements CommandInterface {
 		$this->killStaleProcesses('XC_VM\\[Queue\\]');
 		$this->initDaemonMD5();
 
-		while (true && $db->ping()) {
+		while ($db->ping()) {
 			if ($this->shouldRefreshSettings()) {
 				if ($this->hasFileChanged()) {
 					echo "File changed! Break.\n";

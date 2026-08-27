@@ -26,7 +26,7 @@ class StreamUtils {
 		$rDomain = false;
 		$rSplit = explode(';', $rCookie);
 		foreach ($rSplit as $rPiece) {
-			list($rKey, $rValue) = explode('=', $rPiece, 1);
+			list($rKey, $rValue) = explode('=', $rPiece, 2);
 			if (strtolower($rKey) == 'path') {
 				$rPath = true;
 			} else {
@@ -324,6 +324,7 @@ class StreamUtils {
 	public static function getStreamBitrate($rType, $rPath, $rForceDuration = null) {
 		clearstatcache();
 		if (file_exists($rPath)) {
+			$rBitrate = 0;
 			switch ($rType) {
 				case 'movie':
 					if (!is_null($rForceDuration)) {

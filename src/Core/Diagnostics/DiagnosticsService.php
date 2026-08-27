@@ -24,7 +24,7 @@ class DiagnosticsService {
 	 * Parse SSL certificate info from nginx config or a specific file
 	 *
 	 * @param string|null $certificate  Path to certificate file (auto-detects from nginx if null)
-	 * @return array ['serial', 'expiration', 'subject', 'path']
+	 * @return array|null ['serial', 'expiration', 'subject', 'path'], or null if the certificate is missing/unreadable
 	 */
 	public static function getCertificateInfo($certificate = null) {
 		$result = ['serial' => null, 'expiration' => null, 'subject' => null, 'path' => null];

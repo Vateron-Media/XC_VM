@@ -84,7 +84,7 @@ class RecordCommand implements CommandInterface {
 		$db->query('UPDATE `recordings` SET `status` = 1 WHERE `id` = ?;', $recordingID);
 		$db->close_mysql();
 
-		while (ProcessManager::isStreamRunning($rPID, $recordingData['stream_id']) && file_exists($rPlaylist)) {
+		while (ProcessManager::isStreamRunning($rPID, $recordingData['stream_id'])) {
 			if ($recordingData['archive'] && time() < $recordingData['end'] + 65) {
 				sleep(5);
 				continue;
@@ -336,7 +336,7 @@ class RecordCommand implements CommandInterface {
 		} else {
 			if (file_exists('/proc/' . $rPID)) {
 				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-				if ($rCommand == 'Record[' . $recordingID . ']' && is_numeric($rPID) && 0 < $rPID) {
+				if ($rCommand == 'Record[' . $recordingID . ']' && 0 < $rPID) {
 					posix_kill($rPID, 9);
 				}
 			}

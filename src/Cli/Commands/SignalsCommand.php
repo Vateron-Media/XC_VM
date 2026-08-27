@@ -49,7 +49,7 @@ class SignalsCommand implements CommandInterface {
 
 		$rServers = ServerRepository::getAll();
 
-		while (true && $db && $db->ping()) {
+		while ($db && $db->ping()) {
 			if (!$this->refreshOrBreak()) {
 				break;
 			}

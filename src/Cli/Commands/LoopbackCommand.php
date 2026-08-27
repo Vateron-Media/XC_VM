@@ -339,7 +339,7 @@ class LoopbackCommand implements CommandInterface {
 		} else {
 			if (file_exists('/proc/' . $rPID)) {
 				$rCommand = trim(file_get_contents('/proc/' . $rPID . '/cmdline'));
-				if ($rCommand == 'Loopback[' . $rStreamID . ']' && is_numeric($rPID) && 0 < $rPID) {
+				if ($rCommand == 'Loopback[' . $rStreamID . ']' && 0 < $rPID) {
 					posix_kill($rPID, 9);
 				}
 			}

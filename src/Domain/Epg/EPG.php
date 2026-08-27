@@ -202,7 +202,7 @@ class EPG {
 				intval($rStop) . ', ' .
 				$db->escape($rChannelInfo[$rChannelID]['epg_lang']) . ', ' .
 				$db->escape($rLangTitle) . ', ' .
-				$db->escape($rLangDesc ?? '') .
+				$db->escape($rLangDesc) .
 				')';
 
 			$programCount++;

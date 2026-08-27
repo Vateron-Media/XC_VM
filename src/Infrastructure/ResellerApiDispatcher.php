@@ -895,43 +895,41 @@ class ResellerApiDispatcher {
 					sort($rChannelsSort);
 					$rListings = array();
 
-					if (0 < count($rChannels)) {
-						$rArchiveInfo = array();
-						$db->query('SELECT `id`, `tv_archive_server_id`, `tv_archive_duration` FROM `streams` WHERE `id` IN (' . implode(',', $rChannels) . ');');
-						if ($db->num_rows() > 0) {
-							foreach ($db->get_rows() as $rRow) {
-								$rArchiveInfo[$rRow['id']] = $rRow;
-							}
+					$rArchiveInfo = array();
+					$db->query('SELECT `id`, `tv_archive_server_id`, `tv_archive_duration` FROM `streams` WHERE `id` IN (' . implode(',', $rChannels) . ');');
+					if ($db->num_rows() > 0) {
+						foreach ($db->get_rows() as $rRow) {
+							$rArchiveInfo[$rRow['id']] = $rRow;
 						}
+					}
 
-						$rEPG = EpgService::getStreamsEpg($rChannels, $rStartDate, $rFinishDate);
+					$rEPG = EpgService::getStreamsEpg($rChannels, $rStartDate, $rFinishDate);
 
-						foreach ($rEPG as $rChannelID => $rEPGData) {
-							$rFullSize = 0;
+					foreach ($rEPG as $rChannelID => $rEPGData) {
+						$rFullSize = 0;
 
-							foreach ($rEPGData as $rEPGItem) {
-								$rCapStart = ($rEPGItem['start'] < $rStartDate ? $rStartDate : $rEPGItem['start']);
-								$rCapEnd = ($rFinishDate < $rEPGItem['end'] ? $rFinishDate : $rEPGItem['end']);
-								$rDuration = ($rCapEnd - $rCapStart) / 60;
-								$rArchive = null;
+						foreach ($rEPGData as $rEPGItem) {
+							$rCapStart = ($rEPGItem['start'] < $rStartDate ? $rStartDate : $rEPGItem['start']);
+							$rCapEnd = ($rFinishDate < $rEPGItem['end'] ? $rFinishDate : $rEPGItem['end']);
+							$rDuration = ($rCapEnd - $rCapStart) / 60;
+							$rArchive = null;
 
-								if (isset($rArchiveInfo[$rChannelID])) {
-									if (0 < $rArchiveInfo[$rChannelID]['tv_archive_server_id'] && 0 < $rArchiveInfo[$rChannelID]['tv_archive_duration']) {
-										if (!(time() - $rArchiveInfo[$rChannelID]['tv_archive_duration'] * 86400 > $rEPGItem['start'])) {
-											$rArchive = array($rEPGItem['start'], intval(($rEPGItem['end'] - $rEPGItem['start']) / 60));
-										}
+							if (isset($rArchiveInfo[$rChannelID])) {
+								if (0 < $rArchiveInfo[$rChannelID]['tv_archive_server_id'] && 0 < $rArchiveInfo[$rChannelID]['tv_archive_duration']) {
+									if (!(time() - $rArchiveInfo[$rChannelID]['tv_archive_duration'] * 86400 > $rEPGItem['start'])) {
+										$rArchive = array($rEPGItem['start'], intval(($rEPGItem['end'] - $rEPGItem['start']) / 60));
 									}
 								}
-
-								$rRelativeSize = round($rDuration * $rPerUnit, 2);
-								$rFullSize += $rRelativeSize;
-
-								if (100 < $rFullSize) {
-									$rRelativeSize -= $rFullSize - 100;
-								}
-
-								$rListings[$rChannelID][] = array('ListingId' => $rEPGItem['id'], 'ChannelId' => $rChannelID, 'Title' => $rEPGItem['title'], 'RelativeSize' => $rRelativeSize, 'StartTime' => date('h:iA', $rCapStart), 'EndTime' => date('h:iA', $rCapEnd), 'Start' => $rEPGItem['start'], 'End' => $rEPGItem['end'], 'Specialisation' => 'tv', 'Archive' => $rArchive);
 							}
+
+							$rRelativeSize = round($rDuration * $rPerUnit, 2);
+							$rFullSize += $rRelativeSize;
+
+							if (100 < $rFullSize) {
+								$rRelativeSize -= $rFullSize - 100;
+							}
+
+							$rListings[$rChannelID][] = array('ListingId' => $rEPGItem['id'], 'ChannelId' => $rChannelID, 'Title' => $rEPGItem['title'], 'RelativeSize' => $rRelativeSize, 'StartTime' => date('h:iA', $rCapStart), 'EndTime' => date('h:iA', $rCapEnd), 'Start' => $rEPGItem['start'], 'End' => $rEPGItem['end'], 'Specialisation' => 'tv', 'Archive' => $rArchive);
 						}
 					}
 
@@ -960,7 +958,7 @@ class ResellerApiDispatcher {
 							$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 						}
 
-						$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (ImageUtils::validateURL($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?: array($rDefaultArray)));
+						$rReturn['Channels'][] = array('Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (ImageUtils::validateURL($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?? array($rDefaultArray)));
 					}
 					echo json_encode($rReturn);
 					exit();

@@ -1373,8 +1373,7 @@ class ResellerTableRenderer {
 		} else {
 			$rWhereString = '';
 		}
-		if (!$rOrder[$rOrderRow]) {
-		} else {
+		if (isset($rOrder[$rOrderRow])) {
 			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
@@ -1499,16 +1498,13 @@ class ResellerTableRenderer {
 			foreach (RedisManager::instance()->mGet($rKeys) as $rRow) {
 				$rRow = igbinary_unserialize($rRow);
 				if (is_array($rRow)) {
-					if ($rFilterBefore) {
-					} else {
-						if (!($rStreamID && $rStreamID != $rRow['stream_id'])) {
-							if (in_array($rRow['user_id'], $rReports)) {
-							} else {
-								$rKeyCount--;
-							}
+					if (!($rStreamID && $rStreamID != $rRow['stream_id'])) {
+						if (in_array($rRow['user_id'], $rReports)) {
 						} else {
 							$rKeyCount--;
 						}
+					} else {
+						$rKeyCount--;
 					}
 					$rRow['activity_id'] = $rRow['uuid'];
 					$rRow['identifier'] = ($rRow['user_id'] ?: $rRow['hmac_id'] . '_' . $rRow['hmac_identifier']);
@@ -1685,11 +1681,6 @@ class ResellerTableRenderer {
 						if (3600 <= $rDuration) {
 							if (14400 < $rDuration) {
 								$rColour = 'warning';
-							} else {
-								if (43200 >= $rDuration) {
-								} else {
-									$rColour = 'danger';
-								}
 							}
 							$rDuration = sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60);
 						} else {
@@ -1767,8 +1758,7 @@ class ResellerTableRenderer {
 		} else {
 			$rWhereString = '';
 		}
-		if (!$rOrder[$rOrderRow]) {
-		} else {
+		if (isset($rOrder[$rOrderRow])) {
 			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
@@ -1795,6 +1785,7 @@ class ResellerTableRenderer {
 							$rOwner = "<a href='user?id=" . intval($rRow['owner']) . "'>" . $rRow['username'] . "<br/><small class='text-pink'>(indirect)</small></a>";
 						}
 						$rDevice = array('line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller')[$rRow['type']];
+						$rText = '';
 						switch ($rRow['action']) {
 							case 'new':
 								if ($rRow['package_id']) {

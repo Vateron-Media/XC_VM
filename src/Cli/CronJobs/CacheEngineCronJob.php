@@ -27,7 +27,6 @@ class CacheEngineCronJob implements CommandInterface {
     private $rPID;
     private $rSplit = 10000;
     private $rThreadCount;
-    private $rForce = false;
     private $rUpdateIDs = [];
 
     public function getName(): string {
@@ -68,7 +67,6 @@ class CacheEngineCronJob implements CommandInterface {
             if ($rType == 'force') {
                 echo 'Forcing cache regen...' . "\n";
                 SettingsManager::update('cache_changes', false);
-                $this->rForce = true;
             }
         } else {
             shell_exec("kill -9 \$(ps aux | grep 'cache_engine' | grep -v grep | grep -v " . $this->rPID . " | awk '{print \$2}')");
@@ -374,6 +372,7 @@ class CacheEngineCronJob implements CommandInterface {
             $rCount = count($cacheLockMechanism);
         }
         if ($rCount > 0) {
+            $rSteps = [];
             if (!is_null($rStart)) {
                 $rEnd = $rStart + $rCount - 1;
                 if ($this->rSplit >= ($rEnd - $rStart + 1)) {
@@ -433,6 +432,7 @@ class CacheEngineCronJob implements CommandInterface {
                     $rBouquetMap = $rBouquetData;
                 }
             }
+            $rSteps = [];
             if (!is_null($rStart)) {
                 $rEnd = $rStart + $rCount - 1;
                 if ($this->rSplit >= ($rEnd - $rStart + 1)) {
@@ -461,8 +461,7 @@ class CacheEngineCronJob implements CommandInterface {
                             $rStreamIDs[] = $rRow['id'];
                         }
                         if (count($rStreamIDs) > 0) {
-                            $db->query('SELECT `stream_id`, `server_id`, `pid`, `to_analyze`, `stream_status`, `monitor_pid`, `on_demand`, `delay_available_at`, `bitrate`, `parent_id`, `on_demand`, `stream_info`, `video_codec`, `audio_codec`, `resolution`, `compatible` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ')');
-                            if ($db->result) {
+                            if ($db->query('SELECT `stream_id`, `server_id`, `pid`, `to_analyze`, `stream_status`, `monitor_pid`, `on_demand`, `delay_available_at`, `bitrate`, `parent_id`, `on_demand`, `stream_info`, `video_codec`, `audio_codec`, `resolution`, `compatible` FROM `streams_servers` WHERE `stream_id` IN (' . implode(',', $rStreamIDs) . ')')) {
                                 if ($db->result->rowCount() > 0) {
                                     foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
                                         $rStreamMap[intval($rRow['stream_id'])][intval($rRow['server_id'])] = $rRow;

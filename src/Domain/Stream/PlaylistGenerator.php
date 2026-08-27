@@ -30,7 +30,7 @@ class PlaylistGenerator {
 	 * @param string[]|null $rTypeKey Content type filter list, or null for all.
 	 * @param bool        $rNoCache   Bypass any cached playlist.
 	 * @param bool        $rProxy     Generate proxied URLs.
-	 * @return string The generated playlist contents.
+	 * @return string|false The generated playlist contents, or false on failure.
 	 */
 	public static function generate($rUserInfo, $rDeviceKey, $rOutputKey = 'ts', $rTypeKey = null, $rNoCache = false, $rProxy = false) {
 		global $rSettings, $rServers;
@@ -134,14 +134,12 @@ class PlaylistGenerator {
 			} else {
 				$db->query('SELECT * FROM `streams_series` WHERE `id` IN (' . implode(',', $rUserInfo['series_ids']) . ')');
 				$rSeriesInfo = $db->get_rows(true, 'id');
-				if (count($rUserInfo['series_ids']) > 0) {
-					$db->query('SELECT stream_id, series_id, season_num, episode_num FROM `streams_episodes` WHERE series_id IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(series_id,' . implode(',', $rUserInfo['series_ids']) . '), season_num ASC, episode_num ASC');
-					foreach ($db->get_rows(true, 'series_id', false) as $rSeriesID => $rEpisodes) {
-						foreach ($rEpisodes as $rEpisode) {
-							$rSeriesEpisodes[$rEpisode['stream_id']] = array($rEpisode['season_num'], $rEpisode['episode_num']);
-							$rSeriesAllocation[$rEpisode['stream_id']] = $rSeriesID;
-							$rUserInfo['episode_ids'][] = $rEpisode['stream_id'];
-						}
+				$db->query('SELECT stream_id, series_id, season_num, episode_num FROM `streams_episodes` WHERE series_id IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(series_id,' . implode(',', $rUserInfo['series_ids']) . '), season_num ASC, episode_num ASC');
+				foreach ($db->get_rows(true, 'series_id', false) as $rSeriesID => $rEpisodes) {
+					foreach ($rEpisodes as $rEpisode) {
+						$rSeriesEpisodes[$rEpisode['stream_id']] = array($rEpisode['season_num'], $rEpisode['episode_num']);
+						$rSeriesAllocation[$rEpisode['stream_id']] = $rSeriesID;
+						$rUserInfo['episode_ids'][] = $rEpisode['stream_id'];
 					}
 				}
 			}
@@ -372,6 +370,7 @@ class PlaylistGenerator {
 							$rChannel['stream_display_name'] = StreamSorter::formatTitle($rChannel['stream_display_name'], $rChannel['year']);
 						}
 
+						$rIcon = '';
 						if ($rChannel['live'] == 0) {
 							if (strlen($rUserInfo['access_token']) == 32) {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
@@ -409,7 +408,7 @@ class PlaylistGenerator {
 									}
 								}
 							} else {
-								$rAvailableServers = array_values(array_keys($rRTMPRows[$rChannel['id']]));
+								$rAvailableServers = array_keys($rRTMPRows[$rChannel['id']]);
 								if (in_array($rUserInfo['force_server_id'], $rAvailableServers)) {
 									$rServerID = $rUserInfo['force_server_id'];
 								} else {
@@ -436,9 +435,9 @@ class PlaylistGenerator {
 						}
 						foreach ($rCategoryIDs as $rCategoryID) {
 							if (isset($rCategories[$rCategoryID])) {
-								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCategories[$rCategoryID]['category_name'], ImageUtils::validateURL($rIcon)), $rConfig)) . "\r\n";
+								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'), array_map('strval', array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCategories[$rCategoryID]['category_name'], ImageUtils::validateURL($rIcon))), $rConfig)) . "\r\n";
 							} else {
-								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'), array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon), $rConfig)) . "\r\n";
+								$rData = str_replace(array('&lt;', '&gt;'), array('<', '>'), str_replace(array($rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'), array_map('strval', array(str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon)), $rConfig)) . "\r\n";
 								$rData = str_replace(' group-title="{CATEGORY}"', '', $rData);
 							}
 							if ($rOutputFile) {

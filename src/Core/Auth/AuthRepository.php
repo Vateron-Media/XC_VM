@@ -101,9 +101,9 @@ class AuthRepository {
 				$rCurrentTemplate = in_array($rType, array('ministra', 'ministra/new')) ? $rMinistraTemplate : $rTemplate;
 
 				if (in_array($rType, array('ministra', 'ministra/new')) || strlen($rCode['code']) >= 4) {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'], $rType, $rBurst, $rAlias), $rCurrentTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), (string) $rCode['code'], $rType, (string) $rBurst, $rAlias), $rCurrentTemplate));
 				} else {
-					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', $rBurst, $rAlias . '/'), $rCurrentTemplate));
+					file_put_contents($rMainHome . 'bin/nginx/conf/codes/' . $rCode['code'] . '.conf', str_replace(array('#WHITELIST#', '#CODE#', '#TYPE#', '#BURST#', '#ALIAS#'), array(implode(' ', $rWhitelist), $rCode['code'] . '/', $rType . '/', (string) $rBurst, $rAlias . '/'), $rCurrentTemplate));
 				}
 			}
 		}

@@ -233,10 +233,10 @@ class BlocklistService {
 	public static function checkISP($rBlockedISP, $rConISP) {
 		foreach ($rBlockedISP as $rISP) {
 			if (strtolower($rConISP) == strtolower($rISP['isp'])) {
-				return intval($rISP['blocked']);
+				return (bool) intval($rISP['blocked']);
 			}
 		}
-		return 0;
+		return false;
 	}
 
 	/**
@@ -261,9 +261,9 @@ class BlocklistService {
 	public static function isProxy($rIP) {
 		$rProxies = self::getProxyIPs();
 		if (isset($rProxies[$rIP])) {
-			return $rProxies[$rIP];
+			return (bool) $rProxies[$rIP];
 		}
-		return null;
+		return false;
 	}
 
 	/**

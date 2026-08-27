@@ -15,7 +15,6 @@ class File implements StreamInterface {
 			}
 
 			$this->handle = fopen($mixed, 'rb');
-			$this->handle;
 		} elseif (get_resource_type($mixed) == 'stream') {
 			$this->handle = $mixed;
 		} else {

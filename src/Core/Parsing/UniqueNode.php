@@ -10,6 +10,11 @@ class UniqueNode implements ParserInterface {
 	public const FIND_CLOSING_TAG_ACTION = 1;
 
 	/**
+	 * Holds the parser configuration
+	 * @var array
+	 */
+	protected $options;
+	/**
 	 * Current working XML blob
 	 * @var string
 	 */
@@ -70,7 +75,7 @@ class UniqueNode implements ParserInterface {
 	protected function getOpeningTagPos() {
 		$startPositionInBlob = false;
 
-		if (preg_match('/<' . preg_quote($this->options['uniqueNode']) . '(>| )/', $this->workingBlob, $matches, PREG_OFFSET_CAPTURE) === 1) {
+		if (preg_match('/<' . preg_quote($this->options['uniqueNode'], '/') . '(>| )/', $this->workingBlob, $matches, PREG_OFFSET_CAPTURE) === 1) {
 			$startPositionInBlob = $matches[0][1];
 		}
 

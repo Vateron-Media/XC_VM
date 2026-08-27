@@ -505,7 +505,7 @@ class LlodCommand implements CommandInterface {
 			} else {
 				$rError = null;
 
-				if (isset($http_response_header)) {
+				if (!empty($http_response_header)) {
 					foreach ($http_response_header as $rKey => $rHeader) {
 						if (preg_match('#HTTP/[0-9\\.]+\\s+([0-9]+)#', $rHeader, $rOutput)) {
 							$rError = $rHeader;
@@ -634,7 +634,7 @@ class LlodCommand implements CommandInterface {
 					$rCommand = trim(file_get_contents($cmdlineFile));
 					echo "Process command line: $rCommand\n";
 					$expectedCommand = 'LLOD[' . $rStreamID . ']';
-					if ($rCommand === $expectedCommand && is_numeric($rPID) && 0 < $rPID) {
+					if ($rCommand === $expectedCommand && 0 < $rPID) {
 						echo "Killing existing process PID: $rPID\n";
 						posix_kill($rPID, 9);
 					} else {

@@ -203,7 +203,7 @@ class LbInstallFlow {
 			$rNewScript .= 'start-stop-daemon --start --quiet --pidfile ' . MAIN_HOME . 'bin/php/sockets/' . $i . '.pid --exec ' . MAIN_HOME . 'bin/php/sbin/php-fpm -- --daemonize --fpm-config ' . MAIN_HOME . 'bin/php/etc/' . $i . '.conf' . "\n";
 			$rNewBalance .= '    server unix:' . MAIN_HOME . 'bin/php/sockets/' . $i . '.sock;' . "\n";
 			$rTmpPath = TMP_PATH . md5(time() . $i . '.conf');
-			file_put_contents($rTmpPath, str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', $i, $rTemplate)));
+			file_put_contents($rTmpPath, str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', (string) $i, $rTemplate)));
 			call_user_func($rSendFileSSH, $rConn, $rTmpPath, MAIN_HOME . 'bin/php/etc/' . $i . '.conf', false);
 		}
 		$rNewBalance .= '}';

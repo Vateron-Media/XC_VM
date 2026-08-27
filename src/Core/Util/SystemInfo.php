@@ -124,10 +124,6 @@ class SystemInfo {
             $cpuCores = $coreCount;
         }
 
-        if ($cpuCores <= 0) {
-            $cpuCores = 1;
-        }
-
         return $rTotalLoad / $cpuCores;
     }
 
@@ -230,13 +226,11 @@ class SystemInfo {
             // "Cannot open device /dev/video0, exiting." to stderr, polluting
             // the output of every command that collects stats (watchdog, crons).
             $rDevices = array_values(array_filter(explode("\n", @shell_exec('v4l2-ctl --list-devices 2>/dev/null') ?? '')));
-            if (is_array($rDevices)) {
-                foreach ($rDevices as $rKey => $rValue) {
-                    if ($rKey % 2 == 0) {
-                        $rReturn[$rID]['name'] = $rValue;
-                        list(, $rReturn[$rID]['video_device']) = explode('/dev/', $rDevices[$rKey + 1]);
-                        $rID++;
-                    }
+            foreach ($rDevices as $rKey => $rValue) {
+                if ($rKey % 2 == 0) {
+                    $rReturn[$rID]['name'] = $rValue;
+                    list(, $rReturn[$rID]['video_device']) = explode('/dev/', $rDevices[$rKey + 1]);
+                    $rID++;
                 }
             }
         } catch (\Exception $e) {

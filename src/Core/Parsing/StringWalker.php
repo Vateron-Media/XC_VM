@@ -79,7 +79,7 @@ class StringWalker implements ParserInterface {
 	protected function shave() {
 		preg_match('/<[^>]+>/', $this->chunk, $matches, PREG_OFFSET_CAPTURE);
 
-		if (isset($matches[0]) && isset($matches[0][0]) && isset($matches[0][1])) {
+		if (isset($matches[0])) {
 			list($captured, $offset) = $matches[0];
 
 			if ($this->options['expectGT']) {
@@ -112,7 +112,7 @@ class StringWalker implements ParserInterface {
 	/**
 	 * Extract XML compatible tag head and tail
 	 * @param  string $element XML element
-	 * @return string[]|null 0 => Opening tag, 1 => Closing tag (null if no tag matches)
+	 * @return array{string, string, int}|null 0 => Opening tag, 1 => Closing tag, 2 => Depth delta (null if no tag matches)
 	 */
 	protected function getEdges($element) {
 		foreach ($this->options['tags'] as $tag) {

@@ -108,7 +108,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 			$rProblems[] = "Host unreachable (no ICMP, port {$rPort} closed): the node is powered off, network-partitioned, or fully firewalled from the main.";
 		} elseif ($rIcmp && $rTcp !== true) {
 			$rProblems[] = "Host pings but port {$rPort} is DROPPED: most likely the node's iptables blocked the main's IP (RootSignals flood/block — public IPs are dropped silently), or nginx/the xc_vm service is down. Run `server:diagnose` ON the node for the exact cause.";
-		} elseif ($rTcp === true && !$rHttpOk) {
+		} elseif (!$rHttpOk) {
 			$rProblems[] = "Port {$rPort} is open but /api did not answer (" . ($rCode ? "HTTP {$rCode}" : $rCurlErr) . "): nginx is up but PHP/the app is not responding — check php-fpm on the node.";
 		} elseif ($rHttpOk && $rBeatStale) {
 			$rProblems[] = "The node answers /api yet its heartbeat is stale: its watchdog daemon (the heartbeat writer) is not running — it exits when its DB connection to the main drops — or it cannot WRITE to the panel DB. Run `server:diagnose` ON the node.";

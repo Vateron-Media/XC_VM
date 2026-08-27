@@ -174,6 +174,7 @@ class UserService {
 					}
 
 					$rArray['override_packages'] = json_encode($rOverride);
+					$rReason = '';
 
 					if (isset($rUser) && $rUser['credits'] != $rData['credits']) {
 						$rCreditsAdjustment = $rData['credits'] - $rUser['credits'];

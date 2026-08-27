@@ -267,11 +267,6 @@ class GitHubReleases {
      * @throws \InvalidArgumentException If the version string is too long or contains invalid parts.
      */
     public static function isValidVersion(string $version): bool {
-        if (!is_string($version)) {
-            error_log("Version must be a string");
-            return false;
-        }
-
         if (strlen($version) > 20) {
             error_log("Version string too long");
             throw new \InvalidArgumentException("Version string is too long");
