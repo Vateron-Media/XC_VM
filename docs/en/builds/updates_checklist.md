@@ -6,15 +6,15 @@ Step-by-step guide for preparing and publishing an XC_VM release.
 
 ## 1. Changelog
 
-**Generate commit log (work commits only):**
+**Reset the build output, then generate the commit log (work commits only):**
 
 ```bash
+make new                 # wipe + recreate dist/ ONCE, at the very start
 PREV_TAG=$(git describe --tags --abbrev=0)
-mkdir -p dist
 git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
-> ⚠️ `mkdir -p dist` is required: `dist/` does not exist on a fresh clone and `make new` wipes it — without it the redirect fails with "No such file or directory".
+> ⚠️ Run `make new` here, at the very start of the release — it wipes **and** recreates `dist/`. Everything below writes into `dist/` (starting with `changes.md`), so `make new` must run **before** this and **never again** before building — a later `make new` would delete `dist/changes.md`.
 
 **Update `changelog.json`** in the repository root — this file contains only the changes for the upcoming release:
 
@@ -34,23 +34,21 @@ The panel fetches this file from the release tag automatically via `GitHubReleas
 
 ---
 
-## 2. Prepare Release Baseline
+## 2. Pre-Release Validation
 
-First, finish all feature/fix/docs work and make sure it is already in `main`.
+Before publishing, verify the build works:
 
-Set the version variable once and reuse it in all commands below:
+**Quality checks** (CI runs the same set on the tag — confirm it is green):
 
 ```bash
-VERSION="X.Y.Z"
+make dev-tools && make phpstan && make cs && make gates
+php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
+make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
 ```
 
-**Choosing `X.Y.Z`:** `MAJOR.MINOR.PATCH` — bump **PATCH** for fixes/small changes (e.g.
-`2.4.0 → 2.4.1`), **MINOR** for backward-compatible features (`2.4.x → 2.5.0`), **MAJOR** for
-breaking changes. Hotfixes are a PATCH bump on top of the current release. `XC_VM_VERSION`
-(set in step 5) must match the tag you publish in step 7.
+> ℹ️ The Docker test install moved to step 6 — it requires a built `dist/XC_VM.zip`.
 
-> ⚠️ Do not create a separate version-bump commit/push at this step.
-> Otherwise `dist/changes.md` will include extra release commits and force additional edits.
+**Security scan:** runs automatically on push/PR via `.github/workflows/security-scan.yml` (Semgrep) — no manual step.
 
 ### Regenerate translated documentation
 
@@ -73,7 +71,27 @@ make docs-build          # strict build — fails on any broken link/anchor
 
 ---
 
-## 3. Deleted Files
+## 3. Prepare Release Baseline
+
+First, finish all feature/fix/docs work and make sure it is already in `main`.
+
+Set the version variable once and reuse it in all commands below:
+
+```bash
+VERSION="X.Y.Z"
+```
+
+**Choosing `X.Y.Z`:** `MAJOR.MINOR.PATCH` — bump **PATCH** for fixes/small changes (e.g.
+`2.4.0 → 2.4.1`), **MINOR** for backward-compatible features (`2.4.x → 2.5.0`), **MAJOR** for
+breaking changes. Hotfixes are a PATCH bump on top of the current release. `XC_VM_VERSION`
+(set in step 5) must match the tag you publish in step 7.
+
+> ⚠️ Do not create a separate version-bump commit/push at this step.
+> Otherwise `dist/changes.md` will include extra release commits and force additional edits.
+
+---
+
+## 4. Deleted Files
 
 Before building, generate the list of files to delete on update:
 
@@ -100,24 +118,6 @@ After validation, `make lb` packs the file into the LB archive via the `lb_delet
 During `php console.php update post-update`, `MigrationRunner::runFileCleanup()` reads it and deletes the listed files automatically.
 
 > ⚠️ Lines starting with `#` are comments and will be ignored. You can comment out files you want to keep.
-
----
-
-## 4. Pre-Release Validation
-
-Before publishing, verify the build works:
-
-**Quality checks** (CI runs the same set on the tag — confirm it is green):
-
-```bash
-make dev-tools && make phpstan && make cs && make gates
-php tools/.bin/phpunit.phar -c tests/phpunit.xml.dist
-make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
-```
-
-> ℹ️ The Docker test install moved to step 6 — it requires a built `dist/XC_VM.zip`.
-
-**Security scan:** runs automatically on push/PR via `.github/workflows/security-scan.yml` (Semgrep) — no manual step.
 
 ---
 
@@ -163,10 +163,11 @@ git push
 **For local builds:**
 
 ```bash
-make new
 make lb
 make main
 ```
+
+> ⚠️ Do **not** run `make new` here — `dist/` was already reset in step 1, and re-running it would delete `dist/changes.md`. The build targets write into the existing `dist/`.
 
 After building, `dist/` should contain:
 
@@ -267,7 +268,7 @@ Every `make` target used during release prep, in one place.
 | Command | Purpose |
 | --- | --- |
 | `make generate_deleted_files` | Regenerate `src/migrations/deleted_files.txt` |
-| `make new` | Reset the `dist/` output directory (run before building) |
+| `make new` | Wipe + recreate `dist/` — run ONCE at the start (step 1), before writing `dist/changes.md`; never again before building |
 | `make lb` | Build the LoadBalancer archive into `dist/` |
 | `make main` | Build the MAIN archive into `dist/` |
 | `bash tools/test-install/test_release.sh` | Docker install test of the built release |
