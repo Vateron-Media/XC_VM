@@ -23,7 +23,7 @@ endpoint logic (live.php / vod.php / timeshift.php)
 ShutdownHandler::handle()
 ```
 
-nginx переписывает все URL-адреса потоковой передачи на PHP точки входа в соответствии с `www/stream/`:
+nginx переписывает все URL-адреса потоковой передачи на PHP точки входа в соответствии с `Public/stream/`:
 
 |Шаблон URL-адреса|Точка входа|Цель|
 | --- | --- | --- |
@@ -42,7 +42,6 @@ nginx переписывает все URL-адреса потоковой пер
 src/Streaming/
 ├── StreamingBootstrap.php
 ├── AsyncFileOperations.php
-├── TimeshiftClient.php
 ├── Auth/
 │   ├── StreamAuth.php
 │   └── StreamAuthMiddleware.php
@@ -56,6 +55,8 @@ src/Streaming/
 │   ├── HLSGenerator.php
 │   ├── OffAirHandler.php
 │   └── StreamRedirector.php
+├── Fanout/
+│   └── FanoutClient.php
 ├── Health/
 │   └── ProcessChecker.php
 ├── Lifecycle/
@@ -63,8 +64,8 @@ src/Streaming/
 └── Protection/
     └── ConnectionLimiter.php
 
-src/www/stream/
-├── init.php          # Legacy bootstrap shim (deprecated)
+src/Public/stream/
+├── index.php         # Entry router for the stream endpoints
 ├── auth.php          # Token validation gateway
 ├── live.php          # Live streaming delivery
 ├── vod.php           # VOD delivery
@@ -73,6 +74,7 @@ src/www/stream/
 ├── key.php           # Encryption key delivery
 ├── subtitle.php      # Subtitle delivery
 ├── thumb.php         # Thumbnail delivery
+├── probe.php         # Stream probe / off-air status
 └── rtmp.php          # RTMP publishing endpoint
 ```
 
@@ -104,7 +106,7 @@ public static function bootstrap($rFilename, $rSettings)
 
 Классифицирует конечную точку:
 
-- **Конечные точки зондирования:** `probe`, `player_api` (небольшая нагрузка)
+- **Конечные точки зондирования:** `probe`, `player_api` ( небольшая нагрузка)
 - **Конечные точки по умолчанию:** `live`, `thumb`, `subtitle`, `timeshift`, `vod`, `status`
 - **Привилегированные конечные точки:** `rtmp`, `portal`
 
@@ -125,7 +127,7 @@ public static function bootstrap($rFilename, $rSettings)
 
 Подключается к базе данных/Redis на основе `$rSettings['redis_handler']`.
 
-> **Важно:** Путь к потоковой передаче считывается исключительно из файлового кэша. При обычной работе программа не запрашивает настройки в базе данных или запросы пользователей.
+> **Важный:** Путь к потоковой передаче считывается исключительно из файлового кэша. При обычной работе программа не запрашивает настройки в базе данных или запросы пользователей.
 
 ---
 
@@ -179,9 +181,9 @@ Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 4. Создайте запись о подключении: `ConnectionTracker::createConnection()`.
 5. Hand delivery to the **`xc_fanout` daemon** (see below): PHP emits an
 `X-Accel-Redirect` и завершает байтовый путь — nginx передает байты в потоковом режиме.
-   - **ТС:** `X-Accel-Redirect: /xc_fanout/<id>?c=<uuid>&prebuffer=N` (nginx
+   - **тс:** `X-Accel-Redirect: /xc_fanout/<id>?c=<uuid>&prebuffer=N` (nginx
 перезаписывается в файл демона `/live/<id>`).
-   - **HLS:** список воспроизведения указывает на выделенные сегменты; `segment.php` транслируется в прямом эфире
+   - **HLS:** список воспроизведения указывает на выделенные сегменты; `segment.php` показы в прямом эфире
 сегментирует только через демон (`/xc_fanout_hls/<id>_<seq>`), иначе `404`.
 6. При выходе: `ShutdownHandler::handle()` → закрыть запись о подключении.
 
@@ -191,7 +193,7 @@ Alt-Svc: h3-29, h3-T051, h3-Q050 (HTTP/3 hints)
 
 ### Временной сдвиг (timeshift.php)
 
-Обслуживает архивные сегменты. Использует `TimeshiftClient` для разрешения архивного файла.
+Обслуживает архивированные сегменты (timeshift / catch-up) из пути к архиву.
 
 ### Доставка демона — `xc_fanout`
 
@@ -199,26 +201,29 @@ Live client delivery (TS **and** HLS) is **daemon-only**: PHP authorizes the
 средство просмотра, а затем полностью покидает байтовый путь, так что средство просмотра больше не закрепляет
 PHP-FPM работник, отвечающий за жизнедеятельность потока.
 
-- **Fan-out.** `xc_fanout` (a bundled Go daemon) pulls each source **once** and
+- **Расходимся веером.** `xc_fanout` (встроенный демон Go) извлекает каждый источник **однажды** и
 предоставляет его каждому пользователю через сокет unix с помощью встроенного в оперативную память сегментатора HLS.
-PHP не соответствует байтовому пути для каждого зрителя; старый цикл поиска и чтения
-(`AsyncFileOperations::awaitFileExists()`) и `HLSGenerator::generateHLS()`
-сервировочные дорожки были удалены при разделке.
-- **Два сокета.** Клиентский сокет (ориентированный на nginx) обслуживает `/live/<id>` и
+PHP не соответствует байтовому пути для каждого зрителя: рабочий процесс чтения для каждого зрителя
+цикл обслуживания и путь `HLSGenerator::generateHLS()` для обслуживания клиентов не являются
+больше не используется для оперативной доставки (`generateHLS()` сохраняется в классе, но имеет
+абонентов нет). `AsyncFileOperations::awaitFileExists()` — это **нет** удалено - это
+все еще используется для ожидания запуска потока и пути в байтах VOD/timeshift (см.
+Таблица показателей).
+- **Две розетки.** Клиентский сокет (ориентированный на nginx) обслуживает `/live/<id>` и
 `/hls/...`; управляющий сокет, предназначенный только для PHP, регистрирует источники
 (`PUT /streams/<id>` / `/ingest/<id>`), отвечает на вопросы о статусе выхода в эфир
 (`GET /streams/<id>`, `GET /probe/<id>`) и предоставляет доступ к телеметрии.
-- **Telemetry / reconciliation.** `fanout_sync` polls `GET /rates` (per-uuid
+- **Телеметрия / согласование данных.** `fanout_sync` опросы `GET /rates` (для каждого uuid
 КБИТ/с → `lines_divergence`) и `GET /connections` (согласовывает `lines_live`
 строк, поскольку PHP не может видеть разъединение в `X-Accel`).
-- **Отключен.** Если демон сообщает об отсутствии данных (`has_data=false` / устаревшие), PHP
+- **Вне эфира.** Если демон сообщает об отсутствии данных (`has_data=false` / устаревшие), PHP
 показывает страницу "не в эфире" вместо того, чтобы позволить зрителю зависнуть.
 - **Сохранено на диске HLS** только для timeshift / миниатюр / `.analyse` /
 `MonitorCommand` — не для доставки клиенту.
 
 #### Наложение отправленного сообщения
 
-Действие администратора "Отправить сообщение" отображает текстовый баннер на видео **одного** зрителя.
+Действие администратора "Отправить сообщение" отображает текстовый баннер на видео, которое просматривает **один** зритель.
 PHP отправляет его в сокет управления демоном
 (`FanoutClient::sendSignal` → `POST /signal/<uuid>`), и демон применяет
 ffmpeg `drawtext` наложение на следующий HLS сегмент этого просмотра (или короткий ~5-секундный фрагмент
@@ -234,14 +239,14 @@ ffmpeg `drawtext` наложение на следующий HLS сегмент 
 
 Управляет текущим состоянием соединения. Серверная часть выбрана с помощью `$rSettings['redis_handler']`:
 
-**Redis (предпочтительно для масштабирования):**
+**Redis (preferred for scale):**
 
 - Соединения, хранящиеся в отсортированных наборах:
   - `LINE#{identity}` — подключения для пользователя
   - `STREAM#{stream_id}` — соединения для потока
   - `SERVER#{server_id}` — соединения на сервере
 
-**MySQL (резервный вариант):**
+**MySQL (fallback):**
 
 - Таблица: `lines_live` с полями: `activity_id`, `user_id`, `stream_id`, `server_id`, `uuid`, `pid`, `hls_end`
 
@@ -350,21 +355,14 @@ IP-блокировка на основе файлов. Файлы блоков 
 
 ## HLS Шифрование
 
-Файл: `src/Streaming/Delivery/HLSGenerator.php`
+Клиент HLS обслуживается демоном `xc_fanout` (см. [Доставка демоном](#daemon-delivery-xc_fanout)), поэтому происходит шифрование **сторона демона**:
 
-```php
-public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
-    $rStreamID, $rUUID, $rIP, ...): string|false
-```
+1. `StreamProcess` записывает ключ потока AES-128/IV в `content/streams/<id>_.key` / `_.iv`.
+2. At ingest registration (`FanoutClient::registerIngest`), when `encrypt_hls` is on, the key/IV are handed to the daemon, which encrypts the HLS segments it serves and emits a matching `#EXT-X-KEY`.
+3. `HLSGenerator::tokenizeDaemonPlaylist()` переписывает URL-адреса сегментов плейлиста демона в ссылки с авторизацией для каждого сегмента `/hls/<token>`, которые `segment.php` передаются через прокси-сервер демона.
+4. Ключ AES доставляется игрокам с помощью `key.php` (`src/Public/stream/key.php`) с использованием того же механизма токенов.
 
-Когда `encrypt_hls == true`:
-
-1. Сгенерируйте ключевой токен AES-128 из IP + StreamID + salt.
-2. Замените IV содержимым из `STREAMS_PATH . $rStreamID . '_.iv'`.
-3. Encrypt each segment reference: `IP/StreamID/Segment/UUID/SERVER_ID/VideoCodec/OnDemand`.
-4. Замените названия сегментов на `/hls/{encrypted_token}`.
-
-Доставка ключей происходит через `key.php` с использованием того же механизма токенов.
+> Устаревший `HLSGenerator::generateHLS()` (который создал и зашифровал плейлист на диске HLS для использования PHP) сохраняется в классе, но становится **больше не находится на пути к клиенту** после отключения демона.
 
 ---
 
@@ -374,12 +372,12 @@ public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
 
 |Особенность|Механизм|
 | --- | --- |
-|Ожидание неблокирующего файла|`AsyncFileOperations::awaitFileExists()` использует inotify (Linux) или оптимизированный опрос|
+|Трансляция-онлайн-ожидание|`AsyncFileOperations::awaitFileExists()` ожидает `_.pid`/`_.monitor`/первого сегмента при появлении потока (и в пути длиной VOD/timeshift байт). Оперативная доставка клиента осуществляется демоном, а не считывается с помощью PHP.|
 |Нулевой режим работы процессора|`time_nanosleep()` через `AsyncFileOperations::efficientSleep()`|
 |nginx буферизация|128 буферов по 32 КБАЙТ на запрос|
 |Объединение подключений в пул|Redis (предпочтительно) или постоянный MySQL|
 |Чтение только из кэша|Настройки и пользовательские данные считываются из файлового кэша без запросов к базе данных|
-|Ранний выход|Отслеживает `connection_status()` каждые 5 секунд для обнаружения отключения клиента|
+|Досрочный выход (VOD/timeshift)|Эти байтовые циклы опрашивают `connection_status()` для остановки при отключении клиента. В Live нет байтового цикла для каждого пользователя PHP (обслуживается демоном).|
 |Обновление настроек|Каждые 5 минут (300 секунд) для отслеживания изменений конфигурации без перезапуска|
 
 ---
@@ -387,92 +385,34 @@ public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword,
 ## Пути к файловой системе
 
 ```text
-STREAMS_PATH        = /home/xc_vm/www/stream/
-CONS_TMP_PATH       = /home/xc_vm/tmp/
+STREAMS_PATH        = /home/xc_vm/content/streams/
+VOD_PATH            = /home/xc_vm/content/vod/
+ARCHIVE_PATH        = /home/xc_vm/content/archive/
+VIDEO_PATH          = /home/xc_vm/content/video/
+CONS_TMP_PATH       = /home/xc_vm/tmp/opened_cons/
 CACHE_TMP_PATH      = /home/xc_vm/tmp/cache/
 FLOOD_TMP_PATH      = /home/xc_vm/tmp/flood/
-SIGNALS_PATH        = /home/xc_vm/tmp/signals/
-VIDEO_PATH          = /home/xc_vm/www/video/
-ARCHIVE_PATH        = /home/xc_vm/www/archive/
-VOD_PATH            = /home/xc_vm/www/vod/
+SIGNALS_TMP_PATH    = /home/xc_vm/tmp/signals/
+SIGNALS_PATH        = /home/xc_vm/signals/
 ```
 
 ---
 
 ## Диагностика и оснастка
 
-Два инструмента проверяют правильность доставки потока — что сегменты поступают по порядку
-и очередь на доставку не прерывается.
+Автономный инструмент проверки целостности потока (`tools/stream-check/stream_queue_check.py`) теперь доступен на отдельной странице - см. [Диагностика и инструменты для потоковой передачи](streaming-diagnostics.md).
 
-### `tools/stream_queue_check.py` (Только Python, stdlib)
+---
 
-Автономный монитор **целостности сегмента/очереди пакетов** с дополнительным ** функцией live
-панель управления буфером**. Автоматически определяет HLS по сравнению с MPEG-TS.
+## Обоснование проекта (ADR)
 
-```bash
-python3 tools/stream_queue_check.py "<url>" --duration 30        # batch check
-python3 tools/stream_queue_check.py "<url>" --json               # cron / monitoring
-python3 tools/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
-```
+Почему оперативная доставка переместилась с tmpfs на PHP байтовый путь — решения, стоящие за текущим
+`xc_fanout` архитектура — записывается в отчетах об архитектурных решениях (repo-внутренние примечания,
+не является частью опубликованного сайта):
 
-Что означает "неповрежденная очередь" для каждого типа потока:
-
-|Течение|Проверка очереди|
-| --- | --- |
-|HLS (`.m3u8`)|`EXT-X-MEDIA-SEQUENCE` монотонный и непрерывный (никаких удаленных или перемотанных сегментов), нет `EXT-X-DISCONTINUITY`, каждый вновь появляющийся сегмент доступен для загрузки. Основные плейлисты отображаются в их первом варианте.|
-|MPEG-TS (`.ts`, `/play/<token>/ts`)|per-PID `continuity_counter` (потерянные / дублированные / переупорядоченные пакеты = разрыв очереди), потеря байта синхронизации, индикатор транспортной ошибки и задержка доставки.|
-
-Основные параметры:
-
-|Флаг|Цель|
-| --- | --- |
-| `--duration N` |секунды для наблюдения (`0` = до нажатия Ctrl-C в `--live`)|
-| `--tolerance N` |разрешить N временных разрывов очереди, прежде чем сообщать о `BROKEN` (игнорируются редкие сбои источника, переданные `-c copy`)|
-| `--stall-timeout S` |перерыв в доставке засчитывается как задержка; не превышайте продолжительность сегмента (по умолчанию 15).|
-| `--live` |цветная приборная панель TUI (внизу)|
-|`--prebuffer S` / `--buffer-target S`|live: предварительный буфер для виртуального игрока и масштаб буферного графика|
-|`--json` / `--no-color`|машинный вывод / отключение ANSI|
-
-Код выхода: `0` исправен, `2` проблема с очередью или задержка, `1` использование.
-
-#### Оперативная панель мониторинга (`--live`)
-
-Моделирует виртуального проигрывателя: проигрыватель перемещается со скоростью настенных часов, в то время как содержимое
-"получено". Для **TS** полученная временная шкала берется из **PCR** (часы потока).;
-для **HLS** из длительностей сегментов `EXTINF`. Буферизованное время воспроизведения ("кэш") =
-получено − воспроизведено; если значение достигает нуля, то начало воспроизведения зависает (событие отмены буферизации).
-
-```text
-  STREAM QUEUE / BUFFER MONITOR   TS   up 00:22
-  cache buffer (s), last 60s:
-  ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄▄▄▇▇▇▆▆▆▅▅▅▄▄▇▇▇▆▆▆▅   <- burst-then-drain = delivery sawtooth
-  IN CACHE : [█████████████████░░░░░░░░░░░░░]  11.6s / 20s
-  PLAYING  : PLAYING     head 00:18   received 00:29
-  rate 1000 kbit/s   received 4.1 MB   last data 7.0s ago
-  QUEUE OK   cc:0 sync:0 gaps:0 disc:0   rebuffers:0
-```
-
-График буфера и индикатор окрашены в зеленый (исправный) / желтый (низкий) / красный цвета
-(голодает). Для HLS строка блоков показывает сегменты, которые все еще находятся в кэше перед началом
-плейхед.
-
-### `console.php stream:check` (PHP, компаньон)
-
-Проверяет URL-адрес источника и с помощью `--decode` извлекает и декодирует медиафайл для перехвата
-поврежденные сегменты. HLS проверяется посегментно; сообщение об ошибке с одним сокетом
-конечная точка фиксируется с помощью cURL и декодируется в автономном режиме (ffmpeg в режиме реального времени `-i` зависает на
-it). Источник: `src/Cli/Commands/StreamCheckCommand.php`.
-
-```bash
-console.php stream:check "<url>"                  # metadata probe (type, codecs)
-console.php stream:check "<url>" --decode=30 --json
-```
-
-> **Примечание — темп доставки.** Цикл доставки TS в реальном времени в `live.php` истощает
-> доступные данные без регулирования и приостанавливаются только при достижении значения ffmpeg
-> заголовок записи. Более ранняя версия отключалась на одну секунду после каждого чтения, ограничивая
-> пропускная способность составляет `read_buffer_size` в секунду, а клиенты голодают;
-> `stream_queue_check.py --live` визуализирует результирующее поведение буфера.
+- [ADR 0001 — Tmpfs-free streaming](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0001-tmpfs-free-streaming.md) — PHP out of the byte path, native fan-out, in-RAM HLS.
+- [ADR 0002 — `xc_fanout` daemon](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md) — the native live fan-out daemon.
+- [ADR 0003 — Полное отключение демона](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0003-full-daemon-cutover.md) — отмена устаревшего байтового пути для live.
 
 ---
 
@@ -492,5 +432,4 @@ console.php stream:check "<url>" --decode=30 --json
 | `src/Streaming/Lifecycle/ShutdownHandler.php` |очистка соединения при выходе|
 | `src/Domain/Stream/ConnectionTracker.php` |состояние соединения в Redis/MySQL|
 | `src/Core/Init/LegacyInitializer.php` |настройка глобальной переменной для потоковой передачи|
-| `src/Cli/Commands/StreamCheckCommand.php` |`stream:check` — проверка/декодирование потока на наличие фрагментарных сегментов|
-| `tools/stream_queue_check.py` |мониторинг целостности очереди + панель мониторинга динамического буфера|
+| `tools/stream-check/stream_queue_check.py` |мониторинг целостности очереди + панель мониторинга динамического буфера|

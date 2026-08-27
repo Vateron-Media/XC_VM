@@ -28,7 +28,7 @@
 ```text
 nginx -> Public/index.php
   -> URL parsing (scope + pageName)
-  -> XC_Bootstrap::boot(CONTEXT_ADMIN)
+  -> XC_Bootstrap::boot(BootContext::Admin)
        -> floodProtection()          (block banned IPs)
        -> hostVerification()         (check allowed domains)
        -> initSession()
@@ -69,7 +69,7 @@ nginx -> Public/index.php
 
 ```text
 nginx -> Public/index.php
-  -> XC_Bootstrap::boot(CONTEXT_ADMIN)
+  -> XC_Bootstrap::boot(BootContext::Admin)
   -> new AdminApiController() or new ResellerRestApiController()
   -> $controller->index()
   -> exit
@@ -111,8 +111,8 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 1. **Защита от наводнений** -- Если файл `FLOOD_TMP_PATH/block_{IP}` существует, запрос отклоняется по протоколу HTTP 403.
 2. **Загрузка кэша настроек** -- Считывает `$rSettings` из кэша файлов, сериализованных в igbinary, по адресу `CACHE_TMP_PATH/settings`.
-3. **Проверка хоста** - При значении `$rSettings['verify_host']` true проверяется, отображается ли `HOST` в кэшированном списке `allowed_domains`. Исключения: имя хоста `xc_vm` и любой действительный IP-адрес всегда разрешены.
-4. **Флаг отображения ошибки** - Устанавливает значение константы `PHP_ERRORS` вместо `$rSettings['debug_show_errors']`.
+3. **Проверка хостинга** -- Если значение `$rSettings['verify_host']` равно true, проверяется, отображается ли `HOST` в кэшированном списке `allowed_domains`. Исключения: имя хоста `xc_vm` и любой допустимый IP-адрес всегда разрешены.
+4. **Флаг отображения ошибки** - Устанавливает константу `PHP_ERRORS` вместо константы `$rSettings['debug_show_errors']`.
 5. **Инициализация регистратора** -- Вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`.
 
 Примечание: В современном bootstrap (`XC_Bootstrap::boot()`) эти обязанности выполняются методами `floodProtection()` и `hostVerification()` напрямую, а не путем включения `RequestGuard.php`.
@@ -313,17 +313,23 @@ $router->dispatchApi($action);            // returns true if matched
 
 1. Нормализовать `$page` (символы подчеркивания заменить косыми чертами, зачеркнуть `.php`).
 2. Посмотрите в разделе POST routes (если используется метод POST) или GET routes. Если POST route не найден, вернитесь к GET routes.
-3. **Проверка прав доступа ** через `checkPermission()`. Если отказано, вызывает `denyAccess()` (перенаправление или 403).
+3. **Проверка прав доступа** через `checkPermission()`. Если отказано, вызывает `denyAccess()` (перенаправление или 403).
 4. **Выполнение промежуточного программного обеспечения**. Вызывается каждый вызываемый объект в массиве `middleware`. Если какой-либо из них возвращает значение `false`, выполнение прекращается.
 5. **Вызов обработчика** через `callHandler()`.
 
 #### `dispatchApi($action)` порядок исполнения
 
 1. Найдите в API маршруты по названию действия.
-2. **Проверка разрешений**. Если отказано, выводит `{"result": false}` и завершает работу.
+2. **Проверка прав доступа**. Если отказано, выводит `{"result": false}` и завершает работу.
 3. **Вызов обработчика**. Промежуточное программное обеспечение не выполняется.
 
 Важно: `dispatchApi()` не запускает промежуточное программное обеспечение. Это намеренное отличие от отправки страниц.
+
+#### Когда ничего не совпадает
+
+И `dispatch()`, и `dispatchApi()` возвращают `false`, если маршрут не совпадает. `Public/index.php` затем выдает `http_response_code(404); echo '404 Not Found';` — есть **нет** универсальный контроллер. (Неправильно введенный путь к ресурсу, который достигает главного контроллера, вместо того, чтобы обслуживаться nginx, попадает на тот же 404.)
+
+> **Pitfall — two sanitization APIs + a global.** Input can be reached three ways: `InputValidator` (the global request-sanitization layer), the `Request` class's static `sanitize*()` methods (kept for backward compatibility), and the global-static `RequestManager`. They are not interchangeable and the sanitization one applies depends on the bootstrap path — pick the layer the surrounding code already uses rather than mixing them, and remember `RequestManager`'s static state makes it order-dependent and awkward to isolate in tests (set it explicitly in a test rather than relying on prior request state).
 
 ### Регистрация маршрута модуля
 
@@ -377,10 +383,15 @@ $collisions = $router->drainRouteCollisions();
 
 |Контекст|Что он инициализирует|
 | --- | --- |
-| `CONTEXT_MINIMAL` |Автозагрузка + константы + конфигурация + регистратор. Нет подключения к базе данных.|
-| `CONTEXT_CLI` |+ База данных + `LegacyInitializer::initCore()` (очистка входных данных, настройки, пути FFmpeg). Необязательно Redis.|
-| `CONTEXT_STREAM` |+ Только база данных (упрощенная, без `LegacyInitializer`). Конечные точки потоковой передачи используют вместо этого `StreamingRequestBootstrap`.|
-| `CONTEXT_ADMIN` |+ Сессия + База данных + `LegacyInitializer::initCore()` + Redis + API администратора + Переводчик + глобальные настройки администратора. Полная инициализация.|
+| `BootContext::Minimal` |Автозагрузка + константы + конфигурация + регистратор. Нет подключения к базе данных.|
+| `BootContext::Cli` |+ База данных + `LegacyInitializer::initCore()` (очистка входных данных, настройки, пути FFmpeg). Необязательно Redis.|
+| `BootContext::Stream` |+ Только база данных (упрощенная, без `LegacyInitializer`). Конечные точки потоковой передачи используют вместо этого `StreamingRequestBootstrap`.|
+| `BootContext::Admin` |+ Сессия + База данных + `LegacyInitializer::initCore()` + Redis + API администратора + Переводчик + глобальные настройки администратора. Полная инициализация.|
+
+> `boot()` принимает перечисление `BootContext` (предпочтительно). Устаревшая строка
+> константы `XC_Bootstrap::CONTEXT_{MINIMAL,CLI,STREAM,ADMIN}` равны `@deprecated`
+> псевдонимы сохранены для обеспечения обратной совместимости — вы все равно увидите их в более старых вызовах
+> места. Смотрите [Контексты начальной загрузки](bootstrap-contexts.md) для получения полной матрицы.
 
 Все HTTP-контексты (не CLI) также запускают защиту от наводнений и проверку хоста перед инициализацией, зависящей от контекста.
 
@@ -400,7 +411,7 @@ $collisions = $router->drainRouteCollisions();
 | `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` |Облегченный загрузчик конечной точки потоковой передачи|
 | `src/Streaming/StreamingBootstrap.php` |Потоковое подключение к базе данных и устаревшая инициализация|
 | `src/bootstrap.php` |Унифицированный bootstrap (класс`XC_Bootstrap`)|
-| `src/Public/index.php` |Внешний контроллер для администратора/реселлера/игрока/API|
+| `src/Public/index.php` |Передний контроллер для администратора/реселлера/игрока/API|
 | `src/Public/routes/admin.php` |Определения маршрутов на странице администратора|
 | `src/Public/routes/reseller.php` |Определения маршрута на странице реселлера|
 | `src/Public/routes/player.php` |Определения маршрута на странице игрока|

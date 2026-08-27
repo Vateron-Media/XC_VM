@@ -1,7 +1,14 @@
 # Иерархия исключений
 
-Все исключения XC_VM расширяют диапазон `XcVmException`, так что вызывающие абоненты могут перехватывать все дерево с помощью
-один `catch` блокирует или нацелен на определенную подсистему.
+XC_VM исключения фреймворка расширяют `XcVmException` — пустую базу **маркер**
+(`class XcVmException extends \RuntimeException {}`, это не добавляет никаких дополнительных данных) — таким образом, вызывающие абоненты могут
+охватите все семейство одним `catch (XcVmException)` или нацелитесь на определенную подсистему.
+
+> **Масштаб.** Эта типизированная иерархия охватывает только **Контейнер DI** и **модульная система**.
+> Это не вся панель целиком: конечные точки потоковой передачи/аутентификации сообщают о сбоях через
+> `generateError()` (без исключений), и большая часть кода домена/CLI выдает простой
+> исключения `\RuntimeException` или SPL — они по-прежнему совпадают с `catch (XcVmException)` только тогда, когда
+> класс фактически расширяет его.
 
 ---
 
@@ -9,19 +16,24 @@
 
 ```
 \Exception
-└── XcVmException
-    ├── Container
-    │   └── ContainerException          (PSR-11 ContainerExceptionInterface)
-    │       ├── CircularDependencyException
-    │       ├── ServiceCreationException
-    │       └── NotFoundException       (PSR-11 NotFoundExceptionInterface)
-    └── Module
-        └── ModuleException
-            ├── ModuleNotFoundException
-            ├── ModuleLoadException
-            ├── ModuleManifestException
-            └── ModuleCycleException
+└── \RuntimeException
+    └── XcVmException
+        ├── Container
+        │   └── ContainerException      (PSR-11 ContainerExceptionInterface)
+        │       ├── CircularDependencyException
+        │       ├── ServiceCreationException
+        │       └── NotFoundException   (PSR-11 NotFoundExceptionInterface) *
+        └── Module
+            └── ModuleException
+                ├── ModuleNotFoundException
+                ├── ModuleLoadException
+                ├── ModuleManifestException
+                └── ModuleCycleException
 ```
+
+> \* `NotFoundException` расширяет `ContainerException` (таким образом, он принадлежит этому дереву), но он
+> физически находится в `src/Core/Container/Psr/NotFoundException.php` под пространством имен
+> `XcVm\Core\Container\Psr` — **нет** в `Core/Exception/Container/`.
 
 ---
 
@@ -54,7 +66,7 @@ try {
 | `ModuleNotFoundException` |Отсутствует необходимый модуль зависимостей|
 | `ModuleLoadException` |Файл модуля не может быть загружен или класс не найден|
 | `ModuleManifestException` |`module.json` отсутствует, неправильно сформирован или не прошел проверку|
-| `ModuleCycleException` |Граф зависимостей имеет цикл|
+| `ModuleCycleException` |Граф зависимостей имеет топологическую сортировку, генерируемую циклом `ModuleLoader`, с циклическим путем (`a -> b -> a`) в сообщении. (В некоторых `@throws` блоках документации указано `\RuntimeException`; это просто базовый тип — `ModuleCycleException` расширяет его с помощью `XcVmException`.)|
 
 ---
 
@@ -85,6 +97,19 @@ try {
 
 ---
 
+## Добавление или выбор исключения
+
+- **Который нужно выбросить:** используйте наиболее конкретный существующий тип (например, `ModuleManifestException`
+для неудачного `module.json`). Если ничего не подходит и это сбой на уровне фреймворка, выбросьте
+`XcVmException` (или новый подкласс), чтобы его можно было отслеживать как одно семейство. Домен/бизнес
+ошибки, не связанные с работой фреймворка, могут привести к появлению простого сообщения `\RuntimeException` /
+`\InvalidArgumentException`.
+- **Добавление категории:** создайте класс в соответствии с `src/Core/Exception/<Subsystem>/`, расширьте
+база подсистемы (`ContainerException` / `ModuleException`) — или `XcVmException` для нового
+подсистема — и добавьте ее в дерево выше. Регистрация не требуется, все просто PHP.
+
+---
+
 ## Местоположение
 
 ```
@@ -93,8 +118,7 @@ src/Core/Exception/
 ├── Container/
 │   ├── ContainerException.php
 │   ├── CircularDependencyException.php
-│   ├── ServiceCreationException.php
-│   └── NotFoundException.php
+│   └── ServiceCreationException.php
 └── Module/
     ├── ModuleException.php
     ├── ModuleNotFoundException.php

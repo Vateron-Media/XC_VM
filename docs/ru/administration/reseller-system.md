@@ -176,7 +176,7 @@ AuthRepository::getGroupPermissions()  // builds all_reports recursively
 
 ### Границы
 
-Что реселлеры ** не могут ** делать:
+Что делают реселлеры **не могу**:
 
 - Линии доступа/пользователи за пределами их иерархии.
 - Создавайте или изменяйте пакеты.
@@ -209,7 +209,7 @@ AuthRepository::getGroupPermissions()  // builds all_reports recursively
 |`activity_logs` / `live_connections`|данные о подключении|
 | `user_logs` |журналы действий суб-реселлеров|
 
-Класс `ResellerAPIWrapper` проверяет ключ API, инициализирует сеанс с помощью `ResellerAPI` и возвращает отфильтрованные ответы в формате JSON.
+Класс `ResellerAPIWrapper` проверяет API-ключ, инициализирует сеанс с помощью `ResellerAPI` и возвращает отфильтрованные ответы в формате JSON.
 
 ---
 

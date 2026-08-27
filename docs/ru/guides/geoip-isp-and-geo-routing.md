@@ -1,7 +1,8 @@
-# GeoIP и обнаружение устройства
+# GeoIP, Обнаружение интернет-провайдера и гео-маршрутизация
 
-XC_VM использует базы данных MaxMind GeoIP2/GeoLite2 для определения геолокации и интернет-провайдера, а также библиотеку Mobile_Detect для анализа пользовательского агента.
-Эти системы интегрированы в потоковую аутентификацию для контроля доступа, географической маршрутизации и ведения журнала действий.
+XC_VM использует базы данных MaxMind GeoIP2/GeoLite2 для определения геолокации и провайдера / ASN. Они обеспечивают потоковую аутентификацию (контроль доступа к стране/провайдеру/ASN/прокси-серверу), выбор географического сервера + прокси-сервера и ведение журнала активности.
+
+> Для анализа с помощью User-Agent и аппаратной блокировки телеприставки смотрите сопутствующую страницу [Обнаружение устройств и блокировка STB](device-detection-and-stb-locking.md). И эта страница, и предыдущая сходятся в `src/Public/stream/auth.php`.
 
 ---
 
@@ -66,44 +67,9 @@ AND enable_isp_lock = 1
 
 ---
 
-## Обнаружение устройств
+## Проверки контроля доступа (geo)
 
-### Мобильное обнаружение
-
-Файл: `src/Core/Device/MobileDetect.php`
-
-Библиотека (версия 2.8.45) для анализа пользовательского агента:
-
-```php
-$detect = new Mobile_Detect();
-$detect->isMobile();    // phones
-$detect->isTablet();    // tablets
-$detect->isAndroid();   // brand-specific
-```
-
-Используется в `src/bootstrap.php` для обнаружения мобильных устройств с адаптивным интерфейсом администратора.
-
-### Телевизионные приставки
-
-**Энигмасервис** (`src/Domain/Device/EnigmaService.php`):
-
-Управляет учетными записями Enigma2 STB. Блокирует поля: `token`, `lversion`, `cpu`, `enigma_version`, `modem_mac`, `local_ip`.
-
-**Магсервис** (`src/Domain/Device/MagService.php`):
-
-Управляет учетными записями MAG STB. Блокирует поля: `ver`, `device_id2`, `device_id`, `hw_version`, `image_version`, `stb_type`, `sn`.
-
-Обе поддержки:
-
-- `lock_device` — аппаратная блокировка
-- `is_isplock` — Привязка к провайдеру
-- `forced_country` — принудительный перевод пользователя в определенную страну
-
----
-
-## Проверки контроля доступа
-
-Все проверки выполняются в `src/www/stream/auth.php` во время проверки токена:
+Они выполняются в режиме `src/Public/stream/auth.php` во время проверки токена. Проверки 5-6 (Пользовательский агент, тип устройства) отображаются на странице [Обнаружение устройства и блокировка STB](device-detection-and-stb-locking.md).
 
 ### 1. Валидация в стране
 
@@ -141,25 +107,7 @@ GeoIPService::matchCIDR($asn, $ip)
     flag[4] = proxy → error: PROXY_DETECT
 ```
 
-Также проверяет заголовок `X-XC_VM-DETECT` для обнаружения повторного потока.
-
-### 5. Блокировка пользовательского агента
-
-```text
-check against BlocklistService::checkBlockedUAs()
-error: BLOCKED_USER_AGENT
-
-if user has allowed_ua set:
-    user_agent must match one entry
-    error: NOT_IN_ALLOWED_UAS
-```
-
-### 6. Проверка типа устройства
-
-```text
-MAG device flag must match token
-error: DEVICE_NOT_ALLOWED or TOKEN_EXPIRED
-```
+Также проверяет заголовок `X-XC_VM-DETECT` на предмет обнаружения повторного потока.
 
 ---
 
@@ -217,14 +165,14 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 ### Автоматическое обновление
 
 Базы данных обновляются с помощью задания cron `cron:maxmind` (`src/Cli/CronJobs/MaxMindCronJob.php`).
-Он запускается ** только по вторникам** — в день, когда MaxMind публикует новые версии. Логика разветвляется на настройки панели:
+Он запускается **только по вторникам** — в день, когда MaxMind публикует новые версии. Логика меняется в настройках панели:
 
 - если `maxmind_account_id` + `maxmind_license_key` + `maxmind_editions` задано, базы данных извлекаются непосредственно из MaxMind API (`MaxMindUpdater`, загружаются только настроенные версии).;
-- если учетные данные MaxMind не заданы, они возвращаются к версиям GitHub GeoLite2 (бесплатные базы данных).
+- если для учетных данных MaxMind задано значение **нет**, оно возвращается к версиям GitHub GeoLite2 (бесплатные базы данных).
 
 ### Ручное (принудительное) обновление
 
-Чтобы немедленно обновить базы данных `.mmdb` на рабочей панели, запустите задание cron вручную **от имени пользователя root** с флагом `--force` (это снимает ограничение "Только по вторникам").:
+Чтобы немедленно обновить базы данных `.mmdb` на рабочей панели, запустите задание cron вручную **как корень** с флагом `--force` (это снимает ограничение "Только по вторникам").:
 
 ```bash
 /home/xc_vm/bin/php/bin/php /home/xc_vm/console.php cron:maxmind --force
@@ -242,25 +190,22 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 
 ## Ведение журнала действий
 
-Все сеансы потоковой передачи записываются в журнал GeoIP, а данные устройства - в журнал `lines_live`:
+Сеансы потоковой передачи записывают данные GeoIP (и устройства) в журнал `lines_live`:
 
 |Колонка|Источник|
 | --- | --- |
 | `geoip_country_code` | `GeoIPService::getIPInfo()` |
 | `isp` |`con_isp_name` из `GeoIPService::getISP()`|
 | `external_device` |идентификатор типа устройства|
-| `user_agent` |Заголовок HTTP User-Agent|
+| `user_agent` |Заголовок HTTP-агента пользователя|
 | `user_ip` |IP-адрес клиента|
 
 Вошел в систему `live.php`, `vod.php`, `timeshift.php`, и `rtmp.php`.
-
 Периодически архивируется с `lines_live` по `lines_activity` с помощью `ActivityCronJob`.
 
 ---
 
-## Конфигурация
-
-### Настройки
+## Конфигурация (географические настройки)
 
 |Установка|Тип|Описание|
 | --- | --- | --- |
@@ -272,10 +217,11 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 | `county_override_1st` | `0/1` |автоматическое назначение forced_country при первом подключении|
 | `allow_countries` | `array` |белый список разрешенных кодов стран|
 | `detect_restream_block_user` | `0/1` |автоматическое отключение пользователя при обнаружении повторного потока|
-| `disallow_empty_user_agents` | `0/1` |отклонять запросы без использования User-Agent|
 | `maxmind_account_id` | `string` |Учетная запись MaxMind API|
 | `maxmind_license_key` | `string` |API-ключ MaxMind|
 | `maxmind_editions` | `JSON` |множество загруженных изданий|
+
+(Настройки агента пользователя, такие как `disallow_empty_user_agents`, отображаются на странице устройства.)
 
 ---
 
@@ -286,11 +232,9 @@ GEOISP_BIN    = BIN_PATH/maxmind/GeoIP2-ISP.mmdb
 | `src/Core/Util/GeoIP.php` |низкоуровневый поиск GeoIP с кэшированием файлов|
 | `src/Core/GeoIP/GeoIPService.php` |соответствие высокого уровня GeoIP + CIDR|
 | `src/Core/GeoIP/MaxMindUpdater.php` |Загрузчик баз данных MaxMind|
+| `src/Cli/CronJobs/MaxMindCronJob.php` |Вторник / `--force` cron обновления базы данных|
 | `src/Core/Config/Binaries.php` |GeoIP константы пути к файлу базы данных|
-| `src/Core/Device/MobileDetect.php` |Библиотека Mobile_Detect|
-| `src/Domain/Device/EnigmaService.php` |Управление STB Enigma2|
-| `src/Domain/Device/MagService.php` |Управление MAG STB|
 | `src/Domain/User/UserRepository.php` |GeoIP обогащение пользовательских записей|
-| `src/www/stream/auth.php` |потоковая авторизация со всеми проверками местоположения / устройства|
+| `src/Public/stream/auth.php` |потоковая авторизация с проверкой географического местоположения (1-4)|
 | `src/Streaming/Auth/StreamAuth.php` |Выбор сервера с поддержкой GeoIP|
 | `src/Streaming/Balancer/ProxySelector.php` |Выбор прокси-сервера с поддержкой GeoIP|

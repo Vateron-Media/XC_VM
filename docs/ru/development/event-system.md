@@ -55,7 +55,7 @@ EventDispatcher::unlisten(StreamStartedEvent::class, $myCallable);
 EventDispatcher::hasListeners(StreamStartedEvent::class); // bool
 ```
 
-**Приоритет** — более высокое целое число = вызывается первым. По умолчанию `0`.
+**Приоритет** — большее целое число = вызывается первым. По умолчанию `0`.
 
 ---
 
@@ -65,12 +65,19 @@ EventDispatcher::hasListeners(StreamStartedEvent::class); // bool
 
 ```php
 public function getEventSubscribers(): array {
+    // One entry per event class (it is an array key). The value is either a
+    // plain callable, or a [callable, int $priority] tuple (higher = called first).
     return [
         StreamStartedEvent::class => [$this, 'onStreamStarted'],
-        StreamStartedEvent::class => [[$this, 'onStreamStarted'], 20], // with priority
+        StreamStoppedEvent::class => [[$this, 'onStreamStopped'], 20], // with priority
     ];
 }
 ```
+
+> Класс события может появиться в этом массиве только один раз. Чтобы прикрепить **несколько**
+> прослушивающие событие **такой же** из одного модуля, используют повторяемый
+> `#[ListensTo]` attribute (Option 2) instead — `getEventSubscribers()` keeps a
+> одна запись обработчика для каждого события.
 
 ### Вариант 2 — атрибут #[ListensTo]
 
@@ -96,6 +103,8 @@ class MyModuleModule extends BaseModule {
 Оба механизма работают одновременно и могут сосуществовать в одном модуле.
 `ModuleLoader::bootAll()` выполняет оба прохода для каждого загруженного модуля.
 
+> В приведенных выше примерах для краткости записывается `use ListensTo;` / `use AbstractEvent;`. Реальные классы — это `XcVm\Core\Events\ListensTo` и `XcVm\Core\Events\AbstractEvent` - импортируйте эти полные имена (глобального псевдонима нет).
+
 ---
 
 ## Останавливаемые события
@@ -117,6 +126,8 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 
 Прослушиватели пропускаются, как только `isPropagationStopped()` возвращает значение `true`.
 
+> **Ошибки прослушивателя не обнаруживаются.** `EventDispatcher::dispatch()` вызывает прослушиватели в обычном цикле без `try/catch`, поэтому, если вызывается прослушиватель, исключение распространяется за пределы `dispatch()`, а остальные прослушиватели для этого события выполняют **нет**. Поддерживайте защиту слушателей (отслеживайте свои собственные ошибки), если один из подписчиков-неудачников не должен прерывать работу других.
+
 ---
 
 ## Встроенные основные события
@@ -128,6 +139,7 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 | `PackageInstalledEvent` | `Events/Module/` |После установки marketplace|Нет|
 | `UserAuthenticatedEvent` | `Events/Auth/` |После успешного входа в систему|Да|
 | `UserLoggedOutEvent` | `Events/Auth/` |После выхода из системы|Нет|
+| `StreamStartingEvent` | `Events/Stream/` |Перед запуском потока (gate — extends `AbstractEvent`)|Да|
 | `StreamStartedEvent` | `Events/Stream/` |После начала трансляции|Нет|
 | `StreamStoppedEvent` | `Events/Stream/` |После того, как поток прекратился|Нет|
 | `SettingsChangedEvent` | `Events/Settings/` |После сохранения настроек|Нет|

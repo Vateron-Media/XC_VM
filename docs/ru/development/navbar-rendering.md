@@ -48,7 +48,7 @@
 Модуль добавляет элементы только через `registerNavbar()`:
 
 ```php
-public function registerNavbar(): void {
+public function registerNavbar(NavbarRegistry $registry): void {
     NavbarRegistry::add((new NavbarItem('management.service_setup.my_module'))
         ->parent('management.service_setup')
         ->url('my_module')
@@ -64,6 +64,46 @@ public function registerNavbar(): void {
         ->order(170));
 }
 ```
+
+## API построителя навигационных элементов
+
+`NavbarItem` — это объект с плавным значением (`src/Core/Module/NavbarItem.php`) - параметры цепочки отключены `new NavbarItem($key)`:
+
+|Метод|Цель|
+| --- | --- |
+| `new NavbarItem($key)` |создайте узел; `$key` - это его уникальный идентификатор `section.group.item`|
+| `->parent($parentKey)` |присоединение к существующему узлу (опустить для узла верхнего уровня)|
+| `->url($url)` |целевой путь; `'#'` делает его не навигационным заголовком **группа**|
+| `->label($key, $fallback = '')` |клавиша перевода или `('', 'Literal')` для фиксированного текста|
+| `->icon($icon)` |значок CSS-класса для элемента|
+| `->permissions([...])` |ИЛИ - список разрешающих ключей; узел скрыт, если только у пользователя нет такого ключа|
+| `->order($n)` |позиция сортировки внутри родительского элемента|
+| `->desktopOnly()` |спрятаться на мобильном телефоне|
+| `->noMobileSubmenu()` |не открывайте подменю этого узла на мобильном устройстве|
+| `->submenuClass('megamenu')` |рендеринг в два столбца для длинных дочерних списков|
+| `->settingDisabled($settingKey)` |скройте узел, если этот флажок настройки панели соответствует действительности|
+| `->makeDivider()` |визуализируйте этот узел как разделитель (без ссылки)|
+
+### Узел группы и разделитель
+
+```php
+public function registerNavbar(NavbarRegistry $registry): void {
+    // A group header (url('#')) — shown only if at least one child is visible
+    NavbarRegistry::add((new NavbarItem('management.my_group'))
+        ->parent('management')
+        ->url('#')
+        ->label('my_group')
+        ->order(50));
+
+    // A divider inside that group
+    NavbarRegistry::add((new NavbarItem('management.my_group.sep1'))
+        ->parent('management.my_group')
+        ->makeDivider()
+        ->order(55));
+}
+```
+
+> `settingDisabled('some_setting')` скрывает узел всякий раз, когда эта настройка верна (задает функцию за переключателем). Видимость также равна **область просмотра**: проверка `permissions` OR выполняется для текущего пользователя через `Authorization::check('adv', …)`, поэтому администратор и реселлер могут видеть разные подмножества одного и того же дерева.
 
 ## Практические правила для модулей
 

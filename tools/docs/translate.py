@@ -38,7 +38,7 @@ import time
 from pathlib import Path
 
 # Bumped when the translation prompt/rules change, to invalidate the cache.
-PROMPT_VERSION = "4"
+PROMPT_VERSION = "6"
 
 LANG_NAMES = {
     "ru": "Russian",
@@ -80,6 +80,7 @@ def cache_key(text: str, lang: str, provider: str, glossary: list[str]) -> str:
 # Each provider is ``translate(text, lang, glossary) -> text``. Add a new engine
 # by writing one function and registering it in PROVIDERS below.
 
+
 def _system_prompt(lang_name: str, glossary: list[str]) -> str:
     rules = [
         f"You are a professional technical translator. Translate the given "
@@ -93,6 +94,9 @@ def _system_prompt(lang_name: str, glossary: list[str]) -> str:
         "- NEVER translate URLs, file paths, HTML tags/attributes, or link "
         "targets — translate only human-visible link text.",
         "- Keep heading text natural; anchors are derived from it automatically.",
+        "- Preserve inline emphasis markers (**bold**, *italic*, _underscore_) "
+        "verbatim and balanced: wrap the translated words with the SAME opening "
+        "and closing markers; never drop or misplace a closing **.",
         "- Preserve trailing/leading whitespace and blank-line layout.",
     ]
     if glossary:
@@ -156,29 +160,44 @@ def provider_deepl(text: str, lang: str, glossary: list[str]) -> str:
 
 _TS_SENTINEL = re.compile(r"\{(\d+)\}")
 _POSS = r"(?:['’]s|['’])?"  # optional trailing possessive, dropped on restore
-_HR = re.compile(r"^\s*([-*_])( *\1){2,}\s*$")            # thematic break ---
-_TABLE_SEP = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")         # |---|:--:| row
+_HR = re.compile(r"^\s*([-*_])( *\1){2,}\s*$")  # thematic break ---
+_TABLE_SEP = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")  # |---|:--:| row
 _HEADING = re.compile(r"^(\s{0,3}#{1,6}\s+)(.*)$")
 _LIST = re.compile(r"^(\s*(?:[-*+]|\d+[.)])\s+)(.*)$")
 _QUOTE = re.compile(r"^(\s*>+\s*)(.*)$")
 
 
-def _protect_inline(text: str, glossary: list[str]) -> tuple[str, list[str]]:
+def _protect_inline(text, glossary, tr=None, memo=None):
     store: list[str] = []
 
-    def keep(m: "re.Match[str]") -> str:            # store the whole match
+    def keep(m: "re.Match[str]") -> str:  # store the whole match
         store.append(m.group(0))
         return f"{{{len(store) - 1}}}"
 
-    def keep1(m: "re.Match[str]") -> str:           # store group 1 (drops possessive)
+    def keep1(m: "re.Match[str]") -> str:  # store group 1 (drops possessive)
         store.append(m.group(1))
         return f"{{{len(store) - 1}}}"
 
-    text = re.sub(rf"(`[^`]*`){_POSS}", keep1, text)          # inline code (+poss)
-    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", keep, text)        # images (whole)
-    text = re.sub(r"(?<=\])\([^)]*\)", keep, text)            # link target (url)
-    text = re.sub(r"https?://[^\s)]+", keep, text)            # bare URLs
-    text = re.sub(r"</?[A-Za-z][^>]*>", keep, text)           # HTML tags
+    # Bold spans `**...**`: translate the inner text on its own, then store the
+    # whole balanced `**...**` as ONE atomic sentinel. The MT engine never sees
+    # the `**` markers, so it cannot reorder or collapse them — masking each `**`
+    # separately let the words move out from between the pair and left `****`
+    # (empty bold) or a dropped closing `**`. Needs a translator; without one
+    # (plain masking use) bold is left untouched.
+    if tr is not None:
+
+        def keep_bold(m: "re.Match[str]") -> str:
+            inner = _ts_span(m.group(1), tr, glossary, memo if memo is not None else {})
+            store.append("**" + inner + "**")
+            return f"{{{len(store) - 1}}}"
+
+        text = re.sub(r"\*\*(.+?)\*\*", keep_bold, text)  # bold (inner translated)
+
+    text = re.sub(rf"(`[^`]*`){_POSS}", keep1, text)  # inline code (+poss)
+    text = re.sub(r"!\[[^\]]*\]\([^)]*\)", keep, text)  # images (whole)
+    text = re.sub(r"(?<=\])\([^)]*\)", keep, text)  # link target (url)
+    text = re.sub(r"https?://[^\s)]+", keep, text)  # bare URLs
+    text = re.sub(r"</?[A-Za-z][^>]*>", keep, text)  # HTML tags
     for term in glossary:
         text = re.sub(rf"(?<![\w-])({re.escape(term)}){_POSS}(?![\w-])", keep1, text)
     return text, store
@@ -201,15 +220,22 @@ def _ts_span(text, tr, glossary, memo):
         return text
     if text in memo:
         return memo[text]
-    protected, store = _protect_inline(text, glossary)
+    protected, store = _protect_inline(text, glossary, tr, memo)
     if not _TS_SENTINEL.sub("", protected).strip():
         out = text  # nothing left to translate (all masked)
     else:
         base_braces = text.count("{") + text.count("}")
+        src_bold = text.count("**")
         out = None
         for _ in range(4):
             cand = _restore(tr(protected), store)
-            if cand.count("{") + cand.count("}") <= base_braces:  # no leftovers
+            # Clean result: no leftover sentinel braces AND the bold markers are
+            # still balanced (a dropped `**` sentinel restores fewer `**` than
+            # the source — reject it and retry, else fall back to English).
+            if (
+                cand.count("{") + cand.count("}") <= base_braces
+                and cand.count("**") == src_bold
+            ):
                 out = cand
                 break
         if out is None:
@@ -222,7 +248,7 @@ def _ts_line(line, tr, glossary, memo):
     """Translate one Markdown line, preserving its structural prefix/markup."""
     if not line.strip() or _HR.match(line):
         return line
-    if line.lstrip().startswith("|"):                         # table row
+    if line.lstrip().startswith("|"):  # table row
         if _TABLE_SEP.match(line):
             return line
         return "|".join(
@@ -265,8 +291,10 @@ def provider_translators(text: str, lang: str, glossary: list[str]) -> str:
     import translators as ts  # lazy
 
     engines = [
-        e.strip() for e in
-        os.environ.get("DOCS_TRANSLATE_TS_ENGINES", "yandex,google,bing,alibaba").split(",")
+        e.strip()
+        for e in os.environ.get(
+            "DOCS_TRANSLATE_TS_ENGINES", "yandex,google,bing,alibaba"
+        ).split(",")
         if e.strip()
     ]
 
@@ -296,25 +324,39 @@ PROVIDERS = {
 
 # ── Driver ───────────────────────────────────────────────────────────────────
 
+
 def main() -> int:
     repo_root = Path(__file__).resolve().parents[2]
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--lang", required=True, help="target language code, e.g. ru")
-    ap.add_argument("--src", default=str(repo_root / "docs" / "en"),
-                    help="source (English) docs dir")
-    ap.add_argument("--dst", default=None,
-                    help="destination dir (default: docs/<lang>)")
-    ap.add_argument("--cache", default=str(repo_root / "build" / "docs-cache"),
-                    help="per-file translation cache dir")
-    ap.add_argument("--glossary", default=str(repo_root / "tools" / "docs" / "glossary.txt"),
-                    help="do-not-translate term list")
+    ap.add_argument(
+        "--src",
+        default=str(repo_root / "docs" / "en"),
+        help="source (English) docs dir",
+    )
+    ap.add_argument(
+        "--dst", default=None, help="destination dir (default: docs/<lang>)"
+    )
+    ap.add_argument(
+        "--cache",
+        default=str(repo_root / "build" / "docs-cache"),
+        help="per-file translation cache dir",
+    )
+    ap.add_argument(
+        "--glossary",
+        default=str(repo_root / "tools" / "docs" / "glossary.txt"),
+        help="do-not-translate term list",
+    )
     args = ap.parse_args()
 
     provider_name = os.environ.get("DOCS_TRANSLATE_PROVIDER", "noop")
     translate = PROVIDERS.get(provider_name)
     if translate is None:
-        print(f"error: unknown DOCS_TRANSLATE_PROVIDER={provider_name!r} "
-              f"(known: {', '.join(PROVIDERS)})", file=sys.stderr)
+        print(
+            f"error: unknown DOCS_TRANSLATE_PROVIDER={provider_name!r} "
+            f"(known: {', '.join(PROVIDERS)})",
+            file=sys.stderr,
+        )
         return 2
 
     src = Path(args.src)
@@ -349,8 +391,10 @@ def main() -> int:
                 # Graceful degradation: a flaky/rate-limited web engine must never
                 # break the docs build — fall back to the English source for this
                 # file (and do NOT cache it, so it is retried next run).
-                print(f"  WARN {rel}: translation failed ({exc}); keeping English",
-                      file=sys.stderr)
+                print(
+                    f"  WARN {rel}: translation failed ({exc}); keeping English",
+                    file=sys.stderr,
+                )
                 failed += 1
                 out = text
             else:
@@ -362,9 +406,26 @@ def main() -> int:
         out_path.parent.mkdir(parents=True, exist_ok=True)
         out_path.write_text(out, encoding="utf-8")
 
-    print(f"[{provider_name}] {args.lang}: {len(md_files)} files "
-          f"({translated} translated, {cached} from cache, {failed} fell back "
-          f"to English) -> {dst}")
+    # Prune orphans: delete generated files whose English source no longer exists
+    # (renamed/removed in docs/en), then drop any now-empty dirs — so the
+    # translated tree always mirrors docs/en 1:1 and never ships stale pages.
+    expected = {p.relative_to(src) for p in md_files}
+    pruned = 0
+    if dst.is_dir():
+        for gen in sorted(dst.rglob("*.md")):
+            if gen.relative_to(dst) not in expected:
+                gen.unlink()
+                pruned += 1
+                print(f"  pruned orphan {gen.relative_to(dst)}")
+        for d in sorted((p for p in dst.rglob("*") if p.is_dir()), reverse=True):
+            if not any(d.iterdir()):
+                d.rmdir()
+
+    print(
+        f"[{provider_name}] {args.lang}: {len(md_files)} files "
+        f"({translated} translated, {cached} from cache, {failed} fell back "
+        f"to English, {pruned} pruned) -> {dst}"
+    )
     return 0
 
 

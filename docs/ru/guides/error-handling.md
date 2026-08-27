@@ -2,9 +2,9 @@
 
 XC_VM обработка ошибок состоит из трех уровней:
 
-- **Коды ошибок** -- в чем произошел сбой (централизованный реестр именованных строк ошибок)
-- **Обработчики ошибок** -- как генерируется HTTP-ответ клиента (`generateError()`, `generate404()`)
-- **Подсистема ведения журнала** - фиксация во время выполнения ошибок PHP, неперехваченных исключений и фатальных сбоев
+- **Коды ошибок** -- что не удалось (централизованный реестр именованных строк ошибок)
+- **Обработчики ошибок** -- как формируется HTTP-ответ клиента (`generateError()`, `generate404()`)
+- **Подсистема регистратора** -- фиксация во время выполнения PHP ошибок, неперехваченных исключений и фатальных сбоев
 
 ---
 
@@ -196,7 +196,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 ### Отображение уровня ошибок
 
-`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала через `mapErrorLevel()`:
+`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала с помощью `mapErrorLevel()`:
 
 |PHP константа(ы)|Уровень регистрации|
 | --- | --- |
@@ -253,8 +253,8 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 Когда `$showErrors` равно `true`, регистратор также отображает ошибки напрямую:
 
-- **CLI:** клеммный выход с цветовой кодировкой (красный - НЕИСПРАВИМОСТЬ/ОШИБКА, желтый - ПРЕДУПРЕЖДЕНИЕ, синий - УВЕДОМЛЕНИЕ)
-- **Веб:** встроенный `<div>` с моноширинным шрифтом, красной рамкой и трассировкой стека в блоке `<pre>`
+- **КЛИ:** выходной сигнал терминала с цветовой кодировкой (красный - НЕИСПРАВИМОСТЬ/ОШИБКА, желтый - ПРЕДУПРЕЖДЕНИЕ, синий - УВЕДОМЛЕНИЕ).
+- **Сеть:** встроенный `<div>` с моноширинным шрифтом, красной рамкой и трассировкой стека в блоке `<pre>`
 
 ---
 
@@ -262,10 +262,10 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 Программа ведения журнала записывает данные в файл `error_log.log` на диске. Отдельная подсистема считывает этот файл и сохраняет записи в таблице базы данных `panel_logs`:
 
-1. **Регистратор** записывает строки JSON в кодировке base64 в `error_log.log`
-2. **FileLogger** (`src/Core/Logging/FileLogger.php`) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, ошибки EPG и т.д.), который записывает данные в тот же файл в том же формате
+1. **Лесоруб** записывает строки JSON в кодировке base64 в `error_log.log`
+2. **Файловый регистратор** (`src/Core/Logging/FileLogger.php`) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, ошибки EPG и т.д.), который записывает данные в тот же файл в том же формате
 3. Записи заносятся в таблицу `panel_logs`
-4. **DiagnosticsService** (`src/Core/Diagnostics/DiagnosticsService.php`) считывает данные из `panel_logs` для:
+4. **Диагностическая служба** (`src/Core/Diagnostics/DiagnosticsService.php`) считывается из `panel_logs` для:
    - `downloadPanelLogs()` -- извлекает до 1000 последних ошибок, не связанных с EPG, затем обрезает таблицу
    - `submitPanelLogs()` -- отправляет логи на центральный сервер API для анализа
 5. Панель администратора отображает эти журналы в разделе **Управление > Журналы > Ошибки панели**
@@ -300,11 +300,11 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 |Класс исключений|Базовый класс|Местоположение|
 | --- | --- | --- |
-| `DropboxException` | `Exception` | `src/Core/Storage/DropboxClient.php` |
-| `M3uParser\Exception` | `\Exception` | `src/Core/Parsing/M3uParser/src/Exception.php` |
-| `DataBuildingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Parser/DataBuildingException.php` |
-| `DefinitionException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Definition/DefinitionException.php` |
-| `DumpingException` | `\RuntimeException` | `src/Core/Parsing/PhpM3u8/src/Dumper/DumpingException.php` |
+| `DropboxException` | `\Exception` | `src/Core/Storage/DropboxException.php` |
+| `M3uParser\Exception` | `\Exception` | `src/vendor/gemorroj/m3u-parser/src/Exception.php` |
+| `DataBuildingException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Parser/DataBuildingException.php` |
+| `DefinitionException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Definition/DefinitionException.php` |
+| `DumpingException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Dumper/DumpingException.php` |
 
 Большая часть кода приложения использует общие ошибки `Exception` или полагается на встроенную систему ошибок PHP. Обработчик исключений регистратора принимает любые `Throwable`.
 
