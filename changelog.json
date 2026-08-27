@@ -1,11 +1,20 @@
 {
-  "version": "2.4.1",
+  "version": "2.4.2",
   "changes": [
-    "Added xc_fanout daemon status to the Service Status dashboard",
-    "Extracted xc_fanout keepalive logic into a dedicated run.sh script",
-    "Improved nginx configuration updates while preserving per-server custom configurations",
-    "Updated stream probe and scan headers to use RFC-compliant X-XC_VM-* names",
-    "Removed stray backslashes from XC_VM string literals",
-    "Updated actions/setup-python from v5 to v7"
+    "Added per-server version rollback directly from the admin panel",
+    "Added typed SettingsManager accessors and migrated configuration access across the codebase",
+    "Added RequestManager::has() and centralized safer request parameter handling",
+    "Added sync-dev.sh for incremental development server deployment",
+    "Added JSON export support and fixed CSV export on listing pages",
+    "Improved HLS connection tracking by deduplicating connections per player",
+    "Applied HTTP reconnect handling to all live sources",
+    "Improved Redis teardown and protection against missing live connection data",
+    "Moved xc_fanout keepalive logs outside cron-swept temporary directories",
+    "Replaced legacy bootstrap include pairs with dedicated ScopeBootstrap classes",
+    "Resolved all PHPStan errors and removed the frozen baseline",
+    "Fixed runtime errors and null or undefined-key warnings reported by panel error logs",
+    "Fixed STB redirect loops and improved Allowed STB Types handling in Ministra",
+    "Improved documentation generation, validation and cleanup of orphaned Russian pages",
+    "Refactored configuration and request access for better type safety and maintainability"
   ]
 }

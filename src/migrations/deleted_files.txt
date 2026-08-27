@@ -4,6 +4,12 @@
 #
 Cli/Commands/ProxyCommand.php
 Core/Boundary/BoundaryInterface.php
+Infrastructure/Bootstrap/admin_functions_fc.php
+Infrastructure/Bootstrap/admin_session_fc.php
+Infrastructure/Bootstrap/player_functions.php
+Infrastructure/Bootstrap/player_session.php
+Infrastructure/Bootstrap/reseller_functions.php
+Infrastructure/Bootstrap/reseller_session.php
 Modules/ministra_85a7d/MinistraModule.php
 Modules/ministra_85a7d/PortalHandler.php
 Modules/ministra_85a7d/PortalHelpers.php
