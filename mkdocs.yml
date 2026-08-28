@@ -108,6 +108,7 @@ plugins:
             Module Lifecycle: Жизненный цикл модулей
             Module Extension Points: Точки расширения модулей
             HTTP Request Handling: Обработка HTTP-запросов
+            Admin AJAX API: AJAX-API админки
             Streaming Subsystem: Подсистема стриминга
             Streaming Diagnostics: Диагностика стриминга
             Event System: Система событий
@@ -165,6 +166,7 @@ nav:
           - Module Lifecycle: en/development/module-lifecycle.md
           - Module Extension Points: en/development/module-extension-points.md
           - HTTP Request Handling: en/development/http-request-handling.md
+          - Admin AJAX API: en/development/admin-ajax-api.md
           - Streaming Subsystem: en/development/streaming-subsystem.md
           - Streaming Diagnostics: en/development/streaming-diagnostics.md
           - Event System: en/development/event-system.md

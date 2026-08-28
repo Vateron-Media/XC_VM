@@ -325,6 +325,8 @@ $router->dispatchApi($action);            // returns true if matched
 
 Important: `dispatchApi()` does NOT run middleware. This is a deliberate difference from page dispatch.
 
+The admin panel's `?action=` JSON endpoints are registered this way and handled by dedicated controllers under `XcVm\Public\Controllers\Admin\Ajax`. See [Admin AJAX API](admin-ajax-api.md) for the controller pattern and the structured search contract.
+
 #### When nothing matches
 
 Both `dispatch()` and `dispatchApi()` return `false` when no route matches. `Public/index.php` then responds with `http_response_code(404); echo '404 Not Found';` — there is **no** catch-all controller. (A mistyped asset path that reaches the front controller, rather than being served by nginx, lands on the same 404.)
