@@ -14,15 +14,12 @@ use XcVm\Domain\User\GroupService;
 /**
  * Admin-ajax controller for the global "search" action.
  *
- * Extracted from the legacy `admin/api.php`. This is the single largest block
- * in the file: a fuzzy full-text search across lines, MAG/Enigma2 devices,
- * users, streams (live/VOD/created channels/radio/episodes) and series, each
- * rendered into a rich HTML result card.
+ * A fuzzy full-text search across lines, MAG/Enigma2 devices, users, streams
+ * (live/VOD/created channels/radio/episodes) and series, each rendered into an
+ * HTML result card.
  *
- * Given the size and the volume of literal HTML string-building, the body was
- * moved verbatim (not flattened) to guarantee identical output; only the
- * scaffolding around it changed. `$language` and `$rSearchStatusArray` are the
- * legacy bootstrap globals it relies on, alongside `$db` / `$rServers`.
+ * `$language` and `$rSearchStatusArray` are bootstrap globals it relies on,
+ * alongside `$db` / `$rServers`.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

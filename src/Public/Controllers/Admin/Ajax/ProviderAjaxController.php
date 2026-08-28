@@ -9,9 +9,7 @@ use XcVm\Domain\Stream\ProviderService;
 /**
  * Admin-ajax controller for the "Providers" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: provider, provider_streams.
- * Block logic ported faithfully (scaffolding via gate/ok/fail from
- * {@see BaseAjaxController}; comments English).
+ * Actions: provider, provider_streams.
  *
  * `provider_streams` answers with a DataTables envelope (including on the
  * permission-denied path), so it gates inline via {@see Authorization::check()}.

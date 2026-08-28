@@ -5,22 +5,17 @@ namespace XcVm\Public\Controllers\Admin\Ajax;
 use XcVm\Core\Auth\Authorization;
 
 /**
- * Base class for admin-ajax controllers extracted from the legacy `admin/api.php`.
+ * Base class for the admin-ajax controllers.
  *
- * api.php is a flat chain of ~90 `if (action == 'x') { … exit(); }` blocks, each
- * repeating the same scaffolding: permission gate, `echo json_encode(...)`,
- * `exit()`. This class collects that scaffolding into a few methods so an
- * extracted action reads as "gate -> service -> response".
+ * Emits JSON only (no layout/templates), so it does NOT extend
+ * {@see \XcVm\Public\Controllers\Admin\BaseAdminController}. Provides the shared
+ * scaffolding every action reuses: ok()/fail() for the `{"result":…}` envelope,
+ * gate()/gateAny() for per-action permission checks, requireXhr() for the
+ * AJAX-only guard, and json() for a raw JSON body.
  *
- * Emits JSON only (a POPO, like {@see \XcVm\Public\Controllers\Admin\TmdbController})
- * — no layout/templates — so it does NOT extend
- * {@see \XcVm\Public\Controllers\Admin\BaseAdminController}.
- *
- * Actions reach the controller via `Router::dispatchApi()` (see
- * `Public/index.php`), which runs BEFORE the `AjaxController` -> api.php
- * fallback. Admin authentication is already enforced by
- * `AdminScopeBootstrap::boot()` before dispatch, so only the per-action
- * permission gate and (for parity with api.php) the XHR guard remain here.
+ * Controllers are reached via `Router::dispatchApi()`; admin authentication is
+ * enforced by `AdminScopeBootstrap::boot()` before dispatch, so only the
+ * per-action permission gate and the XHR guard remain here.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -31,9 +26,8 @@ use XcVm\Core\Auth\Authorization;
 abstract class BaseAjaxController {
 
     /**
-     * JSON response that terminates the request — the `echo json_encode(...);
-     * exit();` of api.php, but with a correct Content-Type (like
-     * {@see \XcVm\Public\Controllers\Admin\BaseAdminController::json()}).
+     * JSON response that terminates the request, with the correct Content-Type
+     * (like {@see \XcVm\Public\Controllers\Admin\BaseAdminController::json()}).
      *
      * @param array<string, mixed> $rData
      * @param int $rFlags optional json_encode() flags (e.g. JSON_PARTIAL_OUTPUT_ON_ERROR)
@@ -58,8 +52,7 @@ abstract class BaseAjaxController {
     }
 
     /**
-     * Failure: `{"result":false}` plus optional extra keys. The canonical tail
-     * of almost every api.php block.
+     * Failure: `{"result":false}` plus optional extra keys.
      *
      * @param array<string, mixed> $rExtra
      */
@@ -68,9 +61,8 @@ abstract class BaseAjaxController {
     }
 
     /**
-     * Permission gate: the per-action `Authorization::check($type, $key)` of
-     * api.php. On failure it emits `{"result":false}` and ends the request —
-     * exactly like `else { echo json_encode(['result'=>false]); exit(); }`.
+     * Permission gate: `Authorization::check($type, $key)`. On failure it emits
+     * `{"result":false}` and ends the request.
      */
     protected function gate(string $rType, string $rKey): void {
         if (!Authorization::check($rType, $rKey)) {
@@ -79,8 +71,7 @@ abstract class BaseAjaxController {
     }
 
     /**
-     * OR gate: passes if at least one check succeeds — the api.php idiom
-     * `if (Authorization::check(a) || Authorization::check(b)) { … }`. If every
+     * OR gate: passes if at least one `[type, key]` check succeeds; if every
      * check fails it emits `{"result":false}` and ends the request.
      *
      * @param array<array{0: string, 1: string}> $rChecks [type, key] pairs
@@ -96,9 +87,8 @@ abstract class BaseAjaxController {
     }
 
     /**
-     * XHR guard from api.php (its `if (!PHP_ERRORS) { … X-Requested-With … }`):
-     * non-AJAX requests are rejected unless debug mode (`PHP_ERRORS`) is on.
-     * Reproduces the api.php behaviour for actions moved into controllers.
+     * XHR guard: non-AJAX requests are rejected unless debug mode (`PHP_ERRORS`)
+     * is on.
      */
     protected function requireXhr(): void {
         if (defined('PHP_ERRORS') && PHP_ERRORS) {

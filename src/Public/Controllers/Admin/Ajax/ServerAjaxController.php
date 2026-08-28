@@ -12,22 +12,14 @@ use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Streaming\Health\ProcessChecker;
 
 /**
- * Admin-ajax controller for the "Servers/Ops" group.
- *
- * Extracted from the legacy `admin/api.php`. Actions: rtmp_ip,
+ * Admin-ajax controller for the "Servers/Ops" group: rtmp_ip,
  * rollback_versions, server, proxy, fingerprint, restart_all_services,
  * restart_services, reboot_server, update_binaries, server_view, server_stats,
  * rtmp_kill, install_status, reinstall_server, fpm_status, update_all_servers,
  * update_all_binaries.
  *
- * Block logic was ported faithfully (scaffolding via gate/gateAny/ok/fail from
- * {@see BaseAjaxController}; empty-then `if (c) {} else {…}` idioms flattened to
- * `if (!c) {…}` — behaviour-preserving). Two deliberate departures otherwise:
- *   1. rtmp_kill returns the RAW `ApiClient::systemRequest()` response (as in
- *      api.php), not JSON — hence a raw echo, not ok().
- *   2. proxy->kill: latent bug — it read an undefined `$rServerID`
- *      (getAll()[null] -> no-op + warnings). Fixed to server_id so that killing
- *      proxy connections in redis mode actually works. See the report/commit.
+ * Note: rtmp_kill echoes the raw {@see ApiClient::systemRequest()} response
+ * rather than a JSON envelope.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -202,9 +194,6 @@ class ServerAjaxController extends BaseAjaxController {
 
         if ($rSub == 'kill') {
             if (SettingsManager::get('redis_handler')) {
-                // NB: api.php read an undefined $rServerID here (latent bug:
-                // no-op + warnings). Using server_id instead is a deliberate
-                // fix — see the class docblock.
                 $rServerID = intval(RequestManager::get('server_id'));
 
                 foreach ((ServerRepository::getAll()[$rServerID]['parent_id'] ?? array()) as $rParentID) {

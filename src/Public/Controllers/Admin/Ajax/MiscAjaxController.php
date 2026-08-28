@@ -9,14 +9,9 @@ use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Module\Watch\WatchService;
 
 /**
- * Admin-ajax controller for the remaining small admin actions.
- *
- * Extracted from the legacy `admin/api.php` — the leftover actions that do not
- * belong to a larger domain group: process, profile, watch_output, reguserlist,
- * userlist, listdir, queue, delete_recording, clear_failures. Block logic ported
- * faithfully (scaffolding via gate/gateAny/ok/fail from {@see BaseAjaxController};
- * empty-then / nested if-else cascades flattened — behaviour-preserving; comments
- * English).
+ * Admin-ajax controller for the small admin actions that do not belong to a
+ * larger domain group: process, profile, watch_output, reguserlist, userlist,
+ * listdir, queue, delete_recording, clear_failures.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

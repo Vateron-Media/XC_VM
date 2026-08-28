@@ -13,16 +13,12 @@ use XcVm\Public\Controllers\Admin\TableController;
 /**
  * Admin-ajax controller for the "Backups, Logs & Reports" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: clear_logs, backup,
- * report, download_panel_logs. Block logic ported faithfully (scaffolding via
- * gate/gateAny/ok/fail from {@see BaseAjaxController}; empty-then / nested
- * if-else cascades flattened — behaviour-preserving; comments English).
+ * Actions: clear_logs, backup, report, download_panel_logs.
  *
- * `report` is the one action opened via full-page navigation (window.location)
- * rather than XHR — in api.php it is the sole entry exempt from the XHR guard,
- * so {@see self::report()} does NOT call requireXhr(); it streams a CSV/JSON
+ * `report` is opened via full-page navigation (window.location), not XHR, so
+ * {@see self::report()} does not call requireXhr(); it streams a CSV/JSON
  * download by dispatching {@see TableController} in-process. `download_panel_logs`
- * has no per-action permission gate in api.php; that is preserved.
+ * has no per-action permission gate.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

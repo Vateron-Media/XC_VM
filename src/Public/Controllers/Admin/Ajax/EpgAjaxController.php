@@ -11,11 +11,8 @@ use XcVm\Domain\Stream\CategoryService;
 /**
  * Admin-ajax controller for the "EPG" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: epg, epglist, force_epg,
- * epg_auto_assign, epg_categories, provider_import_epg, get_epg, get_programme.
- * Block logic ported faithfully (scaffolding via gate/ok/fail from
- * {@see BaseAjaxController}; empty-then / nested if-else cascades flattened —
- * behaviour-preserving; comments English).
+ * Actions: epg, epglist, force_epg, epg_auto_assign, epg_categories,
+ * provider_import_epg, get_epg, get_programme.
  *
  * A few actions answer with a `{"status": STATUS_*}` envelope (not the usual
  * `{"result": …}`), including on the permission-denied path, so those gate

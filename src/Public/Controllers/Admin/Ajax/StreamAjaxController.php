@@ -12,16 +12,10 @@ use XcVm\Domain\Vod\SeriesService;
 /**
  * Admin-ajax controller for the "Streams & VOD" content group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: stream, movie, episode,
- * series. Block logic ported faithfully (scaffolding via gate/ok/fail from
- * {@see BaseAjaxController}; empty-then cascades flattened — behaviour-preserving;
- * comments English).
- *
- * The `movie` and `episode` blocks were byte-identical (bar the permission key),
- * and the delete/kill/purge sub-actions were identical across stream/movie/
- * episode, so those are factored into {@see self::vodAction()} and
- * {@see self::streamMutation()}. The start/stop/restart/force paths echo the
- * raw `ApiClient` response (not JSON), exactly as api.php did.
+ * Actions: stream, movie, episode, series. `movie` and `episode` share their
+ * logic via {@see self::vodAction()}, and the delete/kill/purge sub-actions
+ * common to stream/movie/episode via {@see self::streamMutation()}. The
+ * start/stop/restart/force paths echo the raw `ApiClient` response, not JSON.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -110,7 +104,7 @@ class StreamAjaxController extends BaseAjaxController {
     }
 
     /**
-     * Shared movie/episode handler — identical in api.php bar the permission key.
+     * Shared movie/episode handler (they differ only by permission key).
      * start/stop dispatch a VOD request to the node(s); everything else is a
      * stream mutation.
      */

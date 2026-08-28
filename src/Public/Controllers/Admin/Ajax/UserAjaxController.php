@@ -12,13 +12,9 @@ use XcVm\Domain\User\UserService;
 /**
  * Admin-ajax controller for the "Users & Lines" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: line, line_activity,
- * adjust_credits, reg_user, ticket. Block logic ported faithfully (scaffolding
- * via gate/ok/fail from {@see BaseAjaxController}; empty-then / nested if-else
- * cascades flattened — behaviour-preserving; comments English).
- *
- * `line`'s enable/disable/ban/unban/kill sub-actions are shared with the
- * device controllers via {@see LineStateTrait}.
+ * Actions: line, line_activity, adjust_credits, reg_user, ticket. `line`'s
+ * enable/disable/ban/unban/kill sub-actions are shared with the device
+ * controllers via {@see LineStateTrait}.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

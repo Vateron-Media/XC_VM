@@ -5,16 +5,9 @@ namespace XcVm\Public\Controllers\Admin\Ajax;
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
- * Admin-ajax controller for the "Cache & Handlers" group.
- *
- * Extracted from the legacy `admin/api.php` (actions `regenerate_cache`,
- * `enable_cache`, `disable_cache`, `enable_handler`, `disable_handler`,
- * `clear_redis`). Block logic was ported verbatim — only the scaffolding
- * changed (gate/ok/fail from {@see BaseAjaxController}). Every action is gated
- * on the `adv/backups` permission.
-
- * Routes are registered in `Public/routes/admin.php` via `$router->api(...)` and
- * reach the controller through `Router::dispatchApi()` before the api.php fallback.
+ * Admin-ajax controller for cache and connection-handler operations:
+ * regenerate_cache, enable_cache, disable_cache, enable_handler,
+ * disable_handler, clear_redis. Every action is gated on `adv/backups`.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

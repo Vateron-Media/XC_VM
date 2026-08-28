@@ -11,8 +11,7 @@ use XcVm\Domain\Stream\ConnectionTracker;
  * (identified by its `user_id`): enable / disable / ban / unban / kill.
  *
  * Used by both {@see DeviceAjaxController} (mag/enigma devices act on their
- * owning line) and {@see UserAjaxController} (the line itself) — the api.php
- * blocks were byte-identical.
+ * owning line) and {@see UserAjaxController} (the line itself).
  *
  * @phpstan-require-extends BaseAjaxController
  *

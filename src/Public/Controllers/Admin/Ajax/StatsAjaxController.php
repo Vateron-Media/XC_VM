@@ -10,14 +10,11 @@ use XcVm\Domain\Server\ServerRepository;
 /**
  * Admin-ajax controller for the "Stats & Graphs" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: graph_stats, stats,
- * header_stats. Block logic ported faithfully (scaffolding via gate/ok/fail
- * from {@see BaseAjaxController}; empty-then / nested if-else cascades flattened
- * — behaviour-preserving; comments English).
+ * Actions: graph_stats, stats, header_stats.
  *
- * `graph_stats` has no per-action permission gate in api.php (only the shared
- * admin-session + XHR guard); that is preserved. All three responses are custom
- * JSON shapes kept via `JSON_PARTIAL_OUTPUT_ON_ERROR`.
+ * `graph_stats` has no per-action permission gate (only the shared
+ * admin-session + XHR guard). All three responses are custom JSON shapes kept
+ * via `JSON_PARTIAL_OUTPUT_ON_ERROR`.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

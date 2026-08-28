@@ -8,15 +8,11 @@ use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Security\BlocklistService;
 
 /**
- * Admin-ajax controller for the "Blocklists & Security" group.
+ * Admin-ajax controller for the "Blocklists & Security" group: useragent, isp,
+ * mysql_syslog, ip, ip_whois, asn, decrypt_text.
  *
- * Extracted from the legacy `admin/api.php`. Actions: useragent, isp,
- * mysql_syslog, ip, ip_whois, asn, decrypt_text. Block logic ported faithfully
- * (scaffolding via gate/ok/fail from {@see BaseAjaxController}; empty-then
- * `if (c) {} else {…}` idioms flattened to `if (!c) {…}` — behaviour-preserving).
- *
- * Note: `ip_whois` has no per-action permission gate in api.php (it is only
- * behind the shared admin-session + XHR guard); that is preserved here.
+ * Note: `ip_whois` has no per-action permission gate (it sits behind the shared
+ * admin-session + XHR guard only).
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

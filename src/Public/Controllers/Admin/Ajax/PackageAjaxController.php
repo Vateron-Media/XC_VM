@@ -13,15 +13,12 @@ use XcVm\Domain\User\UserRepository;
 /**
  * Admin-ajax controller for the "Packages, Bouquets & Groups" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: package, code, hmac,
- * group, bouquet, category, get_package, get_package_trial. Block logic ported
- * faithfully (scaffolding via gate/ok/fail from {@see BaseAjaxController};
- * empty-then / nested if-else cascades flattened — behaviour-preserving;
- * comments English).
+ * Actions: package, code, hmac, group, bouquet, category, get_package,
+ * get_package_trial.
  *
- * `get_package` and `get_package_trial` have no per-action permission gate in
- * api.php (only the shared admin-session + XHR guard); that is preserved. Their
- * identical bouquet-collection loop is shared via {@see self::collectPackageBouquets()}.
+ * `get_package` and `get_package_trial` have no per-action permission gate (only
+ * the shared admin-session + XHR guard); their identical bouquet-collection loop
+ * is shared via {@see self::collectPackageBouquets()}.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

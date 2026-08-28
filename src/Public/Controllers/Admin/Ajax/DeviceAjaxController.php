@@ -9,13 +9,8 @@ use XcVm\Domain\Device\MagService;
 /**
  * Admin-ajax controller for the "Devices" group.
  *
- * Extracted from the legacy `admin/api.php`. Actions: mag, enigma, mag_event,
- * send_event. Block logic ported faithfully (scaffolding via gate/ok/fail from
- * {@see BaseAjaxController}; empty-then / nested if-else cascades flattened —
- * behaviour-preserving; comments English).
- *
- * `mag` and `enigma` were near-identical in api.php; their shared line-state
- * sub-actions (enable/disable/ban/unban/kill) live in {@see LineStateTrait}.
+ * Actions: mag, enigma, mag_event, send_event. `mag` and `enigma` share their
+ * line-state sub-actions (enable/disable/ban/unban/kill) via {@see LineStateTrait}.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>

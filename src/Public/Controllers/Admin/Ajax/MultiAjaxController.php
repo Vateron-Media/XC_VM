@@ -18,16 +18,14 @@ use XcVm\Domain\Vod\SeriesService;
 /**
  * Admin-ajax controller for the "multi" bulk-operations action.
  *
- * Extracted from the legacy `admin/api.php` (the last block that remained).
  * Dispatches a bulk sub-action (delete/enable/disable/ban/unban/purge/start/
  * stop/restart/convert/…) over a set of ids for a given entity `type` — one
  * private handler per entity, each answering `{"result":true}` on success or
  * `{"result":false}` when the permission gate fails.
  *
- * The api.php block was a deep if/else pyramid; the sub-action dispatch is now a
- * flat if/elseif chain, and the repeated `implode(',', array_map('intval', …))`
- * / connection-purge idioms are factored into {@see self::inList()} and
- * {@see self::purgeUserConnections()}. Behaviour and SQL are otherwise unchanged.
+ * The sub-action dispatch is a flat if/elseif chain; the repeated
+ * `implode(',', array_map('intval', …))` and connection-purge idioms are shared
+ * via {@see self::inList()} / {@see self::purgeUserConnections()}.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -107,9 +105,6 @@ class MultiAjaxController extends BaseAjaxController {
 
     /** Bulk operations on MAG / Enigma2 devices (acting on their owning lines). */
     private function handleDevices(string $rType, array $rRequestIDs, string $rSub): never {
-        // mag -> edit_mag, enigma -> edit_e2. (api.php keyed this map by 'enigma2'
-        // while $rType is 'enigma', so the enigma gate resolved a null permission
-        // and every enigma bulk op silently failed — fixed here.)
         $this->gate('adv', ($rType == 'mag') ? 'edit_mag' : 'edit_e2');
 
         global $db;

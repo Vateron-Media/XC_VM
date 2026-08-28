@@ -13,15 +13,11 @@ use XcVm\Streaming\Codec\FfmpegPaths;
 /**
  * Admin-ajax controller for "Streams & VOD" tools, lists and reviews.
  *
- * Extracted from the legacy `admin/api.php`. Actions: review_selection,
- * review_bouquet, serieslist, streamlist, adaptivelist, titlesync,
- * probe_stream, check_stream, get_episode_ids. Block logic ported faithfully
- * (scaffolding via gate/gateAny/ok/fail from {@see BaseAjaxController};
- * empty-then / nested if-else cascades flattened — behaviour-preserving;
- * comments English).
+ * Actions: review_selection, review_bouquet, serieslist, streamlist,
+ * adaptivelist, titlesync, probe_stream, check_stream, get_episode_ids.
  *
  * The Select2 search lists keep the `JSON_PARTIAL_OUTPUT_ON_ERROR` envelope,
- * and probe_stream/check_stream echo the raw HTML table exactly as api.php did.
+ * and probe_stream/check_stream echo a raw HTML table rather than JSON.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -382,8 +378,8 @@ class StreamToolsAjaxController extends BaseAjaxController {
 
     /**
      * Collect bouquet member rows of one kind into $rReturn[$rReturnKey].
-     * Shared by {@see self::reviewBouquet()} — the four api.php blocks differed
-     * only in the data key, SQL and target key.
+     * Shared by {@see self::reviewBouquet()} across its four member kinds, which
+     * differ only in the data key, SQL and target key.
      *
      * @param array<string, mixed> $rReturn
      */
