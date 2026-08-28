@@ -8,6 +8,7 @@ use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\PackageAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\StatsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamToolsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\UserAjaxController;
@@ -367,6 +368,11 @@ $router->api('bouquet',            [PackageAjaxController::class, 'bouquet']);
 $router->api('category',           [PackageAjaxController::class, 'category']);
 $router->api('get_package',        [PackageAjaxController::class, 'getPackage']);
 $router->api('get_package_trial',  [PackageAjaxController::class, 'getPackageTrial']);
+
+// ─── Stats & Graphs ────────────────────────────────
+$router->api('graph_stats',  [StatsAjaxController::class, 'graphStats']);
+$router->api('stats',        [StatsAjaxController::class, 'stats']);
+$router->api('header_stats',  [StatsAjaxController::class, 'headerStats']);
 
 // ─── Users & Lines ─────────────────────────────────
 $router->api('line',           [UserAjaxController::class, 'line']);
