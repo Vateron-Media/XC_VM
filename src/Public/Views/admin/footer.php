@@ -83,5 +83,6 @@ if (!isset($rModal) || !$rModal): ?>
 			}
 		};
 	</script>
+	<script src="assets/js/search.js"></script>
 	<script src="assets/js/common.js"></script>
 <?php endif; ?>

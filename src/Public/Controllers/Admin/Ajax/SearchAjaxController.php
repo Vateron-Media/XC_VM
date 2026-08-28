@@ -15,11 +15,11 @@ use XcVm\Domain\User\GroupService;
  * Admin-ajax controller for the global "search" action.
  *
  * A fuzzy full-text search across lines, MAG/Enigma2 devices, users, streams
- * (live/VOD/created channels/radio/episodes) and series, each rendered into an
- * HTML result card.
- *
- * `$language` and `$rSearchStatusArray` are bootstrap globals it relies on,
- * alongside `$db` / `$rServers`.
+ * (live/VOD/created channels/radio/episodes) and series. Each result item
+ * carries structured `data` that the client renders into a card (see
+ * docs/adr/search-json-contract.md); permission checks, status resolution and
+ * category/server lookups stay server-side. `$language` and `$rSearchStatusArray`
+ * are bootstrap globals it relies on, alongside `$db` / `$rServers`.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -29,7 +29,7 @@ use XcVm\Domain\User\GroupService;
  */
 class SearchAjaxController extends BaseAjaxController {
 
-    /** action=search — global fuzzy search rendered as HTML result cards. */
+    /** action=search — global fuzzy search as structured JSON (no HTML). */
     public function search(): never {
         $this->requireXhr();
 
@@ -265,569 +265,455 @@ class SearchAjaxController extends BaseAjaxController {
             $rCategories = CategoryService::getAllByType(null);
             $rGroups = GroupService::getAll();
 
+            $rCtx = compact(
+                'rServerItems', 'rServerCount', 'rSeriesTitles', 'rConnectionCount', 'rSeriesInfo',
+                'rUsersCount', 'rLinesCount', 'rOwnerNames', 'rLinesInfo', 'rLineConnectionCount',
+                'rStreamNames', 'rDeviceLines', 'rCategories', 'rGroups', 'rTables'
+            );
+
             foreach ($rItems as $rItem) {
-                $rTableInfo = $rTables[$rItem['table']];
-
-                switch ($rItem['table']) {
-                    case 'streams':
-                        $rServerItem = ($rServerItems[$rItem['id']][0] ?: null);
-                        $rCategoryIDs = json_decode($rItem['category_id'], true);
-                        $rProperties = json_decode($rItem['movie_properties'], true) ?: array();
-
-                        if ($rItem['type'] != 5) {
-                            if (Authorization::check('adv', 'manage_streams')) {
-                                $rTitle = "<span style='cursor: pointer;' onClick=\"navigate('stream_view?id=" . intval($rItem['id']) . "');\">" . $rItem['stream_display_name'] . '</span>';
-                            } else {
-                                $rTitle = $rItem['stream_display_name'];
-                            }
-
-                            $rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
-
-                            if (1 < count($rCategoryIDs)) {
-                                $rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ')';
-                            }
-                        } else {
-                            if (Authorization::check('adv', 'manage_streams')) {
-                                $rTitle = ($rSeriesTitles[$rItem['id']] ? "<span style='cursor: pointer;' onClick=\"navigate('stream_view?id=" . intval($rItem['id']) . "');\">" . $rSeriesTitles[$rItem['id']] . '</span>' : 'No Series');
-                            } else {
-                                $rTitle = ($rSeriesTitles[$rItem['id']] ?: 'No Series');
-                            }
-
-                            if (stripos($rItem['stream_display_name'], $rTitle) === 0) {
-                                $rCategory = ltrim(substr($rItem['stream_display_name'], strlen($rTitle), strlen($rItem['stream_display_name']) - strlen($rTitle)));
-
-                                if (substr($rCategory, 0, 1) == '-') {
-                                    $rCategory = trim(ltrim($rCategory, '-'));
-                                }
-                            }
-                        }
-
-                        if ($rItem['type'] == 2) {
-                            $rRatingText = '';
-
-                            if ($rProperties['rating']) {
-                                $rStarRating = round($rProperties['rating']) / 2;
-                                $rFullStars = floor($rStarRating);
-                                $rHalfStar = 0 < $rStarRating - $rFullStars;
-                                $rEmpty = 5 - ($rFullStars + (($rHalfStar ? 1 : 0)));
-
-                                if (0 < $rFullStars) {
-                                    foreach (range(1, $rFullStars) as $i) {
-                                        $rRatingText .= "<i class='mdi mdi-star'></i>";
-                                    }
-                                }
-
-                                if ($rHalfStar) {
-                                    $rRatingText .= "<i class='mdi mdi-star-half'></i>";
-                                }
-
-                                if (0 < $rEmpty) {
-                                    foreach (range(1, $rEmpty) as $i) {
-                                        $rRatingText .= "<i class='mdi mdi-star-outline'></i>";
-                                    }
-                                }
-                            }
-
-                            $rYear = ($rItem['year'] ? '<strong>' . $rItem['year'] . '</strong> &nbsp;' : '');
-                            $rTitle .= "<br><span style='font-size:11px;'>" . $rYear . $rRatingText . '</span></a>';
-                        }
-
-                        $rItem['server_id'] = ($rServerItem['server_id'] ?: null);
-
-                        if ($rItem['server_id']) {
-                            $rServerName = $rServers[$rItem['server_id']]['server_name'];
-
-                            if (1 < $rServerCount[$rItem['id']]) {
-                                $rServerName .= ' (+' . ($rServerCount[$rItem['id']] - 1) . ')';
-                            }
-                        } else {
-                            $rServerName = '';
-                        }
-
-                        if ($rServerItem) {
-                            $rUptime = time() - intval($rServerItem['stream_started']);
-
-                            if ($rItem['type'] == 1 || $rItem['type'] == 4) {
-                                if (intval($rItem['direct_source']) == 1) {
-                                    $rActualStatus = 5;
-                                } else {
-                                    if ($rServerItem['monitor_pid']) {
-                                        if ($rServerItem['pid'] && 0 < $rServerItem['pid']) {
-                                            if (intval($rServerItem['stream_status']) == 2) {
-                                                $rActualStatus = 2;
-                                            } else {
-                                                $rActualStatus = 1;
-                                            }
-                                        } else {
-                                            if ($rServerItem['stream_status'] == 0) {
-                                                $rActualStatus = 2;
-                                            } else {
-                                                $rActualStatus = 3;
-                                            }
-                                        }
-                                    } else {
-                                        if (intval($rServerItem['on_demand']) == 1) {
-                                            $rActualStatus = 4;
-                                        } else {
-                                            $rActualStatus = 0;
-                                        }
-                                    }
-                                }
-                            } else {
-                                if ($rItem['type'] == 2 || $rItem['type'] == 5) {
-                                    if (intval($rItem['direct_source']) == 1) {
-                                        $rActualStatus = 5;
-                                    } else {
-                                        if (!is_null($rServerItem['pid']) && 0 < $rServerItem['pid']) {
-                                            if ($rServerItem['to_analyze'] == 1) {
-                                                $rActualStatus = 7;
-                                            } else {
-                                                if ($rServerItem['stream_status'] == 1) {
-                                                    $rActualStatus = 10;
-                                                } else {
-                                                    $rActualStatus = 9;
-                                                }
-                                            }
-                                        } else {
-                                            $rActualStatus = 8;
-                                        }
-                                    }
-                                } else {
-                                    if ($rItem['type'] == 3) {
-                                        if ($rServerItem['monitor_pid']) {
-                                            if ($rServerItem['pid'] && 0 < $rServerItem['pid']) {
-                                                if (intval($rServerItem['stream_status']) == 2) {
-                                                    $rActualStatus = 2;
-                                                } else {
-                                                    $rActualStatus = 1;
-                                                }
-                                            } else {
-                                                if ($rServerItem['stream_status'] == 0) {
-                                                    $rActualStatus = 2;
-                                                } else {
-                                                    $rActualStatus = 3;
-                                                }
-                                            }
-                                        } else {
-                                            $rActualStatus = 0;
-                                        }
-
-                                        if (!(count(json_decode($rServerItem['cchannel_rsources'], true)) == count(json_decode($rItem['stream_source'], true)) || $rServerItem['parent_id'])) {
-                                            $rActualStatus = 6;
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            if (intval($rItem['direct_source']) == 1) {
-                                $rActualStatus = 5;
-                            } else {
-                                $rActualStatus = -1;
-                            }
-                        }
-
-                        if ($rActualStatus == 1) {
-                            if (86400 <= $rUptime) {
-                                $rUptime = sprintf('%02dd %02dh %02dm', $rUptime / 86400, ($rUptime / 3600) % 24, ($rUptime / 60) % 60);
-                            } else {
-                                $rUptime = sprintf('%02dh %02dm %02ds', $rUptime / 3600, ($rUptime / 60) % 60, $rUptime % 60);
-                            }
-
-                            $rUptime = "<button type='button' class='btn bg-animate-info btn-xs waves-effect waves-light no-border btn-fixed-xl'>" . $rUptime . '</button>';
-                        } else {
-                            if ($rActualStatus == 6) {
-                                $rSources = json_decode($rItem['stream_source'], true);
-                                $rLeft = count(array_diff($rSources, json_decode($rServerItem['cchannel_rsources'], true)));
-                                $rPercent = (count($rSources) - $rLeft) / count($rSources) * 100;
-                                $rEncodeInfo = json_decode($rServerItem['progress_info'] ?? '', true);
-                                if (0 < $rLeft && isset($rEncodeInfo['cc_encode']['pct'])) {
-                                    $rPercent += floatval($rEncodeInfo['cc_encode']['pct']) / count($rSources);
-                                }
-                                $rPercent = intval($rPercent);
-                                $rUptime = "<button type='button' class='btn bg-animate-primary btn-xs waves-effect waves-light no-border btn-fixed-xl'>" . $rPercent . '% DONE</button>';
-                            } else {
-                                $rUptime = $rSearchStatusArray[$rActualStatus];
-                            }
-                        }
-
-                        if ($rItem['type'] == 1) {
-                            $rPageText = $rPage = 'stream';
-                        } else {
-                            if ($rItem['type'] == 2) {
-                                $rPageText = $rPage = 'movie';
-                            } else {
-                                if ($rItem['type'] == 3) {
-                                    $rPageText = 'channel';
-                                    $rPage = 'created_channel';
-                                } else {
-                                    if ($rItem['type'] == 4) {
-                                        $rPageText = $rPage = 'radio';
-                                    } else {
-                                        if ($rItem['type'] == 5) {
-                                            $rPageText = $rPage = 'episode';
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        $rHasButtons = false;
-                        $rButtons = '<div class="btn-group bg-animate-info">';
-
-                        if (in_array($rItem['type'], array(1, 3, 4))) {
-                            if (Authorization::check('adv', 'edit_stream')) {
-                                $rHasButtons = true;
-                                $rButtons .= "<button title=\"Edit\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"navigate('" . $rPage . '?id=' . intval($rItem['id']) . "');\"><i class=\"mdi mdi-pencil\"></i></button>";
-
-                                if (intval($rActualStatus) == 1 || intval($rActualStatus) == 2 || intval($rActualStatus) == 3 || $rItem['on_demand'] == 1 || $rActualStatus == 5 || $rActualStatus == 7) {
-                                    $rButtons .= "<button title=\"Stop\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"searchAPI('stream', " . intval($rItem['id']) . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
-                                    $rStatus = '';
-                                } else {
-                                    $rButtons .= "<button title=\"Start\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"searchAPI('stream', " . intval($rItem['id']) . ", 'start');\"><i class=\"mdi mdi-play\"></i></button>";
-                                    $rStatus = ' disabled';
-                                }
-
-                                $rButtons .= "<button title=\"Restart\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"searchAPI('stream', " . intval($rItem['id']) . ", 'restart');\"" . $rStatus . '><i class="mdi mdi-refresh"></i></button>';
-                                $rButtons .= "<button title=\"Purge\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"searchAPI('stream', " . intval($rItem['id']) . ", 'purge');\"" . $rStatus . '><i class="mdi mdi-hammer"></i></button>';
-
-                                if ($rItem['type'] == 1) {
-                                    if (($rConnectionCount[$rItem['id']] ?: false)) {
-                                        $rButtons .= '<button title="' . $language::get('fingerprint') . '" type="button" class="btn btn-xs waves-effect waves-light no-border tooltip" onClick="modalFingerprint(' . $rItem['id'] . ", 'stream');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-                                    } else {
-                                        $rButtons .= '<button type="button" disabled class="btn btn-xs waves-effect waves-light no-border tooltip"><i class="mdi mdi-fingerprint"></i></button>';
-                                    }
-                                }
-                            }
-                        } else {
-                            if (Authorization::check('adv', 'edit_' . $rPage)) {
-                                $rHasButtons = true;
-                                $rButtons .= "<button title=\"Edit\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"navigate('" . $rPage . '?id=' . intval($rItem['id']) . "');\"><i class=\"mdi mdi-pencil\"></i></button>";
-
-                                if (intval($rActualStatus) == 9) {
-                                    $rButtons .= "<button title=\"Re-Encode\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('" . $rPage . "', " . intval($rItem['id']) . ", 'start');\"><i class=\"mdi mdi-refresh\"></i></button>";
-                                } else {
-                                    if (intval($rActualStatus) == 5) {
-                                        $rButtons .= '<button disabled type="button" class="btn btn-xs waves-effect waves-light no-border tooltip"><i class="mdi mdi-stop"></i></button>';
-                                    } else {
-                                        if (intval($rActualStatus) == 7) {
-                                            $rButtons .= "<button title=\"Stop Encoding\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('" . $rPage . "', " . intval($rItem['id']) . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
-                                        } else {
-                                            $rButtons .= "<button title=\"Start Encoding\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('" . $rPage . "', " . intval($rItem['id']) . ", 'start');\"><i class=\"mdi mdi-play\"></i></button>";
-                                        }
-                                    }
-                                }
-
-                                $rButtons .= "<button title=\"Purge\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onclick=\"searchAPI('" . $rPage . "', " . intval($rItem['id']) . ", 'purge');\"" . $rStatus . '><i class="mdi mdi-hammer"></i></button>';
-                            }
-                        }
-
-                        $rButtons .= '</div>';
-
-                        if (in_array($rItem['type'], array(1, 3, 4))) {
-                            $rIcon = urlencode($rItem['stream_icon']);
-                            $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rTitle . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-white mb-1 text-truncate"><small>' . $rCategory . '<br/>' . $rServerName . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<img src="resize?maxw=96&maxh=96&url=' . $rIcon . '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-success btn-xs waves-effect waves-light no-border">' . strtoupper($rPageText) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . "<i class=\"fe-zap text-white\"></i> &nbsp; <button onClick=\"navigate('live_connections?stream_id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn bg-animate-info btn-xs waves-effect waves-light no-border\">" . number_format($rConnectionCount[$rItem['id']] ?? 0, 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-clock text-white"></i> &nbsp; ' . $rUptime . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>';
-
-                            if ($rHasButtons) {
-                                $rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>';
-                            }
-
-                            $rHTML .= '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>';
-                        } else {
-                            $rIcon = urlencode($rProperties['movie_image']);
-                            $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t\t" . '<div class="search-fade">' . "\n\t\t\t\t\t\t\t\t\t" . "<div class=\"search-image\" style=\"background: url('resize?maxw=512&maxh=512&url=" . $rIcon . "');\"></div>" . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rTitle . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-white mb-1 text-truncate"><small>' . $rCategory . '<br/>' . $rServerName . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-primary btn-xs waves-effect waves-light no-border">' . strtoupper($rPage) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . "<i class=\"fe-zap text-white\"></i> &nbsp; <button onClick=\"navigate('live_connections?stream_id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn bg-animate-info btn-xs waves-effect waves-light no-border\">" . number_format($rConnectionCount[$rItem['id']] ?? 0, 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-clock text-white"></i> &nbsp; ' . $rUptime . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>';
-
-                            if ($rHasButtons) {
-                                $rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>';
-                            }
-
-                            $rHTML .= '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>';
-                        }
-
-                        break;
-
-                    case 'streams_series':
-                        $rSeriesItem = ($rSeriesInfo[$rItem['id']] ?: array());
-                        $rCategoryIDs = json_decode($rItem['category_id'], true);
-                        $rTitle = $rItem['title'];
-                        $rRatingText = '';
-
-                        if ($rItem['rating']) {
-                            $rStarRating = round($rItem['rating']) / 2;
-                            $rFullStars = floor($rStarRating);
-                            $rHalfStar = 0 < $rStarRating - $rFullStars;
-                            $rEmpty = 5 - ($rFullStars + (($rHalfStar ? 1 : 0)));
-
-                            if (0 < $rFullStars) {
-                                foreach (range(1, $rFullStars) as $i) {
-                                    $rRatingText .= "<i class='mdi mdi-star'></i>";
-                                }
-                            }
-
-                            if ($rHalfStar) {
-                                $rRatingText .= "<i class='mdi mdi-star-half'></i>";
-                            }
-
-                            if (0 < $rEmpty) {
-                                foreach (range(1, $rEmpty) as $i) {
-                                    $rRatingText .= "<i class='mdi mdi-star-outline'></i>";
-                                }
-                            }
-                        }
-
-                        $rYear = ($rItem['year'] ? '<strong>' . $rItem['year'] . '</strong> &nbsp;' : '');
-                        $rTitle .= "<br><span style='font-size:11px;'>" . $rYear . $rRatingText . '</span></a>';
-                        $rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
-
-                        if (1 < count($rCategoryIDs)) {
-                            $rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ')';
-                        }
-
-                        $rHasButtons = false;
-                        $rButtons = '<div class="btn-group bg-animate-info">';
-
-                        if (Authorization::check('adv', 'add_episode')) {
-                            $rHasButtons = true;
-                            $rButtons .= "<button title=\"Add Episode(s)\" onClick=\"navigate('episode?sid=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-plus-circle-outline\"></i></button>";
-                        }
-
-                        if (Authorization::check('adv', 'episodes')) {
-                            $rHasButtons = true;
-                            $rButtons .= "<button title=\"View Episodes\" onClick=\"navigate('episodes?series=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-eye\"></i></button>";
-                        }
-
-                        if (Authorization::check('adv', 'edit_series')) {
-                            $rHasButtons = true;
-                            $rButtons .= "<button title=\"Edit\" onClick=\"navigate('serie?id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
-                        }
-
-                        $rButtons .= '</div>';
-                        $rIcon = urlencode($rItem['cover']);
-                        $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="search-fade">' . "\n\t\t\t\t\t\t\t\t" . "<div class=\"search-image\" style=\"background: url('resize?maxw=512&maxh=512&url=" . $rIcon . "');\"></div>" . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rTitle . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-white mb-1 text-truncate"><small>' . $rCategory . '<br/>' . $rServerName . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-danger btn-xs waves-effect waves-light no-border">' . $language::get('tv_series_btn') . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . 'S &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format($rSeriesItem[0], 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . 'E &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format($rSeriesItem[1], 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-
-                        if ($rHasButtons) {
-                            $rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-                        }
-
-                        $rHTML .= '</ul>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</div>';
-
-                        break;
-
-                    case 'users':
-                        $rUserCount = ($rUsersCount[$rItem['id']] ?: 0);
-                        $rLineCount = ($rLinesCount[$rItem['id']] ?: 0);
-                        $rOwnerName = ($rOwnerNames[$rItem['owner_id']] ?: null);
-                        $rHasButtons = false;
-                        $rButtons = '<div class="btn-group bg-animate-info">';
-
-                        if (Authorization::check('adv', 'edit_reguser')) {
-                            $rHasButtons = true;
-
-                            if ($rGroups[$rItem['member_group_id']]['is_reseller']) {
-                                $rButtons .= '<button title="' . $language::get('add_credits') . '" type="button" class="btn btn-xs waves-effect waves-light no-border tooltip" onClick="addCredits(' . $rItem['id'] . ');"><i class="mdi mdi-coin"></i></button>';
-                            }
-
-                            $rButtons .= "<button title=\"Edit\" onClick=\"navigate('user?id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
-
-                            if ($rItem['status'] == 1) {
-                                $rButtons .= "<button title=\"Disable\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('user', " . $rItem['id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-                            } else {
-                                $rButtons .= "<button title=\"Enable\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('user', " . $rItem['id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-                            }
-                        }
-
-                        $rButtons .= '</div>';
-
-                        if ($rItem['status'] == 1) {
-                            $rStatus = 'Active';
-                            $rStatusColour = 'info';
-                        } else {
-                            $rStatus = 'Inactive';
-                            $rStatusColour = 'warning';
-                        }
-
-                        $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">';
-
-                        if ($rGroups[$rItem['member_group_id']]['is_reseller']) {
-                            $rHTML .= '<div class="col-9">';
-                        } else {
-                            $rHTML .= '<div class="col-12">';
-                        }
-
-                        $rHTML .= '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['username'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rGroups[$rItem['member_group_id']]['group_name'] ? '<span class="text-white">' . $rGroups[$rItem['member_group_id']]['group_name'] . '</span><br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>';
-
-                        if ($rGroups[$rItem['member_group_id']]['is_reseller']) {
-                            $rHTML .= '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center font-24 search-icon-xl">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-coin text-white"></i><br/>' . number_format($rItem['credits'], 0) . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>';
-                        }
-
-                        $rHTML .= '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-warning btn-xs waves-effect waves-light no-border">' . $language::get('user_btn') . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-users text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format($rUserCount, 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-tv text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format($rLineCount, 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-
-                        if ($rHasButtons) {
-                            $rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-                        }
-
-                        $rHTML .= '</ul>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</div>';
-
-                        break;
-
-                    case 'lines':
-                        $rOwnerName = ($rOwnerNames[$rItem['member_id']] ?: null);
-                        $rHasButtons = false;
-                        $rButtons = '<div class="btn-group bg-animate-info">';
-
-                        if (Authorization::check('adv', 'edit_user')) {
-                            $rHasButtons = true;
-                            $rButtons .= "<button title=\"Edit\" onClick=\"navigate('line?id=" . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
-                            $rButtons .= "<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
-
-                            if ($rItem['admin_enabled']) {
-                                $rButtons .= "<button title=\"Ban Line\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'ban');\"><i class=\"mdi mdi-power\"></i></button>";
-                            } else {
-                                $rButtons .= "<button title=\"Unban Line\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'unban');\"><i class=\"mdi mdi-power\"></i></button>";
-                            }
-
-                            if ($rItem['enabled']) {
-                                $rButtons .= "<button title=\"Disable Line\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-                            } else {
-                                $rButtons .= "<button title=\"Enable Line\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rItem['id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-                            }
-
-                            if (($rLineConnectionCount[$rItem['id']] ?: false)) {
-                                $rButtons .= '<button title="' . $language::get('fingerprint') . '" type="button" class="btn btn-xs waves-effect waves-light no-border tooltip" onClick="modalFingerprint(' . $rItem['id'] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-                            } else {
-                                $rButtons .= '<button type="button" disabled class="btn btn-xs waves-effect waves-light no-border tooltip"><i class="mdi mdi-fingerprint"></i></button>';
-                            }
-                        }
-
-                        $rButtons .= '</div>';
-
-                        if (!$rItem['admin_enabled']) {
-                            $rStatus = 'Banned';
-                            $rStatusColour = 'danger';
-                        } else {
-                            if (!$rItem['enabled']) {
-                                $rStatus = 'Disabled';
-                                $rStatusColour = 'warning';
-                            } else {
-                                $rStatus = 'Active';
-                                $rStatusColour = 'info';
-                            }
-                        }
-
-                        $rLastInfo = (isset($rLinesInfo[$rItem['id']]) ? $rLinesInfo[$rItem['id']] : json_decode($rItem['last_activity_array'], true) ?? []);
-
-                        if (is_array($rLastInfo)) {
-                            $rLastInfo['stream_display_name'] = $rStreamNames[$rLastInfo['stream_id']];
-
-                            if ($rLastInfo['online']) {
-                                $rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . TimeUtils::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
-                            } else {
-                                $rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::get('date_format'), $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
-                            }
-                        } else {
-                            $rLastInfoText = "Last Active<br/><small class='text-lighter'>Never</small>";
-                        }
-
-                        $rExpires = ($rItem['exp_date'] ? date(SettingsManager::get('datetime_format'), $rItem['exp_date']) : null);
-                        $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['username'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rExpires ? '<span class="text-white">expires:</span> ' . $rExpires . '<br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1">' . $rLastInfoText . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-pink btn-xs waves-effect waves-light no-border">' . (($rItem['is_restreamer'] ? "<i title='Restreamer' class='mdi mdi-swap-horizontal tooltip'></i> " : ($rItem['is_trial'] ? "<i title='Trial' class='mdi mdi-gavel tooltip'></i> " : ''))) . 'LINE</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format(($rLineConnectionCount[$rItem['id']] ?: 0), 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-
-                        if ($rHasButtons) {
-                            $rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-                        }
-
-                        $rHTML .= '</ul>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</div>';
-
-                        break;
-
-                    case 'enigma_devices':
-                    case 'mag_devices':
-                        $rLineInfo = ($rDeviceLines[$rItem['user_id']] ?: null);
-
-                        if ($rLineInfo) {
-                            $rDeviceType = ($rItem['table'] == 'mag_devices' ? 'mag' : 'enigma');
-                            $rOwnerName = ($rOwnerNames[$rLineInfo['member_id']] ?: null);
-                            $rHasButtons = false;
-                            $rButtons = '<div class="btn-group bg-animate-info">';
-
-                            if (Authorization::check('adv', 'edit_user')) {
-                                $rHasButtons = true;
-                                $rButtons .= "<button title=\"Edit\" onClick=\"navigate('" . $rDeviceType . '?id=' . $rItem['id'] . "');\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\"><i class=\"mdi mdi-pencil\"></i></button>";
-                                $rButtons .= "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rLineInfo['id'] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
-
-                                if ($rItem['admin_enabled']) {
-                                    $rButtons .= "<button title=\"Ban Device\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rLineInfo['id'] . ", 'ban');\"><i class=\"mdi mdi-power\"></i></button>";
-                                } else {
-                                    $rButtons .= "<button title=\"Unban Device\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rLineInfo['id'] . ", 'unban');\"><i class=\"mdi mdi-power\"></i></button>";
-                                }
-
-                                if ($rItem['enabled']) {
-                                    $rButtons .= "<button title=\"Disable Device\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rLineInfo['id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-                                } else {
-                                    $rButtons .= "<button title=\"Enable Device\" type=\"button\" class=\"btn btn-xs waves-effect waves-light no-border tooltip\" onClick=\"searchAPI('line', " . $rLineInfo['id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-                                }
-
-                                if (($rLineConnectionCount[$rLineInfo['id']] ?: false)) {
-                                    $rButtons .= '<button title="' . $language::get('fingerprint') . '" type="button" class="btn btn-xs waves-effect waves-light no-border tooltip" onClick="modalFingerprint(' . $rLineInfo['id'] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-                                } else {
-                                    $rButtons .= '<button type="button" disabled class="btn btn-xs waves-effect waves-light no-border tooltip"><i class="mdi mdi-fingerprint"></i></button>';
-                                }
-                            }
-
-                            $rButtons .= '</div>';
-
-                            if (!$rLineInfo['admin_enabled']) {
-                                $rStatus = 'Banned';
-                                $rStatusColour = 'danger';
-                            } else {
-                                if (!$rLineInfo['enabled']) {
-                                    $rStatus = 'Disabled';
-                                    $rStatusColour = 'warning';
-                                } else {
-                                    $rStatus = 'Active';
-                                    $rStatusColour = 'info';
-                                }
-                            }
-
-                            $rLastInfo = (isset($rLinesInfo[$rLineInfo['id']]) ? $rLinesInfo[$rLineInfo['id']] : json_decode($rLineInfo['last_activity_array'], true) ?? []);
-
-                            if (is_array($rLastInfo)) {
-                                $rLastInfo['stream_display_name'] = $rStreamNames[$rLastInfo['stream_id']];
-
-                                if ($rLastInfo['online']) {
-                                    $rLastInfoText = "<a class='text-white' href='javascript:void(0);' onClick=\"navigate('stream_view?id=" . intval($rLastInfo['stream_id']) . "');\">" . $rLastInfo['stream_display_name'] . "</a><br/><small class='text-lighter'>Online: " . TimeUtils::secondsToTime(time() - $rLastInfo['last_active']) . '</small>';
-                                } else {
-                                    $rLastInfoText = "Last Active<br/><small class='text-lighter'>" . (($rLastInfo['date_end'] ? date(SettingsManager::get('date_format'), $rLastInfo['date_end']) . '<br/>' . date('H:i:s', $rLastInfo['date_end']) : 'Never')) . '</small>';
-                                }
-                            } else {
-                                $rLastInfoText = "Last Active<br/><small class='text-lighter'>Never</small>";
-                            }
-
-                            $rExpires = ($rLineInfo['exp_date'] ? date(SettingsManager::get('datetime_format'), $rLineInfo['exp_date']) : null);
-                            $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">' . $rItem['mac'] . '</h3>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<p class="text-lighter mb-1 text-truncate"><small>' . (($rExpires ? '<span class="text-white">expires:</span> ' . $rExpires . '<br/>' : '')) . (($rOwnerName ? '<span class="text-white">owner:</span> ' . $rOwnerName : '')) . '</small></p>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1">' . $rLastInfoText . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '<div class="card-body action-block">' . "\n\t\t\t\t\t\t\t\t" . '<div class="media align-items-center align-center">' . "\n\t\t\t\t\t\t\t\t\t" . '<ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%; display: flex;">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn bg-animate-pink btn-xs waves-effect waves-light no-border">' . (($rLineInfo['is_trial'] ? "<i class='mdi mdi-gavel'></i> " : '')) . strtoupper($rDeviceType) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-user-check text-white"></i> &nbsp; <button type="button" class="btn bg-animate-' . $rStatusColour . ' btn-xs waves-effect waves-light no-border">' . $rStatus . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn bg-animate-info btn-xs waves-effect waves-light no-border">' . number_format(($rLineConnectionCount[$rLineInfo['id']] ?: 0), 0) . '</button>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-
-                            if ($rHasButtons) {
-                                $rHTML .= '<li class="dropdown notification-list">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a class="mr-0 waves-effect pd-left pd-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<span class="pro-user-name text-white ml-1">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="fe-sliders text-white"></i> &nbsp; ' . $rButtons . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</li>';
-                            }
-
-                            $rHTML .= '</ul>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</div>';
-
-                            break;
-                        }
-
-                        break;
-                }
-                $rReturn['items'][] = array('id' => $rTable . '#' . $rItem[$rTableInfo[3]], 'url' => $rTableInfo[1] . $rItem[$rTableInfo[3]], 'text' => $rItem[$rTableInfo[4]], 'html' => $rHTML);
+                $rReturn['items'][] = $this->buildItem($rItem, $rCtx);
             }
         }
 
         $rReturn['total_count'] = count($rReturn['items']);
 
         if ($rReturn['total_count'] == 0) {
-            $rHTML = '<div class="card-search text-white">' . "\n\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t" . '<div class="media align-items-center">' . "\n\t\t\t\t\t\t" . '<div class="col-9">' . "\n\t\t\t\t\t\t\t" . '<div>' . "\n\t\t\t\t\t\t\t\t" . '<h3 class="text-white my-1 text-truncate">No Results Found</h3>' . "\n\t\t\t\t\t\t\t\t" . "<p class=\"text-lighter mb-1\"><small>Try refining your search or manually locating the content you're looking for.</small></p>" . "\n\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t" . '<div class="col-3">' . "\n\t\t\t\t\t\t\t" . '<div class="float-right text-center search-icon-xl mt-1" style="font-size: 72px;"><i class="fe-alert-circle"></i></div>' . "\n\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '</div>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>';
-            $rReturn['items'][] = array('id' => 'no_results', 'url' => null, 'text' => 'No Results', 'html' => $rHTML);
+            $rReturn['items'][] = array('id' => 'no_results', 'url' => null, 'text' => 'No Results', 'entity' => 'no_results', 'data' => null);
         }
 
-        echo json_encode($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
+        $this->json($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
+    }
 
-        exit();
+    /** Dispatch one search row to its per-entity structured payload. */
+    private function buildItem(array $rItem, array $rCtx): array {
+        $rTableInfo = $rCtx['rTables'][$rItem['table']];
+        $rBase = array(
+            'id' => $rItem['table'] . '#' . $rItem[$rTableInfo[3]],
+            'url' => $rTableInfo[1] . $rItem[$rTableInfo[3]],
+            'text' => $rItem[$rTableInfo[4]],
+        );
+
+        switch ($rItem['table']) {
+            case 'streams':
+                return $rBase + array('entity' => $this->streamPage(intval($rItem['type']))['entity'], 'data' => $this->buildStreamItem($rItem, $rCtx));
+            case 'streams_series':
+                return $rBase + array('entity' => 'series', 'data' => $this->buildSeriesItem($rItem, $rCtx));
+            case 'users':
+                return $rBase + array('entity' => 'user', 'data' => $this->buildUserItem($rItem, $rCtx));
+            case 'lines':
+                return $rBase + array('entity' => 'line', 'data' => $this->buildLineItem($rItem, $rCtx));
+            case 'enigma_devices':
+            case 'mag_devices':
+                return $rBase + array('entity' => ($rItem['table'] == 'mag_devices' ? 'mag' : 'enigma'), 'data' => $this->buildDeviceItem($rItem, $rCtx));
+        }
+
+        return $rBase + array('entity' => 'unknown', 'data' => null);
+    }
+
+    /** streams row -> stream/movie/channel/radio/episode payload. */
+    private function buildStreamItem(array $rItem, array $rCtx): array {
+        global $rServers;
+        $rServerItem = ($rCtx['rServerItems'][$rItem['id']][0] ?? null) ?: null;
+        $rCategoryIDs = json_decode($rItem['category_id'], true) ?: array();
+        $rProperties = json_decode($rItem['movie_properties'], true) ?: array();
+        $rLive = in_array(intval($rItem['type']), array(1, 3, 4), true);
+        $rPage = $this->streamPage(intval($rItem['type']));
+
+        if ($rItem['type'] != 5) {
+            $rTitle = $rItem['stream_display_name'];
+            $rCategory = ($rCtx['rCategories'][$rCategoryIDs[0] ?? null]['category_name'] ?? '') ?: 'No Category';
+
+            if (1 < count($rCategoryIDs)) {
+                $rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ')';
+            }
+        } else {
+            $rTitle = ($rCtx['rSeriesTitles'][$rItem['id']] ?? '') ?: 'No Series';
+            $rCategory = '';
+
+            if (stripos($rItem['stream_display_name'], $rTitle) === 0) {
+                $rCategory = ltrim(substr($rItem['stream_display_name'], strlen($rTitle)));
+
+                if (substr($rCategory, 0, 1) == '-') {
+                    $rCategory = trim(ltrim($rCategory, '-'));
+                }
+            }
+        }
+
+        $rServerID = ($rServerItem['server_id'] ?? null) ?: null;
+        $rServerName = '';
+
+        if ($rServerID) {
+            $rServerName = $rServers[$rServerID]['server_name'] ?? '';
+
+            if (1 < ($rCtx['rServerCount'][$rItem['id']] ?? 0)) {
+                $rServerName .= ' (+' . ($rCtx['rServerCount'][$rItem['id']] - 1) . ')';
+            }
+        }
+
+        $rActualStatus = $this->resolveStreamStatus($rItem, $rServerItem);
+        $rConnections = intval($rCtx['rConnectionCount'][$rItem['id']] ?? 0);
+
+        return array(
+            'layout' => $rLive ? 'live' : 'vod',
+            'title' => $rTitle,
+            'title_link' => Authorization::check('adv', 'manage_streams') ? ('stream_view?id=' . intval($rItem['id'])) : null,
+            'category' => $rCategory,
+            'server' => $rServerName,
+            'image' => $rLive
+                ? array('url' => $rItem['stream_icon'], 'size' => 96)
+                : array('url' => ($rProperties['movie_image'] ?? ''), 'size' => 512),
+            'badge' => $rLive
+                ? array('text' => strtoupper($rPage['text']), 'variant' => 'success')
+                : array('text' => strtoupper($rPage['page']), 'variant' => 'primary'),
+            'connections' => $rConnections,
+            'connections_link' => 'live_connections?stream_id=' . $rItem['id'],
+            'status' => $this->streamStatusPayload($rActualStatus, $rItem, $rServerItem),
+            'rating' => ($rItem['type'] == 2) ? $this->ratingData($rProperties['rating'] ?? 0, $rItem['year'] ?? '') : null,
+            'actions' => $this->streamActions($rItem, $rActualStatus, $rPage['page'], $rConnections),
+        );
+    }
+
+    /** streams_series row -> series payload. */
+    private function buildSeriesItem(array $rItem, array $rCtx): array {
+        global $language;
+        $rSeriesItem = ($rCtx['rSeriesInfo'][$rItem['id']] ?? array()) ?: array();
+        $rCategoryIDs = json_decode($rItem['category_id'], true) ?: array();
+        $rCategory = ($rCtx['rCategories'][$rCategoryIDs[0] ?? null]['category_name'] ?? '') ?: 'No Category';
+
+        if (1 < count($rCategoryIDs)) {
+            $rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ')';
+        }
+
+        $rActions = array();
+
+        if (Authorization::check('adv', 'add_episode')) {
+            $rActions[] = array('kind' => 'navigate', 'target' => 'episode?sid=' . $rItem['id'], 'icon' => 'mdi-plus-circle-outline', 'title' => 'Add Episode(s)');
+        }
+
+        if (Authorization::check('adv', 'episodes')) {
+            $rActions[] = array('kind' => 'navigate', 'target' => 'episodes?series=' . $rItem['id'], 'icon' => 'mdi-eye', 'title' => 'View Episodes');
+        }
+
+        if (Authorization::check('adv', 'edit_series')) {
+            $rActions[] = array('kind' => 'navigate', 'target' => 'serie?id=' . $rItem['id'], 'icon' => 'mdi-pencil', 'title' => 'Edit');
+        }
+
+        return array(
+            'title' => $rItem['title'],
+            'category' => $rCategory,
+            'image' => array('url' => $rItem['cover'], 'size' => 512),
+            'rating' => $this->ratingData($rItem['rating'] ?? 0, $rItem['year'] ?? ''),
+            'badge' => array('text' => $language::get('tv_series_btn'), 'variant' => 'danger'),
+            'seasons' => intval($rSeriesItem[0] ?? 0),
+            'episodes' => intval($rSeriesItem[1] ?? 0),
+            'actions' => $rActions,
+        );
+    }
+
+    /** users row -> registered-user payload. */
+    private function buildUserItem(array $rItem, array $rCtx): array {
+        global $language;
+        $rGroup = $rCtx['rGroups'][$rItem['member_group_id']] ?? array();
+        $rIsReseller = (bool) ($rGroup['is_reseller'] ?? false);
+        $rActive = $rItem['status'] == 1;
+        $rActions = array();
+
+        if (Authorization::check('adv', 'edit_reguser')) {
+            if ($rIsReseller) {
+                $rActions[] = array('kind' => 'credits', 'id' => intval($rItem['id']), 'icon' => 'mdi-coin', 'title' => $language::get('add_credits'));
+            }
+
+            $rActions[] = array('kind' => 'navigate', 'target' => 'user?id=' . $rItem['id'], 'icon' => 'mdi-pencil', 'title' => 'Edit');
+            $rActions[] = $rActive
+                ? array('kind' => 'api', 'entity' => 'user', 'id' => intval($rItem['id']), 'sub' => 'disable', 'icon' => 'mdi-lock', 'title' => 'Disable', 'enabled' => true)
+                : array('kind' => 'api', 'entity' => 'user', 'id' => intval($rItem['id']), 'sub' => 'enable', 'icon' => 'mdi-lock', 'title' => 'Enable', 'enabled' => true);
+        }
+
+        return array(
+            'username' => $rItem['username'],
+            'group' => $rGroup['group_name'] ?? '',
+            'owner' => ($rCtx['rOwnerNames'][$rItem['owner_id']] ?? null) ?: null,
+            'is_reseller' => $rIsReseller,
+            'credits' => $rIsReseller ? intval($rItem['credits']) : null,
+            'status' => array('label' => $rActive ? 'Active' : 'Inactive', 'variant' => $rActive ? 'info' : 'warning'),
+            'users_count' => intval($rCtx['rUsersCount'][$rItem['id']] ?? 0),
+            'lines_count' => intval($rCtx['rLinesCount'][$rItem['id']] ?? 0),
+            'badge' => array('text' => $language::get('user_btn'), 'variant' => 'warning'),
+            'actions' => $rActions,
+        );
+    }
+
+    /** lines row -> line payload. */
+    private function buildLineItem(array $rItem, array $rCtx): array {
+        $rConn = intval($rCtx['rLineConnectionCount'][$rItem['id']] ?? 0);
+
+        return array(
+            'title' => $rItem['username'],
+            'device_type' => null,
+            'status' => $this->lineStatus($rItem),
+            'owner' => ($rCtx['rOwnerNames'][$rItem['member_id']] ?? null) ?: null,
+            'expires' => $rItem['exp_date'] ? date(SettingsManager::get('datetime_format'), $rItem['exp_date']) : null,
+            'last_active' => $this->lastActive($rItem, $rCtx),
+            'connections' => $rConn,
+            'flags' => array('restreamer' => (bool) $rItem['is_restreamer'], 'trial' => (bool) $rItem['is_trial']),
+            'badge' => array('variant' => 'pink'),
+            'actions' => $this->lineActions(intval($rItem['id']), 'line?id=' . $rItem['id'], $rItem['admin_enabled'], $rItem['enabled'], $rConn),
+        );
+    }
+
+    /** mag/enigma row -> device payload (null when the owning line is missing). */
+    private function buildDeviceItem(array $rItem, array $rCtx): ?array {
+        $rLineInfo = ($rCtx['rDeviceLines'][$rItem['user_id']] ?? null) ?: null;
+
+        if (!$rLineInfo) {
+            return null;
+        }
+
+        $rType = ($rItem['table'] == 'mag_devices' ? 'mag' : 'enigma');
+        $rConn = intval($rCtx['rLineConnectionCount'][$rLineInfo['id']] ?? 0);
+
+        return array(
+            'title' => $rItem['mac'],
+            'device_type' => $rType,
+            'status' => $this->lineStatus($rLineInfo),
+            'owner' => ($rCtx['rOwnerNames'][$rLineInfo['member_id']] ?? null) ?: null,
+            'expires' => $rLineInfo['exp_date'] ? date(SettingsManager::get('datetime_format'), $rLineInfo['exp_date']) : null,
+            'last_active' => $this->lastActive($rLineInfo, $rCtx),
+            'connections' => $rConn,
+            'flags' => array('trial' => (bool) $rLineInfo['is_trial']),
+            'badge' => array('variant' => 'pink'),
+            'actions' => $this->lineActions(intval($rLineInfo['id']), $rType . '?id=' . $rItem['id'], $rItem['admin_enabled'], $rItem['enabled'], $rConn),
+        );
+    }
+
+    /** Map a stream type to its {entity, page, text} descriptors. */
+    private function streamPage(int $rType): array {
+        switch ($rType) {
+            case 1: return array('entity' => 'stream', 'page' => 'stream', 'text' => 'stream');
+            case 2: return array('entity' => 'movie', 'page' => 'movie', 'text' => 'movie');
+            case 3: return array('entity' => 'channel', 'page' => 'created_channel', 'text' => 'channel');
+            case 4: return array('entity' => 'radio', 'page' => 'radio', 'text' => 'radio');
+            case 5: return array('entity' => 'episode', 'page' => 'episode', 'text' => 'episode');
+        }
+
+        return array('entity' => 'stream', 'page' => '', 'text' => '');
+    }
+
+    /** Resolve the stream status code (-1…10) — mirrors the legacy cascade. */
+    private function resolveStreamStatus(array $rItem, ?array $rServerItem): int {
+        if (!$rServerItem) {
+            return intval($rItem['direct_source']) == 1 ? 5 : -1;
+        }
+
+        if ($rItem['type'] == 1 || $rItem['type'] == 4) {
+            if (intval($rItem['direct_source']) == 1) {
+                return 5;
+            }
+
+            if ($rServerItem['monitor_pid']) {
+                if ($rServerItem['pid'] && 0 < $rServerItem['pid']) {
+                    return intval($rServerItem['stream_status']) == 2 ? 2 : 1;
+                }
+
+                return $rServerItem['stream_status'] == 0 ? 2 : 3;
+            }
+
+            return intval($rServerItem['on_demand']) == 1 ? 4 : 0;
+        }
+
+        if ($rItem['type'] == 2 || $rItem['type'] == 5) {
+            if (intval($rItem['direct_source']) == 1) {
+                return 5;
+            }
+
+            if (!is_null($rServerItem['pid']) && 0 < $rServerItem['pid']) {
+                if ($rServerItem['to_analyze'] == 1) {
+                    return 7;
+                }
+
+                return $rServerItem['stream_status'] == 1 ? 10 : 9;
+            }
+
+            return 8;
+        }
+
+        if ($rItem['type'] == 3) {
+            $rStatus = 0;
+
+            if ($rServerItem['monitor_pid']) {
+                if ($rServerItem['pid'] && 0 < $rServerItem['pid']) {
+                    $rStatus = intval($rServerItem['stream_status']) == 2 ? 2 : 1;
+                } else {
+                    $rStatus = $rServerItem['stream_status'] == 0 ? 2 : 3;
+                }
+            }
+
+            if (!(count(json_decode($rServerItem['cchannel_rsources'], true)) == count(json_decode($rItem['stream_source'], true)) || $rServerItem['parent_id'])) {
+                $rStatus = 6;
+            }
+
+            return $rStatus;
+        }
+
+        return 0;
+    }
+
+    /** Status cell payload: running uptime, encode progress, or a labelled badge. */
+    private function streamStatusPayload(int $rCode, array $rItem, ?array $rServerItem): array {
+        if ($rCode == 1 && $rServerItem) {
+            $rUptime = time() - intval($rServerItem['stream_started']);
+            $rText = (86400 <= $rUptime)
+                ? sprintf('%02dd %02dh %02dm', $rUptime / 86400, ($rUptime / 3600) % 24, ($rUptime / 60) % 60)
+                : sprintf('%02dh %02dm %02ds', $rUptime / 3600, ($rUptime / 60) % 60, $rUptime % 60);
+
+            return array('kind' => 'uptime', 'text' => $rText);
+        }
+
+        if ($rCode == 6 && $rServerItem) {
+            $rSources = json_decode($rItem['stream_source'], true) ?: array();
+            $rLeft = count(array_diff($rSources, json_decode($rServerItem['cchannel_rsources'], true) ?: array()));
+            $rPercent = count($rSources) ? (count($rSources) - $rLeft) / count($rSources) * 100 : 0;
+            $rEncodeInfo = json_decode($rServerItem['progress_info'] ?? '', true);
+
+            if (0 < $rLeft && isset($rEncodeInfo['cc_encode']['pct'])) {
+                $rPercent += floatval($rEncodeInfo['cc_encode']['pct']) / count($rSources);
+            }
+
+            return array('kind' => 'progress', 'percent' => intval($rPercent));
+        }
+
+        return array('kind' => 'status') + $this->statusMeta($rCode);
+    }
+
+    /** Derive {code, label, variant} for a status code from $rSearchStatusArray. */
+    private function statusMeta(int $rCode): array {
+        global $rSearchStatusArray;
+        $rHtml = $rSearchStatusArray[$rCode] ?? '';
+        preg_match('/bg-animate-(\w+)/', $rHtml, $rVariant);
+        preg_match('/>([^<]+)</', $rHtml, $rLabel);
+
+        return array('code' => $rCode, 'label' => trim($rLabel[1] ?? ''), 'variant' => $rVariant[1] ?? 'secondary');
+    }
+
+    /** Star-rating + year payload for VOD items. */
+    private function ratingData($rRating, $rYear): array {
+        $rStars = round(floatval($rRating)) / 2;
+        $rFull = (int) floor($rStars);
+        $rHalf = 0 < $rStars - $rFull;
+
+        return array(
+            'stars_full' => $rRating ? $rFull : 0,
+            'half' => $rRating ? $rHalf : false,
+            'empty' => $rRating ? 5 - ($rFull + ($rHalf ? 1 : 0)) : 0,
+            'year' => $rYear ? (string) $rYear : '',
+        );
+    }
+
+    /** Status badge for a line/device (banned/disabled/active). */
+    private function lineStatus(array $rSource): array {
+        if (!$rSource['admin_enabled']) {
+            return array('label' => 'Banned', 'variant' => 'danger');
+        }
+
+        if (!$rSource['enabled']) {
+            return array('label' => 'Disabled', 'variant' => 'warning');
+        }
+
+        return array('label' => 'Active', 'variant' => 'info');
+    }
+
+    /** Last-activity payload for a line/device. */
+    private function lastActive(array $rSource, array $rCtx): array {
+        $rInfo = $rCtx['rLinesInfo'][$rSource['id']] ?? (json_decode($rSource['last_activity_array'], true) ?? array());
+
+        if (!is_array($rInfo)) {
+            return array('online' => false, 'date' => null);
+        }
+
+        if (!empty($rInfo['online'])) {
+            return array(
+                'online' => true,
+                'stream_id' => intval($rInfo['stream_id'] ?? 0),
+                'stream_name' => $rCtx['rStreamNames'][$rInfo['stream_id'] ?? null] ?? '',
+                'online_for' => TimeUtils::secondsToTime(time() - intval($rInfo['last_active'] ?? 0)),
+            );
+        }
+
+        return array(
+            'online' => false,
+            'date' => !empty($rInfo['date_end']) ? date(SettingsManager::get('datetime_format'), $rInfo['date_end']) : null,
+        );
+    }
+
+    /**
+     * Action list for a line/device. Buttons target $rTargetId (the owning line);
+     * ban/unban + enable/disable state comes from the row's own flags.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function lineActions(int $rTargetId, string $rEditTarget, $rAdminEnabled, $rEnabled, int $rConnections): array {
+        if (!Authorization::check('adv', 'edit_user')) {
+            return array();
+        }
+
+        return array(
+            array('kind' => 'navigate', 'target' => $rEditTarget, 'icon' => 'mdi-pencil', 'title' => 'Edit'),
+            array('kind' => 'api', 'entity' => 'line', 'id' => $rTargetId, 'sub' => 'kill', 'icon' => 'fa-hammer', 'title' => 'Kill Connections', 'enabled' => true),
+            $rAdminEnabled
+                ? array('kind' => 'api', 'entity' => 'line', 'id' => $rTargetId, 'sub' => 'ban', 'icon' => 'mdi-power', 'title' => 'Ban', 'enabled' => true)
+                : array('kind' => 'api', 'entity' => 'line', 'id' => $rTargetId, 'sub' => 'unban', 'icon' => 'mdi-power', 'title' => 'Unban', 'enabled' => true),
+            $rEnabled
+                ? array('kind' => 'api', 'entity' => 'line', 'id' => $rTargetId, 'sub' => 'disable', 'icon' => 'mdi-lock', 'title' => 'Disable', 'enabled' => true)
+                : array('kind' => 'api', 'entity' => 'line', 'id' => $rTargetId, 'sub' => 'enable', 'icon' => 'mdi-lock', 'title' => 'Enable', 'enabled' => true),
+            array('kind' => 'fingerprint', 'id' => $rTargetId, 'context' => 'user', 'icon' => 'mdi-fingerprint', 'enabled' => (bool) $rConnections),
+        );
+    }
+
+    /** Action list for a stream/movie/etc. row. */
+    private function streamActions(array $rItem, int $rActualStatus, string $rPage, int $rConnections): array {
+        $rId = intval($rItem['id']);
+        $rActions = array();
+
+        if (in_array(intval($rItem['type']), array(1, 3, 4), true)) {
+            if (!Authorization::check('adv', 'edit_stream')) {
+                return $rActions;
+            }
+
+            $rActions[] = array('kind' => 'navigate', 'target' => $rPage . '?id=' . $rId, 'icon' => 'mdi-pencil', 'title' => 'Edit');
+            $rRunning = in_array(intval($rActualStatus), array(1, 2, 3), true) || $rItem['on_demand'] == 1 || $rActualStatus == 5 || $rActualStatus == 7;
+
+            $rActions[] = $rRunning
+                ? array('kind' => 'api', 'entity' => 'stream', 'id' => $rId, 'sub' => 'stop', 'icon' => 'mdi-stop', 'title' => 'Stop', 'enabled' => true)
+                : array('kind' => 'api', 'entity' => 'stream', 'id' => $rId, 'sub' => 'start', 'icon' => 'mdi-play', 'title' => 'Start', 'enabled' => true);
+            $rActions[] = array('kind' => 'api', 'entity' => 'stream', 'id' => $rId, 'sub' => 'restart', 'icon' => 'mdi-refresh', 'title' => 'Restart', 'enabled' => $rRunning);
+            $rActions[] = array('kind' => 'api', 'entity' => 'stream', 'id' => $rId, 'sub' => 'purge', 'icon' => 'mdi-hammer', 'title' => 'Purge', 'enabled' => $rRunning);
+
+            if ($rItem['type'] == 1) {
+                $rActions[] = array('kind' => 'fingerprint', 'id' => $rId, 'context' => 'stream', 'icon' => 'mdi-fingerprint', 'enabled' => (bool) $rConnections);
+            }
+
+            return $rActions;
+        }
+
+        if (!Authorization::check('adv', 'edit_' . $rPage)) {
+            return $rActions;
+        }
+
+        $rActions[] = array('kind' => 'navigate', 'target' => $rPage . '?id=' . $rId, 'icon' => 'mdi-pencil', 'title' => 'Edit');
+
+        if (intval($rActualStatus) == 9) {
+            $rActions[] = array('kind' => 'api', 'entity' => $rPage, 'id' => $rId, 'sub' => 'start', 'icon' => 'mdi-refresh', 'title' => 'Re-Encode', 'enabled' => true);
+        } elseif (intval($rActualStatus) == 5) {
+            $rActions[] = array('kind' => 'api', 'entity' => $rPage, 'id' => $rId, 'sub' => 'stop', 'icon' => 'mdi-stop', 'title' => 'Stop', 'enabled' => false);
+        } elseif (intval($rActualStatus) == 7) {
+            $rActions[] = array('kind' => 'api', 'entity' => $rPage, 'id' => $rId, 'sub' => 'stop', 'icon' => 'mdi-stop', 'title' => 'Stop Encoding', 'enabled' => true);
+        } else {
+            $rActions[] = array('kind' => 'api', 'entity' => $rPage, 'id' => $rId, 'sub' => 'start', 'icon' => 'mdi-play', 'title' => 'Start Encoding', 'enabled' => true);
+        }
+
+        $rActions[] = array('kind' => 'api', 'entity' => $rPage, 'id' => $rId, 'sub' => 'purge', 'icon' => 'mdi-hammer', 'title' => 'Purge', 'enabled' => true);
+
+        return $rActions;
     }
 }
