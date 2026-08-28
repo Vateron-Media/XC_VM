@@ -2,6 +2,7 @@
 
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
+use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
@@ -325,6 +326,15 @@ $router->api('reinstall_server',     [ServerAjaxController::class, 'reinstallSer
 $router->api('fpm_status',           [ServerAjaxController::class, 'fpmStatus']);
 $router->api('update_all_servers',   [ServerAjaxController::class, 'updateAllServers']);
 $router->api('update_all_binaries',  [ServerAjaxController::class, 'updateAllBinaries']);
+
+// Blocklists & Security (extracted from api.php)
+$router->api('useragent',    [BlocklistAjaxController::class, 'useragent']);
+$router->api('isp',          [BlocklistAjaxController::class, 'isp']);
+$router->api('mysql_syslog', [BlocklistAjaxController::class, 'mysqlSyslog']);
+$router->api('ip',           [BlocklistAjaxController::class, 'ip']);
+$router->api('ip_whois',     [BlocklistAjaxController::class, 'ipWhois']);
+$router->api('asn',          [BlocklistAjaxController::class, 'asn']);
+$router->api('decrypt_text', [BlocklistAjaxController::class, 'decryptText']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 
