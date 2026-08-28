@@ -8,6 +8,7 @@ use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\MiscAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\MultiAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\PackageAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ProviderAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\SearchAjaxController;
@@ -390,6 +391,9 @@ $router->api('provider_streams', [ProviderAjaxController::class, 'providerStream
 
 // ─── Search ────────────────────────────────────────
 $router->api('search', [SearchAjaxController::class, 'search']);
+
+// ─── Bulk (multi) ──────────────────────────────────
+$router->api('multi', [MultiAjaxController::class, 'multi']);
 
 // ─── Misc ──────────────────────────────────────────
 $router->api('process',          [MiscAjaxController::class, 'process']);
