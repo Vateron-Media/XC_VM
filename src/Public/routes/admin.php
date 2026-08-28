@@ -4,6 +4,7 @@ use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
@@ -335,6 +336,12 @@ $router->api('ip',           [BlocklistAjaxController::class, 'ip']);
 $router->api('ip_whois',     [BlocklistAjaxController::class, 'ipWhois']);
 $router->api('asn',          [BlocklistAjaxController::class, 'asn']);
 $router->api('decrypt_text', [BlocklistAjaxController::class, 'decryptText']);
+
+// Devices (extracted from api.php)
+$router->api('mag',        [DeviceAjaxController::class, 'mag']);
+$router->api('enigma',     [DeviceAjaxController::class, 'enigma']);
+$router->api('mag_event',  [DeviceAjaxController::class, 'magEvent']);
+$router->api('send_event', [DeviceAjaxController::class, 'sendEvent']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 
