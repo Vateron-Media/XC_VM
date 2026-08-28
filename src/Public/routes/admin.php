@@ -6,6 +6,7 @@ use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\PackageAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamToolsAjaxController;
@@ -356,6 +357,16 @@ $router->api('epg_categories',     [EpgAjaxController::class, 'epgCategories']);
 $router->api('provider_import_epg', [EpgAjaxController::class, 'providerImportEpg']);
 $router->api('get_epg',            [EpgAjaxController::class, 'getEpg']);
 $router->api('get_programme',      [EpgAjaxController::class, 'getProgramme']);
+
+// ─── Packages, Bouquets & Groups ───────────────────
+$router->api('package',            [PackageAjaxController::class, 'package']);
+$router->api('code',               [PackageAjaxController::class, 'code']);
+$router->api('hmac',               [PackageAjaxController::class, 'hmac']);
+$router->api('group',              [PackageAjaxController::class, 'group']);
+$router->api('bouquet',            [PackageAjaxController::class, 'bouquet']);
+$router->api('category',           [PackageAjaxController::class, 'category']);
+$router->api('get_package',        [PackageAjaxController::class, 'getPackage']);
+$router->api('get_package_trial',  [PackageAjaxController::class, 'getPackageTrial']);
 
 // ─── Users & Lines ─────────────────────────────────
 $router->api('line',           [UserAjaxController::class, 'line']);
