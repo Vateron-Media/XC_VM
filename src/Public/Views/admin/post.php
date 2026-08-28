@@ -1826,7 +1826,9 @@ if (1 < $rICount) { ?>
 						$db->query('UPDATE `servers` SET `certbot_ssl` = null WHERE `id` = ?;', $rReturn['data']['insert_id']);
 						$rCertbot = array('action' => 'certbot_generate', 'domain' => array());
 
-						if (!is_array($rData['domain_name'])) {
+						if (!isset($rData['domain_name'])) {
+							$rData['domain_name'] = array();
+						} elseif (!is_array($rData['domain_name'])) {
 							$rData['domain_name'] = explode(',', $rData['domain_name']);
 						}
 

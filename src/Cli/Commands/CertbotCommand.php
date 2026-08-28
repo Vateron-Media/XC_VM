@@ -172,6 +172,9 @@ class CertbotCommand implements CommandInterface {
 				}
 			}
 			$rReturn = array('status' => $rResult, 'error' => $rError, 'output' => $rOutput);
+			if (!is_dir(BIN_PATH . 'certbot/logs')) {
+				mkdir(BIN_PATH . 'certbot/logs', 0775, true);
+			}
 			shell_exec('chown -R xc_vm:xc_vm ' . BIN_PATH . 'certbot/');
 			file_put_contents(BIN_PATH . 'certbot/logs/xc_vm.log', json_encode($rReturn));
 			if ($rResult) {

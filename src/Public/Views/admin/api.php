@@ -983,7 +983,7 @@ if (isset($_SESSION['hash'])) {
 				$rSub = RequestManager::get('sub');
 
 				if ($rSub == 'delete') {
-					if ($rServers[RequestManager::get('server_id')]['is_main'] == 0) {
+					if (isset($rServers[RequestManager::get('server_id')]) && $rServers[RequestManager::get('server_id')]['is_main'] == 0) {
 						ServerRepository::deleteById(RequestManager::get('server_id'));
 						echo json_encode(array('result' => true));
 
