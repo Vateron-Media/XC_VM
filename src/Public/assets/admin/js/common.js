@@ -692,7 +692,10 @@
 			},
 			minimumInputLength: 3,
 			templateResult: function (data) {
-				return data.html;
+				if (data.loading) {
+					return data.text;
+				}
+				return renderSearchItem(data);
 			},
 			escapeMarkup: function (m) {
 				return m;
