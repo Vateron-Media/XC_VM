@@ -7,6 +7,7 @@ use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\UserAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
 use XcVm\Public\Controllers\Admin\AsnsController;
@@ -353,6 +354,13 @@ $router->api('epg_categories',     [EpgAjaxController::class, 'epgCategories']);
 $router->api('provider_import_epg', [EpgAjaxController::class, 'providerImportEpg']);
 $router->api('get_epg',            [EpgAjaxController::class, 'getEpg']);
 $router->api('get_programme',      [EpgAjaxController::class, 'getProgramme']);
+
+// ─── Users & Lines ─────────────────────────────────
+$router->api('line',           [UserAjaxController::class, 'line']);
+$router->api('line_activity',  [UserAjaxController::class, 'lineActivity']);
+$router->api('adjust_credits', [UserAjaxController::class, 'adjustCredits']);
+$router->api('reg_user',       [UserAjaxController::class, 'regUser']);
+$router->api('ticket',         [UserAjaxController::class, 'ticket']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 

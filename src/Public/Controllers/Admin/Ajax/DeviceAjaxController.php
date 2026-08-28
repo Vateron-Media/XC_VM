@@ -2,12 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
-use XcVm\Domain\Line\LineService;
-use XcVm\Domain\Stream\ConnectionTracker;
 
 /**
  * Admin-ajax controller for the "Devices" group.
@@ -18,8 +15,7 @@ use XcVm\Domain\Stream\ConnectionTracker;
  * behaviour-preserving; comments English).
  *
  * `mag` and `enigma` were near-identical in api.php; their shared line-state
- * sub-actions (enable/disable/ban/unban/kill) are factored into
- * {@see self::lineStateAction()}.
+ * sub-actions (enable/disable/ban/unban/kill) live in {@see LineStateTrait}.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -28,6 +24,8 @@ use XcVm\Domain\Stream\ConnectionTracker;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class DeviceAjaxController extends BaseAjaxController {
+
+    use LineStateTrait;
 
     /** action=mag — MAG device operations (dispatches on sub). */
     public function mag(): never {
@@ -119,58 +117,5 @@ class DeviceAjaxController extends BaseAjaxController {
         }
 
         $this->ok();
-    }
-
-    /**
-     * Shared line-state sub-actions for mag/enigma devices — they act on the
-     * device's owning line (`user_id`) identically. Terminates the request.
-     * An unhandled sub falls through to a `{"result":false}` response.
-     *
-     * @param mixed $rUserID line id owning the device
-     */
-    private function lineStateAction(string $rSub, $rUserID): never {
-        global $db;
-
-        if ($rSub == 'enable') {
-            $db->query('UPDATE `lines` SET `enabled` = 1 WHERE `id` = ?;', $rUserID);
-            LineService::updateLineSignal($rUserID);
-            $this->ok();
-        }
-
-        if ($rSub == 'disable') {
-            $db->query('UPDATE `lines` SET `enabled` = 0 WHERE `id` = ?;', $rUserID);
-            LineService::updateLineSignal($rUserID);
-            $this->ok();
-        }
-
-        if ($rSub == 'ban') {
-            $db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `id` = ?;', $rUserID);
-            LineService::updateLineSignal($rUserID);
-            $this->ok();
-        }
-
-        if ($rSub == 'unban') {
-            $db->query('UPDATE `lines` SET `admin_enabled` = 1 WHERE `id` = ?;', $rUserID);
-            LineService::updateLineSignal($rUserID);
-            $this->ok();
-        }
-
-        if ($rSub == 'kill') {
-            if (SettingsManager::get('redis_handler')) {
-                foreach (ConnectionTracker::getRedisConnections($rUserID, null, null, true, false, false) as $rConnection) {
-                    ConnectionTracker::closeConnection($rConnection);
-                }
-            } else {
-                $db->query('SELECT * FROM `lines_live` WHERE `user_id` = ?;', $rUserID);
-
-                foreach ($db->get_rows() as $rRow) {
-                    ConnectionTracker::closeConnection($rRow);
-                }
-            }
-
-            $this->ok();
-        }
-
-        $this->fail();
     }
 }
