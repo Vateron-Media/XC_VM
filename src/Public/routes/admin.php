@@ -5,6 +5,7 @@ use XcVm\Public\Controllers\Admin\AdminResizeController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
@@ -342,6 +343,16 @@ $router->api('mag',        [DeviceAjaxController::class, 'mag']);
 $router->api('enigma',     [DeviceAjaxController::class, 'enigma']);
 $router->api('mag_event',  [DeviceAjaxController::class, 'magEvent']);
 $router->api('send_event', [DeviceAjaxController::class, 'sendEvent']);
+
+// EPG (extracted from api.php)
+$router->api('epg',                [EpgAjaxController::class, 'epg']);
+$router->api('epglist',            [EpgAjaxController::class, 'epglist']);
+$router->api('force_epg',          [EpgAjaxController::class, 'forceEpg']);
+$router->api('epg_auto_assign',    [EpgAjaxController::class, 'epgAutoAssign']);
+$router->api('epg_categories',     [EpgAjaxController::class, 'epgCategories']);
+$router->api('provider_import_epg', [EpgAjaxController::class, 'providerImportEpg']);
+$router->api('get_epg',            [EpgAjaxController::class, 'getEpg']);
+$router->api('get_programme',      [EpgAjaxController::class, 'getProgramme']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 

@@ -36,13 +36,14 @@ abstract class BaseAjaxController {
      * {@see \XcVm\Public\Controllers\Admin\BaseAdminController::json()}).
      *
      * @param array<string, mixed> $rData
+     * @param int $rFlags optional json_encode() flags (e.g. JSON_PARTIAL_OUTPUT_ON_ERROR)
      */
-    protected function json(array $rData): never {
+    protected function json(array $rData, int $rFlags = 0): never {
         if (!headers_sent()) {
             header('Content-Type: application/json');
         }
 
-        echo json_encode($rData);
+        echo json_encode($rData, $rFlags);
 
         exit();
     }
