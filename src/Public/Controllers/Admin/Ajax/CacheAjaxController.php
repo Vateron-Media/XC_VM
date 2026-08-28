@@ -1,19 +1,20 @@
 <?php
 
-namespace XcVm\Public\Controllers\Admin;
+namespace XcVm\Public\Controllers\Admin\Ajax;
 
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
- * Admin-ajax контроллер группы «Cache & Handlers».
+ * Admin-ajax controller for the "Cache & Handlers" group.
  *
- * Вынесен из legacy `admin/api.php` (экшены `regenerate_cache`, `enable_cache`,
- * `disable_cache`, `enable_handler`, `disable_handler`, `clear_redis`). Логика
- * блоков перенесена дословно — изменён только обвес (gate/ok/fail из
- * {@see BaseAjaxController}). Все экшены гейтятся правом `adv/backups`.
- *
- * Маршруты регистрируются в `Public/routes/admin.php` через `$router->api(...)`
- * и достигают контроллера через `Router::dispatchApi()` до fallback на api.php.
+ * Extracted from the legacy `admin/api.php` (actions `regenerate_cache`,
+ * `enable_cache`, `disable_cache`, `enable_handler`, `disable_handler`,
+ * `clear_redis`). Block logic was ported verbatim — only the scaffolding
+ * changed (gate/ok/fail from {@see BaseAjaxController}). Every action is gated
+ * on the `adv/backups` permission.
+
+ * Routes are registered in `Public/routes/admin.php` via `$router->api(...)` and
+ * reach the controller through `Router::dispatchApi()` before the api.php fallback.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -23,7 +24,7 @@ use XcVm\Infrastructure\Redis\RedisManager;
  */
 class CacheAjaxController extends BaseAjaxController {
 
-    /** action=regenerate_cache — принудительный прогон cache-движка. */
+    /** action=regenerate_cache — force a run of the cache engine. */
     public function regenerate(): never {
         $this->requireXhr();
         $this->gate('adv', 'backups');
@@ -33,7 +34,7 @@ class CacheAjaxController extends BaseAjaxController {
         $this->ok();
     }
 
-    /** action=enable_cache — включить кэш и поднять cache_handler, если не запущен. */
+    /** action=enable_cache — enable the cache and start cache_handler if not running. */
     public function enableCache(): never {
         $this->requireXhr();
         $this->gate('adv', 'backups');
@@ -55,7 +56,7 @@ class CacheAjaxController extends BaseAjaxController {
         $this->ok();
     }
 
-    /** action=disable_cache — выключить кэш. */
+    /** action=disable_cache — disable the cache. */
     public function disableCache(): never {
         $this->requireXhr();
         $this->gate('adv', 'backups');
@@ -72,7 +73,7 @@ class CacheAjaxController extends BaseAjaxController {
         $this->ok();
     }
 
-    /** action=enable_handler — включить Redis-handler и перезапустить redis/signals/watchdog. */
+    /** action=enable_handler — enable the Redis handler and restart redis/signals/watchdog. */
     public function enableHandler(): never {
         $this->requireXhr();
         $this->gate('adv', 'backups');
@@ -114,7 +115,7 @@ class CacheAjaxController extends BaseAjaxController {
         $this->ok();
     }
 
-    /** action=disable_handler — выключить Redis-handler и погасить redis/signals/watchdog. */
+    /** action=disable_handler — disable the Redis handler and stop redis/signals/watchdog. */
     public function disableHandler(): never {
         $this->requireXhr();
         $this->gate('adv', 'backups');
@@ -152,7 +153,7 @@ class CacheAjaxController extends BaseAjaxController {
         $this->ok();
     }
 
-    /** action=clear_redis — сбросить весь Redis. */
+    /** action=clear_redis — flush the entire Redis store. */
     public function clearRedis(): never {
         $this->requireXhr();
         $this->gate('adv', 'backups');

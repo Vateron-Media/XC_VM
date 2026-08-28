@@ -2,6 +2,8 @@
 
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
+use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
 use XcVm\Public\Controllers\Admin\AsnsController;
@@ -10,7 +12,6 @@ use XcVm\Public\Controllers\Admin\BouquetController;
 use XcVm\Public\Controllers\Admin\BouquetListController;
 use XcVm\Public\Controllers\Admin\BouquetOrderController;
 use XcVm\Public\Controllers\Admin\BouquetSortController;
-use XcVm\Public\Controllers\Admin\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\CacheController;
 use XcVm\Public\Controllers\Admin\ChannelOrderController;
 use XcVm\Public\Controllers\Admin\ClientLogController;
@@ -305,6 +306,25 @@ $router->api('disable_cache',    [CacheAjaxController::class, 'disableCache']);
 $router->api('enable_handler',   [CacheAjaxController::class, 'enableHandler']);
 $router->api('disable_handler',  [CacheAjaxController::class, 'disableHandler']);
 $router->api('clear_redis',      [CacheAjaxController::class, 'clearRedis']);
+
+// Servers & Ops (extracted from api.php)
+$router->api('rtmp_ip',              [ServerAjaxController::class, 'rtmpIp']);
+$router->api('rollback_versions',    [ServerAjaxController::class, 'rollbackVersions']);
+$router->api('server',               [ServerAjaxController::class, 'server']);
+$router->api('proxy',                [ServerAjaxController::class, 'proxy']);
+$router->api('fingerprint',          [ServerAjaxController::class, 'fingerprint']);
+$router->api('restart_all_services', [ServerAjaxController::class, 'restartAllServices']);
+$router->api('restart_services',     [ServerAjaxController::class, 'restartServices']);
+$router->api('reboot_server',        [ServerAjaxController::class, 'rebootServer']);
+$router->api('update_binaries',      [ServerAjaxController::class, 'updateBinaries']);
+$router->api('server_view',          [ServerAjaxController::class, 'serverView']);
+$router->api('server_stats',         [ServerAjaxController::class, 'serverStats']);
+$router->api('rtmp_kill',            [ServerAjaxController::class, 'rtmpKill']);
+$router->api('install_status',       [ServerAjaxController::class, 'installStatus']);
+$router->api('reinstall_server',     [ServerAjaxController::class, 'reinstallServer']);
+$router->api('fpm_status',           [ServerAjaxController::class, 'fpmStatus']);
+$router->api('update_all_servers',   [ServerAjaxController::class, 'updateAllServers']);
+$router->api('update_all_binaries',  [ServerAjaxController::class, 'updateAllBinaries']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 
