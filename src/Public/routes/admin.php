@@ -10,6 +10,7 @@ use XcVm\Public\Controllers\Admin\BouquetController;
 use XcVm\Public\Controllers\Admin\BouquetListController;
 use XcVm\Public\Controllers\Admin\BouquetOrderController;
 use XcVm\Public\Controllers\Admin\BouquetSortController;
+use XcVm\Public\Controllers\Admin\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\CacheController;
 use XcVm\Public\Controllers\Admin\ChannelOrderController;
 use XcVm\Public\Controllers\Admin\ClientLogController;
@@ -133,6 +134,8 @@ use XcVm\Public\Controllers\Admin\UsersController;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
+/** @var \XcVm\Core\Http\Router $router Injected by the Front Controller (index.php). */
 
 // ─── List Pages ────────────────────────────────────
 
@@ -294,6 +297,14 @@ $router->any('api', [AjaxController::class, 'index']);
 
 $router->api('tmdb_search', [TmdbController::class, 'search']);
 $router->api('tmdb',        [TmdbController::class, 'details']);
+
+// Cache & Handlers (вынесено из api.php)
+$router->api('regenerate_cache', [CacheAjaxController::class, 'regenerate']);
+$router->api('enable_cache',     [CacheAjaxController::class, 'enableCache']);
+$router->api('disable_cache',    [CacheAjaxController::class, 'disableCache']);
+$router->api('enable_handler',   [CacheAjaxController::class, 'enableHandler']);
+$router->api('disable_handler',  [CacheAjaxController::class, 'disableHandler']);
+$router->api('clear_redis',      [CacheAjaxController::class, 'clearRedis']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 
