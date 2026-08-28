@@ -2,6 +2,7 @@
 
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
+use XcVm\Public\Controllers\Admin\Ajax\BackupAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
@@ -373,6 +374,12 @@ $router->api('get_package_trial',  [PackageAjaxController::class, 'getPackageTri
 $router->api('graph_stats',  [StatsAjaxController::class, 'graphStats']);
 $router->api('stats',        [StatsAjaxController::class, 'stats']);
 $router->api('header_stats',  [StatsAjaxController::class, 'headerStats']);
+
+// ─── Backups, Logs & Reports ───────────────────────
+$router->api('clear_logs',           [BackupAjaxController::class, 'clearLogs']);
+$router->api('backup',               [BackupAjaxController::class, 'backup']);
+$router->api('report',               [BackupAjaxController::class, 'report']);
+$router->api('download_panel_logs',  [BackupAjaxController::class, 'downloadPanelLogs']);
 
 // ─── Users & Lines ─────────────────────────────────
 $router->api('line',           [UserAjaxController::class, 'line']);
