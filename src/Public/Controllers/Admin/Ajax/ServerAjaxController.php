@@ -20,8 +20,9 @@ use XcVm\Streaming\Health\ProcessChecker;
  * rtmp_kill, install_status, reinstall_server, fpm_status, update_all_servers,
  * update_all_binaries.
  *
- * Block logic was ported verbatim (scaffolding via gate/gateAny/ok/fail from
- * {@see BaseAjaxController}). Two deliberate departures from a byte-for-byte port:
+ * Block logic was ported faithfully (scaffolding via gate/gateAny/ok/fail from
+ * {@see BaseAjaxController}; empty-then `if (c) {} else {…}` idioms flattened to
+ * `if (!c) {…}` — behaviour-preserving). Two deliberate departures otherwise:
  *   1. rtmp_kill returns the RAW `ApiClient::systemRequest()` response (as in
  *      api.php), not JSON — hence a raw echo, not ok().
  *   2. proxy->kill: latent bug — it read an undefined `$rServerID`
@@ -66,7 +67,7 @@ class ServerAjaxController extends BaseAjaxController {
             $rGit = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::get('update_channel'));
             $rGit->setTimeout(15);
             $rVersions = $rGit->getPreviousVersions($rBaseVersion, 5);
-        } catch (\Throwable $rE) {
+        } catch (\Throwable) {
             $rVersions = array();
         }
 
@@ -237,20 +238,14 @@ class ServerAjaxController extends BaseAjaxController {
         $rActiveServers = array();
 
         foreach ($rServers as $rServer) {
-            if ((360 < time() - $rServer['last_check_ago'] || $rServer['status'] == 2) && $rServer['is_main'] == 0 && $rServer['status'] != 3) {
-                $rServerError = true;
-            } else {
-                $rServerError = false;
-            }
+            $rServerError = ((360 < time() - $rServer['last_check_ago'] || $rServer['status'] == 2) && $rServer['is_main'] == 0 && $rServer['status'] != 3);
 
-            if ($rServer['status'] != 1 || $rServerError) {
-            } else {
+            if ($rServer['status'] == 1 && !$rServerError) {
                 $rActiveServers[] = $rServer['id'];
             }
         }
 
-        if (!(0 < $rData['id'] && 0 < $rData['font_size'] && 0 < strlen($rData['font_color']) && 0 < strlen($rData['xy_offset']) && (0 < strlen($rData['message']) || $rData['type'] < 3))) {
-        } else {
+        if (0 < $rData['id'] && 0 < $rData['font_size'] && 0 < strlen($rData['font_color']) && 0 < strlen($rData['xy_offset']) && (0 < strlen($rData['message']) || $rData['type'] < 3)) {
             if (SettingsManager::get('redis_handler')) {
                 if (isset($rData['user'])) {
                     $rRows = ConnectionTracker::getRedisConnections($rData['id'], null, null, true, false, false);
@@ -261,14 +256,12 @@ class ServerAjaxController extends BaseAjaxController {
                 $rUserMap = $rUserIDs = array();
 
                 foreach ($rRows as $rRow) {
-                    if (in_array($rRow['user_id'], $rUserIDs)) {
-                    } else {
+                    if (!in_array($rRow['user_id'], $rUserIDs)) {
                         $rUserIDs[] = intval($rRow['user_id']);
                     }
                 }
 
-                if (0 >= count($rUserIDs)) {
-                } else {
+                if (0 < count($rUserIDs)) {
                     $db->query('SELECT `id`, `username` FROM `lines` WHERE `id` IN (' . implode(',', $rUserIDs) . ');');
 
                     foreach ($db->get_rows() as $rRow) {
@@ -303,7 +296,7 @@ class ServerAjaxController extends BaseAjaxController {
                         }
 
                         $rArray['action'] = 'signal_send';
-                        $rSuccess = ApiClient::systemRequest(intval($rRow['server_id']), $rArray);
+                        ApiClient::systemRequest(intval($rRow['server_id']), $rArray);
                     }
                 }
             }
@@ -320,8 +313,7 @@ class ServerAjaxController extends BaseAjaxController {
         global $db, $rServers;
 
         foreach ($rServers as $rServer) {
-            if (!$rServer['server_online']) {
-            } else {
+            if ($rServer['server_online']) {
                 $db->query("INSERT INTO `signals`(`server_id`, `custom_data`, `time`) VALUES(?, '{\"action\": \"restart_services\"}', ?);", $rServer['id'], time());
             }
         }
@@ -494,8 +486,7 @@ class ServerAjaxController extends BaseAjaxController {
         } else {
             $rInstances = intval($rServers[RequestManager::get('server_id')]['total_services']);
 
-            if (!$rInstances) {
-            } else {
+            if ($rInstances) {
                 $rData .= '<br/><br/><strong>Results from 1 of ' . $rInstances . ' PHP-FPM instances</strong>';
             }
         }
@@ -527,8 +518,7 @@ class ServerAjaxController extends BaseAjaxController {
         global $db, $rServers;
 
         foreach ($rServers as $rServer) {
-            if (!$rServer['server_online']) {
-            } else {
+            if ($rServer['server_online']) {
                 $db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServer['id'], time(), json_encode(array('action' => 'update_binaries')));
             }
         }
