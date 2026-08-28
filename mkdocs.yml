@@ -41,6 +41,15 @@ theme:
         icon: material/weather-sunny
         name: Switch to light mode
 
+# Version selector in the header. `mike` publishes one snapshot per release tag
+# to gh-pages (see .github/workflows/pages.yml); `alias: true` surfaces the
+# `latest` alias in the dropdown. Docs are unversioned during local development
+# (`make docs-serve`/`docs-build`); versions exist only on the deployed site.
+extra:
+  version:
+    provider: mike
+    alias: true
+
 markdown_extensions:
   - admonition
   - attr_list

@@ -1,39 +1,46 @@
-name: Deploy docs to Pages
+name: Deploy versioned docs to Pages
 
-# Builds the MkDocs (Material) site and publishes it to GitHub Pages. English
-# (docs/en) is the single source you edit; Russian (docs/ru) is a GENERATED tree
-# that is committed and refreshed LOCALLY before a release (`make docs-translate`)
-# — translation is intentionally NOT run in CI (it is slow). CI only builds the
-# already-translated site. Runs only when docs actually change.
+# Publishes the MkDocs (Material) site to the `gh-pages` branch as a VERSIONED
+# snapshot with mike — one entry per release tag (e.g. 2.4.2), plus a `latest`
+# alias that always points at the newest and is the default landing version.
+#
+# English (docs/en) is the single source you edit; Russian (docs/ru) is a
+# GENERATED tree, committed and refreshed LOCALLY before a release
+# (`make docs-translate`) — translation is intentionally NOT run in CI. Because
+# docs/ru is only regenerated at release time, publishing is tied to the release
+# TAG (not every push to main): docs merged to main between releases go live at
+# the next tagged release, alongside the freshly regenerated Russian tree.
+#
+# One-time setup: Settings → Pages → Build and deployment → Deploy from a branch
+# → branch `gh-pages` / `/ (root)`. mike owns that branch (it also writes
+# `versions.json`, which the Material version selector reads).
 on:
   push:
-    branches: [main]
-    paths:
-      - 'docs/**'
-      - 'mkdocs.yml'
-      - '.github/workflows/pages.yml'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
   workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to (re)deploy, e.g. 2.4.2'
+        required: true
 
-# Least-privilege token scoped to what deploy-pages needs.
+# mike commits and pushes the built site to the gh-pages branch.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
-# Never cancel an in-flight deploy; queue the next one instead.
+# Never run two doc deploys at once; queue instead (mike appends to gh-pages).
 concurrency:
-  group: pages
+  group: docs-mike
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v7
@@ -43,17 +50,20 @@ jobs:
       - name: Install docs build toolchain
         run: pip install -r docs/requirements.txt
 
-      - name: Build site (strict)
+      - name: Resolve version
+        id: ver
+        run: echo "version=${{ github.event.inputs.version || github.ref_name }}" >> "$GITHUB_OUTPUT"
+
+      - name: Strict build check
         run: mkdocs build --strict
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v6
+      - name: Configure git identity
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Upload site artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: build/site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+      - name: Deploy version + latest alias with mike
+        run: |
+          git fetch origin gh-pages --depth=1 || true
+          mike deploy --push --update-aliases "${{ steps.ver.outputs.version }}" latest
+          mike set-default --push latest

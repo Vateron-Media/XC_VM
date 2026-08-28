@@ -66,8 +66,12 @@ make docs-build          # strict build — fails on any broken link/anchor
   changed (per-file cache), so this is fast on an incremental release.
 - **Review and commit the regenerated `docs/ru`** — it is included in the single
   release commit (step 5). Never hand-edit `docs/ru`.
-- Pushing the docs change triggers `pages.yml`, which builds and publishes the
-  site to GitHub Pages.
+- Documentation is published **per release, not per push**: `pages.yml` runs when
+  the version **tag** is pushed (step 7) and publishes this release's docs as a
+  versioned snapshot (`X.Y.Z` + the `latest` alias) to the `gh-pages` branch via
+  `mike`. Edits merged to `main` between releases go live at the next tagged
+  release (which is also when `docs/ru` is regenerated). The Material header's
+  version selector lets readers switch between released versions.
 
 ---
 
@@ -212,6 +216,8 @@ After publishing, the workflow will automatically:
 - Build all archives + checksums
 - Attach them to the release
 - Send a Telegram notification via `release-notifier.yml`
+- Publish this version's documentation to GitHub Pages via `pages.yml` (mike):
+  a `X.Y.Z` snapshot plus the `latest` alias, selectable from the docs header
 
 > ✅ Wait for the Actions workflow to finish, then verify all files are downloadable.
 
