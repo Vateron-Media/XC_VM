@@ -7,6 +7,8 @@ use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\StreamToolsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\UserAjaxController;
 use XcVm\Public\Controllers\Admin\AjaxController;
 use XcVm\Public\Controllers\Admin\ArchiveController;
@@ -361,6 +363,23 @@ $router->api('line_activity',  [UserAjaxController::class, 'lineActivity']);
 $router->api('adjust_credits', [UserAjaxController::class, 'adjustCredits']);
 $router->api('reg_user',       [UserAjaxController::class, 'regUser']);
 $router->api('ticket',         [UserAjaxController::class, 'ticket']);
+
+// ─── Streams & VOD ─────────────────────────────────
+$router->api('stream',  [StreamAjaxController::class, 'stream']);
+$router->api('movie',   [StreamAjaxController::class, 'movie']);
+$router->api('episode', [StreamAjaxController::class, 'episode']);
+$router->api('series',  [StreamAjaxController::class, 'series']);
+
+// ─── Stream Tools, Lists & Reviews ─────────────────
+$router->api('review_selection', [StreamToolsAjaxController::class, 'reviewSelection']);
+$router->api('review_bouquet',   [StreamToolsAjaxController::class, 'reviewBouquet']);
+$router->api('serieslist',       [StreamToolsAjaxController::class, 'serieslist']);
+$router->api('streamlist',       [StreamToolsAjaxController::class, 'streamlist']);
+$router->api('adaptivelist',     [StreamToolsAjaxController::class, 'adaptivelist']);
+$router->api('titlesync',        [StreamToolsAjaxController::class, 'titlesync']);
+$router->api('probe_stream',     [StreamToolsAjaxController::class, 'probeStream']);
+$router->api('check_stream',     [StreamToolsAjaxController::class, 'checkStream']);
+$router->api('get_episode_ids',  [StreamToolsAjaxController::class, 'getEpisodeIds']);
 
 // ─── No-bootstrap pages (login, setup, database, session) ────
 
