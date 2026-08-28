@@ -305,6 +305,21 @@ class RootSignalsCronJob implements CommandInterface {
             }
         }
 
+        // xc_fanout keepalive supervisor — ensure run.sh itself is alive. It is
+        // the daemon's Restart=always loop (respawns the daemon within ~2s of any
+        // exit, SIGKILL included), launched once by `service boot`. If IT dies
+        // (OOM, a stray kill) the daemon is left unsupervised and never comes back
+        // after its next exit — nothing else re-launches the loop (fanout_binary
+        // only pkills the daemon and relies on it; StartupCommand only fixes its
+        // mode). Re-launch it here every minute when absent — a cheap pgrep,
+        // idempotent (run.sh self-limits via the socket bind), run as xc_vm to
+        // match `service boot`. Closes the "supervisor died → fanout stays down"
+        // gap. Runs on every node (main + LB), like the daemon self-heal below.
+        $rRunSh = MAIN_HOME . 'bin/xc_fanout/run.sh';
+        if (is_file($rRunSh) && trim((string) shell_exec('pgrep -u xc_vm -f ' . escapeshellarg($rRunSh) . ' 2>/dev/null')) === '') {
+            shell_exec('sudo -u xc_vm bash ' . escapeshellarg($rRunSh) . ' >/dev/null 2>&1 &');
+        }
+
         // xc_fanout daemon binary — keep it installed and current (ADR 0003,
         // Phase G). Nothing else pulls it: not the installer, not UpdateCommand,
         // so a fresh node/LB would never get the daemon and an updated panel would
