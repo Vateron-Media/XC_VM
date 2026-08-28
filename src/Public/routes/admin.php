@@ -7,7 +7,9 @@ use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\CacheAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\DeviceAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\MiscAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\PackageAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\ProviderAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StatsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
@@ -380,6 +382,21 @@ $router->api('clear_logs',           [BackupAjaxController::class, 'clearLogs'])
 $router->api('backup',               [BackupAjaxController::class, 'backup']);
 $router->api('report',               [BackupAjaxController::class, 'report']);
 $router->api('download_panel_logs',  [BackupAjaxController::class, 'downloadPanelLogs']);
+
+// ─── Providers ─────────────────────────────────────
+$router->api('provider',         [ProviderAjaxController::class, 'provider']);
+$router->api('provider_streams', [ProviderAjaxController::class, 'providerStreams']);
+
+// ─── Misc ──────────────────────────────────────────
+$router->api('process',          [MiscAjaxController::class, 'process']);
+$router->api('profile',          [MiscAjaxController::class, 'profile']);
+$router->api('watch_output',     [MiscAjaxController::class, 'watchOutput']);
+$router->api('reguserlist',      [MiscAjaxController::class, 'reguserlist']);
+$router->api('userlist',         [MiscAjaxController::class, 'userlist']);
+$router->api('listdir',          [MiscAjaxController::class, 'listdir']);
+$router->api('queue',            [MiscAjaxController::class, 'queue']);
+$router->api('delete_recording', [MiscAjaxController::class, 'deleteRecording']);
+$router->api('clear_failures',   [MiscAjaxController::class, 'clearFailures']);
 
 // ─── Users & Lines ─────────────────────────────────
 $router->api('line',           [UserAjaxController::class, 'line']);
