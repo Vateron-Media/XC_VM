@@ -10,6 +10,7 @@ use XcVm\Public\Controllers\Admin\Ajax\EpgAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\MiscAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\PackageAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ProviderAjaxController;
+use XcVm\Public\Controllers\Admin\Ajax\SearchAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\ServerAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StatsAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\StreamAjaxController;
@@ -386,6 +387,9 @@ $router->api('download_panel_logs',  [BackupAjaxController::class, 'downloadPane
 // ─── Providers ─────────────────────────────────────
 $router->api('provider',         [ProviderAjaxController::class, 'provider']);
 $router->api('provider_streams', [ProviderAjaxController::class, 'providerStreams']);
+
+// ─── Search ────────────────────────────────────────
+$router->api('search', [SearchAjaxController::class, 'search']);
 
 // ─── Misc ──────────────────────────────────────────
 $router->api('process',          [MiscAjaxController::class, 'process']);
