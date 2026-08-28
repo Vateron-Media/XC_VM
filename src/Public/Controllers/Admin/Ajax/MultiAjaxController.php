@@ -2,7 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
-use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
@@ -108,14 +107,10 @@ class MultiAjaxController extends BaseAjaxController {
 
     /** Bulk operations on MAG / Enigma2 devices (acting on their owning lines). */
     private function handleDevices(string $rType, array $rRequestIDs, string $rSub): never {
-        // NB: api.php keyed this map by 'enigma2' while $rType is 'enigma', so the
-        // enigma branch resolves to a null permission (a latent bug — behaviour
-        // preserved here, flagged for a separate fix).
-        $rPermission = array('mag' => 'edit_mag', 'enigma2' => 'edit_e2')[$rType] ?? null;
-
-        if (!Authorization::check('adv', $rPermission)) {
-            $this->fail();
-        }
+        // mag -> edit_mag, enigma -> edit_e2. (api.php keyed this map by 'enigma2'
+        // while $rType is 'enigma', so the enigma gate resolved a null permission
+        // and every enigma bulk op silently failed — fixed here.)
+        $this->gate('adv', ($rType == 'mag') ? 'edit_mag' : 'edit_e2');
 
         global $db;
         $rUserIDs = array();
