@@ -402,13 +402,23 @@ class ServerAjaxController extends BaseAjaxController {
         $this->fail();
     }
 
-    /** action=rtmp_kill — kill an RTMP stream (raw node response, not JSON). */
+    /**
+     * action=rtmp_kill — kill an RTMP stream. Echoes the node's raw JSON response
+     * ({"result":…}) when present; an empty/absent body (offline node, or a
+     * self-request that yields nothing) falls back to {"result":false} so the
+     * page is never blank and the frontend's data.result check stays valid.
+     */
     public function rtmpKill(): never {
         $this->requireXhr();
         $this->gate('adv', 'rtmp');
 
-        echo ApiClient::systemRequest(intval(RequestManager::get('server')), array('action' => 'rtmp_kill', 'name' => RequestManager::get('name')));
+        $rResult = ApiClient::systemRequest(intval(RequestManager::get('server')), array('action' => 'rtmp_kill', 'name' => RequestManager::get('name')));
 
+        if (empty($rResult)) {
+            $this->fail();
+        }
+
+        echo $rResult;
         exit();
     }
 

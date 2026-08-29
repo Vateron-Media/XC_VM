@@ -15,7 +15,11 @@ use XcVm\Domain\Vod\SeriesService;
  * Actions: stream, movie, episode, series. `movie` and `episode` share their
  * logic via {@see self::vodAction()}, and the delete/kill/purge sub-actions
  * common to stream/movie/episode via {@see self::streamMutation()}. The
- * start/stop/restart/force paths echo the raw `ApiClient` response, not JSON.
+ * start/stop/restart node dispatch is fire-and-forget: it calls `ApiClient` and
+ * returns the fixed `{"result":true}` envelope (as the legacy api.php did, and as
+ * {@see ServerAjaxController::server()} does), NOT the raw relay response — echoing
+ * the raw return blanks the page whenever the internal relay yields an empty body.
+ * `force` still echoes its `ApiClient::asyncRequest()` result (always JSON).
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -49,14 +53,14 @@ class StreamAjaxController extends BaseAjaxController {
                 }
 
                 if (count($rServerIDs) > 0) {
-                    echo ApiClient::request(array('action' => 'stream', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => $rServerIDs));
+                    ApiClient::request(array('action' => 'stream', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => $rServerIDs));
 
-                    exit();
+                    $this->ok();
                 }
             } else {
-                echo ApiClient::request(array('action' => 'stream', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => array($rServerID)));
+                ApiClient::request(array('action' => 'stream', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => array($rServerID)));
 
-                exit();
+                $this->ok();
             }
 
             $this->fail();
@@ -126,14 +130,14 @@ class StreamAjaxController extends BaseAjaxController {
                 }
 
                 if (0 < count($rServerIDs)) {
-                    echo ApiClient::request(array('action' => 'vod', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => $rServerIDs, 'force' => true));
+                    ApiClient::request(array('action' => 'vod', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => $rServerIDs, 'force' => true));
 
-                    exit();
+                    $this->ok();
                 }
             } else {
-                echo ApiClient::request(array('action' => 'vod', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => array($rServerID), 'force' => true));
+                ApiClient::request(array('action' => 'vod', 'sub' => $rSub, 'stream_ids' => array($rStreamID), 'servers' => array($rServerID), 'force' => true));
 
-                exit();
+                $this->ok();
             }
 
             $this->fail();
