@@ -1065,7 +1065,7 @@ class ModuleManager {
             $url   = "https://github.com/{$m[1]}/{$m[2]}/releases/download/{$version}/{$asset}";
             $md5   = '';
             try {
-                $channel = in_array((string) ($update['channel'] ?? 'stable'), ['beta', 'unstable'], true) ? 'unstable' : 'stable';
+                $channel = in_array((string) ($update['channel'] ?? 'stable'), ['beta', 'unstable'], true) ? 'beta' : 'stable';
                 $md5 = (string) ((new GitHubReleases($m[1], $m[2], $channel))->getAssetHash($version, $asset) ?? '');
             } catch (\Throwable $e) {
                 // no hash available → download proceeds unverified

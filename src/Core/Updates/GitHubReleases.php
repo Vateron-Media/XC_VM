@@ -24,7 +24,7 @@ class GitHubReleases {
     private $timeout = 30; // Total transfer timeout in seconds (the /releases list ships changelogs and is tens of KB; 5s was too tight during installs when the link is saturated by apt/wget)
     private $connect_timeout = 10; // Connection-phase timeout in seconds — fail fast on an unreachable host without capping slow transfers
     private $cache_file = '/home/xc_vm/tmp/gitapi'; // Cache file path
-    private string $channel = 'stable'; // 'stable' или 'unstable'
+    private string $channel = 'stable'; // 'stable' or 'beta' ('unstable' accepted as a legacy alias)
     private $hash_file = 'hashes.md5';
     private $cache_ttl = 1800; // Cache TTL in seconds (30 minutes)
 
@@ -33,13 +33,13 @@ class GitHubReleases {
      *
      * @param string $owner Repository owner
      * @param string $repo Repository name
-     * @param string $channel Update channel: 'stable' or 'unstable'
+     * @param string $channel Update channel: 'stable' or 'beta' ('unstable' is a legacy alias)
      * @param string|null $token GitHub API token
      */
     public function __construct(string $owner, string $repo, ?string $channel = 'stable', ?string $token = null) {
         $this->owner = $owner;
         $this->repo = $repo;
-        $this->channel = in_array($channel, ['stable', 'unstable']) ? $channel : 'stable';
+        $this->channel = self::normalizeChannel($channel);
         $this->cache_file = "{$this->cache_file}_{$repo}_{$this->channel}"; // Уникальный кэш для канала
         $this->api_url = "https://api.github.com/repos/{$owner}/{$repo}/releases";
         $this->headers = $token ? [
@@ -47,6 +47,18 @@ class GitHubReleases {
             'Accept: application/vnd.github+json',
             'X-GitHub-Api-Version: 2022-11-28'
         ] : [];
+    }
+
+    /**
+     * Normalize a channel name to the canonical set. 'unstable' is a legacy alias
+     * for 'beta'; anything unrecognized falls back to 'stable'.
+     *
+     * @param string|null $channel Raw channel value (e.g. from settings)
+     * @return string 'stable' or 'beta'
+     */
+    private static function normalizeChannel(?string $channel): string {
+        $channel = ($channel === 'unstable') ? 'beta' : (string) $channel;
+        return in_array($channel, ['stable', 'beta'], true) ? $channel : 'stable';
     }
 
     /**
@@ -515,7 +527,7 @@ class GitHubReleases {
      * @return array Filtered releases
      */
     private function filterReleasesByChannel(array $releases): array {
-        if ($this->channel === 'unstable') {
+        if ($this->channel === 'beta') {
             return $releases; // Все релизы
         }
 
@@ -537,15 +549,16 @@ class GitHubReleases {
     /**
      * Change the update channel and clear cache.
      *
-     * @param string $channel 'stable' or 'unstable'
+     * @param string $channel 'stable' or 'beta' ('unstable' is a legacy alias)
      */
     public function setChannel(string $channel): void {
-        if (!in_array($channel, ['stable', 'unstable'])) {
-            throw new \InvalidArgumentException("Channel must be 'stable' or 'unstable'");
+        $channel = ($channel === 'unstable') ? 'beta' : $channel;
+        if (!in_array($channel, ['stable', 'beta'])) {
+            throw new \InvalidArgumentException("Channel must be 'stable' or 'beta'");
         }
         if ($this->channel !== $channel) {
             $oldCacheFile = $this->cache_file;
-            $baseCacheFile = preg_replace('/_(stable|unstable)$/', '', $this->cache_file);
+            $baseCacheFile = preg_replace('/_(stable|beta|unstable)$/', '', $this->cache_file);
             if (!is_string($baseCacheFile) || $baseCacheFile === '') {
                 $baseCacheFile = $this->cache_file;
             }

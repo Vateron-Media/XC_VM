@@ -68,7 +68,7 @@ class FanoutBinaryCommand implements CommandInterface {
 
 		$rChannel = 'stable';
 		$rSettings = SettingsManager::getAll();
-		if (!empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], ['stable', 'unstable'], true)) {
+		if (!empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], ['stable', 'beta', 'unstable'], true)) {
 			$rChannel = $rSettings['update_channel'];
 		}
 

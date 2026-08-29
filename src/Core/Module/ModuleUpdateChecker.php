@@ -68,9 +68,9 @@ class ModuleUpdateChecker {
             $this->lastError = 'update.repository is not a GitHub URL: ' . ($repo !== '' ? $repo : '(empty)');
             return null;
         }
-        // Map the manifest channel onto GitHubReleases' stable/unstable.
+        // Map the manifest channel onto GitHubReleases' stable/beta.
         $channel = in_array((string) ($update['channel'] ?? 'stable'), ['beta', 'unstable'], true)
-            ? 'unstable'
+            ? 'beta'
             : 'stable';
         try {
             $gh = new GitHubReleases($m[1], $m[2], $channel);

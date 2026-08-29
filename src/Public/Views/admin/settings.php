@@ -456,8 +456,9 @@ $isAjaxRequest = (
 
 													<div class="col-md-2">
 														<select name="update_channel" id="update_channel" class="form-control" data-toggle="select2">
-															<?php foreach (["stable" => "Stable", "unstable" => "Beta"] as $rKey => $rValue): ?>
-																<option value="<?= $rKey ?>" <?= $rSettings["update_channel"] == $rKey ? ' selected' : '' ?>>
+															<?php $rCurrentChannel = (($rSettings["update_channel"] ?? 'stable') === 'unstable') ? 'beta' : ($rSettings["update_channel"] ?? 'stable'); ?>
+															<?php foreach (["stable" => "Stable", "beta" => "Beta"] as $rKey => $rValue): ?>
+																<option value="<?= $rKey ?>" <?= $rCurrentChannel == $rKey ? ' selected' : '' ?>>
 																	<?= $rValue ?>
 																</option>
 															<?php endforeach; ?>

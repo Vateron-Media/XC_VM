@@ -180,7 +180,7 @@ A server can also be rolled back to an **earlier** release. This mirrors the upd
 
 4. **System + completion.** Identical to an update: the Python script stops the panel, replaces the tree (preserving binaries/config/data), and `post-update` sets the version in the database to the rolled-back release and restarts the panel.
 
-The version list is channel-aware: the `stable` channel offers only stable releases, `unstable` also offers `(beta)` pre-releases.
+The version list is channel-aware: the `stable` channel offers only stable releases, `beta` also offers `(beta)` pre-releases.
 
 > ⚠️ A downgrade **does not undo database migrations** (they are forward-only). The schema is kept backward-compatible, and the automatic MAIN backup is the recovery path. The Python applier copies over the tree (`cp -a`) without deleting files, so files added by a newer release remain until a subsequent update.
 

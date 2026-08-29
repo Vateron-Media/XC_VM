@@ -59,7 +59,7 @@ class BinariesCommand implements CommandInterface {
 
 		$rChannel = 'stable';
 		$rSettings = SettingsManager::getAll();
-		if (!empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], array('stable', 'unstable'))) {
+		if (!empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], array('stable', 'beta', 'unstable'))) {
 			$rChannel = $rSettings['update_channel'];
 		}
 

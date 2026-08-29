@@ -52,7 +52,7 @@ Clicking **Rollback** inserts a `rollback` signal (carrying the chosen version) 
 
 > 💾 On the **MAIN** server a database backup is taken automatically before the rollback, saved to `/home/xc_vm/backups/pre_rollback_<from>_to_<to>_<timestamp>.sql`. Load balancers have no database, so this step is skipped.
 
-The versions offered depend on the server's update channel: on the `stable` channel only stable releases are listed; on `unstable` you also see `(beta)` pre-releases.
+The versions offered depend on the server's update channel: on the `stable` channel only stable releases are listed; on `beta` you also see `(beta)` pre-releases.
 
 > ⚠️ A rollback **does not undo database migrations** — they are forward-only. The schema is designed to stay backward-compatible, and the automatic backup is the recovery path if an older build cannot read newer data. Use rollback only as a recovery step.
 
