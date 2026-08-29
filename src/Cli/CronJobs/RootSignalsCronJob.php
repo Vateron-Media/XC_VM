@@ -312,7 +312,8 @@ class RootSignalsCronJob implements CommandInterface {
         // after its next exit — nothing else re-launches the loop (fanout_binary
         // only pkills the daemon and relies on it; StartupCommand only fixes its
         // mode). Re-launch it here every minute when absent — a cheap pgrep,
-        // idempotent (run.sh self-limits via the socket bind), run as xc_vm to
+        // idempotent regardless (run.sh holds an flock single-instance guard, so
+        // any racing duplicate supervisor exits at once), run as xc_vm to
         // match `service boot`. Closes the "supervisor died → fanout stays down"
         // gap. Runs on every node (main + LB), like the daemon self-heal below.
         $rRunSh = MAIN_HOME . 'bin/xc_fanout/run.sh';
