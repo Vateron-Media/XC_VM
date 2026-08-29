@@ -5,6 +5,7 @@ namespace XcVm\Domain\Server;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Localization\Translator;
+use XcVm\Streaming\Fanout\FanoutConfig;
 
 /**
  * SettingsService — settings service
@@ -83,6 +84,7 @@ class SettingsService {
 		$rQuery = 'UPDATE `settings` SET ' . $rPrepare['update'] . ';';
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
 			SettingsManager::clearCache();
+			FanoutConfig::sync($rArray);
 			return array('status' => STATUS_SUCCESS);
 		}
 
