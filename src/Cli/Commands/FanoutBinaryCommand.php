@@ -75,6 +75,12 @@ class FanoutBinaryCommand implements CommandInterface {
 		try {
 			$rGit = new GitHubReleases(GIT_OWNER, GIT_REPO_FANOUT, $rChannel);
 			$rGit->setTimeout(20);
+			// `force` means "recheck everything from scratch": drop the 30-minute
+			// releases cache so a forced reinstall resolves against a fresh GitHub
+			// response instead of a stale one that could pin an old "latest".
+			if ($rForce) {
+				$rGit->clearCache();
+			}
 			$rReleases = $rGit->getReleases();
 		} catch (\Exception $e) {
 			echo 'Failed to check xc_fanout releases: ' . $e->getMessage() . "\n";
