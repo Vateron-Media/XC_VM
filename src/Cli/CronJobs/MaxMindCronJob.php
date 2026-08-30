@@ -5,8 +5,10 @@ namespace XcVm\Cli\CronJobs;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\GeoIP\AsnCatalogSync;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Domain\Server\ServerRepository;
 
 /**
  * MaxMindCronJob — weekly GeoIP database update via MaxMind API or GitHub fallback.
@@ -133,19 +135,84 @@ class MaxMindCronJob implements CommandInterface {
 					}
 				}
 
-				$jsonData = file_get_contents($geolitejsonFile);
-				$data = json_decode($jsonData, true);
-
-				if (isset($data['geolite2_version'])) {
-					$data['geolite2_version'] = $datageolite['version'];
-					file_put_contents($geolitejsonFile, json_encode($data, JSON_PRETTY_PRINT));
-				}
+				$data = json_decode(@file_get_contents($geolitejsonFile), true) ?: [];
+				$data['geolite2_version'] = $datageolite['version'];
+				file_put_contents($geolitejsonFile, json_encode($data, JSON_PRETTY_PRINT));
 			} else {
 				echo "[ERROR] GeoLite2: release metadata unavailable\n";
 				$anyError = true;
 			}
 		}
 
+		// GeoIP2-ISP: the paid MaxMind edition is optional. Unless it is configured
+		// (paid), keep the free self-built GeoIP2-ISP.mmdb from the release in sync so
+		// ASN lookups work without a licence. Runs on every node (each needs the mmdb
+		// locally); records geoisp_version in version.json.
+		$rEditions = json_decode((string) ($rSettings['maxmind_editions'] ?? '[]'), true) ?: [];
+		if (!($updater !== null && in_array('GeoIP2-ISP', $rEditions, true))) {
+			$rIsp = (new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, $rSettings['update_channel']))->getIspDatabase();
+			if (is_array($rIsp) && !empty($rIsp['fileurl'])) {
+				if ($this->fetchReleaseFile($rIsp, $force)) {
+					$data = json_decode(@file_get_contents($geolitejsonFile), true) ?: [];
+					$data['geoisp_version'] = $rIsp['version'];
+					file_put_contents($geolitejsonFile, json_encode($data, JSON_PRETTY_PRINT));
+					echo '[OK]    GeoIP2-ISP (free): updated' . "\n";
+				} else {
+					echo '[SKIP]  GeoIP2-ISP (free): already up to date' . "\n";
+				}
+			}
+		}
+
+		// ASN catalog: refresh blocked_asns from the release master file. MAIN only
+		// (central table); non-critical — a failure never fails the GeoIP update.
+		try {
+			if (!empty(ServerRepository::getAll(true)[SERVER_ID]['is_main'])) {
+				$rAsn = AsnCatalogSync::run($force);
+				if (isset($rAsn['skipped'])) {
+					echo '[SKIP]  ASN catalog: ' . $rAsn['skipped'] . "\n";
+				} else {
+					echo '[OK]    ASN catalog: ' . $rAsn['upserted'] . ' upserted, ' . $rAsn['removed'] . " pruned\n";
+				}
+			}
+		} catch (\Throwable $e) {
+			echo '[WARN]  ASN catalog sync failed: ' . $e->getMessage() . "\n";
+		}
+
 		return $anyError ? 1 : 0;
+	}
+
+	/**
+	 * Download a single release asset (md5-gated) to its path. Returns true when a
+	 * new file was written, false when skipped (unchanged) or on failure.
+	 *
+	 * @param array{fileurl: string, path: string, md5: ?string} $rMeta
+	 */
+	private function fetchReleaseFile(array $rMeta, bool $rForce): bool {
+		$rPath = $rMeta['path'];
+		if (!$rForce && is_file($rPath) && !empty($rMeta['md5']) && md5_file($rPath) === $rMeta['md5']) {
+			return false;
+		}
+
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $rMeta['fileurl']);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 300);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+		curl_setopt($ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36');
+		$rData = curl_exec($ch);
+		curl_close($ch);
+
+		if ($rData === false || $rData === '') {
+			echo '[ERROR] ' . basename($rPath) . ': download failed' . "\n";
+			return false;
+		}
+		if (@file_put_contents($rPath, $rData) === false) {
+			echo '[ERROR] ' . basename($rPath) . ': write failed' . "\n";
+			return false;
+		}
+		@chown($rPath, 'xc_vm');
+		@chmod($rPath, 0640);
+		return true;
 	}
 }

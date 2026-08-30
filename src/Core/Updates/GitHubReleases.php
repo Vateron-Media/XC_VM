@@ -473,8 +473,9 @@ class GitHubReleases {
      * Retrieve the latest GeoLite database release information.
      *
      * This method fetches the latest release version from the repository,
-     * builds download URLs for GeoLite2 database files (ASN, City, Country),
-     * and prepares metadata including file paths, permissions, and MD5 hashes.
+     * builds download URLs for the GeoLite2-City and GeoLite2-Country databases and
+     * prepares metadata (paths + MD5). GeoLite2-ASN is no longer fetched; the free
+     * GeoIP2-ISP.mmdb is handled separately via {@see self::getIspDatabase()}.
      *
      * @return array|null Returns an associative array with the latest version and file data,
      *                    or null if no releases are available.
@@ -495,7 +496,7 @@ class GitHubReleases {
         $data_files = array();
 
         // Iterate over required GeoLite2 database files
-        foreach (["GeoLite2-City.mmdb", "GeoLite2-Country.mmdb", "GeoLite2-ASN.mmdb"] as $file) {
+        foreach (["GeoLite2-City.mmdb", "GeoLite2-Country.mmdb"] as $file) {
             // Construct the GitHub release download URL
             $file_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$latest_version}/{$file}";
 
@@ -518,6 +519,47 @@ class GitHubReleases {
 
         // Return the release data
         return $data;
+    }
+
+    /**
+     * Resolve the ASN catalog master file (blocked_asns.json.gz) from the latest
+     * release — the source for the panel's blocked_asns table.
+     *
+     * @return array|null ['version','fileurl','path','md5'] or null if no release.
+     */
+    public function getAsnCatalog(): ?array {
+        return $this->releaseAsset('blocked_asns.json.gz');
+    }
+
+    /**
+     * Resolve the free self-built GeoIP2-ISP database (GeoIP2-ISP.mmdb) from the
+     * latest release — a drop-in replacement for the paid MaxMind edition.
+     *
+     * @return array|null ['version','fileurl','path','md5'] or null if no release.
+     */
+    public function getIspDatabase(): ?array {
+        return $this->releaseAsset('GeoIP2-ISP.mmdb');
+    }
+
+    /**
+     * Resolve a single release asset to ['version','fileurl','path','md5']. These
+     * files live only in the release repo (not at MaxMind), so they are fetched
+     * regardless of whether MaxMind credentials are set. Null when no release.
+     */
+    private function releaseAsset(string $file): ?array {
+        $releases = $this->getReleases();
+        if (empty($releases)) {
+            return null;
+        }
+
+        $latest_version = $releases[0];
+
+        return [
+            'version' => $latest_version,
+            'fileurl' => "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$latest_version}/{$file}",
+            'path'    => '/home/xc_vm/bin/maxmind/' . $file,
+            'md5'     => $this->getAssetHash($latest_version, $file),
+        ];
     }
 
     /**
