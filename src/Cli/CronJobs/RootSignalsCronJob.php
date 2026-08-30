@@ -178,6 +178,17 @@ class RootSignalsCronJob implements CommandInterface {
             $db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'FLUSH', 'Flushed blocked IP\\'s from iptables.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
             $db->query("DELETE FROM `signals` WHERE `server_id` = ? AND `custom_data` = '{\"action\":\"flush\"}' AND `cache` = 0;", SERVER_ID);
         } else {
+            // Auto-unban: on MAIN only, drop expired automatic IP bans (flood/
+            // bruteforce) so the sync below removes them from iptables. Manual admin
+            // bans (any other notes) are left permanent.
+            $rUnbanSettings = \XcVm\Core\Config\SettingsManager::getAll();
+            if (!empty($rServers[SERVER_ID]['is_main']) && !empty($rUnbanSettings['auto_unban_ip'])) {
+                $rUnbanMul = array('minutes' => 60, 'hours' => 3600, 'days' => 86400);
+                $rUnbanUnit = (string) ($rUnbanSettings['ban_duration_unit'] ?? 'hours');
+                $rUnbanSecs = max(1, intval($rUnbanSettings['ban_duration_value'] ?? 24)) * ($rUnbanMul[$rUnbanUnit] ?? 3600);
+                $db->query("DELETE FROM `blocked_ips` WHERE `date` < ? AND (UPPER(`notes`) LIKE '%ATTACK%' OR UPPER(`notes`) LIKE '%BRUTEFORCE%' OR UPPER(`notes`) LIKE '%FLOOD%');", time() - $rUnbanSecs);
+            }
+
             $rSyncMarker = CRONS_TMP_PATH . 'blocked_ips_sync_marker';
             $rRunFullSync = true;
             $db->query('SELECT COUNT(*) AS `count` FROM `blocked_ips`;');

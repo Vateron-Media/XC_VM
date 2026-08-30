@@ -901,6 +901,34 @@ $isAjaxRequest = (
 												</div>
 
 												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="auto_unban_ip">
+														Auto Unban IP
+														<i title="Automatically remove automatic (flood/bruteforce) IP bans once the ban duration elapses. Manual bans are kept." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+
+													<div class="col-md-2">
+														<input name="auto_unban_ip" id="auto_unban_ip" type="checkbox" <?= ($rSettings["auto_unban_ip"] ?? 0) == 1 ? ' checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd">
+													</div>
+
+													<label class="col-md-4 col-form-label" for="ban_duration_value">
+														Ban Duration
+														<i title="How long an automatic IP ban lasts before it is auto-removed." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+
+													<div class="col-md-1">
+														<input type="text" class="form-control text-center" id="ban_duration_value" name="ban_duration_value" value="<?= htmlspecialchars($rSettings["ban_duration_value"] ?? 24) ?>">
+													</div>
+
+													<div class="col-md-1">
+														<select name="ban_duration_unit" id="ban_duration_unit" class="form-control">
+															<?php foreach (["minutes", "hours", "days"] as $rU): ?>
+																<option value="<?= $rU ?>" <?= ($rSettings["ban_duration_unit"] ?? 'hours') === $rU ? ' selected' : '' ?>><?= ucfirst($rU) ?></option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="bruteforce_mac_attempts">
 														Detect MAC Bruteforce
 														<i title="<?= $language::get('automatically_detect_and_block_ip_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i>

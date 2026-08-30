@@ -70404,6 +70404,9 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `auth_flood_seconds` int(11) DEFAULT '10',
   `auth_flood_limit` int(11) DEFAULT '30',
   `auth_flood_sleep` int(11) DEFAULT '1',
+  `auto_unban_ip` tinyint(1) DEFAULT '0',
+  `ban_duration_value` int(11) DEFAULT '24',
+  `ban_duration_unit` varchar(10) COLLATE utf8_unicode_ci DEFAULT 'hours',
   `php_loopback` tinyint(1) DEFAULT '1'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
