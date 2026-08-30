@@ -6,7 +6,8 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Domain\Stream\StreamConfigRepository;// Code reconstruction by Squallp
+use XcVm\Domain\Stream\StreamConfigRepository;
+use XcVm\Streaming\Codec\FfmpegBinaries;// Code reconstruction by Squallp
 
 if (!isset($__settingsViewMode)):
 
@@ -1954,16 +1955,43 @@ $isAjaxRequest = (
 													</div>
 												</div>
 
+												<?php
+													$rFfmpegGpuBuilds = FfmpegBinaries::gpuCapable();
+													$rCpuOpts = array_keys(FfmpegBinaries::available()) ?: ["8.0", "7.1", "4.0"];
+													if (!empty($rSettings["ffmpeg_cpu"]) && !in_array($rSettings["ffmpeg_cpu"], $rCpuOpts, true)) {
+														$rCpuOpts[] = $rSettings["ffmpeg_cpu"];
+													}
+													$rGpuOpts = array_keys($rFfmpegGpuBuilds);
+													if (!empty($rSettings["ffmpeg_gpu"]) && !in_array($rSettings["ffmpeg_gpu"], $rGpuOpts, true)) {
+														$rGpuOpts[] = $rSettings["ffmpeg_gpu"];
+													}
+												?>
 												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="ffmpeg_cpu">
-														FFMPEG Version
+														FFMPEG Version (CPU)
 														<i title="<?= $language::get('which_version_of_ffmpeg_to_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i>
 													</label>
 
 													<div class="col-md-2">
 														<select name="ffmpeg_cpu" id="ffmpeg_cpu" class="form-control" data-toggle="select2">
-															<?php foreach (["8.0", "7.1", "4.0"] as $rValue): ?>
+															<?php foreach ($rCpuOpts as $rValue): ?>
 																<option value="<?= $rValue ?>" <?= $rSettings["ffmpeg_cpu"] == $rValue ? ' selected' : '' ?>>
+																	v<?= $rValue ?><?= isset($rFfmpegGpuBuilds[$rValue]) ? ' (GPU)' : '' ?>
+																</option>
+															<?php endforeach; ?>
+														</select>
+													</div>
+
+													<label class="col-md-4 col-form-label" for="ffmpeg_gpu">
+														FFMPEG Version (GPU)
+														<i title="<?= $language::get('which_version_of_ffmpeg_to_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i>
+													</label>
+
+													<div class="col-md-2">
+														<select name="ffmpeg_gpu" id="ffmpeg_gpu" class="form-control" data-toggle="select2">
+															<option value="" <?= empty($rSettings["ffmpeg_gpu"]) ? ' selected' : '' ?>>Same as CPU</option>
+															<?php foreach ($rGpuOpts as $rValue): ?>
+																<option value="<?= $rValue ?>" <?= ($rSettings["ffmpeg_gpu"] ?? '') === $rValue ? ' selected' : '' ?>>
 																	v<?= $rValue ?>
 																</option>
 															<?php endforeach; ?>
@@ -2741,7 +2769,46 @@ $isAjaxRequest = (
 													</tbody>
 												</table>
 
-												<h4 class="card-title mb-4"><?= $language::get('support_project') ?></h4>
+												<h4 class="card-title mb-4">FFmpeg</h4>
+
+											<table class="table table-striped table-bordered">
+												<thead class="thead-light">
+													<tr>
+														<th class="text-center" style="font-size: 0.85rem;">Version</th>
+														<th class="text-center" style="font-size: 0.85rem;">Build</th>
+														<th class="text-center" style="font-size: 0.85rem;">GPU</th>
+														<th class="text-center" style="font-size: 0.85rem;">Hardware encoders</th>
+													</tr>
+												</thead>
+
+												<tbody>
+													<?php $rFfmpegBuilds = FfmpegBinaries::available(); ?>
+													<?php if (empty($rFfmpegBuilds)): ?>
+														<tr>
+															<td colspan="4" class="text-center" style="font-size: 0.85rem;">N/A</td>
+														</tr>
+													<?php else: ?>
+														<?php foreach ($rFfmpegBuilds as $rVer => $rInfo): ?>
+															<tr>
+																<td class="text-center" style="font-size: 0.85rem;">
+																	<button type="button" class="btn btn-info btn-sm" style="font-size: 0.85rem;">v<?= htmlspecialchars($rVer) ?></button>
+																</td>
+																<td class="text-center" style="font-size: 0.8rem;"><?= htmlspecialchars($rInfo['banner']) ?></td>
+																<td class="text-center">
+																	<?php if ($rInfo['gpu']): ?>
+																		<span class="badge badge-success">GPU</span>
+																	<?php else: ?>
+																		<span class="badge badge-secondary">CPU</span>
+																	<?php endif; ?>
+																</td>
+																<td class="text-center text-monospace small"><?= $rInfo['encoders'] ? htmlspecialchars(implode(', ', $rInfo['encoders'])) : '—' ?></td>
+															</tr>
+														<?php endforeach; ?>
+													<?php endif; ?>
+												</tbody>
+											</table>
+
+											<h4 class="card-title mb-4"><?= $language::get('support_project') ?></h4>
 
 												<table class="table table-striped table-bordered text-center">
 													<thead class="thead-light">

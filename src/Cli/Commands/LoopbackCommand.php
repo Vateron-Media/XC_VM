@@ -44,8 +44,8 @@ class LoopbackCommand implements CommandInterface {
 
 		if (!defined('MAIN_HOME')) define('MAIN_HOME', '/home/xc_vm/');
 		if (!defined('STREAMS_PATH')) define('STREAMS_PATH', MAIN_HOME . 'content/streams/');
-		if (!defined('FFMPEG')) define('FFMPEG', MAIN_HOME . 'bin/ffmpeg_bin/4.0/ffmpeg');
-		if (!defined('FFPROBE')) define('FFPROBE', MAIN_HOME . 'bin/ffmpeg_bin/4.0/ffprobe');
+		if (!defined('FFMPEG')) define('FFMPEG', \XcVm\Streaming\Codec\FfmpegPaths::cpu() ?: FFMPEG_BIN_40);
+		if (!defined('FFPROBE')) define('FFPROBE', \XcVm\Streaming\Codec\FfmpegPaths::probe() ?: FFPROBE_BIN_40);
 		if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
 		if (!defined('CONFIG_PATH')) define('CONFIG_PATH', MAIN_HOME . 'config/');
 		// PAT_HEADER restored to the real PAT header bytes (0xB0 0x0D) derived from the stream.

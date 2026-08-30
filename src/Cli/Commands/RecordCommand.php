@@ -186,7 +186,7 @@ class RecordCommand implements CommandInterface {
 		}
 
 		$rInsertID = $db->last_insert_id();
-		shell_exec(FFMPEG_BIN_40 . " -i '" . ARCHIVE_PATH . $recordingID . '.ts' . "' -c:v copy -c:a copy '" . VOD_PATH . $rInsertID . '.mp4' . "'");
+		shell_exec((\XcVm\Streaming\Codec\FfmpegPaths::cpu() ?: FFMPEG_BIN_40) . " -i '" . ARCHIVE_PATH . $recordingID . '.ts' . "' -c:v copy -c:a copy '" . VOD_PATH . $rInsertID . '.mp4' . "'");
 		@unlink(ARCHIVE_PATH . $recordingID . '.ts');
 
 		if (!file_exists(VOD_PATH . $rInsertID . '.mp4')) {

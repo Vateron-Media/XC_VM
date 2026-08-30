@@ -21,34 +21,48 @@ class FfmpegPaths {
 	private static $resolved = false;
 
 	/**
-	 * Resolve paths from an ffmpeg_cpu version string.
+	 * Resolve the CPU/GPU/probe binary paths from the configured version strings.
+	 *
+	 * Paths are built dynamically from BIN_PATH/ffmpeg_bin/<version>/ so any build
+	 * dropped into that folder is usable without touching this class — no version
+	 * switch to maintain. This runs on the bootstrap hot path, so it stays cheap:
+	 * a format check plus an is_file() stat, never a shell probe (that lives in
+	 * {@see FfmpegBinaries}). An unknown/missing CPU version falls back to the
+	 * legacy 4.0 build; the GPU binary falls back to the resolved CPU binary when
+	 * ffmpeg_gpu is empty or points at a missing build.
 	 *
 	 * Called once during bootstrap; subsequent calls are no-ops.
 	 *
-	 * @param string $version  e.g. '8.0', '7.1', '4.0'
+	 * @param string      $cpuVersion e.g. '8.0', '7.1', '4.0'
+	 * @param string|null $gpuVersion GPU ffmpeg version, or null to reuse the CPU build
 	 */
-	public static function resolve($version) {
+	public static function resolve($cpuVersion, $gpuVersion = null) {
 		if (self::$resolved) {
 			return;
 		}
-		switch ($version) {
-			case '8.0':
-				self::$cpu   = FFMPEG_BIN_80;
-				self::$probe = FFPROBE_BIN_80;
-				self::$gpu   = FFMPEG_BIN_80;
-				break;
-			case '7.1':
-				self::$cpu   = FFMPEG_BIN_71;
-				self::$probe = FFPROBE_BIN_71;
-				self::$gpu   = FFMPEG_BIN_71;
-				break;
-			default:
-				self::$cpu   = FFMPEG_BIN_40;
-				self::$probe = FFPROBE_BIN_40;
-				self::$gpu   = FFMPEG_BIN_40;
-				break;
-		}
+
+		self::$cpu   = self::binary($cpuVersion, 'ffmpeg') ?? FFMPEG_BIN_40;
+		self::$probe = self::binary($cpuVersion, 'ffprobe') ?? FFPROBE_BIN_40;
+
+		$rGpu = ($gpuVersion !== null && $gpuVersion !== '') ? self::binary($gpuVersion, 'ffmpeg') : null;
+		self::$gpu = $rGpu ?? self::$cpu;
+
 		self::$resolved = true;
+	}
+
+	/**
+	 * Build a binary path for a version folder, or null when the version string is
+	 * malformed or the binary is absent.
+	 *
+	 * @param string $version Version folder name (e.g. '8.0')
+	 * @param string $name    'ffmpeg' or 'ffprobe'
+	 */
+	private static function binary($version, $name): ?string {
+		if (!is_string($version) || !preg_match('/^\d+\.\d+$/', $version)) {
+			return null;
+		}
+		$rPath = BIN_PATH . 'ffmpeg_bin/' . $version . '/' . $name;
+		return is_file($rPath) ? $rPath : null;
 	}
 
 	/** @return string Path to CPU-optimized ffmpeg binary */

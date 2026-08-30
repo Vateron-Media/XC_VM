@@ -67,7 +67,7 @@ class LegacyInitializer {
 			SettingsManager::update('on_demand_wait_time', 15);
 		}
 
-		\XcVm\Streaming\Codec\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'));
+		\XcVm\Streaming\Codec\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'), SettingsManager::get('ffmpeg_gpu'));
 
 		if (!$rUseCache) {
 			\XcVm\Domain\Server\ServerRepository::getAll();
@@ -150,7 +150,7 @@ class LegacyInitializer {
 			$GLOBALS['rSettings']['on_demand_wait_time'] = 15;
 		}
 
-		\XcVm\Streaming\Codec\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu']);
+		\XcVm\Streaming\Codec\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu'], $GLOBALS['rSettings']['ffmpeg_gpu'] ?? null);
 
 		$GLOBALS['rCached'] = \XcVm\Infrastructure\Cache\CacheReader::isReady($GLOBALS['rSettings']);
 		$GLOBALS['rServers'] = \XcVm\Infrastructure\Cache\CacheReader::get('servers') ?: array();
