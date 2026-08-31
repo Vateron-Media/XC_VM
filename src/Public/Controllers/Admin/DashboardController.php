@@ -2,7 +2,9 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Enum\Theme;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Reference\GeoReference;
 
 /**
  * DashboardController — Dashboard page.
@@ -21,10 +23,12 @@ use XcVm\Core\Http\RequestManager;
 
 class DashboardController extends BaseAdminController {
     public function index() {
-        global $db, $rThemes, $rUserInfo, $rServers, $rCountryCodes;
+        global $db, $rUserInfo, $rServers;
+
+        $rCountryCodes = GeoReference::countryCodes();
 
         // Theme colour map
-        if ($rThemes[$rUserInfo['theme']]['dark']) {
+        if (Theme::fromId($rUserInfo['theme'])->isDark()) {
             $rColours = array(1 => array('secondary', '#7e8e9d', '#ffffff'), 2 => array('secondary', '#7e8e9d', '#ffffff'), 3 => array('secondary', '#7e8e9d', '#ffffff'), 4 => array('secondary', '#7e8e9d', '#ffffff'));
             $rColourMap = array(array('#7e8e9d', 'bg-map-dark-1'), array('#6c7b8a', 'bg-map-dark-2'), array('#5a6977', 'bg-map-dark-3'), array('#485765', 'bg-map-dark-4'), array('#374654', 'bg-map-dark-5'), array('#273643', 'bg-map-dark-6'));
         } else {

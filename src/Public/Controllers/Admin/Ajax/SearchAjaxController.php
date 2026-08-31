@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Admin\Ajax;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Reference\StatusBadge;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Stream\CategoryService;
@@ -18,8 +19,9 @@ use XcVm\Domain\User\GroupService;
  * (live/VOD/created channels/radio/episodes) and series. Each result item
  * carries structured `data` that the client renders into a card (see
  * docs/adr/search-json-contract.md); permission checks, status resolution and
- * category/server lookups stay server-side. `$language` and `$rSearchStatusArray`
- * are bootstrap globals it relies on, alongside `$db` / `$rServers`.
+ * category/server lookups stay server-side. Status badges resolve via
+ * {@see \XcVm\Core\Reference\StatusBadge}; `$language`, `$db` and `$rServers`
+ * remain bootstrap globals it relies on.
  *
  * @package XC_VM_Public_Controllers_Admin
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -34,7 +36,7 @@ class SearchAjaxController extends BaseAjaxController {
         $this->requireXhr();
 
         /** @var class-string $language */
-        global $db, $rServers, $language, $rSearchStatusArray;
+        global $db, $rServers, $language;
 
         $rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
         $rTables = array('lines' => array('Lines', 'line?id=', '`username`, `admin_notes`, `reseller_notes`, `last_ip`, `contact`', 'id', 'username'), 'mag_devices' => array('MAG Devices', 'mag?id=', '`mac_filter`, `ip`', 'mag_id', 'mac'), 'enigma2_devices' => array('Enigma2 Devices', 'enigma?id=', '`mac_filter`, `public_ip`', 'device_id', 'mac'), 'users' => array('Users', 'user?id=', '`username`, `email`, `ip`, `notes`, `reseller_dns`', 'id', 'username'), 'streams' => array('Streams, Movies & Episodes', 'stream_view?id=', '`stream_display_name`, `stream_source`, `notes`, `channel_id`', 'id', 'stream_display_name'), 'streams_series' => array('TV Series', 'serie?id=', '`title`, `plot`, `cast`, `director`', 'id', 'title'));
@@ -586,10 +588,9 @@ class SearchAjaxController extends BaseAjaxController {
         return array('kind' => 'status') + $this->statusMeta($rCode);
     }
 
-    /** Derive {code, label, variant} for a status code from $rSearchStatusArray. */
+    /** Derive {code, label, variant} for a status code from StatusBadge::search(). */
     private function statusMeta(int $rCode): array {
-        global $rSearchStatusArray;
-        $rHtml = $rSearchStatusArray[$rCode] ?? '';
+        $rHtml = StatusBadge::search($rCode);
         preg_match('/bg-animate-(\w+)/', $rHtml, $rVariant);
         preg_match('/>([^<]+)</', $rHtml, $rLabel);
 

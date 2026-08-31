@@ -5,6 +5,10 @@ use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Module\CoreNavbarProvider;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\NavbarRegistry;
+use XcVm\Core\Enum\Theme;
+use XcVm\Core\Reference\UiReference;
+
+$rHues = UiReference::hues();
 
 if (count(get_included_files()) != 1 || TRUE):
     $rModal = RequestManager::has('modal');
@@ -41,7 +45,7 @@ if (count(get_included_files()) != 1 || TRUE):
         <link href="assets/css/icons.css" rel="stylesheet" type="text/css" />
         <link href="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
         <link href="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />
-        <?php if (!empty($_SETUP) || !($rThemes[$rUserInfo['theme'] ?? ''] ?? ['dark' => false])['dark']): ?>
+        <?php if (!empty($_SETUP) || !Theme::fromId($rUserInfo['theme'] ?? 0)->isDark()): ?>
             <link href="assets/css/bootstrap.css" rel="stylesheet" type="text/css" />
             <link href="assets/css/app.css" rel="stylesheet" type="text/css" />
             <link href="assets/css/listings.css" rel="stylesheet" type="text/css" />

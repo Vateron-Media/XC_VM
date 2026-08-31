@@ -1,5 +1,6 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\User\UserRepository;
 
@@ -248,7 +249,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                         <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="<?= $language::get('force_user_to_connect_to_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                         <div class="col-md-8">
                                                             <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">
-                                                                <?php foreach ($rCountries as $rCountry): ?>
+                                                                <?php foreach (GeoReference::countries() as $rCountry): ?>
                                                                     <option <?= (isset($rDevice) && $rDevice['user']['forced_country'] == $rCountry['id']) ? 'selected' : '' ?> value="<?= $rCountry['id'] ?>"><?= $rCountry['name'] ?></option>
                                                                 <?php endforeach; ?>
                                                             </select>

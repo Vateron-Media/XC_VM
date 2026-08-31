@@ -1,5 +1,6 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\LocaleReference;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
@@ -104,7 +105,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQ
 																		: $rSettings['tmdb_language'];
 																	?>
 
-																	<?php foreach ($rTMDBLanguages as $langCode => $langName): ?>
+																	<?php foreach (LocaleReference::tmdbLanguages() as $langCode => $langName): ?>
 																		<option value="<?= htmlspecialchars($langCode); ?>"
 																			<?= ($langCode == $selectedLang) ? 'selected' : ''; ?>>
 																			<?= htmlspecialchars($langName); ?>

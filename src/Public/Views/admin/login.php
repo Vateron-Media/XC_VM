@@ -5,6 +5,9 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Security\BlocklistService;
+use XcVm\Core\Reference\UiReference;
+
+$rHues = UiReference::hues();
 
 include 'functions.php';
 

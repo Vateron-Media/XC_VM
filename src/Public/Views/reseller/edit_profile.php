@@ -1,3 +1,9 @@
+<?php
+
+use XcVm\Core\Enum\Theme;
+use XcVm\Core\Reference\UiReference;
+
+?>
 <div class="wrapper boxed-layout">
     <div class="container-fluid">
         <div class="row">
@@ -64,8 +70,8 @@
                                                     <label class="col-md-4 col-form-label" for="theme">System Theme</label>
                                                     <div class="col-md-8">
                                                         <select name="theme" id="theme" class="form-control" data-toggle="select2">
-                                                            <?php foreach ($rThemes as $rValue => $rArray): ?>
-                                                            <option<?= ($rUserInfo['theme'] == $rValue) ? ' selected' : '' ?> value="<?= $rValue ?>"><?= $rArray['name'] ?></option>
+                                                            <?php foreach (Theme::options() as $rValue => $rName): ?>
+                                                            <option<?= ($rUserInfo['theme'] == $rValue) ? ' selected' : '' ?> value="<?= $rValue ?>"><?= $rName ?></option>
                                                             <?php endforeach; ?>
                                                         </select>
                                                     </div>
@@ -74,7 +80,7 @@
                                                     <label class="col-md-4 col-form-label" for="hue">Topbar Theme</label>
                                                     <div class="col-md-8">
                                                         <select name="hue" id="hue" class="form-control" data-toggle="select2">
-                                                            <?php foreach ($rHues as $rValue => $rText): ?>
+                                                            <?php foreach (UiReference::hues() as $rValue => $rText): ?>
                                                             <option<?= ($rUserInfo['hue'] == $rValue) ? ' selected' : '' ?> value="<?= $rValue ?>"><?= $rText ?></option>
                                                             <?php endforeach; ?>
                                                         </select>

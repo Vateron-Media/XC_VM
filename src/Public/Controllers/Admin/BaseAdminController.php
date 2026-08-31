@@ -83,8 +83,9 @@ class BaseAdminController {
         require_once MAIN_HOME . 'Public/Views/layouts/footer.php';
 
         // Глобальные переменные, нужные view-шаблонам и legacy-файлам.
-        // Полный набор, включая переменные из bootstrap, functions.php
-        // и admin_constants.php, чтобы legacy body code мог их использовать.
+        // Набор из bootstrap и functions.php, чтобы legacy body code мог их
+        // использовать. Справочные данные (страны, языки, статусы, темы и т.п.)
+        // вьюхи теперь получают напрямую через XcVm\Core\Reference\* и enum'ы.
         $viewGlobals = [
             // Core rendering
             'language',
@@ -97,9 +98,6 @@ class BaseAdminController {
             '_STATUS',
             '_PAGE',
             'rRequest',
-            // Theme/UI
-            'rThemes',
-            'rHues',
             // Servers
             'rServers',
             'allServers',
@@ -107,27 +105,10 @@ class BaseAdminController {
             'rServerError',
             'allServersHealthy',
             'updateRequired',
-            // Locale/Geo
+            // Locale
             'allowedLangs',
-            'rTMDBLanguages',
-            'rGeoCountries',
-            'rCountryCodes',
-            'rCountries',
-            // Devices & constants
-            'rMAGs',
+            // Devices
             'rTimezones',
-            // Status arrays (admin_constants.php)
-            'rStatusArray',
-            'rSearchStatusArray',
-            'rVODStatusArray',
-            'rWatchStatusArray',
-            'rFailureStatusArray',
-            'rStreamLogsArray',
-            'rResellerActions',
-            'rClientFilters',
-            // Permissions
-            'rPermissionKeys',
-            'rAdvPermissions',
             // Misc from bootstrap
             'rDetect',
             'rTimeout',

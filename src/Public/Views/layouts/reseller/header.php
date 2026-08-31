@@ -1,10 +1,13 @@
 <?php
 
 use XcVm\Domain\Line\LineService;
+use XcVm\Core\Enum\Theme;
+use XcVm\Core\Reference\UiReference;
 
 if (count(get_included_files()) != 1) {
 	$rGenTrials = LineService::canGenerateTrials($rUserInfo['id']);
 	$GLOBALS['rGenTrials'] = $rGenTrials;
+	$rHues = UiReference::hues();
 	echo '<!DOCTYPE html>' . "\r\n" . '<html lang="en">' . "\r\n" . '    <head>' . "\r\n" . '        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . "\r\n" . '        <title>';
 	echo ($rSettings['server_name'] ?: 'XC_VM');
 	echo ' ';
@@ -16,7 +19,7 @@ if (count(get_included_files()) != 1) {
 
 	echo '</title>' . "\r\n" . '        <meta name="viewport" content="width=device-width, initial-scale=1.0">' . "\r\n" . '        <meta http-equiv="X-UA-Compatible" content="IE=edge" />' . "\r\n" . '        <meta name="robots" content="noindex,nofollow">' . "\r\n" . '        <link rel="shortcut icon" href="assets/images/favicon.ico">' . "\r\n" . '        <link href="assets/libs/jquery-nice-select/nice-select.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/switchery/switchery.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/datatables/dataTables.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/datatables/responsive.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/datatables/buttons.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/datatables/select.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/jquery-toast/jquery.toast.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/treeview/style.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/clockpicker/bootstrap-clockpicker.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/nestable2/jquery.nestable.min.css" rel="stylesheet" />' . "\r\n" . '        <link href="assets/libs/magnific-popup/magnific-popup.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/jbox/jBox.all.min.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t" . '<link href="assets/css/icons.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t";
 
-	if (!$rThemes[$rUserInfo['theme']]['dark']) {
+	if (!Theme::fromId($rUserInfo['theme'])->isDark()) {
 		echo '        <link href="assets/css/bootstrap.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/css/app.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/css/listings.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t" . '<link href="assets/css/custom.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t";
 	} else {
 		echo "\t\t" . '<link href="assets/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/css/app.dark.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/css/listings.dark.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t" . '<link href="assets/css/custom.dark.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t";
@@ -24,20 +27,14 @@ if (count(get_included_files()) != 1) {
 
 	echo '        <link href="assets/css/extra.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        ';
 
-	if ($rThemes[$rUserInfo['theme']]['image']) {
-		echo '        <style>' . "\r\n" . '        body {' . "\r\n" . "            background: url('./assets/images/theme/";
-		echo basename($rThemes[$rUserInfo['theme']]['image']);
-		echo "');" . "\r\n" . '        }' . "\r\n" . '        </style>' . "\r\n\t\t";
+	echo '        <style>' . "\r\n" . '        html, body {' . "\r\n" . '          overflow-x: hidden;' . "\r\n" . '        }' . "\r\n" . '        ';
+
+	if (!$rMobile) {
 	} else {
-		echo '        <style>' . "\r\n" . '        html, body {' . "\r\n" . '          overflow-x: hidden;' . "\r\n" . '        }' . "\r\n" . '        ';
-
-		if (!$rMobile) {
-		} else {
-			echo '        .dataTables_wrapper {' . "\r\n" . '            overflow-x: auto !important;' . "\r\n" . '        }' . "\r\n" . '        ';
-		}
-
-		echo '        </style>' . "\r\n" . '        ';
+		echo '        .dataTables_wrapper {' . "\r\n" . '            overflow-x: auto !important;' . "\r\n" . '        }' . "\r\n" . '        ';
 	}
+
+	echo '        </style>' . "\r\n" . '        ';
 
 	if (isset($customScript)) {
 		echo $customScript;

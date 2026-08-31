@@ -1,5 +1,6 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\LineRepository;
 use XcVm\Domain\User\UserRepository;
@@ -199,7 +200,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                     <div class="col-md-8">
                                                         <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">
                                                             <?php
-                                                            foreach ($rCountries as $rCountry) {
+                                                            foreach (GeoReference::countries() as $rCountry) {
                                                                 echo '<option ' . (isset($rLine) && $rLine['forced_country'] == $rCountry['id'] ? 'selected' : '') . ' value="' . $rCountry['id'] . '">' . $rCountry['name'] . '</option>';
                                                             }
                                                             ?>

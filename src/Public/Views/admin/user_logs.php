@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Enum\ResellerAction;
 
 echo '<div class="wrapper"';
 
@@ -13,7 +14,7 @@ echo '>' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div cla
 include 'topbar.php';
 echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '<h4 class="page-title">' . $language::get('reseller_logs') . '</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="card">' . "\r\n\t\t\t\t\t" . '<div class="card-body" style="overflow-x:auto;">' . "\r\n\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n" . '                            <div class="col-md-2">' . "\r\n\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="log_search" value="" placeholder="' . $language::get('search_logs_placeholder') . '">' . "\r\n\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                            <label class="col-md-1 col-form-label text-center" for="reseller">Reseller &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n" . '                                <select id="reseller" class="form-control" data-toggle="select2"></select>' . "\r\n" . '                            </div>' . "\r\n" . '                            <div class="col-md-2">' . "\r\n\t\t\t\t\t\t\t\t" . '<select id="filter" class="form-control" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<option value="" selected>' . $language::get('all_actions') . '</option>' . "\r\n\t\t\t\t\t\t\t\t\t";
 
-foreach ($rResellerActions as $rFilter => $rFilterName) {
+foreach (ResellerAction::options() as $rFilter => $rFilterName) {
 	echo "\t\t\t\t\t\t\t\t\t" . '<option value="';
 	echo $rFilter;
 	echo '">';

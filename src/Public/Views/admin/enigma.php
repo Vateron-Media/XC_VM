@@ -1,5 +1,6 @@
 <?php
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\User\UserRepository;
 ?>
@@ -194,7 +195,7 @@ foreach ($rServers as $rServer) {
 }
 echo '                                                            </select>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="' . $language::get('force_user_to_connect_to_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>' . "\r\n" . '                                                        <div class="col-md-8">' . "\r\n" . '                                                            <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">' . "\r\n" . '                                                                ';
 
-foreach ($rCountries as $rCountry) {
+foreach (GeoReference::countries() as $rCountry) {
 	echo '                                                                <option ';
 
 	if (!isset($rDevice)) {

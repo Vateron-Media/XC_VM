@@ -7,6 +7,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
@@ -86,7 +87,6 @@ class ResellerAPI {
 	 */
 	public static function editResellerProfile($rData) {
 		$db = self::db();
-		global $rHues;
 		global $allowedLangs;
 		$rData = self::processData('profile', $rData);
 
@@ -108,7 +108,7 @@ class ResellerAPI {
 				$rData['api_key'] = '';
 			}
 
-			if (!in_array($rData['hue'], $rHues)) {
+			if (!in_array($rData['hue'], UiReference::hues())) {
 				$rData['hue'] = '';
 			}
 

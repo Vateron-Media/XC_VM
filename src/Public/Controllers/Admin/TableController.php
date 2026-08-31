@@ -6,7 +6,9 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Enum\ClientFilter;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Reference\StatusBadge;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
@@ -1062,8 +1064,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleStreams($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rServers, $language,
-			$rStatusArray;
+		global $db, $rSettings, $rServers, $language;
 		if (!Authorization::check("adv", "streams") && !Authorization::check("adv", "mass_edit_streams")) {
 			exit;
 		}
@@ -1423,7 +1424,7 @@ class TableController extends BaseAdminController {
 							$rPercent = (int) $rPercent;
 							$rUptime = "<button type='button' class='btn btn-primary btn-xs waves-effect waves-light btn-fixed-xl'>" . $rPercent . "% DONE</button>";
 						} else {
-							$rUptime = $rStatusArray[$rActualStatus];
+							$rUptime = StatusBadge::stream($rActualStatus);
 						}
 						if (in_array($rActualStatus, [1, 2, 3])) {
 							if ($rCreated) {
@@ -1654,8 +1655,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleRadios($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rServers, $language,
-			$rStatusArray;
+		global $db, $rSettings, $rServers, $language;
 		if (!Authorization::check("adv", "radio") && !Authorization::check("adv", "mass_edit_radio")) {
 			exit;
 		}
@@ -1865,7 +1865,7 @@ class TableController extends BaseAdminController {
 						} elseif ($rActualStatus == 3) {
 							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>" . $language::get('down_btn') . "</button>";
 						} else {
-							$rUptime = $rStatusArray[$rActualStatus];
+							$rUptime = StatusBadge::stream($rActualStatus);
 						}
 						$rUptime = str_replace("btn-fixed'", "btn-fixed-xl'", $rUptime);
 						if (SettingsManager::getAll()["group_buttons"]) {
@@ -1967,7 +1967,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleMovies($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rServers, $rVODStatusArray;
+		global $db, $rSettings, $rServers;
 		if (!Authorization::check("adv", "movies") && !Authorization::check("adv", "mass_sedits_vod")) {
 			exit;
 		}
@@ -2330,7 +2330,7 @@ class TableController extends BaseAdminController {
 						if (!$rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
 							$rID .= "-" . $rRow["server_id"];
 						}
-						$rReturn["data"][] = ["<a href='stream_view?id=" . $rRow["id"] . "'>" . $rID . "</a>", $rImage, $rStreamName, $rServerName, $rClients, $rVODStatusArray[$rActualStatus], $rTMDB, $rButtons, $rPlayer, $rStreamInfoText];
+						$rReturn["data"][] = ["<a href='stream_view?id=" . $rRow["id"] . "'>" . $rID . "</a>", $rImage, $rStreamName, $rServerName, $rClients, StatusBadge::vod($rActualStatus), $rTMDB, $rButtons, $rPlayer, $rStreamInfoText];
 					}
 				}
 			}
@@ -2340,7 +2340,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleEpisodeList($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rVODStatusArray;
+		global $db;
 		if (!Authorization::check("adv", "import_episodes") && !Authorization::check("adv", "mass_delete")) {
 			exit;
 		}
@@ -2456,7 +2456,7 @@ class TableController extends BaseAdminController {
 						if (0 < strlen($rProperties["movie_image"] ?? '') && SettingsManager::getAll()["show_images"]) {
 							$rImage = "<a href='javascript: void(0);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties["movie_image"] . "'><img loading='lazy' src='resize?maxh=32&maxw=64&url=" . $rProperties["movie_image"] . "' /></a>";
 						}
-						$rReturn["data"][] = [$rRow["id"], $rImage, $rStreamName, $rServerName, $rVODStatusArray[$rActualStatus]];
+						$rReturn["data"][] = [$rRow["id"], $rImage, $rStreamName, $rServerName, StatusBadge::vod($rActualStatus)];
 					}
 				}
 			}
@@ -2990,7 +2990,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleStreamList($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rStatusArray;
+		global $db, $rSettings;
 		if (!Authorization::check("adv", "import_streams") && !Authorization::check("adv", "mass_delete")) {
 			exit;
 		}
@@ -3165,7 +3165,7 @@ class TableController extends BaseAdminController {
 						} else {
 							$rIcon = "";
 						}
-						$rStatusText = $rStatusArray[$rActualStatus] ?? ($rStatusArray[0] ?? 'Offline');
+						$rStatusText = StatusBadge::stream($rActualStatus);
 						$rReturn["data"][] = [$rRow["id"], $rIcon, $rStreamName, $rCategory, $rServerName, $rStatusText];
 					}
 				}
@@ -3176,7 +3176,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleMovieList($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rVODStatusArray;
+		global $db;
 		if (!Authorization::check("adv", "import_movies") && !Authorization::check("adv", "mass_delete")) {
 			exit;
 		}
@@ -3336,7 +3336,7 @@ class TableController extends BaseAdminController {
 						} else {
 							$rTMDB = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light btn-fixed-xs\"><i class=\"text-light fas fa-minus-circle\"></i></button>";
 						}
-						$rReturn["data"][] = [$rRow["id"], $rImage, $rStreamName, $rCategory, $rServerName, $rVODStatusArray[$rActualStatus], $rTMDB];
+						$rReturn["data"][] = [$rRow["id"], $rImage, $rStreamName, $rCategory, $rServerName, StatusBadge::vod($rActualStatus), $rTMDB];
 					}
 				}
 			}
@@ -3346,7 +3346,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleRadioList($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db,	$rStatusArray;
+		global $db;
 		if (!Authorization::check("adv", "mass_delete")) {
 			exit;
 		}
@@ -3478,7 +3478,7 @@ class TableController extends BaseAdminController {
 						} else {
 							$rIcon = "";
 						}
-						$rReturn["data"][] = [$rRow["id"], $rIcon, $rRow["stream_display_name"], $rCategory, $rServerName, $rStatusArray[$rActualStatus]];
+						$rReturn["data"][] = [$rRow["id"], $rIcon, $rRow["stream_display_name"], $rCategory, $rServerName, StatusBadge::stream($rActualStatus)];
 					}
 				}
 			}
@@ -3744,7 +3744,6 @@ class TableController extends BaseAdminController {
 			$rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`query_string`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, `lines_logs`.`extra_data`, FROM_UNIXTIME(`lines_logs`.`date`) AS `date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
 			if (0 < $db->num_rows()) {
-				$rClientFilters = (isset($rClientFilters) && is_array($rClientFilters) ? $rClientFilters : []);
 				foreach ($db->get_rows() as $rRow) {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
@@ -3769,7 +3768,7 @@ class TableController extends BaseAdminController {
 						}
 						$rExplode = explode(":", $rRow["ip"]);
 						$rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
-						$rClientStatus = ($rClientFilters[$rRow["client_status"]] ?? $rRow["client_status"] ?? "");
+						$rClientStatus = ClientFilter::labelFor((string) ($rRow["client_status"] ?? ""));
 						$rExtraData = trim(strval($rRow["extra_data"] ?? ""));
 						if ($rExtraData !== "") {
 							$rClientStatus .= " <i class=\"mdi mdi-information-outline text-primary tooltip\" title=\"" . htmlspecialchars(mb_substr($rExtraData, 0, 500), ENT_QUOTES) . "\"></i>";
@@ -4530,8 +4529,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleEpisodes($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rServers,
-			$rVODStatusArray;
+		global $db, $rSettings, $rServers;
 		if (!Authorization::check("adv", "episodes") && !Authorization::check("adv", "mass_sedits")) {
 			exit;
 		}
@@ -4867,7 +4865,7 @@ class TableController extends BaseAdminController {
 							$rDurationText = sprintf("%02d:%02d:%02d", intdiv($rDurationSecs, 3600), intdiv($rDurationSecs % 3600, 60), $rDurationSecs % 60);
 						}
 						$rDurationCell = "<table style='font-size: 11px;' class='table-data nowrap' align='center'><tbody><tr><td class='text-success'><i class='mdi mdi-clock-outline'></i> <strong>" . ($rDurationText ?? "--:--:--") . "</strong></td></tr><tr><td><span style='font-size: 10px;' class='text-muted'>" . $rModded . "</span></td></tr></tbody></table>";
-						$rReturn["data"][] = ["<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rID . "</a>", $rImage, "<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rStreamName . "</a>", $rServerName, $rClients, $rVODStatusArray[$rActualStatus], $rButtons, $rPlayer, $rDurationCell, $rStreamInfoText];
+						$rReturn["data"][] = ["<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rID . "</a>", $rImage, "<a href='stream_view?id=" . (int) $rRow["id"] . "'>" . $rStreamName . "</a>", $rServerName, $rClients, StatusBadge::vod($rActualStatus), $rButtons, $rPlayer, $rDurationCell, $rStreamInfoText];
 					}
 				}
 			}
@@ -4921,7 +4919,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleWatchOutput($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rWatchStatusArray;
+		global $db;
 		if (!Authorization::check("adv", "folder_watch_output")) {
 			exit;
 		}
@@ -4993,7 +4991,7 @@ class TableController extends BaseAdminController {
 						} else {
 							$rServer = $rRow["server_name"];
 						}
-						$rReturn["data"][] = [$rRow["id"], ["1" => "Movies", "2" => "Series"][$rRow["type"]], $rServer, $rRow["filename"], $rWatchStatusArray[$rRow["status"]], $rRow["dateadded"], $rButtons];
+						$rReturn["data"][] = [$rRow["id"], ["1" => "Movies", "2" => "Series"][$rRow["type"]], $rServer, $rRow["filename"], StatusBadge::watch((int) $rRow["status"]), $rRow["dateadded"], $rButtons];
 					}
 				}
 			}
@@ -6123,7 +6121,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleFailuresModal($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings,	$rFailureStatusArray;
+		global $db, $rSettings;
 		if (!Authorization::check("adv", "streams")) {
 			exit;
 		}
@@ -6158,7 +6156,7 @@ class TableController extends BaseAdminController {
 						if (!empty($rRow["source"])) {
 							$rStreamSource = strtolower(parse_url($rRow["source"])["host"]);
 						}
-						$rReturn["data"][] = ["<a href='server_view?id=" . (int) $rRow["server_id"] . "'>" . ServerRepository::getAll()[$rRow["server_id"]]["server_name"] . "</a>", $rStreamSource, $rFailureStatusArray[$rRow["action"]], date(SettingsManager::getAll()["datetime_format"], $rRow["date"])];
+						$rReturn["data"][] = ["<a href='server_view?id=" . (int) $rRow["server_id"] . "'>" . ServerRepository::getAll()[$rRow["server_id"]]["server_name"] . "</a>", $rStreamSource, StatusBadge::failure($rRow["action"]), date(SettingsManager::getAll()["datetime_format"], $rRow["date"])];
 					}
 				}
 			}
@@ -6189,7 +6187,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleStreamLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rStreamLogsArray;
+		global $db;
 		$rOrder = ["`date`", "`action`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
@@ -6218,7 +6216,7 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
-						$rReturn["data"][] = [date("H:i:s", $rRow["date"]), $rStreamLogsArray[$rRow["action"]]];
+						$rReturn["data"][] = [date("H:i:s", $rRow["date"]), StatusBadge::streamLog($rRow["action"])];
 					}
 				}
 			}

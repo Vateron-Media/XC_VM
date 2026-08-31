@@ -40,11 +40,6 @@ class SettingsController extends BaseAdminController {
         $BinVersion = $binVersionData['release'] ?? 'N/A';
         $BinOS = self::resolveOsLabel($binVersionData);
 
-        // Global lookup arrays from includes/admin.php needed by settings view
-        $rTMDBLanguages = $GLOBALS['rTMDBLanguages'] ?? [];
-        $rGeoCountries  = $GLOBALS['rGeoCountries'] ?? [];
-        $rMAGs          = $GLOBALS['rMAGs'] ?? [];
-
         $this->setTitle('Settings');
         $this->render('settings', compact(
             'rSettings',
@@ -54,10 +49,7 @@ class SettingsController extends BaseAdminController {
             'Nginx',
             'BinVersion',
             'BinOS',
-            'rUpdate',
-            'rTMDBLanguages',
-            'rGeoCountries',
-            'rMAGs'
+            'rUpdate'
         ));
     }
 

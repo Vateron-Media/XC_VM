@@ -660,8 +660,7 @@ class XC_Bootstrap {
     }
 
     /**
-     * Initialize admin globals: MobileDetect, timeouts, servers,
-     * protocol, admin_constants.
+     * Initialize admin globals: MobileDetect, timeouts, servers, protocol.
      */
     private static function initAdminGlobals(): void {
         global $rDetect, $rMobile, $rTimeout, $rSQLTimeout, $rProtocol,
@@ -706,8 +705,6 @@ class XC_Bootstrap {
 
         // Ensure the legacy 'reseller' assets alias (Public/assets/reseller → admin).
         self::ensureResellerAssetsSymlink();
-
-        require_once MAIN_HOME . 'resources/data/admin_constants.php';
     }
 
     /**

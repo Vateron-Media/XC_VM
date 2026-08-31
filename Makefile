@@ -44,6 +44,7 @@ LB_DIRS_TO_REMOVE := \
 	Public/Views \
 	Public/assets \
 	Public/routes \
+	Core/Reference \
 	resources/langs \
 	resources/libs
 
@@ -75,6 +76,9 @@ LB_FILES_TO_REMOVE := \
 	Cli/CronJobs/ProvidersCronJob.php \
 	Cli/CronJobs/SeriesCronJob.php \
 	Domain/Epg/EPG.php \
+	Core/Enum/Theme.php \
+	Core/Enum/ResellerAction.php \
+	Core/Enum/ClientFilter.php \
 	bin/nginx/conf/gzip.conf
 
 EXCLUDE_ARGS := $(addprefix --exclude=,$(EXCLUDES))

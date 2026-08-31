@@ -22,10 +22,8 @@ use XcVm\Domain\User\ResellerAPI;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 
-class ResellerLoginController
-{
-    public function index()
-    {
+class ResellerLoginController {
+    public function index() {
         // Bootstrap (login page is in noBootstrapPages, so FC skips bootstrap)
         require_once MAIN_HOME . 'bootstrap.php';
         \XC_Bootstrap::boot(\XC_Bootstrap::CONTEXT_ADMIN);
@@ -40,7 +38,7 @@ class ResellerLoginController
 
         // Flood protection
         $rSettings = SettingsManager::getAll();
-        global $db, $language, $rHues;
+        global $db, $language;
 
         if (intval($rSettings['login_flood']) > 0) {
             $db->query(

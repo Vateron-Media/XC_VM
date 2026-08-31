@@ -1,5 +1,6 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\LocaleReference;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
@@ -154,7 +155,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 																<select name="tmdb_language" id="tmdb_language" class="form-control" data-toggle="select2">
 																	<?php
 																	$rLanguageSet = (!empty($rMovie['tmdb_language']) ? $rMovie['tmdb_language'] : $rSettings['tmdb_language']);
-																	foreach ($rTMDBLanguages as $rKey => $rLanguage) {
+																	foreach (LocaleReference::tmdbLanguages() as $rKey => $rLanguage) {
 																		echo '<option value="' . $rKey . '"' . ($rKey == $rLanguageSet ? ' selected' : '') . '>' . $rLanguage . '</option>';
 																	}
 																	?>

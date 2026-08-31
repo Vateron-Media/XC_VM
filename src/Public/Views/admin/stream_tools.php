@@ -1,8 +1,9 @@
 <?php
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Enum\Theme;
 
-$xmIsDark = ($rThemes[$rUserInfo['theme']]['dark'] ?? false);
+$xmIsDark = Theme::fromId($rUserInfo['theme'])->isDark();
 $xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';
 ?>
 <div class="wrapper xm-mag <?= $xmTheme ?>"

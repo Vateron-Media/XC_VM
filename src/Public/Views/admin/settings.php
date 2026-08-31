@@ -1,6 +1,9 @@
 <?php
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Reference\DeviceReference;
+use XcVm\Core\Reference\GeoReference;
+use XcVm\Core\Reference\LocaleReference;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\MaxMindUpdater;
@@ -1008,7 +1011,7 @@ $isAjaxRequest = (
 
 													<div class="col-md-8">
 														<select name="tmdb_language" id="tmdb_language" class="form-control" data-toggle="select2">
-															<?php foreach ($rTMDBLanguages as $rKey => $rLanguage): ?>
+															<?php foreach (LocaleReference::tmdbLanguages() as $rKey => $rLanguage): ?>
 																<option value="<?= $rKey ?>" <?= $rSettings["tmdb_language"] == $rKey ? ' selected' : '' ?>>
 																	<?= $rLanguage ?>
 																</option>
@@ -2237,7 +2240,7 @@ $isAjaxRequest = (
 																: json_decode($rSettings["allow_countries"], true);
 															?>
 
-															<?php foreach ($rGeoCountries as $rValue => $rText): ?>
+															<?php foreach (GeoReference::geoCountries() as $rValue => $rText): ?>
 																<option value="<?= $rValue ?>" <?= in_array($rValue, $rAllowedCountries) ? ' selected' : '' ?>>
 																	<?= $rText ?>
 																</option>
@@ -2450,7 +2453,7 @@ $isAjaxRequest = (
 																<option selected value="<?= $rMAG ?>"><?= $rMAG ?></option>
 															<?php endforeach; ?>
 
-															<?php foreach (array_udiff($rMAGs, $rAllowedSTB, "strcasecmp") as $rMAG): ?>
+															<?php foreach (array_udiff(DeviceReference::magModels(), $rAllowedSTB, "strcasecmp") as $rMAG): ?>
 																<option value="<?= $rMAG ?>"><?= $rMAG ?></option>
 															<?php endforeach; ?>
 														</select>
@@ -2470,7 +2473,7 @@ $isAjaxRequest = (
 																<option selected value="<?= $rMAG ?>"><?= $rMAG ?></option>
 															<?php endforeach; ?>
 
-															<?php foreach (array_udiff($rMAGs, $rAllowedRecordingSTB, "strcasecmp") as $rMAG): ?>
+															<?php foreach (array_udiff(DeviceReference::magModels(), $rAllowedRecordingSTB, "strcasecmp") as $rMAG): ?>
 																<option value="<?= $rMAG ?>"><?= $rMAG ?></option>
 															<?php endforeach; ?>
 														</select>

@@ -1,5 +1,6 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Server\ServerRepository;
 
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
@@ -369,7 +370,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
                                                             data-toggle="select2" multiple="multiple"
                                                             data-placeholder="<?= $language::get('choose_placeholder') ?>">
                                                             <?php $rSelected = json_decode($rServerArr['geoip_countries'], true) ?? []; ?>
-                                                            <?php foreach ($rCountries as $rCountry): ?>
+                                                            <?php foreach (GeoReference::countries() as $rCountry): ?>
                                                                 <option
                                                                     <?= in_array($rCountry['id'], $rSelected) ? 'selected' : ''; ?>
                                                                     value="<?= $rCountry['id']; ?>">

@@ -1,5 +1,7 @@
 <div class="wrapper boxed-layout" <?php 
 use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Enum\Theme;
+use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Server\ServerRepository;
@@ -72,10 +74,10 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                     <label class="col-md-4 col-form-label" for="theme"><?= $language::get('system_theme') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="theme" id="theme" class="form-control" data-toggle="select2">
-                                                            <?php foreach ((is_array($rThemes ?? null) ? $rThemes : []) as $rValue => $rArray) { ?>
+                                                            <?php foreach (Theme::options() as $rValue => $rName) { ?>
                                                                 <option <?php if ($rUserInfo['theme'] == $rValue) {
                                                                             echo 'selected ';
-                                                                        } ?>value="<?php echo $rValue; ?>"><?php echo $rArray['name']; ?></option>
+                                                                        } ?>value="<?php echo $rValue; ?>"><?php echo $rName; ?></option>
                                                             <?php } ?>
                                                         </select>
                                                     </div>
@@ -84,7 +86,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                     <label class="col-md-4 col-form-label" for="hue"><?= $language::get('topbar_theme') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="hue" id="hue" class="form-control" data-toggle="select2">
-                                                            <?php foreach ((is_array($rHues ?? null) ? $rHues : []) as $rValue => $rText) { ?>
+                                                            <?php foreach (UiReference::hues() as $rValue => $rText) { ?>
                                                                 <option <?php if ($rUserInfo['hue'] == $rValue) {
                                                                             echo 'selected ';
                                                                         } ?>value="<?php echo $rValue; ?>"><?php echo $rText; ?></option>

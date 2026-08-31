@@ -1,5 +1,6 @@
 <div class="wrapper" <?php 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Enum\ClientFilter;
 
 if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
 							echo ' style="display: none;"';
@@ -29,7 +30,7 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
 							<div class="col-md-3">
 								<select id="filter" class="form-control" data-toggle="select2">
 									<option value="" selected><?php echo $language::get('all_reasons'); ?></option>
-									<?php foreach ($rClientFilters as $rFilter => $rFilterName) { ?>
+									<?php foreach (ClientFilter::options() as $rFilter => $rFilterName) { ?>
 										<option value="<?php echo $rFilter; ?>"><?php echo $rFilterName; ?></option>
 									<?php } ?>
 								</select>

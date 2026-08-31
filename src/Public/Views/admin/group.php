@@ -1,6 +1,7 @@
 <?php
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\PermissionReference;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\GroupService;
 
@@ -404,7 +405,7 @@ echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>';
 echo $language::get('description');
 echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
 
-foreach ($rAdvPermissions as $rPermission) {
+foreach (PermissionReference::advanced() as $rPermission) {
 	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
 
 	if (!(isset($rGroup) && is_array($rAllowedPages) && in_array($rPermission[0], $rAllowedPages))) {

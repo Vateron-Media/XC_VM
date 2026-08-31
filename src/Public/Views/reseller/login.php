@@ -1,3 +1,10 @@
+<?php
+
+use XcVm\Core\Reference\UiReference;
+
+$rHues = UiReference::hues();
+
+?>
 <!DOCTYPE html>
 <html lang="en">
     <head>
