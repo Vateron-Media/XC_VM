@@ -75,16 +75,16 @@ final class GitHubReleasesTest extends TestCase {
 		$cacheProperty->setValue($instance, $basePath . '_stable');
 		file_put_contents($basePath . '_stable', 'cache-data');
 
-		$instance->setChannel('unstable');
+		$instance->setChannel('unstable'); // legacy alias, normalized to 'beta'
 
-		$this->assertSame('unstable', $channelProperty->getValue($instance));
-		$this->assertSame($basePath . '_unstable', $cacheProperty->getValue($instance));
+		$this->assertSame('beta', $channelProperty->getValue($instance));
+		$this->assertSame($basePath . '_beta', $cacheProperty->getValue($instance));
 		$this->assertFalse(file_exists($basePath . '_stable'));
 	}
 
 	public function testSetChannelRejectsInvalidValue() {
 		$instance = new GitHubReleases('Vateron-Media', 'XC_VM', 'stable');
 		$this->expectException(InvalidArgumentException::class);
-		$instance->setChannel('beta');
+		$instance->setChannel('nightly');
 	}
 }

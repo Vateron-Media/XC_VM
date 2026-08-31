@@ -35,6 +35,11 @@ if (!defined('MAIN_HOME')) {
 if (!defined('PHP_BIN')) {
 	define('PHP_BIN', PHP_BINARY);
 }
+// FfmpegPaths::binary() builds paths under BIN_PATH . 'ffmpeg_bin/<ver>/'. No such
+// fixtures exist here, so lookups miss and the code falls back to FFMPEG_BIN_40.
+if (!defined('BIN_PATH')) {
+	define('BIN_PATH', $binRoot . '/');
+}
 if (!defined('VOD_PATH')) {
 	define('VOD_PATH', $tmpRoot . '/vod/');
 }
