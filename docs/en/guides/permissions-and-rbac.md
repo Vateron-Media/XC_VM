@@ -37,7 +37,7 @@ Key fields in `$rPermissions`:
 
 ## Permission Keys
 
-Permission keys are declared in `src/config/permissions.php` as the `$rPermissionKeys` array. Each key is a string identifier used with `Authorization::check('adv', $key)`.
+Permission keys are declared in `XcVm\Core\Reference\PermissionReference` (`src/Core/Reference/PermissionReference.php`): `PermissionReference::keys()` returns the full list, and `PermissionReference::advanced()` pairs each key with its localized title/description for the group editor. Each key is a string identifier used with `Authorization::check('adv', $key)`.
 
 Categories:
 
@@ -363,14 +363,18 @@ Any reseller page not listed above returns `true` (accessible by default).
 
 ## Adding a New Permission
 
-1. Add the key to `src/config/permissions.php`:
+1. Add the key to the `KEYS` constant in `src/Core/Reference/PermissionReference.php`:
 
 ```php
-$rPermissionKeys = array(
+private const KEYS = array(
     // ...existing keys...
     'my_new_permission',
 );
 ```
+
+Then add its label keys to the language files so the group editor can show a
+title/description: `permission_my_new_permission` and
+`permission_my_new_permission_text` in `src/Core/Localization/lang/en.ini`.
 
 2. Use it in code via `Authorization::check()`:
 
@@ -408,7 +412,7 @@ case 'my_entity':
 
 | File | Purpose |
 | --- | --- |
-| `src/config/permissions.php` | Permission key registry (`$rPermissionKeys` array) |
+| `src/Core/Reference/PermissionReference.php` | Permission key registry (`keys()`) + localized rows for the group editor (`advanced()`) |
 | `src/Core/Auth/Authorization.php` | Object-level and advanced permission checks |
 | `src/Core/Auth/PageAuthorization.php` | Page-level gating for admin and reseller panels |
 | `src/Core/Auth/SessionManager.php` | Session context; populates `$rPermissions` and `$rUserInfo` |
