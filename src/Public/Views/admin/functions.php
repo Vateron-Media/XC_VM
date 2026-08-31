@@ -6,6 +6,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
+use XcVm\Core\Localization\Translator;
 use XcVm\Domain\User\UserRepository;
 
 if (!defined('MAIN_HOME')) {
@@ -18,11 +19,15 @@ if (!defined('MAIN_HOME')) {
 // эти переменные без `global` не видны в текущем scope.
 // В глобальном scope (прямой вызов через nginx) — это no-op.
 global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
-       $rTimeout, $rProtocol, $allServers, $rPermissions, $language, $allowedLangs,
+       $rTimeout, $rProtocol, $allServers, $rPermissions, $allowedLangs,
        $rServerError, $allServersHealthy, $updateRequired, $rUserInfo;
 
 require_once MAIN_HOME . 'bootstrap.php';
 XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+
+// Translator FQCN for this page's views' `$language::get(...)` /
+// `$language::setLanguage(...)` calls (replaces the former global $language).
+$language = Translator::class;
 
 if ($rMobile) {
 	$rSettings['js_navigate'] = 0;

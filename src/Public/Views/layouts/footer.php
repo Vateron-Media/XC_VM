@@ -31,7 +31,7 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         // Legacy footer.php expects these variables in file scope.
         foreach ([
             'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
-            'db', 'language', 'rServers', 'allServers', 'rUpdate',
+            'db', 'rServers', 'allServers', 'rUpdate',
             '_TITLE', 'rModal', 'rProxyServers', 'rPermissions',
             'rServerError', 'allServersHealthy', '_PAGE', '_SETUP',
             'rStreamIDs', 'rFilterBy', 'rSortArray', 'rFilterArray',
@@ -44,6 +44,9 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             }
         }
         unset($_g);
+
+        // Translator FQCN for the legacy footer's $language::get(...) calls.
+        $language = \XcVm\Core\Localization\Translator::class;
 
         $rootPath = dirname(__DIR__, 3);
 

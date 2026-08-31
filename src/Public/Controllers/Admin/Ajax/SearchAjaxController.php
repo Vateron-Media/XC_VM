@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Admin\Ajax;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\StatusBadge;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\TimeUtils;
@@ -36,7 +37,7 @@ class SearchAjaxController extends BaseAjaxController {
         $this->requireXhr();
 
         /** @var class-string $language */
-        global $db, $rServers, $language;
+        global $db, $rServers;
 
         $rReturn = array('total_count' => 0, 'items' => array(), 'result' => true);
         $rTables = array('lines' => array('Lines', 'line?id=', '`username`, `admin_notes`, `reseller_notes`, `last_ip`, `contact`', 'id', 'username'), 'mag_devices' => array('MAG Devices', 'mag?id=', '`mac_filter`, `ip`', 'mag_id', 'mac'), 'enigma2_devices' => array('Enigma2 Devices', 'enigma?id=', '`mac_filter`, `public_ip`', 'device_id', 'mac'), 'users' => array('Users', 'user?id=', '`username`, `email`, `ip`, `notes`, `reseller_dns`', 'id', 'username'), 'streams' => array('Streams, Movies & Episodes', 'stream_view?id=', '`stream_display_name`, `stream_source`, `notes`, `channel_id`', 'id', 'stream_display_name'), 'streams_series' => array('TV Series', 'serie?id=', '`title`, `plot`, `cast`, `director`', 'id', 'title'));
@@ -378,7 +379,6 @@ class SearchAjaxController extends BaseAjaxController {
 
     /** streams_series row -> series payload. */
     private function buildSeriesItem(array $rItem, array $rCtx): array {
-        global $language;
         $rSeriesItem = ($rCtx['rSeriesInfo'][$rItem['id']] ?? array()) ?: array();
         $rCategoryIDs = json_decode($rItem['category_id'], true) ?: array();
         $rCategory = ($rCtx['rCategories'][$rCategoryIDs[0] ?? null]['category_name'] ?? '') ?: 'No Category';
@@ -406,7 +406,7 @@ class SearchAjaxController extends BaseAjaxController {
             'category' => $rCategory,
             'image' => array('url' => $rItem['cover'], 'size' => 512),
             'rating' => $this->ratingData($rItem['rating'] ?? 0, $rItem['year'] ?? ''),
-            'badge' => array('text' => $language::get('tv_series_btn'), 'variant' => 'danger'),
+            'badge' => array('text' => Translator::get('tv_series_btn'), 'variant' => 'danger'),
             'seasons' => intval($rSeriesItem[0] ?? 0),
             'episodes' => intval($rSeriesItem[1] ?? 0),
             'actions' => $rActions,
@@ -415,7 +415,6 @@ class SearchAjaxController extends BaseAjaxController {
 
     /** users row -> registered-user payload. */
     private function buildUserItem(array $rItem, array $rCtx): array {
-        global $language;
         $rGroup = $rCtx['rGroups'][$rItem['member_group_id']] ?? array();
         $rIsReseller = (bool) ($rGroup['is_reseller'] ?? false);
         $rActive = $rItem['status'] == 1;
@@ -423,7 +422,7 @@ class SearchAjaxController extends BaseAjaxController {
 
         if (Authorization::check('adv', 'edit_reguser')) {
             if ($rIsReseller) {
-                $rActions[] = array('kind' => 'credits', 'id' => intval($rItem['id']), 'icon' => 'mdi-coin', 'title' => $language::get('add_credits'));
+                $rActions[] = array('kind' => 'credits', 'id' => intval($rItem['id']), 'icon' => 'mdi-coin', 'title' => Translator::get('add_credits'));
             }
 
             $rActions[] = array('kind' => 'navigate', 'target' => 'user?id=' . $rItem['id'], 'icon' => 'mdi-pencil', 'title' => 'Edit');
@@ -441,7 +440,7 @@ class SearchAjaxController extends BaseAjaxController {
             'status' => array('label' => $rActive ? 'Active' : 'Inactive', 'variant' => $rActive ? 'info' : 'warning'),
             'users_count' => intval($rCtx['rUsersCount'][$rItem['id']] ?? 0),
             'lines_count' => intval($rCtx['rLinesCount'][$rItem['id']] ?? 0),
-            'badge' => array('text' => $language::get('user_btn'), 'variant' => 'warning'),
+            'badge' => array('text' => Translator::get('user_btn'), 'variant' => 'warning'),
             'actions' => $rActions,
         );
     }

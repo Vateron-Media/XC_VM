@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Domain\User\ResellerAPI;
 
 /**
@@ -43,7 +44,7 @@ class ResellerPostController extends BaseResellerController
         }
 
         $rUserInfo = $GLOBALS['rUserInfo'];
-        $language = $GLOBALS['language'];
+        $language = Translator::class;
 
         switch ($rAction) {
             case 'edit_profile':

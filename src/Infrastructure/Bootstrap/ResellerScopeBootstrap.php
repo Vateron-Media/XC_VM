@@ -5,6 +5,7 @@ namespace XcVm\Infrastructure\Bootstrap;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\User\UserRepository;
@@ -81,7 +82,7 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 	 * @return void
 	 */
 	private function bootFunctions(): void {
-		global $db, $rSettings, $rMobile, $language, $rPermissions, $rUserInfo,
+		global $db, $rSettings, $rMobile, $rPermissions, $rUserInfo,
 			$_STATUS, $customScript;
 
 		if (!defined('MAIN_HOME')) {
@@ -104,7 +105,7 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 
 			setcookie('hue', $rUserInfo['hue'] ?? '', time() + 604800);
 			setcookie('theme', $rUserInfo['theme'] ?? '', time() + 604800);
-			$language::setLanguage($rUserInfo['lang']);
+			Translator::setLanguage($rUserInfo['lang']);
 
 			$rPermissions = array_merge(AuthRepository::getPermissions($rUserInfo['member_group_id']), AuthRepository::getGroupPermissions($rUserInfo['id']));
 			$rPermissions['direct_reports'] = $rPermissions['direct_reports'] ?? [];

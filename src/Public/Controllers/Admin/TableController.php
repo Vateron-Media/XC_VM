@@ -8,6 +8,7 @@ use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\ClientFilter;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\StatusBadge;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Device\EnigmaService;
@@ -1064,7 +1065,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleStreams($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rServers, $language;
+		global $db, $rSettings, $rServers;
 		if (!Authorization::check("adv", "streams") && !Authorization::check("adv", "mass_edit_streams")) {
 			exit;
 		}
@@ -1412,7 +1413,7 @@ class TableController extends BaseAdminController {
 							}
 							$rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $rUptime . "</button>";
 						} elseif ($rActualStatus == 3) {
-							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $language::get('down_btn') . "</button>";
+							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>" . Translator::get('down_btn') . "</button>";
 						} elseif ($rActualStatus == 6) {
 							$rSources = json_decode($rRow["stream_source"], true);
 							$rLeft = count(array_diff($rSources, json_decode($rRow["cchannel_rsources"], true)));
@@ -1655,7 +1656,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleRadios($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rServers, $language;
+		global $db, $rSettings, $rServers;
 		if (!Authorization::check("adv", "radio") && !Authorization::check("adv", "mass_edit_radio")) {
 			exit;
 		}
@@ -1863,7 +1864,7 @@ class TableController extends BaseAdminController {
 							}
 							$rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light btn-fixed-xl'>" . $rUptime . "</button>";
 						} elseif ($rActualStatus == 3) {
-							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>" . $language::get('down_btn') . "</button>";
+							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl'>" . Translator::get('down_btn') . "</button>";
 						} else {
 							$rUptime = StatusBadge::stream($rActualStatus);
 						}
@@ -2662,7 +2663,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleLiveConnections($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $language, $rProxyServers;
+		global $db, $rProxyServers;
 		if (!Authorization::check("adv", "live_connections")) {
 			exit;
 		}
@@ -2946,7 +2947,7 @@ class TableController extends BaseAdminController {
 					$rDuration = (int) time() - (int) $rRow["date_start"];
 					$rColour = "success";
 					if (!empty($rRow["hls_end"])) {
-						$rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>" . $language::get('closed') . "</button>";
+						$rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>" . Translator::get('closed') . "</button>";
 					} else {
 						if (86400 <= $rDuration) {
 							$rDuration = sprintf("%02dd %02dh", $rDuration / 86400, $rDuration / 3600 % 24);
@@ -4301,7 +4302,7 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleAsns($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $language;
+		global $db;
 		if (!Authorization::check("adv", "block_isps")) {
 			exit;
 		}
@@ -4357,9 +4358,9 @@ class TableController extends BaseAdminController {
 						}
 						$rButtons .= "</div>";
 						if ($rRow["blocked"]) {
-							$rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">" . $language::get('blocked_btn') . "</button>";
+							$rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">" . Translator::get('blocked_btn') . "</button>";
 						} else {
-							$rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">" . $language::get('allowed') . "</button>";
+							$rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">" . Translator::get('allowed') . "</button>";
 						}
 						$rType = strtoupper($rRow["type"]);
 						$rReturn["data"][] = [$rRow["asn"], $rRow["isp"], $rRow["domain"], "<img loading=\"lazy\" src=\"assets/images/countries/" . strtolower($rRow["country"]) . ".png\">", number_format($rRow["num_ips"], 0), $rType, $rStatus, $rButtons];

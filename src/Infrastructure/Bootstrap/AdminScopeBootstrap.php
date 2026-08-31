@@ -6,6 +6,7 @@ use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\SessionManager;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\User\UserRepository;
@@ -92,7 +93,7 @@ final class AdminScopeBootstrap implements ScopeBootstrap {
 	 */
 	private function bootFunctions(): void {
 		global $db, $rSettings, $rMobile, $rServers, $rProxyServers, $rDetect,
-			$rTimeout, $rProtocol, $allServers, $rPermissions, $language, $allowedLangs,
+			$rTimeout, $rProtocol, $allServers, $rPermissions, $allowedLangs,
 			$rServerError, $allServersHealthy, $updateRequired, $rUserInfo,
 			$_STATUS, $customScript;
 
@@ -124,7 +125,7 @@ final class AdminScopeBootstrap implements ScopeBootstrap {
 			}
 
 			if (!isset($_COOKIE['lang']) || $_COOKIE['lang'] != $rUserInfo['lang']) {
-				$language::setLanguage($rUserInfo['lang']);
+				Translator::setLanguage($rUserInfo['lang']);
 			}
 
 			$rPermissions = AuthRepository::getPermissions($rUserInfo['member_group_id']);

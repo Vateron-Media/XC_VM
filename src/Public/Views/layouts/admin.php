@@ -27,7 +27,7 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         // Since we require it from inside a function, pull them from $GLOBALS.
         foreach ([
             'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
-            'db', 'language', 'allServersHealthy', 'rServerError',
+            'db', 'allServersHealthy', 'rServerError',
             'rServers', 'allServers', 'rUpdate', '_TITLE', 'rModal',
             'rProxyServers', 'rPermissions', '_PAGE', '_SETUP',
         ] as $_g) {
@@ -36,6 +36,9 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
             }
         }
         unset($_g);
+
+        // Translator FQCN for the legacy header's $language::get(...) calls.
+        $language = \XcVm\Core\Localization\Translator::class;
 
         $rootPath = dirname(__DIR__, 3);
 

@@ -526,8 +526,7 @@ class XC_Bootstrap {
      * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
-        $language = Translator::class;
-        $language::init(MAIN_HOME . 'resources/langs/');
+        Translator::init(MAIN_HOME . 'resources/langs/');
     }
 
     /**
@@ -665,7 +664,7 @@ class XC_Bootstrap {
     private static function initAdminGlobals(): void {
         global $rDetect, $rMobile, $rTimeout, $rSQLTimeout, $rProtocol,
             $allServers, $rServers, $rSettings, $rProxyServers,
-            $rPermissions, $language, $allowedLangs;
+            $rPermissions, $allowedLangs;
 
         if (!defined('SERVER_ID')) {
             define('SERVER_ID', intval(ConfigReader::get('server_id')));
@@ -690,8 +689,7 @@ class XC_Bootstrap {
         }
         $rProxyServers = ServerRepository::getProxySimple($rPermissions);
 
-        $language     = Translator::class;
-        $allowedLangs = $language::available();
+        $allowedLangs = Translator::available();
 
         // Sort servers by order
         if (is_array($rServers)) {

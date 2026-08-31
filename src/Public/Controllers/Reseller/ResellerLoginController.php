@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\User\ResellerAPI;
@@ -38,7 +39,10 @@ class ResellerLoginController {
 
         // Flood protection
         $rSettings = SettingsManager::getAll();
-        global $db, $language;
+        global $db;
+
+        // Translator FQCN for reseller/login.php's `$language::get(...)` calls.
+        $language = Translator::class;
 
         if (intval($rSettings['login_flood']) > 0) {
             $db->query(

@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Admin;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\PageAuthorization;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
 
 /**
@@ -88,7 +89,6 @@ class BaseAdminController {
         // вьюхи теперь получают напрямую через XcVm\Core\Reference\* и enum'ы.
         $viewGlobals = [
             // Core rendering
-            'language',
             'db',
             'rSettings',
             'rMobile',
@@ -122,6 +122,10 @@ class BaseAdminController {
             }
         }
         unset($_g);
+
+        // Translator FQCN for legacy views' `$language::get(...)` calls
+        // (replaces the former bootstrap-set global $language).
+        $data['language'] ??= Translator::class;
 
         extract($data, EXTR_SKIP);
 
