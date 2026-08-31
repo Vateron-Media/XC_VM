@@ -45,8 +45,7 @@ LB_DIRS_TO_REMOVE := \
 	Public/assets \
 	Public/routes \
 	Core/Reference \
-	resources/langs \
-	resources/libs
+	Core/Localization/lang
 
 # Files to remove from LB
 LB_FILES_TO_REMOVE := \

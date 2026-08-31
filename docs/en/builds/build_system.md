@@ -96,8 +96,8 @@ After copying, admin-specific content is **removed** from the LB build:
 | `Domain/User/` | User management |
 | `Domain/Device/` | Device registration |
 | `Domain/Auth/` | Auth management (panel auth) |
-| `resources/langs/` | Language resource files |
-| `resources/libs/` | Admin library resources |
+| `Core/Reference/` | Admin reference-data classes (MAIN-only) |
+| `Core/Localization/lang/` | Language resource files (`.ini`) |
 
 **Files removed** (these mirror `LB_FILES_TO_REMOVE` in the Makefile):
 

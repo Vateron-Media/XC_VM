@@ -18,7 +18,6 @@
     </include>
     <exclude>
       <directory suffix=".php">../src/Public/Views</directory>
-      <directory suffix=".php">../src/resources</directory>
       <directory suffix=".php">../src/config</directory>
       <directory suffix=".php">../src/ministra</directory>
       <directory suffix=".php">../src/content</directory>

@@ -31,7 +31,6 @@ parameters:
         - ../src/Public
         - ../src/signals
         - ../src/content
-        - ../src/resources
         - ../src/config
         - ../src/migrations
 

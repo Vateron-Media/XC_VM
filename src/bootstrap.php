@@ -526,7 +526,7 @@ class XC_Bootstrap {
      * Initialize Translator (i18n).
      */
     private static function initTranslator(): void {
-        Translator::init(MAIN_HOME . 'resources/langs/');
+        Translator::init();
     }
 
     /**

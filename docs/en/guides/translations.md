@@ -1,13 +1,13 @@
 # Adding a Custom Language
 
-XC_VM uses a file-based translation system. Each language is a single `.ini` file in the `src/resources/langs/` directory. Adding a new language requires no code changes — just create a file and it will appear in the admin panel automatically.
+XC_VM uses a file-based translation system. Each language is a single `.ini` file in the `src/Core/Localization/lang/` directory. Adding a new language requires no code changes — just create a file and it will appear in the admin panel automatically.
 
 ## Quick Start
 
 1. Copy the English reference file as a template:
 
 ```bash
-cp src/resources/langs/en.ini src/resources/langs/xx.ini
+cp src/Core/Localization/lang/en.ini src/Core/Localization/lang/xx.ini
 ```
 
 Replace `xx` with the [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) language code (e.g., `it` for Italian, `pl` for Polish, `ja` for Japanese).
@@ -47,7 +47,7 @@ another_key = "Another translated text"
 
 | Step | What happens |
 |------|-------------|
-| Panel boot | `Translator::init()` scans `src/resources/langs/` for `*.ini` files |
+| Panel boot | `Translator::init()` scans `src/Core/Localization/lang/` for `*.ini` files |
 | Language list | `Translator::available()` returns all found language codes |
 | User selection | Language is stored in a `lang` cookie (per browser) and in the `settings.language` DB column (global default) |
 | Missing key | If a translation key is used in code but missing from your `.ini` file, the system **automatically appends** it with the key name as the default value |
@@ -71,13 +71,13 @@ another_key = "Another translated text"
 - **Find untranslated keys** — look for lines where key equals value:
 
 ```bash
-grep -P '^(\w+)\s*=\s*"\1"$' src/resources/langs/xx.ini
+grep -P '^(\w+)\s*=\s*"\1"$' src/Core/Localization/lang/xx.ini
 ```
 
 - **Validate your file** — make sure `parse_ini_file()` can read it:
 
 ```bash
-php -r "var_dump(parse_ini_file('src/resources/langs/xx.ini', false, INI_SCANNER_RAW));" | head -20
+php -r "var_dump(parse_ini_file('src/Core/Localization/lang/xx.ini', false, INI_SCANNER_RAW));" | head -20
 ```
 
 ## Contributing Translations
@@ -95,4 +95,4 @@ Please ensure all keys from `en.ini` are present and translated.
 | File | Role |
 | --- | --- |
 | `src/Core/Localization/Translator.php` | Translation lookup |
-| `src/resources/langs/` | Language files |
+| `src/Core/Localization/lang/` | Language files |
