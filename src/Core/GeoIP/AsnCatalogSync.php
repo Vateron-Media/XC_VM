@@ -135,7 +135,7 @@ class AsnCatalogSync {
 				continue;
 			}
 
-			$rDomain = (isset($rRow['domain']) && $rRow['domain'] !== null && $rRow['domain'] !== '') ? (string) $rRow['domain'] : null;
+			$rDomain = (isset($rRow['domain']) && $rRow['domain'] !== '') ? (string) $rRow['domain'] : null;
 			$rUpsertBatch[] = array(
 				$rAsn,
 				isset($rRow['isp']) ? (string) $rRow['isp'] : null,
