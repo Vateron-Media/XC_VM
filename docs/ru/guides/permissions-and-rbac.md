@@ -37,7 +37,7 @@ user -> member_group_id -> group
 
 ## Ключи разрешений
 
-Ключи разрешений объявляются в `src/config/permissions.php` как массив `$rPermissionKeys`. Каждый ключ представляет собой строковый идентификатор, используемый в `Authorization::check('adv', $key)`.
+Ключи разрешений объявляются в `XcVm\Core\Reference\PermissionReference` (`src/Core/Reference/PermissionReference.php`): `PermissionReference::keys()` возвращает полный список и `PermissionReference::advanced()` связывает каждый ключ с его локализованным названием/описанием для редактора групп. Каждый ключ представляет собой строковый идентификатор, используемый в `Authorization::check('adv', $key)`.
 
 Категории:
 
@@ -363,14 +363,18 @@ PageAuthorization::checkResellerPermissions(?string $page = null): bool
 
 ## Добавление нового разрешения
 
-1. Добавьте ключ к `src/config/permissions.php`:
+1. Добавьте ключ к константе `KEYS` в `src/Core/Reference/PermissionReference.php`:
 
 ```php
-$rPermissionKeys = array(
+private const KEYS = array(
     // ...existing keys...
     'my_new_permission',
 );
 ```
+
+Затем добавьте его метки-ключи к языковым файлам, чтобы редактор групп мог отобразить
+название/описание: `permission_my_new_permission` и
+`permission_my_new_permission_text` в `src/Core/Localization/lang/en.ini`.
 
 2. Используйте это в коде через `Authorization::check()`:
 
@@ -408,7 +412,7 @@ case 'my_entity':
 
 |Файл|Цель|
 | --- | --- |
-| `src/config/permissions.php` |Реестр ключей разрешений (массив`$rPermissionKeys`)|
+| `src/Core/Reference/PermissionReference.php` |Реестр разрешений (`keys()`) + локализованные строки для редактора групп (`advanced()`)|
 | `src/Core/Auth/Authorization.php` |Проверка разрешений на уровне объекта и расширенные проверки разрешений|
 | `src/Core/Auth/PageAuthorization.php` |Настройка на уровне страницы для панелей администратора и реселлера|
 | `src/Core/Auth/SessionManager.php` |Контекст сеанса; заполняет значения `$rPermissions` и `$rUserInfo`|

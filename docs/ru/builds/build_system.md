@@ -96,8 +96,8 @@ signals/    Streaming/  tmp/        vendor/     www/
 | `Domain/User/` |Управление пользователями|
 | `Domain/Device/` |Регистрация устройства|
 | `Domain/Auth/` |Управление авторизацией (panel auth)|
-| `resources/langs/` |Файлы языковых ресурсов|
-| `resources/libs/` |Администрирование библиотечных ресурсов|
+| `Core/Reference/` |Ссылка администратора-классы данных (только для ОСНОВНЫХ)|
+| `Core/Localization/lang/` |Файлы языковых ресурсов (`.ini`)|
 
 **Удаленные файлы** (они отражают `LB_FILES_TO_REMOVE` в Makefile):
 

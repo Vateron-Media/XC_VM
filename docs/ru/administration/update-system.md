@@ -180,7 +180,7 @@ sudo /usr/bin/python3 /home/xc_vm/update "/home/xc_vm/tmp/.update.tar.gz" "HASH"
 
 4. **Система + завершение.** Аналогично обновлению: скрипт на Python останавливает панель, заменяет дерево (сохраняя двоичные файлы/конфигурацию/данные) и `post-update` устанавливает версию в базе данных на откатную версию и перезапускает панель.
 
-The version list is channel-aware: the `stable` channel offers only stable releases, `unstable` also offers `(beta)` pre-releases.
+The version list is channel-aware: the `stable` channel offers only stable releases, `beta` also offers `(beta)` pre-releases.
 
 > ⚠️ Понижение версии **не отменяет перенос базы данных** (они доступны только в прямом режиме). Схема поддерживается с обратной совместимостью, а автоматическое ОСНОВНОЕ резервное копирование является способом восстановления. Программа Python выполняет копирование по дереву (`cp -a`) без удаления файлов, поэтому файлы, добавленные в более новой версии, сохраняются до следующего обновления.
 

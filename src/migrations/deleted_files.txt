@@ -14,9 +14,11 @@ Modules/ministra_85a7d/MinistraModule.php
 Modules/ministra_85a7d/PortalHandler.php
 Modules/ministra_85a7d/PortalHelpers.php
 Modules/ministra_85a7d/module.json
+Public/Views/admin/api.php
 Streaming/Delivery/SegmentReader.php
 Streaming/Delivery/SignalSender.php
 Streaming/TimeshiftClient.php
+config/permissions.php
 ministra/JsHttpRequest-debug.js
 ministra/JsHttpRequest.js
 ministra/MinistraBootstrap.php
@@ -4238,3 +4240,11 @@ ministra/widget.radio.js
 ministra/xpcom.common.js
 ministra/xpcom.webkit.js
 ministra/youtube.js
+resources/data/admin_constants.php
+resources/langs/bg.ini
+resources/langs/de.ini
+resources/langs/en.ini
+resources/langs/es.ini
+resources/langs/fr.ini
+resources/langs/pt.ini
+resources/langs/ru.ini

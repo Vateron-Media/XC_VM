@@ -1,13 +1,13 @@
 # Добавление пользовательского языка
 
-XC_VM использует файловую систему перевода. Каждый язык представляет собой отдельный файл `.ini` в каталоге `src/resources/langs/`. Добавление нового языка не требует изменения кода — просто создайте файл, и он автоматически появится в панели администратора.
+XC_VM использует файловую систему перевода. Каждый язык представляет собой отдельный файл `.ini` в каталоге `src/Core/Localization/lang/`. Добавление нового языка не требует изменения кода — просто создайте файл, и он автоматически появится в панели администратора.
 
 ## быстрый старт
 
 1. Скопируйте файл ссылки на английском языке в качестве шаблона:
 
 ```bash
-cp src/resources/langs/en.ini src/resources/langs/xx.ini
+cp src/Core/Localization/lang/en.ini src/Core/Localization/lang/xx.ini
 ```
 
 Замените `xx` кодом языка [ISO 639-1](https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) (например, `it` для итальянского, `pl` для польского, `ja` для японского).
@@ -47,7 +47,7 @@ another_key = "Another translated text"
 
 |Шаг|Что происходит|
 |------|-------------|
-|Панель загрузки|`Translator::init()` проверяет `src/resources/langs/` на наличие `*.ini` файлов|
+|Панель загрузки|`Translator::init()` проверяет `src/Core/Localization/lang/` на наличие `*.ini` файлов|
 |Список языков|`Translator::available()` возвращает все найденные языковые коды|
 |Выбор пользователя|Язык сохраняется в файле cookie `lang` (для каждого браузера) и в столбце базы данных `settings.language` (по умолчанию).|
 |Отсутствующий ключ| If a translation key is used in code but missing from your `.ini` file, the system **automatically appends** it with the key name as the default value |
@@ -67,17 +67,17 @@ another_key = "Another translated text"
 ## Чаевые
 
 - **Всегда используйте `en.ini` в качестве источника истины** — содержит все ключи. В других файлах могут отсутствовать ключи, которые автоматически заполняются во время выполнения.
-- **Автоматическое создание недостающих ключей**: если в вашем файле отсутствует ключ, `Translator` автоматически добавит `key = "key"` к вашему файлу. Затем вы сможете найти и перевести эти непереведенные записи.
+- **Автоматическое создание отсутствующих ключей**: если в вашем файле отсутствует ключ, `Translator` автоматически добавит `key = "key"` к вашему файлу. Затем вы сможете найти и перевести эти непереведенные записи.
 - **Поиск непереведенных ключей** — поиск строк, в которых ключ равен значению:
 
 ```bash
-grep -P '^(\w+)\s*=\s*"\1"$' src/resources/langs/xx.ini
+grep -P '^(\w+)\s*=\s*"\1"$' src/Core/Localization/lang/xx.ini
 ```
 
 - **Проверьте свой файл** — убедитесь, что `parse_ini_file()` может это прочитать:
 
 ```bash
-php -r "var_dump(parse_ini_file('src/resources/langs/xx.ini', false, INI_SCANNER_RAW));" | head -20
+php -r "var_dump(parse_ini_file('src/Core/Localization/lang/xx.ini', false, INI_SCANNER_RAW));" | head -20
 ```
 
 ## Дополнительные переводы
@@ -95,4 +95,4 @@ php -r "var_dump(parse_ini_file('src/resources/langs/xx.ini', false, INI_SCANNER
 |Файл|Роль|
 | --- | --- |
 | `src/Core/Localization/Translator.php` |Поиск перевода|
-| `src/resources/langs/` |Языковые файлы|
+| `src/Core/Localization/lang/` |Языковые файлы|
