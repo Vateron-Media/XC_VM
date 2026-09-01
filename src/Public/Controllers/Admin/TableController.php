@@ -3759,162 +3759,115 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
+	/**
+	 * action=reg_user_logs — returns clean JSON rows (no HTML). The human action
+	 * text (action + device + package), permission-gated owner link and the
+	 * resolved target (line/user/mag/enigma, or a deleted-info fallback) are all
+	 * computed server-side; the Vuexy user_logs page renders them via
+	 * datatables-bs5 columns[].render. Every matching row is emitted (the legacy
+	 * HTML branch only appended a subset).
+	 */
 	private function handleRegUserLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings;
+		global $db, $rPermissions;
 		if (!Authorization::check("adv", "reg_userlog")) {
 			exit;
 		}
-		$rOrder = ["`users_logs`.`id`", "`users`.`username`", "`users_logs`.`log_id`", "`users_logs`.`type`, `users_logs`.`action`", "`users_logs`.`cost`", "`users_logs`.`credits_after`", "`users_logs`.`date`"];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable).
+		$rOrderBy = self::dtOrderBy([false, "`users`.`username`", "`users_logs`.`log_id`", "`users_logs`.`type`, `users_logs`.`action`", "`users_logs`.`cost`", "`users_logs`.`credits_after`", "`users_logs`.`date`"]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`users`.`username` LIKE ? OR `users_logs`.`deleted_info` LIKE ? OR `users_logs`.`action` LIKE ?)";
 		}
-		if (0 < strlen(RequestManager::get("range") ?? '')) {
-			$rStartTime = substr(RequestManager::get("range"), 0, 10);
-			$rEndTime = substr(RequestManager::get("range"), strlen(RequestManager::get("range") ?? '') - 10, 10);
-			if (!($rStartTime = strtotime($rStartTime . " 00:00:00"))) {
-				$rStartTime = NULL;
-			}
-			if (!($rEndTime = strtotime($rEndTime . " 23:59:59"))) {
-				$rEndTime = NULL;
-			}
+		$rRange = (string) (RequestManager::get("range") ?? '');
+		if (0 < strlen($rRange)) {
+			$rStartTime = strtotime(substr($rRange, 0, 10) . " 00:00:00");
+			$rEndTime   = strtotime(substr($rRange, strlen($rRange) - 10, 10) . " 23:59:59");
 			if ($rStartTime && $rEndTime) {
-				$rWhere[] = "(`users_logs`.`date` >= ? AND `users_logs`.`date` <= ?)";
+				$rWhere[]  = "(`users_logs`.`date` >= ? AND `users_logs`.`date` <= ?)";
 				$rWhereV[] = $rStartTime;
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if (0 < strlen(RequestManager::get("reseller") ?? '')) {
-			$rWhere[] = "`users_logs`.`owner` = ?";
-			$rWhereV[] = RequestManager::get("reseller");
+		$rReseller = (string) (RequestManager::get("reseller") ?? '');
+		if (0 < strlen($rReseller)) {
+			$rWhere[]  = "`users_logs`.`owner` = ?";
+			$rWhereV[] = $rReseller;
 		}
-		if (0 < strlen(RequestManager::get("filter") ?? '')) {
-			$rWhere[] = "`users_logs`.`action` = ?";
-			$rWhereV[] = RequestManager::get("filter");
+		$rFilter = (string) (RequestManager::get("filter") ?? '');
+		if (0 < strlen($rFilter)) {
+			$rWhere[]  = "`users_logs`.`action` = ?";
+			$rWhereV[] = $rFilter;
 		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
 			$rPackages = PackageService::getAll();
+			$rCanEdit  = Authorization::check("adv", "edit_reguser");
+			$rDeviceMap = ["line" => "User Line", "mag" => "MAG Device", "enigma" => "Enigma2 Device", "user" => "Reseller"];
 			$rQuery = "SELECT `users`.`username`, `users_logs`.`id`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`credits_after`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if (Authorization::check("adv", "edit_reguser")) {
-							$rOwner = "<a href='user?id=" . $rRow["owner"] . "'>" . $rRow["username"] . "</a>";
-						} else {
-							$rOwner = $rRow["username"];
-						}
-						$rDevice = ["line" => "User Line", "mag" => "MAG Device", "enigma" => "Enigma2 Device", "user" => "Reseller"][$rRow["type"]];
-						$rText = "";
-						switch ($rRow["action"]) {
-							case "new":
-								if ($rRow["package_id"]) {
-									$rText = "Created New " . $rDevice . " with Package: " . $rPackages[$rRow["package_id"]]["package_name"];
-								} else {
-									$rText = "Created New " . $rDevice;
-								}
-								break;
-							case "extend":
-								if ($rRow["package_id"]) {
-									$rText = "Extended " . $rDevice . " with Package: " . $rPackages[$rRow["package_id"]]["package_name"];
-								} else {
-									$rText = "Extended " . $rDevice;
-								}
-								break;
-							case "convert":
-								$rText = "Converted Device to User Line";
-								break;
-							case "edit":
-								$rText = "Edited " . $rDevice;
-								break;
-							case "enable":
-								$rText = "Enabled " . $rDevice;
-								break;
-							case "disable":
-								$rText = "Disabled " . $rDevice;
-								break;
-							case "delete":
-								$rText = "Deleted " . $rDevice;
-								break;
-							case "send_event":
-								$rText = "Sent Event to " . $rDevice;
-								break;
-							case "adjust_credits":
-								$rText = "Adjusted Credits by " . $rRow["cost"];
-								break;
-							case "connection":
-								$rText = "Additional Connection Added";
-								break;
-							default:
-								$rLineInfo = NULL;
-								switch ($rRow["type"]) {
-									case "line":
-										$rLine = UserRepository::getLineById($rRow["log_id"]);
-										if ($rLine) {
-											$rLineInfo = "<a href='line?id=" . $rRow["log_id"] . "'>" . $rLine["username"] . "</a>";
-										}
-										break;
-									case "user":
-										$rLine = UserRepository::getRegisteredUserById($rRow["log_id"]);
-										if ($rLine) {
-											$rLineInfo = "<a href='user?id=" . $rRow["log_id"] . "'>" . $rLine["username"] . "</a>";
-										}
-										break;
-									case "mag":
-										$rLine = MagService::getById($rRow["log_id"]);
-										if ($rLine) {
-											$rLineInfo = "<a href='mag?id=" . $rRow["log_id"] . "'>" . $rLine["mac"] . "</a>";
-										}
-										break;
-									case "enigma":
-										$rLine = EnigmaService::getById($rRow["log_id"]);
-										if ($rLine) {
-											$rLineInfo = "<a href='enigma?id=" . $rRow["log_id"] . "'>" . $rLine["mac"] . "</a>";
-										}
-										break;
-									default:
-										if (!$rLineInfo) {
-											$rDeletedInfo = json_decode($rRow["deleted_info"], true);
-											if (is_array($rDeletedInfo)) {
-												if (isset($rDeletedInfo["mac"])) {
-													$rLineInfo = "<span class='text-secondary'>" . $rDeletedInfo["mac"] . "</span>";
-												} else {
-													$rLineInfo = "<span class='text-secondary'>" . $rDeletedInfo["username"] . "</span>";
-												}
-											} else {
-												$rLineInfo = "<span class='text-secondary'>DELETED</span>";
-											}
-										}
-										$rReturn["data"][] = [$rRow["id"], $rOwner, $rLineInfo, $rText, number_format($rRow["cost"], 0), number_format($rRow["credits_after"], 0), date($rSettings["datetime_format"], $rRow["date"])];
-								}
-						}
-					}
+			foreach ($db->get_rows() as $rRow) {
+				$rDevice = $rDeviceMap[$rRow["type"]] ?? (string) $rRow["type"];
+				$rPkg = $rRow["package_id"] ? (" with Package: " . ($rPackages[$rRow["package_id"]]["package_name"] ?? "")) : "";
+				switch ($rRow["action"]) {
+					case "new":            $rText = "Created New " . $rDevice . $rPkg; break;
+					case "extend":         $rText = "Extended " . $rDevice . $rPkg; break;
+					case "convert":        $rText = "Converted Device to User Line"; break;
+					case "edit":           $rText = "Edited " . $rDevice; break;
+					case "enable":         $rText = "Enabled " . $rDevice; break;
+					case "disable":        $rText = "Disabled " . $rDevice; break;
+					case "delete":         $rText = "Deleted " . $rDevice; break;
+					case "send_event":     $rText = "Sent Event to " . $rDevice; break;
+					case "adjust_credits": $rText = "Adjusted Credits by " . $rRow["cost"]; break;
+					case "connection":     $rText = "Additional Connection Added"; break;
+					default:               $rText = (string) $rRow["action"];
 				}
+				$rLineLabel = null;
+				$rLineUrl   = null;
+				switch ($rRow["type"]) {
+					case "line":
+						$rEntity = UserRepository::getLineById($rRow["log_id"]);
+						if ($rEntity) { $rLineLabel = $rEntity["username"]; $rLineUrl = "line?id=" . (int) $rRow["log_id"]; }
+						break;
+					case "user":
+						$rEntity = UserRepository::getRegisteredUserById($rRow["log_id"]);
+						if ($rEntity) { $rLineLabel = $rEntity["username"]; $rLineUrl = "user?id=" . (int) $rRow["log_id"]; }
+						break;
+					case "mag":
+						$rEntity = MagService::getById($rRow["log_id"]);
+						if ($rEntity) { $rLineLabel = $rEntity["mac"]; $rLineUrl = "mag?id=" . (int) $rRow["log_id"]; }
+						break;
+					case "enigma":
+						$rEntity = EnigmaService::getById($rRow["log_id"]);
+						if ($rEntity) { $rLineLabel = $rEntity["mac"]; $rLineUrl = "enigma?id=" . (int) $rRow["log_id"]; }
+						break;
+				}
+				if ($rLineLabel === null) {
+					$rDeletedInfo = json_decode($rRow["deleted_info"], true);
+					$rLineLabel = is_array($rDeletedInfo) ? ($rDeletedInfo["mac"] ?? $rDeletedInfo["username"] ?? "DELETED") : "DELETED";
+				}
+				$rItem = [
+					"id"            => (int) $rRow["id"],
+					"owner"         => $rRow["username"],
+					"owner_url"     => ($rCanEdit && $rRow["username"] !== null) ? "user?id=" . (int) $rRow["owner"] : null,
+					"line_label"    => $rLineLabel,
+					"line_url"      => $rLineUrl,
+					"text"          => $rText,
+					"cost"          => (int) $rRow["cost"],
+					"credits_after" => (int) $rRow["credits_after"],
+					"date"          => (int) $rRow["date"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
