@@ -15,6 +15,32 @@
  *   renderUnifiedLayoutHeader('admin', ['_TITLE' => 'Dashboard']);
  */
 
+if (!function_exists('xc_admin_use_vuexy')) {
+    /**
+     * Per-page opt-in to the Vuexy admin shell.
+     *
+     * The redesign migrates admin pages one at a time, so the shell must stay
+     * legacy for every page that has NOT been rebuilt yet. Only pages listed in
+     * XC_VUEXY_PAGES render inside header.vuexy.php/footer.vuexy.php.
+     *
+     * Forced back to the legacy shell when:
+     *  - XC_ADMIN_LEGACY_UI is defined (global kill-switch), or
+     *  - the request is a modal (?modal=) or the setup wizard ($_SETUP) — both
+     *    keep the legacy chrome this migration pass.
+     */
+    function xc_admin_use_vuexy(): bool {
+        if (defined('XC_ADMIN_LEGACY_UI')) {
+            return false;
+        }
+        if (isset($_GET['modal']) || !empty($GLOBALS['_SETUP'])) {
+            return false;
+        }
+        static $migrated = ['dashboard'];
+        $page = \XcVm\Core\Util\AdminHelpers::getPageName();
+        return in_array($page, $migrated, true);
+    }
+}
+
 if (!function_exists('renderUnifiedLayoutHeader')) {
     function renderUnifiedLayoutHeader($scope = 'admin', array $vars = []) {
         foreach ($vars as $key => $value) {
@@ -52,7 +78,11 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
             return;
         }
 
-        require dirname(__DIR__) . '/admin/header.php';
+        if (xc_admin_use_vuexy()) {
+            require dirname(__DIR__) . '/admin/header.vuexy.php';
+        } else {
+            require dirname(__DIR__) . '/admin/header.php';
+        }
 
         // header.php sets $rModal in local scope; propagate to $GLOBALS
         // so that renderUnifiedLayoutFooter() can read it later.
