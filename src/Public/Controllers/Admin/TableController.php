@@ -5121,71 +5121,61 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
+	/**
+	 * action=queue — returns clean JSON rows (no HTML). Permission-gated stream/
+	 * server links are resolved server-side into url fields; the row position and
+	 * in_progress flag are computed here. Presentation (status icon, stop/delete
+	 * button) is done client-side by the Vuexy queue page.
+	 */
 	private function handleQueue($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rPermissions;
+		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "movies") && !Authorization::check("adv", "episodes") && !Authorization::check("adv", "series")) {
 			exit;
 		}
-		$rOrder = ["`queue`.`id`", "`streams`.`stream_display_name`", "`servers`.`server_name`", "`queue`.`pid`", "`queue`.`added`", false];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable);
+		// the trailing actions column is non-orderable too.
+		$rOrderBy = self::dtOrderBy([false, "`queue`.`id`", "`streams`.`stream_display_name`", "`servers`.`server_name`", "`queue`.`pid`", "`queue`.`added`", false]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`streams`.`stream_display_name` LIKE ? OR `servers`.`server_name` LIKE ? OR `streams`.`id` LIKE ?)";
 		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `queue` LEFT JOIN `servers` ON `servers`.`id` = `queue`.`server_id` LEFT JOIN `streams` ON `streams`.`id` = `queue`.`stream_id` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `queue` LEFT JOIN `servers` ON `servers`.`id` = `queue`.`server_id` LEFT JOIN `streams` ON `streams`.`id` = `queue`.`stream_id` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
+			$rCanServers = Authorization::check("adv", "servers");
+			$rStreamPerm = ["2" => "movies", "5" => "series"];
 			$rQuery = "SELECT `queue`.*, `servers`.`server_name`, `streams`.`type`, `streams`.`stream_display_name` FROM `queue` LEFT JOIN `servers` ON `servers`.`id` = `queue`.`server_id` LEFT JOIN `streams` ON `streams`.`id` = `queue`.`stream_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				$rPosition = $rStart + 1;
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rRow["position"] = $rPosition;
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if (Authorization::check("adv", "servers")) {
-							$rServerName = "<a href='server_view?id=" . $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>";
-						} else {
-							$rServerName = $rRow["server_name"];
-						}
-						$rPermission = ["2" => "movies", "5" => "series"];
-						if (Authorization::check("adv", $rPermission[$rRow["type"]])) {
-							$rStream = "<a href='stream_view?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
-						} else {
-							$rStream = $rRow["stream_display_name"];
-						}
-						if (0 < $rRow["pid"]) {
-							$rStatus = "<i class=\"text-info fas fa-square tooltip\" title=\"In Progress\"></i>";
-							$rButtons = "<button title=\"Stop\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow["id"] . "', 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
-						} else {
-							$rStatus = "<i class=\"text-secondary fas fa-square tooltip\" title=\"Queued...\"></i>";
-							$rButtons = "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow["id"] . "', 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-						}
-						$rReturn["data"][] = [$rPosition, $rStream, $rServerName, $rStatus, date($rSettings["datetime_format"], $rRow["added"]), $rButtons];
-						$rPosition++;
-					}
-				}
+			$rPosition = $rStart + 1;
+			foreach ($db->get_rows() as $rRow) {
+				$rType = strval($rRow["type"] ?? '');
+				$rStreamUrl = (isset($rStreamPerm[$rType]) && Authorization::check("adv", $rStreamPerm[$rType]))
+					? "stream_view?id=" . (int) $rRow["stream_id"]
+					: null;
+				$rItem = [
+					"id"          => (int) $rRow["id"],
+					"position"    => $rPosition,
+					"stream_id"   => (int) $rRow["stream_id"],
+					"stream_name" => $rRow["stream_display_name"],
+					"stream_url"  => $rStreamUrl,
+					"server_id"   => (int) $rRow["server_id"],
+					"server_name" => $rRow["server_name"],
+					"server_url"  => ($rCanServers && $rRow["server_name"] !== null) ? "server_view?id=" . (int) $rRow["server_id"] : null,
+					"in_progress" => (0 < (int) $rRow["pid"]),
+					"added"       => (int) $rRow["added"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
+				$rPosition++;
 			}
 		}
 		echo json_encode($rReturn);

@@ -35,7 +35,7 @@ if (!function_exists('xc_admin_use_vuexy')) {
         if (isset($_GET['modal']) || !empty($GLOBALS['_SETUP'])) {
             return false;
         }
-        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog'];
+        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog', 'queue'];
         $page = \XcVm\Core\Util\AdminHelpers::getPageName();
         return in_array($page, $migrated, true);
     }
@@ -51,12 +51,27 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
 
         // Legacy header.php expects these variables in file scope.
         // Since we require it from inside a function, pull them from $GLOBALS.
-        foreach ([
-            'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
-            'db', 'allServersHealthy', 'rServerError',
-            'rServers', 'allServers', 'rUpdate', '_TITLE', 'rModal',
-            'rProxyServers', 'rPermissions', '_PAGE', '_SETUP',
-        ] as $_g) {
+        foreach (
+            [
+                'rUserInfo',
+                'rSettings',
+                'rThemes',
+                'rMobile',
+                'rHues',
+                'db',
+                'allServersHealthy',
+                'rServerError',
+                'rServers',
+                'allServers',
+                'rUpdate',
+                '_TITLE',
+                'rModal',
+                'rProxyServers',
+                'rPermissions',
+                '_PAGE',
+                '_SETUP',
+            ] as $_g
+        ) {
             if (array_key_exists($_g, $GLOBALS)) {
                 $$_g = $GLOBALS[$_g];
             }
