@@ -26,6 +26,13 @@ if (count(get_included_files()) == 1) {
 $rUpdate  = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: []);
 $xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
 
+// Per-user Vuexy customizer state (see config.js + StatsAjaxController::saveUiPrefs).
+// The stored theme wins for the initial data-bs-theme paint; 'system'/unset falls
+// back to the legacy per-user theme column so there is no flash.
+$xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
+$xmThemePref = $xmUiPrefs['theme'] ?? null;
+$xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
+
 /**
  * Shared navbar helpers (identical contract to legacy header.php). Guarded so a
  * single request only ever defines them once regardless of which header ran.
@@ -65,7 +72,7 @@ if (!function_exists('_xc_nav_label')) {
     class="layout-navbar-fixed layout-menu-fixed layout-compact"
     dir="ltr"
     data-skin="default"
-    data-bs-theme="<?= $xmIsDark ? 'dark' : 'light' ?>"
+    data-bs-theme="<?= $xmBsTheme ?>"
     data-assets-path="assets/new/"
     data-template="vertical-menu-template">
 
@@ -97,8 +104,15 @@ if (!function_exists('_xc_nav_label')) {
     <?php xc_vuexy_vendor_css(xc_vuexy_vendors_wanted()); ?>
     <link rel="stylesheet" href="assets/new/xcvm/custom.css">
 
-    <!-- Helpers must precede config.js -->
+    <!-- Helpers + template customizer must precede config.js -->
     <script src="assets/new/vendor/js/helpers.js"></script>
+    <script src="assets/new/vendor/js/template-customizer.js"></script>
+    <!-- Per-user customizer state (server-authoritative) consumed by config.js -->
+    <script>
+        window.XC_VM = window.XC_VM || {};
+        window.XC_VM.uiPrefsUrl = './api?action=save_ui_prefs';
+        window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
+    </script>
     <script src="assets/new/js/config.js"></script>
 </head>
 

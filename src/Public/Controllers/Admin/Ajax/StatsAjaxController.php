@@ -385,4 +385,69 @@ class StatsAjaxController extends BaseAjaxController {
 
         $this->json($rReturn, JSON_PARTIAL_OUTPUT_ON_ERROR);
     }
+
+    /**
+     * action=save_ui_prefs — persist the current admin's Vuexy customizer state.
+     *
+     * Body is a JSON object of whitelisted settings (theme/color/skin/layout…).
+     * Written only for the logged-in admin ($rUserInfo['id'], never a client id);
+     * read back into the shell via $rUserInfo['ui_prefs'].
+     */
+    public function saveUiPrefs(): never {
+        $this->requireXhr();
+        $this->gate('adv', 'index');
+
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            $this->fail();
+        }
+
+        global $db, $rUserInfo;
+        if (empty($rUserInfo['id'])) {
+            $this->fail();
+        }
+
+        $rIn = json_decode((string) file_get_contents('php://input'), true);
+        if (!is_array($rIn)) {
+            $this->fail();
+        }
+
+        // Customizer "Reset" — drop the saved prefs so the panel falls back to the
+        // project defaults (XC_VM_UIDefaults) on the next load.
+        if (!empty($rIn['__reset'])) {
+            $db->query('UPDATE `users` SET `ui_prefs` = NULL WHERE `id` = ?;', intval($rUserInfo['id']));
+            $this->ok();
+        }
+
+        // Whitelist + validate — never store arbitrary keys/values.
+        $rClean = array();
+        $rEnum = static function ($rVal, array $rAllowed) {
+            return in_array($rVal, $rAllowed, true) ? $rVal : null;
+        };
+        $rBool = static function ($rVal) {
+            return ($rVal === true || $rVal === 'true') ? true : (($rVal === false || $rVal === 'false') ? false : null);
+        };
+        $rMap = array(
+            'theme'           => static fn($v) => $rEnum($v, array('light', 'dark', 'system')),
+            'skin'            => static fn($v) => in_array($v, array('default', 'bordered'), true) ? $v : null,
+            'semiDark'        => $rBool,
+            'layoutCollapsed' => $rBool,
+            'rtl'             => $rBool,
+            'navbar'          => static fn($v) => $rEnum($v, array('sticky', 'static', 'hidden')),
+            'headerType'      => static fn($v) => $rEnum($v, array('static', 'fixed')),
+            'contentLayout'   => static fn($v) => $rEnum($v, array('compact', 'wide')),
+            'color'           => static fn($v) => (is_string($v) && preg_match('/^#[0-9a-fA-F]{6}$/', $v)) ? $v : null,
+            'lang'            => static fn($v) => (is_string($v) && preg_match('/^[a-z]{2,8}$/', $v)) ? $v : null,
+        );
+        foreach ($rMap as $rKey => $rValidator) {
+            if (array_key_exists($rKey, $rIn)) {
+                $rVal = $rValidator($rIn[$rKey]);
+                if ($rVal !== null) {
+                    $rClean[$rKey] = $rVal;
+                }
+            }
+        }
+
+        $db->query('UPDATE `users` SET `ui_prefs` = ? WHERE `id` = ?;', json_encode($rClean), intval($rUserInfo['id']));
+        $this->ok();
+    }
 }

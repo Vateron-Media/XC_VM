@@ -378,6 +378,7 @@ $router->api('get_package_trial',  [PackageAjaxController::class, 'getPackageTri
 $router->api('graph_stats',  [StatsAjaxController::class, 'graphStats']);
 $router->api('stats',        [StatsAjaxController::class, 'stats']);
 $router->api('header_stats',  [StatsAjaxController::class, 'headerStats']);
+$router->api('save_ui_prefs', [StatsAjaxController::class, 'saveUiPrefs']);
 
 // ─── Backups, Logs & Reports ───────────────────────
 $router->api('clear_logs',           [BackupAjaxController::class, 'clearLogs']);
