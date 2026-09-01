@@ -78,21 +78,15 @@ foreach ($rServerStats as $rSid => $rHistory) {
         <div class="col-sm-6 col-xl-4">
             <?php if ($rLink): ?><a href="<?= htmlspecialchars($rLink, ENT_QUOTES); ?>" class="text-body text-decoration-none"><?php endif; ?>
             <div class="card h-100">
-                <div class="card-body <?= $rWrap; ?>">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="me-2">
-                            <span class="text-body-secondary d-block mb-1"><?= htmlspecialchars($rLabel); ?></span>
-                            <h3 class="mb-0">
-                                <span class="entry">0</span><?php if ($rUnit): ?> <small class="text-body-secondary"><?= $rUnit; ?></small><?php endif; ?>
-                            </h3>
-                            <?php if ($rSub): ?><small class="text-body-secondary stat-sub-wrap"><?= $language::get('dashboard_of'); ?> <span class="stat-sub">0</span></small><?php endif; ?>
-                        </div>
-                        <div class="avatar">
-                            <span class="avatar-initial rounded bg-label-<?= $rAccent; ?>"><i class="icon-base <?= $rIcon; ?> icon-24px"></i></span>
-                        </div>
+                <div class="card-body d-flex justify-content-between align-items-center <?= $rWrap; ?>">
+                    <div class="card-title mb-0">
+                        <h5 class="mb-1 me-2"><span class="entry">0</span><?php if ($rUnit): ?> <small class="text-body-secondary"><?= $rUnit; ?></small><?php endif; ?></h5>
+                        <p class="mb-0"><?= htmlspecialchars($rLabel); ?></p>
                     </div>
-                    <div class="progress mt-3 dashboard-tile-progress">
-                        <div class="progress-bar bg-<?= $rAccent; ?>" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    <div class="card-icon">
+                        <span class="badge bg-label-<?= $rAccent; ?> rounded p-2">
+                            <i class="icon-base <?= $rIcon; ?> icon-26px"></i>
+                        </span>
                     </div>
                 </div>
             </div>
