@@ -1,0 +1,15 @@
+{
+  "name": "xc_vm-e2e",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Playwright end-to-end smoke tests for the XC_VM Vuexy admin panel",
+  "scripts": {
+    "test": "playwright test",
+    "ui": "playwright test --ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "~1.49.1",
+    "dotenv": "^16.4.5"
+  }
+}

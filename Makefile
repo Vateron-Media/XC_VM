@@ -181,6 +181,17 @@ check-vendor-prod-only:
 # Run every fast PSR-4 gate.
 gates: check-procedural-use verify-lb-archive check-vendor-prod-only
 
+# ─── Admin E2E (Playwright) ─────────────────────────────────────
+# Browser smoke tests for the Vuexy admin panel. Run against a LIVE instance:
+# set XC_E2E_BASE_URL / XC_E2E_USER / XC_E2E_PASS (see tests/e2e/README.md).
+.PHONY: e2e e2e-ui e2e-install
+e2e-install:
+	cd tests/e2e && npm ci && npx playwright install --with-deps chromium
+e2e:
+	cd tests/e2e && npx playwright test
+e2e-ui:
+	cd tests/e2e && npx playwright test --ui
+
 # ─── Generate deleted_files.txt from git diff ───────────────────
 # Usage: make generate_deleted_files [LAST_TAG=v1.2.3]
 # Writes to src/migrations/deleted_files.txt for manual review.
