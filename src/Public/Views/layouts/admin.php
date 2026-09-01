@@ -35,7 +35,7 @@ if (!function_exists('xc_admin_use_vuexy')) {
         if (isset($_GET['modal']) || !empty($GLOBALS['_SETUP'])) {
             return false;
         }
-        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs'];
+        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs'];
         $page = \XcVm\Core\Util\AdminHelpers::getPageName();
         return in_array($page, $migrated, true);
     }

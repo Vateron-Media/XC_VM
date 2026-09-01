@@ -3612,77 +3612,68 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
+	/**
+	 * action=credit_logs — returns clean JSON rows (no HTML). Permission-gated
+	 * user links are resolved server-side into url fields. Presentation is done
+	 * client-side by the Vuexy credit_logs page via datatables-bs5 columns[].render.
+	 */
 	private function handleCreditsLog($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db;
 		if (!Authorization::check("adv", "credits_log")) {
 			exit;
 		}
-		$rOrder = ["`users_credits_logs`.`id`", "`owner_username`", "`target_username`", "`users_credits_logs`.`amount`", "`users_credits_logs`.`reason`", "`date`"];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable).
+		$rOrderBy = self::dtOrderBy([false, "`users_credits_logs`.`id`", "`owner_username`", "`target_username`", "`users_credits_logs`.`amount`", "`users_credits_logs`.`reason`", "`date`"]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 5) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`target`.`username` LIKE ? OR `owner`.`username` LIKE ? OR FROM_UNIXTIME(`date`) LIKE ? OR `users_credits_logs`.`amount` LIKE ? OR `users_credits_logs`.`reason` LIKE ?)";
 		}
-		if (0 < strlen(RequestManager::get("range") ?? '')) {
-			$rStartTime = substr(RequestManager::get("range"), 0, 10);
-			$rEndTime = substr(RequestManager::get("range"), strlen(RequestManager::get("range") ?? '') - 10, 10);
-			if (!($rStartTime = strtotime($rStartTime . " 00:00:00"))) {
-				$rStartTime = NULL;
-			}
-			if (!($rEndTime = strtotime($rEndTime . " 23:59:59"))) {
-				$rEndTime = NULL;
-			}
+		$rRange = (string) (RequestManager::get("range") ?? '');
+		if (0 < strlen($rRange)) {
+			$rStartTime = strtotime(substr($rRange, 0, 10) . " 00:00:00");
+			$rEndTime   = strtotime(substr($rRange, strlen($rRange) - 10, 10) . " 23:59:59");
 			if ($rStartTime && $rEndTime) {
-				$rWhere[] = "(`users_credits_logs`.`date` >= ? AND `users_credits_logs`.`date` <= ?)";
+				$rWhere[]  = "(`users_credits_logs`.`date` >= ? AND `users_credits_logs`.`date` <= ?)";
 				$rWhereV[] = $rStartTime;
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if (0 < strlen(RequestManager::get("reseller") ?? '')) {
-			$rWhere[] = "(`users_credits_logs`.`target_id` = ? OR `users_credits_logs`.`admin_id` = ?)";
-			$rWhereV[] = RequestManager::get("reseller");
-			$rWhereV[] = RequestManager::get("reseller");
+		$rReseller = (string) (RequestManager::get("reseller") ?? '');
+		if (0 < strlen($rReseller)) {
+			$rWhere[]  = "(`users_credits_logs`.`target_id` = ? OR `users_credits_logs`.`admin_id` = ?)";
+			$rWhereV[] = $rReseller;
+			$rWhereV[] = $rReseller;
 		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `users_credits_logs` LEFT JOIN `users` AS `target` ON `target`.`id` = `users_credits_logs`.`target_id` LEFT JOIN `users` AS `owner` ON `owner`.`id` = `users_credits_logs`.`admin_id` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `users_credits_logs` LEFT JOIN `users` AS `target` ON `target`.`id` = `users_credits_logs`.`target_id` LEFT JOIN `users` AS `owner` ON `owner`.`id` = `users_credits_logs`.`admin_id` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `users_credits_logs`.`id`, `users_credits_logs`.`target_id`, `users_credits_logs`.`admin_id`, `target`.`username` AS `target_username`, `owner`.`username` AS `owner_username`, `amount`, FROM_UNIXTIME(`date`) AS `date`, `users_credits_logs`.`reason` FROM `users_credits_logs` LEFT JOIN `users` AS `target` ON `target`.`id` = `users_credits_logs`.`target_id` LEFT JOIN `users` AS `owner` ON `owner`.`id` = `users_credits_logs`.`admin_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+			$rCanEdit = Authorization::check("adv", "edit_reguser");
+			$rQuery = "SELECT `users_credits_logs`.`id`, `users_credits_logs`.`target_id`, `users_credits_logs`.`admin_id`, `target`.`username` AS `target_username`, `owner`.`username` AS `owner_username`, `amount`, `users_credits_logs`.`date`, `users_credits_logs`.`reason` FROM `users_credits_logs` LEFT JOIN `users` AS `target` ON `target`.`id` = `users_credits_logs`.`target_id` LEFT JOIN `users` AS `owner` ON `owner`.`id` = `users_credits_logs`.`admin_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if (Authorization::check("adv", "edit_reguser")) {
-							$rOwner = "<a href='user?id=" . $rRow["admin_id"] . "'>" . $rRow["owner_username"] . "</a>";
-							$rTarget = "<a href='user?id=" . $rRow["target_id"] . "'>" . $rRow["target_username"] . "</a>";
-						} else {
-							$rOwner = $rRow["owner_username"];
-							$rTarget = $rRow["target_username"];
-						}
-						$rReturn["data"][] = [$rRow["id"], $rOwner, $rTarget, number_format($rRow["amount"], 0), $rRow["reason"], $rRow["date"]];
-					}
-				}
+			foreach ($db->get_rows() as $rRow) {
+				$rItem = [
+					"id"              => (int) $rRow["id"],
+					"admin_id"        => (int) $rRow["admin_id"],
+					"owner_username"  => $rRow["owner_username"],
+					"owner_url"       => ($rCanEdit && $rRow["owner_username"] !== null) ? "user?id=" . (int) $rRow["admin_id"] : null,
+					"target_id"       => (int) $rRow["target_id"],
+					"target_username" => $rRow["target_username"],
+					"target_url"      => ($rCanEdit && $rRow["target_username"] !== null) ? "user?id=" . (int) $rRow["target_id"] : null,
+					"amount"          => (int) $rRow["amount"],
+					"reason"          => $rRow["reason"],
+					"date"            => (int) $rRow["date"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
