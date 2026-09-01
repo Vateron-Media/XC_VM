@@ -32,3 +32,37 @@
 .dashboard-map {
   height: 400px;
 }
+
+/*
+ * DataTables Responsive child row (the panel shown when a `+` row is expanded).
+ * Lay each hidden column out as a two-column "label : value" grid so the values
+ * line up instead of drifting with the label width. Applies to every migrated
+ * Vuexy table (panel_logs, login_logs, ...).
+ */
+ul.dtr-details {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+ul.dtr-details > li {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+  /* Neutralise column utility classes (e.g. text-center) carried onto the
+     child-row <li>, so every label/value starts flush-left and aligns. */
+  text-align: left !important;
+}
+ul.dtr-details > li:last-child {
+  border-bottom: 0;
+}
+ul.dtr-details > li .dtr-title {
+  flex: 0 0 auto;
+  min-width: 140px;
+  font-weight: 600;
+  padding-right: 0.5rem;
+}
