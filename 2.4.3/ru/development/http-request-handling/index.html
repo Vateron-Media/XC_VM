@@ -1,0 +1,3973 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/http-request-handling/">
+      
+      
+        <link rel="prev" href="../module-extension-points/">
+      
+      
+        <link rel="next" href="../admin-ajax-api/">
+      
+      
+        
+          <link rel="alternate" href="../../../development/http-request-handling/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Обработка HTTP-запросов - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#http-" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Обработка HTTP-запросов
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../development/http-request-handling/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов: Страницы администратора/панели управления
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Поток запросов: Страницы администратора/панели управления">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ключевая деталь: санитарная обработка входных данных
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов: REST API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов: Потоковая передача
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requestguard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RequestGuard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RequestGuard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обязанности
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputvalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InputValidator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="InputValidator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы санитарной обработки
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Подтверждение действия
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requestmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RequestManager
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RequestManager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Как данные попадают в
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        интерфейс прикладного программирования
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Использование
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Request">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Строительство
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы экземпляра
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы статической дезинфекции (обратная совместимость)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#router" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Router
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Router">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация маршрута
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Примеры маршрутов
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Нормализация маршрута
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отправка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Отправка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dispatchpage-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dispatch($page, $method) порядок исполнения
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dispatchapiaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dispatchApi($action) порядок исполнения
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Когда ничего не совпадает
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация маршрута модуля
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Самоанализ
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Response
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контексты начальной загрузки
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Настройка PHPUnit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов: Страницы администратора/панели управления
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Поток запросов: Страницы администратора/панели управления">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ключевая деталь: санитарная обработка входных данных
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#rest-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов: REST API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток запросов: Потоковая передача
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requestguard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RequestGuard
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RequestGuard">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обязанности
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inputvalidator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        InputValidator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="InputValidator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы санитарной обработки
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Подтверждение действия
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#requestmanager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RequestManager
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="RequestManager">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Как данные попадают в
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        интерфейс прикладного программирования
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Использование
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#request" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Request
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Request">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Строительство
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы экземпляра
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы статической дезинфекции (обратная совместимость)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#router" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Router
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Router">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация маршрута
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Примеры маршрутов
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Нормализация маршрута
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отправка
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Отправка">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#dispatchpage-method" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dispatch($page, $method) порядок исполнения
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#dispatchapiaction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        dispatchApi($action) порядок исполнения
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Когда ничего не совпадает
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация маршрута модуля
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Самоанализ
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#response" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Response
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контексты начальной загрузки
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="http-">Обработка HTTP-запросов<a class="headerlink" href="#http-" title="Permanent link">&para;</a></h1>
+<p>Этот документ описывает, как обрабатываются HTTP-запросы в XC_VM, охватывая полный жизненный цикл от первоначального ввода до маршрутизации и отправки. В зависимости от типа запроса существует несколько путей выполнения.</p>
+<hr />
+<h2 id="_1">Обзор<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h2>
+<p>Уровень HTTP построен из этих основных компонентов:</p>
+<table>
+<thead>
+<tr>
+<th>Компонент</th>
+<th>Файл</th>
+<th>Роль</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>RequestGuard</code></td>
+<td><code>src/Core/Http/RequestGuard.php</code></td>
+<td>Безопасность перед маршрутизацией: защита от наводнений, проверка хоста, запуск регистратора</td>
+</tr>
+<tr>
+<td><code>InputValidator</code></td>
+<td><code>src/Core/Validation/InputValidator.php</code></td>
+<td>Очистка входных данных (очистка глобальных объектов, повторный анализ)</td>
+</tr>
+<tr>
+<td><code>RequestManager</code></td>
+<td><code>src/Core/Http/RequestManager.php</code></td>
+<td>Статический фасад, хранящий объединенные данные запроса GET+POST</td>
+</tr>
+<tr>
+<td><code>Request</code></td>
+<td><code>src/Core/Http/Request.php</code></td>
+<td>Объектно-ориентированная оболочка запроса (существует, но не используется в основном производственном потоке)</td>
+</tr>
+<tr>
+<td><code>Router</code></td>
+<td><code>src/Core/Http/Router.php</code></td>
+<td>Регистрация и отправка маршрута по странице и API</td>
+</tr>
+<tr>
+<td><code>Response</code></td>
+<td><code>src/Core/Http/Response.php</code></td>
+<td>Помощники по статическому ответу (JSON, redirect, CORS и т.д.)</td>
+</tr>
+<tr>
+<td><code>LegacyInitializer</code></td>
+<td><code>src/Core/Init/LegacyInitializer.php</code></td>
+<td>Устаревший bootstrap, который подключает очистку к <code>RequestManager</code></td>
+</tr>
+<tr>
+<td><code>StreamingRequestBootstrap</code></td>
+<td><code>src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php</code></td>
+<td>Облегченный bootstrap для конечных точек потоковой передачи</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_2">Поток запросов: Страницы администратора/панели управления<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>Точка входа: <code>src/Public/index.php</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>nginx -&gt; Public/index.php
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  -&gt; URL parsing (scope + pageName)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  -&gt; XC_Bootstrap::boot(BootContext::Admin)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>       -&gt; floodProtection()          (block banned IPs)
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>       -&gt; hostVerification()         (check allowed domains)
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>       -&gt; initSession()
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>       -&gt; initDatabase()
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>       -&gt; initLegacyCore()
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>            -&gt; LegacyInitializer::initCore()
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                 -&gt; InputValidator::cleanGlobals($_GET, $_POST, $_SESSION, $_COOKIE)
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>                 -&gt; InputValidator::parseIncomingRecursively($_GET) -&gt; $rInput
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                 -&gt; InputValidator::parseIncomingRecursively($_POST, $rInput) -&gt; RequestManager::set()
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>       -&gt; initRedis()
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>       -&gt; initAdminAPI()
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>       -&gt; initTranslator()
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  -&gt; Load routes from src/Public/routes/{scope}.php
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  -&gt; Load routes from src/Public/routes/api.php
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>  -&gt; ModuleLoader::bootAll() (admin/reseller scope, with collision detection)
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>  -&gt; Router::dispatchApi($action)  (checked first for "api" page)
+<a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>  -&gt; Router::dispatch($pageName, $method)
+<a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>  -&gt; Controller handler
+</code></pre></div>
+<h3 id="_3">Ключевая деталь: санитарная обработка входных данных<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<p>В процессе производственного администрирования не используется <code>Request::capture()</code>. Вместо этого <code>LegacyInitializer::initCore()</code> управляет обработкой входных данных:</p>
+<ol>
+<li><code>InputValidator::cleanGlobals()</code> вызывается при <code>$_GET</code>, <code>$_POST</code>, <code>$_SESSION</code>, и <code>$_COOKIE</code> на месте, удаляя нулевые байты, последовательности обхода пути (<code>../</code>) и символы переопределения RTL.</li>
+<li><code>InputValidator::parseIncomingRecursively()</code> очищает ключи и значения (HTML-объекты, теги скриптов, разделители комментариев, окончания строк) и возвращает чистый массив.</li>
+<li>Результат (объединяется с сообщением, сообщение имеет приоритет) сохраняется через <code>RequestManager::set()</code>.</li>
+</ol>
+<p>Во всей кодовой базе доступ к данным запроса осуществляется через <code>RequestManager::get($key)</code> и <code>RequestManager::getAll()</code>, а не через объект <code>Request</code>.</p>
+<hr />
+<h2 id="rest-api">Поток запросов: REST API<a class="headerlink" href="#rest-api" title="Permanent link">&para;</a></h2>
+<p>Точка входа: <code>src/Public/index.php</code> (короткое замыкание перед маршрутизатором)</p>
+<p>Когда <code>XC_SCOPE</code> равно <code>includes/api/admin</code> или <code>includes/api/reseller</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>nginx -&gt; Public/index.php
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  -&gt; XC_Bootstrap::boot(BootContext::Admin)
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  -&gt; new AdminApiController() or new ResellerRestApiController()
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  -&gt; $controller-&gt;index()
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  -&gt; exit
+</code></pre></div>
+<p>Этот путь полностью обходит маршрутизатор.</p>
+<hr />
+<h2 id="_4">Поток запросов: Потоковая передача<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h2>
+<p>Точка входа: <code>www/stream/*.php</code> конечных точек или <code>Public/index.php</code> для <code>player_api</code></p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>nginx -&gt; StreamingRequestBootstrap::init($filename)
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  -&gt; Load error codes, paths, config, binaries
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  -&gt; Flood protection (check block_{IP} file)
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  -&gt; Load settings from file cache
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  -&gt; Host verification
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  -&gt; Logger init
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>  -&gt; StreamingBootstrap::bootstrap($filename, $settings)
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>       -&gt; LegacyInitializer::initStreaming()
+<a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>            -&gt; Request::cleanGlobals() on superglobals
+<a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>            -&gt; Request::parseIncomingRecursively() -&gt; $GLOBALS['rRequest']
+<a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>            -&gt; RequestManager::set($GLOBALS['rRequest'])
+</code></pre></div>
+<p>Путь потоковой передачи намеренно упрощен. Он не загружает маршрутизатор, EventDispatcher, транслятор или полный сервисный контейнер. Диспетчеризация маршрутов отсутствует; каждая конечная точка потоковой передачи имеет выделенную точку входа.</p>
+<hr />
+<h2 id="requestguard"><code>RequestGuard</code><a class="headerlink" href="#requestguard" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Http/RequestGuard.php</code></p>
+<p>Процедурный защитный скрипт, включенный ранее в устаревший bootstrap. Выполняется только для HTTP-запросов (пропускается, если установлено значение <code>$_SERVER['argc']</code>, указывающее на CLI).</p>
+<h3 id="_5">Обязанности<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Защита от наводнений</strong> -- Если файл <code>FLOOD_TMP_PATH/block_{IP}</code> существует, запрос отклоняется по протоколу HTTP 403.</li>
+<li><strong>Загрузка кэша настроек</strong> -- Считывает <code>$rSettings</code> из кэша файлов, сериализованных в igbinary, по адресу <code>CACHE_TMP_PATH/settings</code>.</li>
+<li><strong>Проверка хостинга</strong> -- Если значение <code>$rSettings['verify_host']</code> равно true, проверяется, отображается ли <code>HOST</code> в кэшированном списке <code>allowed_domains</code>. Исключения: имя хоста <code>xc_vm</code> и любой допустимый IP-адрес всегда разрешены.</li>
+<li><strong>Флаг отображения ошибки</strong> - Устанавливает константу <code>PHP_ERRORS</code> вместо константы <code>$rSettings['debug_show_errors']</code>.</li>
+<li><strong>Инициализация регистратора</strong> -- Вызывает <code>Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')</code>.</li>
+</ol>
+<p>Примечание: В современном bootstrap (<code>XC_Bootstrap::boot()</code>) эти обязанности выполняются методами <code>floodProtection()</code> и <code>hostVerification()</code> напрямую, а не путем включения <code>RequestGuard.php</code>.</p>
+<hr />
+<h2 id="inputvalidator"><code>InputValidator</code><a class="headerlink" href="#inputvalidator" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Validation/InputValidator.php</code></p>
+<p>Предоставляет статические методы для очистки входных данных и проверки на уровне действий.</p>
+<h3 id="_6">Методы санитарной обработки<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cleanGlobals(&amp;$data, $iteration)</code></td>
+<td>Удаление нулевых байтов на месте, обход пути (<code>../</code>) и символы переопределения RTL. Максимум 10 уровней рекурсии.</td>
+</tr>
+<tr>
+<td><code>parseIncomingRecursively(&amp;$data, $input, $iteration)</code></td>
+<td>Возвращает новый обработанный массив. Очищаются как ключи, так и значения. Максимальное количество уровней рекурсии - 20.</td>
+</tr>
+<tr>
+<td><code>parseCleanKey($key)</code></td>
+<td>Удаляет двойные точки, узоры <code>__wrapped__</code>, применяет <code>htmlspecialchars(urldecode())</code>.</td>
+</tr>
+<tr>
+<td><code>parseCleanValue($value)</code></td>
+<td>Удаляет теги <code>&lt;script</code>, HTML-комментарии, нормализует разрывы строк, обрабатывает кодировку объектов.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">Подтверждение действия<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>validate($action, $data)</code></td>
+<td>Возвращает <code>true</code>/<code>false</code> для определения того, соответствует ли <code>$data</code> минимальным требованиям для данного действия API.</td>
+</tr>
+<tr>
+<td><code>validateOrFail($action, $data)</code></td>
+<td>Возвращает <code>null</code>, если допустимо, или <code>['status' =&gt; STATUS_INVALID_INPUT, 'data' =&gt; $data]</code>, если недопустимо.</td>
+</tr>
+<tr>
+<td><code>confirmIDs($ids)</code></td>
+<td>Фильтрует массив только по целочисленным положительным идентификаторам.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="requestmanager"><code>RequestManager</code><a class="headerlink" href="#requestmanager" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Http/RequestManager.php</code></p>
+<p>Статический интерфейс, в котором хранятся объединенные данные запроса GET+POST. Это основной шаблон доступа к данным запроса, используемый во всей базе кода.</p>
+<h3 id="_8">Как данные попадают в<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<p><code>LegacyInitializer::initCore()</code> вызовы:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">$rInput = InputValidator::parseIncomingRecursively($_GET, array());</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">RequestManager::set(InputValidator::parseIncomingRecursively($_POST, $rInput));</span>
+</code></pre></div>
+<p>Параметры POST переопределяют параметры GET с помощью того же ключа (POST объединяется поверх GET).</p>
+<h3 id="_9">интерфейс прикладного программирования<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set(array $request)</code></td>
+<td>Храните весь массив данных запроса.</td>
+</tr>
+<tr>
+<td><code>getAll()</code></td>
+<td>Извлеките все сохраненные данные запроса.</td>
+</tr>
+<tr>
+<td><code>get(string $key, $default = null)</code></td>
+<td>Извлеките одно значение по ключу.</td>
+</tr>
+<tr>
+<td><code>update(string $key, $value)</code></td>
+<td>Обновите один ключ в сохраненных данных.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">Использование<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">// Read a request parameter</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">$streamId = RequestManager::get('stream_id');</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">// Read all parameters</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="x">$allParams = RequestManager::getAll();</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="x">// Update a value (rare, used by some legacy handlers)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="x">RequestManager::update('status', 'active');</span>
+</code></pre></div>
+<hr />
+<h2 id="request"><code>Request</code><a class="headerlink" href="#request" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Http/Request.php</code></p>
+<p>Объектно-ориентированная оболочка запроса. Содержит статическую фабрику <code>capture()</code> и методы экземпляра для доступа к обработанным входным данным. Хотя класс существует и полностью функционален, в основном производственном потоке вместо него используются <code>InputValidator</code> + <code>RequestManager</code>. Методы статической очистки класса <code>Request</code> (<code>cleanGlobals</code>, <code>parseIncomingRecursively</code>) используются <code>LegacyInitializer::initStreaming()</code> для обеспечения обратной совместимости.</p>
+<h3 id="_11">Строительство<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">// Static factory (singleton, not used in production admin flow)</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">$request = Request::capture();</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">// Direct construction</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">$request = new Request($_GET, $_POST, $_SERVER, $_COOKIE);</span>
+</code></pre></div>
+<h3 id="_12">Методы экземпляра<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Подпись</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>input</code></td>
+<td><code>input($key, $default = null)</code></td>
+<td>Получить из объединенных входных данных (приоритет POST над GET)</td>
+</tr>
+<tr>
+<td><code>get</code></td>
+<td><code>get($key = null, $default = null)</code></td>
+<td>Получаем из строки запроса (<code>$_GET</code>). <code>null</code> ключ возвращает все.</td>
+</tr>
+<tr>
+<td><code>post</code></td>
+<td><code>post($key = null, $default = null)</code></td>
+<td>Получаем из данных POST. <code>null</code> ключ возвращает все.</td>
+</tr>
+<tr>
+<td><code>all</code></td>
+<td><code>all()</code></td>
+<td>Все объединенные входные данные</td>
+</tr>
+<tr>
+<td><code>has</code></td>
+<td><code>has($key)</code></td>
+<td>Проверьте, существует ли ключ в объединенном вводе</td>
+</tr>
+<tr>
+<td><code>getInt</code></td>
+<td><code>getInt($key, $default = 0)</code></td>
+<td>Получить значение в виде целого числа</td>
+</tr>
+<tr>
+<td><code>getBool</code></td>
+<td><code>getBool($key, $default = false)</code></td>
+<td>Получить значение в виде логического значения (через <code>filter_var</code>)</td>
+</tr>
+<tr>
+<td><code>server</code></td>
+<td><code>server($key, $default = null)</code></td>
+<td>Получить значение <code>$_SERVER</code></td>
+</tr>
+<tr>
+<td><code>cookie</code></td>
+<td><code>cookie($key, $default = null)</code></td>
+<td>Получить значение файла cookie</td>
+</tr>
+<tr>
+<td><code>method</code></td>
+<td><code>method()</code></td>
+<td>Строка HTTP-метода (GET, POST и т.д.)</td>
+</tr>
+<tr>
+<td><code>isPost</code></td>
+<td><code>isPost()</code></td>
+<td>Проверьте, является ли метод POST</td>
+</tr>
+<tr>
+<td><code>isAjax</code></td>
+<td><code>isAjax()</code></td>
+<td>Проверить <code>X-Requested-With: XMLHttpRequest</code></td>
+</tr>
+<tr>
+<td><code>ip</code></td>
+<td><code>ip()</code></td>
+<td>IP-адрес клиента (проверяет <code>X-Forwarded-For</code>, <code>X-Real-IP</code>, <code>REMOTE_ADDR</code>)</td>
+</tr>
+<tr>
+<td><code>uri</code></td>
+<td><code>uri()</code></td>
+<td>URI запроса</td>
+</tr>
+<tr>
+<td><code>userAgent</code></td>
+<td><code>userAgent()</code></td>
+<td>Заголовок пользовательского агента</td>
+</tr>
+<tr>
+<td><code>host</code></td>
+<td><code>host()</code></td>
+<td>Заголовок узла (возвращается к <code>SERVER_NAME</code>)</td>
+</tr>
+<tr>
+<td><code>rawBody</code></td>
+<td><code>rawBody()</code></td>
+<td>Необработанный текст сообщения из <code>php://input</code></td>
+</tr>
+<tr>
+<td><code>json</code></td>
+<td><code>json($assoc = true)</code></td>
+<td>Текст СООБЩЕНИЯ, декодированный в формате JSON</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_13">Методы статической дезинфекции (обратная совместимость)<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p>Они отражают <code>InputValidator</code> и используются путем потоковой инициализации:</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cleanGlobals(&amp;$data, $iteration)</code></td>
+<td>То же, что <code>InputValidator::cleanGlobals()</code></td>
+</tr>
+<tr>
+<td><code>parseIncomingRecursively(&amp;$data, $input, $iteration)</code></td>
+<td>То же, что <code>InputValidator::parseIncomingRecursively()</code></td>
+</tr>
+<tr>
+<td><code>parseCleanKey($key)</code></td>
+<td>То же, что <code>InputValidator::parseCleanKey()</code></td>
+</tr>
+<tr>
+<td><code>parseCleanValue($value)</code></td>
+<td>То же, что <code>InputValidator::parseCleanValue()</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="router"><code>Router</code><a class="headerlink" href="#router" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Http/Router.php</code></p>
+<p>Одноэлементный маршрутизатор для отправки страниц и API. Заменяет устаревший шаблон <code>switch($rAction)</code>.</p>
+<h3 id="_14">Регистрация маршрута<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Подпись</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>get</code></td>
+<td><code>get($route, $handler, $options = [])</code></td>
+<td>Зарегистрируйте маршрут получения страницы</td>
+</tr>
+<tr>
+<td><code>post</code></td>
+<td><code>post($route, $handler, $options = [])</code></td>
+<td>Зарегистрируйте маршрут почтовой формы</td>
+</tr>
+<tr>
+<td><code>any</code></td>
+<td><code>any($route, $handler, $options = [])</code></td>
+<td>Зарегистрируйте как GET, так и POST для одного и того же маршрута</td>
+</tr>
+<tr>
+<td><code>api</code></td>
+<td><code>api($action, $handler, $options = [])</code></td>
+<td>Зарегистрируйте маршрут API (JSON, отправляемый по имени действия)</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td><code>group($prefix, $callback, $options = [])</code></td>
+<td>Группируйте маршруты под общим префиксом с общим промежуточным программным обеспечением/разрешениями</td>
+</tr>
+</tbody>
+</table>
+<p>Параметр <code>$handler</code> принимает:
+- <code>[ClassName::class, 'method']</code> -- создается через ServiceContainer (с возможностью возврата к <code>new</code>)
+- Завершающий или вызываемый
+- <code>[object, 'method']</code></p>
+<p>Массив <code>$options</code> поддерживает:
+- <code>'permission' =&gt; ['type', 'key']</code> -- проверяется с помощью <code>Authorization::check()</code> перед запуском обработчика
+- <code>'middleware' =&gt; [callable, ...]</code> -- массив вызываемых объектов, выполняемых после проверки прав доступа, перед обработчиком</p>
+<h3 id="_15">Примеры маршрутов<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">$router = Router::getInstance();</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">// Simple page routes</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">$router-&gt;get('streams', [StreamController::class, 'index']);</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="x">$router-&gt;post('stream/save', [StreamController::class, 'save']);</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="x">// API route (JSON)</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="x">$router-&gt;api('deleteStream', [StreamController::class, 'apiDelete']);</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="x">// Grouped routes with middleware and permissions</span>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="x">$router-&gt;group('watch', function (Router $r) {</span>
+<a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a><span class="x">    $r-&gt;get('', [WatchController::class, 'index']);</span>
+<a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a><span class="x">    $r-&gt;get('add', [WatchController::class, 'add']);</span>
+<a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a><span class="x">    $r-&gt;post('settings', [WatchController::class, 'saveSettings']);</span>
+<a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="x">    $r-&gt;api('enable', [WatchController::class, 'apiEnable']);</span>
+<a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a><span class="x">}, [</span>
+<a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a><span class="x">    'permission' =&gt; ['admin', 'watch'],</span>
+<a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a><span class="x">    'middleware' =&gt; [$authCheck],</span>
+<a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a><span class="x">]);</span>
+</code></pre></div>
+<h3 id="_16">Нормализация маршрута<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h3>
+<p>Маршрутизатор нормализует устаревшие названия страниц, преобразуя символы подчеркивания в косые черты:</p>
+<table>
+<thead>
+<tr>
+<th>Ввод</th>
+<th>Нормализованный</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>watch</code></td>
+<td><code>watch</code></td>
+</tr>
+<tr>
+<td><code>watch_add</code></td>
+<td><code>watch/add</code></td>
+</tr>
+<tr>
+<td><code>settings_watch</code></td>
+<td><code>settings/watch</code></td>
+</tr>
+<tr>
+<td><code>plex_add.php</code></td>
+<td><code>plex/add</code></td>
+</tr>
+</tbody>
+</table>
+<p>Эта нормализация применяется как во время регистрации (<code>buildRoute</code>), так и во время отправки (<code>normalizePage</code>), поэтому маршруты, зарегистрированные как <code>watch/add</code>, соответствуют названиям страниц, подобным <code>watch_add</code>.</p>
+<h3 id="_17">Отправка<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">// Page dispatch (called from Public/index.php)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="x">$router-&gt;dispatch($pageName, $method);    // returns true if matched</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="x">// API dispatch (called for action= parameter)</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="x">$router-&gt;dispatchApi($action);            // returns true if matched</span>
+</code></pre></div>
+<h4 id="dispatchpage-method"><code>dispatch($page, $method)</code> порядок исполнения<a class="headerlink" href="#dispatchpage-method" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Нормализовать <code>$page</code> (символы подчеркивания заменить косыми чертами, зачеркнуть <code>.php</code>).</li>
+<li>Посмотрите в разделе POST routes (если используется метод POST) или GET routes. Если POST route не найден, вернитесь к GET routes.</li>
+<li><strong>Проверка прав доступа</strong> через <code>checkPermission()</code>. Если отказано, вызывает <code>denyAccess()</code> (перенаправление или 403).</li>
+<li><strong>Выполнение промежуточного программного обеспечения</strong>. Вызывается каждый вызываемый объект в массиве <code>middleware</code>. Если какой-либо из них возвращает значение <code>false</code>, выполнение прекращается.</li>
+<li><strong>Вызов обработчика</strong> через <code>callHandler()</code>.</li>
+</ol>
+<h4 id="dispatchapiaction"><code>dispatchApi($action)</code> порядок исполнения<a class="headerlink" href="#dispatchapiaction" title="Permanent link">&para;</a></h4>
+<ol>
+<li>Найдите в API маршруты по названию действия.</li>
+<li><strong>Проверка прав доступа</strong>. Если отказано, выводит <code>{"result": false}</code> и завершает работу.</li>
+<li><strong>Вызов обработчика</strong>. Промежуточное программное обеспечение не выполняется.</li>
+</ol>
+<p>Важно: <code>dispatchApi()</code> не запускает промежуточное программное обеспечение. Это намеренное отличие от отправки страниц.</p>
+<p>Конечные точки в формате JSON на панели администратора <code>?action=</code> регистрируются таким образом и обрабатываются выделенными контроллерами в соответствии с <code>XcVm\Public\Controllers\Admin\Ajax</code>. Шаблон контроллера и контракт на структурированный поиск смотрите в <a href="../admin-ajax-api/">Admin AJAX API</a>.</p>
+<h4 id="_18">Когда ничего не совпадает<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h4>
+<p>И <code>dispatch()</code>, и <code>dispatchApi()</code> возвращают <code>false</code>, если маршрут не совпадает. <code>Public/index.php</code> затем выдает <code>http_response_code(404); echo '404 Not Found';</code> — есть <strong>нет</strong> универсальный контроллер. (Неправильно введенный путь к ресурсу, который достигает главного контроллера, вместо того, чтобы обслуживаться nginx, попадает на тот же 404.)</p>
+<blockquote>
+<p><strong>Pitfall — two sanitization APIs + a global.</strong> Input can be reached three ways: <code>InputValidator</code> (the global request-sanitization layer), the <code>Request</code> class's static <code>sanitize*()</code> methods (kept for backward compatibility), and the global-static <code>RequestManager</code>. They are not interchangeable and the sanitization one applies depends on the bootstrap path — pick the layer the surrounding code already uses rather than mixing them, and remember <code>RequestManager</code>'s static state makes it order-dependent and awkward to isolate in tests (set it explicitly in a test rather than relying on prior request state).</p>
+</blockquote>
+<h3 id="_19">Регистрация маршрута модуля<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<p>Модули регистрируют маршруты с помощью <code>ModuleInterface::registerRoutes()</code>. Маршрутизатор поддерживает безопасный режим регистрации, предотвращающий перезапись модулями основных маршрутов:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">$router-&gt;beginModuleRegistration();</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">// Module routes registered here -- duplicates are silently skipped</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="x">$moduleLoader-&gt;bootAll($container, $router);</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="x">$router-&gt;endModuleRegistration();</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="x">// Check for collisions (logged in development mode)</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="x">$collisions = $router-&gt;drainRouteCollisions();</span>
+</code></pre></div>
+<p>В режиме регистрации модуля (<code>preserveExistingRoutes = true</code>), если модуль пытается зарегистрировать маршрут, который уже существует, существующий маршрут сохраняется и регистрируется коллизия. <code>drainRouteCollisions()</code> возвращает и очищает собранные коллизии в виде массива <code>['type' =&gt; 'get'|'post'|'api', 'key' =&gt; 'route/path']</code>.</p>
+<h3 id="_20">Самоанализ<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>hasRoute($page)</code></td>
+<td>Проверьте, существует ли маршрут страницы (GET или POST).</td>
+</tr>
+<tr>
+<td><code>hasApiRoute($action)</code></td>
+<td>Проверьте, существует ли маршрут API</td>
+</tr>
+<tr>
+<td><code>getRoutes()</code></td>
+<td>Возвращает все зарегистрированные ключи маршрута в виде <code>['get' =&gt; [...], 'post' =&gt; [...], 'api' =&gt; [...]]</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="response"><code>Response</code><a class="headerlink" href="#response" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Http/Response.php</code></p>
+<p>Статический помощник для отправки HTTP-ответов. Заменяет разрозненные шаблоны <code>header()</code> + <code>echo</code> + <code>exit()</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Метод</th>
+<th>Подпись</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>json</code></td>
+<td><code>json($data, $statusCode = 200, $options = 0)</code></td>
+<td>Отправьте ответ в формате JSON и завершите работу</td>
+</tr>
+<tr>
+<td><code>jsonError</code></td>
+<td><code>jsonError($message, $statusCode = 400, $extra = [])</code></td>
+<td>Отправьте сообщение об ошибке JSON и завершите работу</td>
+</tr>
+<tr>
+<td><code>redirect</code></td>
+<td><code>redirect($url, $statusCode = 302)</code></td>
+<td>Отправьте перенаправление и завершите работу</td>
+</tr>
+<tr>
+<td><code>notFound</code></td>
+<td><code>notFound($message = 'Not Found')</code></td>
+<td>Отправьте запрос 404 и выйдите</td>
+</tr>
+<tr>
+<td><code>header</code></td>
+<td><code>header($name, $value)</code></td>
+<td>Установите один заголовок ответа</td>
+</tr>
+<tr>
+<td><code>cors</code></td>
+<td><code>cors()</code></td>
+<td>Установить заголовки CORS (<code>Access-Control-Allow-Origin: *</code>)</td>
+</tr>
+<tr>
+<td><code>noCache</code></td>
+<td><code>noCache()</code></td>
+<td>Установка заголовков без кэширования (используется для плейлистов HLS)</td>
+</tr>
+<tr>
+<td><code>raw</code></td>
+<td><code>raw($content, $contentType, $statusCode)</code></td>
+<td>Отправьте необработанный контент с указанием типа контента и завершите работу</td>
+</tr>
+<tr>
+<td><code>empty</code></td>
+<td><code>empty($statusCode = 204)</code></td>
+<td>Отправьте пустой ответ и завершите работу</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="_21">Контексты начальной загрузки<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h2>
+<p><code>XC_Bootstrap::boot($context)</code> обеспечивает контекстно-зависимую инициализацию. Каждый контекст основывается на предыдущем:</p>
+<table>
+<thead>
+<tr>
+<th>Контекст</th>
+<th>Что он инициализирует</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BootContext::Minimal</code></td>
+<td>Автозагрузка + константы + конфигурация + регистратор. Нет подключения к базе данных.</td>
+</tr>
+<tr>
+<td><code>BootContext::Cli</code></td>
+<td>+ База данных + <code>LegacyInitializer::initCore()</code> (очистка входных данных, настройки, пути FFmpeg). Необязательно Redis.</td>
+</tr>
+<tr>
+<td><code>BootContext::Stream</code></td>
+<td>+ Только база данных (упрощенная, без <code>LegacyInitializer</code>). Конечные точки потоковой передачи используют вместо этого <code>StreamingRequestBootstrap</code>.</td>
+</tr>
+<tr>
+<td><code>BootContext::Admin</code></td>
+<td>+ Сессия + База данных + <code>LegacyInitializer::initCore()</code> + Redis + API администратора + Переводчик + глобальные настройки администратора. Полная инициализация.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>boot()</code> принимает перечисление <code>BootContext</code> (предпочтительно). Устаревшая строка
+константы <code>XC_Bootstrap::CONTEXT_{MINIMAL,CLI,STREAM,ADMIN}</code> равны <code>@deprecated</code>
+псевдонимы сохранены для обеспечения обратной совместимости — вы все равно увидите их в более старых вызовах
+места. Смотрите <a href="../bootstrap-contexts/">Контексты начальной загрузки</a> для получения полной матрицы.</p>
+</blockquote>
+<p>Все HTTP-контексты (не CLI) также запускают защиту от наводнений и проверку хоста перед инициализацией, зависящей от контекста.</p>
+<hr />
+<h2 id="_22">Связанные файлы<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/Core/Http/RequestGuard.php</code></td>
+<td>Безопасность предварительной маршрутизации и инициализация регистратора (включая устаревшие)</td>
+</tr>
+<tr>
+<td><code>src/Core/Http/Request.php</code></td>
+<td>Оболочка запроса ООП с методами санитарной обработки</td>
+</tr>
+<tr>
+<td><code>src/Core/Http/Router.php</code></td>
+<td>Регистрация маршрута и отправка</td>
+</tr>
+<tr>
+<td><code>src/Core/Http/RequestManager.php</code></td>
+<td>Фасад данных статического запроса (шаблон основного доступа)</td>
+</tr>
+<tr>
+<td><code>src/Core/Http/Response.php</code></td>
+<td>Помощники по выводу ответов</td>
+</tr>
+<tr>
+<td><code>src/Core/Validation/InputValidator.php</code></td>
+<td>Очистка входных данных и проверка правильности действий</td>
+</tr>
+<tr>
+<td><code>src/Core/Init/LegacyInitializer.php</code></td>
+<td>Инициализация устаревшего ядра (очистка проводов в RequestManager)</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php</code></td>
+<td>Облегченный загрузчик конечной точки потоковой передачи</td>
+</tr>
+<tr>
+<td><code>src/Streaming/StreamingBootstrap.php</code></td>
+<td>Потоковое подключение к базе данных и устаревшая инициализация</td>
+</tr>
+<tr>
+<td><code>src/bootstrap.php</code></td>
+<td>Унифицированный bootstrap (класс<code>XC_Bootstrap</code>)</td>
+</tr>
+<tr>
+<td><code>src/Public/index.php</code></td>
+<td>Передний контроллер для администратора/реселлера/игрока/API</td>
+</tr>
+<tr>
+<td><code>src/Public/routes/admin.php</code></td>
+<td>Определения маршрутов на странице администратора</td>
+</tr>
+<tr>
+<td><code>src/Public/routes/reseller.php</code></td>
+<td>Определения маршрута на странице реселлера</td>
+</tr>
+<tr>
+<td><code>src/Public/routes/player.php</code></td>
+<td>Определения маршрута на странице игрока</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,619 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/administration/backup-strategy/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/administration/backup-strategy/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/administration/backup-strategy/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/administration/reseller-system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/administration/reseller-system/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/administration/reseller-system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/administration/server-diagnostics/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/administration/server-diagnostics/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/administration/server-diagnostics/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/administration/server-update/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/administration/server-update/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/administration/server-update/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/administration/ssl-generation/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/administration/ssl-generation/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/administration/ssl-generation/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/administration/update-system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/administration/update-system/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/administration/update-system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/api/swagger/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/api/swagger/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/api/swagger/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/builds/build_system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/builds/build_system/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/builds/build_system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/builds/updates_checklist/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/builds/updates_checklist/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/builds/updates_checklist/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/admin-ajax-api/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/admin-ajax-api/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/admin-ajax-api/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/architecture/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/architecture/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/autoloader/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/autoloader/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/autoloader/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/bootstrap-contexts/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/bootstrap-contexts/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/bootstrap-contexts/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/caching-and-redis/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/caching-and-redis/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/caching-and-redis/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/core-wiring/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/core-wiring/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/core-wiring/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/event-system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/event-system/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/event-system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/exception-hierarchy/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/exception-hierarchy/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/exception-hierarchy/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/http-request-handling/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/http-request-handling/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/http-request-handling/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/module-authoring/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/module-authoring/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/module-authoring/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/module-extension-points/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/module-extension-points/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/module-extension-points/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/module-lifecycle/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/module-lifecycle/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/module-lifecycle/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/navbar-rendering/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/navbar-rendering/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/navbar-rendering/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/streaming-diagnostics/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/streaming-diagnostics/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/streaming-diagnostics/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/development/streaming-subsystem/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/development/streaming-subsystem/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/development/streaming-subsystem/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/authentication-and-sessions/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/authentication-and-sessions/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/authentication-and-sessions/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/cli-tools/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/cli-tools/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/cli-tools/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/database-migrations/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/database-migrations/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/database-migrations/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/dev-workflow/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/dev-workflow/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/dev-workflow/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/device-detection-and-stb-locking/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/device-detection-and-stb-locking/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/device-detection-and-stb-locking/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/diagnostics-api/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/diagnostics-api/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/diagnostics-api/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/error-handling/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/error-handling/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/error-handling/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/feature-flags/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/feature-flags/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/feature-flags/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/geoip-isp-and-geo-routing/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/geoip-isp-and-geo-routing/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/geoip-isp-and-geo-routing/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/input-validation/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/input-validation/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/input-validation/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/ministra-browser-emulation/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/ministra-browser-emulation/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/ministra-browser-emulation/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/permissions-and-rbac/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/permissions-and-rbac/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/permissions-and-rbac/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/phpunit-phar/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/phpunit-phar/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/phpunit-phar/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/process-management/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/process-management/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/process-management/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/translations/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/translations/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/translations/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/guides/ucs-integration/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/ucs-integration/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/guides/ucs-integration/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/info/faq/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/info/faq/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/info/faq/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/info/migration_guide/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/info/migration_guide/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/info/migration_guide/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/info/watch_folder/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3/info/watch_folder/"/>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3ru/info/watch_folder/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/backup-strategy/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/backup-strategy/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3administration/backup-strategy/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/reseller-system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/reseller-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3administration/reseller-system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/server-diagnostics/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/server-diagnostics/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3administration/server-diagnostics/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/server-update/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/server-update/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3administration/server-update/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/ssl-generation/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/ssl-generation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3administration/ssl-generation/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/update-system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/administration/update-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3administration/update-system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/api/swagger/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/api/swagger/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3api/swagger/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/builds/build_system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/builds/build_system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3builds/build_system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/builds/updates_checklist/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/builds/updates_checklist/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3builds/updates_checklist/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/admin-ajax-api/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/admin-ajax-api/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/admin-ajax-api/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/architecture/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/architecture/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/architecture/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/autoloader/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/autoloader/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/autoloader/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/bootstrap-contexts/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/bootstrap-contexts/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/bootstrap-contexts/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/caching-and-redis/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/caching-and-redis/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/caching-and-redis/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/core-wiring/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/core-wiring/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/core-wiring/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/event-system/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/event-system/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/event-system/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/exception-hierarchy/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/exception-hierarchy/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/exception-hierarchy/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/http-request-handling/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/http-request-handling/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/http-request-handling/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/module-authoring/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/module-authoring/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/module-authoring/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/module-extension-points/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/module-extension-points/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/module-extension-points/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/module-lifecycle/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/module-lifecycle/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/module-lifecycle/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/navbar-rendering/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/navbar-rendering/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/navbar-rendering/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/streaming-diagnostics/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/streaming-diagnostics/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/streaming-diagnostics/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/development/streaming-subsystem/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/development/streaming-subsystem/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3development/streaming-subsystem/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/authentication-and-sessions/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/authentication-and-sessions/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/authentication-and-sessions/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/cli-tools/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/cli-tools/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/cli-tools/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/database-migrations/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/database-migrations/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/database-migrations/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/dev-workflow/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/dev-workflow/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/dev-workflow/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/device-detection-and-stb-locking/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/device-detection-and-stb-locking/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/device-detection-and-stb-locking/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/diagnostics-api/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/diagnostics-api/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/diagnostics-api/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/error-handling/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/error-handling/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/error-handling/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/feature-flags/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/feature-flags/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/feature-flags/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/geoip-isp-and-geo-routing/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/geoip-isp-and-geo-routing/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/geoip-isp-and-geo-routing/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/input-validation/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/input-validation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/input-validation/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/ministra-browser-emulation/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/ministra-browser-emulation/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/ministra-browser-emulation/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/permissions-and-rbac/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/permissions-and-rbac/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/permissions-and-rbac/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/phpunit-phar/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/phpunit-phar/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/phpunit-phar/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/process-management/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/process-management/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/process-management/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/translations/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/translations/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/translations/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/ucs-integration/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/ucs-integration/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3guides/ucs-integration/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/info/faq/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/info/faq/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3info/faq/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/info/migration_guide/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/info/migration_guide/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3info/migration_guide/"/>
+    </url>
+    <url>
+        <loc>https://vateron-media.github.io/XC_VM/2.4.3/ru/info/watch_folder/</loc>
+        <lastmod>2026-09-01</lastmod>
+        <changefreq>daily</changefreq>
+        <xhtml:link rel="alternate" hreflang="ru" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/info/watch_folder/"/>
+        <xhtml:link rel="alternate" hreflang="en" href="https://vateron-media.github.io/XC_VM/2.4.3info/watch_folder/"/>
+    </url>
+</urlset>

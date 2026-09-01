@@ -1,0 +1,4267 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/permissions-and-rbac/">
+      
+      
+        <link rel="prev" href="../authentication-and-sessions/">
+      
+      
+        <link rel="next" href="../input-validation/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../ru/guides/permissions-and-rbac/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Permissions and RBAC - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#permissions-and-rbac" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Permissions and RBAC
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../ru/guides/permissions-and-rbac/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHPUnit Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#permission-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permission Keys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authorization-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization Classes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authorization Classes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type: user
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type: line
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-adv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type: adv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#super-admin-bypass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Super admin bypass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reseller-helper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reseller helper
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pageauthorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PageAuthorization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PageAuthorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-allow-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default-allow behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-page-permission-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Page Permission Mappings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Admin Page Permission Mappings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-vs-edit-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create-vs-edit pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streams-and-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streams and Content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#movies-and-vod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Movies and VOD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#series-and-episodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Series and Episodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#radio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Radio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lines-subscriber-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lines (Subscriber Users)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mag-and-enigma-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAG and Enigma Devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#admin-users-registered-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Users (Registered Users)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bouquets-and-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bouquets and Packages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#epg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Servers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security-and-blocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security and Blocking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tickets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tickets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tools-and-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools and Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#profiles-and-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiles and Codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rtmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RTMP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reseller-page-permission-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reseller Page Permission Mappings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-permission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Permission
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Model
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#permission-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Permission Keys
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authorization-classes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization Classes
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authorization Classes">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#type-user" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type: user
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-line" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type: line
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#type-adv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Type: adv
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#super-admin-bypass" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Super admin bypass
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reseller-helper" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reseller helper
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pageauthorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PageAuthorization
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PageAuthorization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#default-allow-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Default-allow behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#admin-page-permission-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Page Permission Mappings
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Admin Page Permission Mappings">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#create-vs-edit-pattern" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create-vs-edit pattern
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streams-and-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streams and Content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#movies-and-vod" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Movies and VOD
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#series-and-episodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Series and Episodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#radio" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Radio
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lines-subscriber-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Lines (Subscriber Users)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#mag-and-enigma-devices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAG and Enigma Devices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#admin-users-registered-users" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Admin Users (Registered Users)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bouquets-and-packages" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bouquets and Packages
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Groups
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#epg" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        EPG
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#servers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Servers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#security-and-blocking" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security and Blocking
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tickets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tickets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tools-and-settings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools and Settings
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#profiles-and-codes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Profiles and Codes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#rtmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        RTMP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#logs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Logs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#reseller-page-permission-mappings" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reseller Page Permission Mappings
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-a-new-permission" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding a New Permission
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="permissions-and-rbac">Permissions and RBAC<a class="headerlink" href="#permissions-and-rbac" title="Permanent link">&para;</a></h1>
+<p>XC_VM access control combines:</p>
+<ul>
+<li><strong>Group permissions</strong> -- allowed capabilities assigned to an admin group</li>
+<li><strong>Object-level authorization</strong> -- ownership checks for specific entities (users, lines)</li>
+<li><strong>Page-level authorization</strong> -- route/page gating in admin and reseller panels</li>
+</ul>
+<hr />
+<h2 id="model">Model<a class="headerlink" href="#model" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>user -&gt; member_group_id -&gt; group
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>         -&gt; is_admin (boolean)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>         -&gt; is_reseller (boolean)
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>         -&gt; advanced[] (array of permission keys)
+</code></pre></div>
+<p>Permission state is loaded into the <code>$rPermissions</code> global during session initialization and remains available throughout the request lifecycle.</p>
+<p>Key fields in <code>$rPermissions</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>is_admin</code></td>
+<td>bool</td>
+<td>Whether the user is an admin</td>
+</tr>
+<tr>
+<td><code>advanced</code></td>
+<td>array</td>
+<td>List of granted permission key strings</td>
+</tr>
+<tr>
+<td><code>all_reports</code></td>
+<td>array</td>
+<td>Reseller report tree (user IDs this reseller manages)</td>
+</tr>
+<tr>
+<td><code>create_line</code></td>
+<td>bool</td>
+<td>Reseller: can create lines</td>
+</tr>
+<tr>
+<td><code>create_sub_resellers</code></td>
+<td>bool</td>
+<td>Reseller: can create sub-resellers</td>
+</tr>
+<tr>
+<td><code>create_mag</code></td>
+<td>bool</td>
+<td>Reseller: can create MAG devices</td>
+</tr>
+<tr>
+<td><code>create_enigma</code></td>
+<td>bool</td>
+<td>Reseller: can create Enigma devices</td>
+</tr>
+<tr>
+<td><code>can_view_vod</code></td>
+<td>bool</td>
+<td>Reseller: can view VOD/streams content</td>
+</tr>
+<tr>
+<td><code>reseller_client_connection_logs</code></td>
+<td>bool</td>
+<td>Reseller: can view connection logs</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="permission-keys">Permission Keys<a class="headerlink" href="#permission-keys" title="Permanent link">&para;</a></h2>
+<p>Permission keys are declared in <code>XcVm\Core\Reference\PermissionReference</code> (<code>src/Core/Reference/PermissionReference.php</code>): <code>PermissionReference::keys()</code> returns the full list, and <code>PermissionReference::advanced()</code> pairs each key with its localized title/description for the group editor. Each key is a string identifier used with <code>Authorization::check('adv', $key)</code>.</p>
+<p>Categories:</p>
+<table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Examples</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Create/Add</td>
+<td><code>add_stream</code>, <code>add_movie</code>, <code>add_user</code>, <code>add_server</code>, <code>add_bouquet</code>, <code>add_epg</code>, <code>add_code</code>, <code>add_hmac</code>, <code>add_rtmp</code></td>
+</tr>
+<tr>
+<td>Edit</td>
+<td><code>edit_stream</code>, <code>edit_movie</code>, <code>edit_user</code>, <code>edit_server</code>, <code>edit_bouquet</code>, <code>edit_series</code>, <code>edit_reguser</code></td>
+</tr>
+<tr>
+<td>Mass operations</td>
+<td><code>mass_edit_streams</code>, <code>mass_edit_lines</code>, <code>mass_edit_mags</code>, <code>mass_edit_enigmas</code>, <code>mass_edit_radio</code>, <code>mass_edit_users</code>, <code>mass_sedits</code>, <code>mass_sedits_vod</code>, <code>mass_delete</code></td>
+</tr>
+<tr>
+<td>Import</td>
+<td><code>import_streams</code>, <code>import_movies</code>, <code>import_episodes</code></td>
+</tr>
+<tr>
+<td>Security/Blocking</td>
+<td><code>block_ips</code>, <code>block_isps</code>, <code>block_uas</code>, <code>block_asns</code>, <code>fingerprint</code></td>
+</tr>
+<tr>
+<td>Section visibility</td>
+<td><code>streams</code>, <code>movies</code>, <code>series</code>, <code>episodes</code>, <code>radio</code>, <code>users</code>, <code>servers</code>, <code>bouquets</code>, <code>epg</code>, <code>settings</code>, <code>database</code></td>
+</tr>
+<tr>
+<td>Logs</td>
+<td><code>connection_logs</code>, <code>live_connections</code>, <code>client_request_log</code>, <code>credits_log</code>, <code>login_logs</code>, <code>panel_logs</code>, <code>reg_userlog</code>, <code>restream_logs</code></td>
+</tr>
+<tr>
+<td>Tools</td>
+<td><code>quick_tools</code>, <code>stream_tools</code>, <code>process_monitor</code>, <code>stream_errors</code></td>
+</tr>
+<tr>
+<td>Management</td>
+<td><code>mng_regusers</code>, <code>mng_groups</code>, <code>mng_packages</code>, <code>manage_mag</code>, <code>manage_e2</code>, <code>manage_events</code>, <code>manage_tickets</code></td>
+</tr>
+<tr>
+<td>Other</td>
+<td><code>categories</code>, <code>channel_order</code>, <code>player</code>, <code>tprofile</code>, <code>tprofiles</code>, <code>rtmp</code>, <code>folder_watch</code>, <code>folder_watch_add</code>, <code>folder_watch_output</code>, <code>folder_watch_settings</code>, <code>ticket</code>, <code>add_code</code>, <code>add_hmac</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="authorization-classes">Authorization Classes<a class="headerlink" href="#authorization-classes" title="Permanent link">&para;</a></h2>
+<h3 id="authorization"><code>Authorization</code><a class="headerlink" href="#authorization" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/Core/Auth/Authorization.php</code></p>
+<p>Primary method:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="x">Authorization::check(string $rType, string|int|null $rID): bool</span>
+</code></pre></div>
+<p><strong>Preconditions:</strong> Returns <code>false</code> immediately if <code>$rUserInfo</code>, <code>$rPermissions</code>, or <code>$db</code> are not initialized.</p>
+<h4 id="type-user">Type: <code>user</code><a class="headerlink" href="#type-user" title="Permanent link">&para;</a></h4>
+<p>Checks whether the current user can access a target admin user. Builds a list from the current user's ID plus their <code>all_reports</code> tree, then queries the <code>users</code> table to verify the target user's <code>owner_id</code> is in that list (or the target is the current user).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">Authorization::check('user', $userId);</span>
+</code></pre></div>
+<h4 id="type-line">Type: <code>line</code><a class="headerlink" href="#type-line" title="Permanent link">&para;</a></h4>
+<p>Checks whether the current user can access a target line. Same report-tree approach -- queries the <code>lines</code> table to verify the target line's <code>member_id</code> is in the current user's report tree.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">Authorization::check('line', $lineId);</span>
+</code></pre></div>
+<h4 id="type-adv">Type: <code>adv</code><a class="headerlink" href="#type-adv" title="Permanent link">&para;</a></h4>
+<p>Checks whether the current admin user has a specific advanced permission key.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">Authorization::check('adv', 'edit_bouquet');</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">Authorization::check('adv', 'block_isps');</span>
+</code></pre></div>
+<p><strong>Important: <code>is_admin</code> gate.</strong> Before checking the advanced permissions array, the method requires <code>$rPermissions['is_admin']</code> to be true. If the user is not an admin, <code>check('adv', ...)</code> always returns <code>false</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">if (!($rType == 'adv' &amp;&amp; $rPermissions['is_admin'])) {</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    return false;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="x">}</span>
+</code></pre></div>
+<p>This means <code>adv</code> checks are exclusively for admin users. Reseller permissions use a separate system (see below).</p>
+<h4 id="super-admin-bypass">Super admin bypass<a class="headerlink" href="#super-admin-bypass" title="Permanent link">&para;</a></h4>
+<p><code>member_group_id = 1</code> is the super admin group. When the advanced permissions array is non-empty but the user belongs to group 1, the per-key check is skipped and the method returns <code>true</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">if (0 &lt; count($rPermissions['advanced']) &amp;&amp; $rUserInfo['member_group_id'] != 1) {</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">    return in_array($rID, $rPermissions['advanced']);</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="x">}</span>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="x">return true;</span>
+</code></pre></div>
+<p>This means super admins pass all <code>adv</code> checks regardless of which keys are assigned to their group.</p>
+<h4 id="reseller-helper">Reseller helper<a class="headerlink" href="#reseller-helper" title="Permanent link">&para;</a></h4>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">Authorization::hasResellerPermissions(string $type): bool</span>
+</code></pre></div>
+<p>Returns whether <code>$rPermissions[$type]</code> is non-empty. Used for reseller-specific boolean flags like <code>create_line</code>, <code>create_mag</code>, etc.</p>
+<hr />
+<h3 id="pageauthorization"><code>PageAuthorization</code><a class="headerlink" href="#pageauthorization" title="Permanent link">&para;</a></h3>
+<p>File: <code>src/Core/Auth/PageAuthorization.php</code></p>
+<p>Provides page-level gating for admin and reseller panels. Called during request dispatch to determine whether the current user can access a given page.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">PageAuthorization::checkPermissions(?string $page = null): bool</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="x">PageAuthorization::checkResellerPermissions(?string $page = null): bool</span>
+</code></pre></div>
+<p>If <code>$page</code> is omitted, the page name is inferred from <code>SCRIPT_FILENAME</code> (basename without <code>.php</code> extension, lowercased).</p>
+<h4 id="default-allow-behavior">Default-allow behavior<a class="headerlink" href="#default-allow-behavior" title="Permanent link">&para;</a></h4>
+<p>Both methods return <code>true</code> for any page not explicitly listed in their switch statements. This means pages without a mapping are accessible to all authorized users of the appropriate type (admin or reseller). Only pages with explicit entries are restricted.</p>
+<hr />
+<h2 id="admin-page-permission-mappings">Admin Page Permission Mappings<a class="headerlink" href="#admin-page-permission-mappings" title="Permanent link">&para;</a></h2>
+<p>The <code>checkPermissions()</code> method maps admin panel pages to <code>adv</code> permission keys. The complete mapping is listed below, grouped by category.</p>
+<h3 id="create-vs-edit-pattern">Create-vs-edit pattern<a class="headerlink" href="#create-vs-edit-pattern" title="Permanent link">&para;</a></h3>
+<p>Many entity pages use conditional logic based on request parameters:</p>
+<ul>
+<li>If an <code>id</code> parameter is present, the <strong>edit</strong> permission is checked</li>
+<li>If no <code>id</code> parameter is present, the <strong>add</strong> permission is checked</li>
+<li>Some pages (stream, movie) also check for an <code>import</code> parameter and require the corresponding import permission</li>
+</ul>
+<p>When neither condition is met, behavior depends on the page: some fall through to a related listing permission, others fall through to the switch default (which returns <code>true</code>).</p>
+<h3 id="streams-and-content">Streams and Content<a class="headerlink" href="#streams-and-content" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>streams</code>, <code>stream_view</code>, <code>provider</code>, <code>providers</code>, <code>epg_view</code>, <code>created_channels</code>, <code>stream_rank</code>, <code>archive</code></td>
+<td><code>streams</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>stream</code></td>
+<td><code>edit_stream</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>stream</code></td>
+<td><code>add_stream</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>stream</code></td>
+<td><code>import_streams</code></td>
+<td>When <code>import</code> param is present (in addition to <code>add_stream</code>)</td>
+</tr>
+<tr>
+<td><code>stream_categories</code></td>
+<td><code>categories</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>stream_category</code></td>
+<td><code>add_cat</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>stream_errors</code></td>
+<td><code>stream_errors</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>stream_mass</code>, <code>created_channel_mass</code></td>
+<td><code>mass_edit_streams</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mass_edit_streams</code></td>
+<td><code>edit_stream</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>review</code></td>
+<td><code>import_streams</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>channel_order</code></td>
+<td><code>channel_order</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>created_channel</code></td>
+<td><code>edit_cchannel</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>created_channel</code></td>
+<td><code>create_channel</code></td>
+<td>When no <code>id</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="movies-and-vod">Movies and VOD<a class="headerlink" href="#movies-and-vod" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>movies</code></td>
+<td><code>movies</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>movie</code></td>
+<td><code>edit_movie</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>movie</code></td>
+<td><code>add_movie</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>movie</code></td>
+<td><code>import_movies</code></td>
+<td>When <code>import</code> param is present (in addition to <code>add_movie</code>)</td>
+</tr>
+<tr>
+<td><code>movie_mass</code></td>
+<td><code>mass_sedits_vod</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>record</code></td>
+<td><code>add_movie</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>recordings</code></td>
+<td><code>movies</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="series-and-episodes">Series and Episodes<a class="headerlink" href="#series-and-episodes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>series</code></td>
+<td><code>series</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>serie</code></td>
+<td><code>edit_series</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>serie</code></td>
+<td><code>add_series</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>series_order</code></td>
+<td><code>edit_series</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>episodes</code></td>
+<td><code>episodes</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>episode</code></td>
+<td><code>edit_episode</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>episode</code></td>
+<td><code>add_episode</code></td>
+<td>When no <code>id</code>; falls through to <code>episodes</code> on denial</td>
+</tr>
+<tr>
+<td><code>series_mass</code>, <code>episodes_mass</code></td>
+<td><code>mass_sedits</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="radio">Radio<a class="headerlink" href="#radio" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>radios</code></td>
+<td><code>radio</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>radio</code></td>
+<td><code>edit_radio</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>radio</code></td>
+<td><code>add_radio</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>radio_mass</code></td>
+<td><code>mass_edit_radio</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="lines-subscriber-users">Lines (Subscriber Users)<a class="headerlink" href="#lines-subscriber-users" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lines</code></td>
+<td><code>users</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>line</code></td>
+<td><code>edit_user</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>line</code></td>
+<td><code>add_user</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>line_mass</code></td>
+<td><code>mass_edit_lines</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>line_activity</code>, <code>theft_detection</code>, <code>line_ips</code></td>
+<td><code>connection_logs</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>live_connections</code></td>
+<td><code>live_connections</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="mag-and-enigma-devices">MAG and Enigma Devices<a class="headerlink" href="#mag-and-enigma-devices" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mags</code></td>
+<td><code>manage_mag</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mag</code></td>
+<td><code>edit_mag</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>mag</code></td>
+<td><code>add_mag</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>mag_events</code></td>
+<td><code>manage_events</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mag_mass</code></td>
+<td><code>mass_edit_mags</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>enigmas</code></td>
+<td><code>manage_e2</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>enigma_mass</code></td>
+<td><code>mass_edit_enigmas</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="admin-users-registered-users">Admin Users (Registered Users)<a class="headerlink" href="#admin-users-registered-users" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>users</code></td>
+<td><code>mng_regusers</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td><code>edit_reguser</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td><code>add_reguser</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>user_mass</code></td>
+<td><code>mass_edit_users</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>user_logs</code></td>
+<td><code>reg_userlog</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="bouquets-and-packages">Bouquets and Packages<a class="headerlink" href="#bouquets-and-packages" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bouquets</code></td>
+<td><code>bouquets</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>bouquet</code></td>
+<td><code>edit_bouquet</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>bouquet</code></td>
+<td><code>add_bouquet</code></td>
+<td>When no <code>id</code>; falls through to <code>edit_bouquet</code> on denial</td>
+</tr>
+<tr>
+<td><code>bouquet_order</code>, <code>bouquet_sort</code></td>
+<td><code>edit_bouquet</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>packages</code>, <code>addons</code></td>
+<td><code>mng_packages</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>package</code></td>
+<td><code>edit_package</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>package</code></td>
+<td><code>add_packages</code></td>
+<td>When no <code>id</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="groups">Groups<a class="headerlink" href="#groups" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>groups</code></td>
+<td><code>mng_groups</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td><code>edit_group</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>group</code></td>
+<td><code>add_group</code></td>
+<td>When no <code>id</code>; falls through to <code>mng_groups</code> on denial</td>
+</tr>
+</tbody>
+</table>
+<h3 id="epg">EPG<a class="headerlink" href="#epg" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>epgs</code></td>
+<td><code>epg</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>epg</code></td>
+<td><code>epg_edit</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>epg</code></td>
+<td><code>add_epg</code></td>
+<td>When no <code>id</code>; falls through to <code>epg</code> on denial</td>
+</tr>
+</tbody>
+</table>
+<h3 id="servers">Servers<a class="headerlink" href="#servers" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>servers</code>, <code>server_view</code>, <code>server_order</code>, <code>proxies</code></td>
+<td><code>servers</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>server</code>, <code>proxy</code></td>
+<td><code>edit_server</code></td>
+<td>When <code>id</code> is present</td>
+</tr>
+<tr>
+<td><code>server</code>, <code>proxy</code></td>
+<td><code>add_server</code></td>
+<td>When no <code>id</code></td>
+</tr>
+<tr>
+<td><code>server_install</code></td>
+<td><code>add_server</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="security-and-blocking">Security and Blocking<a class="headerlink" href="#security-and-blocking" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>isps</code>, <code>isp</code>, <code>asns</code></td>
+<td><code>block_isps</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ip</code>, <code>ips</code></td>
+<td><code>block_ips</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>useragents</code>, <code>useragent</code></td>
+<td><code>block_uas</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>fingerprint</code></td>
+<td><code>fingerprint</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tickets">Tickets<a class="headerlink" href="#tickets" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ticket</code></td>
+<td><code>ticket</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>ticket_view</code>, <code>tickets</code></td>
+<td><code>manage_tickets</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="tools-and-settings">Tools and Settings<a class="headerlink" href="#tools-and-settings" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>settings</code></td>
+<td><code>settings</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>backups</code>, <code>cache</code>, <code>setup</code></td>
+<td><code>database</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>settings_watch</code>, <code>settings_plex</code></td>
+<td><code>folder_watch_settings</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>plex</code>, <code>watch</code></td>
+<td><code>folder_watch</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>plex_add</code>, <code>watch_add</code></td>
+<td><code>folder_watch_add</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>watch_output</code></td>
+<td><code>folder_watch_output</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mass_delete</code></td>
+<td><code>mass_delete</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>quick_tools</code></td>
+<td><code>quick_tools</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>stream_tools</code></td>
+<td><code>stream_tools</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>process_monitor</code></td>
+<td><code>process_monitor</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>queue</code></td>
+<td><code>streams</code> OR <code>episodes</code> OR <code>series</code></td>
+<td>Access if user has any one of these</td>
+</tr>
+</tbody>
+</table>
+<h3 id="profiles-and-codes">Profiles and Codes<a class="headerlink" href="#profiles-and-codes" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>profiles</code></td>
+<td><code>tprofiles</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>profile</code></td>
+<td><code>tprofile</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>player</code></td>
+<td><code>player</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>code</code>, <code>codes</code></td>
+<td><code>add_code</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>hmac</code>, <code>hmacs</code></td>
+<td><code>add_hmac</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="rtmp">RTMP<a class="headerlink" href="#rtmp" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rtmp_ip</code></td>
+<td><code>add_rtmp</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>rtmp_ips</code>, <code>rtmp_monitor</code></td>
+<td><code>rtmp</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="logs">Logs<a class="headerlink" href="#logs" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Page</th>
+<th>Permission</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>client_logs</code></td>
+<td><code>client_request_log</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>credit_logs</code></td>
+<td><code>credits_log</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>mysql_syslog</code>, <code>panel_logs</code></td>
+<td><code>panel_logs</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>login_logs</code></td>
+<td><code>login_logs</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>restream_logs</code></td>
+<td><code>restream_logs</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="reseller-page-permission-mappings">Reseller Page Permission Mappings<a class="headerlink" href="#reseller-page-permission-mappings" title="Permanent link">&para;</a></h2>
+<p>The <code>checkResellerPermissions()</code> method maps reseller panel pages to boolean flags in <code>$rPermissions</code>. Unlike admin permissions which use the <code>advanced</code> array via <code>Authorization::check('adv', ...)</code>, reseller permissions are simple boolean fields checked directly.</p>
+<table>
+<thead>
+<tr>
+<th>Pages</th>
+<th>Required permission</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>user</code>, <code>users</code></td>
+<td><code>create_sub_resellers</code></td>
+</tr>
+<tr>
+<td><code>line</code>, <code>lines</code></td>
+<td><code>create_line</code></td>
+</tr>
+<tr>
+<td><code>mag</code>, <code>mags</code></td>
+<td><code>create_mag</code></td>
+</tr>
+<tr>
+<td><code>enigma</code>, <code>enigmas</code></td>
+<td><code>create_enigma</code></td>
+</tr>
+<tr>
+<td><code>epg_view</code>, <code>streams</code>, <code>created_channels</code>, <code>movies</code>, <code>episodes</code>, <code>radios</code></td>
+<td><code>can_view_vod</code></td>
+</tr>
+<tr>
+<td><code>live_connections</code>, <code>line_activity</code></td>
+<td><code>reseller_client_connection_logs</code></td>
+</tr>
+</tbody>
+</table>
+<p>Any reseller page not listed above returns <code>true</code> (accessible by default).</p>
+<hr />
+<h2 id="adding-a-new-permission">Adding a New Permission<a class="headerlink" href="#adding-a-new-permission" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Add the key to the <code>KEYS</code> constant in <code>src/Core/Reference/PermissionReference.php</code>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="x">private const KEYS = array(</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="x">    // ...existing keys...</span>
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="x">    'my_new_permission',</span>
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="x">);</span>
+</code></pre></div>
+<p>Then add its label keys to the language files so the group editor can show a
+title/description: <code>permission_my_new_permission</code> and
+<code>permission_my_new_permission_text</code> in <code>src/Core/Localization/lang/en.ini</code>.</p>
+<ol>
+<li>Use it in code via <code>Authorization::check()</code>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="x">if (!Authorization::check('adv', 'my_new_permission')) {</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="x">    // deny access</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="x">}</span>
+</code></pre></div>
+<ol>
+<li>If the permission should gate a page, add a case to <code>PageAuthorization::checkPermissions()</code>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="x">case 'my_new_page':</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="x">    return Authorization::check('adv', 'my_new_permission');</span>
+</code></pre></div>
+<ol>
+<li>For create/edit entity pages, use the conditional pattern:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="x">case 'my_entity':</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="x">    if (isset(RequestManager::getAll()['id']) &amp;&amp; Authorization::check('adv', 'edit_my_entity')) {</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="x">        return true;</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="x">    }</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="x">    if (isset(RequestManager::getAll()['id']) || !Authorization::check('adv', 'add_my_entity')) {</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="x">        break;</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="x">    }</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="x">    return true;</span>
+</code></pre></div>
+<ol>
+<li>For reseller permissions, add a boolean field to <code>$rPermissions</code> and a case to <code>checkResellerPermissions()</code>.</li>
+</ol>
+<hr />
+<h2 id="related-files">Related files<a class="headerlink" href="#related-files" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/Core/Reference/PermissionReference.php</code></td>
+<td>Permission key registry (<code>keys()</code>) + localized rows for the group editor (<code>advanced()</code>)</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/Authorization.php</code></td>
+<td>Object-level and advanced permission checks</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/PageAuthorization.php</code></td>
+<td>Page-level gating for admin and reseller panels</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/SessionManager.php</code></td>
+<td>Session context; populates <code>$rPermissions</code> and <code>$rUserInfo</code></td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/Authenticator.php</code></td>
+<td>Authentication (login, credential verification)</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

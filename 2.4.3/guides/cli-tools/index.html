@@ -1,0 +1,3884 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.4.3/guides/cli-tools/">
+      
+      
+        <link rel="prev" href="../dev-workflow/">
+      
+      
+        <link rel="next" href="../database-migrations/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../ru/guides/cli-tools/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>CLI Tools & Console Reference - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#cli-tools-console-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI Tools & Console Reference
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../ru/guides/cli-tools/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#console-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Console Entry Point
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-command-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Command Registry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Full Command Registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#utility-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utility Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#daemon-commands-persistent-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Daemon Commands (persistent processes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stream-processing-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Processing Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cron-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cron Jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binary-self-update-self-heal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary self-update (self-heal)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registering-a-new-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registering a New Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registering a New Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commandinterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CommandInterface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-1-create-the-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1. Create the Class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-registration-is-automatic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2. Registration is automatic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-add-to-makefile-if-lb-excluded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3. Add to Makefile (if LB-excluded)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4. Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tools-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tools Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subcommands-run-as-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subcommands (run as root)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subcommands-run-as-xc_vm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subcommands (run as xc_vm)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-updates-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database updates / migrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-cli-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common CLI Operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common CLI Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#status-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stream-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-node-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server (Node) Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssl-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSL Certificate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database migrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHPUnit Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#console-entry-point" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Console Entry Point
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-command-registry" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Command Registry
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Full Command Registry">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#utility-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Utility Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#daemon-commands-persistent-processes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Daemon Commands (persistent processes)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stream-processing-commands" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Processing Commands
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cron-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cron Jobs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#binary-self-update-self-heal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Binary self-update (self-heal)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#registering-a-new-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Registering a New Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Registering a New Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#commandinterface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CommandInterface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-1-create-the-class" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1. Create the Class
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-registration-is-automatic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2. Registration is automatic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-add-to-makefile-if-lb-excluded" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3. Add to Makefile (if LB-excluded)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-4-test" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 4. Test
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tools-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tools Command
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tools Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subcommands-run-as-root" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subcommands (run as root)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#subcommands-run-as-xc_vm" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Subcommands (run as xc_vm)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Examples
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#database-updates-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database updates / migrations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#common-cli-operations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Common CLI Operations
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Common CLI Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#status-check" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Status Check
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#service-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Service Management
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#manual-update" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual Update
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stream-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stream Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-node-diagnostics" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server (Node) Diagnostics
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssl-certificate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SSL Certificate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#database-migrations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Database migrations
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-files" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related files
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="cli-tools-console-reference">CLI Tools &amp; Console Reference<a class="headerlink" href="#cli-tools-console-reference" title="Permanent link">&para;</a></h1>
+<p>Reference for XC_VM command-line interface, system tools, and the database update process after version upgrades. Covers daily operations, emergency access, and creating new DB update steps.</p>
+<hr />
+<h2 id="console-entry-point">Console Entry Point<a class="headerlink" href="#console-entry-point" title="Permanent link">&para;</a></h2>
+<p>All CLI commands are executed through <code>console.php</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>/home/xc_vm/console.php<span class="w"> </span>&lt;command&gt;<span class="w"> </span><span class="o">[</span>args...<span class="o">]</span>
+</code></pre></div>
+<p>The console supports three types of commands:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Count</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Commands</strong></td>
+<td>28</td>
+<td>One-time operations (update, status, tools, etc.)</td>
+</tr>
+<tr>
+<td><strong>CronJobs</strong></td>
+<td>25</td>
+<td>Scheduled tasks (auto-invoked by crontab)</td>
+</tr>
+<tr>
+<td><strong>Daemons</strong></td>
+<td>8</td>
+<td>Long-running background processes (Commands using <code>DaemonTrait</code>)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Daemons are regular Commands that use <code>DaemonTrait</code>. There is no separate <code>Daemons/</code> directory.</p>
+</blockquote>
+<p>To see all available commands:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>/home/xc_vm/console.php<span class="w"> </span>list
+</code></pre></div>
+<hr />
+<h2 id="full-command-registry">Full Command Registry<a class="headerlink" href="#full-command-registry" title="Permanent link">&para;</a></h2>
+<h3 id="utility-commands">Utility Commands<a class="headerlink" href="#utility-commands" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Class</th>
+<th>Description</th>
+<th>User</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>status</code></td>
+<td><code>StatusCommand</code></td>
+<td>System status, DB updates, configuration check</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>update</code></td>
+<td><code>UpdateCommand</code></td>
+<td>System update (update / post-update)</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>service</code></td>
+<td><code>ServiceCommand</code></td>
+<td>Manage XC_VM service: start, stop, restart, reload</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>tools</code></td>
+<td><code>ToolsCommand</code></td>
+<td>Maintenance utilities (see Tools Command section)</td>
+<td>root/xc_vm</td>
+</tr>
+<tr>
+<td><code>certbot</code></td>
+<td><code>CertbotCommand</code></td>
+<td>Generate SSL certificate via certbot</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>binaries</code></td>
+<td><code>BinariesCommand</code></td>
+<td>Update the runtime bundle (php/nginx/…) from the <code>XC_VM_Binaries</code> release</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>fanout_binary</code></td>
+<td><code>FanoutBinaryCommand</code></td>
+<td>Install/update the <code>xc_fanout</code> daemon binary from its release</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>xcvm_core</code></td>
+<td><code>XcvmCoreCommand</code></td>
+<td>Install/update the <code>xcvm_core</code> PHP extension from the binaries repo</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>ytdlp</code></td>
+<td><code>YtDlpCommand</code></td>
+<td>Install/update <code>yt-dlp</code> from its upstream GitHub release</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>startup</code></td>
+<td><code>StartupCommand</code></td>
+<td>System initialization: daemons.sh, crontab, cache</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>monitor</code></td>
+<td><code>MonitorCommand</code></td>
+<td>Monitor stream by ID (start/restart/track)</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>thumbnail</code></td>
+<td><code>ThumbnailCommand</code></td>
+<td>Generate thumbnail frames for a stream</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>plex_item</code></td>
+<td><code>PlexItemCommand</code></td>
+<td>Process single Plex item (movie/series)</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>watch_item</code></td>
+<td><code>WatchItemCommand</code></td>
+<td>Process single Watch item (TMDB search/update)</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>migrate</code></td>
+<td><code>MigrateCommand</code></td>
+<td>Transfer data from <code>xc_vm_migrate</code> database</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>db:migrate</code></td>
+<td><code>DbMigrateCommand</code></td>
+<td>Apply pending database migrations from the <code>migrations/</code> directory</td>
+<td>xc_vm</td>
+</tr>
+<tr>
+<td><code>server:install</code></td>
+<td><code>ServerInstallCommand</code></td>
+<td>Install/configure server (Proxy/LB) via SSH</td>
+<td>root</td>
+</tr>
+<tr>
+<td><code>server:diagnose</code></td>
+<td><code>ServerDiagnoseCommand</code></td>
+<td>Diagnose why a proxy/LB node is silent to the main (heartbeat, reachability, iptables, service)</td>
+<td>root</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>console.php</code> registers <strong>every</strong> class it discovers in <code>Cli/Commands/</code> and <code>Cli/CronJobs/</code> (glob + reflection) — there is <strong>no</strong> <code>file_exists()</code> guard. A command is "optional" only in that it may be <strong>stripped from the LB build</strong> (<code>Makefile</code> <code>LB_FILES_TO_REMOVE</code>) or <strong>provided by an installed module</strong>. <code>plex_item</code> and <code>watch_item</code> above are <strong>module-provided</strong> (Plex/Watch) — their command classes are not in the committed core tree and exist only when that module is installed.</p>
+</blockquote>
+<h3 id="daemon-commands-persistent-processes">Daemon Commands (persistent processes)<a class="headerlink" href="#daemon-commands-persistent-processes" title="Permanent link">&para;</a></h3>
+<p>These commands use <code>DaemonTrait</code> and run continuously via <code>while(true)</code> loops:</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Class</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>signals</code></td>
+<td><code>SignalsCommand</code></td>
+<td>Process kill/cache signals from DB and Redis</td>
+</tr>
+<tr>
+<td><code>watchdog</code></td>
+<td><code>WatchdogCommand</code></td>
+<td>System monitoring: CPU, connections, server updates</td>
+</tr>
+<tr>
+<td><code>queue</code></td>
+<td><code>QueueCommand</code></td>
+<td>Process background queue tasks</td>
+</tr>
+<tr>
+<td><code>scanner</code></td>
+<td><code>ScannerCommand</code></td>
+<td>Scan for new streams/devices</td>
+</tr>
+<tr>
+<td><code>cache_handler</code></td>
+<td><code>CacheHandlerCommand</code></td>
+<td>Handle cache operations (optional)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="stream-processing-commands">Stream Processing Commands<a class="headerlink" href="#stream-processing-commands" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Class</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>proxy</code></td>
+<td><code>ProxyCommand</code></td>
+<td>MPEG-TS stream proxying via sockets</td>
+</tr>
+<tr>
+<td><code>archive</code></td>
+<td><code>ArchiveCommand</code></td>
+<td>TV Archive — record stream into segments</td>
+</tr>
+<tr>
+<td><code>created</code></td>
+<td><code>CreatedCommand</code></td>
+<td>Created Channel — compose channel from sources</td>
+</tr>
+<tr>
+<td><code>delay</code></td>
+<td><code>DelayCommand</code></td>
+<td>Delay HLS stream playback</td>
+</tr>
+<tr>
+<td><code>loopback</code></td>
+<td><code>LoopbackCommand</code></td>
+<td>Receive MPEG-TS from another server</td>
+</tr>
+<tr>
+<td><code>llod</code></td>
+<td><code>LlodCommand</code></td>
+<td>Low-Latency On-Demand stream processor</td>
+</tr>
+<tr>
+<td><code>record</code></td>
+<td><code>RecordCommand</code></td>
+<td>Record stream to MP4</td>
+</tr>
+<tr>
+<td><code>ondemand</code></td>
+<td><code>OndemandCommand</code></td>
+<td>Kill streams with no active viewers</td>
+</tr>
+</tbody>
+</table>
+<h3 id="cron-jobs">Cron Jobs<a class="headerlink" href="#cron-jobs" title="Permanent link">&para;</a></h3>
+<blockquote>
+<p>The command/cron/daemon tables below are hand-maintained and can drift. The source of truth is <code>console.php list</code> — run it to see the live registry.</p>
+</blockquote>
+<p>All cron job names are prefixed with <code>cron:</code>. They use <code>CronTrait</code> and are invoked by the system crontab.</p>
+<p><strong>Core cron jobs</strong> (in <code>src/Cli/CronJobs/</code>):</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Class</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cron:activity</code></td>
+<td><code>ActivityCronJob</code></td>
+<td>Import user activity logs into DB</td>
+</tr>
+<tr>
+<td><code>cron:backups</code></td>
+<td><code>BackupsCronJob</code></td>
+<td>Manage backups (optional)</td>
+</tr>
+<tr>
+<td><code>cron:cache</code></td>
+<td><code>CacheCronJob</code></td>
+<td>Cache management</td>
+</tr>
+<tr>
+<td><code>cron:cache_engine</code></td>
+<td><code>CacheEngineCronJob</code></td>
+<td>Generate cache for lines, streams, series, groups (optional)</td>
+</tr>
+<tr>
+<td><code>cron:certbot</code></td>
+<td><code>CertbotCronJob</code></td>
+<td>SSL certificate renewal</td>
+</tr>
+<tr>
+<td><code>cron:cleanup</code></td>
+<td><code>CleanupCronJob</code></td>
+<td>Cleanup temporary files and logs</td>
+</tr>
+<tr>
+<td><code>cron:epg</code></td>
+<td><code>EpgCronJob</code></td>
+<td>EPG download and processing (optional)</td>
+</tr>
+<tr>
+<td><code>cron:errors</code></td>
+<td><code>ErrorsCronJob</code></td>
+<td>Process error logs</td>
+</tr>
+<tr>
+<td><code>cron:lines_logs</code></td>
+<td><code>LinesLogsCronJob</code></td>
+<td>Import client request logs into DB</td>
+</tr>
+<tr>
+<td><code>cron:maxmind</code></td>
+<td><code>MaxMindCronJob</code></td>
+<td>Update MaxMind GeoIP databases (Tuesdays only; <code>--force</code> to run manually)</td>
+</tr>
+<tr>
+<td><code>cron:providers</code></td>
+<td><code>ProvidersCronJob</code></td>
+<td>Update providers (optional)</td>
+</tr>
+<tr>
+<td><code>cron:root_mysql</code></td>
+<td><code>RootMysqlCronJob</code></td>
+<td>Database maintenance (root, optional)</td>
+</tr>
+<tr>
+<td><code>cron:root_signals</code></td>
+<td><code>RootSignalsCronJob</code></td>
+<td>Process signals, iptables, nginx, service management, and <strong>binary self-heal</strong> (root)</td>
+</tr>
+<tr>
+<td><code>cron:series</code></td>
+<td><code>SeriesCronJob</code></td>
+<td>Update series data (optional)</td>
+</tr>
+<tr>
+<td><code>cron:servers</code></td>
+<td><code>ServersCronJob</code></td>
+<td>Monitor server, launch daemons, update statistics</td>
+</tr>
+<tr>
+<td><code>cron:stats</code></td>
+<td><code>StatsCronJob</code></td>
+<td>Calculate and store statistics</td>
+</tr>
+<tr>
+<td><code>cron:streams</code></td>
+<td><code>StreamsCronJob</code></td>
+<td>Verify and update stream status</td>
+</tr>
+<tr>
+<td><code>cron:streams_logs</code></td>
+<td><code>StreamsLogsCronJob</code></td>
+<td>Import stream logs</td>
+</tr>
+<tr>
+<td><code>cron:tmp</code></td>
+<td><code>TmpCronJob</code></td>
+<td>Cleanup temporary files</td>
+</tr>
+<tr>
+<td><code>cron:update</code></td>
+<td><code>UpdateCronJob</code></td>
+<td>Check and apply updates (optional)</td>
+</tr>
+<tr>
+<td><code>cron:users</code></td>
+<td><code>UsersCronJob</code></td>
+<td>Manage user connections, Redis sync, divergence</td>
+</tr>
+<tr>
+<td><code>cron:vod</code></td>
+<td><code>VodCronJob</code></td>
+<td>Process VOD content</td>
+</tr>
+<tr>
+<td><code>cron:proxy</code></td>
+<td><code>ProxyArchiveCronJob</code></td>
+<td>Archive/rotate proxy stream data</td>
+</tr>
+<tr>
+<td><code>cron:module_licenses</code></td>
+<td><code>ModuleLicensesCronJob</code></td>
+<td>Refresh installed-module licenses</td>
+</tr>
+<tr>
+<td><code>cron:module_updates</code></td>
+<td><code>ModuleUpdatesCronJob</code></td>
+<td>Check for module updates</td>
+</tr>
+<tr>
+<td><code>cron:tmdb</code></td>
+<td><code>TmdbCronJob</code></td>
+<td>Fetch TMDB metadata (optional)</td>
+</tr>
+<tr>
+<td><code>cron:tmdb_popular</code></td>
+<td><code>TmdbPopularCronJob</code></td>
+<td>Fetch popular TMDB content (optional)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Module-provided cron jobs.</strong> Registered by optional modules via <code>CronProviderInterface::getCronEntries()</code>; they exist only when that module is installed and are <strong>not</strong> in the committed core tree (<code>src/Modules/</code> ships empty). (<code>cron:tmdb</code>/<code>cron:tmdb_popular</code> are <strong>core</strong>, listed above — not module cron jobs.)</p>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Class</th>
+<th>Module</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cron:plex</code></td>
+<td><code>PlexCronJob</code></td>
+<td>plex</td>
+<td>Process Plex updates</td>
+</tr>
+<tr>
+<td><code>cron:watch</code></td>
+<td><code>WatchCronJob</code></td>
+<td>watch</td>
+<td>Process Watch library updates</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>"Optional" cron jobs are <strong>not</strong> conditionally registered — every discovered <code>CronJob</code> class is registered. "Optional" means the job no-ops unless its feature/setting is enabled (e.g. <code>cron:epg</code>, <code>cron:series</code>, <code>cron:update</code>), or the job is stripped from the LB build.</p>
+</blockquote>
+<hr />
+<h2 id="binary-self-update-self-heal">Binary self-update (self-heal)<a class="headerlink" href="#binary-self-update-self-heal" title="Permanent link">&para;</a></h2>
+<p>Some bundled binaries are <strong>not</strong> shipped inside the heavy runtime bundle and would
+otherwise never refresh between panel releases (a fresh LB node, or a node left on
+an old build, would never converge). <code>cron:root_signals</code> (root, every minute) keeps
+them current by polling their idempotent per-binary updater commands on a
+stamp-throttled schedule — each downloads only on a version mismatch, verifies a
+checksum, run-tests the new binary, then swaps it in atomically (a broken download
+never replaces a working one). Runs on every node (main <strong>and</strong> LB).</p>
+<table>
+<thead>
+<tr>
+<th>Binary</th>
+<th>Command</th>
+<th>Source</th>
+<th>Verify</th>
+<th>Poll</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>xc_fanout</code> daemon</td>
+<td><code>fanout_binary</code></td>
+<td><code>XC_VM_Fanout</code> release asset</td>
+<td><code>SHA256SUMS</code></td>
+<td>~hourly</td>
+</tr>
+<tr>
+<td><code>xcvm_core</code> extension</td>
+<td><code>xcvm_core</code></td>
+<td><code>XC_VM_Binaries</code> repo tree (<code>bin/xcvm_core/</code>)</td>
+<td><code>SHA256SUMS</code> + load-test</td>
+<td>~hourly</td>
+</tr>
+<tr>
+<td><code>yt-dlp</code></td>
+<td><code>ytdlp</code></td>
+<td>upstream <code>yt-dlp/yt-dlp</code> release</td>
+<td><code>SHA2-256SUMS</code> + <code>--version</code></td>
+<td>daily</td>
+</tr>
+</tbody>
+</table>
+<p>Stamps live in <code>CRONS_TMP_PATH</code> (<code>fanout_binary_check</code>, <code>xcvm_core_check</code>,
+<code>ytdlp_check</code>); the first pass (stamp absent) runs immediately, so a fresh
+install/LB gets the binary within a minute. The heavy runtime bundle
+(php/nginx/ffmpeg) is instead refreshed by the <code>binaries</code> command, triggered by an
+<code>update_binaries</code> signal from MAIN.</p>
+<hr />
+<h2 id="registering-a-new-command">Registering a New Command<a class="headerlink" href="#registering-a-new-command" title="Permanent link">&para;</a></h2>
+<p>All CLI commands implement <code>CommandInterface</code>. Core commands are auto-discovered from <code>src/Cli/</code> via reflection in <code>console.php</code>. Module commands are registered via <code>ModuleLoader::registerAllCommands()</code>.</p>
+<h3 id="commandinterface">CommandInterface<a class="headerlink" href="#commandinterface" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">interface CommandInterface {</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">    public function getName(): string;        // Unique command name (used in CLI)</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">    public function getDescription(): string; // One-line help text (shown in `list`)</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="x">    public function execute(array $rArgs): int; // Entry point, returns exit code</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="x">}</span>
+</code></pre></div>
+<h3 id="step-1-create-the-class">Step 1. Create the Class<a class="headerlink" href="#step-1-create-the-class" title="Permanent link">&para;</a></h3>
+<p>Create a new file in <code>src/Cli/Commands/</code> (or <code>src/Cli/CronJobs/</code> for cron jobs):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="cp">&lt;?php</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="k">class</span> <span class="nc">MyNewCommand</span> <span class="k">implements</span> <span class="nx">CommandInterface</span> <span class="p">{</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">getName</span><span class="p">()</span><span class="o">:</span> <span class="nx">string</span> <span class="p">{</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="k">return</span> <span class="s1">'my_command'</span><span class="p">;</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="p">}</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">getDescription</span><span class="p">()</span><span class="o">:</span> <span class="nx">string</span> <span class="p">{</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="k">return</span> <span class="s1">'Short description of what it does'</span><span class="p">;</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="p">}</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="k">public</span> <span class="k">function</span> <span class="nf">execute</span><span class="p">(</span><span class="k">array</span> <span class="nv">$rArgs</span><span class="p">)</span><span class="o">:</span> <span class="nx">int</span> <span class="p">{</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="c1">// Your logic here</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        <span class="k">echo</span> <span class="s2">"Done.</span><span class="se">\n</span><span class="s2">"</span><span class="p">;</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="k">return</span> <span class="mi">0</span><span class="p">;</span> <span class="c1">// 0 = success, 1 = error</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="p">}</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="p">}</span>
+</code></pre></div>
+<p>For <strong>daemon</strong> commands, also use <code>DaemonTrait</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">class MyDaemonCommand implements CommandInterface {</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="x">    use DaemonTrait;</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="x">    // ...</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="x">}</span>
+</code></pre></div>
+<p>For <strong>cron jobs</strong>, use <code>CronTrait</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">class MyCronJob implements CommandInterface {</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="x">    use CronTrait;</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="x">    public function getName(): string {</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="x">        return 'cron:my_job'; // Cron names are prefixed with cron:</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="x">    }</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="x">    // ...</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="x">}</span>
+</code></pre></div>
+<h3 id="step-2-registration-is-automatic">Step 2. Registration is automatic<a class="headerlink" href="#step-2-registration-is-automatic" title="Permanent link">&para;</a></h3>
+<p>There is <strong>nothing to add to <code>console.php</code></strong>. On startup it globs <code>Cli/Commands/*.php</code> and
+<code>Cli/CronJobs/*.php</code> and, via reflection, <code>register()</code>s every non-abstract class implementing
+<code>CommandInterface</code>. Dropping your class in the right directory (with a <code>getName()</code> that returns
+its command name) is all that is required — see <a href="../../development/core-wiring/#cli-command-registration">Core Wiring → CLI command registration</a>.</p>
+<h3 id="step-3-add-to-makefile-if-lb-excluded">Step 3. Add to Makefile (if LB-excluded)<a class="headerlink" href="#step-3-add-to-makefile-if-lb-excluded" title="Permanent link">&para;</a></h3>
+<p>If the command should NOT be included in Load Balancer builds, add its path to <code>LB_FILES_TO_REMOVE</code> in the <code>Makefile</code>.</p>
+<h3 id="step-4-test">Step 4. Test<a class="headerlink" href="#step-4-test" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="c1"># Verify it appears in the list</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>/home/xc_vm/console.php<span class="w"> </span>list
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="c1"># Run it</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>/home/xc_vm/console.php<span class="w"> </span>my_command
+</code></pre></div>
+<hr />
+<h2 id="tools-command">Tools Command<a class="headerlink" href="#tools-command" title="Permanent link">&para;</a></h2>
+<p>The <code>tools</code> command provides system maintenance utilities.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>/home/xc_vm/console.php<span class="w">  </span>tools<span class="w"> </span>&lt;subcommand&gt;
+</code></pre></div>
+<h3 id="subcommands-run-as-root">Subcommands (run as <code>root</code>)<a class="headerlink" href="#subcommands-run-as-root" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>rescue</code></td>
+<td>Create a temporary rescue access code for emergency panel access. Prints the URL. <strong>Delete this code after use!</strong></td>
+</tr>
+<tr>
+<td><code>recaptcha</code></td>
+<td>Disable reCAPTCHA (<code>recaptcha_enable = 0</code>) to restore admin panel login when captcha verification is failing.</td>
+</tr>
+<tr>
+<td><code>access</code></td>
+<td>Regenerate all nginx access code configs and reload nginx. Prints URLs for all admin panel codes.</td>
+</tr>
+<tr>
+<td><code>ports</code></td>
+<td>Regenerate nginx port configs (HTTP, HTTPS, RTMP) from the database and reload nginx.</td>
+</tr>
+<tr>
+<td><code>migration</code></td>
+<td>Clear the staging database (<code>xc_vm_migrate</code>) and optionally restore a <code>.sql</code> backup into it.</td>
+</tr>
+<tr>
+<td><code>user</code></td>
+<td>Create a rescue admin user with random credentials. Prints username and password. <strong>Delete this user after use!</strong></td>
+</tr>
+<tr>
+<td><code>mysql</code></td>
+<td>Reauthorise MySQL privileges for all load balancer servers.</td>
+</tr>
+<tr>
+<td><code>database</code></td>
+<td>Restore a blank XC_VM database from <code>database.sql</code>. <strong>Erases ALL data!</strong> Requires <code>--confirm</code> flag.</td>
+</tr>
+<tr>
+<td><code>flush</code></td>
+<td>Flush all blocked IPs — clears iptables rules, removes block files, and truncates the <code>blocked_ips</code> table.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="subcommands-run-as-xc_vm">Subcommands (run as <code>xc_vm</code>)<a class="headerlink" href="#subcommands-run-as-xc_vm" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Subcommand</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>images</code></td>
+<td>Download missing stream/movie/series images from TMDB. Scans DB for image URLs and downloads missing files.</td>
+</tr>
+<tr>
+<td><code>duplicates</code></td>
+<td>Find and remove duplicate VOD streams. Groups by identical source, keeps first, deletes rest. <strong>Destructive!</strong></td>
+</tr>
+<tr>
+<td><code>bouquets</code></td>
+<td>Clean stale references from bouquets. Removes IDs that no longer exist in the database.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="c1"># Emergency panel access (root)</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>rescue
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Disable reCAPTCHA to recover admin login (root)</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>recaptcha
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># Regenerate access codes (root) — required after nginx template changes</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>access
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="c1"># Regenerate port configuration (root)</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>ports
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+<a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="c1"># Clear staging database (root)</span>
+<a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>migration
+<a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>
+<a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="c1"># Clear staging database and restore a backup (root)</span>
+<a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>migration<span class="w"> </span>/path/to/backup.sql
+<a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
+<a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="c1"># Create rescue admin user (root)</span>
+<a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>user
+<a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>
+<a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="c1"># Reauthorise MySQL privileges on all servers (root)</span>
+<a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>mysql
+<a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>
+<a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="c1"># Restore blank database (root) — DESTRUCTIVE!</span>
+<a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>database<span class="w"> </span>--confirm
+<a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>
+<a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="c1"># Flush all blocked IPs (root)</span>
+<a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>tools<span class="w"> </span>flush
+<a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>
+<a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="c1"># Download missing images (xc_vm)</span>
+<a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>su<span class="w"> </span>-<span class="w"> </span>xc_vm<span class="w"> </span>-c<span class="w"> </span><span class="s1">'/home/xc_vm/console.php tools images'</span>
+<a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>
+<a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a><span class="c1"># Remove duplicate VOD entries (xc_vm)</span>
+<a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>su<span class="w"> </span>-<span class="w"> </span>xc_vm<span class="w"> </span>-c<span class="w"> </span><span class="s1">'/home/xc_vm/console.php tools duplicates'</span>
+<a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>
+<a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a><span class="c1"># Clean orphaned bouquet references (xc_vm)</span>
+<a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>su<span class="w"> </span>-<span class="w"> </span>xc_vm<span class="w"> </span>-c<span class="w"> </span><span class="s1">'/home/xc_vm/console.php tools bouquets'</span>
+</code></pre></div>
+<ul>
+<li>⚠️ <strong>Warning:</strong> <code>duplicates</code> permanently deletes streams and all associated data (logs, stats, episodes, recordings). Always back up before running.</li>
+<li>⚠️ <strong>Warning:</strong> <code>database --confirm</code> erases the entire database and replaces it with a blank schema. This is irreversible.</li>
+<li>💡 <strong>Tip:</strong> After running <code>rescue</code>, always delete the code through the admin panel or by running <code>tools access</code> once you have regained access.</li>
+<li>💡 <strong>Tip:</strong> After running <code>user</code>, change the password immediately and delete the rescue user when done.</li>
+</ul>
+<hr />
+<h2 id="database-updates-migrations">Database updates / migrations<a class="headerlink" href="#database-updates-migrations" title="Permanent link">&para;</a></h2>
+<p>The file-based DB update system (authoring a <code>.sql</code> step, the <code>migrations</code> table, <code>db:migrate</code>, execution flow) now lives in its own page — see <a href="../database-migrations/">Database Updates / Migrations</a>.</p>
+<hr />
+<h2 id="common-cli-operations">Common CLI Operations<a class="headerlink" href="#common-cli-operations" title="Permanent link">&para;</a></h2>
+<h3 id="status-check">Status Check<a class="headerlink" href="#status-check" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>status
+</code></pre></div>
+<p>Checks if XC_VM is running, connects to the database, runs pending DB update steps, fixes permissions, and validates nginx configuration. Required after installation or recovery.</p>
+<p>With <code>first-run</code> argument, skips the running check — used for initial setup:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>status<span class="w"> </span>first-run
+</code></pre></div>
+<h3 id="service-management">Service Management<a class="headerlink" href="#service-management" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>service<span class="w"> </span>start<span class="p">|</span>stop<span class="p">|</span>restart<span class="p">|</span>reload
+</code></pre></div>
+<h3 id="manual-update">Manual Update<a class="headerlink" href="#manual-update" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>sudo<span class="w"> </span>-u<span class="w"> </span>xc_vm<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>update<span class="w"> </span>update
+</code></pre></div>
+<p>Downloads and applies the latest update from GitHub. Usually triggered automatically through the web panel.</p>
+<h3 id="stream-diagnostics">Stream Diagnostics<a class="headerlink" href="#stream-diagnostics" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>sudo<span class="w"> </span>-u<span class="w"> </span>xc_vm<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>monitor<span class="w"> </span>&lt;stream_id&gt;
+</code></pre></div>
+<p>Starts a stream manually and displays any errors. Useful for diagnosing stream startup failures.</p>
+<h3 id="server-node-diagnostics">Server (Node) Diagnostics<a class="headerlink" href="#server-node-diagnostics" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># On the MAIN — remote-probe a node by its server id</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>server:diagnose<span class="w"> </span>&lt;server_id&gt;
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="c1"># On the LB/proxy node itself — local self-diagnosis (no arguments)</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>server:diagnose
+</code></pre></div>
+<p>Finds out <strong>why</strong> a proxy/LB node shows offline in the panel: checks the heartbeat, reachability (ICMP/TCP/HTTP <code>/api</code>), clock skew, the signal queue, and — locally on the node — whether the node firewalled the main's IP in its own iptables, whether the <code>xc_vm</code> service/nginx are up, whether the <code>watchdog</code> heartbeat daemon is running, and whether <code>cron:servers</code> is in the <code>xc_vm</code> crontab. Read-only; exit code <code>0</code> = no problems found, <code>2</code> = probable causes printed. See the <a href="../../administration/server-diagnostics/">Server Diagnostics guide</a> for details.</p>
+<h3 id="ssl-certificate">SSL Certificate<a class="headerlink" href="#ssl-certificate" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a>sudo<span class="w"> </span>/home/xc_vm/console.php<span class="w"> </span>certbot
+</code></pre></div>
+<h3 id="database-migrations">Database migrations<a class="headerlink" href="#database-migrations" title="Permanent link">&para;</a></h3>
+<p>Apply pending <code>.sql</code> steps by hand, or import data from another system — see <a href="../database-migrations/#applying-migrations-manually">Database Updates / Migrations</a>.</p>
+<hr />
+<h2 id="related-files">Related files<a class="headerlink" href="#related-files" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/console.php</code></td>
+<td>CLI entry point + FQCN command discovery</td>
+</tr>
+<tr>
+<td><code>src/Cli/Commands/</code></td>
+<td>Console commands</td>
+</tr>
+<tr>
+<td><code>src/Cli/CronJobs/</code></td>
+<td>Cron job classes</td>
+</tr>
+<tr>
+<td><code>src/migrations/</code></td>
+<td>Database migrations</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

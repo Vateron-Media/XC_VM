@@ -1,0 +1,3481 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.4.3/builds/build_system/">
+      
+      
+        <link rel="prev" href="../../guides/ucs-integration/">
+      
+      
+        <link rel="next" href="../updates_checklist/">
+      
+      
+        
+          <link rel="alternate" href="./" hreflang="en">
+        
+          <link rel="alternate" href="../../ru/builds/build_system/" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Build System (MAIN vs LB) - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#xc_vm-build-system-main-vs-lb" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Build System (MAIN vs LB)
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Select language">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="../../ru/builds/build_system/" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Developer Guide
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Administration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Administration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SSL Certificate Generation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Updating a Server
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Server Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Update Mechanism
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reseller System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backup Strategy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interactive API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Customization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Customization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UI Translations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Diagnostics
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Diagnostics Service
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Info & FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Info & FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Migration Guide
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Watch Folder
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Architecture
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoloading (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Bootstrap Contexts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Core Wiring & Registration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Authoring
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Lifecycle
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Module Extension Points
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    HTTP Request Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Admin AJAX API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Subsystem
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Streaming Diagnostics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Event System
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Exception Hierarchy
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Caching and Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Navbar Rendering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Developer Workflow
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Developer Workflow
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Development Workflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI Tools & Console Reference
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Database Migrations
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    PHPUnit Setup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Flags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security & Access
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Security & Access
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Authentication and Sessions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Permissions and RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Input Validation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Error Handling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integrations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Integrations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP Detection & Geo Routing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Device Detection & STB Locking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ministra STB Emulation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    UCS Integration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build & Release
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Build & Release
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Build System (MAIN vs LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#build-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Variants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#makefile-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Makefile Targets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#composer-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composer Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-goes-into-each-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Goes Into Each Build
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Goes Into Each Build">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAIN Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lb-build-included-directories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Build — Included Directories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lb-build-excluded-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Build — Excluded Content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lb-build-replaced-configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Build — Replaced Configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#main-vs-lb-key-differences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAIN vs LB — Key Differences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lb-nginx-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Nginx Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-behavior-on-lb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Behavior on LB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime Behavior on LB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conditional-command-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conditional Command Loading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streaming-dependency-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming Dependency Chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-new-code-to-builds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding New Code to Builds
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Adding New Code to Builds">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-streaming-relevant-directory-under-src" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New streaming-relevant directory under src/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-admin-only-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New admin-only directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-admin-only-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New admin-only file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-cli-command-admin-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New CLI command (admin-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pre-release Checklist
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#build-variants" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Variants
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#makefile-targets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Makefile Targets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#composer-dependencies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Composer Dependencies
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-goes-into-each-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What Goes Into Each Build
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="What Goes Into Each Build">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#main-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAIN Build
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lb-build-included-directories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Build — Included Directories
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lb-build-excluded-content" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Build — Excluded Content
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lb-build-replaced-configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Build — Replaced Configs
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#main-vs-lb-key-differences" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MAIN vs LB — Key Differences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lb-nginx-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LB Nginx Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-behavior-on-lb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Runtime Behavior on LB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Runtime Behavior on LB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conditional-command-loading" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conditional Command Loading
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#streaming-dependency-chain" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Streaming Dependency Chain
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#adding-new-code-to-builds" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Adding New Code to Builds
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Adding New Code to Builds">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#new-streaming-relevant-directory-under-src" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New streaming-relevant directory under src/
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-admin-only-directory" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New admin-only directory
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-admin-only-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New admin-only file
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#new-cli-command-admin-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        New CLI command (admin-only)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-verification" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Build Verification
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="xc_vm-build-system-main-vs-lb">XC_VM Build System (MAIN vs LB)<a class="headerlink" href="#xc_vm-build-system-main-vs-lb" title="Permanent link">&para;</a></h1>
+<p>How XC_VM produces two build variants from a single codebase: a full MAIN server and a lightweight Load Balancer (LB) server.</p>
+<hr />
+<h2 id="build-variants">Build Variants<a class="headerlink" href="#build-variants" title="Permanent link">&para;</a></h2>
+<p>XC_VM supports two deployment roles from a single source tree:</p>
+<table>
+<thead>
+<tr>
+<th>Variant</th>
+<th>Archive</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>MAIN</strong></td>
+<td><code>xc_vm.tar.gz</code></td>
+<td>Full application — admin panel, streaming, all modules, cron jobs</td>
+</tr>
+<tr>
+<td><strong>LB</strong> (Load Balancer)</td>
+<td><code>loadbalancer.tar.gz</code></td>
+<td>Streaming-only server — no admin panel, no user management</td>
+</tr>
+</tbody>
+</table>
+<p><strong>MAIN</strong> is the primary server that manages everything: admin UI, database writes, user/device management, EPG processing, backups, etc.</p>
+<p><strong>LB</strong> is a lightweight streaming node that receives streams from MAIN (or other sources) and delivers them to clients. It connects to the master database in read-only mode and has no admin panel or management capabilities.</p>
+<hr />
+<h2 id="makefile-targets">Makefile Targets<a class="headerlink" href="#makefile-targets" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Target</th>
+<th>Output</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>make main</code></td>
+<td><code>dist/xc_vm.tar.gz</code></td>
+<td>Full MAIN build</td>
+</tr>
+<tr>
+<td><code>make lb</code></td>
+<td><code>dist/loadbalancer.tar.gz</code></td>
+<td>LB build (streaming-only subset)</td>
+</tr>
+<tr>
+<td><code>make new</code></td>
+<td>(resets <code>dist/</code>)</td>
+<td>Remove and recreate the empty <code>dist/</code> output dir — run before a build; builds nothing itself</td>
+</tr>
+<tr>
+<td><code>make generate_deleted_files</code></td>
+<td><code>src/migrations/deleted_files.txt</code></td>
+<td>List files removed since the last tag (see below)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Updates reuse the full archive.</strong> There is no separate incremental-update target — the same
+<code>xc_vm.tar.gz</code> / <code>loadbalancer.tar.gz</code> is used for both install and update; filtering happens on
+the server at update time (see <a href="../../administration/update-system/">Update Mechanism</a>). To delete
+files that were <em>removed</em> between releases, <code>make generate_deleted_files [LAST_TAG=vX.Y.Z]</code> diffs
+git and writes <code>deleted_files.txt</code>, which the updater applies.</p>
+</blockquote>
+<p>Additional outputs:</p>
+<ul>
+<li><code>XC_VM.zip</code> — installer package (<code>install/</code> + <code>xc_vm.tar.gz</code>)</li>
+<li><code>hashes.md5</code> — MD5 checksums for integrity verification</li>
+</ul>
+<hr />
+<h2 id="composer-dependencies">Composer Dependencies<a class="headerlink" href="#composer-dependencies" title="Permanent link">&para;</a></h2>
+<p><code>src/vendor/</code> (the Composer PSR-4 autoloader plus the production dependencies) is
+<strong>committed</strong> and shipped as-is — the deploy path has no Composer and never runs
+<code>composer install</code>. It is kept production-only via <code>composer install --no-dev</code>, so
+both build variants ship a lean vendor with no dev tooling.</p>
+<ul>
+<li><code>src/composer.lock</code> is committed so <code>composer install</code> is reproducible.</li>
+<li>Dev tools (PHPStan, phpcs) are <code>require-dev</code> and are <strong>not</strong> in the
+  committed vendor or the archives. Developers and CI add them with <code>make dev-tools</code>
+  (<code>composer install</code>); the <code>check-vendor-prod-only</code> gate fails if a dev package is
+  ever committed under <code>src/vendor/</code>.</li>
+<li>There is no build-time vendor step — <code>make main</code> / <code>make lb</code> copy the committed
+  <code>vendor/</code> directly into the archive.</li>
+</ul>
+<hr />
+<h2 id="what-goes-into-each-build">What Goes Into Each Build<a class="headerlink" href="#what-goes-into-each-build" title="Permanent link">&para;</a></h2>
+<h3 id="main-build">MAIN Build<a class="headerlink" href="#main-build" title="Permanent link">&para;</a></h3>
+<p>The MAIN build contains the <strong>entire</strong> <code>src/</code> directory.</p>
+<h3 id="lb-build-included-directories">LB Build — Included Directories<a class="headerlink" href="#lb-build-included-directories" title="Permanent link">&para;</a></h3>
+<p>Only these directories are copied into the LB archive:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>bin/        Cli/        config/     content/    Core/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>Domain/     Infrastructure/         Public/     resources/
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>signals/    Streaming/  tmp/        vendor/     www/
+</code></pre></div>
+<p>Plus root files: <code>bootstrap.php</code>, <code>console.php</code>, <code>service</code>, <code>update</code>.</p>
+<h3 id="lb-build-excluded-content">LB Build — Excluded Content<a class="headerlink" href="#lb-build-excluded-content" title="Permanent link">&para;</a></h3>
+<p>After copying, admin-specific content is <strong>removed</strong> from the LB build:</p>
+<p><strong>Directories removed:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bin/install/</code></td>
+<td>Installer scripts (not needed on LB)</td>
+</tr>
+<tr>
+<td><code>bin/redis/</code></td>
+<td>Redis binary (LB doesn't run its own Redis)</td>
+</tr>
+<tr>
+<td><code>bin/nginx/conf/codes/</code></td>
+<td>Error code pages (admin UI)</td>
+</tr>
+<tr>
+<td><code>Public/Controllers/Admin/</code></td>
+<td>Admin panel controllers</td>
+</tr>
+<tr>
+<td><code>Public/Controllers/Player/</code></td>
+<td>Player panel controllers</td>
+</tr>
+<tr>
+<td><code>Public/Controllers/Reseller/</code></td>
+<td>Reseller panel controllers</td>
+</tr>
+<tr>
+<td><code>Public/Views/</code></td>
+<td>Panel templates</td>
+</tr>
+<tr>
+<td><code>Public/assets/</code></td>
+<td>Panel static assets</td>
+</tr>
+<tr>
+<td><code>Public/routes/</code></td>
+<td>Panel route maps</td>
+</tr>
+<tr>
+<td><code>Domain/User/</code></td>
+<td>User management</td>
+</tr>
+<tr>
+<td><code>Domain/Device/</code></td>
+<td>Device registration</td>
+</tr>
+<tr>
+<td><code>Domain/Auth/</code></td>
+<td>Auth management (panel auth)</td>
+</tr>
+<tr>
+<td><code>Core/Reference/</code></td>
+<td>Admin reference-data classes (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Core/Localization/lang/</code></td>
+<td>Language resource files (<code>.ini</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Files removed</strong> (these mirror <code>LB_FILES_TO_REMOVE</code> in the Makefile):</p>
+<blockquote>
+<p>⚠️ Several entries here use the legacy <code>www/…</code> prefix (e.g. <code>www/stream/auth.php</code>,
+<code>www/xplugin.php</code>). <code>src/www/</code> no longer exists — the streaming/API endpoints moved under
+<code>src/Public/stream/</code> and <code>src/Public/…</code>. These <code>www/…</code> removal entries are therefore <strong>no-ops</strong>
+today and are worth auditing in the Makefile (a file that should be stripped from LB may in fact
+still ship under its <code>Public/</code> path).</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Public/Controllers/Api/AdminApiController.php</code></td>
+<td>Full admin API removed from LB</td>
+</tr>
+<tr>
+<td><code>Public/Controllers/Api/ResellerRestApiController.php</code></td>
+<td>Reseller API removed from LB</td>
+</tr>
+<tr>
+<td><code>www/xplugin.php</code>, <code>www/probe.php</code>, <code>www/playlist.php</code></td>
+<td>Admin endpoints</td>
+</tr>
+<tr>
+<td><code>www/player_api.php</code>, <code>www/epg.php</code>, <code>www/enigma2.php</code></td>
+<td>Client API endpoints (served by MAIN)</td>
+</tr>
+<tr>
+<td><code>www/stream/auth.php</code></td>
+<td>Auth endpoint (legacy path — see note)</td>
+</tr>
+<tr>
+<td><code>www/admin/api.php</code>, <code>www/admin/proxy_api.php</code></td>
+<td>Admin API</td>
+</tr>
+<tr>
+<td><code>bin/maxmind/GeoLite2-City.mmdb</code></td>
+<td>GeoIP DB shipped separately</td>
+</tr>
+<tr>
+<td><code>config/rclone.conf</code></td>
+<td>Backup config</td>
+</tr>
+<tr>
+<td><code>Domain/Epg/EPG.php</code></td>
+<td>EPG processing class</td>
+</tr>
+<tr>
+<td><code>bin/nginx/conf/gzip.conf</code></td>
+<td>Gzip config (LB uses own)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>CLI commands removed:</strong></p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Cli/Commands/MigrateCommand.php</code></td>
+<td>Migration is MAIN-only</td>
+</tr>
+<tr>
+<td><code>Cli/Commands/CacheHandlerCommand.php</code></td>
+<td>Cache handler is MAIN-only</td>
+</tr>
+<tr>
+<td><code>Cli/Commands/ServerInstallCommand.php</code></td>
+<td>Server installer (not needed on LB itself)</td>
+</tr>
+<tr>
+<td><code>Cli/Commands/LbInstallFlow.php</code></td>
+<td>LB install helper (not needed on LB itself)</td>
+</tr>
+<tr>
+<td><code>Cli/Commands/ProxyInstallFlow.php</code></td>
+<td>Proxy install helper (not needed on LB itself)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Cron jobs removed:</strong></p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Reason</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Cli/CronJobs/RootMysqlCronJob.php</code></td>
+<td>DB maintenance (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Cli/CronJobs/BackupsCronJob.php</code></td>
+<td>Backups (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Cli/CronJobs/CacheEngineCronJob.php</code></td>
+<td>Full cache rebuild (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Cli/CronJobs/EpgCronJob.php</code></td>
+<td>EPG processing (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Cli/CronJobs/UpdateCronJob.php</code></td>
+<td>Update check (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Cli/CronJobs/ProvidersCronJob.php</code></td>
+<td>Provider sync (MAIN-only)</td>
+</tr>
+<tr>
+<td><code>Cli/CronJobs/SeriesCronJob.php</code></td>
+<td>Series metadata (MAIN-only)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Note:</strong> Module-related crons (TMDB, Plex, Watch) live inside <code>src/Modules/&lt;name&gt;/</code> and are excluded from LB builds automatically — <code>Modules/</code> is not in <code>LB_DIRS</code>.</p>
+<p><strong>Ministra</strong> (<code>src/Ministra/</code>, the Stalker portal — ~50 MB of assets) is likewise excluded by
+<strong>omission</strong>: it isn't listed in <code>LB_DIRS</code>, so it's never copied into the LB archive (there is no
+explicit removal rule for it — hence the <code>ministra</code> absence check in <em>Build Verification</em> below).</p>
+</blockquote>
+<h3 id="lb-build-replaced-configs">LB Build — Replaced Configs<a class="headerlink" href="#lb-build-replaced-configs" title="Permanent link">&para;</a></h3>
+<p>These files from <code>lb_configs/</code> <strong>replace</strong> the MAIN versions:</p>
+<table>
+<thead>
+<tr>
+<th>Source</th>
+<th>Target</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lb_configs/nginx.conf</code></td>
+<td><code>bin/nginx/conf/nginx.conf</code></td>
+<td>Performance-tuned nginx for streaming</td>
+</tr>
+<tr>
+<td><code>lb_configs/live.conf</code></td>
+<td><code>bin/nginx_rtmp/conf/live.conf</code></td>
+<td>RTMP callback hooks</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="main-vs-lb-key-differences">MAIN vs LB — Key Differences<a class="headerlink" href="#main-vs-lb-key-differences" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Aspect</th>
+<th>MAIN</th>
+<th>LB</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Admin panel</td>
+<td>✅ Full UI</td>
+<td>❌ Not included</td>
+</tr>
+<tr>
+<td>Database role</td>
+<td>Read + Write</td>
+<td>Read-only consumer</td>
+</tr>
+<tr>
+<td>User/device management</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>EPG processing</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Backups</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Migration tool</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+<tr>
+<td>Stream delivery</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>RTMP ingestion</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>Transcoding (FFmpeg)</td>
+<td>✅</td>
+<td>✅</td>
+</tr>
+<tr>
+<td>CLI commands</td>
+<td>26</td>
+<td>~15 (admin-only removed)</td>
+</tr>
+<tr>
+<td>Cron jobs</td>
+<td>25</td>
+<td>~16 (admin-only removed)</td>
+</tr>
+<tr>
+<td>Module system</td>
+<td>✅</td>
+<td>❌</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="lb-nginx-configuration">LB Nginx Configuration<a class="headerlink" href="#lb-nginx-configuration" title="Permanent link">&para;</a></h2>
+<p>The LB build uses a specialized nginx config optimized for high-throughput streaming:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Value</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Worker processes</td>
+<td><code>auto</code></td>
+<td>Scale to CPU cores</td>
+</tr>
+<tr>
+<td>Worker connections</td>
+<td>16,000</td>
+<td>High concurrency per worker</td>
+</tr>
+<tr>
+<td>Max file descriptors</td>
+<td>300,000</td>
+<td>System resource limit</td>
+</tr>
+<tr>
+<td>Thread pool</td>
+<td><code>pool_xc_vm</code> (32 threads)</td>
+<td>Async I/O for streaming</td>
+</tr>
+<tr>
+<td>Gzip</td>
+<td>OFF</td>
+<td>Streaming data is already compressed</td>
+</tr>
+<tr>
+<td>Access logs</td>
+<td>OFF</td>
+<td>Reduce I/O overhead</td>
+</tr>
+<tr>
+<td>Rate limiting</td>
+<td>20 req/s per IP</td>
+<td>DDoS mitigation</td>
+</tr>
+<tr>
+<td>Send timeout</td>
+<td>20 min</td>
+<td>Support long-running streams</td>
+</tr>
+</tbody>
+</table>
+<p>RTMP hooks (<code>lb_configs/live.conf</code>) route authentication through local HTTP callbacks instead of the admin panel:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">on_play</span><span class="w"> </span><span class="s">http://127.0.0.1:8080/stream/rtmp</span><span class="p">;</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">on_publish</span><span class="w"> </span><span class="s">http://127.0.0.1:8080/stream/rtmp</span><span class="p">;</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="k">on_play_done</span><span class="w"> </span><span class="s">http://127.0.0.1:8080/stream/rtmp</span><span class="p">;</span>
+</code></pre></div>
+<hr />
+<h2 id="runtime-behavior-on-lb">Runtime Behavior on LB<a class="headerlink" href="#runtime-behavior-on-lb" title="Permanent link">&para;</a></h2>
+<h3 id="conditional-command-loading">Conditional Command Loading<a class="headerlink" href="#conditional-command-loading" title="Permanent link">&para;</a></h3>
+<p><code>console.php</code> uses <code>file_exists()</code> guards for commands that may not exist on LB servers:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">if (file_exists(__DIR__ . '/Cli/Commands/CacheHandlerCommand.php')) {</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">    $rRegistry-&gt;register(new CacheHandlerCommand());</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">}</span>
+</code></pre></div>
+<p>This prevents crashes when LB attempts to register a command whose file was removed during the build.</p>
+<h3 id="streaming-dependency-chain">Streaming Dependency Chain<a class="headerlink" href="#streaming-dependency-chain" title="Permanent link">&para;</a></h3>
+<p>LB servers retain the full streaming pipeline:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>www/stream/*.php
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  ├── www/stream/init.php
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  ├── vendor/autoload.php (Composer PSR-4 autoloader)
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  ├── bootstrap.php (lightweight stream/bootstrap path)
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>  ├── Core/* (Config, Database, Cache, Auth, Http, Logging, Util)
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>  ├── Domain/Stream, Domain/Server, Domain/Vod, Domain/Bouquet
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>  ├── Streaming/* (Auth, Delivery, Codec, Protection)
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>  ├── Infrastructure/Redis, Infrastructure/Database
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>  └── resources/data
+</code></pre></div>
+<hr />
+<h2 id="adding-new-code-to-builds">Adding New Code to Builds<a class="headerlink" href="#adding-new-code-to-builds" title="Permanent link">&para;</a></h2>
+<h3 id="new-streaming-relevant-directory-under-src">New streaming-relevant directory under <code>src/</code><a class="headerlink" href="#new-streaming-relevant-directory-under-src" title="Permanent link">&para;</a></h3>
+<p>Add it to <code>LB_DIRS</code> in the Makefile:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nv">LB_DIRS</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span>bin<span class="w"> </span>Cli<span class="w"> </span>config<span class="w"> </span>content<span class="w"> </span>Core<span class="w"> </span>Domain<span class="w"> </span><span class="se">\</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span>Infrastructure<span class="w"> </span>Public<span class="w"> </span>resources<span class="w"> </span>signals<span class="w"> </span>Streaming<span class="w"> </span>tmp<span class="w"> </span>vendor<span class="w"> </span>www<span class="w"> </span>your_dir
+</code></pre></div>
+<h3 id="new-admin-only-directory">New admin-only directory<a class="headerlink" href="#new-admin-only-directory" title="Permanent link">&para;</a></h3>
+<p>Add it to <code>LB_DIRS_TO_REMOVE</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nv">LB_DIRS_TO_REMOVE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>...<span class="w"> </span>your_dir/admin_stuff
+</code></pre></div>
+<h3 id="new-admin-only-file">New admin-only file<a class="headerlink" href="#new-admin-only-file" title="Permanent link">&para;</a></h3>
+<p>Add it to <code>LB_FILES_TO_REMOVE</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nv">LB_FILES_TO_REMOVE</span><span class="w"> </span><span class="o">=</span><span class="w"> </span>...<span class="w"> </span>your_dir/admin_file.php
+</code></pre></div>
+<h3 id="new-cli-command-admin-only">New CLI command (admin-only)<a class="headerlink" href="#new-cli-command-admin-only" title="Permanent link">&para;</a></h3>
+<ol>
+<li>Add <code>file_exists()</code> guard in <code>console.php</code></li>
+<li>Add the file to <code>LB_FILES_TO_REMOVE</code></li>
+</ol>
+<hr />
+<h2 id="build-verification">Build Verification<a class="headerlink" href="#build-verification" title="Permanent link">&para;</a></h2>
+<p>After modifying the build, verify both variants:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Build both</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>make<span class="w"> </span>new
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1"># Check LB contains streaming code</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>tar<span class="w"> </span>-tzf<span class="w"> </span>dist/loadbalancer.tar.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-cE<span class="w"> </span><span class="s2">"Core/|Domain/Stream|Streaming/"</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1"># Expected: &gt; 0</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1"># Check LB does NOT contain admin code</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>tar<span class="w"> </span>-tzf<span class="w"> </span>dist/loadbalancer.tar.gz<span class="w"> </span><span class="p">|</span><span class="w"> </span>grep<span class="w"> </span>-cE<span class="w"> </span><span class="s2">"admin/|player/|ministra|reseller"</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1"># Expected: 0</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="c1"># Compare sizes (LB should be significantly smaller)</span>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>ls<span class="w"> </span>-lh<span class="w"> </span>dist/xc_vm.tar.gz<span class="w"> </span>dist/loadbalancer.tar.gz
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3886 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/authentication-and-sessions/">
+      
+      
+        <link rel="prev" href="../process-management/">
+      
+      
+        <link rel="next" href="../permissions-and-rbac/">
+      
+      
+        
+          <link rel="alternate" href="../../../guides/authentication-and-sessions/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Аутентификация и сессии - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Аутентификация и сессии
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../guides/authentication-and-sessions/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Настройка PHPUnit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор процесса входа в систему
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Обзор процесса входа в систему">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Взаимодействие администратора и реселлера
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток игроков
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Аутентификатор
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Аутентификатор">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authenticatorloginarray-data-bool-bypassrecaptcha-false-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticator::login(array $data, bool $bypassRecaptcha = false): array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authenticatorresellerloginarray-data-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticator::resellerLogin(array $data): array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Константы статуса входа в систему
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Хэширование паролей
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Аутентификация игрока
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Аутентификация игрока">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Процесс входа в систему
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Коды ошибок проигрывателя
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ключи к сеансу игрока
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса при загрузке страницы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Проверка сеанса при загрузке страницы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса администратора
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса работы с реселлером
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Тайм-аут сеанса администрирования
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса игрока
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Менеджер сеанса
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Менеджер сеанса">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контекстная ключевая карта
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поведение по истечении времени ожидания
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Охранник с применением грубой силы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Охранник с применением грубой силы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#checkfloodstring-ip-null-bool-usecachedmode-false-void" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        checkFlood(?string $ip = null, bool $useCachedMode = false): void
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkbruteforcestring-ip-null-string-mac-null-string-username-null-bool-usecachedmode-false-void" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkauthfloodarray-user-string-ip-null-void" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        checkAuthFlood(array $user, ?string $ip = null): void
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truncateattemptsarray-attempts-int-frequency-bool-list-false-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        truncateAttempts(array $attempts, int $frequency, bool $list = false): array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Блокирующий механизм
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Безопасность сеанса
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Безопасность сеанса">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Настройка файлов cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка хэша
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ip-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обработка изменений IP-адреса
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация входа в систему
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Авторизация (после входа в систему)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Авторизация (после входа в систему)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pageauthorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PageAuthorization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../error-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор процесса входа в систему
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Обзор процесса входа в систему">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Взаимодействие администратора и реселлера
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поток игроков
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Аутентификатор
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Аутентификатор">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authenticatorloginarray-data-bool-bypassrecaptcha-false-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticator::login(array $data, bool $bypassRecaptcha = false): array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authenticatorresellerloginarray-data-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticator::resellerLogin(array $data): array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Константы статуса входа в систему
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Хэширование паролей
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Аутентификация игрока
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Аутентификация игрока">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Процесс входа в систему
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Коды ошибок проигрывателя
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ключи к сеансу игрока
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса при загрузке страницы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Проверка сеанса при загрузке страницы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса администратора
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса работы с реселлером
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Тайм-аут сеанса администрирования
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка сеанса игрока
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Менеджер сеанса
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Менеджер сеанса">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Контекстная ключевая карта
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Методы
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_19" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Поведение по истечении времени ожидания
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_20" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Охранник с применением грубой силы
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Охранник с применением грубой силы">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#checkfloodstring-ip-null-bool-usecachedmode-false-void" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        checkFlood(?string $ip = null, bool $useCachedMode = false): void
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkbruteforcestring-ip-null-string-mac-null-string-username-null-bool-usecachedmode-false-void" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checkauthfloodarray-user-string-ip-null-void" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        checkAuthFlood(array $user, ?string $ip = null): void
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#truncateattemptsarray-attempts-int-frequency-bool-list-false-array" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        truncateAttempts(array $attempts, int $frequency, bool $list = false): array
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_21" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Блокирующий механизм
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Безопасность сеанса
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Безопасность сеанса">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#cookie" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Настройка файлов cookie
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Проверка хэша
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ip-" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обработка изменений IP-адреса
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_24" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация входа в систему
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_25" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Авторизация (после входа в систему)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Авторизация (после входа в систему)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authorization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#pageauthorization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        PageAuthorization
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_26" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">Аутентификация и сеансы<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>XC_VM поддерживает три контекста аутентификации - администратора, реселлера и игрока - каждый с изолированными сеансовыми ключами, отдельными потоками входа в систему и независимой логикой проверки. В этом документе описан полный жизненный цикл аутентификации от входа в систему до проверки сеанса и обеспечения безопасности.</p>
+<hr />
+<h2 id="_2">Обзор процесса входа в систему<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<p>Все три контекста следуют схожему шаблону высокого уровня, с зависящими от контекста различиями в проверке и хранении сеанса.</p>
+<h3 id="_3">Взаимодействие администратора и реселлера<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>POST request with credentials
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  -&gt; BruteforceGuard checks (flood / brute-force)
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  -&gt; Optional reCAPTCHA verification
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  -&gt; Credential lookup via UserRepository::getAuthUserByCredentials()
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  -&gt; Access code / group validation
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  -&gt; Permission check (is_admin or is_reseller)
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  -&gt; User status check (enabled/disabled)
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  -&gt; Password re-hash + session write + login log
+</code></pre></div>
+<h3 id="_4">Поток игроков<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>POST request with credentials
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  -&gt; UserRepository::getUserInfo() lookup
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  -&gt; Line type checks (reject E2, MAG, Stalker)
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>  -&gt; Expiration date check
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>  -&gt; admin_enabled / enabled status checks
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  -&gt; IP allowlist, country restriction, user agent, ISP checks
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>  -&gt; Session write + redirect
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>  -&gt; BruteforceGuard::checkFlood() on any failure
+</code></pre></div>
+<hr />
+<h2 id="_5">Аутентификатор<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Auth/Authenticator.php</code></p>
+<h3 id="authenticatorloginarray-data-bool-bypassrecaptcha-false-array"><code>Authenticator::login(array $data, bool $bypassRecaptcha = false): array</code><a class="headerlink" href="#authenticatorloginarray-data-bool-bypassrecaptcha-false-array" title="Permanent link">&para;</a></h3>
+<p>Способ входа в систему администратора. Шаги по порядку:</p>
+<ol>
+<li>Проверка повторной проверки (если параметр <code>recaptcha_enable</code> включен и не пропущен).</li>
+<li>Поиск учетных данных с помощью <code>UserRepository::getAuthUserByCredentials()</code>.</li>
+<li>Проверка группы кодов доступа - имя пользователя <code>member_group_id</code> должно входить в разрешенные группы текущего кода доступа, в противном случае кодов доступа не должно существовать.</li>
+<li>Permission check -- <code>is_admin</code> must be true for the user's group.</li>
+<li>Проверка состояния - <code>$rUserInfo['status'] == 1</code> (включено).</li>
+<li>В случае успеха: повторно хэширует пароль, обновляет <code>last_login</code> и <code>ip</code> в базе данных, записывает сеансовые ключи, регистрирует логин.</li>
+</ol>
+<p>Значения сеанса, записанные в зависимости от успеха:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">$_SESSION['hash']   = $rUserInfo['id'];       // User ID</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">$_SESSION['ip']     = $rIP;                   // Client IP at login</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">$_SESSION['code']   = AuthRepository::getCurrentCode(); // Current access code</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="x">$_SESSION['verify'] = md5($rUserInfo['username'] . '||' . $rCrypt); // Verification hash</span>
+</code></pre></div>
+<h3 id="authenticatorresellerloginarray-data-array"><code>Authenticator::resellerLogin(array $data): array</code><a class="headerlink" href="#authenticatorresellerloginarray-data-array" title="Permanent link">&para;</a></h3>
+<p>Метод входа в систему торгового посредника. Структура идентична <code>login()</code> с этими отличиями:</p>
+<ul>
+<li>Повторная проверка всегда проверяется, когда она включена (параметр обхода отсутствует).</li>
+<li>Для проверки разрешений требуется <code>is_reseller</code> вместо <code>is_admin</code>.</li>
+<li>Возвращает <code>STATUS_NOT_RESELLER</code>, если у пользователя нет разрешения торгового посредника.</li>
+<li>Журналы входа в систему записываются с типом <code>RESELLER</code> вместо <code>ADMIN</code>.</li>
+</ul>
+<p>Значения сеанса, записанные в зависимости от успеха:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">$_SESSION['reseller'] = $rUserInfo['id'];       // User ID</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">$_SESSION['rip']      = $rIP;                   // Client IP at login</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="x">$_SESSION['rcode']    = AuthRepository::getCurrentCode(); // Current access code</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="x">$_SESSION['rverify']  = md5($rUserInfo['username'] . '||' . $rCrypt); // Verification hash</span>
+</code></pre></div>
+<h3 id="_6">Константы статуса входа в систему<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h3>
+<p>Определено в <code>src/bootstrap.php</code> через <code>XC_Bootstrap::defineStatusConstants()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Постоянный</th>
+<th>Ценность</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>STATUS_FAILURE</code></td>
+<td>0</td>
+<td>Общий сбой (неверные учетные данные или универсальная ошибка)</td>
+</tr>
+<tr>
+<td><code>STATUS_SUCCESS</code></td>
+<td>1</td>
+<td>Вход в систему был успешным</td>
+</tr>
+<tr>
+<td><code>STATUS_DISABLED</code></td>
+<td>5</td>
+<td>Учетная запись отключена</td>
+</tr>
+<tr>
+<td><code>STATUS_NOT_ADMIN</code></td>
+<td>6</td>
+<td>У пользователя нет прав администратора</td>
+</tr>
+<tr>
+<td><code>STATUS_INVALID_CAPTCHA</code></td>
+<td>12</td>
+<td>Не удалось выполнить проверку reCAPTCHA</td>
+</tr>
+<tr>
+<td><code>STATUS_INVALID_CODE</code></td>
+<td>13</td>
+<td>Несоответствие кода доступа/ группы</td>
+</tr>
+<tr>
+<td><code>STATUS_NOT_RESELLER</code></td>
+<td>35</td>
+<td>У пользователя нет разрешения торгового посредника</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_7">Хэширование паролей<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">Authenticator::hashPassword(string $password, ?string $salt = null, int $rounds = 20000): string</span>
+</code></pre></div>
+<p>Использует <code>crypt()</code> с SHA-512 (<code>$6$</code>). Формат salt равен <code>$6$rounds=20000$&lt;salt&gt;$</code>, где <code>&lt;salt&gt;</code> - это 16 шестнадцатеричных символов, полученных из <code>openssl_random_pseudo_bytes(16)</code>. Пароли повторно хэшируются при каждом успешном входе в систему, что приводит к замене значения salt.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="x">Authenticator::checkPassword(string $password, string $storedHash): bool</span>
+</code></pre></div>
+<p>Проверяет пароль в виде открытого текста на соответствие сохраненному хэшу, используя <code>crypt($password, $storedHash)</code>, с возможностью сравнения по времени с помощью <code>hash_equals()</code>. Сохраненный хэш содержит алгоритм, раунды и соль, поэтому <code>crypt()</code> воспроизводит правильный хэш для сравнения.</p>
+<hr />
+<h2 id="_8">Аутентификация игрока<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Public/Controllers/Player/PlayerLoginController.php</code></p>
+<p>Процедура входа игрока в систему принципиально отличается от процедуры администратора/реселлера. Она аутентифицирует "линии" конечного пользователя (подписки на IPTV), а не операторов панели.</p>
+<h3 id="_9">Процесс входа в систему<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p><code>PlayerLoginController::processLogin()</code> выполняет эти проверки в порядке:</p>
+<ol>
+<li><strong>Поиск учетных данных</strong> -- <code>UserRepository::getUserInfo()</code> (отличается от <code>getAuthUserByCredentials</code>, используемого администратором/реселлером).</li>
+<li><strong>Отклонение типа линии</strong> -- Линии E2, MAG и Stalker отклоняются с определенными кодами ошибок.</li>
+<li><strong>Проверка истечения срока годности</strong> -- <code>exp_date</code> должно быть равно null или в будущем.</li>
+<li><strong>Проверка с поддержкой администратора</strong> -- <code>admin_enabled == 0</code> возвращает <code>CLIENT_BANNED</code>.</li>
+<li><strong>Проверка, включенная пользователем</strong> -- <code>enabled == 0</code> возвращает <code>CLIENT_DISABLED</code>.</li>
+<li><strong>Список разрешенных IP-адресов</strong> -- Если для пользователя задано значение <code>allowed_ips</code>, IP-адрес клиента должен совпадать (решается с помощью <code>gethostbyname</code>).</li>
+<li><strong>Ограничение по стране</strong> - Два режима:</li>
+<li>Для каждого пользователя: если задано значение <code>forced_country</code>, а не <code>ALL</code>, страна GeoIP должна совпадать.</li>
+<li>Глобальный: если нет переопределения для каждого пользователя, устанавливается глобальный параметр <code>allow_countries</code> (если только он не содержит <code>ALL</code>).</li>
+<li><strong>Проверка агента пользователя</strong> -- Если для пользователя задано значение <code>allowed_ua</code>, то пользовательский агент HTTP должен соответствовать.</li>
+<li>флаг <strong>Проверка интернет-провайдера</strong> -- <code>isp_violate</code> отклоняет соединение.</li>
+<li><strong>Проверка сервера интернет-провайдера</strong> -- Если значение <code>isp_is_server</code> равно true и пользователь не является рестримером, соединение будет отклонено.</li>
+</ol>
+<p>Каждый сбой запускает <code>BruteforceGuard::checkFlood()</code> перед возвратом кода ошибки.</p>
+<h3 id="_10">Коды ошибок проигрывателя<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Постоянный</th>
+<th>Ценность</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CLIENT_INVALID</code></td>
+<td>0</td>
+<td>Неверное имя пользователя или пароль</td>
+</tr>
+<tr>
+<td><code>CLIENT_IS_E2</code></td>
+<td>1</td>
+<td>Линии Enigma запрещены</td>
+</tr>
+<tr>
+<td><code>CLIENT_IS_MAG</code></td>
+<td>2</td>
+<td>МАГНИТНЫЕ линии не допускаются</td>
+</tr>
+<tr>
+<td><code>CLIENT_IS_STALKER</code></td>
+<td>3</td>
+<td>Линии преследования запрещены</td>
+</tr>
+<tr>
+<td><code>CLIENT_EXPIRED</code></td>
+<td>4</td>
+<td>Срок действия строки истек</td>
+</tr>
+<tr>
+<td><code>CLIENT_BANNED</code></td>
+<td>5</td>
+<td>Строка заблокирована (admin_enabled = 0)</td>
+</tr>
+<tr>
+<td><code>CLIENT_DISABLED</code></td>
+<td>6</td>
+<td>Линия отключена (включено = 0)</td>
+</tr>
+<tr>
+<td><code>CLIENT_DISALLOWED</code></td>
+<td>7</td>
+<td>Не удалось выполнить проверку IP/страны/UA/провайдера</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_11">Ключи к сеансу игрока<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">$_SESSION['phash']   = $rUserInfo['id'];</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="x">$_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);</span>
+</code></pre></div>
+<p>В контексте player хранятся только два сеансовых ключа. В отличие от ключей администратора и реселлера, здесь нет ключей <code>activity</code>, <code>ip</code> или <code>code</code>. Это означает, что в сеансе player нет таймаута бездействия и не обнаруживается изменение IP-адреса на уровне сеанса.</p>
+<hr />
+<h2 id="_12">Проверка сеанса при загрузке страницы<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<p>После первоначального входа в систему при каждой загрузке страницы, прошедшей проверку подлинности, выполняется повторная проверка сеанса. Это происходит в файлах начальной загрузки, а не в <code>SessionManager</code>.</p>
+<h3 id="_13">Проверка сеанса администратора<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Public/Views/admin/functions.php</code></p>
+<p>Если установлено значение <code>$_SESSION['hash']</code>, при каждой загрузке страницы выполняются следующие проверки:</p>
+<ol>
+<li><strong>Поиск пользователя</strong> -- <code>UserRepository::getRegisteredUserById($_SESSION['hash'])</code>. Если пользователь больше не существует, сеанс завершается.</li>
+<li><strong>Проверка прав доступа</strong> -- <code>AuthRepository::getPermissions()</code> должен возвращать допустимый набор с <code>is_admin == true</code>.</li>
+<li><strong>Проверка IP-адреса</strong> - Сравнивает текущий IP-адрес с <code>$_SESSION['ip']</code>:</li>
+<li>Если параметр <code>ip_subnet_match</code> включен: сравниваются только первые три октета (например, <code>192.168.1.*</code> соответствует <code>192.168.1.*</code>).</li>
+<li>Если параметр <code>ip_subnet_match</code> отключен: требуется точное совпадение IP-адресов.</li>
+<li>Если IP-адрес не совпадает и включена настройка <code>ip_logout</code>, сеанс завершается.</li>
+<li>Если IP-адрес не совпадает и <code>ip_logout</code> отключен, <code>$_SESSION['ip']</code> автоматически обновляется до нового IP-адреса.</li>
+<li><strong>Проверить проверку хэша Verify</strong> -- <code>$_SESSION['verify']</code> должно быть равно <code>md5($rUserInfo['username'] . '||' . $rUserInfo['password'])</code>. Это гарантирует, что сеанс будет аннулирован в случае изменения пароля.</li>
+</ol>
+<p>Если какая-либо проверка завершается неудачей, сеанс очищается с помощью <code>SessionManager::clearContext('admin')</code>, и пользователь перенаправляется на индексную страницу.</p>
+<h3 id="_14">Проверка сеанса работы с реселлером<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Infrastructure/Bootstrap/reseller_functions.php</code></p>
+<p>Логика идентична проверке администратора, но используются сеансовые ключи реселлера:</p>
+<ul>
+<li>Проверяет <code>$_SESSION['reseller']</code> на наличие идентификатора пользователя.</li>
+<li>Использует <code>$_SESSION['rip']</code> для сравнения IP-адресов.</li>
+<li>Использует <code>$_SESSION['rverify']</code> для проверки хэша.</li>
+<li>Проверяет разрешение <code>is_reseller</code> вместо <code>is_admin</code>.</li>
+</ul>
+<p>Соответствие IP-подсети и поведение при выходе из системы по IP-адресу такое же, как у администратора.</p>
+<h3 id="-">Тайм-аут сеанса администрирования<a class="headerlink" href="#-" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Public/Views/admin/session.php</code></p>
+<p>Для сеансов администрирования выполняется отдельная проверка тайм-аута сеанса. Если заданы значения <code>$_SESSION['hash']</code> и <code>$_SESSION['last_activity']</code>, а с момента <code>last_activity</code> прошло более 60 минут, ключи сеанса (<code>hash</code>, <code>ip</code>, <code>code</code>, <code>verify</code>, <code>last_activity</code>) не заданы. При каждом действительном запросе обновляется <code>$_SESSION['last_activity']</code>, и сеанс закрывается для записи.</p>
+<h3 id="_15">Проверка сеанса игрока<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h3>
+<p>Контекст проигрывателя не выполняет проверку IP-адреса, соответствие подсети или тайм-аут активности на уровне сеанса. Сохраняются только <code>phash</code> и <code>pverify</code>, и проверка выполняется на прикладном уровне для повторной проверки этих значений по базе данных.</p>
+<hr />
+<h2 id="_16">Менеджер сеанса<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Auth/SessionManager.php</code></p>
+<p>Унифицированный сеансовый API, который абстрагирует различные имена сеансовых ключей в разных контекстах. Предназначен для замены устаревших файлов <code>admin/session.php</code> и <code>reseller/session.php</code>.</p>
+<h3 id="_17">Контекстная ключевая карта<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Логический ключ</th>
+<th>Ключ администратора <code>$_SESSION</code></th>
+<th>Ключ реселлера <code>$_SESSION</code></th>
+<th>Ключ игрока <code>$_SESSION</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>auth</code></td>
+<td><code>hash</code></td>
+<td><code>reseller</code></td>
+<td><code>phash</code></td>
+</tr>
+<tr>
+<td><code>activity</code></td>
+<td><code>last_activity</code></td>
+<td><code>rlast_activity</code></td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>ip</code></td>
+<td><code>ip</code></td>
+<td><code>rip</code></td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>code</code></td>
+<td><code>code</code></td>
+<td><code>rcode</code></td>
+<td>--</td>
+</tr>
+<tr>
+<td><code>verify</code></td>
+<td><code>verify</code></td>
+<td><code>rverify</code></td>
+<td><code>pverify</code></td>
+</tr>
+</tbody>
+</table>
+<p>Контекст игрока намеренно опускает сопоставления <code>activity</code>, <code>ip</code> и <code>code</code>.</p>
+<h3 id="_18">Методы<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h3>
+<p><strong><code>start(string $context, int $timeout = 60): void</code></strong></p>
+<p>Запускает сеанс PHP (если он еще не запущен), устанавливает активный контекст и запускает <code>checkTimeout()</code> для завершения устаревших сеансов. Контекст должен быть <code>'admin'</code>, <code>'reseller'</code> или <code>'player'</code>.</p>
+<p><strong><code>requireAuth(?string $loginUrl = null): void</code></strong></p>
+<p>Проверяет наличие аутентифицированного сеанса. Если запрос направлен напрямую на <code>session.php</code>, возвращает ответ в формате JSON <code>{"result": true/false}</code> (используется для опроса сеанса AJAX). В противном случае перенаправляет не прошедших проверку пользователей на страницу входа в систему. В случае успеха вызывает <code>touch()</code> для обновления временной метки действия.</p>
+<p><strong><code>isAuthenticated(): bool</code></strong></p>
+<p>Проверка на отсутствие блокировки. Возвращает значение <code>true</code>, если сеанс был запущен и установлен ключ <code>auth</code>.</p>
+<p><strong><code>getUser(): mixed</code></strong></p>
+<p>Возвращает значение, сохраненное в ключе сеанса <code>auth</code> (идентификатор пользователя для администратора/реселлера или идентификатор строки для игрока), или <code>null</code>, если аутентификация не пройдена.</p>
+<p><strong><code>getValue(string $name): mixed</code></strong></p>
+<p>Возвращает значение сеанса по его логическому имени (<code>auth</code>, <code>activity</code>, <code>ip</code>, <code>code</code>, <code>verify</code>). Логическое имя сопоставляется с фактическим ключом <code>$_SESSION</code> на основе текущего контекста.</p>
+<p><strong><code>setValue(string $name, mixed $value): void</code></strong></p>
+<p>Устанавливает значение сеанса по логическому имени.</p>
+<p><strong><code>login(mixed $hash, ?string $ip = null): void</code></strong></p>
+<p>Создает аутентифицированный сеанс, задавая значения <code>auth</code> и <code>activity</code>. При необходимости сохраняет IP-адрес клиента.</p>
+<p><strong><code>destroy(): void</code></strong></p>
+<p>Очищает все ключи сеанса для текущего контекста. Если никакой другой контекст не активен (проверяет противоположный контекст администратора/реселлера), уничтожает весь сеанс PHP.</p>
+<p><strong><code>clearContext(string $context): void</code></strong></p>
+<p>Очищает все ключи сеанса для определенного контекста, не разрушая сеанс. Простая замена устаревшего <code>destroySession($type)</code>.</p>
+<p><strong><code>touch(): void</code></strong></p>
+<p>Обновляет <code>$_SESSION[$activityKey]</code> до текущей временной метки и вызывает <code>session_write_close()</code>, чтобы снять блокировку сеанса.</p>
+<p><strong><code>getContext(): ?string</code></strong></p>
+<p>Возвращает текущую контекстную строку (<code>'admin'</code>, <code>'reseller'</code>, <code>'player'</code>) или <code>null</code>, если она не задана.</p>
+<h3 id="_19">Поведение по истечении времени ожидания<a class="headerlink" href="#_19" title="Permanent link">&para;</a></h3>
+<p><code>SessionManager::DEFAULT_TIMEOUT</code> равно 60 минутам. Метод <code>checkTimeout()</code> (вызываемый автоматически <code>start()</code>) сравнивает время, прошедшее с момента <code>last_activity</code>. Если время ожидания превышено, все ключи сеанса, зависящие от контекста, сбрасываются, что приводит к выходу пользователя из системы.</p>
+<p>Поскольку контекст игрока не имеет ключа <code>activity</code> в карте ключей, проверка тайм-аута не применяется к сессиям игрока.</p>
+<hr />
+<h2 id="_20">Охранник с применением грубой силы<a class="headerlink" href="#_20" title="Permanent link">&para;</a></h2>
+<p>Файл: <code>src/Core/Auth/BruteforceGuard.php</code></p>
+<p>Централизованное ограничение скорости и защита от перебора. Все методы используют состояние на основе файла, хранящееся в <code>FLOOD_TMP_PATH</code> (<code>/home/xc_vm/tmp/flood/</code>). Разрешенные IP-адреса (IP-адреса сервера) и IP-адреса, указанные в параметре <code>flood_ips_exclude</code>, всегда исключаются.</p>
+<h3 id="checkfloodstring-ip-null-bool-usecachedmode-false-void"><code>checkFlood(?string $ip = null, bool $useCachedMode = false): void</code><a class="headerlink" href="#checkfloodstring-ip-null-bool-usecachedmode-false-void" title="Permanent link">&para;</a></h3>
+<p>Скорость - ограничивает количество запросов по IP-адресу в пределах настраиваемого временного интервала.</p>
+<ul>
+<li><strong>Настройки:</strong> <code>flood_limit</code> (максимальное количество запросов), <code>flood_seconds</code> (размер окна).</li>
+<li><strong>Файл состояния:</strong> <code>FLOOD_TMP_PATH . $ip</code> - сохраняет объект JSON с числом <code>requests</code> и временной меткой <code>last_request</code>.</li>
+<li><strong>Поведение:</strong> Отслеживает количество запросов в пределах временного окна. Если количество превышает <code>flood_limit</code>, IP-адрес блокируется (заносится в таблицу <code>blocked_ips</code> или передается через Redis в кэшированном/потоковом режиме). Файл состояния удаляется после блокировки.</li>
+<li><strong>Используется:</strong> Вход игрока (вызывается при каждой неудачной попытке входа в систему), конечные точки потоковой передачи.</li>
+</ul>
+<h3 id="checkbruteforcestring-ip-null-string-mac-null-string-username-null-bool-usecachedmode-false-void"><code>checkBruteforce(?string $ip = null, ?string $mac = null, ?string $username = null, bool $useCachedMode = false): void</code><a class="headerlink" href="#checkbruteforcestring-ip-null-string-mac-null-string-username-null-bool-usecachedmode-false-void" title="Permanent link">&para;</a></h3>
+<p>Обнаруживает атаки методом перебора на основе количества уникальных MAC-адресов или имен пользователей, обнаруженных с одного IP-адреса.</p>
+<ul>
+<li><strong>Настройки:</strong> <code>bruteforce_mac_attempts</code>, <code>bruteforce_username_attempts</code> ( максимальное количество уникальных значений), <code>bruteforce_frequency</code> (временной интервал в секундах).</li>
+<li><strong>Файл состояния:</strong> <code>FLOOD_TMP_PATH . $ip . '_mac'</code> или <code>FLOOD_TMP_PATH . $ip . '_user'</code> - сохраняет попытки в виде пар <code>{term: timestamp}</code>.</li>
+<li><strong>Поведение:</strong> Попытки с истекшим сроком действия (за пределами частотного диапазона) отсекаются с помощью <code>truncateAttempts()</code>. Если количество уникальных запросов превышает допустимое, IP-адрес блокируется.</li>
+<li><strong>Используется:</strong> Конечные точки потоковой аутентификации.</li>
+</ul>
+<h3 id="checkauthfloodarray-user-string-ip-null-void"><code>checkAuthFlood(array $user, ?string $ip = null): void</code><a class="headerlink" href="#checkauthfloodarray-user-string-ip-null-void" title="Permanent link">&para;</a></h3>
+<p>Ограничивает скорость запросов на аутентификацию для конкретной комбинации пользователь +IP. Предназначен для ограничения повторных попыток авторизации без полной блокировки.</p>
+<ul>
+<li><strong>Настройки:</strong> <code>auth_flood_limit</code> (максимальное количество попыток), <code>auth_flood_seconds</code> (окно), <code>auth_flood_sleep</code> (задержка в секундах при блокировке).</li>
+<li><strong>Файл состояния:</strong> <code>FLOOD_TMP_PATH . $userId . '_' . $ip</code> - сохраняет попытки в виде индексированных временных меток плюс необязательную временную метку <code>block_until</code>.</li>
+<li><strong>Поведение:</strong> Когда количество попыток превышает допустимое значение, устанавливается временная метка <code>block_until</code>. Последующие запросы в течение периода блокировки задерживаются на <code>auth_flood_sleep</code> секунды (через <code>sleep()</code>). IP-адрес не блокируется навсегда. Пользователи Restreamer (<code>is_restreamer</code>) освобождаются от этого требования.</li>
+<li><strong>Используется:</strong> Потоковая аутентификация.</li>
+</ul>
+<h3 id="truncateattemptsarray-attempts-int-frequency-bool-list-false-array"><code>truncateAttempts(array $attempts, int $frequency, bool $list = false): array</code><a class="headerlink" href="#truncateattemptsarray-attempts-int-frequency-bool-list-false-array" title="Permanent link">&para;</a></h3>
+<p>Отфильтровывает просроченные попытки из массива отслеживания. Если значение <code>$list</code> равно <code>true</code>, массив обрабатывается как индексированный (для <code>checkAuthFlood</code>); в противном случае как ассоциативный с ключом по термину (для <code>checkBruteforce</code>).</p>
+<h3 id="_21">Блокирующий механизм<a class="headerlink" href="#_21" title="Permanent link">&para;</a></h3>
+<p>Когда IP-адрес заблокирован:</p>
+<ul>
+<li><strong>Обычный режим:</strong> Выполняет вставку в таблицу базы данных <code>blocked_ips</code> с указанием причины (<code>FLOOD ATTACK</code> или <code>BRUTEFORCE MAC/USER ATTACK</code>) и обновляет кэш <code>BlocklistService</code>.</li>
+<li><strong>Режим кэширования/потоковой передачи (<code>$useCachedMode = true</code>):</strong> Устанавливает сигнал Redis (<code>bruteforce_attack/$ip</code> или <code>flood_attack/$ip</code>) через <code>RedisManager::setSignal()</code> для блокировки потокового контекста без записи в базу данных.</li>
+<li>В обоих режимах выполняется касание файла-маркера <code>FLOOD_TMP_PATH . 'block_' . $ip</code> для быстрой проверки на уровне файловой системы.</li>
+</ul>
+<hr />
+<h2 id="_22">Безопасность сеанса<a class="headerlink" href="#_22" title="Permanent link">&para;</a></h2>
+<h3 id="cookie">Настройка файлов cookie<a class="headerlink" href="#cookie" title="Permanent link">&para;</a></h3>
+<p>В контексте начальной загрузки администратора сеансовые файлы cookie устанавливаются в соответствии со строгой политикой SameSite:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">$params['samesite'] = 'Strict';</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="x">session_set_cookie_params($params);</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="x">session_start();</span>
+</code></pre></div>
+<h3 id="_23">Проверка хэша<a class="headerlink" href="#_23" title="Permanent link">&para;</a></h3>
+<p>Проверяющий хэш (<code>$_SESSION['verify']</code> / <code>$_SESSION['rverify']</code> / <code>$_SESSION['pverify']</code>) вычисляется следующим образом:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="x">md5($username . '||' . $hashedPassword)</span>
+</code></pre></div>
+<p>Это значение сравнивается с текущими значениями базы данных при каждой загрузке страницы. Если администратор изменяет пароль пользователя (что изменяет сохраненный хэш), все существующие сеансы для этого пользователя автоматически становятся недействительными, поскольку проверяемый хэш больше не будет совпадать.</p>
+<p>Для логинов администратора и торгового посредника пароль повторно хэшируется во время входа в систему, поэтому используется <code>$rCrypt</code> (новый хэш). Для логинов игроков используется существующий сохраненный хэш <code>$rUserInfo['password']</code>.</p>
+<h3 id="ip-">Обработка изменений IP-адреса<a class="headerlink" href="#ip-" title="Permanent link">&para;</a></h3>
+<p>Два параметра управляют поведением при изменении IP-адреса:</p>
+<table>
+<thead>
+<tr>
+<th>Установка</th>
+<th>Эффект</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ip_logout</code></td>
+<td>Если включено, завершает сеанс при изменении IP-адреса клиента (точного или из подсети, в зависимости от <code>ip_subnet_match</code>).</td>
+</tr>
+<tr>
+<td><code>ip_subnet_match</code></td>
+<td>Когда этот параметр включен, сравниваются только первые три октета IP-адреса, вместо того чтобы требовать точного совпадения. Позволяет пользователям с динамическими IP-адресами в пределах одной подсети сохранять сеанс связи.</td>
+</tr>
+</tbody>
+</table>
+<p>Когда <code>ip_logout</code> отключено и IP-адрес изменяется, сохраненный IP-адрес сеанса автоматически обновляется до нового IP-адреса.</p>
+<hr />
+<h2 id="_24">Регистрация входа в систему<a class="headerlink" href="#_24" title="Permanent link">&para;</a></h2>
+<p>Когда параметр <code>save_login_logs</code> включен, все попытки входа в систему (успешные и неудачные) записываются в таблицу <code>login_logs</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="k">INSERT</span><span class="w"> </span><span class="k">INTO</span><span class="w"> </span><span class="o">`</span><span class="n">login_logs</span><span class="o">`</span><span class="p">(</span><span class="o">`</span><span class="k">type</span><span class="o">`</span><span class="p">,</span><span class="w"> </span><span class="o">`</span><span class="n">access_code</span><span class="o">`</span><span class="p">,</span><span class="w"> </span><span class="o">`</span><span class="n">user_id</span><span class="o">`</span><span class="p">,</span><span class="w"> </span><span class="o">`</span><span class="n">status</span><span class="o">`</span><span class="p">,</span><span class="w"> </span><span class="o">`</span><span class="n">login_ip</span><span class="o">`</span><span class="p">,</span><span class="w"> </span><span class="o">`</span><span class="nb">date</span><span class="o">`</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">VALUES</span><span class="p">(</span><span class="err">$</span><span class="k">type</span><span class="p">,</span><span class="w"> </span><span class="err">$</span><span class="n">codeId</span><span class="p">,</span><span class="w"> </span><span class="err">$</span><span class="n">userId</span><span class="p">,</span><span class="w"> </span><span class="err">$</span><span class="n">status</span><span class="p">,</span><span class="w"> </span><span class="err">$</span><span class="n">ip</span><span class="p">,</span><span class="w"> </span><span class="err">$</span><span class="k">timestamp</span><span class="p">);</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Колонка</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td><code>ADMIN</code> или <code>RESELLER</code></td>
+</tr>
+<tr>
+<td><code>access_code</code></td>
+<td>Идентификатор текущего кода доступа</td>
+</tr>
+<tr>
+<td><code>user_id</code></td>
+<td>Идентификатор пользователя (0 для неверных учетных данных)</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td><code>SUCCESS</code>, <code>INVALID_LOGIN</code>, <code>INVALID_CODE</code>, <code>NOT_ADMIN</code>, <code>DISABLED</code></td>
+</tr>
+<tr>
+<td><code>login_ip</code></td>
+<td>IP-адрес клиента</td>
+</tr>
+<tr>
+<td><code>date</code></td>
+<td>Временная метка Unix</td>
+</tr>
+</tbody>
+</table>
+<p>Логины игроков не записываются в <code>login_logs</code>.</p>
+<hr />
+<h2 id="_25">Авторизация (после входа в систему)<a class="headerlink" href="#_25" title="Permanent link">&para;</a></h2>
+<p>После аутентификации два дополнительных уровня авторизации определяют, к чему пользователь может получить доступ:</p>
+<h3 id="authorization"><code>Authorization</code><a class="headerlink" href="#authorization" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Core/Auth/Authorization.php</code></p>
+<p>Авторизация на уровне объекта. Проверяет, есть ли у текущего пользователя разрешение на доступ к определенному ресурсу (пользователь, поток и т.д.) на основе иерархии владельцев реселлеров и групповых разрешений.</p>
+<ul>
+<li><code>Authorization::hasResellerPermissions($type)</code> -- устанавливает флажок единственного разрешения на <code>$rPermissions</code>.</li>
+<li><code>Authorization::check($type, $id)</code> -- проверяет доступ к определенному ресурсу по типу и идентификатору.</li>
+</ul>
+<h3 id="pageauthorization"><code>PageAuthorization</code><a class="headerlink" href="#pageauthorization" title="Permanent link">&para;</a></h3>
+<p>Файл: <code>src/Core/Auth/PageAuthorization.php</code></p>
+<p>Управление доступом на уровне страницы. Определяет, разрешают ли групповые права текущего пользователя доступ к определенной странице панели администратора или торгового посредника.</p>
+<ul>
+<li><code>PageAuthorization::checkResellerPermissions($page)</code> -- сопоставляет названия страниц с флагами требуемых разрешений и возвращает, разрешен ли доступ.</li>
+</ul>
+<hr />
+<h2 id="_26">Связанные файлы<a class="headerlink" href="#_26" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/Core/Auth/Authenticator.php</code></td>
+<td>Логика входа администратора и реселлера в систему, хэширование паролей</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/SessionManager.php</code></td>
+<td>Унифицированный сеансовый API с сопоставлением контекстных ключей</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/BruteforceGuard.php</code></td>
+<td>Ограничение скорости и защита от перебора</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/Authorization.php</code></td>
+<td>Проверки авторизации на уровне объекта</td>
+</tr>
+<tr>
+<td><code>src/Core/Auth/PageAuthorization.php</code></td>
+<td>Управление доступом на уровне страницы</td>
+</tr>
+<tr>
+<td><code>src/Public/Controllers/Player/PlayerLoginController.php</code></td>
+<td>Процесс входа игрока в систему с проверкой безопасности</td>
+</tr>
+<tr>
+<td><code>src/Public/Views/admin/functions.php</code></td>
+<td>Проверка сеанса администратора при каждой загрузке страницы</td>
+</tr>
+<tr>
+<td><code>src/Public/Views/admin/session.php</code></td>
+<td>Тайм-аут сеанса администратора и проверка сеанса AJAX</td>
+</tr>
+<tr>
+<td><code>src/Infrastructure/Bootstrap/reseller_functions.php</code></td>
+<td>Проверка сеанса реселлера при каждой загрузке страницы</td>
+</tr>
+<tr>
+<td><code>src/Domain/User/UserRepository.php</code></td>
+<td>Поиск учетных данных (<code>getAuthUserByCredentials</code>)</td>
+</tr>
+<tr>
+<td><code>src/bootstrap.php</code></td>
+<td>Определения констант состояния, контексты начальной загрузки</td>
+</tr>
+<tr>
+<td><code>src/Core/Config/Paths.php</code></td>
+<td><code>FLOOD_TMP_PATH</code> определение</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

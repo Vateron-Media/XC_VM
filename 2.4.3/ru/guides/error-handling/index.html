@@ -1,0 +1,3773 @@
+
+<!doctype html>
+<html lang="ru" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="XC_VM IPTV panel — user and developer documentation">
+      
+      
+      
+        <link rel="canonical" href="https://vateron-media.github.io/XC_VM/2.4.3/ru/guides/error-handling/">
+      
+      
+        <link rel="prev" href="../input-validation/">
+      
+      
+        <link rel="next" href="../geoip-isp-and-geo-routing/">
+      
+      
+        
+          <link rel="alternate" href="../../../guides/error-handling/" hreflang="en">
+        
+          <link rel="alternate" href="./" hreflang="ru">
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Обработка ошибок - XC_VM</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#_1" class="md-skip">
+          Перейти к содержанию
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Верхний колонтитул">
+    <a href="../../" title="XC_VM" class="md-header__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            XC_VM
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Обработка ошибок
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+      <div class="md-header__option">
+  <div class="md-select">
+    
+    <button class="md-header__button md-icon" aria-label="Выберите язык">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m12.87 15.07-2.54-2.51.03-.03A17.5 17.5 0 0 0 14.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11zM18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2zm-2.62 7 1.62-4.33L19.12 17z"/></svg>
+    </button>
+    <div class="md-select__inner">
+      <ul class="md-select__list">
+        
+          <li class="md-select__item">
+            <a href="../../../guides/error-handling/" hreflang="en" class="md-select__link">
+              English
+            </a>
+          </li>
+        
+          <li class="md-select__item">
+            <a href="./" hreflang="ru" class="md-select__link">
+              Русский
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</div>
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Поиск" placeholder="Поиск" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Поиск">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Очистить" aria-label="Очистить" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Инициализация поиска
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Вкладки" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Главная
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../administration/ssl-generation/" class="md-tabs__link">
+          
+  
+  
+  Руководство пользователя
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../development/architecture/" class="md-tabs__link">
+          
+  
+  
+  Руководство разработчика
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Навигация" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../" title="XC_VM" class="md-nav__button md-logo" aria-label="XC_VM" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    XC_VM
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Vateron-Media/XC_VM" title="Перейти к репозиторию" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Vateron-Media/XC_VM
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Главная
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство пользователя
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство пользователя
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Администрирование
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Администрирование
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/ssl-generation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Генерация SSL-сертификата
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-update/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обновление сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/server-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика сервера
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/update-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Механизм обновлений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/reseller-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система реселлеров
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../administration/backup-strategy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Стратегия резервного копирования
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Справочник API
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Справочник API
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/swagger/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интерактивный API (Swagger)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кастомизация
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Кастомизация
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../translations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Переводы интерфейса
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_4" id="__nav_2_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Диагностика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diagnostics-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сервис диагностики
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_5" id="__nav_2_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Информация и FAQ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Информация и FAQ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/faq/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FAQ
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/migration_guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство по миграции
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../info/watch_folder/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Отслеживаемая папка
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Руководство разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Руководство разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_1" id="__nav_3_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Архитектура
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Архитектура
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обзор архитектуры
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/autoloader/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Автозагрузка (PSR-4)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/bootstrap-contexts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Контексты бутстрапа
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/core-wiring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и регистрация ядра
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Создание модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-lifecycle/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Жизненный цикл модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/module-extension-points/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Точки расширения модулей
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/http-request-handling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка HTTP-запросов
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/admin-ajax-api/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AJAX-API админки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-subsystem/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Подсистема стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/streaming-diagnostics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Диагностика стриминга
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/event-system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система событий
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/exception-hierarchy/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Иерархия исключений
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/caching-and-redis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Кэширование и Redis
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../development/navbar-rendering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рендеринг навбара
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_2" id="__nav_3_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Рабочий процесс разработчика
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Рабочий процесс разработчика
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dev-workflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Процесс разработки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../cli-tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CLI-инструменты и консоль
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../database-migrations/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Миграции базы данных
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../phpunit-phar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Настройка PHPUnit
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../feature-flags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Флаги функций
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../process-management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Управление процессами
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_3_3" id="__nav_3_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Безопасность и доступ
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_3_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Безопасность и доступ
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../authentication-and-sessions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Аутентификация и сессии
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../permissions-and-rbac/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Права и RBAC
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../input-validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Валидация ввода
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Обработка ошибок
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор потока
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Реестр кодов ошибок
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Реестр кодов ошибок">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Полный список кодов
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обработчики ошибок
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Обработчики ошибок">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#generateerrorstring-rerror-bool-rkill-true-int-rcode-null" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generateError(string $rError, bool $rKill = true, ?int $rCode = null)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generate404bool-rkill-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate404(bool $rKill = true)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Подсистема регистратора
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Подсистема регистратора">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Инициализация
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loggerinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Где вызывается функция Logger::init()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отображение уровня ошибок
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Формат журнала
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Расположение файла журнала
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Вывод на экран
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Конвейер ведения журнала: Передача файла в базу данных
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Конвейер ведения журнала: Передача файла в базу данных">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Фильтрация шума файлового регистратора
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Другие лесорубы
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Типы исключений в кодовой базе
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отладка против производства
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Отладка против производства">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#debug_show_errors-false" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Производство (по умолчанию: debug_show_errors = false)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debug_show_errors-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отладка (debug_show_errors = true)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация обработчика ошибок Bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Добавление нового кода ошибки
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_4" id="__nav_3_4_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграции
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Интеграции
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../geoip-isp-and-geo-routing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GeoIP, ISP и гео-маршрутизация
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../device-detection-and-stb-locking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Определение устройств и STB-блокировки
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ministra-browser-emulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Эмуляция Ministra STB
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ucs-integration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Интеграция UCS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_3_5" id="__nav_3_5_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Сборка и релиз
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Сборка и релиз
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/build_system/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Система сборки (MAIN и LB)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../builds/updates_checklist/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Чеклист перед релизом
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Содержание">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Содержание
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обзор потока
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Реестр кодов ошибок
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Реестр кодов ошибок">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Полный список кодов
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Обработчики ошибок
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Обработчики ошибок">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#generateerrorstring-rerror-bool-rkill-true-int-rcode-null" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generateError(string $rError, bool $rKill = true, ?int $rCode = null)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generate404bool-rkill-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        generate404(bool $rKill = true)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Подсистема регистратора
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Подсистема регистратора">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Инициализация
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loggerinit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Где вызывается функция Logger::init()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отображение уровня ошибок
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Формат журнала
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Расположение файла журнала
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_11" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Вывод на экран
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_12" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Конвейер ведения журнала: Передача файла в базу данных
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Конвейер ведения журнала: Передача файла в базу данных">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_13" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Фильтрация шума файлового регистратора
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_14" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Другие лесорубы
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Типы исключений в кодовой базе
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_16" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отладка против производства
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Отладка против производства">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#debug_show_errors-false" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Производство (по умолчанию: debug_show_errors = false)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#debug_show_errors-true" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Отладка (debug_show_errors = true)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bootstrap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Регистрация обработчика ошибок Bootstrap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_17" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Добавление нового кода ошибки
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_18" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Связанные файлы
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="_1">Модель обработки ошибок<a class="headerlink" href="#_1" title="Permanent link">&para;</a></h1>
+<p>XC_VM обработка ошибок состоит из трех уровней:</p>
+<ul>
+<li><strong>Коды ошибок</strong> -- что не удалось (централизованный реестр именованных строк ошибок)</li>
+<li><strong>Обработчики ошибок</strong> -- как формируется HTTP-ответ клиента (<code>generateError()</code>, <code>generate404()</code>)</li>
+<li><strong>Подсистема регистратора</strong> -- фиксация во время выполнения PHP ошибок, неперехваченных исключений и фатальных сбоев</li>
+</ul>
+<hr />
+<h2 id="_2">Обзор потока<a class="headerlink" href="#_2" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>Application code
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  |
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  +-- generateError('CODE')        // deliberate error response
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  |     -&gt; debug mode:  styled HTML page with code + description
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  |     -&gt; production:  generate404() or explicit HTTP code
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  |
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  +-- PHP warning / notice / error  // runtime errors
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>  |     -&gt; Logger::handleError()
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>  |        -&gt; maps errno to level (ERROR, WARNING, NOTICE, INFO)
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>  |        -&gt; writes base64-encoded JSON to error_log.log
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>  |        -&gt; optionally displays on screen
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>  |
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>  +-- Uncaught exception            // unhandled Throwable
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>  |     -&gt; Logger::handleException()
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>  |        -&gt; logs as EXCEPTION with full chained trace
+<a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>  |
+<a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>  +-- Fatal error at shutdown       // E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR
+<a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>        -&gt; Logger::handleFatal()
+<a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>           -&gt; logs as FATAL (no stack trace available)
+</code></pre></div>
+<hr />
+<h2 id="_3">Реестр кодов ошибок<a class="headerlink" href="#_3" title="Permanent link">&para;</a></h2>
+<p>Все коды объявлены в <code>src/Core/Error/ErrorCodes.php</code> как глобальный массив <code>$rErrorCodes</code>.</p>
+<p>Формат кода:</p>
+<ul>
+<li>Ключ: строка в верхнем регистре (пример: <code>INVALID_CREDENTIALS</code>)</li>
+<li>Значение: понятное для человека описание на английском языке</li>
+</ul>
+<p>Используйте только централизованные определения кода. Не следует жестко кодировать текст ошибки в обработчиках конечных точек.</p>
+<h3 id="_4">Полный список кодов<a class="headerlink" href="#_4" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Код</th>
+<th>Описание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>API_IP_NOT_ALLOWED</code></td>
+<td>IP-адрес не разрешен для доступа к API.</td>
+</tr>
+<tr>
+<td><code>ARCHIVE_DOESNT_EXIST</code></td>
+<td>Для этого идентификатора потока отсутствуют архивные файлы.</td>
+</tr>
+<tr>
+<td><code>ASN_BLOCKED</code></td>
+<td>ASN был заблокирован.</td>
+</tr>
+<tr>
+<td><code>BANNED</code></td>
+<td>Линия была заблокирована.</td>
+</tr>
+<tr>
+<td><code>BLOCKED_USER_AGENT</code></td>
+<td>Пользовательский агент был заблокирован.</td>
+</tr>
+<tr>
+<td><code>CACHE_INCOMPLETE</code></td>
+<td>Генерируется кэш...</td>
+</tr>
+<tr>
+<td><code>DEVICE_NOT_ALLOWED</code></td>
+<td>Устройствам MAG и Enigma не разрешен доступ к этому файлу.</td>
+</tr>
+<tr>
+<td><code>DISABLED</code></td>
+<td>Линия была отключена.</td>
+</tr>
+<tr>
+<td><code>DOWNLOAD_LIMIT_REACHED</code></td>
+<td>Достигнут лимит одновременной загрузки.</td>
+</tr>
+<tr>
+<td><code>E2_DEVICE_LOCK_FAILED</code></td>
+<td>Проверка блокировки устройства не удалась.</td>
+</tr>
+<tr>
+<td><code>E2_DISABLED</code></td>
+<td>Устройство было отключено.</td>
+</tr>
+<tr>
+<td><code>E2_NO_TOKEN</code></td>
+<td>Токен не был указан.</td>
+</tr>
+<tr>
+<td><code>E2_TOKEN_DOESNT_MATCH</code></td>
+<td>Токен не соответствует записям.</td>
+</tr>
+<tr>
+<td><code>E2_WATCHDOG_TIMEOUT</code></td>
+<td>Истек лимит времени.</td>
+</tr>
+<tr>
+<td><code>EMPTY_USER_AGENT</code></td>
+<td>Пустые пользовательские агенты запрещены.</td>
+</tr>
+<tr>
+<td><code>EPG_DISABLED</code></td>
+<td>EPG был отключен.</td>
+</tr>
+<tr>
+<td><code>EPG_FILE_MISSING</code></td>
+<td>Кэшированные файлы EPG отсутствуют.</td>
+</tr>
+<tr>
+<td><code>EXPIRED</code></td>
+<td>Срок действия строки истек.</td>
+</tr>
+<tr>
+<td><code>FORCED_COUNTRY_INVALID</code></td>
+<td>Страна не совпадает с принудительной страной.</td>
+</tr>
+<tr>
+<td><code>GENERATE_PLAYLIST_FAILED</code></td>
+<td>Не удалось создать список воспроизведения.</td>
+</tr>
+<tr>
+<td><code>HLS_DISABLED</code></td>
+<td>HLS был отключен.</td>
+</tr>
+<tr>
+<td><code>HOSTING_DETECT</code></td>
+<td>Обнаружен хостинг-сервер.</td>
+</tr>
+<tr>
+<td><code>INVALID_API_PASSWORD</code></td>
+<td>Неверный пароль API.</td>
+</tr>
+<tr>
+<td><code>INVALID_CREDENTIALS</code></td>
+<td>Имя пользователя или пароль неверны.</td>
+</tr>
+<tr>
+<td><code>INVALID_HOST</code></td>
+<td>Доменное имя не распознано.</td>
+</tr>
+<tr>
+<td><code>INVALID_STREAM_ID</code></td>
+<td>Идентификатор потока не существует.</td>
+</tr>
+<tr>
+<td><code>INVALID_TYPE_TOKEN</code></td>
+<td>Токены не могут быть использованы для этого типа потока.</td>
+</tr>
+<tr>
+<td><code>IP_BLOCKED</code></td>
+<td>IP-адрес был заблокирован.</td>
+</tr>
+<tr>
+<td><code>IP_MISMATCH</code></td>
+<td>Текущий IP-адрес не соответствует исходному IP-адресу подключения.</td>
+</tr>
+<tr>
+<td><code>ISP_BLOCKED</code></td>
+<td>Провайдер был заблокирован.</td>
+</tr>
+<tr>
+<td><code>LB_TOKEN_INVALID</code></td>
+<td>Токен AES не может быть расшифрован.</td>
+</tr>
+<tr>
+<td><code>LEGACY_EPG_DISABLED</code></td>
+<td>Устаревший epg.php доступ был отключен.</td>
+</tr>
+<tr>
+<td><code>LEGACY_GET_DISABLED</code></td>
+<td>Устаревший get.php доступ был отключен.</td>
+</tr>
+<tr>
+<td><code>LEGACY_PANEL_API_DISABLED</code></td>
+<td>Устаревший panel_api.php доступ был отключен.</td>
+</tr>
+<tr>
+<td><code>LINE_CREATE_FAIL</code></td>
+<td>Не удалось вставить строку в базу данных.</td>
+</tr>
+<tr>
+<td><code>NO_CREDENTIALS</code></td>
+<td>Учетные данные не были указаны.</td>
+</tr>
+<tr>
+<td><code>NO_SERVERS_AVAILABLE</code></td>
+<td>В настоящее время серверы для этого потока не доступны.</td>
+</tr>
+<tr>
+<td><code>NO_TIMESTAMP</code></td>
+<td>Временная метка архива не указана.</td>
+</tr>
+<tr>
+<td><code>NO_TOKEN_SPECIFIED</code></td>
+<td>Зашифрованный токен AES не был указан.</td>
+</tr>
+<tr>
+<td><code>NOT_ENIGMA_DEVICE</code></td>
+<td>Линия - это не загадочное устройство.</td>
+</tr>
+<tr>
+<td><code>NOT_IN_ALLOWED_COUNTRY</code></td>
+<td>Нет в списке разрешенных стран.</td>
+</tr>
+<tr>
+<td><code>NOT_IN_ALLOWED_IPS</code></td>
+<td>Его нет в списке разрешенных IP-адресов.</td>
+</tr>
+<tr>
+<td><code>NOT_IN_ALLOWED_UAS</code></td>
+<td>Отсутствует в списке разрешенных пользовательских агентов.</td>
+</tr>
+<tr>
+<td><code>NOT_IN_BOUQUET</code></td>
+<td>У Line нет доступа к этому идентификатору потока.</td>
+</tr>
+<tr>
+<td><code>PLAYER_API_DISABLED</code></td>
+<td>API плеера был отключен.</td>
+</tr>
+<tr>
+<td><code>PROXY_ACCESS_DENIED</code></td>
+<td>Вы не можете получить прямой доступ к этому потоку, пока включен прокси-сервер.</td>
+</tr>
+<tr>
+<td><code>PROXY_DETECT</code></td>
+<td>Обнаружен прокси-сервер.</td>
+</tr>
+<tr>
+<td><code>PROXY_NO_API_ACCESS</code></td>
+<td>Не удается получить доступ к API через прокси.</td>
+</tr>
+<tr>
+<td><code>RESTREAM_DETECT</code></td>
+<td>Обнаружен повторный поток.</td>
+</tr>
+<tr>
+<td><code>STALKER_CHANNEL_MISMATCH</code></td>
+<td>Идентификатор потока не совпадает с токеном stalker.</td>
+</tr>
+<tr>
+<td><code>STALKER_DECRYPT_FAILED</code></td>
+<td>Не удалось расшифровать токен сталкера.</td>
+</tr>
+<tr>
+<td><code>STALKER_INVALID_KEY</code></td>
+<td>Недействительный ключ сталкера.</td>
+</tr>
+<tr>
+<td><code>STALKER_IP_MISMATCH</code></td>
+<td>IP-адрес не соответствует токену stalker.</td>
+</tr>
+<tr>
+<td><code>STALKER_KEY_EXPIRED</code></td>
+<td>Срок действия жетона сталкера истек.</td>
+</tr>
+<tr>
+<td><code>STREAM_OFFLINE</code></td>
+<td>Трансляция в данный момент отключена.</td>
+</tr>
+<tr>
+<td><code>SUBTITLE_DOESNT_EXIST</code></td>
+<td>Файл субтитров не существует.</td>
+</tr>
+<tr>
+<td><code>THUMBNAIL_DOESNT_EXIST</code></td>
+<td>Файл миниатюр не существует.</td>
+</tr>
+<tr>
+<td><code>THUMBNAILS_NOT_ENABLED</code></td>
+<td>Миниатюра не включена для этого потока.</td>
+</tr>
+<tr>
+<td><code>TOKEN_ERROR</code></td>
+<td>Токен AES содержит неполные данные.</td>
+</tr>
+<tr>
+<td><code>TOKEN_EXPIRED</code></td>
+<td>Срок действия токена AES истек.</td>
+</tr>
+<tr>
+<td><code>TS_DISABLED</code></td>
+<td>MPEG-TS был отключен.</td>
+</tr>
+<tr>
+<td><code>USER_ALREADY_CONNECTED</code></td>
+<td>Линия уже подключена с другого IP-адреса.</td>
+</tr>
+<tr>
+<td><code>USER_DISALLOW_EXT</code></td>
+<td>Добавочный номер отсутствует в списке разрешенных.</td>
+</tr>
+<tr>
+<td><code>VOD_DOESNT_EXIST</code></td>
+<td>VOD файл не существует.</td>
+</tr>
+<tr>
+<td><code>WAIT_TIME_EXPIRED</code></td>
+<td>Время начала трансляции истекло, запустить не удалось.</td>
+</tr>
+</tbody>
+</table>
+<p>Коды, относящиеся к потоковой передаче данных (<code>CACHE_INCOMPLETE</code>, <code>SUBTITLE_DOESNT_EXIST</code>, <code>NO_SERVERS_AVAILABLE</code>, <code>PROXY_ACCESS_DENIED</code>), были перенесены из <code>stream/init.php</code> в централизованный реестр.</p>
+<hr />
+<h2 id="_5">Обработчики ошибок<a class="headerlink" href="#_5" title="Permanent link">&para;</a></h2>
+<p>Определено в <code>src/Core/Error/ErrorHandler.php</code>. Это простые функции (не методы класса), загружаемые в начале начальной загрузки.</p>
+<h3 id="generateerrorstring-rerror-bool-rkill-true-int-rcode-null"><code>generateError(string $rError, bool $rKill = true, ?int $rCode = null)</code><a class="headerlink" href="#generateerrorstring-rerror-bool-rkill-true-int-rcode-null" title="Permanent link">&para;</a></h3>
+<p>Выдает ответ об ошибке HTTP. Поведение зависит от параметра <code>debug_show_errors</code>:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>if debug_show_errors === true
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    render styled HTML page showing error key + description
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    if $rKill -&gt; exit()
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>else (production)
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    if $rKill
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        if $rCode is set -&gt; http_response_code($rCode) + exit()
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        else             -&gt; generate404()
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    // if !$rKill, does nothing in production mode
+</code></pre></div>
+<p>Параметры:</p>
+<table>
+<thead>
+<tr>
+<th>Параметр</th>
+<th>Тип</th>
+<th>По умолчанию</th>
+<th>Значение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>$rError</code></td>
+<td><code>string</code></td>
+<td>--</td>
+<td>Ключ от <code>$rErrorCodes</code></td>
+</tr>
+<tr>
+<td><code>$rKill</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Завершить работу скрипта после вывода</td>
+</tr>
+<tr>
+<td><code>$rCode</code></td>
+<td><code>инт\|нулевой</code></td>
+<td><code>null</code></td>
+<td>Явный код ответа HTTP (обходит 404 в рабочей среде)</td>
+</tr>
+</tbody>
+</table>
+<p>Примеры:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="x">generateError('INVALID_CREDENTIALS');              // production: 404 + exit</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="x">generateError('API_IP_NOT_ALLOWED', true, 403);    // production: 403 + exit</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="x">generateError('STREAM_OFFLINE', false);             // production: no output, no exit</span>
+</code></pre></div>
+<h3 id="generate404bool-rkill-true"><code>generate404(bool $rKill = true)</code><a class="headerlink" href="#generate404bool-rkill-true" title="Permanent link">&para;</a></h3>
+<p>Возвращает страницу в стиле nginx <code>404 Not Found</code> и устанавливает HTTP 404. HTML-код содержит комментарии с дополнениями, чтобы скрыть страницы ошибок, отображаемые в браузере MSIE и Chrome.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="x">generate404();       // 404 + exit</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="x">generate404(false);  // 404, continue execution</span>
+</code></pre></div>
+<hr />
+<h2 id="_6">Подсистема регистратора<a class="headerlink" href="#_6" title="Permanent link">&para;</a></h2>
+<p>Определен в <code>src/Core/Logging/Logger.php</code>. Класс <code>final</code>, который регистрирует три глобальных обработчика PHP для отслеживания всех ошибок во время выполнения и записи их в файл.</p>
+<h3 id="_7">Инициализация<a class="headerlink" href="#_7" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="x">Logger::init(bool $showErrors, string $logFile): void</span>
+</code></pre></div>
+<p>Регистры:</p>
+<ol>
+<li><code>set_error_handler([Logger::class, 'handleError'])</code> -- PHP предупреждения, извещения, ошибки</li>
+<li><code>set_exception_handler([Logger::class, 'handleException'])</code> -- не перехвачено <code>Throwable</code></li>
+<li><code>register_shutdown_function([Logger::class, 'handleFatal'])</code> -- неустранимые ошибки при завершении работы</li>
+</ol>
+<p>Также настраивает <code>error_reporting(E_ALL &amp; ~E_NOTICE &amp; ~E_DEPRECATED)</code> и устанавливает <code>display_errors</code> / <code>display_startup_errors</code> на основе <code>$showErrors</code>.</p>
+<h3 id="loggerinit">Где вызывается функция Logger::init()<a class="headerlink" href="#loggerinit" title="Permanent link">&para;</a></h3>
+<p>Регистратор инициализируется в двух местах, в зависимости от пути запроса:</p>
+<table>
+<thead>
+<tr>
+<th>Путь входа</th>
+<th>Файл</th>
+<th>Как</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Bootstrap (все контексты)</td>
+<td><code>src/bootstrap.php</code></td>
+<td><code>XC_Bootstrap::loadConstants()</code> вызовы <code>Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')</code></td>
+</tr>
+<tr>
+<td>Конечные точки потоковой передачи</td>
+<td><code>src/Core/Http/RequestGuard.php</code></td>
+<td>Загружает настройки из файлового кэша, определяет <code>PHP_ERRORS</code>, затем вызывает <code>Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')</code></td>
+</tr>
+</tbody>
+</table>
+<p>В обоих случаях параметр <code>PHP_ERRORS</code> соответствует параметру <code>debug_show_errors</code> (по умолчанию используется значение <code>false</code>, когда настройки недоступны).</p>
+<h3 id="_8">Отображение уровня ошибок<a class="headerlink" href="#_8" title="Permanent link">&para;</a></h3>
+<p><code>Logger::handleError()</code> сопоставляет PHP константы ошибок со строками уровня журнала с помощью <code>mapErrorLevel()</code>:</p>
+<table>
+<thead>
+<tr>
+<th>PHP константа(ы)</th>
+<th>Уровень регистрации</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>E_ERROR</code>, <code>E_CORE_ERROR</code>, <code>E_COMPILE_ERROR</code></td>
+<td><code>ERROR</code></td>
+</tr>
+<tr>
+<td><code>E_WARNING</code>, <code>E_USER_WARNING</code></td>
+<td><code>WARNING</code></td>
+</tr>
+<tr>
+<td><code>E_NOTICE</code>, <code>E_USER_NOTICE</code></td>
+<td><code>NOTICE</code></td>
+</tr>
+<tr>
+<td>Все остальные значения <code>errno</code></td>
+<td><code>INFO</code></td>
+</tr>
+</tbody>
+</table>
+<p>Обработчик завершения работы (<code>handleFatal()</code>) проверяет <code>error_get_last()</code> на наличие этих фатальных типов и регистрирует их как <code>FATAL</code>:</p>
+<table>
+<thead>
+<tr>
+<th>PHP постоянные значения при выключении</th>
+<th>Уровень регистрации</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>E_ERROR</code>, <code>E_PARSE</code>, <code>E_CORE_ERROR</code>, <code>E_COMPILE_ERROR</code></td>
+<td><code>FATAL</code></td>
+</tr>
+</tbody>
+</table>
+<p>Неперехваченные исключения, зарегистрированные с помощью <code>handleException()</code>, всегда используют уровень <code>EXCEPTION</code>.</p>
+<p>Ошибки, подавленные с помощью оператора <code>@</code>, игнорируются (обработчик проверяет <code>error_reporting() &amp; $errno</code>).</p>
+<h3 id="_9">Формат журнала<a class="headerlink" href="#_9" title="Permanent link">&para;</a></h3>
+<p>Each log entry is written as a single line: <code>base64_encode(json_encode($data))</code> followed by a newline. This prevents line corruption from multi-line messages.</p>
+<p>Декодированная структура JSON:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="p">{</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="w">    </span><span class="nt">"type"</span><span class="p">:</span><span class="w">        </span><span class="s2">"WARNING"</span><span class="p">,</span>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="w">    </span><span class="nt">"log_message"</span><span class="p">:</span><span class="w"> </span><span class="s2">"Undefined variable $foo"</span><span class="p">,</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="w">    </span><span class="nt">"file"</span><span class="p">:</span><span class="w">        </span><span class="s2">"/home/xc_vm/Domain/Stream/StreamService.php"</span><span class="p">,</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="w">    </span><span class="nt">"line"</span><span class="p">:</span><span class="w">        </span><span class="mi">142</span><span class="p">,</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="w">    </span><span class="nt">"log_extra"</span><span class="p">:</span><span class="w">   </span><span class="s2">"#0 /home/xc_vm/...(line): function()\n#1 ..."</span><span class="p">,</span>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="w">    </span><span class="nt">"time"</span><span class="p">:</span><span class="w">        </span><span class="mi">1716220800</span><span class="p">,</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="nt">"env"</span><span class="p">:</span><span class="w">         </span><span class="s2">"fpm-fcgi"</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Поле</th>
+<th>Содержание</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>Уровень регистрации: <code>ERROR</code>, <code>WARNING</code>, <code>NOTICE</code>, <code>INFO</code>, <code>EXCEPTION</code>, или <code>FATAL</code></td>
+</tr>
+<tr>
+<td><code>log_message</code></td>
+<td>Текст сообщения об ошибке/исключении</td>
+</tr>
+<tr>
+<td><code>file</code></td>
+<td>Абсолютный путь к исходному файлу</td>
+</tr>
+<tr>
+<td><code>line</code></td>
+<td>Номер строки, в которой произошла ошибка</td>
+</tr>
+<tr>
+<td><code>log_extra</code></td>
+<td>Трассировка стека (форматированная строка). Пусто для неустранимых ошибок.</td>
+</tr>
+<tr>
+<td><code>time</code></td>
+<td>Временная метка Unix</td>
+</tr>
+<tr>
+<td><code>env</code></td>
+<td>PHP Имя SAPI (<code>cli</code>, <code>fpm-fcgi</code> и т.д.)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="_10">Расположение файла журнала<a class="headerlink" href="#_10" title="Permanent link">&para;</a></h3>
+<p>Путь по умолчанию: <code>LOGS_TMP_PATH . 'error_log.log'</code></p>
+<p>Если каталог журнала не существует, Logger создает его с правами доступа <code>0775</code>. При запуске от имени root (распространенного в контейнерах) файлу присваивается значение <code>xc_vm:xc_vm</code> с режимом <code>0664</code>.</p>
+<h3 id="_11">Вывод на экран<a class="headerlink" href="#_11" title="Permanent link">&para;</a></h3>
+<p>Когда <code>$showErrors</code> равно <code>true</code>, регистратор также отображает ошибки напрямую:</p>
+<ul>
+<li><strong>КЛИ:</strong> выходной сигнал терминала с цветовой кодировкой (красный - НЕИСПРАВИМОСТЬ/ОШИБКА, желтый - ПРЕДУПРЕЖДЕНИЕ, синий - УВЕДОМЛЕНИЕ).</li>
+<li><strong>Сеть:</strong> встроенный <code>&lt;div&gt;</code> с моноширинным шрифтом, красной рамкой и трассировкой стека в блоке <code>&lt;pre&gt;</code></li>
+</ul>
+<hr />
+<h2 id="_12">Конвейер ведения журнала: Передача файла в базу данных<a class="headerlink" href="#_12" title="Permanent link">&para;</a></h2>
+<p>Программа ведения журнала записывает данные в файл <code>error_log.log</code> на диске. Отдельная подсистема считывает этот файл и сохраняет записи в таблице базы данных <code>panel_logs</code>:</p>
+<ol>
+<li><strong>Лесоруб</strong> записывает строки JSON в кодировке base64 в <code>error_log.log</code></li>
+<li><strong>Файловый регистратор</strong> (<code>src/Core/Logging/FileLogger.php</code>) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, ошибки EPG и т.д.), который записывает данные в тот же файл в том же формате</li>
+<li>Записи заносятся в таблицу <code>panel_logs</code></li>
+<li><strong>Диагностическая служба</strong> (<code>src/Core/Diagnostics/DiagnosticsService.php</code>) считывается из <code>panel_logs</code> для:</li>
+<li><code>downloadPanelLogs()</code> -- извлекает до 1000 последних ошибок, не связанных с EPG, затем обрезает таблицу</li>
+<li><code>submitPanelLogs()</code> -- отправляет логи на центральный сервер API для анализа</li>
+<li>Панель администратора отображает эти журналы в разделе <strong>Управление &gt; Журналы &gt; Ошибки панели</strong></li>
+</ol>
+<h3 id="_13">Фильтрация шума файлового регистратора<a class="headerlink" href="#_13" title="Permanent link">&para;</a></h3>
+<p><code>FileLogger::log()</code> пропускает записи, которые соответствуют:</p>
+<ul>
+<li>Сообщения, содержащие <code>panel_logs</code> в дополнительном поле (предотвращает рекурсивное ведение журнала)</li>
+<li>Сообщения, соответствующие <code>timeout exceeded</code>, <code>lock wait timeout</code> или <code>duplicate entry</code> (зашумленные ошибки MySQL)</li>
+</ul>
+<hr />
+<h2 id="_14">Другие лесорубы<a class="headerlink" href="#_14" title="Permanent link">&para;</a></h2>
+<p>Каталог <code>src/Core/Logging/</code> содержит дополнительные специализированные регистраторы:</p>
+<table>
+<thead>
+<tr>
+<th>Класс</th>
+<th>Файл</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Logger</code></td>
+<td><code>Logger.php</code></td>
+<td>Обработчик глобальной PHP ошибки/исключения/фатального исхода (описанный выше)</td>
+</tr>
+<tr>
+<td><code>FileLogger</code></td>
+<td><code>FileLogger.php</code></td>
+<td>Ведение журнала на уровне приложения (ошибки PDO, EPG и т.д.) до <code>error_log.log</code></td>
+</tr>
+<tr>
+<td><code>DatabaseLogger</code></td>
+<td><code>DatabaseLogger.php</code></td>
+<td>Клиент передает события потокового запроса в <code>client_request.log</code> (вводимые в таблицу <code>client_logs</code>)</td>
+</tr>
+<tr>
+<td><code>UpdateLogger</code></td>
+<td><code>UpdateLogger.php</code></td>
+<td>Операции обновления системы до <code>MAIN_HOME/update.log</code> (обычный текст, не base64)</td>
+</tr>
+</tbody>
+</table>
+<p>Все регистраторы, кроме <code>UpdateLogger</code>, реализуют <code>LoggerInterface</code> и записывают JSON в кодировке base64.</p>
+<hr />
+<h2 id="_15">Типы исключений в кодовой базе<a class="headerlink" href="#_15" title="Permanent link">&para;</a></h2>
+<p>Кодовая база определяет небольшое количество пользовательских классов исключений. Все неперехваченные исключения перехватываются параметром <code>Logger::handleException()</code>, который регистрирует всю цепочку исключений (включая <code>getPrevious()</code>).</p>
+<table>
+<thead>
+<tr>
+<th>Класс исключений</th>
+<th>Базовый класс</th>
+<th>Местоположение</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>DropboxException</code></td>
+<td><code>\Exception</code></td>
+<td><code>src/Core/Storage/DropboxException.php</code></td>
+</tr>
+<tr>
+<td><code>M3uParser\Exception</code></td>
+<td><code>\Exception</code></td>
+<td><code>src/vendor/gemorroj/m3u-parser/src/Exception.php</code></td>
+</tr>
+<tr>
+<td><code>DataBuildingException</code></td>
+<td><code>\RuntimeException</code></td>
+<td><code>src/vendor/chrisyue/php-m3u8/src/Parser/DataBuildingException.php</code></td>
+</tr>
+<tr>
+<td><code>DefinitionException</code></td>
+<td><code>\RuntimeException</code></td>
+<td><code>src/vendor/chrisyue/php-m3u8/src/Definition/DefinitionException.php</code></td>
+</tr>
+<tr>
+<td><code>DumpingException</code></td>
+<td><code>\RuntimeException</code></td>
+<td><code>src/vendor/chrisyue/php-m3u8/src/Dumper/DumpingException.php</code></td>
+</tr>
+</tbody>
+</table>
+<p>Большая часть кода приложения использует общие ошибки <code>Exception</code> или полагается на встроенную систему ошибок PHP. Обработчик исключений регистратора принимает любые <code>Throwable</code>.</p>
+<hr />
+<h2 id="_16">Отладка против производства<a class="headerlink" href="#_16" title="Permanent link">&para;</a></h2>
+<h3 id="debug_show_errors-false">Производство (по умолчанию: <code>debug_show_errors = false</code>)<a class="headerlink" href="#debug_show_errors-false" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>generateError()</code> возвращает общую страницу 404 (или явный HTTP-код), скрывая внутреннюю причину сбоя</li>
+<li>Регистратор по-прежнему записывает все ошибки в <code>error_log.log</code> на диск</li>
+<li>для <code>display_errors</code> и <code>display_startup_errors</code> заданы значения <code>'0'</code></li>
+<li>Ошибки видны только через панель администратора (страница ошибок панели) или файлы журналов</li>
+</ul>
+<h3 id="debug_show_errors-true">Отладка (<code>debug_show_errors = true</code>)<a class="headerlink" href="#debug_show_errors-true" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>generateError()</code> показывает стилизованную страницу с ключом ошибки и сопоставленным описанием</li>
+<li>Регистратор дополнительно отображает ошибки на экране (вывод CLI с цветовой кодировкой или встроенный HTML).</li>
+<li>для <code>display_errors</code> и <code>display_startup_errors</code> заданы значения <code>'1'</code></li>
+</ul>
+<p>Не включайте отображение отладки на рабочих узлах.</p>
+<hr />
+<h2 id="bootstrap">Регистрация обработчика ошибок Bootstrap<a class="headerlink" href="#bootstrap" title="Permanent link">&para;</a></h2>
+<p>Инфраструктура обработки ошибок загружается на ранней стадии загрузки:</p>
+<ol>
+<li><code>bootstrap.php</code> определяет <code>MAIN_HOME</code> и регистрирует автозагрузчик Composer</li>
+<li><code>XC_Bootstrap::loadConstants()</code> загружает (по порядку):</li>
+<li><code>Core/Error/ErrorCodes.php</code> -- заполняет <code>$rErrorCodes</code></li>
+<li><code>Core/Error/ErrorHandler.php</code> -- определяет <code>generateError()</code> и <code>generate404()</code></li>
+<li>Путь и конфигурационные файлы</li>
+<li><code>Core/Logging/Logger.php</code> -- определение класса</li>
+<li>вызывается <code>Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')</code>, регистрирующий три глобальных обработчика</li>
+<li>Начиная с этого момента, фиксируются все ошибки PHP, неперехваченные исключения и фатальные сбои</li>
+</ol>
+<p>Для конечных точек потоковой передачи, которые обходят полную загрузку, <code>RequestGuard.php</code> выполняет шаги 2-3 независимо: загружает настройки из файлового кэша, определяет <code>PHP_ERRORS</code> и вызывает <code>Logger::init()</code>.</p>
+<hr />
+<h2 id="_17">Добавление нового кода ошибки<a class="headerlink" href="#_17" title="Permanent link">&para;</a></h2>
+<ol>
+<li>Добавьте новый ключ к <code>src/Core/Error/ErrorCodes.php</code>:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="x">'MY_NEW_ERROR' =&gt; 'Human-readable description.',</span>
+</code></pre></div>
+<ol>
+<li>Используйте это в коде:</li>
+</ol>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="x">generateError('MY_NEW_ERROR');</span>
+</code></pre></div>
+<p>Описания должны быть на английском языке для приведения в соответствие с существующим реестром.</p>
+<hr />
+<h2 id="_18">Связанные файлы<a class="headerlink" href="#_18" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Файл</th>
+<th>Цель</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>src/Core/Error/ErrorCodes.php</code></td>
+<td>Централизованная карта кодов ошибок (<code>$rErrorCodes</code>)</td>
+</tr>
+<tr>
+<td><code>src/Core/Error/ErrorHandler.php</code></td>
+<td>функции <code>generateError()</code> и <code>generate404()</code></td>
+</tr>
+<tr>
+<td><code>src/Core/Logging/Logger.php</code></td>
+<td>Глобальные PHP обработчики ошибок, исключений и фатальных исходов</td>
+</tr>
+<tr>
+<td><code>src/Core/Logging/LoggerInterface.php</code></td>
+<td>Интерфейс контракта ведения журнала</td>
+</tr>
+<tr>
+<td><code>src/Core/Logging/FileLogger.php</code></td>
+<td>Ведение журнала файлов на уровне приложения (PDO, EPG и т.д.)</td>
+</tr>
+<tr>
+<td><code>src/Core/Logging/DatabaseLogger.php</code></td>
+<td>Ведение журнала событий потокового запроса клиента</td>
+</tr>
+<tr>
+<td><code>src/Core/Logging/UpdateLogger.php</code></td>
+<td>Ведение журнала операций обновления системы</td>
+</tr>
+<tr>
+<td><code>src/Core/Http/RequestGuard.php</code></td>
+<td>Путь потоковой передачи: защита от наводнений, проверка хоста, запуск регистратора</td>
+</tr>
+<tr>
+<td><code>src/Core/Diagnostics/DiagnosticsService.php</code></td>
+<td>Считывает таблицу <code>panel_logs</code> для отображения администратором и отправки по API</td>
+</tr>
+<tr>
+<td><code>src/bootstrap.php</code></td>
+<td>Включает уровень ошибок и регистратор во всех контекстах начальной загрузки</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  К началу
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "navigation.tracking", "search.highlight", "search.suggest", "content.code.copy", "content.tabs.link", "toc.follow"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e \u0432 \u0431\u0443\u0444\u0435\u0440", "clipboard.copy": "\u041a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u0432 \u0431\u0443\u0444\u0435\u0440", "search.result.more.one": "\u0415\u0449\u0451 1 \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.more.other": "\u0415\u0449\u0451 # \u043d\u0430 \u044d\u0442\u043e\u0439 \u0441\u0442\u0440\u0430\u043d\u0438\u0446\u0435", "search.result.none": "\u0421\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e", "search.result.one": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e 1 \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0435", "search.result.other": "\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0441\u043e\u0432\u043f\u0430\u0434\u0435\u043d\u0438\u0439: #", "search.result.placeholder": "\u041d\u0430\u0447\u043d\u0438\u0442\u0435 \u043f\u0435\u0447\u0430\u0442\u0430\u0442\u044c \u0434\u043b\u044f \u043f\u043e\u0438\u0441\u043a\u0430", "search.result.term.missing": "\u041e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442", "select.version": "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 \u0432\u0435\u0440\u0441\u0438\u044e"}, "version": {"alias": true, "provider": "mike"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
