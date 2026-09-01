@@ -167,7 +167,11 @@ if (!class_exists('XcVuexyMenuBuilder')) {
                 }
             }
 
-            $selfActive = $item->url !== '#' && $item->url !== '' && basename($item->url) === $this->page;
+            // Match the current page by the item's URL basename OR its registry
+            // key (the landing item's url is 'index' while its route/key is
+            // 'dashboard', so a URL-only check would never light it up).
+            $selfActive = ($item->url !== '#' && $item->url !== '' && basename($item->url) === $this->page)
+                || $item->key === $this->page;
             $active     = $selfActive || ($hasKids && $childActive);
 
             $liClass = 'menu-item' . ($active ? ' active' : '') . ($hasKids && $active ? ' open' : '');

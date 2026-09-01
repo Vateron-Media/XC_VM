@@ -57,6 +57,10 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->url('index')->label('dashboard')
             ->icon('fe-activity')->noMobileSubmenu()->order(100));
 
+        NavbarRegistry::add((new NavbarItem('dashboard.home'))
+            ->parent('dashboard')->url('dashboard')
+            ->label('home')->order(1));
+
         NavbarRegistry::add((new NavbarItem('dashboard.live_connections'))
             ->parent('dashboard')->url('live_connections')
             ->label('live_connections')->permissions(['live_connections'])->order(10));
