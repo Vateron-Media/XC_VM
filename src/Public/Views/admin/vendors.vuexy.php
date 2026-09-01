@@ -23,19 +23,14 @@ if (!function_exists('xc_vuexy_vendor_manifest')) {
         $b = 'assets/new/vendor/libs/';
         return [
             // datatables-bootstrap5.js is a combined bundle that already includes the
-            // Buttons + Responsive extensions and the HTML5 exporters; it only needs
-            // the extension CSS and the export deps (jszip for Excel, pdfmake for PDF)
-            // loaded BEFORE it.
+            // Responsive extension; only its CSS needs to load alongside. Buttons/HTML5
+            // export is intentionally NOT wired — the panel ships its own export.
             'datatables' => [
                 'css' => [
                     $b . 'datatables-bs5/datatables.bootstrap5.css',
                     $b . 'datatables-responsive-bs5/responsive.bootstrap5.css',
-                    $b . 'datatables-buttons-bs5/buttons.bootstrap5.css',
                 ],
                 'js' => [
-                    $b . 'jszip/jszip.min.js',
-                    $b . 'pdfmake/pdfmake.min.js',
-                    $b . 'pdfmake/vfs_fonts.js',
                     $b . 'datatables-bs5/datatables-bootstrap5.js',
                 ],
             ],
