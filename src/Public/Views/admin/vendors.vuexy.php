@@ -47,6 +47,15 @@ if (!function_exists('xc_vuexy_vendor_manifest')) {
                 'css' => [$b . 'apex-charts/apex-charts.css'],
                 'js'  => [$b . 'apex-charts/apexcharts.js'],
             ],
+            // jsvectormap (modern, no jQuery) for the dashboard connections world map.
+            // The map data (maps/world.js) must load after the library.
+            'jsvectormap' => [
+                'css' => [$b . 'jsvectormap/jsvectormap.min.css'],
+                'js'  => [
+                    $b . 'jsvectormap/jsvectormap.min.js',
+                    $b . 'jsvectormap/maps/world.js',
+                ],
+            ],
         ];
     }
 }

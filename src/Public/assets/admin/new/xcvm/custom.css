@@ -27,3 +27,8 @@
 .dashboard-spark {
   min-height: 50px;
 }
+
+/* Dashboard connections world map (jsvectormap). */
+.dashboard-map {
+  height: 400px;
+}

@@ -45,6 +45,19 @@ $xmSparklines = [];
 foreach ($rServerStats as $rSid => $rHistory) {
     $xmSparklines[(int) $rSid] = array_values(array_map('floatval', (array) $rHistory));
 }
+
+// World-map region fills for jsvectormap: ISO2 country code => colour hex, the
+// SAME per-country colour the top list uses (colour[0] hex == colour[1] bg class).
+// Skip non-country GeoIP codes (A1/A2/O1/AP/EU/…) that are not map regions.
+$xmMapValues = [];
+if ($rSettings['save_closed_connection'] && $rSettings['dashboard_map']) {
+    foreach ($rConnectionMap as $rCountry) {
+        $rCode = strtoupper((string) ($rCountry['geoip_country_code'] ?? ''));
+        if (preg_match('/^[A-Z]{2}$/', $rCode) && !in_array($rCode, ['A1', 'A2', 'O1', 'AP', 'EU', 'AN'], true) && isset($rCountry['colour'][0])) {
+            $xmMapValues[$rCode] = $rCountry['colour'][0];
+        }
+    }
+}
 ?>
 
 <!-- Page header -->
@@ -152,22 +165,29 @@ foreach ($rServerStats as $rSid => $rHistory) {
 
         <?php if ($rSettings['save_closed_connection'] && $rSettings['dashboard_map'] && $rConnectionCount > 0): ?>
             <!-- Connections by Location -->
-            <div class="col-xl-6">
+            <div class="col-12">
                 <div class="card h-100">
                     <div class="card-header"><h5 class="card-title mb-0"><?= $language::get('dashboard_connections_by_location'); ?></h5></div>
                     <div class="card-body">
-                        <?php foreach (array_slice($rConnectionMap, 0, 6) as $rCountry):
-                            $rPct = (int) round($rCountry['count'] / $rConnectionCount * 100);
-                            $rBar = $rCountry['colour'][1] ?? 'bg-primary';
-                            ?>
-                            <div class="d-flex justify-content-between mb-1">
-                                <span class="fw-medium"><?= htmlspecialchars($rCountry['name']); ?></span>
-                                <span class="text-body-secondary"><?= number_format($rCountry['count'], 0); ?> · <?= $rPct; ?>%</span>
+                        <div class="row">
+                            <div class="col-lg-8 mb-4 mb-lg-0">
+                                <div id="map" class="dashboard-map"></div>
                             </div>
-                            <div class="progress mb-3 dashboard-loc-progress">
-                                <div class="progress-bar <?= htmlspecialchars($rBar, ENT_QUOTES); ?>" role="progressbar" data-width="<?= $rPct; ?>" aria-valuenow="<?= $rPct; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                            <div class="col-lg-4 align-self-center">
+                                <?php foreach (array_slice($rConnectionMap, 0, 6) as $rCountry):
+                                    $rPct = (int) round($rCountry['count'] / $rConnectionCount * 100);
+                                    $rBar = $rCountry['colour'][1] ?? 'bg-primary';
+                                    ?>
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span class="fw-medium"><?= htmlspecialchars($rCountry['name']); ?></span>
+                                        <span class="text-body-secondary"><?= number_format($rCountry['count'], 0); ?> · <?= $rPct; ?>%</span>
+                                    </div>
+                                    <div class="progress mb-3 dashboard-loc-progress">
+                                        <div class="progress-bar <?= htmlspecialchars($rBar, ENT_QUOTES); ?>" role="progressbar" data-width="<?= $rPct; ?>" aria-valuenow="<?= $rPct; ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
-                        <?php endforeach; ?>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -384,8 +404,34 @@ renderUnifiedLayoutFooter('admin');
             });
         }
 
+        function renderMap() {
+            var el = document.getElementById('map');
+            if (!el || typeof jsVectorMap === 'undefined') return;
+            var values = <?= json_encode($xmMapValues, JSON_UNESCAPED_SLASHES); ?>;
+            var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            var low = dark ? '#3b4253' : '#e7eaec';
+            var map = new jsVectorMap({
+                selector: '#map',
+                map: 'world',
+                backgroundColor: 'transparent',
+                zoomButtons: false,
+                regionStyle: {
+                    initial: { fill: low, stroke: 'none' },
+                    hover: { fillOpacity: 0.85 }
+                }
+            });
+            // Paint each country with its own colour (matches the top list); done
+            // directly rather than through the numeric colour-scale visualizer.
+            Object.keys(values).forEach(function (code) {
+                if (map.regions[code] && map.regions[code].element) {
+                    map.regions[code].element.setStyle('fill', values[code]);
+                }
+            });
+        }
+
         document.addEventListener('DOMContentLoaded', function () {
             if (window.jQuery && jQuery.fn.select2) { jQuery('#server_id').select2({ width: '100%' }); }
+            renderMap();
             document.querySelectorAll('.dashboard-loc-progress .progress-bar').forEach(function (b) {
                 b.style.width = (b.getAttribute('data-width') || 0) + '%';
             });

@@ -1,0 +1,3 @@
+jsvectormap 1.5.3
+Source: https://cdnjs.cloudflare.com/ajax/libs/jsvectormap/1.5.3/
+Files: js/jsvectormap.min.js, css/jsvectormap.min.css, maps/world.js (+ non-min .js/.css)
