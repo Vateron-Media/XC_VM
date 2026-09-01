@@ -4965,69 +4965,50 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleMysqlSyslog($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rPermissions;
+		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "panel_logs")) {
 			exit;
 		}
-		$rOrder = ["`mysql_syslog`.`date`", "`servers`.`server_name`", "`mysql_syslog`.`type`", "`mysql_syslog`.`error`", "`mysql_syslog`.`ip`", false];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable);
+		// the trailing actions column is non-orderable too.
+		$rOrderBy = self::dtOrderBy([false, "`mysql_syslog`.`date`", "`servers`.`server_name`", "`mysql_syslog`.`type`", "`mysql_syslog`.`error`", "`mysql_syslog`.`ip`", false]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`mysql_syslog`.`ip` LIKE ? OR `mysql_syslog`.`type` LIKE ? OR `mysql_syslog`.`error` LIKE ?)";
 		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `mysql_syslog` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `mysql_syslog` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
 			$rBlocked = [];
 			$db->query("SELECT `ip` FROM `blocked_ips`;");
 			foreach ($db->get_rows() as $rRow) {
-				$rBlocked[] = $rRow["ip"];
+				$rBlocked[$rRow["ip"]] = true;
 			}
 			$rQuery = "SELECT `mysql_syslog`.`id`, `mysql_syslog`.`server_id`, `servers`.`server_name`, `mysql_syslog`.`type`, `mysql_syslog`.`error`, `mysql_syslog`.`ip`, `mysql_syslog`.`date` FROM `mysql_syslog` LEFT JOIN `servers` ON `servers`.`id` = `mysql_syslog`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if ($rRow["ip"] == "127.0.0.1") {
-							$rRow["ip"] = "localhost";
-						}
-						if (0 < strlen($rRow["ip"]) && $rRow["ip"] != "localhost") {
-							if (!in_array($rRow["ip"], $rBlocked)) {
-								$rButtons = "<button title=\"Block IP\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow["ip"] . "', 'block');\"><i class=\"fas fa-hammer\"></i></button>";
-							} else {
-								$rButtons = "<button title=\"IP Already Blocked\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"fas fa-hammer\"></i></button>";
-							}
-							$rExplode = explode(":", $rRow["ip"]);
-							$rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
-						} else {
-							$rButtons = "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\" disabled><i class=\"fas fa-hammer\"></i></button>";
-							$rIP = "localhost";
-						}
-						$rReturn["data"][] = [date($rSettings["datetime_format"], $rRow["date"]), "<a href='server_view?id=" . (int) $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>", $rRow["type"], $rRow["error"], $rIP, $rButtons];
-					}
-				}
+			foreach ($db->get_rows() as $rRow) {
+				$rIp = (string) $rRow["ip"];
+				$rItem = [
+					"id"          => (int) $rRow["id"],
+					"date"        => (int) $rRow["date"],
+					"server_id"   => (int) $rRow["server_id"],
+					"server_name" => $rRow["server_name"],
+					"type"        => $rRow["type"],
+					"error"       => $rRow["error"],
+					"ip"          => $rIp,
+					"blocked"     => isset($rBlocked[$rIp]),
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
