@@ -2467,195 +2467,146 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleLineActivity($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rProxyServers;
+		global $db, $rProxyServers;
 		if (!Authorization::check("adv", "connection_logs")) {
 			exit;
 		}
-		$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? '') === "desc" ? "desc" : "asc";
-		$rOrder = ["`username` " . $rOrderDirection . ", `lines_activity`.`hmac_identifier`", "`streams`.`stream_display_name`", "`server_name`", "`lines_activity`.`user_agent`", "`lines_activity`.`isp`", "`lines_activity`.`user_ip`", "`lines_activity`.`date_start`", "`lines_activity`.`activity_id`", "`lines_activity`.`date_end` - `lines_activity`.`date_start`", "`lines_activity`.`container`", "`lines`.`is_restreamer`"];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable).
+		$rOrderBy = self::dtOrderBy([false, "`username`", "`streams`.`stream_display_name`", "`server_name`", "`lines_activity`.`user_agent`", "`lines_activity`.`isp`", "`lines_activity`.`user_ip`", "`lines_activity`.`date_start`", "`lines_activity`.`activity_id`", "`lines_activity`.`date_end` - `lines_activity`.`date_start`", "`lines_activity`.`container`", "`lines`.`is_restreamer`"]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 7) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`lines_activity`.`hmac_identifier` LIKE ? OR `lines_activity`.`user_agent` LIKE ? OR `lines_activity`.`user_ip` LIKE ? OR `lines_activity`.`container` LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_start`) LIKE ? OR FROM_UNIXTIME(`lines_activity`.`date_end`) LIKE ? OR `lines_activity`.`geoip_country_code` LIKE ?)";
 		}
-		if (0 < strlen(RequestManager::get("range") ?? '')) {
-			$rStartTime = substr(RequestManager::get("range"), 0, 10);
-			$rEndTime = substr(RequestManager::get("range"), strlen(RequestManager::get("range") ?? '') - 10, 10);
-			if (!($rStartTime = strtotime($rStartTime . " 00:00:00"))) {
-				$rStartTime = NULL;
-			}
-			if (!($rEndTime = strtotime($rEndTime . " 23:59:59"))) {
-				$rEndTime = NULL;
-			}
+		$rRange = (string) (RequestManager::get("range") ?? '');
+		if (0 < strlen($rRange)) {
+			$rStartTime = strtotime(substr($rRange, 0, 10) . " 00:00:00");
+			$rEndTime   = strtotime(substr($rRange, strlen($rRange) - 10, 10) . " 23:59:59");
 			if ($rStartTime && $rEndTime) {
-				$rWhere[] = "(`lines_activity`.`date_start` >= ? AND `lines_activity`.`date_end` <= ?)";
+				$rWhere[]  = "(`lines_activity`.`date_start` >= ? AND `lines_activity`.`date_end` <= ?)";
 				$rWhereV[] = $rStartTime;
 				$rWhereV[] = $rEndTime;
 			}
 		}
 		if (0 < strlen(RequestManager::get("stream") ?? '')) {
-			$rWhere[] = "`lines_activity`.`stream_id` = ?";
+			$rWhere[]  = "`lines_activity`.`stream_id` = ?";
 			$rWhereV[] = RequestManager::get("stream");
 		}
 		if (0 < strlen(RequestManager::get("user") ?? '')) {
-			$rWhere[] = "`lines_activity`.`user_id` = ?";
+			$rWhere[]  = "`lines_activity`.`user_id` = ?";
 			$rWhereV[] = RequestManager::get("user");
 		}
-		if (0 < (int)(RequestManager::get("server") ?? 0)) {
-			$rWhere[] = "(`lines_activity`.`server_id` = ? OR `lines_activity`.`proxy_id` = ?)";
-			$rWhereV[] = (int)(RequestManager::get("server") ?? 0);
-			$rWhereV[] = (int)(RequestManager::get("server") ?? 0);
+		if (0 < (int) (RequestManager::get("server") ?? 0)) {
+			$rWhere[]  = "(`lines_activity`.`server_id` = ? OR `lines_activity`.`proxy_id` = ?)";
+			$rWhereV[] = (int) (RequestManager::get("server") ?? 0);
+			$rWhereV[] = (int) (RequestManager::get("server") ?? 0);
 		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `lines_activity` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `lines_activity` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `lines`.`username`, `lines`.`is_e2`, `lines`.`is_mag`, `lines_activity`.`activity_id`, `lines_activity`.`hmac_identifier`, `lines_activity`.`hmac_id`, `lines_activity`.`proxy_id`, `lines_activity`.`container`, `lines_activity`.`isp`, `lines_activity`.`user_id`, `lines_activity`.`stream_id`, `streams`.`series_no`, `lines_activity`.`server_id`, `lines_activity`.`user_agent`, `lines_activity`.`user_ip`, `lines_activity`.`container`, `lines_activity`.`date_start`, `lines_activity`.`date_end`, `lines_activity`.`geoip_country_code`, `streams`.`stream_display_name`, `streams`.`type`, (SELECT `server_name` FROM `servers` WHERE `id` = `lines_activity`.`server_id`) AS `server_name`, `lines`.`is_restreamer` FROM `lines_activity` LEFT JOIN `lines` ON `lines_activity`.`user_id` = `lines`.`id` LEFT JOIN `streams` ON `lines_activity`.`stream_id` = `streams`.`id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+			$rCanHmac    = Authorization::check("adv", "add_hmac");
+			$rCanMag     = Authorization::check("adv", "edit_mag");
+			$rCanE2      = Authorization::check("adv", "edit_e2");
+			$rCanUsers   = Authorization::check("adv", "users");
+			$rCanServers = Authorization::check("adv", "servers");
+			$rStreamPerm = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
+			$rStreamPermOk = [];
+			foreach (array_unique($rStreamPerm) as $rPerm) {
+				$rStreamPermOk[$rPerm] = Authorization::check("adv", $rPerm);
+			}
+			$rQuery = "SELECT `lines`.`username`, `lines`.`is_e2`, `lines`.`is_mag`, `lines_activity`.`activity_id`, `lines_activity`.`hmac_identifier`, `lines_activity`.`hmac_id`, `lines_activity`.`proxy_id`, `lines_activity`.`container`, `lines_activity`.`isp`, `lines_activity`.`user_id`, `lines_activity`.`stream_id`, `streams`.`series_no`, `lines_activity`.`server_id`, `lines_activity`.`user_agent`, `lines_activity`.`user_ip`, `lines_activity`.`date_start`, `lines_activity`.`date_end`, `lines_activity`.`geoip_country_code`, `streams`.`stream_display_name`, `streams`.`type`, (SELECT `server_name` FROM `servers` WHERE `id` = `lines_activity`.`server_id`) AS `server_name`, `lines`.`is_restreamer` FROM `lines_activity` LEFT JOIN `lines` ON `lines_activity`.`user_id` = `lines`.`id` LEFT JOIN `streams` ON `lines_activity`.`stream_id` = `streams`.`id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				$rRows = $db->get_rows();
-				$rDeviceInfo = $rMagIDs = $rEnigmaIDs = [];
-				foreach ($rRows as $rRow) {
-					if ($rRow["is_mag"]) {
-						$rMagIDs[] = (int) $rRow["user_id"];
+			$rRows = $db->get_rows();
+			$rDeviceInfo = $rMagIDs = $rEnigmaIDs = [];
+			foreach ($rRows as $rRow) {
+				if ($rRow["is_mag"]) {
+					$rMagIDs[] = (int) $rRow["user_id"];
+				}
+				if ($rRow["is_e2"]) {
+					$rEnigmaIDs[] = (int) $rRow["user_id"];
+				}
+			}
+			if (0 < count($rMagIDs)) {
+				$db->query("SELECT `user_id`, `mag_id`, `mac` FROM `mag_devices` WHERE `user_id` IN (" . implode(",", $rMagIDs) . ");");
+				foreach ($db->get_rows() as $rRow) {
+					$rDeviceInfo[(int) $rRow["user_id"]] = ["device_id" => $rRow["mag_id"], "device_name" => $rRow["mac"]];
+				}
+			}
+			if (0 < count($rEnigmaIDs)) {
+				$db->query("SELECT `user_id`, `device_id`, `mac` FROM `enigma2_devices` WHERE `user_id` IN (" . implode(",", $rEnigmaIDs) . ");");
+				foreach ($db->get_rows() as $rRow) {
+					$rDeviceInfo[(int) $rRow["user_id"]] = ["device_id" => $rRow["device_id"], "device_name" => $rRow["mac"]];
+				}
+			}
+			foreach ($rRows as $rRow) {
+				$rDevId   = $rDeviceInfo[$rRow["user_id"]]["device_id"] ?? null;
+				$rDevName = $rDeviceInfo[$rRow["user_id"]]["device_name"] ?? null;
+				$rUserSub = null;
+				$rUserUrl = null;
+				$rIsHmac  = !empty($rRow["hmac_id"]);
+				if ($rIsHmac) {
+					$rUserLabel = "HMAC - " . $rRow["hmac_identifier"];
+					if ($rCanHmac) {
+						$rUserUrl = "hmac?id=" . (int) $rRow["hmac_id"];
 					}
-					if ($rRow["is_e2"]) {
-						$rEnigmaIDs[] = (int) $rRow["user_id"];
+				} elseif ($rRow["is_mag"]) {
+					$rUserLabel = $rRow["username"];
+					$rUserSub   = $rDevName;
+					if ($rCanMag && $rDevId !== null) {
+						$rUserUrl = "mag?id=" . (int) $rDevId;
 					}
-					if ($rRow["is_mag"] || $rRow["is_e2"]) {
-						$rDeviceInfo[(int) $rRow["user_id"]] = ["device_id" => NULL, "device_name" => NULL];
+				} elseif ($rRow["is_e2"]) {
+					$rUserLabel = $rRow["username"];
+					$rUserSub   = $rDevName;
+					if ($rCanE2 && $rDevId !== null) {
+						$rUserUrl = "enigma?id=" . (int) $rDevId;
+					}
+				} else {
+					$rUserLabel = $rRow["username"];
+					if ($rCanUsers) {
+						$rUserUrl = "line?id=" . (int) $rRow["user_id"];
 					}
 				}
-				if (0 < count($rMagIDs)) {
-					$db->query("SELECT `user_id`, `mag_id`, `mac` FROM `mag_devices` WHERE `user_id` IN (" . implode(",", $rMagIDs) . ");");
-					foreach ($db->get_rows() as $rRow) {
-						$rDeviceInfo[(int) $rRow["user_id"]]["device_id"] = $rRow["mag_id"];
-						$rDeviceInfo[(int) $rRow["user_id"]]["device_name"] = $rRow["mac"];
-					}
+				$rType = strval($rRow["type"] ?? '');
+				$rStreamUrl = null;
+				if (isset($rStreamPerm[$rType]) && ($rStreamPermOk[$rStreamPerm[$rType]] ?? false)) {
+					$rStreamUrl = ($rType == "5")
+						? "serie?id=" . (int) $rRow["series_no"]
+						: "stream_view?id=" . (int) $rRow["stream_id"];
 				}
-				if (0 < count($rEnigmaIDs)) {
-					$db->query("SELECT `user_id`, `device_id`, `mac` FROM `enigma2_devices` WHERE `user_id` IN (" . implode(",", $rEnigmaIDs) . ");");
-					foreach ($db->get_rows() as $rRow) {
-						$rDeviceInfo[(int) $rRow["user_id"]]["device_id"] = $rRow["device_id"];
-						$rDeviceInfo[(int) $rRow["user_id"]]["device_name"] = $rRow["mac"];
-					}
-				}
-				foreach ($rRows as $rRow) {
-					if (isset($rDeviceInfo[$rRow["user_id"]])) {
-						$rRow = array_merge($rRow, $rDeviceInfo[$rRow["user_id"]]);
-					}
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if (!empty($rRow["hmac_id"])) {
-							if (Authorization::check("adv", "add_hmac")) {
-								$rUsername = "<a href='hmac?id=" . $rRow["hmac_id"] . "'>HMAC - " . $rRow["hmac_identifier"] . "</a>";
-							} else {
-								$rUsername = "HMAC - " . $rRow["hmac_identifier"];
-							}
-						} elseif ($rRow["is_mag"]) {
-							if (Authorization::check("adv", "edit_mag")) {
-								$rUsername = "<a href='mag?id=" . $rRow["device_id"] . "'>" . $rRow["username"] . "<br/><strong>MAC: </strong> <span class='text-secondary'>" . $rRow["device_name"] . "</span></a>";
-							} else {
-								$rUsername = $rRow["username"];
-							}
-						} elseif ($rRow["is_e2"]) {
-							if (Authorization::check("adv", "edit_e2")) {
-								$rUsername = "<a href='enigma?id=" . $rRow["device_id"] . "'>" . $rRow["username"] . "<br/>" . $rRow["device_name"] . "</a>";
-							} else {
-								$rUsername = $rRow["username"];
-							}
-						} elseif (Authorization::check("adv", "users")) {
-							$rUsername = "<a href='line?id=" . $rRow["user_id"] . "'>" . $rRow["username"] . "</a>";
-						} else {
-							$rUsername = $rRow["username"];
-						}
-						$rPermission = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
-						$rURLs = ["1" => "stream_view", "2" => "stream_view", "3" => "stream_view", "4" => "stream_view"];
-						if (Authorization::check("adv", $rPermission[$rRow["type"]])) {
-							if ($rRow["type"] == 5) {
-								$rChannel = "<a href='serie?id=" . $rRow["series_no"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							} else {
-								$rChannel = "<a href='" . $rURLs[$rRow["type"]] . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							}
-						} else {
-							$rChannel = $rRow["stream_display_name"];
-						}
-						if (Authorization::check("adv", "servers")) {
-							$rServer = "<a href='server_view?id=" . $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>";
-						} else {
-							$rServer = $rRow["server_name"];
-						}
-						if (0 < $rRow["proxy_id"] && isset($rProxyServers[$rRow["proxy_id"]])) {
-							$rServer .= "<br/><small>(via " . $rProxyServers[$rRow["proxy_id"]]["server_name"] . ")</small>";
-						}
-						if (0 < strlen($rRow["geoip_country_code"])) {
-							$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow["geoip_country_code"]) . ".png'></img> &nbsp;";
-						} else {
-							$rGeoCountry = "";
-						}
-						if ($rRow["user_ip"]) {
-							$rExplode = explode(":", $rRow["user_ip"]);
-							$rIP = $rGeoCountry . "<a onClick=\"whois('" . $rRow["user_ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["user_ip"]) . "</a>";
-						} else {
-							$rIP = "";
-						}
-						if ($rRow["date_start"]) {
-							$rStart = date($rSettings["datetime_format"], $rRow["date_start"]);
-						} else {
-							$rStart = "";
-						}
-						if ($rRow["date_end"]) {
-							$rStop = date($rSettings["datetime_format"], $rRow["date_end"]);
-						} else {
-							$rStop = "";
-						}
-						$rPlayer = trim(explode("(", $rRow["user_agent"])[0]);
-						$rDuration = $rRow["date_end"] - $rRow["date_start"];
-						$rColour = "success";
-						if (86400 <= $rDuration) {
-							$rDuration = sprintf("%02dd %02dh", $rDuration / 86400, $rDuration / 3600 % 24);
-							$rColour = "danger";
-						} elseif (3600 <= $rDuration) {
-							if (14400 < $rDuration) {
-								$rColour = "warning";
-							} elseif (43200 < $rDuration) {
-								$rColour = "danger";
-							}
-							$rDuration = sprintf("%02dh %02dm", $rDuration / 3600, $rDuration / 60 % 60);
-						} else {
-							$rDuration = sprintf("%02dm %02ds", $rDuration / 60 % 60, $rDuration % 60);
-						}
-						if ($rRow["is_restreamer"]) {
-							$rColour = "success";
-						}
-						$rDuration = "<button type='button' class='btn btn-" . $rColour . " btn-xs waves-effect waves-light btn-fixed'>" . $rDuration . "</button>";
-						if ($rRow["is_restreamer"] == 1) {
-							$rRestreamer = "<i class=\"text-info fas fa-square\"></i>";
-						} else {
-							$rRestreamer = "<i class=\"text-secondary fas fa-square\"></i>";
-						}
-						$rReturn["data"][] = [$rUsername, $rChannel, $rServer, $rPlayer, $rRow["isp"], $rIP, $rStart, $rStop, $rDuration, strtoupper($rRow["container"]), $rRestreamer];
-					}
-				}
+				$rProxyVia = (0 < (int) $rRow["proxy_id"] && isset($rProxyServers[$rRow["proxy_id"]]))
+					? $rProxyServers[$rRow["proxy_id"]]["server_name"]
+					: null;
+				$rItem = [
+					"activity_id"   => (int) $rRow["activity_id"],
+					"user_label"    => $rUserLabel,
+					"user_sub"      => $rUserSub,
+					"user_url"      => $rUserUrl,
+					"stream_name"   => $rRow["stream_display_name"],
+					"stream_url"    => $rStreamUrl,
+					"server_name"   => $rRow["server_name"],
+					"server_url"    => ($rCanServers && $rRow["server_name"] !== null) ? "server_view?id=" . (int) $rRow["server_id"] : null,
+					"proxy_via"     => $rProxyVia,
+					"player"        => trim(explode("(", (string) $rRow["user_agent"])[0]),
+					"isp"           => $rRow["isp"],
+					"user_ip"       => $rRow["user_ip"],
+					"country"       => (0 < strlen((string) $rRow["geoip_country_code"])) ? strtolower($rRow["geoip_country_code"]) : null,
+					"date_start"    => (int) $rRow["date_start"],
+					"date_end"      => (int) $rRow["date_end"],
+					"duration"      => (int) $rRow["date_end"] - (int) $rRow["date_start"],
+					"container"     => strtoupper((string) $rRow["container"]),
+					"is_restreamer" => (1 == (int) $rRow["is_restreamer"]),
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
@@ -3612,11 +3563,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=credit_logs — returns clean JSON rows (no HTML). Permission-gated
-	 * user links are resolved server-side into url fields. Presentation is done
-	 * client-side by the Vuexy credit_logs page via datatables-bs5 columns[].render.
-	 */
 	private function handleCreditsLog($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db;
 		if (!Authorization::check("adv", "credits_log")) {
@@ -3680,12 +3626,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=client_logs — returns clean JSON rows (no HTML). Permission-gated
-	 * links (user line, stream) are resolved server-side into url fields; the
-	 * reason label comes from ClientFilter. Presentation is done client-side by
-	 * the Vuexy client_logs page via datatables-bs5 columns[].render.
-	 */
 	private function handleClientLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db;
 		if (!Authorization::check("adv", "client_request_log")) {
@@ -3759,14 +3699,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=reg_user_logs — returns clean JSON rows (no HTML). The human action
-	 * text (action + device + package), permission-gated owner link and the
-	 * resolved target (line/user/mag/enigma, or a deleted-info fallback) are all
-	 * computed server-side; the Vuexy user_logs page renders them via
-	 * datatables-bs5 columns[].render. Every matching row is emitted (the legacy
-	 * HTML branch only appended a subset).
-	 */
 	private function handleRegUserLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rPermissions;
 		if (!Authorization::check("adv", "reg_userlog")) {
@@ -3818,36 +3750,69 @@ class TableController extends BaseAdminController {
 				$rDevice = $rDeviceMap[$rRow["type"]] ?? (string) $rRow["type"];
 				$rPkg = $rRow["package_id"] ? (" with Package: " . ($rPackages[$rRow["package_id"]]["package_name"] ?? "")) : "";
 				switch ($rRow["action"]) {
-					case "new":            $rText = "Created New " . $rDevice . $rPkg; break;
-					case "extend":         $rText = "Extended " . $rDevice . $rPkg; break;
-					case "convert":        $rText = "Converted Device to User Line"; break;
-					case "edit":           $rText = "Edited " . $rDevice; break;
-					case "enable":         $rText = "Enabled " . $rDevice; break;
-					case "disable":        $rText = "Disabled " . $rDevice; break;
-					case "delete":         $rText = "Deleted " . $rDevice; break;
-					case "send_event":     $rText = "Sent Event to " . $rDevice; break;
-					case "adjust_credits": $rText = "Adjusted Credits by " . $rRow["cost"]; break;
-					case "connection":     $rText = "Additional Connection Added"; break;
-					default:               $rText = (string) $rRow["action"];
+					case "new":
+						$rText = "Created New " . $rDevice . $rPkg;
+						break;
+					case "extend":
+						$rText = "Extended " . $rDevice . $rPkg;
+						break;
+					case "convert":
+						$rText = "Converted Device to User Line";
+						break;
+					case "edit":
+						$rText = "Edited " . $rDevice;
+						break;
+					case "enable":
+						$rText = "Enabled " . $rDevice;
+						break;
+					case "disable":
+						$rText = "Disabled " . $rDevice;
+						break;
+					case "delete":
+						$rText = "Deleted " . $rDevice;
+						break;
+					case "send_event":
+						$rText = "Sent Event to " . $rDevice;
+						break;
+					case "adjust_credits":
+						$rText = "Adjusted Credits by " . $rRow["cost"];
+						break;
+					case "connection":
+						$rText = "Additional Connection Added";
+						break;
+					default:
+						$rText = (string) $rRow["action"];
 				}
 				$rLineLabel = null;
 				$rLineUrl   = null;
 				switch ($rRow["type"]) {
 					case "line":
 						$rEntity = UserRepository::getLineById($rRow["log_id"]);
-						if ($rEntity) { $rLineLabel = $rEntity["username"]; $rLineUrl = "line?id=" . (int) $rRow["log_id"]; }
+						if ($rEntity) {
+							$rLineLabel = $rEntity["username"];
+							$rLineUrl = "line?id=" . (int) $rRow["log_id"];
+						}
 						break;
 					case "user":
 						$rEntity = UserRepository::getRegisteredUserById($rRow["log_id"]);
-						if ($rEntity) { $rLineLabel = $rEntity["username"]; $rLineUrl = "user?id=" . (int) $rRow["log_id"]; }
+						if ($rEntity) {
+							$rLineLabel = $rEntity["username"];
+							$rLineUrl = "user?id=" . (int) $rRow["log_id"];
+						}
 						break;
 					case "mag":
 						$rEntity = MagService::getById($rRow["log_id"]);
-						if ($rEntity) { $rLineLabel = $rEntity["mac"]; $rLineUrl = "mag?id=" . (int) $rRow["log_id"]; }
+						if ($rEntity) {
+							$rLineLabel = $rEntity["mac"];
+							$rLineUrl = "mag?id=" . (int) $rRow["log_id"];
+						}
 						break;
 					case "enigma":
 						$rEntity = EnigmaService::getById($rRow["log_id"]);
-						if ($rEntity) { $rLineLabel = $rEntity["mac"]; $rLineUrl = "enigma?id=" . (int) $rRow["log_id"]; }
+						if ($rEntity) {
+							$rLineLabel = $rEntity["mac"];
+							$rLineUrl = "enigma?id=" . (int) $rRow["log_id"];
+						}
 						break;
 				}
 				if ($rLineLabel === null) {
@@ -4968,11 +4933,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=panel_logs — returns clean JSON rows (no HTML). Presentation (date
-	 * format, server link, type badge, message + extra) is done client-side by
-	 * the Vuexy panel_logs page via datatables-bs5 columns[].render.
-	 */
 	private function handlePanelLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "panel_logs")) {
@@ -5018,11 +4978,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=login_logs — returns clean JSON rows (no HTML). Presentation (date
-	 * format, type/status badges, user link, IP whois + block button) is done
-	 * client-side by the Vuexy login_logs page via datatables-bs5 columns[].render.
-	 */
 	private function handleLoginLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "login_logs")) {
@@ -5074,12 +5029,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=queue — returns clean JSON rows (no HTML). Permission-gated stream/
-	 * server links are resolved server-side into url fields; the row position and
-	 * in_progress flag are computed here. Presentation (status icon, stop/delete
-	 * button) is done client-side by the Vuexy queue page.
-	 */
 	private function handleQueue($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "movies") && !Authorization::check("adv", "episodes") && !Authorization::check("adv", "series")) {
@@ -5197,11 +5146,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=mag_events — returns clean JSON rows (no HTML). Presentation (date
-	 * format, delete button) is done client-side by the Vuexy mag_events page via
-	 * datatables-bs5 columns[].render.
-	 */
 	private function handleMagEvents($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "manage_events")) {
