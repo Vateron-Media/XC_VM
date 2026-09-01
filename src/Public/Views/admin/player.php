@@ -73,9 +73,9 @@ if (RequestManager::has('id')) {
             <html>
 
             <head>
-                <script src="assets/js/vendor.min.js"></script>
-                <link rel="stylesheet" href="assets/libs/videojs/video-js.min.css">
-                <script src="assets/libs/videojs/video.min.js"></script>
+                <script src="assets/old/js/vendor.min.js"></script>
+                <link rel="stylesheet" href="assets/old/libs/videojs/video-js.min.css">
+                <script src="assets/old/libs/videojs/video.min.js"></script>
                 <style>
                     html, body {
                         margin: 0;

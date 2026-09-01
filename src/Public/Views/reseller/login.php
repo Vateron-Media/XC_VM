@@ -12,16 +12,16 @@ $rHues = UiReference::hues();
         <title data-id="login">XC_VM | <?= $language::get('login') ?></title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <link rel="shortcut icon" href="assets/images/favicon.ico">
-        <link href="assets/css/icons.css" rel="stylesheet" type="text/css" />
+        <link rel="shortcut icon" href="assets/old/images/favicon.ico">
+        <link href="assets/old/css/icons.css" rel="stylesheet" type="text/css" />
         <?php if (isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1): ?>
-        <link href="assets/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />
-        <link href="assets/css/app.dark.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/app.dark.css" rel="stylesheet" type="text/css" />
         <?php else: ?>
-        <link href="assets/css/bootstrap.css" rel="stylesheet" type="text/css" />
-        <link href="assets/css/app.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/bootstrap.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/app.css" rel="stylesheet" type="text/css" />
         <?php endif; ?>
-        <link href="assets/css/extra.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/extra.css" rel="stylesheet" type="text/css" />
         <style>
         .g-recaptcha {
             display: inline-block;
@@ -43,7 +43,7 @@ $rHues = UiReference::hues();
                     <div class="row justify-content-center">
                         <div class="col-md-8 col-lg-6 col-xl-5">
                             <div class="text-center w-75 m-auto">
-                                <span><img src="assets/images/logo.png" height="80px" alt=""></span>
+                                <span><img src="assets/old/images/logo.png" height="80px" alt=""></span>
                                 <p class="text-muted mb-4 mt-3"></p>
                             </div>
                             <?php if (isset($_STATUS) && $_STATUS == STATUS_FAILURE): ?>
@@ -100,9 +100,9 @@ $rHues = UiReference::hues();
                 </div>
             </div>
         </div>
-        <script src="assets/js/vendor.min.js"></script>
-        <script src="assets/libs/parsleyjs/parsley.min.js"></script>
-        <script src="assets/js/app.min.js"></script>
+        <script src="assets/old/js/vendor.min.js"></script>
+        <script src="assets/old/libs/parsleyjs/parsley.min.js"></script>
+        <script src="assets/old/js/app.min.js"></script>
         <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
         <script src="https://www.google.com/recaptcha/api.js" async defer></script>
         <script>

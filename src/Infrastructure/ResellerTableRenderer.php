@@ -1404,7 +1404,7 @@ class ResellerTableRenderer {
 						}
 						$rChannel = $rRow['stream_display_name'];
 						if (0 < strlen($rRow['geoip_country_code'])) {
-							$rGeoCountry = "<img loading='lazy' src='assets/images/countries/" . strtolower($rRow['geoip_country_code']) . ".png'></img> &nbsp;";
+							$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow['geoip_country_code']) . ".png'></img> &nbsp;";
 						} else {
 							$rGeoCountry = '';
 						}
@@ -1662,7 +1662,7 @@ class ResellerTableRenderer {
 					}
 					$rChannel = $rRow['stream_display_name'];
 					if (0 < strlen($rRow['geoip_country_code'])) {
-						$rGeoCountry = "<img loading='lazy' src='assets/images/countries/" . strtolower($rRow['geoip_country_code']) . ".png'></img> &nbsp;";
+						$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow['geoip_country_code']) . ".png'></img> &nbsp;";
 					} else {
 						$rGeoCountry = '';
 					}

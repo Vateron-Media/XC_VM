@@ -1,0 +1,32 @@
+/* Pricing
+******************************************************************************* */
+/* (C) */
+.circle-bullets {
+  list-style-type: none;
+}
+
+.pricing-plans-comparison .table tr > th:first-child,
+.pricing-plans-comparison .table tr > td:first-child {
+  text-align: start;
+  white-space: nowrap;
+}
+.pricing-plans-comparison .table tbody tr:last-child td {
+  border-block-end: 0;
+}
+
+.price-yearly-toggle {
+  position: absolute;
+  margin: auto;
+  inset-inline: 0;
+}
+
+/* To position illustration */
+@media (min-width: 992px) {
+  .pricing-free-trial img {
+    position: absolute;
+    block-size: 115%;
+    inline-size: auto;
+    inset-block-end: 0;
+    inset-inline-end: 0;
+  }
+}

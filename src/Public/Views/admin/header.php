@@ -25,42 +25,42 @@ if (count(get_included_files()) != 1 || TRUE):
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="robots" content="noindex,nofollow">
-        <link rel="shortcut icon" href="assets/images/favicon.ico">
-        <link href="assets/libs/jquery-nice-select/nice-select.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/switchery/switchery.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/datatables/dataTables.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/datatables/responsive.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/datatables/buttons.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/datatables/select.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/jquery-toast/jquery.toast.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/treeview/style.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/clockpicker/bootstrap-clockpicker.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/nestable2/jquery.nestable.min.css" rel="stylesheet" />
-        <link href="assets/libs/magnific-popup/magnific-popup.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/quill/quill.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/jbox/jBox.all.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/css/icons.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
-        <link href="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />
+        <link rel="shortcut icon" href="assets/old/images/favicon.ico">
+        <link href="assets/old/libs/jquery-nice-select/nice-select.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/switchery/switchery.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/datatables/dataTables.bootstrap4.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/datatables/responsive.bootstrap4.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/datatables/buttons.bootstrap4.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/datatables/select.bootstrap4.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/jquery-toast/jquery.toast.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/treeview/style.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/clockpicker/bootstrap-clockpicker.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/nestable2/jquery.nestable.min.css" rel="stylesheet" />
+        <link href="assets/old/libs/magnific-popup/magnific-popup.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/quill/quill.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/jbox/jBox.all.min.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/icons.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />
         <?php if (!empty($_SETUP) || !Theme::fromId($rUserInfo['theme'] ?? 0)->isDark()): ?>
-            <link href="assets/css/bootstrap.css" rel="stylesheet" type="text/css" />
-            <link href="assets/css/app.css" rel="stylesheet" type="text/css" />
-            <link href="assets/css/listings.css" rel="stylesheet" type="text/css" />
-            <link href="assets/css/custom.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/bootstrap.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/app.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/listings.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/custom.css" rel="stylesheet" type="text/css" />
         <?php else: ?>
-            <link href="assets/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />
-            <link href="assets/css/app.dark.css" rel="stylesheet" type="text/css" />
-            <link href="assets/css/listings.dark.css" rel="stylesheet" type="text/css" />
-            <link href="assets/css/custom.dark.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/app.dark.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/listings.dark.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/custom.dark.css" rel="stylesheet" type="text/css" />
         <?php endif; ?>
-        <link href="assets/css/extra.css" rel="stylesheet" type="text/css" />
+        <link href="assets/old/css/extra.css" rel="stylesheet" type="text/css" />
         <?php if (!isset($rModal) || !$rModal): ?>
             <!-- No modal specific CSS needed -->
         <?php else: ?>
-            <link href="assets/css/modal.css" rel="stylesheet" type="text/css" />
+            <link href="assets/old/css/modal.css" rel="stylesheet" type="text/css" />
         <?php endif; ?>
     </head>
 
@@ -77,10 +77,10 @@ if (count(get_included_files()) != 1 || TRUE):
                         <div class="logo-box">
                             <a href="index" class="logo text-center">
                                 <span class="logo-lg<?= (isset($rUserInfo['hue']) && strlen($rUserInfo['hue']) > 0) ? ' whiteout' : ''; ?>">
-                                    <img src="assets/images/logo-topbar.png" alt="" height="60">
+                                    <img src="assets/old/images/logo-topbar.png" alt="" height="60">
                                 </span>
                                 <span class="logo-sm<?= (isset($rUserInfo['hue']) && strlen($rUserInfo['hue']) > 0) ? ' whiteout' : ''; ?>">
-                                    <img src="assets/images/logo-topbar.png" alt="" height="50">
+                                    <img src="assets/old/images/logo-topbar.png" alt="" height="50">
                                 </span>
                             </a>
                         </div>

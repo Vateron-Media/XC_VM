@@ -82,17 +82,17 @@ if (!isset($_SESSION['hash'])) {
         <title data-id="login">XC_VM | <?= $language::get('login') ?></title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <link rel="shortcut icon" href="assets/images/favicon.ico">
-        <link href="assets/css/icons.css" rel="stylesheet">
+        <link rel="shortcut icon" href="assets/old/images/favicon.ico">
+        <link href="assets/old/css/icons.css" rel="stylesheet">
         <?php if (isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1): ?>
-            <link href="assets/css/bootstrap.dark.css" rel="stylesheet">
-            <link href="assets/css/app.dark.css" rel="stylesheet">
+            <link href="assets/old/css/bootstrap.dark.css" rel="stylesheet">
+            <link href="assets/old/css/app.dark.css" rel="stylesheet">
         <?php else: ?>
-            <link href="assets/css/bootstrap.css" rel="stylesheet">
-            <link href="assets/css/app.css" rel="stylesheet">
+            <link href="assets/old/css/bootstrap.css" rel="stylesheet">
+            <link href="assets/old/css/app.css" rel="stylesheet">
         <?php endif; ?>
 
-        <link href="assets/css/extra.css" rel="stylesheet">
+        <link href="assets/old/css/extra.css" rel="stylesheet">
 
         <style>
             * {
@@ -299,8 +299,8 @@ if (!isset($_SESSION['hash'])) {
         <div class="login-container">
             <div class="video-section">
                 <video class="background-video" autoplay muted loop>
-                    <source src="assets/videos/login-bg.mp4" type="video/mp4">
-                    <source src="assets/videos/login-bg.webm" type="video/webm">
+                    <source src="assets/old/videos/login-bg.mp4" type="video/mp4">
+                    <source src="assets/old/videos/login-bg.webm" type="video/webm">
                 </video>
                 <div class="video-overlay"></div>
             </div>
@@ -308,7 +308,7 @@ if (!isset($_SESSION['hash'])) {
                 <div class="login-content">
                     <div class="login-form-wrapper">
                         <div class="logo-section">
-                            <img src="assets/images/logo.png" alt="XC_VM Logo">
+                            <img src="assets/old/images/logo.png" alt="XC_VM Logo">
                             <div class="login-title">Welcome Back</div>
                             <div class="login-subtitle">Sign in to your account</div>
                         </div>
@@ -402,9 +402,9 @@ if (!isset($_SESSION['hash'])) {
                 </div>
             </div>
         </div>
-        <script src="assets/js/vendor.min.js"></script>
-        <script src="assets/libs/parsleyjs/parsley.min.js"></script>
-        <script src="assets/js/app.min.js"></script>
+        <script src="assets/old/js/vendor.min.js"></script>
+        <script src="assets/old/libs/parsleyjs/parsley.min.js"></script>
+        <script src="assets/old/js/app.min.js"></script>
 
         <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
             <script src="https://www.google.com/recaptcha/api.js" async defer></script>

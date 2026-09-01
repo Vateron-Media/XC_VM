@@ -1,0 +1,24 @@
+/* Invoice Print
+******************************************************************************* */
+/* (C) */
+html,
+body {
+  background: var(--bs-white);
+}
+
+body > :not(.invoice-print) {
+  display: none !important;
+}
+
+.invoice-print {
+  font-size: 15px;
+  min-inline-size: 768px !important;
+}
+
+.invoice-print * {
+  color: #6d6b77 !important;
+}
+
+.invoice-print .text-primary * {
+  color: var(--bs-primary) !important;
+}

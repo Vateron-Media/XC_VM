@@ -342,7 +342,7 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
             });
         <?php endif; ?>
     </script>
-    <script src="assets/js/listings.js"></script>
+    <script src="assets/old/js/listings.js"></script>
     </body>
 
     </html>

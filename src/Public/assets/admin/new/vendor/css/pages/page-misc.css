@@ -1,0 +1,31 @@
+/* Miscellaneous
+******************************************************************************* */
+/* (C) */
+.misc-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-block-size: calc(100vh - 1.5rem * 2); /* ?we have added container-p-y class to add padding on top & bottom */
+  text-align: center;
+}
+
+.misc-bg-wrapper {
+  position: relative;
+}
+.misc-bg-wrapper img {
+  position: absolute;
+  z-index: -1;
+  inline-size: 100%;
+  inset-block-end: 0;
+  inset-inline: 0;
+}
+
+@media (max-width: 1499.98px) {
+  .misc-bg-wrapper img {
+    block-size: 250px;
+  }
+  .misc-under-maintenance-bg-wrapper img {
+    block-size: 270px !important;
+  }
+}

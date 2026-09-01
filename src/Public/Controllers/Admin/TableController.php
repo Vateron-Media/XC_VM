@@ -2608,7 +2608,7 @@ class TableController extends BaseAdminController {
 							$rServer .= "<br/><small>(via " . $rProxyServers[$rRow["proxy_id"]]["server_name"] . ")</small>";
 						}
 						if (0 < strlen($rRow["geoip_country_code"])) {
-							$rGeoCountry = "<img loading='lazy' src='assets/images/countries/" . strtolower($rRow["geoip_country_code"]) . ".png'></img> &nbsp;";
+							$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow["geoip_country_code"]) . ".png'></img> &nbsp;";
 						} else {
 							$rGeoCountry = "";
 						}
@@ -2933,7 +2933,7 @@ class TableController extends BaseAdminController {
 						$rServer .= "<br/><small>(via " . $rProxyServers[$rRow["proxy_id"]]["server_name"] . ")</small>";
 					}
 					if (0 < strlen($rRow["geoip_country_code"])) {
-						$rGeoCountry = "<img loading='lazy' src='assets/images/countries/" . strtolower($rRow["geoip_country_code"]) . ".png'></img> &nbsp;";
+						$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow["geoip_country_code"]) . ".png'></img> &nbsp;";
 					} else {
 						$rGeoCountry = "";
 					}
@@ -4363,7 +4363,7 @@ class TableController extends BaseAdminController {
 							$rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">" . Translator::get('allowed') . "</button>";
 						}
 						$rType = strtoupper($rRow["type"]);
-						$rReturn["data"][] = [$rRow["asn"], $rRow["isp"], $rRow["domain"], "<img loading=\"lazy\" src=\"assets/images/countries/" . strtolower($rRow["country"]) . ".png\">", number_format($rRow["num_ips"], 0), $rType, $rStatus, $rButtons];
+						$rReturn["data"][] = [$rRow["asn"], $rRow["isp"], $rRow["domain"], "<img loading=\"lazy\" src=\"assets/old/images/countries/" . strtolower($rRow["country"]) . ".png\">", number_format($rRow["num_ips"], 0), $rType, $rStatus, $rButtons];
 					}
 				}
 			}

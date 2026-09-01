@@ -1,0 +1,30 @@
+/* App Academy
+******************************************************************************* */
+/* (C) */
+.app-academy .app-academy-img-height {
+  block-size: 130px;
+}
+@media (min-width: 768px) {
+  .app-academy .app-academy-md-25 {
+    inline-size: 25%;
+  }
+  .app-academy .app-academy-md-50 {
+    inline-size: 50%;
+  }
+  .app-academy .app-academy-md-80 {
+    inline-size: 80%;
+  }
+}
+@media (min-width: 576px) {
+  .app-academy .app-academy-sm-40 {
+    inline-size: 40% !important;
+  }
+  .app-academy .app-academy-sm-60 {
+    inline-size: 60% !important;
+  }
+}
+@media (min-width: 1200px) {
+  .app-academy .app-academy-xl-100 {
+    inline-size: 100% !important;
+  }
+}

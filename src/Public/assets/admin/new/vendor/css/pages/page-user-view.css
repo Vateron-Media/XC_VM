@@ -1,0 +1,4 @@
+/* (C) */
+.card.primary-shadow {
+  box-shadow: 0 0.125rem 0.375rem 0 rgba(var(--bs-primary-rgb), 0.3) !important;
+}

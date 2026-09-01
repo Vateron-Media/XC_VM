@@ -1,0 +1,19 @@
+/* Help center
+******************************************************************************* */
+/* (C) */
+.help-center-header .input-wrapper {
+  max-inline-size: 29rem;
+}
+@media (max-width: 575.98px) {
+  .help-center-header .input-wrapper {
+    max-inline-size: 80%;
+  }
+}
+.help-center-header .input-wrapper .input-group-text,
+.help-center-header .input-wrapper .form-control {
+  background-color: var(--bs-paper-bg);
+}
+
+.knowledge-base ul.list-unstyled li a span {
+  inline-size: 93%;
+}

@@ -26,46 +26,46 @@ if (!isset($rModal) || !$rModal): ?>
 	</footer>
 <?php endif; ?>
 
-<script src="assets/js/vendor.min.js"></script>
-<script src="assets/libs/jquery-toast/jquery.toast.min.js"></script>
-<script src="assets/libs/jquery-nice-select/jquery.nice-select.min.js"></script>
-<script src="assets/libs/switchery/switchery.min.js"></script>
-<script src="assets/libs/select2/select2.min.js"></script>
-<script src="assets/libs/nestable2/jquery.nestable.min.js"></script>
-<script src="assets/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>
-<script src="assets/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>
-<script src="assets/libs/clockpicker/bootstrap-clockpicker.min.js"></script>
-<script src="assets/libs/moment/moment.min.js"></script>
-<script src="assets/libs/daterangepicker/daterangepicker.js"></script>
-<script src="assets/libs/datatables/jquery.dataTables.min.js"></script>
-<script src="assets/libs/datatables/dataTables.bootstrap4.js"></script>
-<script src="assets/libs/datatables/dataTables.responsive.min.js"></script>
-<script src="assets/libs/datatables/responsive.bootstrap4.min.js"></script>
-<script src="assets/libs/datatables/dataTables.buttons.min.js"></script>
-<script src="assets/libs/datatables/buttons.bootstrap4.min.js"></script>
-<script src="assets/libs/datatables/buttons.html5.min.js"></script>
-<script src="assets/libs/datatables/buttons.flash.min.js"></script>
-<script src="assets/libs/datatables/buttons.print.min.js"></script>
-<script src="assets/libs/datatables/dataTables.keyTable.min.js"></script>
-<script src="assets/libs/datatables/dataTables.select.min.js"></script>
-<script src="assets/libs/datatables/dataTables.rowReorder.js"></script>
-<script src="assets/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>
-<script src="assets/libs/treeview/jstree.min.js"></script>
-<script src="assets/libs/quill/quill.min.js"></script>
-<script src="assets/libs/magnific-popup/jquery.magnific-popup.min.js"></script>
-<script src="assets/libs/jbox/jBox.all.min.js"></script>
-<script src="assets/libs/jquery-knob/jquery.knob.min.js"></script>
-<script src="assets/libs/apexcharts/apexcharts.min.js"></script>
-<script src="assets/libs/jquery-number/jquery.number.js"></script>
-<script src="assets/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>
-<script src="assets/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>
-<script src="assets/libs/jquery-ui/jquery-ui.min.js"></script>
-<script src="assets/libs/peity/jquery.peity.min.js"></script>
-<script src="assets/libs/emodal/emodal.js"></script>
-<script src="assets/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>
-<script src="assets/libs/lazyload/lazyload.min.js"></script>
-<script src="assets/libs/parsleyjs/parsley.min.js"></script>
-<script src="assets/js/app.min.js"></script>
+<script src="assets/old/js/vendor.min.js"></script>
+<script src="assets/old/libs/jquery-toast/jquery.toast.min.js"></script>
+<script src="assets/old/libs/jquery-nice-select/jquery.nice-select.min.js"></script>
+<script src="assets/old/libs/switchery/switchery.min.js"></script>
+<script src="assets/old/libs/select2/select2.min.js"></script>
+<script src="assets/old/libs/nestable2/jquery.nestable.min.js"></script>
+<script src="assets/old/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.min.js"></script>
+<script src="assets/old/libs/bootstrap-maxlength/bootstrap-maxlength.min.js"></script>
+<script src="assets/old/libs/clockpicker/bootstrap-clockpicker.min.js"></script>
+<script src="assets/old/libs/moment/moment.min.js"></script>
+<script src="assets/old/libs/daterangepicker/daterangepicker.js"></script>
+<script src="assets/old/libs/datatables/jquery.dataTables.min.js"></script>
+<script src="assets/old/libs/datatables/dataTables.bootstrap4.js"></script>
+<script src="assets/old/libs/datatables/dataTables.responsive.min.js"></script>
+<script src="assets/old/libs/datatables/responsive.bootstrap4.min.js"></script>
+<script src="assets/old/libs/datatables/dataTables.buttons.min.js"></script>
+<script src="assets/old/libs/datatables/buttons.bootstrap4.min.js"></script>
+<script src="assets/old/libs/datatables/buttons.html5.min.js"></script>
+<script src="assets/old/libs/datatables/buttons.flash.min.js"></script>
+<script src="assets/old/libs/datatables/buttons.print.min.js"></script>
+<script src="assets/old/libs/datatables/dataTables.keyTable.min.js"></script>
+<script src="assets/old/libs/datatables/dataTables.select.min.js"></script>
+<script src="assets/old/libs/datatables/dataTables.rowReorder.js"></script>
+<script src="assets/old/libs/twitter-bootstrap-wizard/jquery.bootstrap.wizard.min.js"></script>
+<script src="assets/old/libs/treeview/jstree.min.js"></script>
+<script src="assets/old/libs/quill/quill.min.js"></script>
+<script src="assets/old/libs/magnific-popup/jquery.magnific-popup.min.js"></script>
+<script src="assets/old/libs/jbox/jBox.all.min.js"></script>
+<script src="assets/old/libs/jquery-knob/jquery.knob.min.js"></script>
+<script src="assets/old/libs/apexcharts/apexcharts.min.js"></script>
+<script src="assets/old/libs/jquery-number/jquery.number.js"></script>
+<script src="assets/old/libs/jquery-vectormap/jquery-jvectormap-1.2.2.min.js"></script>
+<script src="assets/old/libs/jquery-vectormap/jquery-jvectormap-world-mill-en.js"></script>
+<script src="assets/old/libs/jquery-ui/jquery-ui.min.js"></script>
+<script src="assets/old/libs/peity/jquery.peity.min.js"></script>
+<script src="assets/old/libs/emodal/emodal.js"></script>
+<script src="assets/old/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.js"></script>
+<script src="assets/old/libs/lazyload/lazyload.min.js"></script>
+<script src="assets/old/libs/parsleyjs/parsley.min.js"></script>
+<script src="assets/old/js/app.min.js"></script>
 
 <?php if (!isset($_SETUP)): ?>
 	<?php include 'post.php'; ?>
@@ -83,6 +83,6 @@ if (!isset($rModal) || !$rModal): ?>
 			}
 		};
 	</script>
-	<script src="assets/js/search.js"></script>
-	<script src="assets/js/common.js"></script>
+	<script src="assets/old/js/search.js"></script>
+	<script src="assets/old/js/common.js"></script>
 <?php endif; ?>

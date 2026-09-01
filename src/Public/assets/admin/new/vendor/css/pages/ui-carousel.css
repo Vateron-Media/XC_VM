@@ -1,0 +1,56 @@
+/* Carousel
+  ? Swiper page specif style only, refer swiper.scss for swiper component style
+******************************************************************************* */
+.swiper {
+  block-size: 400px;
+  inline-size: 100%;
+}
+.swiper .swiper-slide {
+  background-position: center;
+  background-size: cover;
+  font-size: 1.5rem;
+  padding-block: 2rem;
+  text-align: center;
+}
+
+/* Multiple slides, 3D cover flow effect */
+#swiper-multiple-slides,
+#swiper-3d-coverflow-effect {
+  block-size: 300px;
+}
+
+#swiper-3d-coverflow-effect .swiper-slide {
+  max-inline-size: 300px;
+}
+
+/* 3D cube effect */
+#swiper-3d-cube-effect {
+  max-inline-size: 400px;
+}
+
+/* 3D flip effect */
+#swiper-3d-flip-effect {
+  padding: 50px;
+}
+
+/* Gallery */
+#swiper-gallery {
+  block-size: 500px;
+}
+#swiper-gallery .gallery-top {
+  block-size: 80%;
+  inline-size: 100%;
+}
+#swiper-gallery .gallery-thumbs {
+  block-size: 20%;
+  padding-block: 10px;
+}
+#swiper-gallery .gallery-thumbs .swiper-slide {
+  block-size: 100%;
+  cursor: pointer;
+  inline-size: 25%;
+  opacity: 0.4;
+}
+#swiper-gallery .gallery-thumbs .swiper-slide-thumb-active {
+  opacity: 1;
+}

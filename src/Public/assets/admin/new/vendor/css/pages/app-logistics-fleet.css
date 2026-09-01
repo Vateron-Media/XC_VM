@@ -1,0 +1,88 @@
+/* Logistics Fleet
+******************************************************************************* */
+/* (C) */
+/* (C) */
+/* Default */
+/* App logistics-fleet wrapper for sidebar */
+.app-logistics-fleet-wrapper {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  block-size: calc(100vh - 14.1rem);
+  /* setting wrapper height when navbar is hidden */
+  /* Sidebar functionality */
+  /* Close sidebar button */
+  /* Setting sidebar height */
+  /* For Sidebar Map menu Button to open in full screen */
+}
+@media (max-width: 1199.98px) {
+  .app-logistics-fleet-wrapper {
+    block-size: calc(100vh - 10.5rem);
+  }
+}
+.layout-navbar-hidden .app-logistics-fleet-wrapper {
+  block-size: calc(100vh - 6.5rem);
+}
+.layout-navbar-hidden .app-logistics-fleet-wrapper .logistics-fleet-sidebar-body {
+  block-size: calc(100vh - 15.8rem + 4rem);
+}
+.app-logistics-fleet-wrapper .app-logistics-fleet-sidebar {
+  position: absolute;
+  z-index: 2;
+  overflow: hidden;
+  flex-basis: 21.5rem;
+  flex-grow: 0;
+  background-color: var(--bs-paper-bg);
+  block-size: 100%;
+  inline-size: 21.5rem;
+  inset-inline-start: calc(-21.5rem - 1.2rem);
+  transition: all 0.3s;
+}
+.app-logistics-fleet-wrapper .app-logistics-fleet-sidebar.show {
+  inset-inline-start: 0;
+}
+.app-logistics-fleet-wrapper .close-sidebar {
+  position: absolute;
+  background-color: var(--bs-heading-color);
+  inset-block-start: 1.5rem;
+  inset-inline-end: 1.5rem;
+}
+.app-logistics-fleet-wrapper .logistics-fleet-sidebar-body {
+  block-size: calc(100vh - 13rem);
+}
+@media (min-width: 1200px) {
+  .app-logistics-fleet-wrapper .logistics-fleet-sidebar-body {
+    block-size: calc(100vh - 15.8rem);
+  }
+}
+@media (max-width: 767.98px) {
+  .app-logistics-fleet-wrapper {
+    /* Setting wrapper height when screen < md */
+    /* Setting wrapper height when navbar is hidden */
+  }
+  .app-logistics-fleet-wrapper {
+    block-size: calc(100vh - 11.5rem);
+    /* For Sidebar Map menu Scroll */
+  }
+  .app-logistics-fleet-wrapper .logistics-fleet-sidebar-body {
+    block-size: calc(100vh - 15.8rem + 0.8rem);
+  }
+  .layout-navbar-hidden .app-logistics-fleet-wrapper {
+    block-size: calc(100vh - 7.5rem);
+    /* For Sidebar Map menu Scroll */
+  }
+  .layout-navbar-hidden .app-logistics-fleet-wrapper .logistics-fleet-sidebar-body {
+    block-size: calc(100vh - 15.8rem + 2.5rem);
+  }
+}
+@media (min-width: 768px) {
+  .app-logistics-fleet-wrapper .app-logistics-fleet-sidebar {
+    position: static;
+    background-color: transparent;
+    block-size: auto;
+  }
+}
+.app-logistics-fleet-wrapper .btn-white.btn-white-dark-variant {
+  box-shadow: 0 0.0625rem 0.375rem 0 rgba(47, 43, 61, 0.1);
+  color: #444050;
+}

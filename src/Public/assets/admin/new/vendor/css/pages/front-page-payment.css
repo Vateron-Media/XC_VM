@@ -1,0 +1,8 @@
+/* (C) */
+/* To remove border end in small screen */
+@media (max-width: 991.98px) {
+  .section-py .card-body.border-end {
+    border-block-end: 1px solid var(--bs-gray-200);
+    border-inline-end: 0 !important;
+  }
+}

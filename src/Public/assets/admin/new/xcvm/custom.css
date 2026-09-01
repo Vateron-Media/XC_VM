@@ -1,0 +1,29 @@
+/*
+ * XC_VM project overrides for the Vuexy (v10.11.1) admin theme.
+ * Keep project-specific tweaks here rather than editing vendored core.css.
+ */
+
+/* Brand logo in the sidebar keeps aspect ratio at the compact menu height. */
+.app-brand-logo.demo img {
+  width: auto;
+  max-height: 28px;
+}
+
+/* ---- Dashboard ---- */
+.dashboard-server-select {
+  min-width: 240px;
+}
+.dashboard-status-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.dashboard-tile-progress,
+.dashboard-loc-progress {
+  height: 6px;
+}
+.dashboard-metric-progress {
+  height: 8px;
+}
+.dashboard-spark {
+  min-height: 50px;
+}
