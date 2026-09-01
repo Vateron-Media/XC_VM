@@ -76,33 +76,62 @@ class FanoutConfig {
 	}
 
 	/**
-	 * Map panel settings → daemon config keys:
-	 *   hls_target_sec    ← seg_time (HLS segment duration, seconds).
-	 *   prebuffer_max_sec ← the ring must cover the largest per-viewer prebuffer
-	 *                       AND the HLS window (hls_window · hls_target); floored at
-	 *                       the daemon default 40, capped at its clamp (120).
-	 * hls_window / grace / idle_buffer_ratio / default_prebuffer_sec / chunk_bytes …
-	 * stay whatever the daemon put there — preserved by the read-modify-write.
+	 * Map panel settings → daemon config keys. Values are clamped to the daemon's
+	 * own ranges (see internal/config/config.go clamp() in the XC_VM_Fanout repo)
+	 * so a bad panel value can never push the daemon into a pathological state.
+	 *
+	 * Derived (not raw settings):
+	 *   hls_target_sec    ← seg_time (HLS segment duration, seconds; 1…30).
+	 *   prebuffer_max_sec ← the ring must cover the largest per-viewer prebuffer AND
+	 *                       the HLS window (hls_window · hls_target); floored at the
+	 *                       daemon default 40, capped at its clamp (120).
+	 * Direct panel-owned tuning (the `fanout_*` settings columns):
+	 *   hls_window, grace_sec, write_timeout_sec, chunk_bytes, max_gop_bytes,
+	 *   source_insecure, default_prebuffer_sec, idle_buffer_grace_sec,
+	 *   idle_buffer_ratio.
+	 *
+	 * @param array $rSnapshot Current on-disk config (unused now the panel owns
+	 *                         every key; kept for signature stability / future use).
 	 */
 	private static function desired(array $rSettings, array $rSnapshot): array {
-		$rSegTime = (int) ($rSettings['seg_time'] ?? SettingsManager::get('seg_time', 6));
-		if ($rSegTime < 1) {
-			$rSegTime = 6;
-		}
+		$rSegTime = self::clampInt((int) ($rSettings['seg_time'] ?? SettingsManager::get('seg_time', 6)), 1, 30);
+		$rHlsWindow = self::clampInt((int) ($rSettings['fanout_hls_window'] ?? 6), 1, 20);
+
 		$rClientPre = max(0, (int) ($rSettings['client_prebuffer'] ?? 0));
 		$rRestrPre = max(0, (int) ($rSettings['restreamer_prebuffer'] ?? 0));
-		$rHlsWindow = (int) ($rSnapshot['hls_window'] ?? 6);
-		if ($rHlsWindow < 1) {
-			$rHlsWindow = 6;
+		$rRing = min(120, max(40, $rClientPre, $rRestrPre, $rHlsWindow * $rSegTime));
+
+		$rRatio = (float) ($rSettings['fanout_idle_buffer_ratio'] ?? 0.5);
+		if ($rRatio < 0.1) {
+			$rRatio = 0.1;
+		} elseif ($rRatio > 1.0) {
+			$rRatio = 1.0;
 		}
 
-		$rRing = max(40, $rClientPre, $rRestrPre, $rHlsWindow * $rSegTime);
-		$rRing = min(120, $rRing);
-
 		return array(
-			'hls_target_sec'    => $rSegTime,
-			'prebuffer_max_sec' => $rRing,
+			'prebuffer_max_sec'     => $rRing,
+			'hls_target_sec'        => $rSegTime,
+			'hls_window'            => $rHlsWindow,
+			'grace_sec'             => self::clampInt((int) ($rSettings['fanout_grace_sec'] ?? 10), 1, 3600),
+			'write_timeout_sec'     => self::clampInt((int) ($rSettings['fanout_write_timeout_sec'] ?? 15), 1, 600),
+			'chunk_bytes'           => self::clampInt((int) ($rSettings['fanout_chunk_bytes'] ?? 12032), 188, 4194304),
+			'max_gop_bytes'         => self::clampInt((int) ($rSettings['fanout_max_gop_bytes'] ?? 10528000), 188, 268435456),
+			'source_insecure'       => (bool) ($rSettings['fanout_source_insecure'] ?? true),
+			'default_prebuffer_sec' => self::clampInt((int) ($rSettings['fanout_default_prebuffer_sec'] ?? 0), 0, 120),
+			'idle_buffer_grace_sec' => self::clampInt((int) ($rSettings['fanout_idle_buffer_grace_sec'] ?? 30), 0, 3600),
+			'idle_buffer_ratio'     => $rRatio,
 		);
+	}
+
+	/** Clamp an int into [lo, hi]. */
+	private static function clampInt(int $rValue, int $rLo, int $rHi): int {
+		if ($rValue < $rLo) {
+			return $rLo;
+		}
+		if ($rValue > $rHi) {
+			return $rHi;
+		}
+		return $rValue;
 	}
 
 	/** Atomic write (temp + rename) so the polling daemon never reads a torn file. */

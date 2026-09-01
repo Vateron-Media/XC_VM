@@ -1609,6 +1609,84 @@ $isAjaxRequest = (
 												</div>
 
 												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="fanout_hls_window">
+														Fanout HLS Window
+														<i title="xc_fanout: how many HLS segments the playlist lists (1-20)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_hls_window" name="fanout_hls_window" value="<?= htmlspecialchars($rSettings["fanout_hls_window"] ?? '') ?>">
+													</div>
+													<label class="col-md-4 col-form-label" for="fanout_default_prebuffer_sec">
+														Fanout Default Prebuffer
+														<i title="xc_fanout: fallback per-viewer join burst when a /live request carries no prebuffer (0-120s, 0 = current GOP)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_default_prebuffer_sec" name="fanout_default_prebuffer_sec" value="<?= htmlspecialchars($rSettings["fanout_default_prebuffer_sec"] ?? '') ?>">
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="fanout_grace_sec">
+														Fanout Source Grace
+														<i title="xc_fanout: seconds a source stays alive after the last viewer leaves (1-3600)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_grace_sec" name="fanout_grace_sec" value="<?= htmlspecialchars($rSettings["fanout_grace_sec"] ?? '') ?>">
+													</div>
+													<label class="col-md-4 col-form-label" for="fanout_write_timeout_sec">
+														Fanout Write Timeout
+														<i title="xc_fanout: per-write deadline before a stalled live-TS viewer is dropped (1-600s)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_write_timeout_sec" name="fanout_write_timeout_sec" value="<?= htmlspecialchars($rSettings["fanout_write_timeout_sec"] ?? '') ?>">
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="fanout_idle_buffer_grace_sec">
+														Fanout Idle Buffer Grace
+														<i title="xc_fanout: no-viewer window before the ring collapses (0-3600s, 0 = gate off)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_idle_buffer_grace_sec" name="fanout_idle_buffer_grace_sec" value="<?= htmlspecialchars($rSettings["fanout_idle_buffer_grace_sec"] ?? '') ?>">
+													</div>
+													<label class="col-md-4 col-form-label" for="fanout_idle_buffer_ratio">
+														Fanout Idle Buffer Ratio
+														<i title="xc_fanout: fraction of the buffer kept while a stream is unwatched (0.1-1)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_idle_buffer_ratio" name="fanout_idle_buffer_ratio" value="<?= htmlspecialchars($rSettings["fanout_idle_buffer_ratio"] ?? '') ?>">
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="fanout_chunk_bytes">
+														Fanout Source Chunk Bytes
+														<i title="xc_fanout: source read size for daemon-pulled streams, rounded to a multiple of 188 (188-4194304)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_chunk_bytes" name="fanout_chunk_bytes" value="<?= htmlspecialchars($rSettings["fanout_chunk_bytes"] ?? '') ?>">
+													</div>
+													<label class="col-md-4 col-form-label" for="fanout_max_gop_bytes">
+														Fanout Max GOP Bytes
+														<i title="xc_fanout: cap on a single join-snapshot GOP for streams without keyframes (188-268435456)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input type="text" class="form-control text-center" id="fanout_max_gop_bytes" name="fanout_max_gop_bytes" value="<?= htmlspecialchars($rSettings["fanout_max_gop_bytes"] ?? '') ?>">
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
+													<label class="col-md-4 col-form-label" for="fanout_source_insecure">
+														Fanout Source Insecure TLS
+														<i title="xc_fanout: skip upstream TLS verification when pulling HTTPS sources (on by default; panels often pull self-signed upstreams)." class="tooltip text-secondary far fa-circle"></i>
+													</label>
+													<div class="col-md-2">
+														<input name="fanout_source_insecure" id="fanout_source_insecure" type="checkbox" <?= ($rSettings["fanout_source_insecure"] ?? 1) == 1 ? ' checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd">
+													</div>
+												</div>
+
+												<div class="form-group row mb-4">
 													<label class="col-md-4 col-form-label" for="split_by">
 														Load Balancing
 														<i title="<?= $language::get('preferred_method_of_load_balancing_connections') ?>" class="tooltip text-secondary far fa-circle"></i>
@@ -3176,6 +3254,14 @@ renderUnifiedLayoutFooter('admin');
 			"#login_flood",
 			"#client_prebuffer",
 			"#restreamer_prebuffer",
+			"#fanout_hls_window",
+			"#fanout_grace_sec",
+			"#fanout_write_timeout_sec",
+			"#fanout_chunk_bytes",
+			"#fanout_max_gop_bytes",
+			"#fanout_default_prebuffer_sec",
+			"#fanout_idle_buffer_grace_sec",
+			"#fanout_idle_buffer_ratio",
 			"#read_buffer_size",
 			"#stream_max_analyze",
 			"#probesize",
