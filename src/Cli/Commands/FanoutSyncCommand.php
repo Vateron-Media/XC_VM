@@ -4,10 +4,12 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Fanout\FanoutClient;
+use XcVm\Streaming\Fanout\FanoutConfig;
 
 /**
  * FanoutSyncCommand — reconcile xc_fanout live-TS connections (ADR 0003, Phase C).
@@ -66,6 +68,13 @@ class FanoutSyncCommand implements CommandInterface {
 			if (!$this->refreshOrBreak()) {
 				break;
 			}
+
+			// Keep the daemon's tuning config.json in step with panel settings even
+			// when nobody re-saved them: if the daemon wrote a default/stale config,
+			// the panel corrects it here. Runs in the xc_vm context that owns the
+			// file; a cheap no-op unless the panel-owned keys actually diverge (the
+			// internal diff guard skips the write), and the daemon mtime-polls it.
+			FanoutConfig::sync(SettingsManager::getAll());
 
 			$rActive = FanoutClient::activeConnections();
 			if ($rActive !== null) {
