@@ -2,8 +2,10 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\Theme;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\GeoReference;
 
 /**
@@ -90,6 +92,16 @@ class DashboardController extends BaseAdminController {
         $rOrderedServers = $rServers;
         array_multisort(array_column($rOrderedServers, 'order'), SORT_ASC, $rOrderedServers);
 
+        // Service-status timeline items (prepared here so the view stays free of
+        // DB / filesystem probes). Each item: ['state', 'title', 'text'].
+        $rStatusItems = $this->buildStatusItems($db, $rOrderedServers);
+
+        // The Vuexy dashboard renders CPU/network/connection charts with ApexCharts.
+        $GLOBALS['xmVuexyVendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmVuexyVendors'] ?? []),
+            ['apexcharts']
+        )));
+
         $this->setTitle('Dashboard');
         $this->render('dashboard', compact(
             'rColours',
@@ -97,7 +109,73 @@ class DashboardController extends BaseAdminController {
             'rConnectionMap',
             'rConnectionCount',
             'rServerStats',
-            'rOrderedServers'
+            'rOrderedServers',
+            'rStatusItems'
         ));
+    }
+
+    /**
+     * Build the "Service Status" timeline the dashboard shows.
+     *
+     * Runs the health probes (MariaDB JSON support, schema watermark, root-cron
+     * freshness, per-server xc_fanout watchdog) that used to live inline in the
+     * view. Returns an ordered list of ['state' => 'danger|warning|dark',
+     * 'title' => string, 'text' => string(html)]; empty when all checks pass and
+     * the caller renders the "no issues" item.
+     *
+     * @param array<int,array<string,mixed>> $orderedServers
+     * @return array<int,array{state:string,title:string,text:string}>
+     */
+    private function buildStatusItems($db, array $orderedServers): array {
+        $items = [];
+        $bin = defined('PHP_BIN') ? PHP_BIN : 'php';
+
+        $binRepl = ['{bin}' => htmlspecialchars($bin)];
+
+        try {
+            $db->dbh->query("SELECT JSON_CONTAINS('0', 0, '$') AS `json_test`;");
+        } catch (\Throwable $e) {
+            $items[] = [
+                'state' => 'danger',
+                'title' => Translator::get('dashboard_status_mariadb_title'),
+                'text'  => Translator::get('dashboard_status_mariadb_text'),
+            ];
+        }
+
+        if (empty(SettingsManager::get('status_uuid')) || SettingsManager::get('status_uuid') != md5(XC_VM_VERSION)) {
+            $items[] = [
+                'state' => 'warning',
+                'title' => Translator::get('dashboard_status_db_incomplete_title'),
+                'text'  => Translator::get('dashboard_status_db_incomplete_text', $binRepl),
+            ];
+        }
+
+        if (!file_exists(CONFIG_PATH . 'signals.last') || time() - filemtime(CONFIG_PATH . 'signals.last') > 600) {
+            $items[] = [
+                'state' => 'dark',
+                'title' => Translator::get('dashboard_status_crons_title'),
+                'text'  => Translator::get('dashboard_status_crons_text', $binRepl),
+            ];
+        }
+
+        // xc_fanout live-delivery daemon — flag any reporting server where it is down.
+        $multi = count($orderedServers) > 1;
+        foreach ($orderedServers as $srv) {
+            $wd = json_decode($srv['watchdog_data'] ?? '{}', true) ?: [];
+            $fresh = (time() - intval($srv['last_check_ago'] ?? 0)) < 60;
+            if ($fresh && isset($wd['fanout']['running']) && !$wd['fanout']['running']) {
+                $title = Translator::get('dashboard_status_fanout_title');
+                if ($multi) {
+                    $title .= ' ' . Translator::get('dashboard_status_fanout_on') . ' ' . htmlspecialchars($srv['server_name']);
+                }
+                $items[] = [
+                    'state' => 'danger',
+                    'title' => $title,
+                    'text'  => Translator::get('dashboard_status_fanout_text', $binRepl),
+                ];
+            }
+        }
+
+        return $items;
     }
 }
