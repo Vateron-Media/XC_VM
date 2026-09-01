@@ -5975,7 +5975,8 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("live");
-		$rOrder = ["`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`server_id`", "`ondemand_check`.`status`", "`ondemand_check`.`response`", "`ondemand_check`.`resolution`", "`ondemand_check`.`date`"];
+		// Leading false = the Vuexy Responsive control column (client index 0).
+		$rOrder = [false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`server_id`", "`ondemand_check`.`status`", "`ondemand_check`.`response`", "`ondemand_check`.`resolution`", "`ondemand_check`.`date`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 		} else {
@@ -6052,53 +6053,34 @@ class TableController extends BaseAdminController {
 					} else {
 						$rServerID = (int) $rRow["server_id"];
 						$rCategoryIDs = json_decode($rRow["category_id"], true);
-						if (0 < strlen(RequestManager::get("category") ?? '')) {
-							$rCategory = $rCategories[(int)(RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
+						if (0 < strlen(RequestManager::get("category") ?? "")) {
+							$rCategory = $rCategories[(int) (RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
 						} else {
 							$rCategory = $rCategoryIDs[0] ?? null;
-							$rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
+							$rCategory = $rCategories[$rCategory]["category_name"] ?? "No Category";
 						}
-						if (1 < count($rCategoryIDs)) {
+						if (is_array($rCategoryIDs) && 1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rStreamName = "<a href='stream_view?id=" . $rRow["id"] . "'><strong>" . $rRow["stream_display_name"] . "</strong><br><span style='font-size:11px;'>" . $rCategory . "</span></a>";
-						if ($rRow["server_name"]) {
-							if (Authorization::check("adv", "servers")) {
-								$rServerName = "<a href='server_view?id=" . $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>";
-							} else {
-								$rServerName = $rRow["server_name"];
-							}
-						} else {
-							$rServerName = "No Server Selected";
-						}
-						if (!empty($rRow["stream_icon"])) {
-							$rIcon = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rRow["stream_icon"] . "'><img loading='lazy' src='resize?maxw=96&maxh=32&url=" . $rRow["stream_icon"] . "' /></a>";
-						} else {
-							$rIcon = "";
-						}
-						if (is_null($rRow["ondemand_status"])) {
-							$rStatus = "<i class=\"text-secondary fas fa-square tooltip\" title=\"Not Scanned\"></i>";
-						} elseif ($rRow["ondemand_status"] == 1) {
-							$rStatus = "<i class=\"text-success fas fa-square tooltip\" title=\"Ready\"></i>";
-						} else {
-							$rStatus = "<i class=\"text-danger fas fa-square tooltip\" title=\"" . (!empty($rRow["errors"]) ? "<strong>Latest Error:</strong><br/>" . str_replace("\"", "\\\"", $rRow["errors"]) : "Down") . "\"></i>";
-						}
-						$rChecks = "<button type=\"button\" class=\"btn btn-dark bg-animate btn-xs waves-effect waves-light no-border\">" . ($rUpChecks[$rServerID][$rRow["id"]] ?: 0) . " <i class=\"mdi mdi-arrow-up-thick\"></i> &nbsp; " . ($rDownChecks[$rServerID][$rRow["id"]] ?: 0) . " <i class=\"mdi mdi-arrow-down-thick\"></i></button>";
-						$rLastCheck = "Never";
-						$rTimeTaken = "<button type='button' class='btn btn-light btn-xs waves-effect waves-light'>--</button>";
-						$rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='3'>No information available</td></tr></tbody></table>";
-						if (!is_null($rRow["ondemand_status"])) {
-							if (0 < $rRow["ondemand_date"]) {
-								$rLastCheck = date($rSettings["date_format"], $rRow["ondemand_date"]) . "<br/>" . date("H:i:s", $rRow["ondemand_date"]);
-							}
-							if (0 < $rRow["response"]) {
-								$rTimeTaken = "<button type='button' class='btn btn-light btn-xs waves-effect waves-light'>" . number_format($rRow["response"], 0) . " ms</button>";
-							}
-							if ($rRow["fps"] || $rRow["video_codec"] || $rRow["audio_codec"] || $rRow["resolution"]) {
-								$rStreamInfoText = "<table class='table-data nowrap table-data-120 text-center' align='center'>\r\n                            <tbody>\r\n                                <tr>\r\n                                    <td class='text-success'><i class='mdi mdi-image-size-select-large' data-name='mdi-image-size-select-large'></i></td>\r\n                                    <td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td>\r\n                                    <td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>\r\n                                    <td class='text-success'><i class='mdi mdi-clock' data-name='mdi-clock'></i></td>\r\n                                </tr>\r\n                                <tr>\r\n                                    <td>" . ($rRow["resolution"] ? $rRow["resolution"] . "p" : "N/A") . "</td>\r\n                                    <td>" . (str_replace("mpeg2video", "mpeg2", $rRow["video_codec"]) ?: "N/A") . "</td>\r\n                                    <td>" . ($rRow["audio_codec"] ?: "N/A") . "</td>\r\n                                    <td>" . ($rRow["fps"] . " FPS" ?: "N/A") . "</td>\r\n                                </tr>\r\n                            </tbody>\r\n                        </table>";
-							}
-						}
-						$rReturn["data"][] = ["<a href='stream_view?id=" . $rRow["id"] . "'>" . $rRow["id"] . "</a>", $rIcon, $rStreamName, $rServerName, $rStatus . " &nbsp; " . $rChecks, $rTimeTaken, $rStreamInfoText, $rLastCheck];
+						$rReturn["data"][] = [
+							"id"          => (int) $rRow["id"],
+							"stream_url"  => "stream_view?id=" . (int) $rRow["id"],
+							"stream_name" => $rRow["stream_display_name"],
+							"category"    => $rCategory,
+							"icon"        => !empty($rRow["stream_icon"]) ? $rRow["stream_icon"] : null,
+							"server_name" => $rRow["server_name"] ?: null,
+							"server_url"  => ($rRow["server_name"] && Authorization::check("adv", "servers")) ? "server_view?id=" . (int) $rRow["server_id"] : null,
+							"status"      => is_null($rRow["ondemand_status"]) ? null : (int) $rRow["ondemand_status"],
+							"errors"      => !empty($rRow["errors"]) ? $rRow["errors"] : null,
+							"up_checks"   => (int) ($rUpChecks[$rServerID][$rRow["id"]] ?? 0),
+							"down_checks" => (int) ($rDownChecks[$rServerID][$rRow["id"]] ?? 0),
+							"response"    => (0 < (int) $rRow["response"]) ? (int) $rRow["response"] : null,
+							"resolution"  => $rRow["resolution"] ?: null,
+							"video_codec" => $rRow["video_codec"] ? str_replace("mpeg2video", "mpeg2", $rRow["video_codec"]) : null,
+							"audio_codec" => $rRow["audio_codec"] ?: null,
+							"fps"         => $rRow["fps"] ?: null,
+							"last_check"  => (0 < (int) $rRow["ondemand_date"]) ? (int) $rRow["ondemand_date"] : null,
+						];
 					}
 				}
 			}
