@@ -5212,82 +5212,61 @@ class TableController extends BaseAdminController {
 	}
 
 	private function handleRestreamLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rPermissions;
+		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "restream_logs")) {
 			exit;
 		}
-		$rOrder = ["`detect_restream_logs`.`id`", "`lines`.`username`", "`streams`.`stream_display_name`", "`detect_restream_logs`.`ip`", "`detect_restream_logs`.`time`", false];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable);
+		// the trailing actions column is non-orderable too.
+		$rOrderBy = self::dtOrderBy([false, "`lines`.`username`", "`streams`.`stream_display_name`", "`detect_restream_logs`.`ip`", "`detect_restream_logs`.`time`", false]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`detect_restream_logs`.`ip` LIKE ? OR `lines`.`username` LIKE ? OR `streams`.`stream_display_name` LIKE ?)";
 		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `detect_restream_logs` LEFT JOIN `lines` ON `lines`.`id` = `detect_restream_logs`.`user_id` LEFT JOIN `streams` ON `streams`.`id` = `detect_restream_logs`.`stream_id` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `detect_restream_logs` LEFT JOIN `lines` ON `lines`.`id` = `detect_restream_logs`.`user_id` LEFT JOIN `streams` ON `streams`.`id` = `detect_restream_logs`.`stream_id` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
 			$rBlocked = [];
 			$db->query("SELECT `ip` FROM `blocked_ips`;");
 			foreach ($db->get_rows() as $rRow) {
-				$rBlocked[] = $rRow["ip"];
+				$rBlocked[$rRow["ip"]] = true;
 			}
+			$rCanEditUser = Authorization::check("adv", "edit_user");
+			$rStreamPerm  = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
 			$rQuery = "SELECT `detect_restream_logs`.`id`, `detect_restream_logs`.`user_id`, `detect_restream_logs`.`stream_id`, `detect_restream_logs`.`ip`, `detect_restream_logs`.`time`, `lines`.`username`, `streams`.`stream_display_name`, `streams`.`type` FROM `detect_restream_logs` LEFT JOIN `lines` ON `lines`.`id` = `detect_restream_logs`.`user_id` LEFT JOIN `streams` ON `streams`.`id` = `detect_restream_logs`.`stream_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if (0 < strlen($rRow["ip"])) {
-							if (!in_array($rRow["ip"], $rBlocked)) {
-								$rButtons = "<button title=\"Block IP\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow["ip"] . "', 'block');\"><i class=\"fas fa-hammer\"></i></button>";
-							} else {
-								$rButtons = "<button title=\"IP Already Blocked\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"fas fa-hammer\"></i></button>";
-							}
-							$rExplode = explode(":", $rRow["ip"]);
-							$rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
-						} else {
-							$rButtons = "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\" disabled><i class=\"fas fa-hammer\"></i></button>";
-							$rIP = "";
-						}
-						$rPermission = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
-						$rURLs = ["1" => "stream_view", "2" => "stream_view", "3" => "stream_view", "4" => "stream_view"];
-						if (Authorization::check("adv", $rPermission[$rRow["type"]])) {
-							if ($rRow["type"] == 5) {
-								$rStream = "<a href='serie?id=" . $rRow["series_no"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							} else {
-								$rStream = "<a href='" . $rURLs[$rRow["type"]] . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							}
-						} else {
-							$rStream = $rRow["stream_display_name"];
-						}
-						if (Authorization::check("adv", "edit_user")) {
-							$rLine = "<a href=\"line?id=" . $rRow["user_id"] . "\">" . $rRow["username"] . "</a>";
-						} else {
-							$rLine = $rRow["username"];
-						}
-						$rReturn["data"][] = [$rRow["id"], $rLine, $rStream, $rIP, date($rSettings["datetime_format"], $rRow["date"]), $rButtons];
-					}
+			foreach ($db->get_rows() as $rRow) {
+				$rType = strval($rRow["type"] ?? '');
+				$rStreamUrl = null;
+				if (isset($rStreamPerm[$rType]) && Authorization::check("adv", $rStreamPerm[$rType])) {
+					$rStreamUrl = ($rType == "5")
+						? "serie?id=" . (int) $rRow["stream_id"]
+						: "stream_view?id=" . (int) $rRow["stream_id"];
 				}
+				$rIp = (string) $rRow["ip"];
+				$rItem = [
+					"id"          => (int) $rRow["id"],
+					"user_id"     => (int) $rRow["user_id"],
+					"username"    => $rRow["username"],
+					"user_url"    => ($rCanEditUser && $rRow["username"] !== null) ? "line?id=" . (int) $rRow["user_id"] : null,
+					"stream_id"   => (int) $rRow["stream_id"],
+					"stream_name" => $rRow["stream_display_name"],
+					"stream_url"  => $rStreamUrl,
+					"ip"          => $rIp,
+					"blocked"     => isset($rBlocked[$rIp]),
+					"date"        => (int) $rRow["time"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
