@@ -3926,75 +3926,62 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "stream_errors")) {
 			exit;
 		}
-		$rOrder = ["`streams_errors`.`id`", "`streams`.`stream_display_name`", "`servers`.`server_name`", "`streams_errors`.`error`", "`streams_errors`.`date`"];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable).
+		$rOrderBy = self::dtOrderBy([false, "`streams`.`stream_display_name`", "`servers`.`server_name`", "`streams_errors`.`error`", "`streams_errors`.`date`"]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 4) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`streams`.`stream_display_name` LIKE ? OR `servers`.`server_name` LIKE ? OR FROM_UNIXTIME(`date`) LIKE ? OR `streams_errors`.`error` LIKE ?)";
 		}
-		if (0 < strlen(RequestManager::get("range") ?? '')) {
-			$rStartTime = substr(RequestManager::get("range"), 0, 10);
-			$rEndTime = substr(RequestManager::get("range"), strlen(RequestManager::get("range") ?? '') - 10, 10);
-			if (!($rStartTime = strtotime($rStartTime . " 00:00:00"))) {
-				$rStartTime = NULL;
-			}
-			if (!($rEndTime = strtotime($rEndTime . " 23:59:59"))) {
-				$rEndTime = NULL;
-			}
+		$rRange = (string) (RequestManager::get("range") ?? '');
+		if (0 < strlen($rRange)) {
+			$rStartTime = strtotime(substr($rRange, 0, 10) . " 00:00:00");
+			$rEndTime   = strtotime(substr($rRange, strlen($rRange) - 10, 10) . " 23:59:59");
 			if ($rStartTime && $rEndTime) {
-				$rWhere[] = "(`streams_errors`.`date` >= ? AND `streams_errors`.`date` <= ?)";
+				$rWhere[]  = "(`streams_errors`.`date` >= ? AND `streams_errors`.`date` <= ?)";
 				$rWhereV[] = $rStartTime;
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if (0 < (int)(RequestManager::get("server") ?? 0)) {
-			$rWhere[] = "`streams_errors`.`server_id` = ?";
-			$rWhereV[] = (int)(RequestManager::get("server") ?? 0);
+		$rServer = (int) (RequestManager::get("server") ?? 0);
+		if (0 < $rServer) {
+			$rWhere[]  = "`streams_errors`.`server_id` = ?";
+			$rWhereV[] = $rServer;
 		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `streams_errors` LEFT JOIN `streams` ON `streams`.`id` = `streams_errors`.`stream_id` LEFT JOIN `servers` ON `servers`.`id` = `streams_errors`.`server_id` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `streams_errors` LEFT JOIN `streams` ON `streams`.`id` = `streams_errors`.`stream_id` LEFT JOIN `servers` ON `servers`.`id` = `streams_errors`.`server_id` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `streams_errors`.`id`, `streams_errors`.`stream_id`, `streams`.`type`, `streams_errors`.`server_id`, `streams`.`stream_display_name`, `servers`.`server_name`, `streams_errors`.`error`, FROM_UNIXTIME(`streams_errors`.`date`) AS `date` FROM `streams_errors` LEFT JOIN `streams` ON `streams`.`id` = `streams_errors`.`stream_id` LEFT JOIN `servers` ON `servers`.`id` = `streams_errors`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+			$rStreamPerm = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
+			$rQuery = "SELECT `streams_errors`.`id`, `streams_errors`.`stream_id`, `streams`.`type`, `streams_errors`.`server_id`, `streams`.`stream_display_name`, `servers`.`server_name`, `streams_errors`.`error`, `streams_errors`.`date` FROM `streams_errors` LEFT JOIN `streams` ON `streams`.`id` = `streams_errors`.`stream_id` LEFT JOIN `servers` ON `servers`.`id` = `streams_errors`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						$rPermission = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
-						$rURLs = ["1" => "stream_view", "2" => "stream_view", "3" => "stream_view", "4" => "stream_view"];
-						if (Authorization::check("adv", $rPermission[$rRow["type"]])) {
-							if ($rRow["type"] == 5) {
-								$rChannel = "<a href='serie?id=" . $rRow["series_no"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							} else {
-								$rChannel = "<a href='" . $rURLs[$rRow["type"]] . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							}
-						} else {
-							$rChannel = $rRow["stream_display_name"];
-						}
-						$rReturn["data"][] = [$rRow["id"], $rChannel, $rRow["server_name"], $rRow["error"], $rRow["date"]];
-					}
+			foreach ($db->get_rows() as $rRow) {
+				$rType = strval($rRow["type"] ?? '');
+				$rStreamUrl = null;
+				if (isset($rStreamPerm[$rType]) && Authorization::check("adv", $rStreamPerm[$rType])) {
+					$rStreamUrl = ($rType == "5")
+						? "serie?id=" . (int) $rRow["stream_id"]
+						: "stream_view?id=" . (int) $rRow["stream_id"];
 				}
+				$rItem = [
+					"id"          => (int) $rRow["id"],
+					"stream_id"   => (int) $rRow["stream_id"],
+					"stream_name" => $rRow["stream_display_name"],
+					"stream_url"  => $rStreamUrl,
+					"server_id"   => (int) $rRow["server_id"],
+					"server_name" => $rRow["server_name"],
+					"error"       => $rRow["error"],
+					"date"        => (int) $rRow["date"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
