@@ -5071,50 +5071,50 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
+	/**
+	 * action=panel_logs — returns clean JSON rows (no HTML). Presentation (date
+	 * format, server link, type badge, message + extra) is done client-side by
+	 * the Vuexy panel_logs page via datatables-bs5 columns[].render.
+	 */
 	private function handlePanelLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db, $rSettings, $rPermissions;
+		global $db, $rPermissions;
 		if (!$rPermissions["is_admin"] || !Authorization::check("adv", "panel_logs")) {
 			exit;
 		}
-		$rOrder = ["`panel_logs`.`date`", "`servers`.`server_name`", "`panel_logs`.`type`", "`panel_logs`.`log_message`"];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable); the
+		// data columns start at index 1, matching the client-side column order.
+		$rOrderBy = self::dtOrderBy([false, "`panel_logs`.`date`", "`servers`.`server_name`", "`panel_logs`.`type`", "`panel_logs`.`log_message`"]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`panel_logs`.`log_message` LIKE ? OR `panel_logs`.`log_extra` LIKE ? OR `panel_logs`.`type` LIKE ?)";
 		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `panel_logs` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `panel_logs` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
 			$rQuery = "SELECT `panel_logs`.`id`, `panel_logs`.`date`, `panel_logs`.`server_id`, `servers`.`server_name`, `panel_logs`.`type`, `panel_logs`.`log_message`, `panel_logs`.`log_extra`, `panel_logs`.`line` FROM `panel_logs` LEFT JOIN `servers` ON `servers`.`id` = `panel_logs`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						$rReturn["data"][] = [date($rSettings["datetime_format"], $rRow["date"]), "<a href='server_view?id=" . (int) $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>", strtoupper($rRow["type"]), $rRow["log_message"] . ($rRow["log_extra"] ? "<br/>" . $rRow["log_extra"] : ""), $rRow["line"]];
-					}
-				}
+			foreach ($db->get_rows() as $rRow) {
+				$rItem = [
+					"id"          => (int) $rRow["id"],
+					"date"        => (int) $rRow["date"],
+					"server_id"   => (int) $rRow["server_id"],
+					"server_name" => $rRow["server_name"],
+					"type"        => $rRow["type"],
+					"message"     => $rRow["log_message"],
+					"extra"       => ($rRow["log_extra"] !== "" && $rRow["log_extra"] !== null) ? $rRow["log_extra"] : null,
+					"line"        => $rRow["line"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
@@ -6362,6 +6362,30 @@ class TableController extends BaseAdminController {
 		}
 		echo json_encode($rReturn);
 		exit;
+	}
+
+	/**
+	 * Build the "ORDER BY <col> <dir>" clause from the DataTables order params.
+	 *
+	 * $rOrderColumns maps the table's orderable column index -> SQL column
+	 * expression (a false/'' entry marks a non-orderable column). Returns '' when
+	 * the requested column is not orderable.
+	 *
+	 * @param array<int,string|false> $rOrderColumns
+	 */
+	private static function dtOrderBy(array $rOrderColumns): string {
+		$rColumn = RequestManager::get("order")[0]["column"] ?? '';
+		$rRow    = (0 < strlen((string) $rColumn)) ? (int) $rColumn : 0;
+		if (empty($rOrderColumns[$rRow])) {
+			return "";
+		}
+		$rDir = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
+		return "ORDER BY " . $rOrderColumns[$rRow] . " " . $rDir;
+	}
+
+	/** The DataTables global search value (empty string when none). */
+	private static function dtSearch(): string {
+		return (string) (RequestManager::get("search")["value"] ?? '');
 	}
 
 	private static function filterRow($rRow, $rShow, $rHide) {
