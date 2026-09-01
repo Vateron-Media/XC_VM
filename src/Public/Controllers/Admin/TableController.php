@@ -2760,7 +2760,9 @@ class TableController extends BaseAdminController {
 			$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
 		} else {
 			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrder = ["`lines_live`.`activity_id`", "`lines_live`.`divergence`", "`username` " . $rOrderDirection . ", `lines_live`.`hmac_identifier`", "`streams`.`stream_display_name`", "`server_name`", "`lines_live`.`user_agent`", "`lines_live`.`isp`", "`lines_live`.`user_ip`", "UNIX_TIMESTAMP() - `lines_live`.`date_start`", "`lines_live`.`container`", "`lines`.`is_restreamer`", false];
+			// Leading false = the Vuexy Responsive control column (client index 0);
+			// index 1 is the hidden activity_id column, so the visible columns line up.
+			$rOrder = [false, "`lines_live`.`activity_id`", "`lines_live`.`divergence`", "`username` " . $rOrderDirection . ", `lines_live`.`hmac_identifier`", "`streams`.`stream_display_name`", "`server_name`", "`lines_live`.`user_agent`", "`lines_live`.`isp`", "`lines_live`.`user_ip`", "UNIX_TIMESTAMP() - `lines_live`.`date_start`", "`lines_live`.`container`", "`lines`.`is_restreamer`", false];
 			if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 				$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 			} else {
@@ -2834,106 +2836,51 @@ class TableController extends BaseAdminController {
 				if ($rIsAPI) {
 					$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 				} else {
-					if ($rRow["divergence"] <= 50) {
-						$rDivergence = "<i class=\"text-success fas fa-square tooltip\" title=\"" . (int) (100 - $rRow["divergence"]) . "%\"></i>";
-					} elseif ($rRow["divergence"] <= 80) {
-						$rDivergence = "<i class=\"text-warning fas fa-square tooltip\" title=\"" . (int) (100 - $rRow["divergence"]) . "%\"></i>";
+					// Clean JSON for the Vuexy live_connections page (data gathering above is unchanged).
+					$rIsHmac = !empty($rRow["hmac_id"]);
+					$rUserUrl = null;
+					if ($rIsHmac) {
+						$rUserLabel = "HMAC - " . $rRow["hmac_identifier"];
+						if (Authorization::check("adv", "add_hmac")) { $rUserUrl = "hmac?id=" . (int) $rRow["hmac_id"]; }
+					} elseif (!empty($rRow["is_mag"])) {
+						$rUserLabel = $rRow["mac"] ?? $rRow["username"];
+						if (Authorization::check("adv", "edit_mag") && isset($rRow["mag_id"])) { $rUserUrl = "mag?id=" . (int) $rRow["mag_id"]; }
+					} elseif (!empty($rRow["is_e2"])) {
+						$rUserLabel = $rRow["username"];
+						if (Authorization::check("adv", "edit_e2") && isset($rRow["device_id"])) { $rUserUrl = "enigma?id=" . (int) $rRow["device_id"]; }
 					} else {
-						$rDivergence = "<i class=\"text-danger fas fa-square tooltip\" title=\"" . (int) (100 - $rRow["divergence"]) . "%\"></i>";
+						$rUserLabel = $rRow["username"];
+						if (Authorization::check("adv", "users")) { $rUserUrl = "line?id=" . (int) $rRow["user_id"]; }
 					}
-					if (!empty($rRow["hmac_id"])) {
-						if (Authorization::check("adv", "add_hmac")) {
-							$rUsername = "<a href='hmac?id=" . $rRow["hmac_id"] . "'>HMAC - " . $rRow["hmac_identifier"] . "</a>";
-						} else {
-							$rUsername = "HMAC - " . $rRow["hmac_identifier"];
-						}
-					} elseif ($rRow["is_mag"]) {
-						if (Authorization::check("adv", "edit_mag")) {
-							$rUsername = "<a href='mag?id=" . $rRow["mag_id"] . "'>" . $rRow["mac"] . "</a>";
-						} else {
-							$rUsername = $rRow["username"];
-						}
-					} elseif ($rRow["is_e2"]) {
-						if (Authorization::check("adv", "edit_e2")) {
-							$rUsername = "<a href='enigma?id=" . $rRow["device_id"] . "'>" . $rRow["username"] . "</a>";
-						} else {
-							$rUsername = $rRow["username"];
-						}
-					} elseif (Authorization::check("adv", "users")) {
-						$rUsername = "<a href='line?id=" . $rRow["user_id"] . "'>" . $rRow["username"] . "</a>";
-					} else {
-						$rUsername = $rRow["username"];
+					$rType = strval($rRow["type"] ?? "");
+					$rStreamPerm = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
+					$rStreamUrl = null;
+					if (isset($rStreamPerm[$rType]) && Authorization::check("adv", $rStreamPerm[$rType])) {
+						$rStreamUrl = ($rType == "5") ? "serie?id=" . (int) $rRow["series_no"] : "stream_view?id=" . (int) $rRow["stream_id"];
 					}
-					$rPermission = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
-					$rURLs = ["1" => "stream_view", "2" => "stream_view", "3" => "stream_view", "4" => "stream_view"];
-					if (Authorization::check("adv", $rPermission[$rRow["type"]])) {
-						if ($rRow["type"] == 5) {
-							$rChannel = "<a href='serie?id=" . $rRow["series_no"] . "'>" . $rRow["stream_display_name"] . "</a>";
-						} else {
-							$rChannel = "<a href='" . $rURLs[$rRow["type"]] . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
-						}
-					} else {
-						$rChannel = $rRow["stream_display_name"];
-					}
-					if (Authorization::check("adv", "servers")) {
-						$rServer = "<a href='server_view?id=" . $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>";
-					} else {
-						$rServer = $rRow["server_name"];
-					}
-					if (0 < $rRow["proxy_id"] && isset($rProxyServers[$rRow["proxy_id"]])) {
-						$rServer .= "<br/><small>(via " . $rProxyServers[$rRow["proxy_id"]]["server_name"] . ")</small>";
-					}
-					if (0 < strlen($rRow["geoip_country_code"])) {
-						$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow["geoip_country_code"]) . ".png'></img> &nbsp;";
-					} else {
-						$rGeoCountry = "";
-					}
-					if ($rRow["user_ip"]) {
-						$rExplode = explode(":", $rRow["user_ip"]);
-						$rIP = $rGeoCountry . "<a onClick=\"whois('" . $rRow["user_ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["user_ip"]) . "</a>";
-					} else {
-						$rIP = "";
-					}
-					$rPlayer = trim(explode("(", $rRow["user_agent"])[0]);
-					$rDuration = (int) time() - (int) $rRow["date_start"];
-					$rColour = "success";
-					if (!empty($rRow["hls_end"])) {
-						$rDuration = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light btn-fixed'>" . Translator::get('closed') . "</button>";
-					} else {
-						if (86400 <= $rDuration) {
-							$rDuration = sprintf("%02dd %02dh", $rDuration / 86400, $rDuration / 3600 % 24);
-							$rColour = "danger";
-						} elseif (3600 <= $rDuration) {
-							if (14400 < $rDuration) {
-								$rColour = "warning";
-							} elseif (43200 < $rDuration) {
-								$rColour = "danger";
-							}
-							$rDuration = sprintf("%02dh %02dm", $rDuration / 3600, $rDuration / 60 % 60);
-						} else {
-							$rDuration = sprintf("%02dm %02ds", $rDuration / 60 % 60, $rDuration % 60);
-						}
-						if ($rRow["is_restreamer"]) {
-							$rColour = "success";
-						}
-						$rDuration = "<button type='button' class='btn btn-" . $rColour . " btn-xs waves-effect waves-light btn-fixed'>" . $rDuration . "</button>";
-					}
-					if ($rRow["is_restreamer"] == 1) {
-						$rRestreamer = "<i class=\"text-info fas fa-square\"></i>";
-					} else {
-						$rRestreamer = "<i class=\"text-secondary fas fa-square\"></i>";
-					}
-					$rButtons = "<div class=\"btn-group\">";
-					if (RequestManager::has("fingerprint")) {
-						$rButtons .= "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow["uuid"] . "', 'kill', '" . $rRow["activity_id"] . "');\"><i class=\"fas fa-hammer\"></i></button>";
-					} else {
-						$rButtons .= "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow["uuid"] . "', 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
-						if (Authorization::check("adv", "fingerprint") && 0 < (int) $rRow["user_id"] && $rRow["type"] == 1) {
-							$rButtons .= "<button title=\"Fingerprint\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"modalFingerprint(" . $rRow["user_id"] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-						}
-					}
-					$rButtons .= "</div>";
-					$rReturn["data"][] = [$rRow["activity_id"], $rDivergence, $rUsername, $rChannel, $rServer, $rPlayer, $rRow["isp"], $rIP, $rDuration, strtoupper($rRow["container"]), $rRestreamer, $rButtons];
+					$rProxyVia = (0 < (int) ($rRow["proxy_id"] ?? 0) && isset($rProxyServers[$rRow["proxy_id"]])) ? $rProxyServers[$rRow["proxy_id"]]["server_name"] : null;
+					$rReturn["data"][] = [
+						"activity_id"     => $rRow["activity_id"],
+						"uuid"            => $rRow["uuid"] ?? null,
+						"user_id"         => (int) $rRow["user_id"],
+						"type"            => (int) ($rRow["type"] ?? 1),
+						"divergence"      => (int) $rRow["divergence"],
+						"user_label"      => $rUserLabel,
+						"user_url"        => $rUserUrl,
+						"stream_name"     => $rRow["stream_display_name"],
+						"stream_url"      => $rStreamUrl,
+						"server_name"     => $rRow["server_name"],
+						"server_url"      => Authorization::check("adv", "servers") ? "server_view?id=" . (int) $rRow["server_id"] : null,
+						"proxy_via"       => $rProxyVia,
+						"player"          => trim(explode("(", (string) $rRow["user_agent"])[0]),
+						"isp"             => $rRow["isp"],
+						"user_ip"         => $rRow["user_ip"],
+						"country"         => (0 < strlen((string) $rRow["geoip_country_code"])) ? strtolower($rRow["geoip_country_code"]) : null,
+						"date_start"      => (int) $rRow["date_start"],
+						"container"       => strtoupper((string) $rRow["container"]),
+						"is_restreamer"   => (1 == (int) ($rRow["is_restreamer"] ?? 0)),
+						"can_fingerprint" => (Authorization::check("adv", "fingerprint") && 0 < (int) $rRow["user_id"] && $rType == "1"),
+					];
 				}
 			}
 		}
