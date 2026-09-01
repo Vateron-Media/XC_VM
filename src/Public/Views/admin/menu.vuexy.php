@@ -42,6 +42,7 @@ if (!function_exists('_xc_vuexy_icon')) {
             'fas fa-spa'     => 'ti tabler-flower',
             'fas fa-wrench'  => 'ti tabler-tool',
             'fas fa-users'   => 'ti tabler-users',
+            'fas fa-clipboard-list' => 'ti tabler-clipboard-list',
         ];
         if (isset($map[$icon])) return $map[$icon];
 
@@ -80,7 +81,8 @@ if (!class_exists('XcVuexyMenuBuilder')) {
             private array $settings,
             private string $language,
             private string $page,
-        ) {}
+        ) {
+        }
 
         /**
          * Full contents of <ul class="menu-inner"> for the registry top level.
@@ -219,8 +221,8 @@ $_menu = new XcVuexyMenuBuilder($rMobile, $rSettings, (string) $language, AdminH
  */
 $_menuSections = [
     ['title' => '',               'keys' => ['dashboard']],
-    ['title' => 'Management',     'keys' => ['users', 'content', 'bouquets', 'suppliers']],
-    ['title' => 'Infrastructure', 'keys' => ['servers', 'management']],
+    ['title' => 'Catalog',        'keys' => ['users', 'content']],
+    ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management']],
 ];
 ?>
 <!-- Vertical menu -->
