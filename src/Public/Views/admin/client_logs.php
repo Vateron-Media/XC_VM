@@ -1,229 +1,262 @@
-<div class="wrapper" <?php 
-use XcVm\Core\Config\SettingsManager;
+<?php
+
+/**
+ * Client logs (Vuexy). Clean-JSON table pattern: TableController::handleClientLogs
+ * returns structured rows (permission-gated links resolved into url fields, the
+ * reason label from ClientFilter) and this page renders the cells client-side via
+ * datatables-bs5 columns[].render. Reason + date-range filters post extra ajax
+ * params; IP whois is wired inline (no legacy listings.js / jBox).
+ */
+
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Enum\ClientFilter;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-							echo ' style="display: none;"';
-						} ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?php echo $language::get('client_logs'); ?></h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-12">
-				<div class="card">
-					<div class="card-body" style="overflow-x:auto;">
-						<div id="collapse_filters" class="form-group row mb-4<?php if ($rMobile) {
-																					echo ' collapse';
-																				} ?>">
-							<div class="col-md-3">
-								<input type="text" class="form-control" id="log_search" value="" placeholder="<?php echo $language::get('search_logs'); ?>...">
-							</div>
-							<label class="col-md-1 col-form-label text-center" for="filter"><?php echo $language::get('reason'); ?></label>
-							<div class="col-md-3">
-								<select id="filter" class="form-control" data-toggle="select2">
-									<option value="" selected><?php echo $language::get('all_reasons'); ?></option>
-									<?php foreach (ClientFilter::options() as $rFilter => $rFilterName) { ?>
-										<option value="<?php echo $rFilter; ?>"><?php echo $rFilterName; ?></option>
-									<?php } ?>
-								</select>
-							</div>
-							<label class="col-md-1 col-form-label text-center" for="range"><?php echo $language::get('dates'); ?></label>
-							<div class="col-md-2">
-								<input type="text" class="form-control text-center date" id="range" name="range" data-toggle="date-picker" data-single-date-picker="true" autocomplete="off" placeholder="<?php echo $language::get('all_dates'); ?>">
-							</div>
-							<label class="col-md-1 col-form-label text-center" for="show_entries"><?php echo $language::get('show'); ?></label>
-							<div class="col-md-1">
-								<select id="show_entries" class="form-control" data-toggle="select2">
-									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
-										<option<?php if ($rSettings['default_entries'] == $rShow) {
-													echo ' selected';
-												} ?> value="<?php echo $rShow; ?>"><?php echo $rShow; ?></option>
-										<?php } ?>
-								</select>
-							</div>
-						</div>
-						<table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
-							<thead>
-								<tr>
-									<th class="text-center"><?php echo $language::get('id'); ?></th>
-									<th><?php echo $language::get('username'); ?></th>
-									<th><?php echo $language::get('stream'); ?></th>
-									<th><?php echo $language::get('reason'); ?></th>
-									<th><?php echo $language::get('user_agent'); ?></th>
-									<th class="text-center"><?php echo $language::get('ip'); ?></th>
-									<th class="text-center"><?php echo $language::get('date'); ?></th>
-								</tr>
-							</thead>
-							<tbody></tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+if (!Authorization::check('adv', 'client_request_log')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
+?>
+
+<style>
+    #client-logs-table td.client-ua {
+        max-width: 22rem;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><?= $language::get('client_logs'); ?></h5>
+    </div>
+    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-reason"><?= $language::get('reason'); ?></label>
+                <select id="filter-reason" class="form-select">
+                    <option value=""><?= $language::get('all_reasons'); ?></option>
+                    <?php foreach (ClientFilter::options() as $rFilter => $rFilterName): ?>
+                        <option value="<?= htmlspecialchars((string) $rFilter, ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rFilterName, ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-range"><?= $language::get('dates'); ?></label>
+                <input type="text" id="filter-range" class="form-control flatpickr-range" placeholder="<?= $language::get('all_dates'); ?>" autocomplete="off">
+            </div>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="client-logs-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th><!-- responsive control (+/-) -->
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('username'); ?></th>
+                    <th><?= $language::get('stream'); ?></th>
+                    <th><?= $language::get('reason'); ?></th>
+                    <th><?= $language::get('user_agent'); ?></th>
+                    <th><?= $language::get('ip'); ?></th>
+                    <th><?= $language::get('date'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
+
+<!-- Whois lookup -->
+<div class="modal fade" id="whoisModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('login_logs_whois'); ?> — <span id="whois-ip"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="whois-body"></div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+<script>
+    (function() {
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var fmtDate = function(ts) {
+            return ts ? new Date(ts * 1000).toLocaleString() : '';
+        };
+        var isLocal = function(ip) {
+            return !ip || ip === '127.0.0.1' || ip === '::1';
+        };
+        var errMsg = <?= json_encode($language::get('error_occured')); ?>;
 
-	<?php
-	echo '        ' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getRange() {' . "\r\n\t\t\t" . 'return $("#range").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n" . "            \$(\"#filter\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$(\"#range\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#log_search').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#show_entries').val(\"";
-	echo ($rSettings['default_entries'] ?: 10);
-	echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(\"#log_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$('#show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-activity\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . "\$('#range').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: false,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD'" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'autoUpdateInput: false' . "\r\n\t\t\t" . '}).val("");' . "\r\n\t\t\t" . "\$('#range').on('apply.daterangepicker', function(ev, picker) {" . "\r\n\t\t\t\t" . "\$(this).val(picker.startDate.format('YYYY-MM-DD') + ' - ' + picker.endDate.format('YYYY-MM-DD'));" . "\r\n\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#range').on('cancel.daterangepicker', function(ev, picker) {" . "\r\n\t\t\t\t" . "\$(this).val('');" . "\r\n\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#range').on('change', function() {" . "\r\n\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#range_clear_to').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD'" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'autoUpdateInput: false' . "\r\n\t\t\t" . '}).val("");' . "\r\n\t\t\t" . "\$('#range_clear_from').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD'" . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'autoUpdateInput: false' . "\r\n\t\t\t" . '}).val("");' . "\r\n\t\t\t" . "\$('#range_clear_from').on('apply.daterangepicker', function(ev, picker) {" . "\r\n\t\t\t\t" . "\$(this).val(picker.startDate.format('YYYY-MM-DD'));" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#range_clear_from').on('cancel.daterangepicker', function(ev, picker) {" . "\r\n\t\t\t\t" . "\$(this).val('');" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#range_clear_to').on('apply.daterangepicker', function(ev, picker) {" . "\r\n\t\t\t\t" . "\$(this).val(picker.startDate.format('YYYY-MM-DD'));" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#range_clear_to').on('cancel.daterangepicker', function(ev, picker) {" . "\r\n\t\t\t\t" . "\$(this).val('');" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#btn-clear-logs").click(function() {' . "\r\n\t\t\t\t" . '$(".bs-logs-modal-center").modal("show");' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#clear_logs").click(function() {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-	echo $language::get('clear_confirm');
-	echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        $(".bs-logs-modal-center").modal("hide");' . "\r\n" . '                        $.getJSON("./api?action=clear_logs&type=lines_logs&from=" + encodeURIComponent($("#range_clear_from").val()) + "&to=" + encodeURIComponent($("#range_clear_to").val()), function(data) {' . "\r\n" . '                            $.toast("';
-	echo $language::get('clear_success');
-	echo '");' . "\r\n" . '                            $("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n" . '                        });' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "client_logs",' . "\r\n\t\t\t\t\t\t" . 'd.range = getRange(),' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                ';
+        var table = jQuery('#client-logs-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [7, 'desc']
+            ],
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'client_logs';
+                    d.filter = document.getElementById('filter-reason').value;
+                    d.range = document.getElementById('filter-range').value;
+                }
+            },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'id',
+                    className: 'text-nowrap'
+                },
+                {
+                    data: 'username',
+                    responsivePriority: 3,
+                    render: function(d, t, row) {
+                        if (!d) {
+                            return '';
+                        }
+                        return row.user_url ?
+                            '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' :
+                            esc(d);
+                    }
+                },
+                {
+                    data: 'stream_name',
+                    render: function(d, t, row) {
+                        if (!d) {
+                            return '';
+                        }
+                        return row.stream_url ?
+                            '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' :
+                            esc(d);
+                    }
+                },
+                {
+                    data: 'reason',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        var html = '<span class="badge bg-label-secondary">' + esc(d) + '</span>';
+                        if (row.extra) {
+                            html += ' <i class="icon-base ti tabler-info-circle text-primary align-middle" title="' + esc(row.extra) + '"></i>';
+                        }
+                        return html;
+                    }
+                },
+                {
+                    data: 'user_agent',
+                    className: 'client-ua',
+                    render: function(d) {
+                        return esc(d);
+                    }
+                },
+                {
+                    data: 'ip',
+                    className: 'text-nowrap',
+                    render: function(d) {
+                        if (isLocal(d)) {
+                            return '<span class="text-body-secondary">localhost</span>';
+                        }
+                        return '<a href="javascript:void(0);" class="text-body js-whois" data-ip="' + esc(d) + '">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'date',
+                    className: 'text-nowrap',
+                    render: function(d) {
+                        return esc(fmtDate(d));
+                    }
+                }
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
+        });
 
-	if ($rMobile) {
-		echo 'scrollX: true,';
-	}
+        // Reason filter + date range re-query server-side.
+        document.getElementById('filter-reason').addEventListener('change', function() {
+            table.ajax.reload();
+        });
+        if (window.flatpickr) {
+            flatpickr('#filter-range', {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                onChange: function(dates) {
+                    if (dates.length === 2 || dates.length === 0) {
+                        table.ajax.reload();
+                    }
+                }
+            });
+        } else {
+            document.getElementById('filter-range').addEventListener('change', function() {
+                table.ajax.reload();
+            });
+        }
 
-	echo "\t\t\t\t" . '"order": [[ 0, "desc" ]],' . "\r\n\t\t\t\t" . 'pageLength: ';
-	echo (intval($rSettings['default_entries']) ?: 10);
-	echo ',' . "\r\n" . '                lengthMenu: [10, 25, 50, 250, 500, 1000]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-activity").css("width", "100%");' . "\r\n\t\t\t" . "\$('#log_search').keyup(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().search(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . "\$('#datatable-activity').DataTable().page.len(\$(this).val()).draw();" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#filter').change(function(){" . "\r\n\t\t\t\t" . '$("#datatable-activity").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-activity").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Whois lookup (GeoIP / ISP / ASN) in a modal.
+        jQuery('#client-logs-table tbody').on('click', '.js-whois', function() {
+            var ip = this.getAttribute('data-ip');
+            var body = document.getElementById('whois-body');
+            document.getElementById('whois-ip').textContent = ip;
+            body.innerHTML = '<div class="text-center py-3"><span class="spinner-border" role="status"></span></div>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('whoisModal')).show();
+            fetch('./api?action=ip_whois&isp=1&ip=' + encodeURIComponent(ip), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(w) {
+                    var rows = [];
+                    var add = function(label, val) {
+                        if (val) {
+                            rows.push('<dt class="col-4 text-body-secondary">' + esc(label) + '</dt><dd class="col-8">' + esc(val) + '</dd>');
+                        }
+                    };
+                    add(<?= json_encode($language::get('country')); ?>, w && w.country && w.country.names && w.country.names.en);
+                    add(<?= json_encode($language::get('city')); ?>, w && w.city && w.city.names && w.city.names.en);
+                    add(<?= json_encode($language::get('isp')); ?>, w && w.isp && (w.isp.isp || w.isp.organization));
+                    add('ASN', w && w.isp && w.isp.autonomous_system_number);
+                    add(<?= json_encode($language::get('type')); ?>, w && w.type);
+                    body.innerHTML = rows.length ? '<dl class="row mb-0">' + rows.join('') + '</dl>' :
+                        '<div class="text-center text-body-secondary py-2">—</div>';
+                })
+                .catch(function() {
+                    body.innerHTML = '<div class="alert alert-danger mb-0">' + esc(errMsg) + '</div>';
+                });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

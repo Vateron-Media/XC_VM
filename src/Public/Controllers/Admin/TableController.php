@@ -3689,94 +3689,79 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
+	/**
+	 * action=client_logs — returns clean JSON rows (no HTML). Permission-gated
+	 * links (user line, stream) are resolved server-side into url fields; the
+	 * reason label comes from ClientFilter. Presentation is done client-side by
+	 * the Vuexy client_logs page via datatables-bs5 columns[].render.
+	 */
 	private function handleClientLogs($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db;
 		if (!Authorization::check("adv", "client_request_log")) {
 			exit;
 		}
-		$rOrder = ["`lines_logs`.`id`", "`lines`.`username`", "`streams`.`stream_display_name`", "`lines_logs`.`client_status`", "`lines_logs`.`user_agent`", "`lines_logs`.`ip`", "`lines_logs`.`date`"];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable).
+		$rOrderBy = self::dtOrderBy([false, "`lines_logs`.`id`", "`lines`.`username`", "`streams`.`stream_display_name`", "`lines_logs`.`client_status`", "`lines_logs`.`user_agent`", "`lines_logs`.`ip`", "`lines_logs`.`date`"]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 8) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`lines_logs`.`client_status` LIKE ? OR `lines_logs`.`query_string` LIKE ? OR FROM_UNIXTIME(`date`) LIKE ? OR `lines_logs`.`user_agent` LIKE ? OR `lines_logs`.`ip` LIKE ? OR `lines_logs`.`extra_data` LIKE ? OR `streams`.`stream_display_name` LIKE ? OR `lines`.`username` LIKE ?)";
 		}
-		if (0 < strlen(RequestManager::get("range") ?? '')) {
-			$rStartTime = substr(RequestManager::get("range"), 0, 10);
-			$rEndTime = substr(RequestManager::get("range"), strlen(RequestManager::get("range") ?? '') - 10, 10);
-			if (!($rStartTime = strtotime($rStartTime . " 00:00:00"))) {
-				$rStartTime = NULL;
-			}
-			if (!($rEndTime = strtotime($rEndTime . " 23:59:59"))) {
-				$rEndTime = NULL;
-			}
+		$rRange = (string) (RequestManager::get("range") ?? '');
+		if (0 < strlen($rRange)) {
+			$rStartTime = strtotime(substr($rRange, 0, 10) . " 00:00:00");
+			$rEndTime   = strtotime(substr($rRange, strlen($rRange) - 10, 10) . " 23:59:59");
 			if ($rStartTime && $rEndTime) {
-				$rWhere[] = "(`lines_logs`.`date` >= ? AND `lines_logs`.`date` <= ?)";
+				$rWhere[]  = "(`lines_logs`.`date` >= ? AND `lines_logs`.`date` <= ?)";
 				$rWhereV[] = $rStartTime;
 				$rWhereV[] = $rEndTime;
 			}
 		}
-		if (0 < strlen(RequestManager::get("filter") ?? '')) {
-			$rWhere[] = "`lines_logs`.`client_status` = ?";
-			$rWhereV[] = RequestManager::get("filter");
+		$rFilter = (string) (RequestManager::get("filter") ?? '');
+		if (0 < strlen($rFilter)) {
+			$rWhere[]  = "`lines_logs`.`client_status` = ?";
+			$rWhereV[] = $rFilter;
 		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`query_string`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, `lines_logs`.`extra_data`, FROM_UNIXTIME(`lines_logs`.`date`) AS `date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
+			$rCanEditUser = Authorization::check("adv", "edit_user");
+			$rStreamPerm  = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
+			$rQuery = "SELECT `lines_logs`.`id`, `lines_logs`.`user_id`, `lines_logs`.`stream_id`, `streams`.`stream_display_name`, `streams`.`type`, `lines`.`username`, `lines_logs`.`client_status`, `lines_logs`.`user_agent`, `lines_logs`.`ip`, `lines_logs`.`extra_data`, `lines_logs`.`date` FROM `lines_logs` LEFT JOIN `streams` ON `streams`.`id` = `lines_logs`.`stream_id` LEFT JOIN `lines` ON `lines`.`id` = `lines_logs`.`user_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						if (Authorization::check("adv", "edit_user")) {
-							$rUsername = "<a href='line?id=" . $rRow["user_id"] . "'>" . $rRow["username"] . "</a>";
-						} else {
-							$rUsername = $rRow["username"];
-						}
-						$rPermission = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
-						$rURLs = ["1" => "stream_view", "2" => "stream_view", "3" => "stream_view", "4" => "stream_view"];
-						$rType = strval($rRow["type"] ?? '');
-						if (isset($rPermission[$rType]) && Authorization::check("adv", $rPermission[$rType])) {
-							if ($rType == "5") {
-								$rSeriesID = ($rRow["series_no"] ?? $rRow["stream_id"] ?? 0);
-								$rChannel = "<a href='serie?id=" . intval($rSeriesID) . "'>" . $rRow["stream_display_name"] . "</a>";
-							} else {
-								$rChannel = "<a href='" . ($rURLs[$rType] ?? "stream_view") . "?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a>";
-							}
-						} else {
-							$rChannel = $rRow["stream_display_name"];
-						}
-						$rExplode = explode(":", $rRow["ip"]);
-						$rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
-						$rClientStatus = ClientFilter::labelFor((string) ($rRow["client_status"] ?? ""));
-						$rExtraData = trim(strval($rRow["extra_data"] ?? ""));
-						if ($rExtraData !== "") {
-							$rClientStatus .= " <i class=\"mdi mdi-information-outline text-primary tooltip\" title=\"" . htmlspecialchars(mb_substr($rExtraData, 0, 500), ENT_QUOTES) . "\"></i>";
-						}
-						$rReturn["data"][] = [$rRow["id"], $rUsername, $rChannel, $rClientStatus, $rRow["user_agent"], $rIP, $rRow["date"]];
-					}
+			foreach ($db->get_rows() as $rRow) {
+				$rType = strval($rRow["type"] ?? '');
+				$rStreamUrl = null;
+				if (isset($rStreamPerm[$rType]) && Authorization::check("adv", $rStreamPerm[$rType])) {
+					$rStreamUrl = ($rType == "5")
+						? "serie?id=" . (int) $rRow["stream_id"]
+						: "stream_view?id=" . (int) $rRow["stream_id"];
 				}
+				$rExtra = trim(strval($rRow["extra_data"] ?? ""));
+				$rItem = [
+					"id"          => (int) $rRow["id"],
+					"user_id"     => (int) $rRow["user_id"],
+					"username"    => $rRow["username"],
+					"user_url"    => ($rCanEditUser && $rRow["username"] !== null) ? "line?id=" . (int) $rRow["user_id"] : null,
+					"stream_id"   => (int) $rRow["stream_id"],
+					"stream_name" => $rRow["stream_display_name"],
+					"stream_url"  => $rStreamUrl,
+					"reason"      => ClientFilter::labelFor((string) ($rRow["client_status"] ?? "")),
+					"extra"       => ($rExtra !== "") ? mb_substr($rExtra, 0, 500) : null,
+					"user_agent"  => $rRow["user_agent"],
+					"ip"          => $rRow["ip"],
+					"date"        => (int) $rRow["date"],
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);
