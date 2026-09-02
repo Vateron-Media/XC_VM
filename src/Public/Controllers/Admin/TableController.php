@@ -4104,30 +4104,37 @@ class TableController extends BaseAdminController {
 		$rReturn = ["draw" => (int) RequestManager::get("draw"), "recordsTotal" => count($rBackups), "recordsFiltered" => count($rBackups), "data" => []];
 		$rLocalFiles = [];
 		foreach ($rBackups as $rBackup) {
-			$rButtons = "<div class=\"btn-group\"><button type=\"button\" title=\"Restore Backup\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rBackup["filename"] . "', 'restore');\"><i class=\"mdi mdi-folder-upload\"></i></button>\r\n        <button type=\"button\" title=\"Delete Backup\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rBackup["filename"] . "', 'delete');\"><i class=\"mdi mdi-close\"></i></button></div>";
-			$rLocal = "<i class='text-success fas fa-square'></i>";
+			// Remote (Dropbox) upload state: present / error / in-progress / absent.
+			$rRemote = "no";
+			$rRemoteMsg = null;
 			if (isset($rRemoteBackups[$rBackup["filename"]])) {
-				$rRemote = "<i class='text-success fas fa-square'></i>";
+				$rRemote = "yes";
 				unset($rRemoteBackups[$rBackup["filename"]]);
 			} elseif (file_exists(MAIN_HOME . "backups/" . $rBackup["filename"] . ".error")) {
-				$rRemote = "<i title='" . htmlspecialchars(file_get_contents(MAIN_HOME . "backups/" . $rBackup["filename"] . ".error")) . "' class='text-danger fas fa-square tooltip'></i>";
+				$rRemote = "error";
+				$rRemoteMsg = (string) file_get_contents(MAIN_HOME . "backups/" . $rBackup["filename"] . ".error");
 			} elseif (file_exists(MAIN_HOME . "backups/" . $rBackup["filename"] . ".uploading") && time() - filemtime(MAIN_HOME . "backups/" . $rBackup["filename"] . ".uploading") < 600) {
-				$rRemote = "<i title='Uploading...' class='text-warning fas fa-square tooltip'></i>";
-			} else {
-				$rRemote = "<i class='text-secondary fas fa-square'></i>";
+				$rRemote = "uploading";
 			}
 			$rLocalFiles[] = $rBackup["filename"];
-			$rReturn["data"][] = [date($rSettings["datetime_format"], strtotime($rBackup["date"])), $rBackup["filename"], ceil($rBackup["filesize"] / 1024 / 1024) . " MB", $rLocal, $rRemote, $rButtons];
+			$rReturn["data"][] = [
+				"date" => date($rSettings["datetime_format"], strtotime($rBackup["date"])),
+				"filename" => $rBackup["filename"],
+				"size" => ceil($rBackup["filesize"] / 1024 / 1024) . " MB",
+				"local" => true,
+				"remote" => $rRemote,
+				"remote_msg" => $rRemoteMsg,
+			];
 		}
 		foreach ($rRemoteBackups as $rBackup) {
-			$rButtons = "<div class=\"btn-group\"><button type=\"button\" title=\"Restore Backup\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rBackup["name"] . "', 'restore');\"><i class=\"mdi mdi-folder-upload\"></i></button>\r\n        <button type=\"button\" title=\"Delete Backup\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rBackup["name"] . "', 'delete');\"><i class=\"mdi mdi-close\"></i></button></div>";
-			if (in_array($rBackup["name"], $rLocalFiles)) {
-				$rLocal = "<i class='text-success fas fa-square'></i>";
-			} else {
-				$rLocal = "<i class='text-secondary fas fa-square'></i>";
-			}
-			$rRemote = "<i class='text-success fas fa-square'></i>";
-			$rReturn["data"][] = [date($rSettings["datetime_format"], $rBackup["time"]), $rBackup["name"], ceil($rBackup["size"] / 1024 / 1024) . " MB", $rLocal, $rRemote, $rButtons];
+			$rReturn["data"][] = [
+				"date" => date($rSettings["datetime_format"], $rBackup["time"]),
+				"filename" => $rBackup["name"],
+				"size" => ceil($rBackup["size"] / 1024 / 1024) . " MB",
+				"local" => in_array($rBackup["name"], $rLocalFiles),
+				"remote" => "yes",
+				"remote_msg" => null,
+			];
 		}
 		echo json_encode($rReturn);
 		exit;

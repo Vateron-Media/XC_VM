@@ -21,6 +21,8 @@ type Migrated = {
   ajax?: string;
   /** page has a bulk-select checkbox column (#check-all) */
   bulk?: boolean;
+  /** table has no leading Responsive control column (first th is a real header) */
+  noControl?: boolean;
 };
 
 const LOGS: Migrated[] = [
@@ -65,6 +67,7 @@ const MANAGEMENT: Migrated[] = [
   { url: 'enigmas', table: '#e2-table', ajax: 'enigmas', bulk: true },
   { url: 'movies', table: '#movies-table', ajax: 'movies', bulk: true },
   { url: 'radios', table: '#radios-table', ajax: 'radios', bulk: true },
+  { url: 'backups', table: '#backups-table', ajax: 'backups', noControl: true },
 ];
 
 /** Load a migrated page and assert the Vuexy shell + table + (serverSide) ajax. */
@@ -84,8 +87,10 @@ async function assertMigrated(page: Page, m: Migrated) {
   await expect(page.locator('#layout-menu')).toBeVisible({ timeout: 20_000 });
   // The rewritten view's table.
   await expect(page.locator(m.table)).toBeAttached();
-  // A leading (empty) Responsive control column header.
-  await expect(page.locator(`${m.table} thead th`).first()).toHaveText('');
+  // A leading (empty) Responsive control column header (unless the table has none).
+  if (!m.noControl) {
+    await expect(page.locator(`${m.table} thead th`).first()).toHaveText('');
+  }
 
   if (ajaxWait) {
     const resp = await ajaxWait;
