@@ -39,6 +39,8 @@ if (!function_exists('_xc_vuexy_icon')) {
             'fas fa-server'  => 'ti tabler-server',
             'fas fa-desktop' => 'ti tabler-device-desktop',
             'fas fa-play'    => 'ti tabler-player-play',
+            'fas fa-film'    => 'ti tabler-movie',
+            'fas fa-sitemap' => 'ti tabler-sitemap',
             'fas fa-spa'     => 'ti tabler-flower',
             'fas fa-wrench'  => 'ti tabler-tool',
             'fas fa-users'   => 'ti tabler-users',
@@ -221,7 +223,7 @@ $_menu = new XcVuexyMenuBuilder($rMobile, $rSettings, (string) $language, AdminH
  */
 $_menuSections = [
     ['title' => '',               'keys' => ['dashboard']],
-    ['title' => 'Catalog',        'keys' => ['users', 'content']],
+    ['title' => 'Catalog',        'keys' => ['users', 'content', 'vod', 'distribution']],
     ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management']],
 ];
 ?>

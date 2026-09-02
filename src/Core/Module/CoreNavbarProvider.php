@@ -38,6 +38,8 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         self::_servers();
         self::_users();
         self::_content();
+        self::_vod();
+        self::_distribution();
         self::_logs();
         self::_management();
         self::_profile();
@@ -178,17 +180,17 @@ class CoreNavbarProvider implements NavbarProviderInterface {
     // ── Content ───────────────────────────────────────────────────
 
     /**
-     * Register Content navigation items.
+     * Register Content (Streaming) navigation items.
      *
-     * Adds content management structure including Streams, Created Channels,
-     * Movies, Series, Radio Stations, Bouquets, Suppliers, Recordings, and
-     * TV Guide. Bouquets and Suppliers were folded in from former top-level tabs.
+     * Live-streaming content: Streams, Created Channels and Radio Stations.
+     * VOD (Movies/Series) moved to _vod(); Bouquets/Suppliers/Recordings/TV Guide
+     * moved to _distribution(). Labelled "Streaming"; the key stays 'content'.
      *
      * @return void
      */
     private static function _content(): void {
         NavbarRegistry::add((new NavbarItem('content'))
-            ->url('#')->label('content')
+            ->url('#')->label('', 'Streaming')
             ->icon('fas fa-play')->order(400));
 
         // Streams
@@ -225,50 +227,10 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->parent('content.channels')->url('created_channel_mass')
             ->label('mass_edit_created_channels')->permissions(['streams'])->order(30));
 
-        // Movies
-        NavbarRegistry::add((new NavbarItem('content.movies'))
-            ->parent('content')->url('#')
-            ->label('movies')->permissions(['add_movie', 'import_movies', 'movies'])->order(30));
-        NavbarRegistry::add((new NavbarItem('content.movies.add'))
-            ->parent('content.movies')->url('movie')
-            ->label('add_movie')->permissions(['add_movie'])->order(10));
-        NavbarRegistry::add((new NavbarItem('content.movies.import'))
-            ->parent('content.movies')->url('movie?import=1')
-            ->label('import_multiple_movies')->permissions(['import_movies'])->order(20));
-        NavbarRegistry::add((new NavbarItem('content.movies.import_review'))
-            ->parent('content.movies')->url('review?type=2')
-            ->label('import_review_movies')->permissions(['import_movies'])->order(30));
-        NavbarRegistry::add((new NavbarItem('content.movies.manage'))
-            ->parent('content.movies')->url('movies')
-            ->label('manage_movies')->permissions(['movies'])->order(40));
-        NavbarRegistry::add((new NavbarItem('content.movies.mass'))
-            ->parent('content.movies')->url('movie_mass')
-            ->label('mass_edit_movies')->permissions(['mass_sedits_vod'])->order(50));
-
-        // Series
-        NavbarRegistry::add((new NavbarItem('content.series'))
-            ->parent('content')->url('#')
-            ->label('series')->permissions(['add_series', 'series', 'episodes'])->order(40));
-        NavbarRegistry::add((new NavbarItem('content.series.add'))
-            ->parent('content.series')->url('serie')
-            ->label('add_series')->permissions(['add_series'])->order(10));
-        NavbarRegistry::add((new NavbarItem('content.series.manage'))
-            ->parent('content.series')->url('series')
-            ->label('manage_series')->permissions(['series'])->order(20));
-        NavbarRegistry::add((new NavbarItem('content.series.episodes'))
-            ->parent('content.series')->url('episodes')
-            ->label('manage_episodes')->permissions(['episodes'])->order(30));
-        NavbarRegistry::add((new NavbarItem('content.series.mass'))
-            ->parent('content.series')->url('series_mass')
-            ->label('', 'Mass Edit Series')->permissions(['mass_sedits'])->order(40));
-        NavbarRegistry::add((new NavbarItem('content.series.episodes_mass'))
-            ->parent('content.series')->url('episodes_mass')
-            ->label('', 'Mass Edit Episodes')->permissions(['mass_sedits'])->order(50));
-
         // Radio stations
         NavbarRegistry::add((new NavbarItem('content.stations'))
             ->parent('content')->url('#')
-            ->label('stations')->permissions(['add_radio', 'radio'])->order(50));
+            ->label('stations')->permissions(['add_radio', 'radio'])->order(30));
         NavbarRegistry::add((new NavbarItem('content.stations.add'))
             ->parent('content.stations')->url('radio')
             ->label('add_station')->permissions(['add_radio'])->order(10));
@@ -278,41 +240,117 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('content.stations.mass'))
             ->parent('content.stations')->url('radio_mass')
             ->label('mass_edit_stations')->permissions(['mass_edit_radio'])->order(30));
+    }
 
-        // Bouquets (folded in from the former top-level 'bouquets' tab)
-        NavbarRegistry::add((new NavbarItem('content.bouquets'))
-            ->parent('content')->url('#')
-            ->label('bouquets')->permissions(['add_bouquet', 'bouquets', 'bouquet_order'])->order(60));
-        NavbarRegistry::add((new NavbarItem('content.bouquets.add'))
-            ->parent('content.bouquets')->url('bouquet')
+    // ── VOD (Movies / Series) ─────────────────────────────────────
+
+    /**
+     * Register VOD navigation items (top-level tab, order 410).
+     *
+     * On-demand catalogue split out of Content: Movies and Series with their
+     * add/import/manage/mass operations. Each leaf keeps its original
+     * url/permissions/label; only the parent key changed (content.* → vod.*).
+     *
+     * @return void
+     */
+    private static function _vod(): void {
+        NavbarRegistry::add((new NavbarItem('vod'))
+            ->url('#')->label('', 'VOD')
+            ->icon('fas fa-film')->order(410));
+
+        // Movies
+        NavbarRegistry::add((new NavbarItem('vod.movies'))
+            ->parent('vod')->url('#')
+            ->label('movies')->permissions(['add_movie', 'import_movies', 'movies'])->order(10));
+        NavbarRegistry::add((new NavbarItem('vod.movies.add'))
+            ->parent('vod.movies')->url('movie')
+            ->label('add_movie')->permissions(['add_movie'])->order(10));
+        NavbarRegistry::add((new NavbarItem('vod.movies.import'))
+            ->parent('vod.movies')->url('movie?import=1')
+            ->label('import_multiple_movies')->permissions(['import_movies'])->order(20));
+        NavbarRegistry::add((new NavbarItem('vod.movies.import_review'))
+            ->parent('vod.movies')->url('review?type=2')
+            ->label('import_review_movies')->permissions(['import_movies'])->order(30));
+        NavbarRegistry::add((new NavbarItem('vod.movies.manage'))
+            ->parent('vod.movies')->url('movies')
+            ->label('manage_movies')->permissions(['movies'])->order(40));
+        NavbarRegistry::add((new NavbarItem('vod.movies.mass'))
+            ->parent('vod.movies')->url('movie_mass')
+            ->label('mass_edit_movies')->permissions(['mass_sedits_vod'])->order(50));
+
+        // Series
+        NavbarRegistry::add((new NavbarItem('vod.series'))
+            ->parent('vod')->url('#')
+            ->label('series')->permissions(['add_series', 'series', 'episodes'])->order(20));
+        NavbarRegistry::add((new NavbarItem('vod.series.add'))
+            ->parent('vod.series')->url('serie')
+            ->label('add_series')->permissions(['add_series'])->order(10));
+        NavbarRegistry::add((new NavbarItem('vod.series.manage'))
+            ->parent('vod.series')->url('series')
+            ->label('manage_series')->permissions(['series'])->order(20));
+        NavbarRegistry::add((new NavbarItem('vod.series.episodes'))
+            ->parent('vod.series')->url('episodes')
+            ->label('manage_episodes')->permissions(['episodes'])->order(30));
+        NavbarRegistry::add((new NavbarItem('vod.series.mass'))
+            ->parent('vod.series')->url('series_mass')
+            ->label('', 'Mass Edit Series')->permissions(['mass_sedits'])->order(40));
+        NavbarRegistry::add((new NavbarItem('vod.series.episodes_mass'))
+            ->parent('vod.series')->url('episodes_mass')
+            ->label('', 'Mass Edit Episodes')->permissions(['mass_sedits'])->order(50));
+    }
+
+    // ── Distribution (Bouquets / Suppliers / Recordings / Guide) ──
+
+    /**
+     * Register Distribution navigation items (top-level tab, order 420).
+     *
+     * Content organisation & delivery split out of Content: Bouquets, Suppliers,
+     * Recordings and TV Guide. Each leaf keeps its original url/permissions/label;
+     * only the parent key changed (content.* → distribution.*).
+     *
+     * @return void
+     */
+    private static function _distribution(): void {
+        NavbarRegistry::add((new NavbarItem('distribution'))
+            ->url('#')->label('', 'Distribution')
+            ->icon('fas fa-sitemap')->order(420));
+
+        // Bouquets
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets'))
+            ->parent('distribution')->url('#')
+            ->label('bouquets')->permissions(['add_bouquet', 'bouquets', 'bouquet_order'])->order(10));
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets.add'))
+            ->parent('distribution.bouquets')->url('bouquet')
             ->label('add_bouquet')->permissions(['add_bouquet'])->order(10));
-        NavbarRegistry::add((new NavbarItem('content.bouquets.manage'))
-            ->parent('content.bouquets')->url('bouquets')
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets.manage'))
+            ->parent('distribution.bouquets')->url('bouquets')
             ->label('manage_bouquets')->permissions(['bouquets'])->order(20));
-        NavbarRegistry::add((new NavbarItem('content.bouquets.order'))
-            ->parent('content.bouquets')->url('bouquet_order')
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets.order'))
+            ->parent('distribution.bouquets')->url('bouquet_order')
             ->label('bouquet_order')->permissions(['bouquet_order'])
             ->desktopOnly()->order(30));
 
-        // Suppliers (folded in from the former top-level 'suppliers' tab)
-        NavbarRegistry::add((new NavbarItem('content.suppliers'))
-            ->parent('content')->url('#')
-            ->label('suppliers')->permissions(['streams'])->order(70));
-        NavbarRegistry::add((new NavbarItem('content.suppliers.add'))
-            ->parent('content.suppliers')->url('provider')
+        // Suppliers
+        NavbarRegistry::add((new NavbarItem('distribution.suppliers'))
+            ->parent('distribution')->url('#')
+            ->label('suppliers')->permissions(['streams'])->order(20));
+        NavbarRegistry::add((new NavbarItem('distribution.suppliers.add'))
+            ->parent('distribution.suppliers')->url('provider')
             ->label('add_providers')->permissions(['streams'])->order(10));
-        NavbarRegistry::add((new NavbarItem('content.suppliers.manage'))
-            ->parent('content.suppliers')->url('providers')
+        NavbarRegistry::add((new NavbarItem('distribution.suppliers.manage'))
+            ->parent('distribution.suppliers')->url('providers')
             ->label('stream_providers')->permissions(['streams'])->order(20));
 
-        NavbarRegistry::add((new NavbarItem('content.recordings'))
-            ->parent('content')->url('archive')
-            ->label('recordings')->permissions(['movies'])->order(80));
+        // Recordings
+        NavbarRegistry::add((new NavbarItem('distribution.recordings'))
+            ->parent('distribution')->url('archive')
+            ->label('recordings')->permissions(['movies'])->order(30));
 
-        NavbarRegistry::add((new NavbarItem('content.tv_guide'))
-            ->parent('content')->url('epg_view')
+        // TV Guide
+        NavbarRegistry::add((new NavbarItem('distribution.tv_guide'))
+            ->parent('distribution')->url('epg_view')
             ->label('tv_guide')->permissions(['streams'])
-            ->desktopOnly()->order(90));
+            ->desktopOnly()->order(40));
     }
 
     // ── Logs ──────────────────────────────────────────────────────
