@@ -1,279 +1,141 @@
-<div class="wrapper boxed-layout" <?php 
-use XcVm\Core\Config\SettingsManager;
+<?php
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-										echo ' style="display: block;"';
-									} ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?php echo isset($rEPGArr) ? $language::get('edit') . ' ' : $language::get('add') . ' ';
-											echo $language::get('epg'); ?></h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-xl-12">
-				<div class="card">
-					<div class="card-body">
-						<form action="#" method="POST" data-parsley-validate="">
-							<?php if (isset($rEPGArr)) { ?>
-								<input type="hidden" name="edit" value="<?php echo $rEPGArr['id']; ?>" />
-							<?php } ?>
-							<div id="basicwizard">
-								<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-									<li class="nav-item">
-										<a href="#category-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
-										</a>
-									</li>
-									<?php if (isset($rEPGArr)) { ?>
-										<li class="nav-item">
-											<a href="#view-channels" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-												<i class="mdi mdi-play mr-1"></i>
-												<span class="d-none d-sm-inline"><?php echo $language::get('view_channels'); ?></span>
-											</a>
-										</li>
-									<?php } ?>
-								</ul>
-								<div class="tab-content b-0 mb-0 pt-0">
-									<div class="tab-pane" id="category-details">
-										<div class="row">
-											<div class="col-12">
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="epg_name"><?php echo $language::get('epg_name'); ?></label>
-													<div class="col-md-8">
-														<input type="text" class="form-control" id="epg_name" name="epg_name" value="<?php echo isset($rEPGArr) ? htmlspecialchars($rEPGArr['epg_name']) : ''; ?>" required data-parsley-trigger="change">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="epg_file"><?php echo $language::get('source'); ?></label>
-													<div class="col-md-8">
-														<input type="text" class="form-control" id="epg_file" name="epg_file" value="<?php echo isset($rEPGArr) ? htmlspecialchars($rEPGArr['epg_file']) : ''; ?>" required data-parsley-trigger="change">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="days_keep"><?php echo $language::get('days_to_keep'); ?></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center" id="days_keep" name="days_keep" value="<?php echo isset($rEPGArr) ? htmlspecialchars($rEPGArr['days_keep']) : '7'; ?>" required data-parsley-trigger="change">
-													</div>
-													<label class="col-md-4 col-form-label" for="offset"><?= $language::get('minute_offset') ?></label>
-													<div class="col-md-2">
-														<input type="text" class="form-control text-center" id="offset" name="offset" value="<?php echo isset($rEPGArr) ? intval($rEPGArr['offset']) : '0'; ?>" required data-parsley-trigger="change">
-													</div>
-												</div>
-											</div>
-										</div>
-										<ul class="list-inline wizard mb-0">
-											<li class="list-inline-item float-right">
-												<input name="submit_epg" type="submit" class="btn btn-primary" value="<?php echo isset($rEPGArr) ? $language::get('edit') : $language::get('add'); ?>" />
-											</li>
-										</ul>
-									</div>
-									<div class="tab-pane" id="view-channels">
-										<div class="row">
-											<div class="col-12" style="overflow-x:auto;">
-												<table id="datatable" class="table dt-responsive nowrap">
-													<thead>
-														<tr>
-															<th><?php echo $language::get('key'); ?></th>
-															<th><?php echo $language::get('channel_name'); ?></th>
-															<th><?php echo $language::get('languages'); ?></th>
-														</tr>
-													</thead>
-													<tbody>
-														<?php $rEPGData = isset($rEPGArr['data']) ? json_decode($rEPGArr['data'], true) : array(); ?>
-														<?php foreach ($rEPGData as $rEPGKey => $rEPGRow) { ?>
-															<tr>
-																<td><?php echo $rEPGKey; ?></td>
-																<td><?php echo $rEPGRow['display_name']; ?></td>
-																<td><?php echo implode(', ', $rEPGRow['langs']); ?></td>
-															</tr>
-														<?php } ?>
-													</tbody>
-												</table>
-											</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						</form>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+/**
+ * EPG source add / edit (Vuexy). Full-page form reached from the epgs table
+ * (href="epg?id=X"). Two tabs: Details (name / source / retention / offset) and,
+ * when editing, a read-only channel listing decoded from the stored EPG data.
+ * The form posts to post.php?action=epg (the legacy PostController path) via
+ * fetch; on success it returns to the epgs list.
+ */
+
+$rIsEdit = isset($rEPGArr);
+$rEPGData = ($rIsEdit && !empty($rEPGArr['data'])) ? (json_decode((string) $rEPGArr['data'], true) ?: []) : [];
+?>
+
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex align-items-center mb-4">
+            <a href="epgs" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+            <h4 class="mb-0"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?> <?= $language::get('epg'); ?></h4>
+        </div>
+    </div>
 </div>
+
+<div class="card">
+    <div class="card-body">
+        <ul class="nav nav-pills flex-column flex-md-row mb-4" role="tablist">
+            <li class="nav-item">
+                <button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab">
+                    <i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?>
+                </button>
+            </li>
+            <?php if ($rIsEdit): ?>
+                <li class="nav-item">
+                    <button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-channels" role="tab">
+                        <i class="icon-base ti tabler-player-play me-1"></i><?= $language::get('view_channels'); ?>
+                    </button>
+                </li>
+            <?php endif; ?>
+        </ul>
+
+        <div class="tab-content p-0">
+            <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                <form id="epg-form" autocomplete="off">
+                    <?php if ($rIsEdit): ?>
+                        <input type="hidden" name="edit" value="<?= (int) $rEPGArr['id']; ?>">
+                    <?php endif; ?>
+                    <div class="row g-4">
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="epg_name"><?= $language::get('epg_name'); ?></label>
+                            <input type="text" class="form-control" id="epg_name" name="epg_name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEPGArr['epg_name'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label" for="epg_file"><?= $language::get('source'); ?></label>
+                            <input type="text" class="form-control" id="epg_file" name="epg_file" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEPGArr['epg_file'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="days_keep"><?= $language::get('days_to_keep'); ?></label>
+                            <input type="text" inputmode="numeric" class="form-control text-center" id="days_keep" name="days_keep" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEPGArr['days_keep'], ENT_QUOTES) : '7'; ?>">
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <label class="form-label" for="offset"><?= $language::get('minute_offset'); ?></label>
+                            <input type="text" inputmode="numeric" class="form-control text-center" id="offset" name="offset" required value="<?= $rIsEdit ? (int) $rEPGArr['offset'] : '0'; ?>">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end mt-4">
+                        <button type="submit" class="btn btn-primary" id="epg-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+                    </div>
+                </form>
+            </div>
+
+            <?php if ($rIsEdit): ?>
+                <div class="tab-pane fade" id="tab-channels" role="tabpanel">
+                    <div class="card-datatable table-responsive">
+                        <table id="epg-channels-table" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th><?= $language::get('key'); ?></th>
+                                    <th><?= $language::get('channel_name'); ?></th>
+                                    <th><?= $language::get('languages'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($rEPGData as $rEPGKey => $rEPGRow): ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars((string) $rEPGKey, ENT_QUOTES); ?></td>
+                                        <td><?= htmlspecialchars((string) ($rEPGRow['display_name'] ?? ''), ENT_QUOTES); ?></td>
+                                        <td><?= htmlspecialchars(implode(', ', (array) ($rEPGRow['langs'] ?? [])), ENT_QUOTES); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        // Numeric-only guards mirroring the legacy inputFilter.
+        var digitsOnly = function(el, allowNeg) {
+            el.addEventListener('input', function() {
+                var re = allowNeg ? /[^0-9-]/g : /[^0-9]/g;
+                var v = el.value.replace(re, '');
+                if (allowNeg) { v = v.replace(/(?!^)-/g, ''); }
+                el.value = v;
+            });
+        };
+        digitsOnly(document.getElementById('days_keep'), false);
+        digitsOnly(document.getElementById('offset'), true);
 
-	$(document).ready(function() {
-		$("#datatable").DataTable({
-			language: {
-				paginate: {
-					previous: "<i class='mdi mdi-chevron-left'>",
-					next: "<i class='mdi mdi-chevron-right'>"
-				}
-			},
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			responsive: false,
-			bAutoWidth: false,
-			bInfo: false
-		});
-		$("#days_keep").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#offset").inputFilter(function(value) {
-			return /^-?[0-9]\d*(\.\d+)?$/.test(value);
-		});
-		$("form").submit(function(e) {
-			e.preventDefault();
-			$(':input[type="submit"]').prop('disabled', true);
-			submitForm(window.rCurrentPage, new FormData($("form")[0]));
-		});
-	});
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        <?php if ($rIsEdit): ?>
+            jQuery('#epg-channels-table').DataTable({ paging: true, searching: true, info: false, order: [], responsive: true, layout: { topStart: 'pageLength', topEnd: 'search' } });
+        <?php endif; ?>
+
+        // Submit → post.php?action=epg (legacy PostController path), then back to the list.
+        document.getElementById('epg-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var btn = document.getElementById('epg-submit');
+            btn.disabled = true;
+            fetch('post.php?action=epg', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) { window.location.href = dt.location || 'epgs'; return; }
+                    btn.disabled = false;
+                    alert(errText);
+                })
+                .catch(function() { btn.disabled = false; alert(errText); });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
