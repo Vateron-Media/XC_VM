@@ -61,6 +61,7 @@ const REFERENCES: Migrated[] = [
 ];
 
 const MANAGEMENT: Migrated[] = [
+  { url: 'lines', table: '#lines-table', ajax: 'lines', bulk: true },
   { url: 'users', table: '#users-table', ajax: 'reg_users' },
   { url: 'series', table: '#series-table', ajax: 'series', bulk: true },
   { url: 'mags', table: '#mags-table', ajax: 'mags', bulk: true },
@@ -73,10 +74,12 @@ const MANAGEMENT: Migrated[] = [
 /** Load a migrated page and assert the Vuexy shell + table + (serverSide) ajax. */
 async function assertMigrated(page: Page, m: Migrated) {
   // Arm the ajax wait before navigating so the DataTables request isn't missed.
+  // The heaviest tables (lines) run correlated per-row subqueries, so allow a
+  // generous window for the serverSide response on a modest canary.
   const ajaxWait = m.ajax
     ? page
         .waitForResponse((r) => /\/table(\?|$)/.test(r.url()) && r.request().method() !== 'OPTIONS', {
-          timeout: 20_000,
+          timeout: 40_000,
         })
         .catch(() => null)
     : null;

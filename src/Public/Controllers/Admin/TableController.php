@@ -246,7 +246,8 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? '') === "desc" ? "desc" : "asc";
-		$rOrder = ["`lines`.`id`", "`lines`.`username`", "`lines`.`password`", "`lines`.`member_id`", "`lines`.`enabled` - `lines`.`admin_enabled`", "`active_connections` > 0", "`lines`.`is_trial`", "`lines`.`is_restreamer`", "`active_connections`", "`lines`.`max_connections`", "`lines`.`exp_date`", "`active_connections` " . $rOrderDirection . ", `last_activity`", false];
+		// Leading false, false = Responsive control + bulk-select checkbox columns (Vuexy).
+		$rOrder = [false, false, "`lines`.`id`", "`lines`.`username`", "`lines`.`password`", "`lines`.`member_id`", "`lines`.`enabled` - `lines`.`admin_enabled`", "`active_connections` > 0", "`lines`.`is_trial`", "`lines`.`is_restreamer`", "`active_connections`", "`lines`.`max_connections`", "`lines`.`exp_date`", "`active_connections` " . $rOrderDirection . ", `last_activity`", false];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 		} else {
@@ -382,52 +383,13 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
+						$rStatus = "active";
 						if (!$rRow["admin_enabled"]) {
-							$rStatus = "<i class=\"text-danger fas fa-square tooltip\" title=\"Banned\"></i>";
+							$rStatus = "banned";
 						} elseif (!$rRow["enabled"]) {
-							$rStatus = "<i class=\"text-secondary fas fa-square tooltip\" title=\"Disabled\"></i>";
+							$rStatus = "disabled";
 						} elseif ($rRow["exp_date"] && $rRow["exp_date"] < time()) {
-							$rStatus = "<i class=\"text-warning far fa-square tooltip\" title=\"Expired\"></i>";
-						} else {
-							$rStatus = "<i class=\"text-success fas fa-square tooltip\" title=\"Active\"></i>";
-						}
-						if (0 < $rRow["active_connections"]) {
-							$rActive = "<i class=\"text-success fas fa-square\"></i>";
-						} else {
-							$rActive = "<i class=\"text-secondary far fa-square\"></i>";
-						}
-						if ($rRow["is_trial"]) {
-							$rTrial = "<i class=\"text-warning fas fa-square\"></i>";
-						} else {
-							$rTrial = "<i class=\"text-secondary far fa-square\"></i>";
-						}
-						if ($rRow["is_restreamer"]) {
-							$rRestreamer = "<i class=\"text-info fas fa-square\"></i>";
-						} else {
-							$rRestreamer = "<i class=\"text-secondary far fa-square\"></i>";
-						}
-						if ($rRow["exp_date"]) {
-							if ($rRow["exp_date"] < time()) {
-								$rExpDate = "<span class=\"expired\">" . date($rSettings["date_format"], $rRow["exp_date"]) . "<br/><small>" . date("H:i:s", $rRow["exp_date"]) . "</small></span>";
-							} else {
-								$rExpDate = date($rSettings["date_format"], $rRow["exp_date"]) . "<br/><small class='text-secondary'>" . date("H:i:s", $rRow["exp_date"]) . "</small>";
-							}
-						} else {
-							$rExpDate = "&infin;";
-						}
-
-						if (0 < $rRow["active_connections"]) {
-							$rActiveConnections = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow["active_connections"] . "</button>";
-						} else {
-							$rActiveConnections = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-						}
-						if (Authorization::check("adv", "live_connections") && 0 < $rRow["active_connections"]) {
-							$rActiveConnections = "<a href=\"live_connections?user_id=" . $rRow["id"] . "\">" . $rActiveConnections . "</a>";
-						}
-						if ($rRow["max_connections"] == 0) {
-							$rMaxConnections = "<button type='button' class='btn btn-dark text-white btn-xs waves-effect waves-light'>&infin;</button>";
-						} else {
-							$rMaxConnections = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>" . $rRow["max_connections"] . "</button>";
+							$rStatus = "expired";
 						}
 						$rNotes = "";
 						if (!empty($rRow['admin_notes'])) {
@@ -439,92 +401,35 @@ class TableController extends BaseAdminController {
 							}
 							$rNotes .= $rRow['reseller_notes'];
 						}
-
-						if (SettingsManager::getAll()["group_buttons"]) {
-							$rButtons = "";
-							if (0 < strlen($rNotes)) {
-								$rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rNotes . "\"><i class=\"mdi mdi-note\"></i></button>";
-							}
-							$rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
-							if (Authorization::check("adv", "edit_user")) {
-								$rButtons .= "<a class=\"dropdown-item\" href=\"line?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'line', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["username"])) . "')\" data-modal=\"true\"" : "") . ">Edit Line</a>";
-							}
-							if (Authorization::check("adv", "fingerprint") && 0 < $rRow["active_connections"]) {
-								$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"modalFingerprint(" . $rRow["id"] . ", 'user');\">Fingerprint</a>";
-							}
-							$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"openDownload('" . $rRow["username"] . "', '" . $rRow["password"] . "');\">Download Playlist</a>";
-							$rWhatsAppContact = !empty($rRow["contact"]) ? addslashes($rRow["contact"]) : '';
-							$rWhatsAppExp = $rRow["exp_date"] ? $rRow["exp_date"] : 'null';
-							$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"openWhatsApp('" . addslashes($rRow["username"]) . "', '" . $rWhatsAppContact . "', " . $rWhatsAppExp . ");\"><i class=\"mdi mdi-whatsapp text-success\"></i> WhatsApp Renewal</a>";
-							if (Authorization::check("adv", "edit_user")) {
-								$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'kill');\">Kill Connections</a>";
-								if ($rRow["admin_enabled"]) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'ban');\">Ban Line</a>";
-								} else {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'unban');\">Unban Line</a>";
-								}
-								if ($rRow["enabled"]) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'disable');\">Disable Line</a>";
-								} else {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'enable');\">Enable Line</a>";
-								}
-								$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'delete');\">Delete Line</a>";
-							}
-							$rButtons .= "</div></div>";
+						if ($rRow["exp_date"]) {
+							$rExpStr = date($rSettings["date_format"], $rRow["exp_date"]) . " " . date("H:i:s", $rRow["exp_date"]);
 						} else {
-							$rButtons = "<div class=\"btn-group\">";
-							if (0 < strlen($rNotes)) {
-								$rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rNotes . "\"><i class=\"mdi mdi-note\"></i></button>";
-							} else {
-								$rButtons .= "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
-							}
-							if (Authorization::check("adv", "edit_user")) {
-								$rButtons .= "<a href=\"line?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'line', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["username"])) . "')\" data-modal=\"true\"" : "") . "><button title=\"Edit\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-pencil\"></i></button></a>";
-							}
-							if (Authorization::check("adv", "fingerprint")) {
-								if (0 < $rRow["active_connections"]) {
-									$rButtons .= "<button title=\"Fingerprint\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"modalFingerprint(" . $rRow["id"] . ", 'user');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-								} else {
-									$rButtons .= "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-								}
-							}
-							$rButtons .= "<button type=\"button\" title=\"Download Playlist\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"openDownload('" . $rRow["username"] . "', '" . $rRow["password"] . "');\"><i class=\"mdi mdi-download\"></i></button>";
-							$rWhatsAppContact = !empty($rRow["contact"]) ? addslashes($rRow["contact"]) : '';
-							$rWhatsAppExp = $rRow["exp_date"] ? $rRow["exp_date"] : 'null';
-							$rButtons .= "<button type=\"button\" title=\"WhatsApp Renewal\" class=\"btn btn-success waves-effect waves-light btn-xs tooltip\" onClick=\"openWhatsApp('" . addslashes($rRow["username"]) . "', '" . $rWhatsAppContact . "', " . $rWhatsAppExp . ");\"><i class=\"mdi mdi-whatsapp\"></i></button>";
-							if (Authorization::check("adv", "edit_user")) {
-								$rButtons .= "<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
-								if ($rRow["admin_enabled"]) {
-									$rButtons .= "<button title=\"Ban\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'ban');\"><i class=\"mdi mdi-power\"></i></button>";
-								} else {
-									$rButtons .= "<button title=\"Unban\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'unban');\"><i class=\"mdi mdi-power\"></i></button>";
-								}
-								if ($rRow["enabled"]) {
-									$rButtons .= "<button title=\"Disable\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-								} else {
-									$rButtons .= "<button title=\"Enable\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-								}
-								$rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-							}
-							$rButtons .= "</div>";
+							$rExpStr = null;
 						}
-						if ($rRow["active_connections"] && $rRow["last_active"]) {
-							$rLastActive = "<a href='stream_view?id=" . $rRow["stream_id"] . "'>" . $rRow["stream_display_name"] . "</a><br/><small class='text-secondary'>Online: " . TimeUtils::secondsToTime(time() - $rRow["last_active"]) . "</small>";
-						} elseif (!empty($rRow['last_active'])) {
-							$rLastActive = date($rSettings["date_format"], $rRow["last_active"]) . "<br/><small class='text-secondary'>" . date("H:i:s", $rRow["last_active"]) . "</small>";
-						} else {
-							$rLastActive = "Never";
-						}
-						if (0 < $rRow["member_id"]) {
-							$rOwner = "<a href='user?id=" . $rRow["member_id"] . "'>" . $rRow["owner_name"] . "</a>";
-						} else {
-							$rOwner = $rRow['owner_name'] ?? '';
-						}
-						if (!RequestManager::has("no_url")) {
-							$rReturn["data"][] = ["<a href='line?id=" . $rRow["id"] . "'>" . $rRow["id"] . "</a>", "<a href='line?id=" . $rRow["id"] . "'>" . $rRow["username"] . "</a>", $rRow["password"], $rOwner, $rStatus, $rActive, $rTrial, $rRestreamer, $rActiveConnections, $rMaxConnections, $rExpDate, $rLastActive, $rButtons];
-						} else {
-							$rReturn["data"][] = [$rRow["id"], $rRow["username"], $rRow["password"], $rRow["owner_name"], $rStatus, $rActive, $rTrial, $rRestreamer, $rActiveConnections, $rMaxConnections, $rExpDate, $rLastActive, $rButtons];
-						}
+						$rLastStr = !empty($rRow["last_active"]) ? date($rSettings["date_format"], $rRow["last_active"]) . " " . date("H:i:s", $rRow["last_active"]) : null;
+						$rReturn["data"][] = [
+							"id" => (int) $rRow["id"],
+							"username" => $rRow["username"],
+							"password" => $rRow["password"],
+							"owner_name" => $rRow["owner_name"],
+							"member_id" => (int) $rRow["member_id"],
+							"status" => $rStatus,
+							"trial" => (bool) $rRow["is_trial"],
+							"restreamer" => (bool) $rRow["is_restreamer"],
+							"active_connections" => (int) $rRow["active_connections"],
+							"max_connections" => (int) $rRow["max_connections"],
+							"exp_str" => $rExpStr,
+							"exp_unix" => $rRow["exp_date"] ? (int) $rRow["exp_date"] : null,
+							"exp_expired" => (bool) ($rRow["exp_date"] && $rRow["exp_date"] < time()),
+							"stream_id" => isset($rRow["stream_id"]) ? (int) $rRow["stream_id"] : null,
+							"stream_display_name" => $rRow["stream_display_name"] ?? null,
+							"last_active" => !empty($rRow["last_active"]) ? (int) $rRow["last_active"] : null,
+							"last_str" => $rLastStr,
+							"notes" => $rNotes,
+							"admin_enabled" => (bool) $rRow["admin_enabled"],
+							"enabled" => (bool) $rRow["enabled"],
+							"contact" => $rRow["contact"],
+						];
 					}
 				}
 			}

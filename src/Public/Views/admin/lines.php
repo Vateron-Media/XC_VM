@@ -1,114 +1,211 @@
-<div class="wrapper" <?php 
+<?php
+
+/**
+ * Lines (Vuexy). The panel's largest management table. Clean-JSON pattern:
+ * TableController::handleLines resolves each line's status, live-connection count,
+ * current stream and owner server-side; this page renders the status/online/trial/
+ * restreamer dots, connection badges, expiration and last-connection cells and the
+ * per-row action dropdown client-side (datatables-bs5 columns[].render).
+ *
+ * Features: reseller (select2-ajax) + status + search filters, bulk-select toolbar
+ * (enable/disable/ban/unban/kill/delete via action=multi&type=line), per-row actions
+ * (edit + fingerprint iframe modals, download-playlist modal, WhatsApp-renewal modal,
+ * kill/ban/unban/enable/disable/delete via action=line), and CSV export.
+ */
+
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\User\UserRepository;
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-                        } else {
-                            echo ' style="display: none;"';
-                        } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+if (!Authorization::check('adv', 'users') && !Authorization::check('adv', 'mass_edit_users')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
+
+global $db;
+
+$rCanEdit = Authorization::check('adv', 'edit_user');
+$rCanLive = Authorization::check('adv', 'live_connections');
+$rCanFinger = Authorization::check('adv', 'fingerprint');
+$rRedis = (bool) SettingsManager::get('redis_handler');
+$rSiteUrl = rtrim((string) (ServerRepository::getAll()[SERVER_ID]['site_url'] ?? ''), '/');
+
+// Pre-selected reseller filter (deep link ?owner=ID).
+$rOwnerOpt = null;
+if (RequestManager::has('owner') && ($rTmp = UserRepository::getRegisteredUserById((int) RequestManager::get('owner')))) {
+    $rOwnerOpt = ['id' => (int) $rTmp['id'], 'text' => $rTmp['username']];
+}
+
+$rStatusFilters = [1 => 'Active', 2 => 'Disabled', 3 => 'Banned', 4 => 'Expired', 5 => 'Trial', 6 => 'Restreamer', 7 => 'Ministra', 8 => 'Expiring Soon'];
+?>
+
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><?= $language::get('lines'); ?></h5>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <?php if ($rCanEdit): ?>
+                <div id="bulk-bar" class="d-none align-items-center gap-2">
+                    <span class="text-body-secondary"><span id="bulk-count">0</span></span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-label-success" data-bulk="enable"><?= $language::get('enable'); ?></button>
+                        <button type="button" class="btn btn-label-secondary" data-bulk="disable"><?= $language::get('disable'); ?></button>
+                        <button type="button" class="btn btn-label-warning" data-bulk="ban"><?= $language::get('ban'); ?></button>
+                        <button type="button" class="btn btn-label-info" data-bulk="unban"><?= $language::get('unban'); ?></button>
+                        <button type="button" class="btn btn-label-dark" data-bulk="purge"><?= $language::get('kill'); ?></button>
+                        <button type="button" class="btn btn-label-danger" data-bulk="delete"><?= $language::get('delete'); ?></button>
                     </div>
-                    <h4 class="page-title"><?= $language::get('lines') ?></h4>
+                </div>
+            <?php endif; ?>
+            <button type="button" class="btn btn-sm btn-label-secondary" id="export-csv"><i class="icon-base ti tabler-file-export me-1"></i>CSV</button>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-lg-5">
+                <label class="form-label" for="filter-search"><?= $language::get('search'); ?></label>
+                <input type="text" id="filter-search" class="form-control" autocomplete="off" placeholder="<?= htmlspecialchars((string) $language::get('search_lines'), ENT_QUOTES); ?>">
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-reseller"><?= $language::get('owner'); ?></label>
+                <select id="filter-reseller" class="form-select">
+                    <?php if ($rOwnerOpt): ?>
+                        <option value="<?= $rOwnerOpt['id']; ?>" selected><?= htmlspecialchars($rOwnerOpt['text'], ENT_QUOTES); ?></option>
+                    <?php endif; ?>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="filter-status"><?= $language::get('status'); ?></label>
+                <select id="filter-status" class="form-select">
+                    <option value=""><?= $language::get('all'); ?></option>
+                    <?php foreach ($rStatusFilters as $rK => $rV): ?>
+                        <option value="<?= $rK; ?>" <?= (RequestManager::has('filter') && (int) RequestManager::get('filter') === $rK) ? 'selected' : ''; ?>><?= $rV; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="lines-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><input type="checkbox" class="form-check-input" id="check-all"></th>
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('username'); ?></th>
+                    <th><?= $language::get('password'); ?></th>
+                    <th><?= $language::get('owner'); ?></th>
+                    <th class="text-center"><?= $language::get('status'); ?></th>
+                    <th class="text-center"><?= $language::get('online'); ?></th>
+                    <th class="text-center"><?= $language::get('trial'); ?></th>
+                    <th class="text-center"><?= $language::get('restreamer'); ?></th>
+                    <th class="text-center"><?= $language::get('active'); ?></th>
+                    <th class="text-center"><?= $language::get('connections'); ?></th>
+                    <th class="text-center"><?= $language::get('expiration'); ?></th>
+                    <th class="text-center"><?= $language::get('last_connection'); ?></th>
+                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Edit / Fingerprint iframe modal -->
+<div class="modal fade" id="frameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0" id="frameModalTitle"><?= $language::get('edit'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="frame-src" src="about:blank" style="width:100%;height:70vh;border:0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Download Playlist modal -->
+<div class="modal fade" id="downloadModal" tabindex="-1" aria-hidden="true" data-username="" data-password="">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('download_playlist') ?: 'Download Playlist'; ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="download_type"><?= $language::get('format'); ?></label>
+                    <select id="download_type" class="form-select">
+                        <option value=""></option>
+                        <?php
+                        $db->query('SELECT * FROM `output_devices` ORDER BY `device_id` ASC;');
+                        foreach ($db->get_rows() as $rDev):
+                            $rKey = htmlspecialchars((string) $rDev['device_key'], ENT_QUOTES);
+                            $rName = htmlspecialchars((string) $rDev['device_name'], ENT_QUOTES);
+                            $rTextAttr = $rDev['copy_text'] ? ' data-text="' . htmlspecialchars(str_replace('"', '\\"', (string) $rDev['copy_text']), ENT_QUOTES) . '"' : '';
+                        ?>
+                            <optgroup label="<?= $rName; ?>">
+                                <option<?= $rTextAttr; ?> value="<?= $rKey; ?>?output=hls"><?= $rName; ?> - HLS</option>
+                                <option<?= $rTextAttr; ?> value="<?= $rKey; ?>"><?= $rName; ?> - MPEGTS</option>
+                                <option<?= $rTextAttr; ?> value="<?= $rKey; ?>?output=rtmp"><?= $rName; ?> - RTMP</option>
+                            </optgroup>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="output_type"><?= $language::get('limit_output'); ?></label>
+                    <select id="output_type" class="form-select" multiple>
+                        <option value="live"><?= $language::get('live_streams'); ?></option>
+                        <option value="movie"><?= $language::get('movies'); ?></option>
+                        <option value="created_live"><?= $language::get('created_channels'); ?></option>
+                        <option value="radio_streams"><?= $language::get('radio_stations'); ?></option>
+                        <option value="series"><?= $language::get('tv_series'); ?></option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <input type="text" class="form-control" id="download_url" value="" readonly>
+                    <button class="btn btn-outline-secondary" type="button" id="download_copy"><i class="icon-base ti tabler-copy"></i></button>
+                    <button class="btn btn-primary" type="button" id="download_open" disabled><i class="icon-base ti tabler-download"></i></button>
                 </div>
             </div>
         </div>
-        <div class="row">
-            <div class="col-12">
-                <?php if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS): ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        Line has been added / modified.
-                    </div>
-                <?php endif; ?>
-                <div class="card">
-                    <div class="card-body" style="overflow-x:auto;">
-                        <div id="collapse_filters" class="form-group row mb-4 <?php if (!$rMobile) {
-                                                                                } else {
-                                                                                    echo 'collapse';
-                                                                                } ?>">
-                            <div class="col-md-3">
-                                <input type="text" class="form-control" id="user_search" value="<?php if (!RequestManager::has('search')) {
-                                                                                                } else {
-                                                                                                    echo htmlspecialchars(RequestManager::get('search'));
-                                                                                                } ?>" placeholder="<?= $language::get('search_lines') ?>">
-                            </div>
-                            <label class="col-md-2 col-form-label text-center" for="user_reseller">Filter Results &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();"><i class="mdi mdi-close"></i></button></label>
-                            <div class="col-md-3">
-                                <select id="user_reseller" class="form-control" data-toggle="select2">
-                                    <?php if (!(RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner')))))): ?>
-                                    <?php else: ?>
-                                        <option value="<?php echo intval($rOwner['id']); ?>" selected="selected"><?php echo $rOwner['username']; ?></option>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <select id="user_filter" class="form-control" data-toggle="select2">
-                                    <option value="" <?php if (!RequestManager::has('filter')) {
-                                                            echo ' selected';
-                                                        } ?>>No Filter</option>
-                                    <?php
-                                    $filters = [
-                                        1 => 'Active',
-                                        2 => 'Disabled',
-                                        3 => 'Banned',
-                                        4 => 'Expired',
-                                        5 => 'Trial',
-                                        6 => 'Restreamer',
-                                        7 => 'Ministra',
-                                        8 => 'Expiring Soon',
-                                    ];
-                                    foreach ($filters as $key => $value) {
-                                        $selected = (RequestManager::has('filter') && RequestManager::get('filter') == $key) ? ' selected' : '';
-                                        echo "<option value=\"$key\"$selected>$value</option>\n";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                            <label class="col-md-1 col-form-label text-center" for="user_show_entries"><?= $language::get('show') ?></label>
-                            <div class="col-md-1">
-                                <select id="user_show_entries" class="form-control" data-toggle="select2">
-                                    <?php
-                                    $entriesOptions = [10, 25, 50, 250, 500, 1000];
-                                    foreach ($entriesOptions as $rShow) {
-                                        $selected = (RequestManager::has('entries') && RequestManager::get('entries') == $rShow) || ($rSettings['default_entries'] == $rShow) ? ' selected' : '';
-                                        echo "<option value=\"$rShow\"$selected>$rShow</option>\n";
-                                    }
-                                    ?>
-                                </select>
-                            </div>
-                        </div>
-                        <table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
-                            <thead>
-                                <tr>
-                                    <th class="text-center"><?= $language::get('id') ?></th>
-                                    <th><?= $language::get('username') ?></th>
-                                    <th><?= $language::get('password') ?></th>
-                                    <th><?= $language::get('owner') ?></th>
-                                    <th class="text-center"><?= $language::get('status') ?></th>
-                                    <th class="text-center"><?= $language::get('online') ?></th>
-                                    <th class="text-center"><?= $language::get('trial') ?></th>
-                                    <th class="text-center"><?= $language::get('restreamer') ?></th>
-                                    <th class="text-center"><?= $language::get('active') ?></th>
-                                    <th class="text-center"><?= $language::get('connections') ?></th>
-                                    <th class="text-center"><?= $language::get('expiration') ?></th>
-                                    <th class="text-center"><?= $language::get('last_connection') ?></th>
-                                    <th class="text-center"><?= $language::get('actions') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
+    </div>
+</div>
+
+<!-- WhatsApp Renewal modal -->
+<div class="modal fade" id="whatsappModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><i class="icon-base ti tabler-brand-whatsapp text-success me-1"></i>WhatsApp Renewal</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="wa_language"><?= $language::get('select_language_sprache_whlen_dil_sein'); ?></label>
+                    <select id="wa_language" class="form-select">
+                        <option value="de">🇩🇪 Deutsch</option>
+                        <option value="en">🇬🇧 English</option>
+                        <option value="tr">🇹🇷 Türkçe</option>
+                    </select>
                 </div>
+                <div class="mb-0">
+                    <label class="form-label" for="wa_message_preview"><?= $language::get('preview_vorschau_nizleme'); ?></label>
+                    <textarea id="wa_message_preview" class="form-control" rows="5" readonly></textarea>
+                </div>
+                <input type="hidden" id="wa_phone"><input type="hidden" id="wa_username"><input type="hidden" id="wa_expdate"><input type="hidden" id="wa_days">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?= $language::get('cancel'); ?></button>
+                <a id="wa_send" href="#" target="_blank" class="btn btn-success"><i class="icon-base ti tabler-brand-whatsapp me-1"></i><?= $language::get('send_via_whatsapp'); ?></a>
             </div>
         </div>
     </div>
@@ -118,273 +215,273 @@ if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQU
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
-
-    <?php
-    echo "\t\t" . 'var rClearing = false;' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete this line?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "kill") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections for this line?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=line&sub=" + rType + "&user_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("Line has been deleted.");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("Line has been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("Line has been disabled.");' . "\r\n" . '                        } else if (rType == "unban") {' . "\r\n" . '                            $.toast("Line has been unbanned.");' . "\r\n" . '                        } else if (rType == "ban") {' . "\r\n" . '                            $.toast("Line has been banned.");' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("All connections for this line have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable-users tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these lines?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=line&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "ban") {' . "\r\n" . '                            $.toast("Lines have been banned.");' . "\r\n" . '                        } else if (rType == "unban") {' . "\r\n" . '                            $.toast("Lines have been unbanned.");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("Lines have been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("Lines have been disabled.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Lines have been deleted.");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function openDownload(username, password) {' . "\r\n\t\t\t" . '$("#download_type").val("").trigger("change");' . "\r\n" . '            $("#output_type").val("").trigger("change");' . "\r\n\t\t\t" . '$("#download_button").attr("disabled", true);' . "\r\n\t\t\t" . "\$('.downloadModal').data('username', username);" . "\r\n\t\t\t" . "\$('.downloadModal').data('password', password);" . "\r\n\t\t\t" . "\$('.downloadModal').modal('show');" . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function doDownload() {' . "\r\n\t\t\t" . 'if ($("#download_url").val()) {' . "\r\n\t\t\t\t" . 'window.open($("#download_url").val());' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function copyDownload() {' . "\r\n\t\t\t" . '$("#download_url").select();' . "\r\n\t\t\t" . 'document.execCommand("copy");' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#user_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#user_reseller").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#user_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#user_filter').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#user_reseller').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#user_show_entries').val(\"";
-    echo (intval($rSettings['default_entries']) ?: 10);
-    echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().search(\$(\"#user_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().page.len(\$('#user_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-users\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "filter", "owner", "page", "entries"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#user_reseller').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "filter", "owner"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n" . '            $("#output_type").change(function() {' . "\r\n" . '                $("#download_type").trigger("change");' . "\r\n" . '            });' . "\r\n" . '            $("#download_type").change(function() {' . "\r\n" . '                if ($("#download_type").val()) {' . "\r\n" . '                    ';
-    $rURL = rtrim(ServerRepository::getAll()[SERVER_ID]['site_url'], '/');
-    echo '                    rText = "';
-    echo $rURL;
-    echo "/playlist/\" + \$('.downloadModal').data('username') + \"/\" + \$('.downloadModal').data('password') + \"/\" + decodeURIComponent(\$('.downloadModal select').val());" . "\r\n" . '                    if ($("#output_type").val().length > 0) {' . "\r\n" . "                        if (rText.indexOf('?output=') != -1) {" . "\r\n" . '                            rText = rText + "&key=" + $("#output_type").val().join(",");' . "\r\n" . '                        } else {' . "\r\n" . '                            rText = rText + "?key=" + $("#output_type").val().join(",");' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . "                    if (\$(\"#download_type\").find(':selected').data('text')) {" . "\r\n" . "                        rText = \$(\"#download_type\").find(':selected').data('text').replace(\"{DEVICE_LINK}\", '\"' + rText + '\"');" . "\r\n" . '                        $("#download_button").attr("disabled", true);' . "\r\n" . '                    } else {' . "\r\n" . '                        $("#download_button").attr("disabled", false);' . "\r\n" . '                    }' . "\r\n" . '                    $("#download_url").val(rText);' . "\r\n" . '                } else {' . "\r\n" . '                    $("#download_url").val("");' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
-    echo intval($rSettings['default_entries']);
-    echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"," . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    ';
-
-    if (!Authorization::check('adv', 'edit_user')) {
-    } else {
-        echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable-users tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_lines_selected").html(window.rSelected.length + " lines");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_lines").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_lines").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
-    }
-
-    echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "lines";' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter();' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,4,5,6,7,8,9,10,11,12]},' . "\r\n\t\t\t\t\t";
-
-    if (SettingsManager::get('redis_handler')) {
-        echo "\t\t\t\t\t" . '{"orderable": false, "targets": [5,8,12]}' . "\r\n\t\t\t\t\t";
-    } else {
-        echo "\t\t\t\t\t" . '{"orderable": false, "targets": [12]}' . "\r\n\t\t\t\t\t";
-    }
-
-    echo "\t\t\t\t" . '],' . "\r\n" . '                ';
-
-    if ($rMobile) {
-        echo 'scrollX: true,';
-    }
-
-    echo "\t\t\t\t" . 'order: [[ ';
-    echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
-    echo ', "';
-    echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
-    echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n" . "            \$('#user_reseller').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#user_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#user_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#user_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#user_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#user_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#user_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#user_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#user_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-users").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-    ?>
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
-</script>
-<!-- WhatsApp Renewal Modal -->
-<div class="modal fade" id="whatsappModal" tabindex="-1" role="dialog" aria-labelledby="whatsappModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="whatsappModalLabel"><i class="mdi mdi-whatsapp text-success"></i> WhatsApp Renewal Reminder</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <label for="wa_language"><?= $language::get('select_language_sprache_whlen_dil_sein') ?></label>
-                    <select id="wa_language" class="form-control">
-                        <option value="de">🇩🇪 Deutsch</option>
-                        <option value="en">🇬🇧 English</option>
-                        <option value="tr">🇹🇷 Türkçe</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label><?= $language::get('preview_vorschau_nizleme') ?></label>
-                    <textarea id="wa_message_preview" class="form-control" rows="5" readonly></textarea>
-                </div>
-                <input type="hidden" id="wa_phone" value="">
-                <input type="hidden" id="wa_username" value="">
-                <input type="hidden" id="wa_expdate" value="">
-                <input type="hidden" id="wa_daysremaining" value="">
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-dismiss="modal"><?= $language::get('cancel') ?></button>
-                <a id="wa_send_btn" href="#" target="_blank" class="btn btn-success"><i class="mdi mdi-whatsapp"></i> <?= $language::get('send_via_whatsapp') ?></a>
-            </div>
-        </div>
-    </div>
-</div>
 <script>
-    // WhatsApp Renewal Messages
-    var waMessages = {
-        de: "Hallo Lieber {USERNAME},\n\nIhr IPTV Abonnement endet am {EXPDATE} und es sind noch {DAYS} Tage übrig.\n\nMöchten Sie Ihr IPTV Abonnement verlängern?\n\nMit freundlichen Grüßen",
-        en: "Hello Dear {USERNAME},\n\nYour IPTV subscription expires on {EXPDATE} and there are {DAYS} days remaining.\n\nWould you like to renew your IPTV subscription?\n\nBest regards",
-        tr: "Merhaba Sayın {USERNAME},\n\nIPTV aboneliğiniz {EXPDATE} tarihinde sona eriyor ve {DAYS} gün kaldı.\n\nIPTV aboneliğinizi yenilemek ister misiniz?\n\nSaygılarımızla"
-    };
+    (function() {
+        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>, canLive = <?= $rCanLive ? 'true' : 'false'; ?>, canFinger = <?= $rCanFinger ? 'true' : 'false'; ?>, redis = <?= $rRedis ? 'true' : 'false'; ?>;
+        var siteUrl = <?= json_encode($rSiteUrl); ?>;
+        var lang = {
+            edit: <?= json_encode($language::get('edit')); ?>,
+            fingerprint: <?= json_encode($language::get('fingerprint') ?: 'Fingerprint'); ?>,
+            download: <?= json_encode($language::get('download_playlist') ?: 'Download Playlist'); ?>,
+            whatsapp: 'WhatsApp Renewal',
+            kill: <?= json_encode($language::get('kill') ?: 'Kill Connections'); ?>,
+            ban: <?= json_encode($language::get('ban')); ?>,
+            unban: <?= json_encode($language::get('unban')); ?>,
+            enable: <?= json_encode($language::get('enable')); ?>,
+            disable: <?= json_encode($language::get('disable')); ?>,
+            del: <?= json_encode($language::get('delete')); ?>,
+            selected: <?= json_encode($language::get('selected')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>,
+            confirmDelete: 'Are you sure you want to delete this line?',
+            confirmKill: 'Are you sure you want to kill all connections for this line?'
+        };
+        // Status code -> [bootstrap colour, label].
+        var STATUS = { banned: ['danger', 'Banned'], disabled: ['secondary', 'Disabled'], expired: ['warning', 'Expired'], active: ['success', 'Active'] };
+        var dot = function(color, title) { return '<i class="icon-base ti tabler-circle-filled text-' + color + '"' + (title ? ' title="' + esc(title) + '"' : '') + '></i>'; };
+        var fmtUptime = function(sec) {
+            sec = Math.max(0, Math.floor(sec));
+            var d = Math.floor(sec / 86400), h = Math.floor(sec / 3600) % 24, m = Math.floor(sec / 60) % 60, s = sec % 60;
+            var p = function(n) { return (n < 10 ? '0' : '') + n; };
+            return (d > 0 ? d + 'd ' : '') + p(h) + ':' + p(m) + ':' + p(s);
+        };
 
-    function updateWaPreview() {
-        var lang = $("#wa_language").val();
-        var username = $("#wa_username").val();
-        var expdate = $("#wa_expdate").val();
-        var days = $("#wa_daysremaining").val();
+        var selected = {};
+        var updateBulk = function() {
+            var n = Object.keys(selected).length, bar = document.getElementById('bulk-bar');
+            if (!bar) { return; }
+            document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
+            bar.classList.toggle('d-none', n === 0);
+            bar.classList.toggle('d-flex', n > 0);
+        };
+        var confirmSwal = function(text) {
+            if (window.Swal) { return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; }); }
+            return Promise.resolve(window.confirm(text));
+        };
 
-        var message = waMessages[lang]
-            .replace("{USERNAME}", username)
-            .replace("{EXPDATE}", expdate)
-            .replace("{DAYS}", days);
-
-        $("#wa_message_preview").val(message);
-
-        var phone = $("#wa_phone").val().replace(/[^0-9]/g, '');
-        var encodedMessage = encodeURIComponent(message);
-        $("#wa_send_btn").attr("href", "https://wa.me/" + phone + "?text=" + encodedMessage);
-    }
-
-    function openWhatsApp(username, contact, expTimestamp) {
-        if (!contact) {
-            $.toast({
-                heading: 'No WhatsApp Number',
-                text: 'This line has no WhatsApp number set.',
-                icon: 'warning',
-                position: 'top-right'
-            });
-            return;
-        }
-
-        var expDate = expTimestamp ? new Date(expTimestamp * 1000) : null;
-        var expDateStr = expDate ? expDate.toLocaleDateString('de-DE') : 'Never';
-        var daysRemaining = 0;
-
-        if (expDate) {
-            var today = new Date();
-            var diffTime = expDate - today;
-            daysRemaining = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            if (daysRemaining < 0) daysRemaining = 0;
-        }
-
-        $("#wa_phone").val(contact);
-        $("#wa_username").val(username);
-        $("#wa_expdate").val(expDateStr);
-        $("#wa_daysremaining").val(daysRemaining);
-
-        updateWaPreview();
-        $("#whatsappModal").modal("show");
-    }
-
-    $(document).ready(function() {
-        $("#wa_language").change(function() {
-            updateWaPreview();
+        var table = jQuery('#lines-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[2, 'desc']],
+            searchDelay: 400,
+            lengthMenu: [10, 25, 50, 250, 500, 1000],
+            pageLength: <?= (int) ($rSettings['default_entries'] ?: 25); ?>,
+            ajax: {
+                url: './table',
+                data: function(d) { d.id = 'lines'; d.filter = document.getElementById('filter-status').value; d.reseller = jQuery('#filter-reseller').val() || ''; }
+            },
+            columnDefs: [{ orderable: false, targets: [0, 1, 8, 9, 14].concat(redis ? [7, 10] : []) }],
+            columns: [
+                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                { data: 'id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
+                { data: 'id', className: 'text-center', render: function(d) { return '<a href="line?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
+                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>'; } },
+                { data: 'password', render: esc },
+                { data: 'owner_name', render: function(d, t, row) { return row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d || ''); } },
+                { data: 'status', className: 'text-center', render: function(d) { var s = STATUS[d] || ['secondary', d]; return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>'; } },
+                { data: 'active_connections', className: 'text-center', render: function(d) { return dot(d > 0 ? 'success' : 'secondary'); } },
+                { data: 'trial', className: 'text-center', render: function(d) { return dot(d ? 'warning' : 'secondary'); } },
+                { data: 'restreamer', className: 'text-center', render: function(d) { return dot(d ? 'info' : 'secondary'); } },
+                {
+                    data: 'active_connections',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var badge = '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>';
+                        return (d > 0 && canLive) ? '<a href="live_connections?user_id=' + encodeURIComponent(row.id) + '">' + badge + '</a>' : badge;
+                    }
+                },
+                { data: 'max_connections', className: 'text-center', render: function(d) { return '<span class="badge bg-label-dark">' + (d == 0 ? '&infin;' : d) + '</span>'; } },
+                {
+                    data: 'exp_str',
+                    className: 'text-center text-nowrap',
+                    render: function(d, t, row) {
+                        if (!d) { return '<span class="fs-4">&infin;</span>'; }
+                        var parts = String(d).split(' ');
+                        var body = esc(parts[0]) + (parts[1] ? '<br><small class="text-body-secondary">' + esc(parts[1]) + '</small>' : '');
+                        return row.exp_expired ? '<span class="text-danger">' + body + '</span>' : body;
+                    }
+                },
+                {
+                    data: 'last_active',
+                    className: 'text-nowrap',
+                    render: function(d, t, row) {
+                        if (row.active_connections > 0 && d) {
+                            var name = row.stream_display_name ? '<a href="stream_view?id=' + encodeURIComponent(row.stream_id) + '" class="text-body">' + esc(row.stream_display_name) + '</a>' : '<span class="text-body">#' + esc(row.stream_id) + '</span>';
+                            return name + '<br><small class="text-success">Online: ' + fmtUptime(Math.floor(Date.now() / 1000) - d) + '</small>';
+                        }
+                        if (row.last_str) { var p = String(row.last_str).split(' '); return esc(p[0]) + (p[1] ? '<br><small class="text-body-secondary">' + esc(p[1]) + '</small>' : ''); }
+                        return '<span class="text-body-secondary">Never</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var items = '';
+                        if (row.notes) { items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>'; }
+                        if (canEdit) { items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-user="' + esc(row.username) + '">' + esc(lang.edit) + '</a>'; }
+                        if (canFinger && row.active_connections > 0) { items += '<a class="dropdown-item js-finger" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.fingerprint) + '</a>'; }
+                        items += '<a class="dropdown-item js-download" href="javascript:void(0);" data-user="' + esc(row.username) + '" data-pass="' + esc(row.password) + '">' + esc(lang.download) + '</a>';
+                        items += '<a class="dropdown-item js-whatsapp" href="javascript:void(0);" data-user="' + esc(row.username) + '" data-contact="' + esc(row.contact || '') + '" data-expunix="' + esc(row.exp_unix || '') + '"><i class="icon-base ti tabler-brand-whatsapp text-success me-1"></i>' + esc(lang.whatsapp) + '</a>';
+                        if (canEdit) {
+                            items += '<div class="dropdown-divider"></div>';
+                            items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="kill" data-id="' + esc(row.id) + '">' + esc(lang.kill) + '</a>';
+                            items += row.admin_enabled
+                                ? '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="ban" data-id="' + esc(row.id) + '">' + esc(lang.ban) + '</a>'
+                                : '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="unban" data-id="' + esc(row.id) + '">' + esc(lang.unban) + '</a>';
+                            items += row.enabled
+                                ? '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="disable" data-id="' + esc(row.id) + '">' + esc(lang.disable) + '</a>'
+                                : '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="enable" data-id="' + esc(row.id) + '">' + esc(lang.enable) + '</a>';
+                            items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-sub="delete" data-id="' + esc(row.id) + '">' + esc(lang.del) + '</a>';
+                        }
+                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
+                    }
+                }
+            ],
+            layout: { topStart: 'pageLength', topEnd: null }
         });
-    });
+
+        // Filters.
+        jQuery('#filter-reseller').select2({
+            placeholder: 'Search for an owner...',
+            allowClear: true,
+            ajax: {
+                url: './api',
+                dataType: 'json',
+                delay: 250,
+                data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
+                processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
+                cache: true
+            }
+        }).on('change', function() { table.ajax.reload(); });
+        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+        var searchTimer;
+        document.getElementById('filter-search').addEventListener('keyup', function() {
+            var v = this.value;
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(function() { table.search(v).draw(); }, 400);
+        });
+
+        // Row single actions.
+        var rowApi = function(id, sub) {
+            return fetch('./api?action=line&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } });
+        };
+        jQuery('#lines-table tbody').on('click', '.js-act', function() {
+            var sub = this.getAttribute('data-sub'), id = this.getAttribute('data-id');
+            var go = function() { rowApi(id, sub).then(function() { table.ajax.reload(null, false); }).catch(function() { alert(lang.error); }); };
+            if (sub === 'delete') { confirmSwal(lang.confirmDelete).then(function(ok) { if (ok) { go(); } }); }
+            else if (sub === 'kill') { confirmSwal(lang.confirmKill).then(function(ok) { if (ok) { go(); } }); }
+            else { go(); }
+        });
+
+        // Bulk actions.
+        jQuery('#lines-table tbody').on('change', '.row-check', function() {
+            var id = this.getAttribute('data-id');
+            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            updateBulk();
+        });
+        var chkAll = document.getElementById('check-all');
+        if (chkAll) {
+            chkAll.addEventListener('change', function() {
+                var on = this.checked;
+                jQuery('#lines-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+                updateBulk();
+            });
+        }
+        table.on('draw', function() { if (chkAll) { chkAll.checked = false; } });
+        jQuery('#bulk-bar').on('click', '[data-bulk]', function() {
+            var sub = this.getAttribute('data-bulk'), ids = Object.keys(selected);
+            if (!ids.length) { return; }
+            var run = function() {
+                fetch('./api?action=multi&type=line&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete' || sub === 'purge') { confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) { if (ok) { run(); } }); }
+            else { run(); }
+        });
+
+        // Edit / fingerprint iframe modal.
+        var frameModal = document.getElementById('frameModal');
+        var openFrame = function(title, src) {
+            document.getElementById('frameModalTitle').textContent = title;
+            document.getElementById('frame-src').src = src;
+            bootstrap.Modal.getOrCreateInstance(frameModal).show();
+        };
+        jQuery('#lines-table tbody').on('click', '.js-edit', function() { openFrame(lang.edit + ': ' + this.getAttribute('data-user'), 'line?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1'); });
+        jQuery('#lines-table tbody').on('click', '.js-finger', function() { openFrame(lang.fingerprint, 'fingerprint?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&type=user&modal=1'); });
+        frameModal.addEventListener('hidden.bs.modal', function() { document.getElementById('frame-src').src = 'about:blank'; table.ajax.reload(null, false); });
+
+        // Download playlist modal.
+        var dlModal = document.getElementById('downloadModal');
+        var dlType = document.getElementById('download_type'), outType = document.getElementById('output_type'), dlUrl = document.getElementById('download_url'), dlOpen = document.getElementById('download_open');
+        var buildDownload = function() {
+            var key = dlType.value;
+            if (!key) { dlUrl.value = ''; dlOpen.disabled = true; return; }
+            var u = dlModal.getAttribute('data-username'), p = dlModal.getAttribute('data-password');
+            var text = siteUrl + '/playlist/' + u + '/' + p + '/' + decodeURIComponent(key);
+            var outs = Array.prototype.filter.call(outType.options, function(o) { return o.selected; }).map(function(o) { return o.value; });
+            if (outs.length) { text += (text.indexOf('?output=') !== -1 ? '&' : '?') + 'key=' + outs.join(','); }
+            var opt = dlType.options[dlType.selectedIndex];
+            if (opt && opt.getAttribute('data-text')) { dlUrl.value = opt.getAttribute('data-text').replace('{DEVICE_LINK}', '"' + text + '"'); dlOpen.disabled = true; }
+            else { dlUrl.value = text; dlOpen.disabled = false; }
+        };
+        jQuery(dlType).on('change', buildDownload);
+        jQuery(outType).on('change', buildDownload);
+        jQuery('#lines-table tbody').on('click', '.js-download', function() {
+            dlModal.setAttribute('data-username', this.getAttribute('data-user'));
+            dlModal.setAttribute('data-password', this.getAttribute('data-pass'));
+            jQuery(dlType).val('').trigger('change'); jQuery(outType).val(null).trigger('change');
+            dlUrl.value = ''; dlOpen.disabled = true;
+            bootstrap.Modal.getOrCreateInstance(dlModal).show();
+        });
+        document.getElementById('download_copy').addEventListener('click', function() { dlUrl.select(); document.execCommand('copy'); });
+        dlOpen.addEventListener('click', function() { if (dlUrl.value) { window.open(dlUrl.value); } });
+
+        // WhatsApp renewal modal.
+        var waModal = document.getElementById('whatsappModal');
+        var waMessages = {
+            de: "Hallo Lieber {USERNAME},\n\nIhr IPTV Abonnement endet am {EXPDATE} und es sind noch {DAYS} Tage übrig.\n\nMöchten Sie Ihr IPTV Abonnement verlängern?\n\nMit freundlichen Grüßen",
+            en: "Hello Dear {USERNAME},\n\nYour IPTV subscription expires on {EXPDATE} and there are {DAYS} days remaining.\n\nWould you like to renew your IPTV subscription?\n\nBest regards",
+            tr: "Merhaba Sayın {USERNAME},\n\nIPTV aboneliğiniz {EXPDATE} tarihinde sona eriyor ve {DAYS} gün kaldı.\n\nIPTV aboneliğinizi yenilemek ister misiniz?\n\nSaygılarımızla"
+        };
+        var waUpdate = function() {
+            var msg = waMessages[document.getElementById('wa_language').value]
+                .replace('{USERNAME}', document.getElementById('wa_username').value)
+                .replace('{EXPDATE}', document.getElementById('wa_expdate').value)
+                .replace('{DAYS}', document.getElementById('wa_days').value);
+            document.getElementById('wa_message_preview').value = msg;
+            var phone = document.getElementById('wa_phone').value.replace(/[^0-9]/g, '');
+            document.getElementById('wa_send').setAttribute('href', 'https://wa.me/' + phone + '?text=' + encodeURIComponent(msg));
+        };
+        document.getElementById('wa_language').addEventListener('change', waUpdate);
+        jQuery('#lines-table tbody').on('click', '.js-whatsapp', function() {
+            var contact = this.getAttribute('data-contact');
+            if (!contact) { alert('This line has no WhatsApp number set.'); return; }
+            var expUnix = parseInt(this.getAttribute('data-expunix'), 10);
+            var expDate = expUnix ? new Date(expUnix * 1000) : null;
+            var days = 0;
+            if (expDate) { days = Math.max(0, Math.ceil((expDate - new Date()) / 86400000)); }
+            document.getElementById('wa_phone').value = contact;
+            document.getElementById('wa_username').value = this.getAttribute('data-user');
+            document.getElementById('wa_expdate').value = expDate ? expDate.toLocaleDateString('de-DE') : 'Never';
+            document.getElementById('wa_days').value = days;
+            waUpdate();
+            bootstrap.Modal.getOrCreateInstance(waModal).show();
+        });
+
+        // CSV export (existing report endpoint).
+        document.getElementById('export-csv').addEventListener('click', function() {
+            window.location.href = 'api?action=report&params=' + encodeURIComponent(JSON.stringify(table.ajax.params()));
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
