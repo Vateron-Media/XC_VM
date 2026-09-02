@@ -1,279 +1,336 @@
-<div class="wrapper" <?= (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') ? '' : 'style="display: none;"' ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php 
+<?php
+
+/**
+ * Registered users / resellers (Vuexy). Clean-JSON table pattern:
+ * TableController::handleRegUsers returns structured rows (batch line/mag/e2 and
+ * group counts resolved server-side) and this page renders the cells client-side
+ * via datatables-bs5 columns[].render. Row actions (edit modal, adjust credits,
+ * enable/disable/delete) and the reseller/group/status filters are wired inline.
+ */
+
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\UserRepository;
 
-include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?= $language::get('users') ?></h4>
-				</div>
-			</div>
-		</div>
+if (!Authorization::check('adv', 'mng_regusers')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
 
-		<div class="row">
-			<div class="col-12">
-				<?php if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS): ?>
-					<div class="alert alert-success alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						User has been added/modified.
-					</div>
-				<?php endif; ?>
+$rCanEdit = Authorization::check('adv', 'edit_reguser');
+$rPreOwner = RequestManager::has('owner') ? UserRepository::getRegisteredUserById((int) RequestManager::get('owner')) : null;
+$rPreFilter = RequestManager::has('filter') ? (string) RequestManager::get('filter') : '';
+?>
 
-				<div class="card">
-					<div class="card-body" style="overflow-x:auto;">
-						<div id="collapse_filters" class="form-group row mb-4 <?= $rMobile ? 'collapse' : '' ?>">
-							<div class="col-md-3">
-								<input type="text" class="form-control" id="reg_search"
-									value="<?= RequestManager::has('search') ? htmlspecialchars(RequestManager::get('search')) : '' ?>"
-									placeholder="<?= $language::get('search_users') ?>">
-							</div>
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><?= $language::get('users'); ?></h5>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-reseller"><?= $language::get('reseller'); ?></label>
+                <select id="filter-reseller" class="form-select">
+                    <?php if ($rPreOwner): ?>
+                        <option value="<?= (int) $rPreOwner['id']; ?>" selected><?= htmlspecialchars((string) $rPreOwner['username'], ENT_QUOTES); ?></option>
+                    <?php endif; ?>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-status"><?= $language::get('status'); ?></label>
+                <select id="filter-status" class="form-select">
+                    <option value="" <?= $rPreFilter === '' ? 'selected' : ''; ?>><?= $language::get('no_filter'); ?></option>
+                    <option value="-1" <?= $rPreFilter === '-1' ? 'selected' : ''; ?>><?= $language::get('enabled'); ?></option>
+                    <option value="-2" <?= $rPreFilter === '-2' ? 'selected' : ''; ?>><?= $language::get('disabled'); ?></option>
+                    <?php foreach (GroupService::getAll() as $rGroup): ?>
+                        <option value="<?= (int) $rGroup['group_id']; ?>" <?= $rPreFilter === (string) (int) $rGroup['group_id'] ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="users-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('username'); ?></th>
+                    <th><?= $language::get('owner'); ?></th>
+                    <th><?= $language::get('ip'); ?></th>
+                    <th><?= $language::get('status'); ?></th>
+                    <th><?= $language::get('type'); ?></th>
+                    <th><?= $language::get('credits'); ?></th>
+                    <th><?= $language::get('users'); ?></th>
+                    <th><?= $language::get('lines'); ?></th>
+                    <th><?= $language::get('mags'); ?></th>
+                    <th><?= $language::get('enigmas'); ?></th>
+                    <th><?= $language::get('last_login'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
 
-							<label class="col-md-2 col-form-label text-center" for="reg_reseller">
-								Filter Results &nbsp;
-								<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();">
-									<i class="mdi mdi-close"></i>
-								</button>
-							</label>
+<!-- Adjust credits -->
+<div class="modal fade" id="creditsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('adjust_credits'); ?> — <span id="credits-user"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label" for="credits-amount"><?= $language::get('credits'); ?></label>
+                    <input type="number" class="form-control" id="credits-amount" value="0">
+                </div>
+                <div class="mb-0">
+                    <label class="form-label" for="credits-reason"><?= $language::get('reason'); ?></label>
+                    <input type="text" class="form-control" id="credits-reason" autocomplete="off">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="credits-submit"><?= $language::get('adjust_credits'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
 
-							<div class="col-md-3">
-								<select id="reg_reseller" class="form-control" data-toggle="select2">
-									<?php if (RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner'))))): ?>
-										<option value="<?= intval($rOwner['id']) ?>" selected>
-											<?= $rOwner['username'] ?>
-										</option>
-									<?php endif; ?>
-								</select>
-							</div>
+<!-- Edit (loads the edit form in a modal) -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('edit'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="edit-frame" src="about:blank" style="width:100%;height:70vh;border:0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
 
-							<div class="col-md-2">
-								<select id="reg_filter" class="form-control" data-toggle="select2">
-									<option value="" <?= !RequestManager::has('filter') ? 'selected' : '' ?>>No Filter</option>
-									<option value="-1" <?= (RequestManager::has('filter') && RequestManager::get('filter') == -1) ? 'selected' : '' ?>>Active</option>
-									<option value="-2" <?= (RequestManager::has('filter') && RequestManager::get('filter') == -2) ? 'selected' : '' ?>>Disabled</option>
-
-									<?php foreach (GroupService::getAll() as $rGroup): ?>
-										<option value="<?= intval($rGroup['group_id']) ?>"
-											<?= (RequestManager::has('filter') && RequestManager::get('filter') == intval($rGroup['group_id'])) ? 'selected' : '' ?>>
-											<?= $rGroup['group_name'] ?>
-										</option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-
-							<label class="col-md-1 col-form-label text-center" for="reg_show_entries"><?= $language::get('show') ?></label>
-							<div class="col-md-1">
-								<select id="reg_show_entries" class="form-control" data-toggle="select2">
-									<?php foreach ([10, 25, 50, 250, 500, 1000] as $rShow): ?>
-										<option value="<?= $rShow ?>"
-											<?= (RequestManager::has('entries')
-												? (RequestManager::get('entries') == $rShow ? 'selected' : '')
-												: ($rSettings['default_entries'] == $rShow ? 'selected' : '')) ?>>
-											<?= $rShow ?>
-										</option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-						</div>
-
-						<table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
-							<thead>
-								<tr>
-									<th class="text-center"><?= $language::get('id') ?></th>
-									<th><?= $language::get('username') ?></th>
-									<th><?= $language::get('owner') ?></th>
-									<th class="text-center"><?= $language::get('ip') ?></th>
-									<th class="text-center"><?= $language::get('status') ?></th>
-									<th class="text-center"><?= $language::get('type') ?></th>
-									<th class="text-center"><?= $language::get('credits') ?></th>
-									<th class="text-center"><?= $language::get('users') ?></th>
-									<th class="text-center"><?= $language::get('lines') ?></th>
-									<th class="text-center"><?= $language::get('mags') ?></th>
-									<th class="text-center"><?= $language::get('enigmas') ?></th>
-									<th class="text-center"><?= $language::get('last_login') ?></th>
-									<th class="text-center"><?= $language::get('actions') ?></th>
-								</tr>
-							</thead>
-							<tbody></tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<!-- Whois -->
+<div class="modal fade" id="whoisModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('login_logs_whois'); ?> — <span id="whois-ip"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="whois-body"></div>
+        </div>
+    </div>
 </div>
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+<script>
+    (function() {
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var isLocal = function(ip) {
+            return !ip || ip === '127.0.0.1' || ip === '::1';
+        };
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
+        var lang = {
+            edit: <?= json_encode($language::get('edit')); ?>,
+            adjust: <?= json_encode($language::get('adjust_credits')); ?>,
+            enable: <?= json_encode($language::get('enable')); ?>,
+            disable: <?= json_encode($language::get('disable')); ?>,
+            del: <?= json_encode($language::get('delete')); ?>,
+            adjusted: <?= json_encode($language::get('credits_adjusted')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>,
+            delConfirm: <?= json_encode($language::get('login_logs_block_confirm')); ?>
+        };
 
-	<?php
-	echo "\t\t" . 'var rClearing = false;' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete this user?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=reg_user&sub=" + rType + "&user_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("User has been deleted.");' . "\r\n" . '                        } else if (rType == "enable") {' . "\r\n" . '                            $.toast("User has been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("User has been disabled.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable-users tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these users?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=user&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "enable") {' . "\r\n" . '                            $.toast("Users have been enabled.");' . "\r\n" . '                        } else if (rType == "disable") {' . "\r\n" . '                            $.toast("Users have been disabled.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Users have been deleted.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-users").DataTable().ajax.reload(null, false);' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#reg_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#reg_reseller").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#reg_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#reg_filter').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#reg_reseller').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#reg_show_entries').val(\"";
-	echo (intval($rSettings['default_entries']) ?: 10);
-	echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().search(\$(\"#reg_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-users').DataTable().page.len(\$('#reg_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-users\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "filter", "owner", "page", "entries"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "filter", "owner"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#reg_reseller').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . "            \$('#reg_reseller').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
-	echo intval($rSettings['default_entries']);
-	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-users").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-users").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-users").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-users").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    ';
+        var countBadge = function(n, url) {
+            if (n > 0) {
+                return '<a href="' + esc(url) + '" class="badge bg-label-info">' + Number(n).toLocaleString() + '</a>';
+            }
+            return '<span class="badge bg-label-secondary">0</span>';
+        };
 
-	if (!Authorization::check('adv', 'edit_reguser')) {
-	} else {
-		echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable-users tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_users_selected").html(window.rSelected.length + " users");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_users").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_users").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
-	}
+        var table = jQuery('#users-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[1, 'desc']],
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'reg_users';
+                    d.reseller = jQuery('#filter-reseller').val() || '';
+                    d.filter = document.getElementById('filter-status').value;
+                }
+            },
+            columns: [
+                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                { data: 'id', className: 'text-center', render: function(d) { return '<a href="user?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
+                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return '<a href="user?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>'; } },
+                { data: 'owner_username', render: function(d, t, row) { return d ? '<a href="user?id=' + encodeURIComponent(row.owner_id) + '" class="text-body">' + esc(d) + '</a>' : ''; } },
+                {
+                    data: 'ip',
+                    className: 'text-nowrap',
+                    render: function(d) {
+                        if (isLocal(d)) { return '<span class="text-body-secondary">' + esc(d || '') + '</span>'; }
+                        return '<a href="javascript:void(0);" class="text-body js-whois" data-ip="' + esc(d) + '">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'status',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d === 1 ? '<i class="icon-base ti tabler-square-filled text-success" title="' + esc(lang.enable) + '"></i>' :
+                            '<i class="icon-base ti tabler-square-filled text-body-secondary" title="' + esc(lang.disable) + '"></i>';
+                    }
+                },
+                {
+                    data: 'group_name',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return '<a href="users?filter=' + encodeURIComponent(row.member_group_id) + '" class="badge bg-label-dark">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'credits',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return row.is_reseller ? '<span class="badge bg-label-primary">' + Number(d).toLocaleString() + '</span>' : '<span class="badge bg-label-secondary">-</span>';
+                    }
+                },
+                { data: 'user_count', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'users?owner=' + row.id); } },
+                { data: 'user_lines', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'lines?owner=' + row.id); } },
+                { data: 'mag_lines', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'mags?owner=' + row.id); } },
+                { data: 'e2_lines', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'enigmas?owner=' + row.id); } },
+                { data: 'last_login', className: 'text-nowrap text-center', render: function(d) { return esc(d); } },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        if (!canEdit) {
+                            if (row.notes) {
+                                return '<i class="icon-base ti tabler-note text-primary" title="' + esc(row.notes) + '"></i>';
+                            }
+                            return '';
+                        }
+                        var items = '';
+                        items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.edit) + '</a>';
+                        if (row.is_reseller) {
+                            items += '<a class="dropdown-item js-credits" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-user="' + esc(row.username) + '" data-credits="' + esc(row.credits) + '">' + esc(lang.adjust) + '</a>';
+                        }
+                        items += row.status === 1 ?
+                            '<a class="dropdown-item js-api" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-sub="disable">' + esc(lang.disable) + '</a>' :
+                            '<a class="dropdown-item js-api" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-sub="enable">' + esc(lang.enable) + '</a>';
+                        items += '<a class="dropdown-item text-danger js-api" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-sub="delete">' + esc(lang.del) + '</a>';
+                        var note = row.notes ? '<i class="icon-base ti tabler-note text-primary me-2" title="' + esc(row.notes) + '"></i>' : '';
+                        return '<div class="d-inline-flex align-items-center">' + note +
+                            '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button>' +
+                            '<div class="dropdown-menu dropdown-menu-end">' + items + '</div></div></div>';
+                    }
+                }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
 
-	echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "reg_users",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4,5,6,7,8,9,10,11,12]},' . "\r\n" . '                    {"orderable": false, "targets": [7,8,9,10,12]}' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                ';
+        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+        if (jQuery.fn.select2) {
+            jQuery('#filter-reseller').select2({
+                width: '100%', allowClear: true, placeholder: <?= json_encode($language::get('reseller')); ?>,
+                ajax: {
+                    url: './api', dataType: 'json', delay: 250,
+                    data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
+                    processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
+                    cache: true
+                }
+            }).on('change', function() { table.ajax.reload(); });
+        }
 
-	if (!$rMobile) {
-	} else {
-		echo 'scrollX: true,';
-	}
+        // Row actions (enable/disable/delete).
+        jQuery('#users-table tbody').on('click', '.js-api', function() {
+            var id = this.getAttribute('data-id');
+            var sub = this.getAttribute('data-sub');
+            if (sub === 'delete' && !window.confirm(lang.delConfirm.replace(/IP address/i, 'user'))) { return; }
+            fetch('./api?action=reg_user&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                .catch(function() { alert(lang.error); });
+        });
 
-	echo "\t\t\t\t" . 'order: [[ ';
-	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
-	echo ', "';
-	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
-	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-users").css("width", "100%");' . "\r\n\t\t\t" . "\$('#reg_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#reg_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#reg_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#reg_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#reg_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#reg_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#reg_reseller').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#reg_reseller").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("owner", $("#reg_reseller").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("owner");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . '$("#datatable-users").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#reg_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#reg_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-users").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n" . '        ';
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Edit modal (iframe of the edit form).
+        var editModal = document.getElementById('editModal');
+        jQuery('#users-table tbody').on('click', '.js-edit', function() {
+            document.getElementById('edit-frame').src = 'user?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1';
+            bootstrap.Modal.getOrCreateInstance(editModal).show();
+        });
+        editModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('edit-frame').src = 'about:blank';
+            table.ajax.reload(null, false);
+        });
+
+        // Adjust credits modal.
+        var creditsModal = document.getElementById('creditsModal');
+        var creditsId = null;
+        jQuery('#users-table tbody').on('click', '.js-credits', function() {
+            creditsId = this.getAttribute('data-id');
+            document.getElementById('credits-user').textContent = this.getAttribute('data-user');
+            document.getElementById('credits-amount').value = 0;
+            document.getElementById('credits-reason').value = '';
+            bootstrap.Modal.getOrCreateInstance(creditsModal).show();
+        });
+        document.getElementById('credits-submit').addEventListener('click', function() {
+            var amount = document.getElementById('credits-amount').value;
+            var reason = document.getElementById('credits-reason').value;
+            fetch('./api?action=adjust_credits&id=' + encodeURIComponent(creditsId) + '&reason=' + encodeURIComponent(reason) + '&credits=' + encodeURIComponent(amount), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    bootstrap.Modal.getOrCreateInstance(creditsModal).hide();
+                    if (!d || d.result !== true) { throw new Error('fail'); }
+                    table.ajax.reload(null, false);
+                })
+                .catch(function() { alert(lang.error); });
+        });
+
+        // Whois.
+        jQuery('#users-table tbody').on('click', '.js-whois', function() {
+            var ip = this.getAttribute('data-ip');
+            var body = document.getElementById('whois-body');
+            document.getElementById('whois-ip').textContent = ip;
+            body.innerHTML = '<div class="text-center py-3"><span class="spinner-border" role="status"></span></div>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('whoisModal')).show();
+            fetch('./api?action=ip_whois&isp=1&ip=' + encodeURIComponent(ip), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(w) {
+                    var rows = [];
+                    var add = function(label, val) { if (val) { rows.push('<dt class="col-4 text-body-secondary">' + esc(label) + '</dt><dd class="col-8">' + esc(val) + '</dd>'); } };
+                    add(<?= json_encode($language::get('country')); ?>, w && w.country && w.country.names && w.country.names.en);
+                    add(<?= json_encode($language::get('city')); ?>, w && w.city && w.city.names && w.city.names.en);
+                    add(<?= json_encode($language::get('isp')); ?>, w && w.isp && (w.isp.isp || w.isp.organization));
+                    add('ASN', w && w.isp && w.isp.autonomous_system_number);
+                    body.innerHTML = rows.length ? '<dl class="row mb-0">' + rows.join('') + '</dl>' : '<div class="text-center text-body-secondary py-2">—</div>';
+                })
+                .catch(function() { body.innerHTML = '<div class="alert alert-danger mb-0">' + esc(lang.error) + '</div>'; });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

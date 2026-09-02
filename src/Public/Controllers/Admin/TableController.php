@@ -2841,16 +2841,24 @@ class TableController extends BaseAdminController {
 					$rUserUrl = null;
 					if ($rIsHmac) {
 						$rUserLabel = "HMAC - " . $rRow["hmac_identifier"];
-						if (Authorization::check("adv", "add_hmac")) { $rUserUrl = "hmac?id=" . (int) $rRow["hmac_id"]; }
+						if (Authorization::check("adv", "add_hmac")) {
+							$rUserUrl = "hmac?id=" . (int) $rRow["hmac_id"];
+						}
 					} elseif (!empty($rRow["is_mag"])) {
 						$rUserLabel = $rRow["mac"] ?? $rRow["username"];
-						if (Authorization::check("adv", "edit_mag") && isset($rRow["mag_id"])) { $rUserUrl = "mag?id=" . (int) $rRow["mag_id"]; }
+						if (Authorization::check("adv", "edit_mag") && isset($rRow["mag_id"])) {
+							$rUserUrl = "mag?id=" . (int) $rRow["mag_id"];
+						}
 					} elseif (!empty($rRow["is_e2"])) {
 						$rUserLabel = $rRow["username"];
-						if (Authorization::check("adv", "edit_e2") && isset($rRow["device_id"])) { $rUserUrl = "enigma?id=" . (int) $rRow["device_id"]; }
+						if (Authorization::check("adv", "edit_e2") && isset($rRow["device_id"])) {
+							$rUserUrl = "enigma?id=" . (int) $rRow["device_id"];
+						}
 					} else {
 						$rUserLabel = $rRow["username"];
-						if (Authorization::check("adv", "users")) { $rUserUrl = "line?id=" . (int) $rRow["user_id"]; }
+						if (Authorization::check("adv", "users")) {
+							$rUserUrl = "line?id=" . (int) $rRow["user_id"];
+						}
 					}
 					$rType = strval($rRow["type"] ?? "");
 					$rStreamPerm = ["1" => "streams", "2" => "movies", "3" => "streams", "4" => "radio", "5" => "series"];
@@ -3945,7 +3953,8 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "mng_regusers")) {
 			exit;
 		}
-		$rOrder = ["`users`.`id`", "`users`.`username`", "`users`.`owner_id`", "`users`.`ip`", "`users`.`status`", "`users`.`member_group_id`", "`users`.`credits`", false, false, false, false, "`users`.`last_login`", false];
+		// Leading false = the Vuexy Responsive control column (client index 0).
+		$rOrder = [false, "`users`.`id`", "`users`.`username`", "`users`.`owner_id`", "`users`.`ip`", "`users`.`status`", "`users`.`member_group_id`", "`users`.`credits`", false, false, false, false, "`users`.`last_login`", false];
 		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
 		$rWhere = $rWhereV = [];
@@ -4035,92 +4044,25 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
-						if ($rRow["status"] == 1) {
-							$rStatus = "<i class=\"text-success fas fa-square tooltip\" title=\"Active\"></i>";
-						} else {
-							$rStatus = "<i class=\"text-secondary fas fa-square tooltip\" title=\"Disabled\"></i>";
-						}
-						if (!$rRow["last_login"]) {
-							$rRow["last_login"] = "NEVER";
-						}
-						if (SettingsManager::getAll()["group_buttons"]) {
-							$rButtons = "";
-							if (!empty($rRow['notes'])) {
-								$rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
-							}
-							$rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
-							if (Authorization::check("adv", "edit_reguser")) {
-								if ($rRow["is_reseller"]) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"addCredits(" . $rRow["id"] . ");\">Adjust Credits</a>";
-								}
-								$rButtons .= "<a class=\"dropdown-item\" href=\"user?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'user', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["username"])) . "')\" data-modal=\"true\"" : "") . ">Edit</a>";
-								if ($rRow["status"] == 1) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'disable');\">Disable</a>";
-								} else {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'enable');\">Enable</a>";
-								}
-								$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'delete');\">Delete</a>";
-							}
-							$rButtons .= "</div></div>";
-						} else {
-							$rButtons = "<div class=\"btn-group\">";
-							if (!empty($rRow['notes'])) {
-								$rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
-							} else {
-								$rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
-							}
-							if (Authorization::check("adv", "edit_reguser")) {
-								if ($rRow["is_reseller"]) {
-									$rButtons .= "<button title=\"Adjust Credits\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"addCredits(" . $rRow["id"] . ");\"><i class=\"mdi mdi-coin\"></i></button>";
-								} else {
-									$rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-coin\"></i></button>";
-								}
-								$rButtons .= "<a href=\"user?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'user', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["username"])) . "')\" data-modal=\"true\"" : "") . "><button title=\"Edit\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-pencil\"></i></button></a>";
-								if ($rRow["status"] == 1) {
-									$rButtons .= "<button title=\"Disable\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-								} else {
-									$rButtons .= "<button title=\"Enable\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-								}
-								$rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-							}
-							$rButtons .= "</div>";
-						}
-						if (0 < strlen($rRow["ip"])) {
-							$rExplode = explode(":", $rRow["ip"]);
-							$rIP = "<a onClick=\"whois('" . $rRow["ip"] . "');\" href='javascript: void(0);'>" . (1 < count($rExplode) ? implode(":", array_slice($rExplode, 0, 4)) . ":<br/>" . implode(":", array_slice($rExplode, 4, 8)) : $rRow["ip"]) . "</a>";
-						} else {
-							$rIP = "";
-						}
-						if ($rRow["is_reseller"]) {
-							$rCredits = "<button type=\"button\" class=\"btn btn-purple btn-xs waves-effect waves-light\">" . number_format($rRow["credits"], 0) . "</button>";
-						} else {
-							$rCredits = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light\">-</button>";
-						}
-						if (0 < $rRow["user_count"]) {
-							$rUserCount = "<a href=\"users?owner=" . (int) $rRow["id"] . "\"><button type=\"button\" class=\"btn btn-pink btn-xs waves-effect waves-light\">" . number_format($rRow["user_count"], 0) . "</button></a>";
-						} else {
-							$rUserCount = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light\">0</button>";
-						}
-						if (0 < $rRow["user_lines"]) {
-							$rLineCount = "<a href=\"lines?owner=" . (int) $rRow["id"] . "\"><button type=\"button\" class=\"btn btn-info btn-xs waves-effect waves-light\">" . number_format($rRow["user_lines"], 0) . "</button></a>";
-						} else {
-							$rLineCount = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light\">0</button>";
-						}
-						if (0 < $rRow["mag_lines"]) {
-							$rMagCount = "<a href=\"mags?owner=" . (int) $rRow["id"] . "\"><button type=\"button\" class=\"btn btn-info btn-xs waves-effect waves-light\">" . number_format($rRow["mag_lines"], 0) . "</button></a>";
-						} else {
-							$rMagCount = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light\">0</button>";
-						}
-						if (0 < $rRow["e2_lines"]) {
-							$rE2Count = "<a href=\"enigmas?owner=" . (int) $rRow["id"] . "\"><button type=\"button\" class=\"btn btn-info btn-xs waves-effect waves-light\">" . number_format($rRow["e2_lines"], 0) . "</button></a>";
-						} else {
-							$rE2Count = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light\">0</button>";
-						}
-						if (!RequestManager::has("no_url")) {
-							$rReturn["data"][] = ["<a href='user?id=" . (int) $rRow["id"] . "'>" . $rRow["id"] . "</a>", "<a href='user?id=" . (int) $rRow["id"] . "'>" . $rRow["username"] . "</a>", "<a href='user?id=" . (int) $rRow["owner_id"] . "'>" . $rRow["owner_username"] . "</a>", $rIP, $rStatus, "<a href=\"users?filter=" . (int) $rRow["member_group_id"] . "\"><button type=\"button\" class=\"btn btn-dark btn-fixed btn-xs waves-effect waves-light\">" . $rRow["group_name"] . "</button></a>", $rCredits, $rUserCount, $rLineCount, $rMagCount, $rE2Count, $rRow["last_login"], $rButtons];
-						} else {
-							$rReturn["data"][] = [$rRow["id"], $rRow["username"], $rRow["owner_username"], $rIP, $rStatus, "<button type=\"button\" class=\"btn btn-dark btn-fixed btn-xs waves-effect waves-light\">" . $rRow["group_name"] . "</button>", $rCredits, $rUserCount, $rLineCount, $rMagCount, $rE2Count, $rRow["last_login"], $rButtons];
-						}
+						// Clean JSON for the Vuexy users page (batch count queries above unchanged).
+						$rReturn["data"][] = [
+							"id"              => (int) $rRow["id"],
+							"username"        => $rRow["username"],
+							"owner_id"        => (int) $rRow["owner_id"],
+							"owner_username"  => $rRow["owner_username"],
+							"ip"              => $rRow["ip"],
+							"status"          => (int) $rRow["status"],
+							"member_group_id" => (int) $rRow["member_group_id"],
+							"group_name"      => $rRow["group_name"],
+							"is_reseller"     => (1 == (int) $rRow["is_reseller"]),
+							"credits"         => (int) $rRow["credits"],
+							"user_count"      => (int) $rRow["user_count"],
+							"user_lines"      => (int) $rRow["user_lines"],
+							"mag_lines"       => (int) $rRow["mag_lines"],
+							"e2_lines"        => (int) $rRow["e2_lines"],
+							"last_login"      => $rRow["last_login"] ?: "NEVER",
+							"notes"           => ($rRow["notes"] ?? "") !== "" ? $rRow["notes"] : null,
+						];
 					}
 				}
 			}
@@ -4129,10 +4071,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	/**
-	 * action=asns — returns clean JSON rows (no HTML). Presentation (country flag,
-	 * status/toggle buttons) is done client-side by the Vuexy asns page.
-	 */
 	private function handleAsns($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db;
 		if (!Authorization::check("adv", "block_isps")) {
