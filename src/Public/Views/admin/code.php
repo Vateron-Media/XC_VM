@@ -1,415 +1,165 @@
-<div class="wrapper boxed-layout"
-    <?php 
+<?php
+
+/**
+ * Access code add / edit (Vuexy). Full-page form reached from the codes table
+ * (href="code?id=X"). Vuexy vertical layout — each section is its own card:
+ * Details (code + generate, access type, enabled), Groups (per-group checkboxes),
+ * Restrictions (allowed-IP whitelist). Posts to post.php?action=code via fetch;
+ * on success returns to the codes list.
+ */
+
 use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\User\GroupService;
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-    } else { ?>
-    style="display: none;" <?php } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+$rIsEdit = isset($rCode);
+$rCodeGroups = ($rIsEdit && !empty($rCode['groups'])) ? (json_decode((string) $rCode['groups'], true) ?: []) : [];
+$rWhitelist = ($rIsEdit && !empty($rCode['whitelist'])) ? (json_decode((string) $rCode['whitelist'], true) ?: []) : [];
+$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player'];
+?>
+
+<div class="d-flex align-items-center mb-4">
+    <a href="codes" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+    <h4 class="mb-0"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?> <?= $language::get('access_code'); ?></h4>
+</div>
+
+<?php if ($rIsEdit && AuthRepository::getCurrentCode() == $rCode['code']): ?>
+    <div class="alert alert-warning" role="alert">
+        You are editing the Access Code you're currently using to access the system. Ensure you have set up another access code before disabling or modifying its access rights.
+    </div>
+<?php endif; ?>
+
+<form id="code-form" autocomplete="off">
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rCode['id']; ?>">
+    <?php endif; ?>
+
+    <div class="card mb-6">
+        <div class="card-header"><h5 class="mb-0"><?= $language::get('details'); ?></h5></div>
+        <div class="card-body">
+            <div class="row mb-6">
+                <div class="col-md-8">
+                    <label class="form-label" for="code">Access Code</label>
+                    <div class="input-group">
+                        <input type="text" maxlength="16" class="form-control" id="code" name="code" required value="<?= $rIsEdit ? htmlspecialchars((string) $rCode['code'], ENT_QUOTES) : ''; ?>">
+                        <button class="btn btn-outline-primary" type="button" id="gen-code"><i class="icon-base ti tabler-refresh"></i></button>
                     </div>
-                    <h4 class="page-title"><?php if (isset($rCode)) {
-                                                echo 'Edit Code';
-                                            } else {
-                                                echo 'Add Code';
-                                            } ?>
-                    </h4>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="type">Access Type</label>
+                    <select id="type" name="type" class="form-select">
+                        <?php foreach ($rTypes as $rTid => $rTname): ?>
+                            <option value="<?= (int) $rTid; ?>" <?= ($rIsEdit && (int) $rCode['type'] === (int) $rTid) ? 'selected' : ''; ?>><?= htmlspecialchars($rTname, ENT_QUOTES); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <?php if (!(isset($rCode) && AuthRepository::getCurrentCode() == $rCode['code'])) {
-                } else { ?>
-                    <div class="alert alert-warning" role="alert">
-                        You are editing the Access Code you're currently using to access the system. Ensure you have set up
-                        another access code before disabling or modifying the access rights of this group.
-                    </div>
-                <?php } ?>
-                <div class="card">
-                    <div class="card-body">
-                        <form action="#" method="POST" data-parsley-validate="">
-                            <?php if (!isset($rCode)) {
-                            } else { ?>
-                                <input type="hidden" name="edit" value="<?php echo $rCode['id']; ?>" />
-                            <?php } ?>
-                            <div id="basicwizard">
-                                <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                    <li class="nav-item">
-                                        <a href="#code-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#groups" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-account-group mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $language::get('groups'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#restrictions" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-hazard-lights mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('restrictions') ?></span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content b-0 mb-0 pt-0">
-                                    <div class="tab-pane" id="code-details">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label" for="code">Access Code <i
-                                                            title="<?= $language::get('enter_a_secure_access_code_tooltip') ?>"
-                                                            class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-9 input-group">
-                                                        <input type="text" maxlength="16" class="form-control" id="code"
-                                                            name="code"
-                                                            value="<?php if (isset($rCode)) {
-                                                                        echo htmlspecialchars($rCode['code']);
-                                                                    } ?>"
-                                                            required data-parsley-trigger="change">
-                                                        <div class="input-group-append">
-                                                            <button class="btn btn-info waves-effect waves-light"
-                                                                onClick="generateCode();" type="button"><i
-                                                                    class="mdi mdi-refresh"></i></button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label" for="type">Access Type <i
-                                                            title="<?= $language::get('select_what_access_to_grant') ?>"
-                                                            class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-4">
-                                                        <select id="type" name="type" class="form-control select2">
-                                                            <?php foreach (array('Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player') as $rID => $rValue) { ?>
-                                                                <option
-                                                                    <?php if (isset($rCode) && $rCode['type'] == $rID) {
-                                                                        echo 'selected';
-                                                                    } ?>
-                                                                    value="<?php echo $rID; ?>">
-                                                                    <?php echo $rValue; ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                    <label class="col-md- 3col-form-label"
-                                                        for="enabled">Enabled</label>
-                                                    <div class="col-md-2">
-                                                        <input name="enabled" id="enabled" type="checkbox"
-                                                            <?php if (isset($rCode) && $rCode['enabled'] == 1) {
-                                                                echo 'checked';
-                                                            } else if (!isset($rCode)) {
-                                                                echo 'checked';
-                                                            } ?>
-                                                            data-plugin="switchery" class="js-switch"
-                                                            data-color="#039cfd" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);"
-                                                    class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="tab-pane" id="groups">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <?php foreach (GroupService::getAll() as $rGroup) { ?>
-                                                        <div class="col-md-6">
-                                                            <div class="custom-control custom-checkbox mt-1">
-                                                                <input type="checkbox"
-                                                                    class="custom-control-input group-checkbox"
-                                                                    id="group-<?php echo $rGroup['group_id']; ?>"
-                                                                    data-id="<?php echo $rGroup['group_id']; ?>"
-                                                                    name="groups[]"
-                                                                    value="<?php echo $rGroup['group_id']; ?>"
-                                                                    <?php if (isset($rCode) && in_array($rGroup['group_id'], json_decode($rCode['groups'], true))) {
-                                                                        echo ' checked';
-                                                                    } ?>>
-                                                                <label class="custom-control-label"
-                                                                    for="group-<?php echo $rGroup['group_id']; ?>"><?php echo $rGroup['group_name']; ?></label>
-                                                            </div>
-                                                        </div>
-                                                    <?php } ?>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);"
-                                                    class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
-                                            </li>
-                                            <li class="list-inline-item">
-                                                <a href="javascript: void(0);" onClick="selectAll()"
-                                                    class="btn btn-secondary"><?php echo $language::get('select_all'); ?></a>
-                                                <a href="javascript: void(0);" onClick="selectNone()"
-                                                    class="btn btn-secondary"><?php echo $language::get('deselect_all'); ?></a>
-                                            </li>
-                                            <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next') ?></a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="tab-pane" id="restrictions">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="ip_field">Allowed IP
-                                                        Addresses <i
-                                                            title="<?= $language::get('restrict_access_to_specific_ip_addresses') ?>"
-                                                            class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-8 input-group">
-                                                        <input type="text" id="ip_field" class="form-control"
-                                                            value="">
-                                                        <div class="input-group-append">
-                                                            <a href="javascript:void(0)" id="add_ip"
-                                                                class="btn btn-primary waves-effect waves-light"><i
-                                                                    class="mdi mdi-plus"></i></a>
-                                                            <a href="javascript:void(0)" id="remove_ip"
-                                                                class="btn btn-danger waves-effect waves-light"><i
-                                                                    class="mdi mdi-close"></i></a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label"
-                                                        for="whitelist">&nbsp;</label>
-                                                    <div class="col-md-8">
-                                                        <select id="whitelist" name="whitelist[]" size="6"
-                                                            class="form-control" multiple="multiple">
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        <?php if (isset($rCode)) {
-                                            foreach (json_decode($rCode['whitelist'], true) as $rIP) { ?>
-                                                <option value="<?php echo $rIP; ?>"><?php echo $rIP; ?></option>
-                                        <?php }
-                                        } ?>
-                                        </select>
-
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="prevb list-inline-item"><a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev') ?></a></li>
-                                            <li class="list-inline-item float-right"><input name="submit" type="submit" class="btn btn-primary" value="Save"></li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="1" <?= (!$rIsEdit || $rCode['enabled'] == 1) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="enabled"><?= $language::get('enabled'); ?></label>
             </div>
         </div>
     </div>
-</div>
+
+    <div class="card mb-6">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><?= $language::get('groups'); ?></h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-label-secondary" id="grp-all"><?= $language::get('select_all'); ?></button>
+                <button type="button" class="btn btn-label-secondary" id="grp-none"><?= $language::get('deselect_all'); ?></button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <?php foreach (GroupService::getAll() as $rGroup): ?>
+                    <div class="col-md-4 col-sm-6">
+                        <div class="form-check">
+                            <input class="form-check-input group-checkbox" type="checkbox" name="groups[]" value="<?= (int) $rGroup['group_id']; ?>" id="group-<?= (int) $rGroup['group_id']; ?>" <?= in_array($rGroup['group_id'], $rCodeGroups) ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="group-<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></label>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-6">
+        <div class="card-header"><h5 class="mb-0"><?= $language::get('restrictions'); ?></h5></div>
+        <div class="card-body">
+            <label class="form-label" for="ip_field">Allowed IP Addresses</label>
+            <div class="input-group mb-3">
+                <input type="text" id="ip_field" class="form-control" placeholder="0.0.0.0">
+                <button type="button" id="add_ip" class="btn btn-primary"><i class="icon-base ti tabler-plus"></i></button>
+                <button type="button" id="remove_ip" class="btn btn-label-danger"><i class="icon-base ti tabler-trash"></i></button>
+            </div>
+            <select id="whitelist" name="whitelist[]" size="6" class="form-select" multiple>
+                <?php foreach ($rWhitelist as $rIP): ?>
+                    <option value="<?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mb-6">
+        <button type="submit" class="btn btn-primary" id="code-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+    </div>
+</form>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+
+        // Random 16-char hex access code.
+        var genCode = function() {
+            var chars = 'ABCDEF0123456789', out = '';
+            for (var i = 0; i < 16; i++) { out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            return out;
+        };
+        document.getElementById('gen-code').addEventListener('click', function() { document.getElementById('code').value = genCode(); });
+        <?php if (!$rIsEdit): ?>
+            if (!document.getElementById('code').value) { document.getElementById('code').value = genCode(); }
         <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
 
-    function generateCode() {
-        var result = '';
-        var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-        var charactersLength = characters.length;
-        for (var i = 0; i < 8; i++) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
-        $("#code").val(result);
-    }
+        // Group select-all / none.
+        document.getElementById('grp-all').addEventListener('click', function() { document.querySelectorAll('.group-checkbox').forEach(function(c) { c.checked = true; }); });
+        document.getElementById('grp-none').addEventListener('click', function() { document.querySelectorAll('.group-checkbox').forEach(function(c) { c.checked = false; }); });
 
-    function selectAll() {
-        $(".group-checkbox").each(function() {
-            $(this).prop('checked', true);
+        // Allowed-IP whitelist add / remove.
+        var wl = document.getElementById('whitelist');
+        var validIP = function(v) { return /^[0-9.]+$/.test(v) || /^[0-9a-fA-F:]+$/.test(v); };
+        document.getElementById('add_ip').addEventListener('click', function() {
+            var f = document.getElementById('ip_field'), v = f.value.trim();
+            if (!v || !validIP(v)) { alert('Please enter a valid IP address.'); return; }
+            var exists = Array.prototype.some.call(wl.options, function(o) { return o.value === v; });
+            if (!exists) { wl.add(new Option(v, v)); }
+            f.value = '';
         });
-    }
+        document.getElementById('remove_ip').addEventListener('click', function() {
+            Array.prototype.slice.call(wl.selectedOptions).forEach(function(o) { o.remove(); });
+        });
 
-    function selectNone() {
-        $(".group-checkbox").each(function() {
-            $(this).prop('checked', false);
-        });
-    }
-    $(document).ready(function() {
-        $('.select2').select2({
-            width: '100%'
-        });
-        $('#code').keydown(function(e) {
-            var k = e.which;
-            var ok = k >= 65 && k <= 90 || // A-Z
-                k >= 96 && k <= 105 || // a-z
-                k >= 35 && k <= 40 || // arrows
-                k == 8 || // Backspaces
-                (!e.shiftKey && k >= 48 && k <= 57); // 0-9
-
-            if (!ok) {
-                e.preventDefault();
-            }
-        });
-        $("form").submit(function(e) {
+        // Submit → post.php?action=code. Select every whitelist option first so it
+        // is included in the FormData (a multi-select only submits selected options).
+        document.getElementById('code-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            $("#whitelist option").prop('selected', true);
-            $(':input[type="submit"]').prop('disabled', true);
-            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+            Array.prototype.forEach.call(wl.options, function(o) { o.selected = true; });
+            var btn = document.getElementById('code-submit');
+            btn.disabled = true;
+            fetch('post.php?action=code', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) { window.location.href = dt.location || 'codes'; return; }
+                    btn.disabled = false;
+                    alert(errText);
+                })
+                .catch(function() { btn.disabled = false; alert(errText); });
         });
-        $("#add_ip").click(function() {
-            if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {
-                var o = new Option($("#ip_field").val(), $("#ip_field").val());
-                $("#whitelist").append(o);
-                $("#ip_field").val("");
-            } else {
-                $.toast("Please enter a valid IP address.");
-            }
-        });
-        $("#remove_ip").click(function() {
-            $('#whitelist option:selected').remove();
-        });
-
-        <?php if (!isset($rCode)) echo 'generateCode();'; ?>
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

@@ -63,7 +63,6 @@ $rStatusFilters = [1 => 'Active', 2 => 'Disabled', 3 => 'Banned', 4 => 'Expired'
                     </div>
                 </div>
             <?php endif; ?>
-            <button type="button" class="btn btn-sm btn-label-secondary" id="export-csv"><i class="icon-base ti tabler-file-export me-1"></i>CSV</button>
         </div>
     </div>
     <div class="card-body border-bottom">
@@ -474,11 +473,6 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('wa_days').value = days;
             waUpdate();
             bootstrap.Modal.getOrCreateInstance(waModal).show();
-        });
-
-        // CSV export (existing report endpoint).
-        document.getElementById('export-csv').addEventListener('click', function() {
-            window.location.href = 'api?action=report&params=' + encodeURIComponent(JSON.stringify(table.ajax.params()));
         });
     })();
 </script>

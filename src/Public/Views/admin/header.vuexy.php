@@ -269,3 +269,4 @@ if (!function_exists('_xc_nav_label')) {
                 <!-- Content wrapper (closed in footer.vuexy.php) -->
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y">
+                        <?php require __DIR__ . '/topbar.vuexy.php'; ?>

@@ -89,6 +89,109 @@ if (count(get_included_files()) == 1) {
         }, true);
     </script>
 
+    <!-- Shared clear-logs modal (used by the topbar #btn-clear-logs on log pages) -->
+    <div class="modal fade" id="xcClearLogsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title mb-0"><?= htmlspecialchars($language::get('clear_logs') ?: 'Clear Logs'); ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-body-secondary small mb-3"><?= htmlspecialchars($language::get('clear_logs_range_hint') ?: 'Leave both dates empty to clear all logs, or set a range to clear only that period.'); ?></p>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label" for="xc-clear-from"><?= htmlspecialchars($language::get('from') ?: 'From'); ?></label>
+                            <input type="date" class="form-control" id="xc-clear-from">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="xc-clear-to"><?= htmlspecialchars($language::get('to') ?: 'To'); ?></label>
+                            <input type="date" class="form-control" id="xc-clear-to">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?= htmlspecialchars($language::get('cancel') ?: 'Cancel'); ?></button>
+                    <button type="button" class="btn btn-danger" id="xc-clear-confirm"><?= htmlspecialchars($language::get('clear_logs') ?: 'Clear Logs'); ?></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Wire the per-page topbar action buttons to the page's main DataTable
+        // (the shell can't know the page's table id). All handlers are delegated
+        // off document so they resolve the table lazily at click time.
+        (function () {
+            if (!window.jQuery || !jQuery.fn || !jQuery.fn.dataTable) { return; }
+            var $ = jQuery;
+            var errText = (window.XC_VM && XC_VM.Config && XC_VM.Config.i18n && XC_VM.Config.i18n.error_occured) || 'An error occurred.';
+
+            // The page's serverSide table is the visible one whose ajax url is ./table.
+            function pickTable() {
+                var nodes = $.fn.dataTable.tables({ visible: true });
+                var picked = null;
+                $(nodes).each(function () {
+                    var api = new $.fn.dataTable.Api(this), url;
+                    try { url = api.ajax.url(); } catch (e) { url = null; }
+                    if (url && /(^|\/)table(\?|$)/.test(url)) { picked = api; return false; }
+                });
+                if (!picked && nodes.length) { picked = new $.fn.dataTable.Api(nodes[0]); }
+                return picked;
+            }
+
+            $(document).on('click', '#refreshTable', function () {
+                var t = pickTable();
+                if (t) { t.ajax.reload(null, false); }
+            });
+
+            $(document).on('click', '#clearFilters', function () {
+                document.querySelectorAll('.card-body [id^="filter-"]').forEach(function (el) {
+                    if (el.tagName === 'SELECT') { el.value = ''; el.dispatchEvent(new Event('change', { bubbles: true })); }
+                    else { el.value = ''; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('keyup', { bubbles: true })); }
+                });
+                var all = document.getElementById('check-all');
+                if (all) { all.checked = false; }
+                var t = pickTable();
+                if (t) { try { t.search(''); } catch (e) {} t.ajax.reload(); }
+            });
+
+            function exportReport(json) {
+                var t = pickTable();
+                if (!t) { return; }
+                window.location.href = 'api?action=report' + (json ? '&format=json' : '') + '&params=' + encodeURIComponent(JSON.stringify(t.ajax.params()));
+            }
+            $(document).on('click', '#btn-export-csv', function () { exportReport(false); });
+            $(document).on('click', '#btn-export-json', function () { exportReport(true); });
+
+            // Clear logs — open the shared modal, remember the log type, confirm.
+            var clearType = null;
+            $(document).on('click', '#btn-clear-logs', function () {
+                clearType = this.getAttribute('data-log-type');
+                if (!clearType) { return; }
+                document.getElementById('xc-clear-from').value = '';
+                document.getElementById('xc-clear-to').value = '';
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('xcClearLogsModal')).show();
+            });
+            $(document).on('click', '#xc-clear-confirm', function () {
+                if (!clearType) { return; }
+                var btn = this;
+                btn.disabled = true;
+                var from = document.getElementById('xc-clear-from').value, to = document.getElementById('xc-clear-to').value;
+                fetch('./api?action=clear_logs&type=' + encodeURIComponent(clearType) + '&from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        btn.disabled = false;
+                        bootstrap.Modal.getInstance(document.getElementById('xcClearLogsModal')).hide();
+                        if (!d || d.result === false) { alert(errText); return; }
+                        var t = pickTable();
+                        if (t) { t.ajax.reload(null, false); }
+                    })
+                    .catch(function () { btn.disabled = false; alert(errText); });
+            });
+        })();
+    </script>
+
     <?php if (!empty($rSettings['header_stats'])): ?>
         <!-- Self-contained header-stats poller -->
         <script>

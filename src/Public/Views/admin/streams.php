@@ -56,7 +56,6 @@ $rStatusFilters = [
                     </div>
                 </div>
             <?php endif; ?>
-            <button type="button" class="btn btn-sm btn-label-secondary" id="export-csv"><i class="icon-base ti tabler-file-export me-1"></i>CSV</button>
         </div>
     </div>
     <div class="card-body border-bottom">
@@ -394,11 +393,6 @@ renderUnifiedLayoutFooter('admin');
         });
         jQuery('#streams-table tbody').on('click', '.js-finger', function() { openFrame(lang.fingerprint, 'fingerprint?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&type=stream&modal=1'); });
         frameModal.addEventListener('hidden.bs.modal', function() { document.getElementById('frame-src').src = 'about:blank'; table.ajax.reload(null, false); });
-
-        // CSV export.
-        document.getElementById('export-csv').addEventListener('click', function() {
-            window.location.href = 'api?action=report&params=' + encodeURIComponent(JSON.stringify(table.ajax.params()));
-        });
     })();
 </script>
 </body>
