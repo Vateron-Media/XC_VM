@@ -765,7 +765,8 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("live");
-		$rOrder = ["`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
+		// Leading false, false = Responsive control + bulk-select checkbox columns (Vuexy).
+		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 		} else {
@@ -974,55 +975,36 @@ class TableController extends BaseAdminController {
 						unset($rRow["stream_source"]);
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
+						// Category label (primary + "(+N others)").
 						$rCategoryIDs = json_decode($rRow["category_id"], true);
-						if (!is_array($rCategoryIDs)) {
-							$rCategoryIDs = [];
-						}
+						if (!is_array($rCategoryIDs)) { $rCategoryIDs = []; }
 						if (0 < strlen(RequestManager::get("category") ?? '')) {
 							$rCategory = $rCategories[(int)(RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
 						} else {
 							$rCategory = $rCategoryIDs[0] ?? null;
 							$rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
 						}
-						if (1 < count($rCategoryIDs)) {
-							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
-						}
-						if (0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id']) {
-							$rRow['stream_display_name'] .= " &nbsp;<a href='archive?id=" . $rRow['id'] . "'><i class='text-danger mdi mdi-record'></i></a>";
-						}
-						$adaptiveLinks = json_decode($rRow['adaptive_link'] ?? '', true) ?: [];
+						if (1 < count($rCategoryIDs)) { $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)"; }
 
-						if (is_array($adaptiveLinks) && count($adaptiveLinks) > 0) {
-							$rRow['stream_display_name'] .= " &nbsp;<a href='stream_view?id=" . $rRow['id'] . "'><i class='text-info mdi mdi-wifi-strength-3'></i></a>";
-						}
-						if ($rRow['title_sync']) {
-							$rRow['stream_display_name'] .= " &nbsp;<i class='text-info mdi mdi-sync tooltip' title='Title Sync'></i>";
-						}
-						$rStreamName = "<a href='stream_view?id=" . $rRow["id"] . "'><strong>" . $rRow["stream_display_name"] . "</strong><br><span style='font-size:11px;'>" . $rCategory . "</span></a>";
-						if ($rRow["server_name"]) {
-							if (Authorization::check("adv", "servers")) {
-								$rServerName = "<a href='server_view?id=" . $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>";
-							} else {
-								$rServerName = $rRow["server_name"];
-							}
-							if ($rSettings["streams_grouped"] && 1 < $rServerCount[$rRow["id"]]) {
-								$rServerName .= " &nbsp; <button title=\"View All Servers\" onClick=\"viewSources('" . str_replace("'", "\\'", $rRow["stream_display_name"]) . "', " . (int) $rRow["id"] . ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ " . ($rServerCount[$rRow["id"]] - 1) . "</button>";
-							}
-							if (($rServers[$rRow["server_id"]]["last_status"] ?? null) != 1) {
-								$rServerName .= " &nbsp; <button title=\"Server Offline!<br/>Uptime cannot be confirmed.\" type='button' class='tooltip btn btn-danger btn-xs waves-effect waves-light'><i class='mdi mdi-alert'></i></button>";
-							}
+						// Name badges + adaptive links.
+						$rHasArchive = (0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id']);
+						$rAdaptiveLinks = json_decode($rRow['adaptive_link'] ?? '', true) ?: [];
+						$rHasAdaptive = (is_array($rAdaptiveLinks) && count($rAdaptiveLinks) > 0);
+
+						// Server column (real id used for server_view; source host / loop label).
+						$rRealServerId = (int) $rRow["server_id"];
+						$rServerCnt = $rServerCount[$rRow["id"]] ?? 0;
+						if (isset($rRow['parent_id']) && (int) $rRow['parent_id'] > 0) {
+							$rSourceHost = "loop: " . strtolower((string) (ServerRepository::getAll()[$rRow["parent_id"]]["server_name"] ?? ""));
 						} else {
-							$rServerName = "No Server Selected";
+							$rSourceHost = strtolower((string) (parse_url($rRow['current_source'] ?? '')['host'] ?? ''));
 						}
-						if (isset($rRow['parent_id']) && (int)$rRow['parent_id'] > 0) {
-							$rStreamSource = "<br/><span style='font-size:11px;'>loop: " . strtolower(ServerRepository::getAll()[$rRow["parent_id"]]["server_name"]) . "</span>";
-						} else {
-							$rStreamSource = "<br/><span style='font-size:11px;'>" . strtolower(parse_url($rRow['current_source'] ?? '')['host'] ?? '') . "</span>";
-						}
-						$rServerName .= $rStreamSource;
-						if (0 < (int) $rRow["stream_started"]) {
-							$rSeconds = $rUptime = time() - (int) $rRow["stream_started"];
-						}
+						$rServerOffline = (($rServers[$rRealServerId]["last_status"] ?? null) != 1);
+
+						// Uptime seconds.
+						$rSeconds = 0 < (int) $rRow["stream_started"] ? time() - (int) $rRow["stream_started"] : 0;
+
+						// Stream status ($rActualStatus, -1..7) — computed from pid/monitor/on_demand/direct.
 						$rActualStatus = 0;
 						if ($rRow["server_id"]) {
 							if (!$rCreated) {
@@ -1078,38 +1060,13 @@ class TableController extends BaseAdminController {
 						} else {
 							$rActualStatus = -1;
 						}
-						if (!$rRow["server_id"]) {
-							$rRow["server_id"] = 0;
-						}
-						if ($rSettings["streams_grouped"] == 1) {
-							$rRow["server_id"] = -1;
-						}
-						if (Authorization::check("adv", "live_connections")) {
-							if (0 < $rRow["clients"]) {
-								$rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . (int) $rRow["id"] . ", " . (int) $rRow["server_id"] . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . number_format($rRow["clients"], 0) . "</button></a>";
-							} else {
-								$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-							}
-						} elseif (0 < $rRow["clients"]) {
-							$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>" . number_format($rRow["clients"], 0) . "</button>";
-						} else {
-							$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-						}
-						if (SettingsManager::getAll()["hide_failures"] && !$rCreated) {
-							$rBtnLength = "btn-fixed-xl";
-						} else {
-							$rBtnLength = "btn-fixed";
-						}
-						if ($rActualStatus == 1) {
-							if (86400 <= $rUptime) {
-								$rUptime = sprintf("%02dd %02dh %02dm", intdiv((int)$rUptime, 86400), intdiv((int)$rUptime, 3600) % 24, intdiv((int)$rUptime, 60) % 60);
-							} else {
-								$rUptime = sprintf("%02dh %02dm %02ds", intdiv((int)$rUptime, 3600), intdiv((int)$rUptime, 60) % 60, (int)$rUptime % 60);
-							}
-							$rUptime = "<button type='button' class='btn btn-success btn-xs waves-effect waves-light " . $rBtnLength . "'>" . $rUptime . "</button>";
-						} elseif ($rActualStatus == 3) {
-							$rUptime = "<button type='button' class='btn btn-danger btn-xs waves-effect waves-light " . $rBtnLength . "'>" . Translator::get('down_btn') . "</button>";
-						} elseif ($rActualStatus == 6) {
+
+						// Server id used by row actions / live link: -1 (all) in grouped mode, else real or 0.
+						$rServerColId = $rSettings["streams_grouped"] == 1 ? -1 : ($rRealServerId ?: 0);
+
+						// Convert-to-channel encode progress (status 6).
+						$rEncodePct = null;
+						if ($rActualStatus == 6) {
 							$rSources = json_decode($rRow["stream_source"], true);
 							$rLeft = count(array_diff($rSources, json_decode($rRow["cchannel_rsources"], true)));
 							$rPercent = (count($rSources) - $rLeft) / count($rSources) * 100;
@@ -1117,231 +1074,85 @@ class TableController extends BaseAdminController {
 							if (0 < $rLeft && isset($rEncodeInfo["cc_encode"]["pct"])) {
 								$rPercent += floatval($rEncodeInfo["cc_encode"]["pct"]) / count($rSources);
 							}
-							$rPercent = (int) $rPercent;
-							$rUptime = "<button type='button' class='btn btn-primary btn-xs waves-effect waves-light btn-fixed-xl'>" . $rPercent . "% DONE</button>";
-						} else {
-							$rUptime = StatusBadge::stream($rActualStatus);
+							$rEncodePct = (int) $rPercent;
 						}
-						if (in_array($rActualStatus, [1, 2, 3])) {
-							if ($rCreated) {
-								$rCCInfo = json_decode($rRow["cc_info"], true);
-								$rTrackInfo = $rRow["parent_id"] ? "Channel is looping from another server, real position cannot be determined." : "No information available.";
-								if ($rActualStatus == 1 && 0 < count($rCCInfo) && !$rRow["parent_id"]) {
-									$rSources = json_decode($rRow["stream_source"], true);
-									foreach ($rCCInfo as $rTrack) {
-										if ($rTrack["start"] <= $rSeconds && $rSeconds < $rTrack["finish"]) {
-											$rTrackInfo = pathinfo($rSources[$rTrack["position"]])["filename"] . "<br/><br/>Track # " . ($rTrack["position"] + 1) . " of " . count($rSources) . "<br/>";
-											if ($rTrack["position"] < count($rSources) - 1) {
-												$rTrackInfo .= "Next track in " . number_format(($rTrack["finish"] - $rSeconds) / 60, 0) . " minutes.";
-											} else {
-												$rTrackInfo .= "Looping in " . number_format(($rTrack["finish"] - $rSeconds) / 60, 0) . " minutes.";
-											}
-										}
-									}
-									$rUptime = "<button type='button' title='" . htmlspecialchars($rTrackInfo) . "' class='btn tooltip btn-success btn-xs waves-effect waves-light btn-fixed-xs'><i class='text-light fas fa-check-circle'></i></button>" . $rUptime;
-								} else {
-									$rUptime = "<button type='button' title='" . htmlspecialchars($rTrackInfo) . "' class='btn tooltip btn-secondary btn-xs waves-effect waves-light btn-fixed-xs'><i class='text-light fas fa-minus-circle'></i></button>" . $rUptime;
-								}
+
+						// Restart-fails indicator [count, secondsSinceLast] for running/starting/down live.
+						$rFailRow = null;
+						if (!$rCreated && in_array($rActualStatus, [1, 2, 3]) && !SettingsManager::getAll()["hide_failures"]) {
+							if ($rSettings["streams_grouped"] == 1) {
+								$rFailRow = $rFails[$rRow['id']] ?? [0, 0];
 							} else {
-								if (SettingsManager::getAll()["hide_failures"] && stripos($rUptime, "btn-fixed-xl") === false) {
-									$rUptime = str_replace("btn-fixed", "btn-fixed-xl", $rUptime);
-								}
-								if ($rSettings["streams_grouped"] == 1) {
-									$rFailRow = $rFails[$rRow['id']] ?? [];
-								} else {
-									$rFailRow = $rFailsPS[$rRow["id"]][$rRow["server_id"]] ?? [];
-								}
-								if (!$rFailRow) {
-									$rFailRow = [0, 0];
-								}
-								if (!SettingsManager::getAll()["hide_failures"]) {
-									if (!isset($rFailRow) || $rFailRow[0] <= 2) {
-										$rUptime = "<button onClick='showFailures(" . (int) $rRow["id"] . ", " . (!$rSettings["streams_grouped"] ? (int) $rRow["server_id"] : "0") . ")' type='button' title='" . $rFailRow[0] . " restarts' class='btn tooltip-left btn-success btn-xs waves-effect waves-light btn-fixed-xs'><i class='text-light fas fa-check-circle'></i></button>" . $rUptime;
-									} elseif ($rFailRow[0] <= 4 || 21600 < $rFailRow[1]) {
-										$rUptime = "<button onClick='showFailures(" . (int) $rRow["id"] . ", " . (!$rSettings["streams_grouped"] ? (int) $rRow["server_id"] : "0") . ")' type='button' title='" . $rFailRow[0] . " restarts' class='btn tooltip-left btn-info btn-xs waves-effect waves-light btn-fixed-xs'><i class='text-light fas fa-minus-circle'></i></button>" . $rUptime;
-									} elseif ($rFailRow[0] <= 144 || 600 < $rFailRow[1]) {
-										$rUptime = "<button onClick='showFailures(" . (int) $rRow["id"] . ", " . (!$rSettings["streams_grouped"] ? (int) $rRow["server_id"] : "0") . ")' type='button' title='" . $rFailRow[0] . " restarts' class='btn tooltip-left btn-warning btn-xs waves-effect waves-light btn-fixed-xs'><i class='text-light fas fa-exclamation-circle'></i></button>" . $rUptime;
-									} else {
-										$rUptime = "<button onClick='showFailures(" . (int) $rRow["id"] . ", " . (!$rSettings["streams_grouped"] ? (int) $rRow["server_id"] : "0") . ")' type='button' title='" . $rFailRow[0] . " restarts' class='btn tooltip-left btn-danger btn-xs waves-effect waves-light btn-fixed-xs'><i class='text-light fas fa-times-circle'></i></button>" . $rUptime;
-									}
-								}
+								$rFailRow = $rFailsPS[$rRow["id"]][$rRow["server_id"]] ?? [0, 0];
 							}
 						}
-						if (SettingsManager::getAll()["group_buttons"]) {
-							$rButtons = "";
-							if (!empty($rRow['notes'])) {
-								$rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
-							}
-							$rButtons .= "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
-							if ((RequestManager::has("single") || RequestManager::has("simple")) && Authorization::check("adv", "edit_stream")) {
-								if ((int) $rActualStatus == 1 || (int) $rActualStatus == 2 || (int) $rActualStatus == 3 || $rRow["on_demand"] == 1 || $rActualStatus == 5) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'stop');\">Stop</a>\r\n\t\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'restart');\">Restart</a>\r\n\t\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'purge');\">Kill Connections</a>";
-								} else {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'start');\">Start</a>";
-								}
-								if (RequestManager::has("single")) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\">Delete</a>";
-								}
-							} else {
-								if (Authorization::check("adv", "edit_stream")) {
-									if ((int) $rActualStatus == 1 || (int) $rActualStatus == 2 || (int) $rActualStatus == 3 || $rRow["on_demand"] == 1 || $rActualStatus == 5) {
-										$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'stop');\">Stop</a>\r\n\t\t\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'restart');\">Restart</a>\r\n\t\t\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'purge');\">Kill Connections</a>";
-									} else {
-										$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'start');\">Start</a>";
-									}
-								}
-								if (Authorization::check("adv", "fingerprint") && !$rCreated && 0 < $rRow["clients"]) {
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"modalFingerprint(" . $rRow["id"] . ", 'stream');\">Fingerprint</a>";
-								}
-								if (Authorization::check("adv", "edit_stream")) {
-									if ($rRow["type"] == 3) {
-										$rButtons .= "<a class=\"dropdown-item\" href=\"created_channel?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'created_channel', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["stream_display_name"])) . "')\" data-modal=\"true\"" : "") . ">Edit</a>";
-									} else {
-										$rButtons .= "<a class=\"dropdown-item\" href=\"stream?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'stream', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["stream_display_name"])) . "')\" data-modal=\"true\"" : "") . ">Edit</a>";
-									}
-									$rButtons .= "<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\">Delete</a>";
-								}
-							}
-							$rButtons .= "</div></div>";
-						} else {
-							$rButtons = "<div class=\"btn-group\">";
-							if ((RequestManager::has("single") || RequestManager::has("simple")) && Authorization::check("adv", "edit_stream")) {
-								if ((int) $rActualStatus == 1 || (int) $rActualStatus == 2 || (int) $rActualStatus == 3 || $rRow["on_demand"] == 1 || $rActualStatus == 5) {
-									$rButtons .= "<button title=\"Stop\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-stop tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
-									$rStatus = "";
-								} else {
-									$rButtons .= "<button title=\"Start\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-start tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'start');\"><i class=\"mdi mdi-play\"></i></button>";
-									$rStatus = " disabled";
-								}
-								$rButtons .= "<button title=\"Restart\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-restart tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'restart');\"" . $rStatus . "><i class=\"mdi mdi-refresh\"></i></button>\r\n\t\t\t\t\t\t<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-restart tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'purge');\"" . $rStatus . "><i class=\"mdi mdi-hammer\"></i></button>";
-								if (RequestManager::has("single")) {
-									$rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-								}
-							} else {
-								if (!empty($rRow['notes'])) {
-									$rButtons .= "<button type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" title=\"" . $rRow["notes"] . "\"><i class=\"mdi mdi-note\"></i></button>";
-								} else {
-									$rButtons .= "<button disabled type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-note\"></i></button>";
-								}
-								if (Authorization::check("adv", "edit_stream")) {
-									if ((int) $rActualStatus == 1 || (int) $rActualStatus == 2 || (int) $rActualStatus == 3 || $rRow["on_demand"] == 1 || $rActualStatus == 5) {
-										$rButtons .= "<button title=\"Stop\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-stop tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'stop');\"><i class=\"mdi mdi-stop\"></i></button>";
-										$rStatus = "";
-									} else {
-										$rButtons .= "<button title=\"Start\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-start tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'start');\"><i class=\"mdi mdi-play\"></i></button>";
-										$rStatus = " disabled";
-									}
-									$rButtons .= "<button title=\"Restart\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs api-restart tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'restart');\"" . $rStatus . "><i class=\"mdi mdi-refresh\"></i></button>\r\n\t\t\t\t\t\t\t<button title=\"Kill Connections\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'purge');\"" . $rStatus . "><i class=\"mdi mdi-hammer\"></i></button>";
-								}
-								if (Authorization::check("adv", "fingerprint") && !$rCreated) {
-									if (0 < $rRow["clients"]) {
-										$rButtons .= "<button title=\"Fingerprint\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"modalFingerprint(" . $rRow["id"] . ", 'stream');\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-									} else {
-										$rButtons .= "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-fingerprint\"></i></button>";
-									}
-								}
-								if (Authorization::check("adv", "edit_stream")) {
-									if ($rRow["type"] == 3) {
-										$rButtons .= "<a href=\"created_channel?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'created_channel', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["stream_display_name"])) . "')\" data-modal=\"true\"" : "") . "><button title=\"Edit\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-pencil\"></i></button></a>";
-									} else {
-										$rButtons .= "<a href=\"stream?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'stream', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["stream_display_name"])) . "')\" data-modal=\"true\"" : "") . "><button title=\"Edit\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-pencil\"></i></button></a>";
-									}
-									$rButtons .= "<button title=\"Delete\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", " . $rRow["server_id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-								}
-							}
-							$rButtons .= "</div>";
-						}
-						$rStreamInfoText = "<table style='font-size: 10px;' class='table-data nowrap' align='center'><tbody><tr><td colspan='5'>No information available</td></tr></tbody></table>";
-						$rStreamInfo   = json_decode($rRow['stream_info'] ?? '', true);
-						if (!is_array($rStreamInfo)) {
-							$rStreamInfo = [];
-						}
-						$rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
+
+						// Live stream-info (codecs / bitrate / speed / fps) for a running stream.
+						$rInfo = null;
+						$rPlayerVideo = "";
 						if ($rActualStatus == 1) {
-							if (!isset($rStreamInfo["codecs"]["video"]) || !is_array($rStreamInfo["codecs"]["video"])) {
-								$rStreamInfo["codecs"]["video"] = ["width" => "?", "height" => "?", "codec_name" => "N/A", "r_frame_rate" => "--"];
-							}
-							if (!isset($rStreamInfo["codecs"]["audio"]) || !is_array($rStreamInfo["codecs"]["audio"])) {
-								$rStreamInfo["codecs"]["audio"] = ["codec_name" => "N/A"];
-							}
-							if ($rRow["bitrate"] == 0) {
-								$rRow["bitrate"] = "?";
-							}
+							$rStreamInfo = json_decode($rRow['stream_info'] ?? '', true);
+							if (!is_array($rStreamInfo)) { $rStreamInfo = []; }
+							$rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
+							$rVideo = (is_array($rStreamInfo["codecs"]["video"] ?? null)) ? $rStreamInfo["codecs"]["video"] : [];
+							$rAudio = (is_array($rStreamInfo["codecs"]["audio"] ?? null)) ? $rStreamInfo["codecs"]["audio"] : [];
+							$rSpeed = "1x";
 							if (isset($rProgressInfo["speed"])) {
 								$rSpeedValue = null;
-								if (is_numeric($rProgressInfo["speed"])) {
-									$rSpeedValue = (float) $rProgressInfo["speed"];
-								} elseif (is_string($rProgressInfo["speed"]) && preg_match('/([0-9]+(?:\.[0-9]+)?)/', $rProgressInfo["speed"], $rSpeedMatch)) {
-									$rSpeedValue = (float) $rSpeedMatch[1];
-								}
-								if ($rSpeedValue !== null) {
-									$rSpeed = round($rSpeedValue, 2) . "x"; // round(), not floor($v*100)/100 — the latter drops e.g. 1.01 to "1x" (1.01*100 is 100.9999… in float)
-								} else {
-									$rSpeed = "1x";
-								}
-							} else {
-								$rSpeed = "1x";
+								if (is_numeric($rProgressInfo["speed"])) { $rSpeedValue = (float) $rProgressInfo["speed"]; }
+								elseif (is_string($rProgressInfo["speed"]) && preg_match('/([0-9]+(?:\.[0-9]+)?)/', $rProgressInfo["speed"], $rSpeedMatch)) { $rSpeedValue = (float) $rSpeedMatch[1]; }
+								if ($rSpeedValue !== null) { $rSpeed = round($rSpeedValue, 2) . "x"; }
 							}
-							$rFPS = NULL;
-							if (isset($rProgressInfo["fps"])) {
-								$rFPS = (int) $rProgressInfo["fps"];
-							} elseif (isset($rStreamInfo["codecs"]["video"]["r_frame_rate"])) {
-								$rFPS = (int) $rStreamInfo["codecs"]["video"]["r_frame_rate"];
-							}
-							if ($rFPS) {
-								if (1000 <= $rFPS) {
-									$rFPS = (int) ($rFPS / 1000);
-								}
-								$rFPS = $rFPS . " FPS";
-							} else {
-								$rFPS = "--";
-							}
-							$bitrate = is_numeric($rRow["bitrate"]) ? $rRow["bitrate"] : 0;
-							$rStreamInfoText = "<table class='table-data nowrap' align='center'><tbody><tr><td class='double'>" . number_format($bitrate, 0) . " Kbps</td><td class='text-success'><i class='mdi mdi-video' data-name='mdi-video'></i></td><td class='text-success'><i class='mdi mdi-volume-high' data-name='mdi-volume-high'></i></td>";
-							if (!$rCreated) {
-								$rStreamInfoText .= "<td class='text-success'><i class='mdi mdi-play-speed' data-name='mdi-play-speed'></i></td>";
-							}
-							$rStreamInfoText .= "<td class='text-success'><i class='mdi mdi-layers' data-name='mdi-layers'></i></td></tr><tr><td class='double'>" . $rStreamInfo["codecs"]["video"]["width"] . " x " . $rStreamInfo["codecs"]["video"]["height"] . "</td><td>" . $rStreamInfo["codecs"]["video"]["codec_name"] . "</td><td>" . $rStreamInfo["codecs"]["audio"]["codec_name"] . "</td>";
-							if (!$rCreated) {
-								$rStreamInfoText .= "<td>" . $rSpeed . "</td>";
-							}
-							$rStreamInfoText .= "<td>" . $rFPS . "</td></tr></tbody></table>";
+							$rFPS = null;
+							if (isset($rProgressInfo["fps"])) { $rFPS = (int) $rProgressInfo["fps"]; }
+							elseif (isset($rVideo["r_frame_rate"])) { $rFPS = (int) $rVideo["r_frame_rate"]; }
+							if ($rFPS) { if (1000 <= $rFPS) { $rFPS = (int) ($rFPS / 1000); } $rFPS = $rFPS . " FPS"; } else { $rFPS = "--"; }
+							$rInfo = [
+								"bitrate" => (is_numeric($rRow["bitrate"]) && $rRow["bitrate"] > 0) ? number_format((float) $rRow["bitrate"], 0) : "?",
+								"resolution" => ($rVideo["width"] ?? "?") . " x " . ($rVideo["height"] ?? "?"),
+								"video" => $rVideo["codec_name"] ?? "N/A",
+								"audio" => $rAudio["codec_name"] ?? "N/A",
+								"speed" => $rSpeed,
+								"fps" => $rFPS,
+							];
+							$rPlayerVideo = strtoupper((string) ($rVideo["codec_name"] ?? ""));
 						}
-						if (Authorization::check("adv", "player")) {
-							if (((int) $rActualStatus == 1 || $rActualStatus == 4) && !$rRow["direct_proxy"]) {
-								if (empty($rStreamInfo["codecs"]["video"]["codec_name"]) || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H264" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "N/A" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "HEVC" || strtoupper($rStreamInfo["codecs"]["video"]["codec_name"]) == "H265") {
-									$rPlayer = "<button title=\"Play\" type=\"button\" class=\"btn btn-info waves-effect waves-light btn-xs tooltip\" onClick=\"player(" . $rRow["id"] . ");\"><i class=\"mdi mdi-play\"></i></button>";
-								} else {
-									$rPlayer = "<button type=\"button\" class=\"btn btn-dark waves-effect waves-light btn-xs tooltip\" title=\"Incompatible Video Codec\"><i class=\"mdi mdi-play\"></i></button>";
-								}
-							} else {
-								$rPlayer = "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-play\"></i></button>";
-							}
-						} else {
-							$rPlayer = "<button type=\"button\" disabled class=\"btn btn-light waves-effect waves-light btn-xs\"><i class=\"mdi mdi-play\"></i></button>";
+
+						// EPG availability + player codec compatibility.
+						$rEPG = file_exists(EPG_PATH . "stream_" . $rRow["id"]) ? "available" : ($rRow["channel_id"] ? "pending" : "none");
+						$rPlayerOk = false;
+						if (((int) $rActualStatus == 1 || $rActualStatus == 4) && !$rRow["direct_proxy"]) {
+							$rPlayerOk = ($rPlayerVideo === "" || in_array($rPlayerVideo, ["H264", "N/A", "HEVC", "H265"], true));
 						}
-						if (file_exists(EPG_PATH . "stream_" . $rRow["id"])) {
-							$rEPG = "<button onClick=\"viewEPG(" . (int) $rRow["id"] . ");\" type='button' title='View EPG' class='tooltip btn btn-success btn-xs waves-effect waves-light'><i class='text-white fas fa-square'></i></button>";
-						} elseif ($rRow["channel_id"]) {
-							$rEPG = "<button type='button' class='btn btn-warning btn-xs waves-effect waves-light'><i class='text-white fas fa-square'></i></button>";
-						} else {
-							$rEPG = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'><i class='text-white fas fa-square'></i></button>";
-						}
-						if (0 < strlen($rRow["stream_icon"]) && SettingsManager::getAll()["show_images"]) {
-							$rIcon = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . urlencode($rRow["stream_icon"]) . "'><img loading='lazy' src='resize?maxw=96&maxh=32&url=" . urlencode($rRow["stream_icon"]) . "' /></a>";
-						} else {
-							$rIcon = "";
-						}
-						$rID = $rRow["id"];
-						$rStreamServerCount = (isset($rServerCount[$rRow["id"]]) ? $rServerCount[$rRow["id"]] : 0);
-						if (!$rSettings["streams_grouped"] && 1 < $rStreamServerCount) {
-							$rID .= "-" . $rRow["server_id"];
-						}
-						if ($rCreated) {
-							$rReturn["data"][] = ["<a href='stream_view?id=" . $rRow["id"] . "'>" . $rID . "</a>", $rIcon, $rStreamName, $rServerName, $rClients, $rUptime, $rButtons, $rPlayer, $rStreamInfoText];
-						} else {
-							$rReturn["data"][] = ["<a href='stream_view?id=" . $rRow["id"] . "'>" . $rID . "</a>", $rIcon, $rStreamName, $rServerName, $rClients, $rUptime, $rButtons, $rPlayer, $rEPG, $rStreamInfoText];
-						}
+
+						$rReturn["data"][] = [
+							"id" => (int) $rRow["id"],
+							"display_id" => (!$rSettings["streams_grouped"] && 1 < $rServerCnt) ? ($rRow["id"] . "-" . $rRealServerId) : (string) $rRow["id"],
+							"server_col_id" => $rServerColId,
+							"type" => (int) $rRow["type"],
+							"icon" => (0 < strlen((string) $rRow["stream_icon"]) && SettingsManager::getAll()["show_images"]) ? $rRow["stream_icon"] : null,
+							"title" => $rRow["stream_display_name"],
+							"category" => $rCategory,
+							"archive" => $rHasArchive,
+							"adaptive" => $rHasAdaptive,
+							"title_sync" => (bool) $rRow["title_sync"],
+							"source_host" => $rSourceHost ?: null,
+							"server_id" => $rRealServerId,
+							"server_name" => $rRow["server_name"] ?: null,
+							"server_url" => ($rRow["server_name"] && Authorization::check("adv", "servers")) ? "server_view?id=" . $rRealServerId : null,
+							"server_count" => $rServerCnt,
+							"server_offline" => $rServerOffline,
+							"clients" => (int) $rRow["clients"],
+							"status" => $rActualStatus,
+							"uptime" => $rActualStatus == 1 ? $rSeconds : null,
+							"encode_pct" => $rEncodePct,
+							"fails" => $rFailRow,
+							"on_demand" => (int) $rRow["on_demand"],
+							"epg" => $rEPG,
+							"notes" => !empty($rRow["notes"]) ? $rRow["notes"] : null,
+							"player_ok" => $rPlayerOk,
+							"info" => $rInfo,
+						];
 					}
 				}
 			}

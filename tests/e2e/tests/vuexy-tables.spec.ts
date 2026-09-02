@@ -62,6 +62,7 @@ const REFERENCES: Migrated[] = [
 
 const MANAGEMENT: Migrated[] = [
   { url: 'lines', table: '#lines-table', ajax: 'lines', bulk: true },
+  { url: 'streams', table: '#streams-table', ajax: 'streams', bulk: true },
   { url: 'users', table: '#users-table', ajax: 'reg_users' },
   { url: 'series', table: '#series-table', ajax: 'series', bulk: true },
   { url: 'mags', table: '#mags-table', ajax: 'mags', bulk: true },
