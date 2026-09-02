@@ -4130,7 +4130,8 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("series");
-		$rOrder = ["`streams_series`.`id`", "`streams_series`.`cover`", "`streams_series`.`title`", "`streams_series`.`category_id`", "`latest_season`", "`episode_count`", false, "`streams_series`.`release_date`", "`streams_series`.`last_modified`", false];
+		// Leading false, false = the Vuexy Responsive control + bulk-select columns.
+		$rOrder = [false, false, "`streams_series`.`id`", "`streams_series`.`cover`", "`streams_series`.`title`", "`streams_series`.`category_id`", "`latest_season`", "`episode_count`", false, "`streams_series`.`release_date`", "`streams_series`.`last_modified`", false];
 		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
 		$rWhere = $rWhereV = [];
@@ -4177,102 +4178,28 @@ class TableController extends BaseAdminController {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
 						$rCategoryIDs = json_decode($rRow["category_id"], true);
-						if (0 < strlen(RequestManager::get("category") ?? '')) {
-							$rCategory = $rCategories[(int)(RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
+						if (0 < strlen(RequestManager::get("category") ?? "")) {
+							$rCategory = $rCategories[(int) (RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
 						} else {
 							$rCategory = $rCategoryIDs[0] ?? null;
-							$rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
+							$rCategory = $rCategories[$rCategory]["category_name"] ?? "No Category";
 						}
-						if (1 < count($rCategoryIDs)) {
+						if (is_array($rCategoryIDs) && 1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						if (SettingsManager::getAll()["group_buttons"]) {
-							$rButtons = "<div class=\"btn-group dropdown\"><a href=\"javascript: void(0);\" class=\"table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm\" data-toggle=\"dropdown\" aria-expanded=\"false\"><i class=\"mdi mdi-menu\"></i></a><div class=\"dropdown-menu dropdown-menu-right\">";
-							if (Authorization::check("adv", "add_episode")) {
-								$rButtons .= "<a class=\"dropdown-item\" href=\"episode?sid=" . $rRow["id"] . "\">Add Episode(s)</a>";
-							}
-							if (Authorization::check("adv", "episodes")) {
-								$rButtons .= "<a class=\"dropdown-item\" href=\"episodes?series=" . $rRow["id"] . "\">View Episodes</a>";
-							}
-							if (Authorization::check("adv", "edit_series")) {
-								$rButtons .= "<a class=\"dropdown-item\" href=\"serie?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'serie', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["title"])) . "')\" data-modal=\"true\"" : "") . ">Edit</a>\r\n\t\t\t\t\t\t<a class=\"dropdown-item\" href=\"javascript:void(0);\" onClick=\"api(" . $rRow["id"] . ", 'delete');\">Delete</a>";
-							}
-							$rButtons .= "</div></div>";
-						} else {
-							$rButtons = "<div class=\"btn-group\">";
-							if (Authorization::check("adv", "add_episode")) {
-								$rButtons .= "<a href=\"episode?sid=" . $rRow["id"] . "\"><button title=\"Add Episode(s)\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-plus-circle-outline\"></i></button></a>";
-							}
-							if (Authorization::check("adv", "episodes")) {
-								$rButtons .= "<a href=\"episodes?series=" . $rRow["id"] . "\"><button title=\"View Episodes\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-eye\"></i></button></a>";
-							}
-							if (Authorization::check("adv", "edit_series")) {
-								$rButtons .= "<a href=\"serie?id=" . $rRow["id"] . "\" " . (SettingsManager::getAll()["modal_edit"] ? "onClick=\"editModal(event, 'serie', " . (int) $rRow["id"] . ", '" . str_replace("\"", "&quot;", str_replace("'", "\\'", $rRow["title"])) . "')\" data-modal=\"true\"" : "") . "><button title=\"Edit\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-pencil\"></i></button></a>\r\n\t\t\t\t\t\t<button type=\"button\" title=\"Delete\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-							}
-							$rButtons .= "</div>";
-						}
-						if (0 < $rRow["latest_season"]) {
-							$rRow["latest_season"] = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow["latest_season"] . "</button>";
-						} else {
-							$rRow["latest_season"] = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-						}
-						if (0 < $rRow["episode_count"]) {
-							if (Authorization::check("adv", "episodes")) {
-								$rRow["episode_count"] = "<a href='episodes?series=" . $rRow["id"] . "'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow["episode_count"] . "</button></a>";
-							} else {
-								$rRow["episode_count"] = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow["episode_count"] . "</button>";
-							}
-						} else {
-							$rRow["episode_count"] = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-						}
-						if ($rRow["last_modified"] == 0) {
-							$rRow["last_modified"] = "Never";
-						} else {
-							$rRow["last_modified"] = date($rSettings["datetime_format"], $rRow["last_modified"]);
-						}
-						if ($rRow["release_date"]) {
-							$rRow["release_date"] = date($rSettings["date_format"], strtotime($rRow["release_date"]));
-						}
-						if (0 < $rRow["tmdb_id"]) {
-							$rTMDB = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed-xs\"><i class=\"text-light fas fa-check-circle\"></i></button>";
-						} else {
-							$rTMDB = "<button type=\"button\" class=\"btn btn-secondary btn-xs waves-effect waves-light btn-fixed-xs\"><i class=\"text-light fas fa-minus-circle\"></i></button>";
-						}
-						if (0 < strlen($rRow["cover"]) && SettingsManager::getAll()["show_images"]) {
-							$rImage = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rRow["cover"] . "'><img loading='lazy' src='resize?maxh=58&maxw=32&url=" . $rRow["cover"] . "' /></a>";
-						} else {
-							$rImage = "";
-						}
-						if (Authorization::check("adv", "episodes")) {
-							$rID = "<a href='serie?id=" . (int) $rRow["id"] . "'>" . $rRow["id"] . "</a>";
-							$rTitle = "<a href='serie?id=" . (int) $rRow["id"] . "'><strong>" . $rRow["title"] . "</strong></a>";
-						} else {
-							$rID = $rRow["id"];
-							$rTitle = "<strong>" . $rRow["title"] . "</strong>";
-						}
-						$rRatingText = "";
-						if ($rRow["rating"]) {
-							$rStarRating = round($rRow["rating"]) / 2;
-							$rFullStars = floor($rStarRating);
-							$rHalfStar = 0 < $rStarRating - $rFullStars;
-							$rEmpty = 5 - ($rFullStars + ($rHalfStar ? 1 : 0));
-							if (0 < $rFullStars) {
-								foreach (range(1, $rFullStars) as $i) {
-									$rRatingText .= "<i class='mdi mdi-star'></i>";
-								}
-							}
-							if ($rHalfStar) {
-								$rRatingText .= "<i class='mdi mdi-star-half'></i>";
-							}
-							if (0 < $rEmpty) {
-								foreach (range(1, $rEmpty) as $i) {
-									$rRatingText .= "<i class='mdi mdi-star-outline'></i>";
-								}
-							}
-						}
-						$rYear = $rRow["year"] ? "<strong>" . $rRow["year"] . "</strong> &nbsp;" : "";
-						$rTitle .= "<br><span style='font-size:11px;'>" . $rYear . $rRatingText . "</span></a>";
-						$rReturn["data"][] = [$rID, $rImage, $rTitle, $rCategory, $rRow["latest_season"], $rRow["episode_count"], $rTMDB, $rRow["release_date"], $rRow["last_modified"], $rButtons];
+						$rReturn["data"][] = [
+							"id"            => (int) $rRow["id"],
+							"cover"         => (0 < strlen((string) $rRow["cover"]) && SettingsManager::getAll()["show_images"]) ? $rRow["cover"] : null,
+							"title"         => $rRow["title"],
+							"year"          => $rRow["year"] ?: null,
+							"rating"        => $rRow["rating"] ? (float) $rRow["rating"] : null,
+							"category"      => $rCategory,
+							"latest_season" => (int) $rRow["latest_season"],
+							"episode_count" => (int) $rRow["episode_count"],
+							"tmdb"          => (0 < (int) $rRow["tmdb_id"]),
+							"release_date"  => $rRow["release_date"] ? date($rSettings["date_format"], strtotime($rRow["release_date"])) : null,
+							"last_modified" => (int) $rRow["last_modified"],
+						];
 					}
 				}
 			}

@@ -1,271 +1,250 @@
-<div class="wrapper"
-	<?php 
+<?php
+
+/**
+ * Series (Vuexy). Clean-JSON table pattern: TableController::handleSeries returns
+ * structured rows (category resolved server-side) and this page renders the cells
+ * client-side via datatables-bs5 columns[].render. Establishes the management-
+ * table bulk-select pattern: a checkbox column + select-all + a bulk toolbar that
+ * posts action=multi&type=series. Row actions (add/view episodes, edit modal,
+ * delete) and the category filter are wired inline.
+ */
+
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Stream\CategoryService;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo ' style="display: none;"'; ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?= $language::get('tv_series') ?></h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-12">
-				<?php if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS): ?>
-					<div class="alert alert-success alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						Series has been added / modified.
-					</div>
-				<?php elseif (isset($_STATUS) && $_STATUS == STATUS_SUCCESS_MULTI): ?>
-					<div class="alert alert-success alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						Series are being imported in the background, series that can't be matched will not be added. Check
-						Watch Folder logs for information.
-					</div>
-				<?php endif; ?>
-				<div class="card">
-					<div class="card-body" style="overflow-x:auto;">
-						<div id="collapse_filters" class="form-group row mb-4 <?php if ($rMobile) echo 'collapse'; ?>">
-							<div class="col-md-6">
-								<input type="text" class="form-control" id="series_search"
-									value="<?php if (RequestManager::has('search')) echo htmlspecialchars(RequestManager::get('search')); ?>"
-									placeholder="<?= $language::get('search_series_placeholder') ?>">
-							</div>
-							<div class="col-md-3">
-								<select id="series_category_id" class="form-control" data-toggle="select2">
-									<option value=""><?= $language::get('all_categories') ?></option>
-									<option value="-1"
-										<?php if (RequestManager::has('category') && RequestManager::get('category') == -1) echo 'selected'; ?>>
-										No TMDb Match</option>
-									<option value="-2"
-										<?php if (RequestManager::has('category') && RequestManager::get('category') == -2) echo 'selected'; ?>>
-										No Categories</option>
-									<?php foreach ($rCategories as $rCategory): ?>
-										<option value="<?= $rCategory['id']; ?>"
-											<?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) echo 'selected'; ?>>
-											<?= $rCategory['category_name']; ?>
-										</option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-							<label class="col-md-1 col-form-label text-center" for="series_show_entries"><?= $language::get('show') ?></label>
-							<div class="col-md-2">
-								<select id="series_show_entries" class="form-control" data-toggle="select2">
-									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow): ?>
-										<option value="<?= $rShow; ?>"
-											<?php if ((RequestManager::has('entries') && RequestManager::get('entries') == $rShow) || (!RequestManager::has('entries') && $rSettings['default_entries'] == $rShow)) echo 'selected'; ?>>
-											<?= $rShow; ?>
-										</option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-						</div>
-						<table id="datatable-streampage"
-							class="table table-striped table-borderless dt-responsive nowrap font-normal">
-							<thead>
-								<tr>
-									<th class="text-center"><?= $language::get('id') ?></th>
-									<th class="text-center"><?= $language::get('image') ?></th>
-									<th><?= $language::get('name') ?></th>
-									<th><?= $language::get('category') ?></th>
-									<th class="text-center"><?= $language::get('seasons') ?></th>
-									<th class="text-center"><?= $language::get('episodes') ?></th>
-									<th class="text-center"><?= $language::get('tmdb') ?></th>
-									<th class="text-center"><?= $language::get('first_aired') ?></th>
-									<th class="text-center"><?= $language::get('last_updated') ?></th>
-									<th class="text-center"><?= $language::get('actions') ?></th>
-								</tr>
-							</thead>
-							<tbody>
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+if (!Authorization::check('adv', 'series') && !Authorization::check('adv', 'mass_sedits')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
 
+$rCanEditSeries = Authorization::check('adv', 'edit_series');
+$rCanEpisodes = Authorization::check('adv', 'episodes');
+$rCanAddEpisode = Authorization::check('adv', 'add_episode');
+?>
+
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><?= $language::get('series'); ?></h5>
+        <div id="bulk-bar" class="d-none align-items-center gap-2">
+            <span class="text-body-secondary"><span id="bulk-count">0</span></span>
+            <?php if ($rCanEditSeries): ?>
+                <button type="button" class="btn btn-sm btn-label-danger" id="bulk-delete"><i class="icon-base ti tabler-trash me-1"></i><?= $language::get('delete_selected'); ?></button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-category"><?= $language::get('category'); ?></label>
+                <select id="filter-category" class="form-select">
+                    <option value=""><?= $language::get('all_categories'); ?></option>
+                    <option value="-1"><?= $language::get('no_tmdb'); ?></option>
+                    <option value="-2"><?= $language::get('no_category'); ?></option>
+                    <?php foreach (CategoryService::getAllByType('series') as $rCatId => $rCat): ?>
+                        <option value="<?= (int) $rCatId; ?>"><?= htmlspecialchars((string) $rCat['category_name'], ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="series-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><input type="checkbox" class="form-check-input" id="check-all"></th>
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('cover'); ?></th>
+                    <th><?= $language::get('title'); ?></th>
+                    <th><?= $language::get('category'); ?></th>
+                    <th><?= $language::get('latest_season'); ?></th>
+                    <th><?= $language::get('episode_count'); ?></th>
+                    <th>TMDB</th>
+                    <th><?= $language::get('release_date'); ?></th>
+                    <th><?= $language::get('last_modified'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
+
+<!-- Edit (loads the edit form in a modal) -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('edit'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="edit-frame" src="about:blank" style="width:100%;height:70vh;border:0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+<script>
+    (function() {
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var fmtDate = function(ts) {
+            return ts ? new Date(ts * 1000).toLocaleString() : '';
+        };
+        var canEditSeries = <?= $rCanEditSeries ? 'true' : 'false'; ?>;
+        var canEpisodes = <?= $rCanEpisodes ? 'true' : 'false'; ?>;
+        var canAddEpisode = <?= $rCanAddEpisode ? 'true' : 'false'; ?>;
+        var lang = {
+            add: <?= json_encode($language::get('add_episodes')); ?>,
+            view: <?= json_encode($language::get('view_episodes')); ?>,
+            edit: <?= json_encode($language::get('edit')); ?>,
+            del: <?= json_encode($language::get('delete')); ?>,
+            selected: <?= json_encode($language::get('selected')); ?>,
+            never: <?= json_encode($language::get('never') ?: 'Never'); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>,
+            delConfirm: <?= json_encode($language::get('login_logs_block_confirm')); ?>
+        };
+        var selected = {};
 
-	<?php
-	echo "\t\t" . 'var rClearing = false;' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete this series and all episodes?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=series&sub=" + rType + "&series_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("Series successfully deleted.");' . "\r\n" . '                        }' . "\r\n" . '                        $("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable-streampage tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these streams?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=series&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            $.toast("Streams have been deleted.");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function openImage(elem) {' . "\r\n\t\t\t" . 'rPath = $(elem).data("src");' . "\r\n\t\t\t" . 'if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . '                        src: rPath,' . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getCategory() {' . "\r\n\t\t\t" . 'return $("#series_category_id").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#series_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#series_category_id').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#series_show_entries').val(\"";
-	echo (intval($rSettings['default_entries']) ?: 10);
-	echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-streampage').DataTable().search(\$(\"#series_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-streampage').DataTable().page.len(\$('#series_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-streampage\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "category", "page", "entries"]);' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '}' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "category"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . 'var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
-	echo intval($rSettings['default_entries']);
-	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'window.rProcessing = false;' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    ';
+        var stars = function(rating) {
+            if (!rating) { return ''; }
+            var v = Math.round(rating) / 2, full = Math.floor(v), half = (v - full) > 0, empty = 5 - full - (half ? 1 : 0), h = '';
+            for (var i = 0; i < full; i++) { h += '<i class="icon-base ti tabler-star-filled text-warning"></i>'; }
+            if (half) { h += '<i class="icon-base ti tabler-star-half-filled text-warning"></i>'; }
+            for (var j = 0; j < empty; j++) { h += '<i class="icon-base ti tabler-star text-body-secondary"></i>'; }
+            return h;
+        };
 
-	if (!Authorization::check('adv', 'edit_series')) {
-	} else {
-		echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable-streampage tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_series_selected").html(window.rSelected.length + " series");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_series").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_series").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
-	}
+        var updateBulk = function() {
+            var n = Object.keys(selected).length;
+            document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
+            document.getElementById('bulk-bar').classList.toggle('d-none', n === 0);
+            document.getElementById('bulk-bar').classList.toggle('d-flex', n > 0);
+        };
 
-	echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "series";' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5,6,7,8,9]},' . "\r\n\t\t\t\t\t" . '{"orderable": false, "targets": [6,9]},' . "\r\n" . '                    ';
+        var table = jQuery('#series-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[2, 'desc']],
+            ajax: { url: './table', data: function(d) { d.id = 'series'; d.category = document.getElementById('filter-category').value; } },
+            columns: [
+                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                {
+                    data: 'id',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; }
+                },
+                { data: 'id', className: 'text-center', render: function(d) { return canEpisodes ? '<a href="serie?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
+                {
+                    data: 'cover',
+                    orderable: false,
+                    render: function(d) { return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxh=58&maxw=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : ''; }
+                },
+                {
+                    data: 'title',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        var inner = '<span class="fw-medium">' + esc(d) + '</span>';
+                        var sub = (row.year ? '<strong>' + esc(row.year) + '</strong> ' : '') + stars(row.rating);
+                        var body = inner + (sub ? '<br><small>' + sub + '</small>' : '');
+                        return canEpisodes ? '<a href="serie?id=' + encodeURIComponent(row.id) + '" class="text-body">' + body + '</a>' : body;
+                    }
+                },
+                { data: 'category' },
+                { data: 'latest_season', className: 'text-center', render: function(d) { return '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>'; } },
+                { data: 'episode_count', className: 'text-center', render: function(d, t, row) { var b = '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>'; return (d > 0 && canEpisodes) ? '<a href="episodes?series=' + encodeURIComponent(row.id) + '">' + b + '</a>' : b; } },
+                { data: 'tmdb', className: 'text-center', render: function(d) { return d ? '<i class="icon-base ti tabler-circle-check text-success"></i>' : '<i class="icon-base ti tabler-circle-minus text-body-secondary"></i>'; } },
+                { data: 'release_date', className: 'text-nowrap', render: function(d) { return esc(d || ''); } },
+                { data: 'last_modified', className: 'text-nowrap', render: function(d) { return d ? esc(fmtDate(d)) : lang.never; } },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var items = '';
+                        if (canAddEpisode) { items += '<a class="dropdown-item" href="episode?sid=' + encodeURIComponent(row.id) + '">' + esc(lang.add) + '</a>'; }
+                        if (canEpisodes) { items += '<a class="dropdown-item" href="episodes?series=' + encodeURIComponent(row.id) + '">' + esc(lang.view) + '</a>'; }
+                        if (canEditSeries) {
+                            items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.edit) + '</a>';
+                            items += '<a class="dropdown-item text-danger js-del" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.del) + '</a>';
+                        }
+                        if (!items) { return ''; }
+                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
+                    }
+                }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
 
-	if ($rSettings['show_images']) {
-	} else {
-		echo '                    {"visible": false, "targets": [1]}' . "\r\n" . '                    ';
-	}
+        document.getElementById('filter-category').addEventListener('change', function() { table.ajax.reload(); });
 
-	echo "\t\t\t\t" . '],' . "\r\n" . '                ';
+        // Bulk selection.
+        jQuery('#series-table tbody').on('change', '.row-check', function() {
+            var id = this.getAttribute('data-id');
+            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            updateBulk();
+        });
+        document.getElementById('check-all').addEventListener('change', function() {
+            var on = this.checked;
+            jQuery('#series-table tbody .row-check').each(function() {
+                this.checked = on;
+                var id = this.getAttribute('data-id');
+                if (on) { selected[id] = true; } else { delete selected[id]; }
+            });
+            updateBulk();
+        });
+        table.on('draw', function() { document.getElementById('check-all').checked = false; });
+        var bulkDel = document.getElementById('bulk-delete');
+        if (bulkDel) {
+            bulkDel.addEventListener('click', function() {
+                var ids = Object.keys(selected);
+                if (!ids.length || !window.confirm(lang.del + ' (' + ids.length + ')?')) { return; }
+                fetch('./api?action=multi&type=series&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            });
+        }
 
-	if (!$rMobile) {
-	} else {
-		echo 'scrollX: true,';
-	}
+        // Single delete.
+        jQuery('#series-table tbody').on('click', '.js-del', function() {
+            var id = this.getAttribute('data-id');
+            if (!window.confirm(lang.del + '?')) { return; }
+            fetch('./api?action=series&sub=delete&series_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                .catch(function() { alert(lang.error); });
+        });
 
-	echo "\t\t\t\t" . 'order: [[ ';
-	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
-	echo ', "';
-	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
-	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-streampage").css("width", "100%");' . "\r\n\t\t\t" . "\$('#series_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#series_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#series_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#series_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#series_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#series_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#series_category_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#series_category_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#series_category_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "if (\$('#series_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#series_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Edit modal.
+        var editModal = document.getElementById('editModal');
+        jQuery('#series-table tbody').on('click', '.js-edit', function() {
+            document.getElementById('edit-frame').src = 'serie?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1';
+            bootstrap.Modal.getOrCreateInstance(editModal).show();
+        });
+        editModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('edit-frame').src = 'about:blank';
+            table.ajax.reload(null, false);
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
