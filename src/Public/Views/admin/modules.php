@@ -299,29 +299,31 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
             e.preventDefault();
 
             var confirmMsg = form.getAttribute('data-confirm');
-            if (confirmMsg && !window.confirm(confirmMsg)) { return; }
-
-            var btn = form.querySelector('[type="submit"]');
-            var originalHtml = btn ? btn.innerHTML : '';
-            var isUpload = form.id === 'module-upload-form';
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '<i class="mdi mdi-loading mdi-spin mr-1"></i>...';
-            }
-
-            postAction(new FormData(form)).then(function (resp) {
-                showFlash(resp.type, resp.message);
-                if (resp.type !== 'danger') {
-                    if (isUpload) { resetUploadForm(form); }
-                    return refreshTable();
+            var _proceed = function () {
+                var btn = form.querySelector('[type="submit"]');
+                var originalHtml = btn ? btn.innerHTML : '';
+                var isUpload = form.id === 'module-upload-form';
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="mdi mdi-loading mdi-spin mr-1"></i>...';
                 }
-            }).catch(function () {
-                showFlash('danger', 'Request failed.');
-            }).finally(function () {
-                // Row forms get replaced by refreshTable(); restoring a detached
-                // button is harmless. Top-of-page forms keep their button.
-                if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
-            });
+
+                postAction(new FormData(form)).then(function (resp) {
+                    showFlash(resp.type, resp.message);
+                    if (resp.type !== 'danger') {
+                        if (isUpload) { resetUploadForm(form); }
+                        return refreshTable();
+                    }
+                }).catch(function () {
+                    showFlash('danger', 'Request failed.');
+                }).finally(function () {
+                    // Row forms get replaced by refreshTable(); restoring a detached
+                    // button is harmless. Top-of-page forms keep their button.
+                    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+                });
+            };
+            if (confirmMsg) { window.xcConfirm(confirmMsg).then(function (ok) { if (ok) { _proceed(); } }); }
+            else { _proceed(); }
         });
 
         // ---- enable/disable toggle (optimistic in-place update) --------------

@@ -83,11 +83,14 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#packages-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             var row = jQuery(this).closest('tr');
-            if (!id || !window.confirm(delMsg)) { return; }
-            fetch('./api?action=package&sub=delete&package_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
-                .catch(function() { alert(errMsg); });
+            if (!id) { return; }
+            window.xcConfirm(delMsg).then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=package&sub=delete&package_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
+                    .catch(function() { alert(errMsg); });
+            });
         });
     })();
 </script>

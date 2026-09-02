@@ -234,11 +234,15 @@ renderUnifiedLayoutFooter('admin');
 
         jQuery('#radios-table tbody').on('click', '.js-act', function() {
             var sub = this.getAttribute('data-sub');
-            if (sub === 'delete' && !window.confirm(lang.del + '?')) { return; }
-            fetch('./api?action=stream&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(this.getAttribute('data-id')) + '&server_id=' + encodeURIComponent(this.getAttribute('data-server')), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            var _id = this.getAttribute('data-id'), _server = this.getAttribute('data-server');
+            var _do = function() {
+                fetch('./api?action=stream&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(_id) + '&server_id=' + encodeURIComponent(_server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete') { window.xcConfirm(lang.del + '?').then(function(ok) { if (ok) { _do(); } }); }
+            else { _do(); }
         });
 
         // Bulk delete.
@@ -257,11 +261,14 @@ renderUnifiedLayoutFooter('admin');
         if (bulkDel) {
             bulkDel.addEventListener('click', function() {
                 var ids = Object.keys(selected);
-                if (!ids.length || !window.confirm(lang.del + ' (' + ids.length + ')?')) { return; }
-                fetch('./api?action=multi&type=radio&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                if (!ids.length) { return; }
+                window.xcConfirm(lang.del + ' (' + ids.length + ')?').then(function(ok) {
+                    if (!ok) { return; }
+                    fetch('./api?action=multi&type=radio&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                        .catch(function() { alert(lang.error); });
+                });
             });
         }
 

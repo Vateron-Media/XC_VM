@@ -258,8 +258,11 @@ renderUnifiedLayoutFooter('admin');
             call(this.getAttribute('data-sub'), this.getAttribute('data-id'), this.getAttribute('data-server'));
         });
         jQuery('#movies-table tbody').on('click', '.js-del', function() {
-            if (!window.confirm(lang.del + '?')) { return; }
-            call('delete', this.getAttribute('data-id'), this.getAttribute('data-server'));
+            var _id = this.getAttribute('data-id'), _server = this.getAttribute('data-server');
+            window.xcConfirm(lang.del + '?').then(function(ok) {
+                if (!ok) { return; }
+                call('delete', _id, _server);
+            });
         });
         function call(sub, id, server) {
             fetch('./api?action=movie&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(id) + '&server_id=' + encodeURIComponent(server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
@@ -290,11 +293,14 @@ renderUnifiedLayoutFooter('admin');
         if (bulkDel) {
             bulkDel.addEventListener('click', function() {
                 var ids = Object.keys(selected);
-                if (!ids.length || !window.confirm(lang.del + ' (' + ids.length + ')?')) { return; }
-                fetch('./api?action=multi&type=movie&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                if (!ids.length) { return; }
+                window.xcConfirm(lang.del + ' (' + ids.length + ')?').then(function(ok) {
+                    if (!ok) { return; }
+                    fetch('./api?action=multi&type=movie&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                        .catch(function() { alert(lang.error); });
+                });
             });
         }
 

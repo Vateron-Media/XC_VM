@@ -215,22 +215,27 @@ renderUnifiedLayoutFooter('admin');
         if (bulkDel) {
             bulkDel.addEventListener('click', function() {
                 var ids = Object.keys(selected);
-                if (!ids.length || !window.confirm(lang.del + ' (' + ids.length + ')?')) { return; }
-                fetch('./api?action=multi&type=series&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                if (!ids.length) { return; }
+                window.xcConfirm(lang.del + ' (' + ids.length + ')?').then(function(ok) {
+                    if (!ok) { return; }
+                    fetch('./api?action=multi&type=series&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                        .catch(function() { alert(lang.error); });
+                });
             });
         }
 
         // Single delete.
         jQuery('#series-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
-            if (!window.confirm(lang.del + '?')) { return; }
-            fetch('./api?action=series&sub=delete&series_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            window.xcConfirm(lang.del + '?').then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=series&sub=delete&series_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            });
         });
 
         // Edit modal.

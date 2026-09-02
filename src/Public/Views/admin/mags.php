@@ -273,11 +273,14 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#mags-table tbody').on('click', '.js-api', function() {
             var id = this.getAttribute('data-id');
             var sub = this.getAttribute('data-sub');
-            if (sub === 'delete' && !window.confirm(lang.del + '?')) { return; }
-            fetch('./api?action=mag&sub=' + encodeURIComponent(sub) + '&mag_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            var _do = function() {
+                fetch('./api?action=mag&sub=' + encodeURIComponent(sub) + '&mag_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete') { window.xcConfirm(lang.del + '?').then(function(ok) { if (ok) { _do(); } }); }
+            else { _do(); }
         });
 
         // Bulk.
@@ -295,11 +298,14 @@ renderUnifiedLayoutFooter('admin');
         jQuery('.js-bulk').on('click', function() {
             var sub = this.getAttribute('data-sub');
             var ids = Object.keys(selected);
-            if (!ids.length || !window.confirm((sub === 'delete' ? lang.del : sub) + ' (' + ids.length + ')?')) { return; }
-            fetch('./api?action=multi&type=mag&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            if (!ids.length) { return; }
+            window.xcConfirm((sub === 'delete' ? lang.del : sub) + ' (' + ids.length + ')?').then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=multi&type=mag&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            });
         });
 
         // Edit modal.

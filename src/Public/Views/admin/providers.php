@@ -110,10 +110,13 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#providers-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             var row = jQuery(this).closest('tr');
-            if (!id || !window.confirm(delMsg)) { return; }
-            call('delete', id)
-                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
-                .catch(function() { alert(errMsg); });
+            if (!id) { return; }
+            window.xcConfirm(delMsg).then(function(ok) {
+                if (!ok) { return; }
+                call('delete', id)
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
+                    .catch(function() { alert(errMsg); });
+            });
         });
     })();
 </script>

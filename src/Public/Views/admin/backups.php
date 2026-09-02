@@ -178,19 +178,23 @@ renderUnifiedLayoutFooter('admin');
 
         jQuery('#backups-table tbody').on('click', '.js-delete', function() {
             var id = this.getAttribute('data-id');
-            if (!window.confirm(lang.confirmDelete)) { return; }
-            apiCall(id, 'delete').then(function(dt) {
-                if (!dt || dt.result !== true) { throw new Error('fail'); }
-                table.ajax.reload(null, false);
-            }).catch(function() { alert(lang.error); });
+            window.xcConfirm(lang.confirmDelete).then(function(ok) {
+                if (!ok) { return; }
+                apiCall(id, 'delete').then(function(dt) {
+                    if (!dt || dt.result !== true) { throw new Error('fail'); }
+                    table.ajax.reload(null, false);
+                }).catch(function() { alert(lang.error); });
+            });
         });
         jQuery('#backups-table tbody').on('click', '.js-restore', function() {
             var id = this.getAttribute('data-id');
-            if (!window.confirm(lang.confirmRestore)) { return; }
-            apiCall(id, 'restore').then(function(dt) {
-                if (!dt || dt.result !== true) { throw new Error('fail'); }
-                table.ajax.reload(null, false);
-            }).catch(function() { alert(lang.error); });
+            window.xcConfirm(lang.confirmRestore).then(function(ok) {
+                if (!ok) { return; }
+                apiCall(id, 'restore').then(function(dt) {
+                    if (!dt || dt.result !== true) { throw new Error('fail'); }
+                    table.ajax.reload(null, false);
+                }).catch(function() { alert(lang.error); });
+            });
         });
 
         document.getElementById('create-backup').addEventListener('click', function() {

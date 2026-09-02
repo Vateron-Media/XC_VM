@@ -203,6 +203,32 @@ if (count(get_included_files()) == 1) {
                     })
                     .catch(function () { btn.disabled = false; alert(errText); });
             });
+
+            // Live tables auto-reload every 5s (paused while a modal is open), so
+            // status / connections / uptime stay current like the legacy panel.
+            var LIVE_PAGES = ['streams', 'lines', 'radios', 'movies', 'ondemand'];
+            var xcPage = <?= json_encode(\XcVm\Core\Util\AdminHelpers::getPageName()); ?>;
+            if (LIVE_PAGES.indexOf(xcPage) !== -1) {
+                setInterval(function () {
+                    if (document.querySelector('.modal.show')) { return; }
+                    var t = pickTable();
+                    if (t) { t.ajax.reload(null, false); }
+                }, 5000);
+            }
+
+            // Shared confirmation modal (SweetAlert2) — views use it for destructive
+            // row/bulk actions instead of the native window.confirm. Returns a
+            // Promise<boolean>; falls back to window.confirm if Swal is unavailable.
+            window.xcConfirm = function (text) {
+                if (window.Swal) {
+                    return Swal.fire({
+                        text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK',
+                        customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' },
+                        buttonsStyling: false
+                    }).then(function (r) { return r.isConfirmed; });
+                }
+                return Promise.resolve(window.confirm(text));
+            };
         })();
     </script>
 

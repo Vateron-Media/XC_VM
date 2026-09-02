@@ -268,11 +268,14 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#users-table tbody').on('click', '.js-api', function() {
             var id = this.getAttribute('data-id');
             var sub = this.getAttribute('data-sub');
-            if (sub === 'delete' && !window.confirm(lang.delConfirm.replace(/IP address/i, 'user'))) { return; }
-            fetch('./api?action=reg_user&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            var _do = function() {
+                fetch('./api?action=reg_user&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete') { window.xcConfirm(lang.delConfirm.replace(/IP address/i, 'user')).then(function(ok) { if (ok) { _do(); } }); }
+            else { _do(); }
         });
 
         // Edit modal (iframe of the edit form).

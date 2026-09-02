@@ -224,11 +224,14 @@ renderUnifiedLayoutFooter('admin');
 
         jQuery('#e2-table tbody').on('click', '.js-api', function() {
             var id = this.getAttribute('data-id'), sub = this.getAttribute('data-sub');
-            if (sub === 'delete' && !window.confirm(lang.del + '?')) { return; }
-            fetch('./api?action=enigma&sub=' + encodeURIComponent(sub) + '&e2_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            var _do = function() {
+                fetch('./api?action=enigma&sub=' + encodeURIComponent(sub) + '&e2_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete') { window.xcConfirm(lang.del + '?').then(function(ok) { if (ok) { _do(); } }); }
+            else { _do(); }
         });
 
         jQuery('#e2-table tbody').on('change', '.row-check', function() {
@@ -244,11 +247,14 @@ renderUnifiedLayoutFooter('admin');
         table.on('draw', function() { document.getElementById('check-all').checked = false; });
         jQuery('.js-bulk').on('click', function() {
             var sub = this.getAttribute('data-sub'), ids = Object.keys(selected);
-            if (!ids.length || !window.confirm((sub === 'delete' ? lang.del : sub) + ' (' + ids.length + ')?')) { return; }
-            fetch('./api?action=multi&type=enigma&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            if (!ids.length) { return; }
+            window.xcConfirm((sub === 'delete' ? lang.del : sub) + ' (' + ids.length + ')?').then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=multi&type=enigma&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            });
         });
 
         var editModal = document.getElementById('editModal');
