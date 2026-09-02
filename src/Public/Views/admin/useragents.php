@@ -1,238 +1,88 @@
 <?php
 
-use XcVm\Core\Config\SettingsManager;
+/**
+ * Blocked user-agents (Vuexy). Client-side table: BlocklistService::getAllUserAgents
+ * provides the rows, rendered server-side into the DOM, with a client-side
+ * datatables-bs5 table. Delete via api?action=useragent&sub=delete.
+ */
+
+use XcVm\Core\Auth\Authorization;
 use XcVm\Domain\Security\BlocklistService;
 
-echo '<div class="wrapper boxed-layout-ext"';
+if (!Authorization::check('adv', 'block_uas')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
+?>
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-} else {
-	echo ' style="display: none;"';
-}
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><?= $language::get('blocked_useragents'); ?></h5>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="ua-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('user_agent_label'); ?></th>
+                    <th><?= $language::get('exact_match'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (BlocklistService::getAllUserAgents() as $rUserAgent): ?>
+                    <tr>
+                        <td></td>
+                        <td class="text-center"><?= (int) $rUserAgent['id']; ?></td>
+                        <td><?= htmlspecialchars((string) $rUserAgent['user_agent'], ENT_QUOTES); ?></td>
+                        <td class="text-center" data-order="<?= (int) (bool) $rUserAgent['exact_match']; ?>">
+                            <i class="icon-base ti tabler-square-filled <?= $rUserAgent['exact_match'] ? 'text-success' : 'text-body-secondary'; ?>"></i>
+                        </td>
+                        <td class="text-center text-nowrap">
+                            <a href="useragent?id=<?= (int) $rUserAgent['id']; ?>" class="btn btn-sm btn-icon btn-label-secondary"><i class="icon-base ti tabler-pencil"></i></a>
+                            <button type="button" class="btn btn-sm btn-icon btn-label-danger js-del" data-id="<?= (int) $rUserAgent['id']; ?>"><i class="icon-base ti tabler-trash"></i></button>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
 
-echo '>' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">' . $language::get('blocked_useragents') . '</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>     ' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n" . '                ';
-
-if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
-} else {
-	echo '                <div class="alert alert-success alert-dismissible fade show" role="alert">' . "\n" . '                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">' . "\n" . '                        <span aria-hidden="true">&times;</span>' . "\n" . '                    </button>' . "\n" . '                    ';
-	echo $language::get('useragent_success');
-	echo '                </div>' . "\n" . '                ';
-}
-
-echo "\t\t\t\t" . '<div class="card">' . "\n\t\t\t\t\t" . '<div class="card-body" style="overflow-x:auto;">' . "\n\t\t\t\t\t\t" . '<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">' . "\n\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('id') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('user_agent_label') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('exact_match') . '</th>' . "\n\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('actions') . '</th>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t";
-
-foreach (BlocklistService::getAllUserAgents() as $rUserAgent) {
-	echo "\t\t\t\t\t\t\t\t" . '<tr id="ua-';
-	echo intval($rUserAgent['id']);
-	echo '">' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-	echo intval($rUserAgent['id']);
-	echo '</td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td>';
-	echo $rUserAgent['user_agent'];
-	echo '</td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t\t";
-
-	if ($rUserAgent['exact_match']) {
-		echo "\t\t\t\t\t\t\t\t\t\t" . '<i class="text-success fas fa-square"></i>' . "\n\t\t\t\t\t\t\t\t\t\t";
-	} else {
-		echo "\t\t\t\t\t\t\t\t\t\t" . '<i class="text-secondary fas fa-square"></i>' . "\n\t\t\t\t\t\t\t\t\t\t";
-	}
-
-	echo "\t\t\t\t\t\t\t\t\t" . '</td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a href="./useragent?id=';
-	echo intval($rUserAgent['id']);
-	echo '"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(';
-	echo intval($rUserAgent['id']);
-	echo ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>" . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</td>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t" . '</tbody>' . "\n\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
+<?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
-
-	function api(rID, rType, rConfirm = false) {
-		if ((rType == "delete") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Delete",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to delete this user-agent?",
-				confirm: function() {
-					api(rID, rType, true);
-				}
-			}).open();
-		} else {
-			rConfirm = true;
-		}
-		if (rConfirm) {
-			$.getJSON("./api?action=useragent&sub=" + rType + "&ua_id=" + rID, function(data) {
-				if (data.result === true) {
-					if (rType == "delete") {
-						if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {
-							$("#datatable").DataTable().rows(rRow).remove().draw(false);
-						}
-						$.toast("User-agent successfully deleted.");
-					}
-				} else {
-					$.toast("An error occured while processing your request.");
-				}
-			});
-		}
-	}
-
-	$(document).ready(function() {
-		$("#datatable").DataTable({
-			language: {
-				paginate: {
-					previous: "<i class='mdi mdi-chevron-left'>",
-					next: "<i class='mdi mdi-chevron-right'>"
-				}
-			},
-			order: [
-				[1, "asc"]
-			],
-			columnDefs: [{
-				"visible": false,
-				"targets": [0]
-			}],
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			responsive: false
-		});
-		$("#datatable").css("width", "100%");
-	});
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+<script>
+    (function() {
+        var errMsg = <?= json_encode($language::get('error_occured')); ?>;
+        var delMsg = <?= json_encode($language::get('delete') . '?'); ?>;
+        var table = jQuery('#ua-table').DataTable({
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[1, 'desc']],
+            columnDefs: [
+                { targets: 0, orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                { targets: 1, visible: false }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
+        jQuery('#ua-table tbody').on('click', '.js-del', function() {
+            var id = this.getAttribute('data-id');
+            var row = jQuery(this).closest('tr');
+            if (!id || !window.confirm(delMsg)) { return; }
+            fetch('./api?action=useragent&sub=delete&ua_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
+                .catch(function() { alert(errMsg); });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
