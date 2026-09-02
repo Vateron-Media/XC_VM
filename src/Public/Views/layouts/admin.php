@@ -35,7 +35,7 @@ if (!function_exists('xc_admin_use_vuexy')) {
         if (isset($_GET['modal']) || !empty($GLOBALS['_SETUP'])) {
             return false;
         }
-        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog', 'queue', 'user_logs', 'line_activity', 'live_connections', 'ondemand', 'theft_detection', 'stream_rank', 'ips', 'isps', 'useragents', 'hmacs', 'rtmp_ips', 'asns', 'groups', 'packages', 'codes', 'epgs', 'providers', 'users', 'series', 'mags', 'enigmas', 'movies'];
+        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog', 'queue', 'user_logs', 'line_activity', 'live_connections', 'ondemand', 'theft_detection', 'stream_rank', 'ips', 'isps', 'useragents', 'hmacs', 'rtmp_ips', 'asns', 'groups', 'packages', 'codes', 'epgs', 'providers', 'users', 'series', 'mags', 'enigmas', 'movies', 'radios'];
         $page = \XcVm\Core\Util\AdminHelpers::getPageName();
         return in_array($page, $migrated, true);
     }

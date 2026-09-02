@@ -64,6 +64,7 @@ const MANAGEMENT: Migrated[] = [
   { url: 'mags', table: '#mags-table', ajax: 'mags', bulk: true },
   { url: 'enigmas', table: '#e2-table', ajax: 'enigmas', bulk: true },
   { url: 'movies', table: '#movies-table', ajax: 'movies', bulk: true },
+  { url: 'radios', table: '#radios-table', ajax: 'radios', bulk: true },
 ];
 
 /** Load a migrated page and assert the Vuexy shell + table + (serverSide) ajax. */
