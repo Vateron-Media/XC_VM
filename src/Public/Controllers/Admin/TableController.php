@@ -4129,71 +4129,57 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
+	/**
+	 * action=asns — returns clean JSON rows (no HTML). Presentation (country flag,
+	 * status/toggle buttons) is done client-side by the Vuexy asns page.
+	 */
 	private function handleAsns($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db;
 		if (!Authorization::check("adv", "block_isps")) {
 			exit;
 		}
-		$rOrder = ["`blocked_asns`.`asn`", "`blocked_asns`.`isp`", "`blocked_asns`.`domain`", "`blocked_asns`.`country`", "`blocked_asns`.`num_ips`", "`blocked_asns`.`type`", "`blocked_asns`.`blocked`", false];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
+		// Column 0 is the DataTables Responsive control column (non-orderable);
+		// the trailing actions column is non-orderable too.
+		$rOrderBy = self::dtOrderBy([false, "`blocked_asns`.`asn`", "`blocked_asns`.`isp`", "`blocked_asns`.`domain`", "`blocked_asns`.`country`", "`blocked_asns`.`num_ips`", "`blocked_asns`.`type`", "`blocked_asns`.`blocked`", false]);
 		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
+		$rSearch = self::dtSearch();
+		if (0 < strlen($rSearch)) {
 			foreach (range(1, 5) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
+				$rWhereV[] = "%" . $rSearch . "%";
 			}
 			$rWhere[] = "(`blocked_asns`.`asn` LIKE ? OR `blocked_asns`.`isp` LIKE ? OR `blocked_asns`.`domain` LIKE ? OR `blocked_asns`.`country` LIKE ? OR `blocked_asns`.`type` LIKE ?)";
 		}
 		if (0 < strlen(RequestManager::get("filter") ?? '')) {
-			$rWhere[] = "`blocked_asns`.`blocked` = ?";
+			$rWhere[]  = "`blocked_asns`.`blocked` = ?";
 			$rWhereV[] = RequestManager::get("filter");
 		}
 		if (0 < strlen(RequestManager::get("type") ?? '')) {
-			$rWhere[] = "`blocked_asns`.`type` = ?";
+			$rWhere[]  = "`blocked_asns`.`type` = ?";
 			$rWhereV[] = RequestManager::get("type");
 		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `blocked_asns` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
+		$rWhereString = $rWhere ? "WHERE " . implode(" AND ", $rWhere) : "";
+
+		$db->query("SELECT COUNT(*) AS `count` FROM `blocked_asns` " . $rWhereString . ";", ...$rWhereV);
+		$rReturn["recordsTotal"]    = ($db->num_rows() == 1) ? (int) $db->get_row()["count"] : 0;
+		$rReturn["recordsFiltered"] = $rIsAPI ? min($rReturn["recordsTotal"], $rLimit) : $rReturn["recordsTotal"];
+
 		if (0 < $rReturn["recordsTotal"]) {
 			$rQuery = "SELECT `blocked_asns`.`id`, `blocked_asns`.`asn`, `blocked_asns`.`isp`, `blocked_asns`.`domain`, `blocked_asns`.`country`, `blocked_asns`.`num_ips`, `blocked_asns`.`type`, `blocked_asns`.`blocked` FROM `blocked_asns` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
 			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						$rButtons = "<div class=\"btn-group\">";
-						if ($rRow["blocked"]) {
-							$rButtons .= "<button type=\"button\" class=\"btn btn-success waves-effect waves-light btn-xs\" onClick=\"api(" . $rRow["id"] . ", 'allow');\"><i class=\"mdi mdi-check\"></i></button>";
-						} else {
-							$rButtons .= "<button type=\"button\" class=\"btn btn-danger waves-effect waves-light btn-xs\" onClick=\"api(" . $rRow["id"] . ", 'block');\"><i class=\"mdi mdi-cancel\"></i></button>";
-						}
-						$rButtons .= "</div>";
-						if ($rRow["blocked"]) {
-							$rStatus = "<button type=\"button\" class=\"btn btn-danger btn-xs waves-effect waves-light btn-fixed\">" . Translator::get('blocked_btn') . "</button>";
-						} else {
-							$rStatus = "<button type=\"button\" class=\"btn btn-success btn-xs waves-effect waves-light btn-fixed\">" . Translator::get('allowed') . "</button>";
-						}
-						$rType = strtoupper($rRow["type"]);
-						$rReturn["data"][] = [$rRow["asn"], $rRow["isp"], $rRow["domain"], "<img loading=\"lazy\" src=\"assets/old/images/countries/" . strtolower($rRow["country"]) . ".png\">", number_format($rRow["num_ips"], 0), $rType, $rStatus, $rButtons];
-					}
-				}
+			foreach ($db->get_rows() as $rRow) {
+				$rItem = [
+					"id"      => (int) $rRow["id"],
+					"asn"     => $rRow["asn"],
+					"isp"     => $rRow["isp"],
+					"domain"  => $rRow["domain"],
+					"country" => (0 < strlen((string) $rRow["country"])) ? strtolower($rRow["country"]) : null,
+					"num_ips" => (int) $rRow["num_ips"],
+					"type"    => strtoupper((string) $rRow["type"]),
+					"blocked" => (1 == (int) $rRow["blocked"]),
+				];
+				$rReturn["data"][] = $rIsAPI
+					? self::filterRow($rItem, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '')
+					: $rItem;
 			}
 		}
 		echo json_encode($rReturn);

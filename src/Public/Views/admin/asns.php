@@ -1,301 +1,153 @@
-<div class="wrapper" <?php 
-use XcVm\Core\Config\SettingsManager;
+<?php
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                            echo ' style="display: none;"';
-                        } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
-                    </div>
-                    <h4 class="page-title"><?= $language::get('autonomous_system_numbers') ?></h4>
-                </div>
+/**
+ * Blocked ASNs (Vuexy). Clean-JSON table pattern: TableController::handleAsns
+ * returns structured rows and this page renders the cells client-side via
+ * datatables-bs5 columns[].render (country flag, status badge, block/allow
+ * toggle). Type + status filters post extra ajax params.
+ */
+
+use XcVm\Core\Auth\Authorization;
+
+if (!Authorization::check('adv', 'block_isps')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
+
+$rTypes = ['isp' => 'isp', 'hosting' => 'hosting', 'education' => 'education', 'business' => 'business'];
+?>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><?= $language::get('blocked_asns'); ?></h5>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-type"><?= $language::get('type'); ?></label>
+                <select id="filter-type" class="form-select">
+                    <option value=""><?= $language::get('all_types'); ?></option>
+                    <?php foreach ($rTypes as $rValue => $rKey): ?>
+                        <option value="<?= htmlspecialchars($rValue, ENT_QUOTES); ?>"><?= $language::get($rKey); ?></option>
+                    <?php endforeach; ?>
+                </select>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body" style="overflow-x:auto;">
-                        <form id="asn_search">
-                            <div class="form-group row mb-4">
-                                <div class="col-md-3">
-                                    <input type="text" class="form-control" id="asn_search_box" placeholder="<?= $language::get('search_asns') ?>">
-                                </div>
-                                <label class="col-md-2 col-form-label text-center" for="asn_type"><?= $language::get('filter_results') ?></label>
-                                <div class="col-md-3">
-                                    <select id="asn_type" class="form-control" data-toggle="select2">
-                                        <option value="" selected><?= $language::get('all_types') ?></option>
-                                        <option value="isp"><?= $language::get('isp') ?></option>
-                                        <option value="hosting"><?= $language::get('hosting_server') ?></option>
-                                        <option value="education"><?= $language::get('education') ?></option>
-                                        <option value="business"><?= $language::get('business') ?></option>
-                                    </select>
-                                </div>
-                                <div class="col-md-2">
-                                    <select id="asn_filter" class="form-control" data-toggle="select2">
-                                        <option value="" selected><?= $language::get('no_filter') ?></option>
-                                        <option value="0"><?= $language::get('allowed_option') ?></option>
-                                        <option value="1"><?= $language::get('blocked') ?></option>
-                                    </select>
-                                </div>
-                                <label class="col-md-1 col-form-label text-center" for="asn_show_entries"><?= $language::get('show') ?></label>
-                                <div class="col-md-1">
-                                    <select id="asn_show_entries" class="form-control" data-toggle="select2">
-                                        <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) : ?>
-                                            <option value="<?php echo $rShow; ?>" <?php if ($rSettings['default_entries'] == $rShow) echo ' selected'; ?>><?php echo $rShow; ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                            </div>
-                        </form>
-                        <table id="datatable-users" class="table table-striped table-borderless dt-responsive nowrap font-normal">
-                            <thead>
-                                <tr>
-                                    <th class="text-center"><?= $language::get('asn') ?></th>
-                                    <th><?= $language::get('name') ?></th>
-                                    <th><?= $language::get('domain') ?></th>
-                                    <th class="text-center"><?= $language::get('country') ?></th>
-                                    <th class="text-center"><?= $language::get('ip_count') ?></th>
-                                    <th class="text-center"><?= $language::get('type') ?></th>
-                                    <th class="text-center"><?= $language::get('status') ?></th>
-                                    <th class="text-center"><?= $language::get('actions') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-status"><?= $language::get('status'); ?></label>
+                <select id="filter-status" class="form-select">
+                    <option value=""><?= $language::get('no_filter'); ?></option>
+                    <option value="1"><?= $language::get('blocked_btn'); ?></option>
+                    <option value="0"><?= $language::get('allowed'); ?></option>
+                </select>
             </div>
         </div>
     </div>
+    <div class="card-datatable table-responsive">
+        <table id="asns-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><?= $language::get('asn'); ?></th>
+                    <th><?= $language::get('isp'); ?></th>
+                    <th><?= $language::get('domain'); ?></th>
+                    <th><?= $language::get('country'); ?></th>
+                    <th><?= $language::get('num_ips'); ?></th>
+                    <th><?= $language::get('type'); ?></th>
+                    <th><?= $language::get('status'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
+<script>
+    (function() {
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var lang = {
+            blocked: <?= json_encode($language::get('blocked_btn')); ?>,
+            allowed: <?= json_encode($language::get('allowed')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>
+        };
 
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
-
-    function api(rID, rType) {
-        $.getJSON("./api?action=asn&sub=" + rType + "&id=" + rID, function(data) {
-            if (data.result === true) {
-                if (rType == "block") {
-                    $.toast("ASN has been blocked.");
-                } else if (rType == "allow") {
-                    $.toast("ASN has been allowed.");
-                } else if (rType == "block_all") {
-                    $.toast("All ASN's have been blocked.");
-                } else if (rType == "allow_all") {
-                    $.toast("All ASN's have been allowed.");
-                }
-                $("#datatable-users").DataTable().ajax.reload(null, false);
-            } else {
-                $.toast("An error occured while processing your request.");
-            }
-        });
-    }
-
-    function getFilter() {
-        return $("#asn_filter").val();
-    }
-
-    function getType() {
-        return $("#asn_type").val();
-    }
-    $(document).ready(function() {
-        $('select').select2({
-            width: '100%'
-        });
-        $("#datatable-users").DataTable({
-            language: {
-                paginate: {
-                    previous: "<i class='mdi mdi-chevron-left'>",
-                    next: "<i class='mdi mdi-chevron-right'>"
-                }
-            },
-            drawCallback: function() {
-                bindHref();
-                refreshTooltips();
-            },
-            responsive: false,
+        var table = jQuery('#asns-table').DataTable({
             processing: true,
             serverSide: true,
-            searchDelay: 250,
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[5, 'desc']],
             ajax: {
-                url: "./table",
-                "data": function(d) {
-                    d.id = "asns",
-                        d.filter = getFilter(),
-                        d.type = getType()
+                url: './table',
+                data: function(d) {
+                    d.id = 'asns';
+                    d.type = document.getElementById('filter-type').value;
+                    d.filter = document.getElementById('filter-status').value;
                 }
             },
-            columnDefs: [{
-                "className": "dt-center",
-                "targets": [0, 3, 4, 5, 6, 7]
-            }],
-            order: [
-                [0, "asc"]
-            ]
+            columns: [
+                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                { data: 'asn', className: 'text-nowrap', responsivePriority: 1 },
+                { data: 'isp' },
+                { data: 'domain' },
+                {
+                    data: 'country',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ? '<img loading="lazy" src="assets/old/images/countries/' + esc(d) + '.png" alt="' + esc(d) + '">' : '';
+                    }
+                },
+                { data: 'num_ips', className: 'text-center', render: function(d) { return (d == null ? '' : Number(d).toLocaleString()); } },
+                { data: 'type', className: 'text-center' },
+                {
+                    data: 'blocked',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ?
+                            '<span class="badge bg-label-danger">' + esc(lang.blocked) + '</span>' :
+                            '<span class="badge bg-label-success">' + esc(lang.allowed) + '</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return row.blocked ?
+                            '<button type="button" class="btn btn-sm btn-icon btn-label-success js-toggle" data-sub="allow" data-id="' + esc(row.id) + '"><i class="icon-base ti tabler-check"></i></button>' :
+                            '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-toggle" data-sub="block" data-id="' + esc(row.id) + '"><i class="icon-base ti tabler-ban"></i></button>';
+                    }
+                }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
         });
-        $("#datatable-users").css("width", "100%");
-        $('#asn_search_box').keyup(function() {
-            if (!window.rClearing) {
-                $('#datatable-users').DataTable().search($(this).val()).draw();
-            }
+
+        document.getElementById('filter-type').addEventListener('change', function() { table.ajax.reload(); });
+        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+
+        jQuery('#asns-table tbody').on('click', '.js-toggle', function() {
+            var id = this.getAttribute('data-id');
+            var sub = this.getAttribute('data-sub');
+            fetch('./api?action=asn&sub=' + encodeURIComponent(sub) + '&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                .catch(function() { alert(lang.error); });
         });
-        $('#asn_show_entries').change(function() {
-            if (!window.rClearing) {
-                $('#datatable-users').DataTable().page.len($(this).val()).draw();
-            }
-        });
-        $('#asn_filter').change(function() {
-            if (!window.rClearing) {
-                $("#datatable-users").DataTable().ajax.reload(null, false);
-            }
-        });
-        $('#asn_type').change(function() {
-            if (!window.rClearing) {
-                $("#datatable-users").DataTable().ajax.reload(null, false);
-            }
-        });
-        if ($('#asn_search_box').val()) {
-            $('#datatable-users').DataTable().search($('#asn_search_box').val()).draw();
-        }
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
