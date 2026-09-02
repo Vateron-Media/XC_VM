@@ -73,6 +73,20 @@ if (count(get_included_files()) == 1) {
                 error_occured: <?= json_encode($language::get('error_occured')); ?>
             }
         };
+
+        // DataTable row-action dropdowns live inside a `.table-responsive`
+        // (overflow:auto) container that clips them and stacks below the sidebar.
+        // Pre-create their Bootstrap Dropdown with Popper strategy:'fixed' (on
+        // pointerdown, before Bootstrap's own click handler) so the menu escapes
+        // the overflow clip and is positioned against the viewport — Popper then
+        // flips/shifts it to stay on screen instead of hiding under the menu.
+        document.addEventListener('pointerdown', function (e) {
+            var toggle = e.target.closest && e.target.closest('.card-datatable [data-bs-toggle="dropdown"]');
+            if (!toggle || !window.bootstrap || bootstrap.Dropdown.getInstance(toggle)) { return; }
+            bootstrap.Dropdown.getOrCreateInstance(toggle, {
+                popperConfig: function (cfg) { cfg.strategy = 'fixed'; return cfg; }
+            });
+        }, true);
     </script>
 
     <?php if (!empty($rSettings['header_stats'])): ?>

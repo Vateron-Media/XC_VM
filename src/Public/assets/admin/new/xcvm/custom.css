@@ -66,3 +66,10 @@ ul.dtr-details > li .dtr-title {
   font-weight: 600;
   padding-right: 0.5rem;
 }
+
+/* Row-action dropdowns inside a DataTable escape the `.table-responsive`
+   overflow clip via Popper strategy:fixed (see footer.vuexy.php). Lift them
+   above the vertical menu (z-index 1080) so they never render underneath it. */
+.card-datatable .dropdown-menu {
+  z-index: 1085;
+}
