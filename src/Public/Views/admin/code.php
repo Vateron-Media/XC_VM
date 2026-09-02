@@ -34,7 +34,9 @@ $rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'W
     <?php endif; ?>
 
     <div class="card mb-6">
-        <div class="card-header"><h5 class="mb-0"><?= $language::get('details'); ?></h5></div>
+        <div class="card-header">
+            <h5 class="mb-0"><?= $language::get('details'); ?></h5>
+        </div>
         <div class="card-body">
             <div class="row mb-6">
                 <div class="col-md-8">
@@ -83,7 +85,9 @@ $rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'W
     </div>
 
     <div class="card mb-6">
-        <div class="card-header"><h5 class="mb-0"><?= $language::get('restrictions'); ?></h5></div>
+        <div class="card-header">
+            <h5 class="mb-0"><?= $language::get('restrictions'); ?></h5>
+        </div>
         <div class="card-body">
             <label class="form-label" for="ip_field">Allowed IP Addresses</label>
             <div class="input-group mb-3">
@@ -114,49 +118,99 @@ renderUnifiedLayoutFooter('admin');
 
         // Random 16-char hex access code.
         var genCode = function() {
-            var chars = 'ABCDEF0123456789', out = '';
-            for (var i = 0; i < 16; i++) { out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',
+                out = '';
+            for (var i = 0; i < 8; i++) {
+                out += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
             return out;
         };
-        document.getElementById('gen-code').addEventListener('click', function() { document.getElementById('code').value = genCode(); });
+        document.getElementById('gen-code').addEventListener('click', function() {
+            document.getElementById('code').value = genCode();
+        });
         <?php if (!$rIsEdit): ?>
-            if (!document.getElementById('code').value) { document.getElementById('code').value = genCode(); }
+            if (!document.getElementById('code').value) {
+                document.getElementById('code').value = genCode();
+            }
         <?php endif; ?>
 
         // Group select-all / none.
-        document.getElementById('grp-all').addEventListener('click', function() { document.querySelectorAll('.group-checkbox').forEach(function(c) { c.checked = true; }); });
-        document.getElementById('grp-none').addEventListener('click', function() { document.querySelectorAll('.group-checkbox').forEach(function(c) { c.checked = false; }); });
+        document.getElementById('grp-all').addEventListener('click', function() {
+            document.querySelectorAll('.group-checkbox').forEach(function(c) {
+                c.checked = true;
+            });
+        });
+        document.getElementById('grp-none').addEventListener('click', function() {
+            document.querySelectorAll('.group-checkbox').forEach(function(c) {
+                c.checked = false;
+            });
+        });
 
         // Allowed-IP whitelist add / remove.
         var wl = document.getElementById('whitelist');
-        var validIP = function(v) { return /^[0-9.]+$/.test(v) || /^[0-9a-fA-F:]+$/.test(v); };
+        var validIP = function(v) {
+            return /^[0-9.]+$/.test(v) || /^[0-9a-fA-F:]+$/.test(v);
+        };
         document.getElementById('add_ip').addEventListener('click', function() {
-            var f = document.getElementById('ip_field'), v = f.value.trim();
-            if (!v || !validIP(v)) { alert('Please enter a valid IP address.'); return; }
-            var exists = Array.prototype.some.call(wl.options, function(o) { return o.value === v; });
-            if (!exists) { wl.add(new Option(v, v)); }
+            var f = document.getElementById('ip_field'),
+                v = f.value.trim();
+            if (!v || !validIP(v)) {
+                alert('Please enter a valid IP address.');
+                return;
+            }
+            var exists = Array.prototype.some.call(wl.options, function(o) {
+                return o.value === v;
+            });
+            if (!exists) {
+                wl.add(new Option(v, v));
+            }
             f.value = '';
         });
         document.getElementById('remove_ip').addEventListener('click', function() {
-            Array.prototype.slice.call(wl.selectedOptions).forEach(function(o) { o.remove(); });
+            Array.prototype.slice.call(wl.selectedOptions).forEach(function(o) {
+                o.remove();
+            });
         });
 
         // Submit → post.php?action=code. Select every whitelist option first so it
         // is included in the FormData (a multi-select only submits selected options).
         document.getElementById('code-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            Array.prototype.forEach.call(wl.options, function(o) { o.selected = true; });
+            Array.prototype.forEach.call(wl.options, function(o) {
+                o.selected = true;
+            });
             var btn = document.getElementById('code-submit');
             btn.disabled = true;
-            fetch('post.php?action=code', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=code', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = dt.location || 'codes'; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'codes';
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

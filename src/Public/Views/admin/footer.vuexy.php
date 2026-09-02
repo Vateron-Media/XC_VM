@@ -127,6 +127,20 @@ if (count(get_included_files()) == 1) {
             var $ = jQuery;
             var errText = (window.XC_VM && XC_VM.Config && XC_VM.Config.i18n && XC_VM.Config.i18n.error_occured) || 'An error occurred.';
 
+            // Header alignment should follow the column's data (DataTables does not
+            // propagate a body-cell class like text-center to the <th>). On init,
+            // copy each column's body text-align onto its header so centered/right
+            // columns don't show a left-aligned header.
+            $(document).on('init.dt', function (e, settings) {
+                var api = new $.fn.dataTable.Api(settings);
+                api.columns().every(function () {
+                    var cells = this.nodes(), header = this.header();
+                    if (!cells.length || !header) { return; }
+                    var align = window.getComputedStyle(cells[0]).textAlign;
+                    if (align && align !== 'start' && align !== 'left') { header.style.textAlign = align; }
+                });
+            });
+
             // The page's serverSide table is the visible one whose ajax url is ./table.
             function pickTable() {
                 var nodes = $.fn.dataTable.tables({ visible: true });

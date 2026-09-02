@@ -18,6 +18,9 @@ if (!Authorization::check('adv', 'add_code')):
     echo '</body></html>';
     return;
 endif;
+
+// Access-code type labels (matches the code form's type select).
+$rCodeTypes = [0 => 'Admin', 1 => 'Reseller', 2 => 'Ministra', 3 => 'Admin API', 4 => 'Reseller API', 6 => 'Web Player'];
 ?>
 
 <div class="card">
@@ -42,7 +45,7 @@ endif;
                         <td></td>
                         <td class="text-center"><?= (int) $rCode['id']; ?></td>
                         <td class="text-nowrap"><?= htmlspecialchars((string) $rCode['code'], ENT_QUOTES); ?></td>
-                        <td class="text-center"><span class="badge bg-label-secondary text-uppercase"><?= htmlspecialchars((string) $rCode['type'], ENT_QUOTES); ?></span></td>
+                        <td class="text-center"><span class="badge bg-label-primary"><?= htmlspecialchars($rCodeTypes[(int) $rCode['type']] ?? (string) $rCode['type'], ENT_QUOTES); ?></span></td>
                         <td class="text-center" data-order="<?= (int) (bool) $rCode['enabled']; ?>">
                             <i class="icon-base ti tabler-square-filled <?= $rCode['enabled'] ? 'text-success' : 'text-body-secondary'; ?>"></i>
                         </td>
