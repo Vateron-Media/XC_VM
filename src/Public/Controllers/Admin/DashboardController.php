@@ -102,8 +102,8 @@ class DashboardController extends BaseAdminController {
         if (SettingsManager::get('save_closed_connection') && SettingsManager::get('dashboard_map') && $rConnectionCount > 0) {
             $rVendors[] = 'jsvectormap';
         }
-        $GLOBALS['xmBootstrap 5Vendors'] = array_values(array_unique(array_merge(
-            (array) ($GLOBALS['xmBootstrap 5Vendors'] ?? []),
+        $GLOBALS['xmNewuiVendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmNewuiVendors'] ?? []),
             $rVendors
         )));
 

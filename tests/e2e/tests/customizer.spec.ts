@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * The Vuexy customizer persists each user's settings to users.ui_prefs via
+ * The customizer persists each user's settings to users.ui_prefs via
  * ./api?action=save_ui_prefs, and the shell restores them on load. These tests
  * drive the navbar theme switcher (which routes through the customizer) and
  * verify the choice survives a reload, then reset it.

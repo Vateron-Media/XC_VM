@@ -5,7 +5,7 @@
  *
  * Rebuilt from the stock Bootstrap 5 vertical-menu shell and wired to the current
  * XC_VM backend. Rendered by renderUnifiedLayoutHeader('admin') only for pages
- * opted in through xc_admin_use_vuexy() (see layouts/admin.php); every other
+ * opted in through xc_admin_use_newui() (see layouts/admin.php); every other
  * admin page keeps the legacy header.php shell.
  *
  * Theme is server-authoritative: data-bs-theme is emitted from the user's
@@ -100,8 +100,8 @@ if (!function_exists('_xc_nav_label')) {
     <link rel="stylesheet" href="assets/new/css/demo.css">
 
     <!-- Page vendor styles (bundle bridge) + XC_VM overrides -->
-    <?php require_once __DIR__ . '/vendors.vuexy.php'; ?>
-    <?php xc_vuexy_vendor_css(xc_vuexy_vendors_wanted()); ?>
+    <?php require_once __DIR__ . '/vendors.newui.php'; ?>
+    <?php xc_newui_vendor_css(xc_newui_vendors_wanted()); ?>
     <link rel="stylesheet" href="assets/new/xcvm/custom.css">
 
     <!-- Helpers + template customizer must precede config.js -->
@@ -126,7 +126,7 @@ if (!function_exists('_xc_nav_label')) {
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
 
-            <?php require __DIR__ . '/menu.vuexy.php'; ?>
+            <?php require __DIR__ . '/menu.newui.php'; ?>
 
             <!-- Layout page -->
             <div class="layout-page">
@@ -141,7 +141,7 @@ if (!function_exists('_xc_nav_label')) {
 
                     <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
 
-                        <!-- Left: live header stats (polled by the inline poller in footer.vuexy.php) -->
+                        <!-- Left: live header stats (polled by the inline poller in footer.newui.php) -->
                         <div class="navbar-nav align-items-center">
                             <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
                                 <div class="d-none d-xl-flex align-items-center" id="header_stats">
@@ -272,8 +272,8 @@ if (!function_exists('_xc_nav_label')) {
                 </nav>
                 <!-- / Navbar -->
 
-                <!-- Content wrapper (closed in footer.vuexy.php) -->
+                <!-- Content wrapper (closed in footer.newui.php) -->
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y">
-                        <?php require __DIR__ . '/topbar.vuexy.php'; ?>
+                        <?php require __DIR__ . '/topbar.newui.php'; ?>
 <?php endif; /* modal vs full-layout body */ ?>

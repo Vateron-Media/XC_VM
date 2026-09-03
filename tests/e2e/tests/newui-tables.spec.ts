@@ -1,11 +1,11 @@
 import { test, expect, type Page } from '@playwright/test';
 
 /**
- * Smoke suite for every admin page migrated to the Vuexy clean-JSON / client-side
- * datatables-bs5 pattern (feat/admin-vuexy-v2). For each page we assert:
- *   - it renders inside the Vuexy shell (#layout-menu) — i.e. the per-page opt-in
- *     allowlist (xc_admin_use_vuexy) routed it to the new shell, not the legacy one;
- *   - its Vuexy-specific table id is present (legacy used #datatable / #datatable-users,
+ * Smoke suite for every admin page migrated to the new UI clean-JSON / client-side
+ * datatables-bs5 pattern (feat/new-adminUI). For each page we assert:
+ *   - it renders inside the new UI shell (#layout-menu) — i.e. the per-page opt-in
+ *     allowlist (xc_admin_use_newui) routed it to the new shell, not the legacy one;
+ *   - its new-UI-specific table id is present (legacy used #datatable / #datatable-users,
  *     so a hit on the new id proves the rewritten view rendered);
  *   - for serverSide tables, the DataTables `./table` ajax answered 200.
  *
@@ -15,7 +15,7 @@ import { test, expect, type Page } from '@playwright/test';
 type Migrated = {
   /** page name (relative goto target) */
   url: string;
-  /** the Vuexy view's table id selector */
+  /** the new UI view's table id selector */
   table: string;
   /** serverSide TableController id (d.id); omit for client-side tables */
   ajax?: string;
@@ -72,7 +72,7 @@ const MANAGEMENT: Migrated[] = [
   { url: 'backups', table: '#backups-table', ajax: 'backups', noControl: true },
 ];
 
-/** Load a migrated page and assert the Vuexy shell + table + (serverSide) ajax. */
+/** Load a migrated page and assert the new UI shell + table + (serverSide) ajax. */
 async function assertMigrated(page: Page, m: Migrated) {
   // Arm the ajax wait before navigating so the DataTables request isn't missed.
   // The heaviest tables (lines) run correlated per-row subqueries, so allow a
@@ -87,7 +87,7 @@ async function assertMigrated(page: Page, m: Migrated) {
 
   await page.goto('./' + m.url);
 
-  // Vuexy shell — proves the page opted into the new layout (not legacy chrome).
+  // new UI shell — proves the page opted into the new layout (not legacy chrome).
   await expect(page.locator('#layout-menu')).toBeVisible({ timeout: 20_000 });
   // The rewritten view's table.
   await expect(page.locator(m.table)).toBeAttached();
@@ -109,16 +109,16 @@ for (const [group, pages] of [
   ['Reference lists', REFERENCES],
   ['Management', MANAGEMENT],
 ] as const) {
-  test.describe(`Vuexy tables — ${group}`, () => {
+  test.describe(`new UI tables — ${group}`, () => {
     for (const m of pages) {
-      test(`${m.url} renders in the Vuexy shell and loads its table`, async ({ page }) => {
+      test(`${m.url} renders in the new UI shell and loads its table`, async ({ page }) => {
         await assertMigrated(page, m);
       });
     }
   });
 }
 
-test.describe('Vuexy tables — interactions', () => {
+test.describe('new UI tables — interactions', () => {
   test('series bulk-select toggles the bulk toolbar', async ({ page }) => {
     await page.goto('./series');
     await expect(page.locator('#series-table')).toBeAttached();

@@ -3,11 +3,11 @@
 /**
  * Bootstrap 5 vertical sidebar menu, driven by NavbarRegistry.
  *
- * Included by header.vuexy.php (which defines the shared _xc_nav_visible() /
+ * Included by header.newui.php (which defines the shared _xc_nav_visible() /
  * _xc_nav_label() helpers). Renders the same registry tree the legacy top
  * navigation uses, so core + module nav entries appear automatically.
  *
- * The tree is produced by XcBootstrap 5MenuBuilder in a single pass: each node
+ * The tree is produced by XcNewuiMenuBuilder in a single pass: each node
  * renders its own subtree first and reports back whether it (or a descendant)
  * is the current page, so ancestors can mark themselves `open active` without
  * re-walking the tree.
@@ -27,8 +27,8 @@ if (count(get_included_files()) == 1) {
  * (`fas fa-*`) / Feather (`fe-*`) classes from CoreNavbarProvider and modules
  * are translated here; the builder wraps the result in `menu-icon icon-base`.
  */
-if (!function_exists('_xc_vuexy_icon')) {
-    function _xc_vuexy_icon(string $icon): string {
+if (!function_exists('_xc_newui_icon')) {
+    function _xc_newui_icon(string $icon): string {
         $icon = trim($icon);
         if ($icon === '') return 'ti tabler-circle';
         if (str_starts_with($icon, 'ti ')) return $icon; // already Tabler
@@ -76,8 +76,8 @@ if (!function_exists('_xc_vuexy_icon')) {
  * groups are resolved in one traversal. Only depth-0 items carry an icon, and
  * top-level dividers that carry a label become Bootstrap 5 section headers.
  */
-if (!class_exists('XcBootstrap 5MenuBuilder')) {
-    final class XcBootstrap 5MenuBuilder {
+if (!class_exists('XcNewuiMenuBuilder')) {
+    final class XcNewuiMenuBuilder {
         public function __construct(
             private bool $mobile,
             private array $settings,
@@ -181,7 +181,7 @@ if (!class_exists('XcBootstrap 5MenuBuilder')) {
             $liClass = 'menu-item' . ($active ? ' active' : '') . ($hasKids && $active ? ' open' : '');
             $href    = htmlspecialchars($hasKids ? 'javascript:void(0);' : $item->url, ENT_QUOTES);
             $icon    = $depth === 0
-                ? '<i class="menu-icon icon-base ' . _xc_vuexy_icon((string) $item->icon) . '"></i>'
+                ? '<i class="menu-icon icon-base ' . _xc_newui_icon((string) $item->icon) . '"></i>'
                 : '';
 
             $html  = '<li class="' . $liClass . '">';
@@ -213,7 +213,7 @@ if (!class_exists('XcBootstrap 5MenuBuilder')) {
     }
 }
 
-$_menu = new XcBootstrap 5MenuBuilder($rMobile, $rSettings, (string) $language, AdminHelpers::getPageName());
+$_menu = new XcNewuiMenuBuilder($rMobile, $rSettings, (string) $language, AdminHelpers::getPageName());
 
 /**
  * Sidebar sections (view-level presentation, Bootstrap 5 `menu-header` captions).

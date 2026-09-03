@@ -182,7 +182,7 @@ check-vendor-prod-only:
 gates: check-procedural-use verify-lb-archive check-vendor-prod-only
 
 # ─── Admin E2E (Playwright) ─────────────────────────────────────
-# Browser smoke tests for the Vuexy admin panel. Run against a LIVE instance:
+# Browser smoke tests for the admin panel. Run against a LIVE instance:
 # set XC_E2E_BASE_URL / XC_E2E_USER / XC_E2E_PASS (see tests/e2e/README.md).
 .PHONY: e2e e2e-ui e2e-install
 e2e-install:

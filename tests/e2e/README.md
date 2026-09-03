@@ -1,6 +1,6 @@
 # XC_VM admin E2E (Playwright)
 
-Browser smoke tests for the Vuexy admin panel. They run against a **live**
+Browser smoke tests for the admin panel. They run against a **live**
 instance (there is no built-in server), so point them at a test/canary panel.
 
 ## Run

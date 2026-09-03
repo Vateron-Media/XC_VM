@@ -11,7 +11,7 @@ use XcVm\Core\Auth\Authorization;
  * refresh, and a dropdown of related tools/logs + Export CSV/JSON). Historically
  * this lived as a big `$rDropdown` literal inside Views/admin/topbar.php that
  * echoed legacy HTML. This class hoists that config out so BOTH the legacy
- * renderer (topbar.php) and the Bootstrap 5 renderer (topbar.vuexy.php) build from the
+ * renderer (topbar.php) and the Bootstrap 5 renderer (topbar.newui.php) build from the
  * same data.
  *
  * - config() returns the raw per-page map `label => [url, permission, attr]`.

@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Vuexy admin dashboard', () => {
+test.describe('admin dashboard', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('./dashboard');
   });
 
-  test('renders the Vuexy shell', async ({ page }) => {
+  test('renders the new UI shell', async ({ page }) => {
     // Sidebar (NavbarRegistry-driven) + navbar.
     await expect(page.locator('#layout-menu')).toBeVisible();
     await expect(page.locator('#layout-navbar')).toBeVisible();

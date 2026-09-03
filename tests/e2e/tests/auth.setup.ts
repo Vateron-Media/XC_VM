@@ -19,7 +19,7 @@ setup('authenticate', async ({ page }) => {
   await page.locator('#password').fill(pass!);
   await page.locator('#login_button').click();
 
-  // After login the panel redirects to the Vuexy dashboard, whose sidebar only
+  // After login the panel redirects to the dashboard, whose sidebar only
   // renders once authenticated. Waiting on the element (rather than waitForURL's
   // 'load' event) is robust to the heavy dashboard being slow to fully load,
   // especially headed.

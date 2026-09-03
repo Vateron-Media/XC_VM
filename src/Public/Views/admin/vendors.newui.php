@@ -11,15 +11,15 @@
  * Usage:
  *   - A default common bundle (tables + selects + pickers + alerts) loads on
  *     every Bootstrap 5 page. A controller can request extras BEFORE render():
- *         $GLOBALS['xmBootstrap 5Vendors'] = ['apexcharts'];
- *   - header.vuexy.php calls xc_vuexy_vendor_css(); footer.vuexy.php calls
- *     xc_vuexy_vendor_js(), both via xc_vuexy_vendors_wanted().
+ *         $GLOBALS['xmNewuiVendors'] = ['apexcharts'];
+ *   - header.newui.php calls xc_newui_vendor_css(); footer.newui.php calls
+ *     xc_newui_vendor_js(), both via xc_newui_vendors_wanted().
  *
  * Init code is intentionally NOT wired here — pages initialise their own plugins.
  */
 
-if (!function_exists('xc_vuexy_vendor_manifest')) {
-    function xc_vuexy_vendor_manifest(): array {
+if (!function_exists('xc_newui_vendor_manifest')) {
+    function xc_newui_vendor_manifest(): array {
         $b = 'assets/new/vendor/libs/';
         return [
             // datatables-bootstrap5.js is a combined bundle that already includes the
@@ -63,23 +63,23 @@ if (!function_exists('xc_vuexy_vendor_manifest')) {
     }
 }
 
-if (!function_exists('xc_vuexy_vendors_wanted')) {
+if (!function_exists('xc_newui_vendors_wanted')) {
     /**
      * Bundles to load for the current page: the always-on common set plus any
-     * per-page extras a controller declared via $GLOBALS['xmBootstrap 5Vendors'].
+     * per-page extras a controller declared via $GLOBALS['xmNewuiVendors'].
      * Unknown names are dropped.
      */
-    function xc_vuexy_vendors_wanted(): array {
+    function xc_newui_vendors_wanted(): array {
         $default = ['datatables', 'select2', 'flatpickr', 'sweetalert2'];
-        $extra   = (array) ($GLOBALS['xmBootstrap 5Vendors'] ?? []);
-        $known   = array_keys(xc_vuexy_vendor_manifest());
+        $extra   = (array) ($GLOBALS['xmNewuiVendors'] ?? []);
+        $known   = array_keys(xc_newui_vendor_manifest());
         return array_values(array_intersect($known, array_unique(array_merge($default, $extra))));
     }
 }
 
-if (!function_exists('xc_vuexy_vendor_css')) {
-    function xc_vuexy_vendor_css(array $bundles): void {
-        $manifest = xc_vuexy_vendor_manifest();
+if (!function_exists('xc_newui_vendor_css')) {
+    function xc_newui_vendor_css(array $bundles): void {
+        $manifest = xc_newui_vendor_manifest();
         $seen = [];
         foreach ($bundles as $name) {
             foreach ($manifest[$name]['css'] ?? [] as $href) {
@@ -91,9 +91,9 @@ if (!function_exists('xc_vuexy_vendor_css')) {
     }
 }
 
-if (!function_exists('xc_vuexy_vendor_js')) {
-    function xc_vuexy_vendor_js(array $bundles): void {
-        $manifest = xc_vuexy_vendor_manifest();
+if (!function_exists('xc_newui_vendor_js')) {
+    function xc_newui_vendor_js(array $bundles): void {
+        $manifest = xc_newui_vendor_manifest();
         $seen = [];
         foreach ($bundles as $name) {
             foreach ($manifest[$name]['js'] ?? [] as $src) {

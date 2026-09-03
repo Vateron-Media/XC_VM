@@ -3,12 +3,12 @@
 /**
  * Bootstrap 5 per-page action topbar. Server-side render of Topbar::items() for the
  * current page (single source shared with legacy topbar.php). Included once by
- * header.vuexy.php above the page content, so every migrated page gets its
+ * header.newui.php above the page content, so every migrated page gets its
  * primary action + related-tools dropdown (+ clear-filters / refresh on table
  * pages) without per-view wiring.
  *
  * Standard button ids are preserved (clearFilters, refreshTable, btn-export-csv,
- * btn-export-json, btn-clear-logs) and wired generically in footer.vuexy.php.
+ * btn-export-json, btn-clear-logs) and wired generically in footer.newui.php.
  */
 
 use XcVm\Core\Util\AdminHelpers;

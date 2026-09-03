@@ -6,7 +6,7 @@ import path from 'node:path';
 dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
- * Playwright config for the XC_VM Vuexy admin smoke suite.
+ * Playwright config for the XC_VM admin smoke suite.
  *
  * Configure via env (see .env.example):
  *   XC_E2E_BASE_URL  admin panel base incl. the access code,

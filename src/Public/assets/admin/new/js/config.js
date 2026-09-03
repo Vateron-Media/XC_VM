@@ -50,7 +50,7 @@ window.templateName = document.documentElement.getAttribute("data-template");
  * - window.XC_VM_UIDefaults  : the DEFAULT look for EVERY panel (edit this block to
  *                              change the out-of-the-box design for all installs).
  * - window.XC_VM_UIPrefs     : the current user's saved settings, injected by the
- *                              AdminUI shell (header.vuexy.php); {} when the user has none.
+ *                              AdminUI shell (header.newui.php); {} when the user has none.
  * Effective config = defaults overridden by the user's saved prefs. It primes the
  * customizer's localStorage on every load (server-authoritative) and any change is
  * persisted back to ./api?action=save_ui_prefs.

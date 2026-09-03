@@ -2,16 +2,16 @@
 
 /**
  * Bootstrap 5 admin footer — closes the Vertical Menu shell opened in
- * header.vuexy.php and loads the core Bootstrap 5 script set.
+ * header.newui.php and loads the core Bootstrap 5 script set.
  *
- * Reached only for pages opted in via xc_admin_use_vuexy() (modal/setup pages
+ * Reached only for pages opted in via xc_admin_use_newui() (modal/setup pages
  * are routed to the legacy footer.php upstream). Views call
  * renderUnifiedLayoutFooter('admin') at their end, then append their own page
  * <script> and close </body></html> themselves.
  *
  * Only the layout-critical vendors load here (jQuery, Popper, Bootstrap, Waves,
  * PerfectScrollbar, Hammer, menu.js, main.js) plus the per-page vendor bundles
- * from vendors.vuexy.php. Pages initialise their own plugins.
+ * from vendors.newui.php. Pages initialise their own plugins.
  */
 
 use XcVm\Core\Util\AdminHelpers;
@@ -65,8 +65,8 @@ if (count(get_included_files()) == 1) {
 <?php endif; ?>
 
 <!-- Page vendor scripts — after jQuery, before page init -->
-<?php require_once __DIR__ . '/vendors.vuexy.php'; ?>
-<?php xc_vuexy_vendor_js(xc_vuexy_vendors_wanted()); ?>
+<?php require_once __DIR__ . '/vendors.newui.php'; ?>
+<?php xc_newui_vendor_js(xc_newui_vendors_wanted()); ?>
 
 <?php if (!isset($_GET['modal'])): ?>
     <!-- Main (menu init, theme switcher wiring, waves, scrollbars) -->

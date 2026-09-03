@@ -15,20 +15,20 @@
  *   renderUnifiedLayoutHeader('admin', ['_TITLE' => 'Dashboard']);
  */
 
-if (!function_exists('xc_admin_use_vuexy')) {
+if (!function_exists('xc_admin_use_newui')) {
     /**
      * Per-page opt-in to the admin shell.
      *
      * The redesign migrates admin pages one at a time, so the shell must stay
      * legacy for every page that has NOT been rebuilt yet. Only pages listed in
-     * XC_VUEXY_PAGES render inside header.vuexy.php/footer.vuexy.php.
+     * XC_NEWUI_PAGES render inside header.newui.php/footer.newui.php.
      *
      * Forced back to the legacy shell when:
      *  - XC_ADMIN_LEGACY_UI is defined (global kill-switch), or
      *  - the request is a modal (?modal=) or the setup wizard ($_SETUP) — both
      *    keep the legacy chrome this migration pass.
      */
-    function xc_admin_use_vuexy(): bool {
+    function xc_admin_use_newui(): bool {
         if (defined('XC_ADMIN_LEGACY_UI')) {
             return false;
         }
@@ -102,8 +102,8 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
             return;
         }
 
-        if (xc_admin_use_vuexy()) {
-            require dirname(__DIR__) . '/admin/header.vuexy.php';
+        if (xc_admin_use_newui()) {
+            require dirname(__DIR__) . '/admin/header.newui.php';
         } else {
             require dirname(__DIR__) . '/admin/header.php';
         }

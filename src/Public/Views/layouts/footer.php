@@ -60,8 +60,8 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             return;
         }
 
-        if (function_exists('xc_admin_use_vuexy') && xc_admin_use_vuexy()) {
-            require dirname(__DIR__) . '/admin/footer.vuexy.php';
+        if (function_exists('xc_admin_use_newui') && xc_admin_use_newui()) {
+            require dirname(__DIR__) . '/admin/footer.newui.php';
         } else {
             require dirname(__DIR__) . '/admin/footer.php';
         }
