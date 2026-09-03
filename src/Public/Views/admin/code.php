@@ -34,72 +34,72 @@ $rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'W
     <?php endif; ?>
 
     <div class="card mb-6">
-        <div class="card-header">
-            <h5 class="mb-0"><?= $language::get('details'); ?></h5>
+        <div class="card-header px-0 pt-2">
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-groups" role="tab"><i class="icon-base ti tabler-users me-1"></i><?= $language::get('groups'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-restrictions" role="tab"><i class="icon-base ti tabler-shield-lock me-1"></i><?= $language::get('restrictions'); ?></button></li>
+                </ul>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row mb-6">
-                <div class="col-md-8">
-                    <label class="form-label" for="code">Access Code</label>
-                    <div class="input-group">
-                        <input type="text" maxlength="16" class="form-control" id="code" name="code" required value="<?= $rIsEdit ? htmlspecialchars((string) $rCode['code'], ENT_QUOTES) : ''; ?>">
-                        <button class="btn btn-outline-primary" type="button" id="gen-code"><i class="icon-base ti tabler-refresh"></i></button>
+            <div class="tab-content p-0">
+                <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                    <div class="row mb-6">
+                        <div class="col-md-8">
+                            <label class="form-label" for="code">Access Code</label>
+                            <div class="input-group">
+                                <input type="text" maxlength="16" class="form-control" id="code" name="code" required value="<?= $rIsEdit ? htmlspecialchars((string) $rCode['code'], ENT_QUOTES) : ''; ?>">
+                                <button class="btn btn-outline-primary" type="button" id="gen-code"><i class="icon-base ti tabler-refresh"></i></button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="type">Access Type</label>
+                            <select id="type" name="type" class="form-select">
+                                <?php foreach ($rTypes as $rTid => $rTname): ?>
+                                    <option value="<?= (int) $rTid; ?>" <?= ($rIsEdit && (int) $rCode['type'] === (int) $rTid) ? 'selected' : ''; ?>><?= htmlspecialchars($rTname, ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="1" <?= (!$rIsEdit || $rCode['enabled'] == 1) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="enabled"><?= $language::get('enabled'); ?></label>
                     </div>
                 </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="type">Access Type</label>
-                    <select id="type" name="type" class="form-select">
-                        <?php foreach ($rTypes as $rTid => $rTname): ?>
-                            <option value="<?= (int) $rTid; ?>" <?= ($rIsEdit && (int) $rCode['type'] === (int) $rTid) ? 'selected' : ''; ?>><?= htmlspecialchars($rTname, ENT_QUOTES); ?></option>
+                <div class="tab-pane fade" id="tab-groups" role="tabpanel">
+                    <div class="d-flex justify-content-end mb-4">
+                        <div class="btn-group btn-group-sm">
+                            <button type="button" class="btn btn-label-secondary" id="grp-all"><?= $language::get('select_all'); ?></button>
+                            <button type="button" class="btn btn-label-secondary" id="grp-none"><?= $language::get('deselect_all'); ?></button>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <?php foreach (GroupService::getAll() as $rGroup): ?>
+                            <div class="col-md-4 col-sm-6">
+                                <div class="form-check">
+                                    <input class="form-check-input group-checkbox" type="checkbox" name="groups[]" value="<?= (int) $rGroup['group_id']; ?>" id="group-<?= (int) $rGroup['group_id']; ?>" <?= in_array($rGroup['group_id'], $rCodeGroups) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="group-<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></label>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="tab-restrictions" role="tabpanel">
+                    <label class="form-label" for="ip_field">Allowed IP Addresses</label>
+                    <div class="input-group mb-3">
+                        <input type="text" id="ip_field" class="form-control" placeholder="0.0.0.0">
+                        <button type="button" id="add_ip" class="btn btn-primary"><i class="icon-base ti tabler-plus"></i></button>
+                        <button type="button" id="remove_ip" class="btn btn-label-danger"><i class="icon-base ti tabler-trash"></i></button>
+                    </div>
+                    <select id="whitelist" name="whitelist[]" size="6" class="form-select" multiple>
+                        <?php foreach ($rWhitelist as $rIP): ?>
+                            <option value="<?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>
             </div>
-            <div class="form-check form-switch">
-                <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="1" <?= (!$rIsEdit || $rCode['enabled'] == 1) ? 'checked' : ''; ?>>
-                <label class="form-check-label" for="enabled"><?= $language::get('enabled'); ?></label>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mb-6">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><?= $language::get('groups'); ?></h5>
-            <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-label-secondary" id="grp-all"><?= $language::get('select_all'); ?></button>
-                <button type="button" class="btn btn-label-secondary" id="grp-none"><?= $language::get('deselect_all'); ?></button>
-            </div>
-        </div>
-        <div class="card-body">
-            <div class="row g-3">
-                <?php foreach (GroupService::getAll() as $rGroup): ?>
-                    <div class="col-md-4 col-sm-6">
-                        <div class="form-check">
-                            <input class="form-check-input group-checkbox" type="checkbox" name="groups[]" value="<?= (int) $rGroup['group_id']; ?>" id="group-<?= (int) $rGroup['group_id']; ?>" <?= in_array($rGroup['group_id'], $rCodeGroups) ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="group-<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></label>
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-        </div>
-    </div>
-
-    <div class="card mb-6">
-        <div class="card-header">
-            <h5 class="mb-0"><?= $language::get('restrictions'); ?></h5>
-        </div>
-        <div class="card-body">
-            <label class="form-label" for="ip_field">Allowed IP Addresses</label>
-            <div class="input-group mb-3">
-                <input type="text" id="ip_field" class="form-control" placeholder="0.0.0.0">
-                <button type="button" id="add_ip" class="btn btn-primary"><i class="icon-base ti tabler-plus"></i></button>
-                <button type="button" id="remove_ip" class="btn btn-label-danger"><i class="icon-base ti tabler-trash"></i></button>
-            </div>
-            <select id="whitelist" name="whitelist[]" size="6" class="form-select" multiple>
-                <?php foreach ($rWhitelist as $rIP): ?>
-                    <option value="<?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?></option>
-                <?php endforeach; ?>
-            </select>
         </div>
     </div>
 

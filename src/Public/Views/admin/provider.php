@@ -23,55 +23,108 @@ $rIsEdit = isset($rProvider);
     <?php endif; ?>
 
     <div class="card mb-6">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><?= $language::get('details'); ?></h5>
-            <?php if ($rIsEdit): ?>
-                <button type="button" class="btn btn-sm btn-label-info" id="import-epg"><i class="icon-base ti tabler-calendar-plus me-1"></i>Import EPG Source</button>
-            <?php endif; ?>
+        <div class="card-header px-0 pt-2">
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                    <?php if ($rIsEdit): ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-streams" role="tab"><i class="icon-base ti tabler-list me-1"></i><?= $language::get('available_streams'); ?></button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-movies" role="tab"><i class="icon-base ti tabler-movie me-1"></i><?= $language::get('available_movies'); ?></button></li>
+                    <?php endif; ?>
+                </ul>
+            </div>
         </div>
         <div class="card-body">
-            <div class="row mb-6">
-                <div class="col-md-6">
-                    <label class="form-label" for="name"><?= $language::get('provider_name'); ?></label>
-                    <input type="text" class="form-control" id="name" name="name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['name'], ENT_QUOTES) : ''; ?>">
-                </div>
-                <div class="col-md-4">
-                    <label class="form-label" for="ip"><?= $language::get('server_ip_domain'); ?></label>
-                    <input type="text" class="form-control" id="ip" name="ip" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['ip'], ENT_QUOTES) : ''; ?>">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label" for="port"><?= $language::get('broadcast_port'); ?></label>
-                    <input type="text" inputmode="numeric" class="form-control" id="port" name="port" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['port'], ENT_QUOTES) : '80'; ?>">
-                </div>
-            </div>
-            <div class="row mb-6">
-                <div class="col-md-6">
-                    <label class="form-label" for="username"><?= $language::get('username'); ?></label>
-                    <input type="text" class="form-control" id="username" name="username" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['username'], ENT_QUOTES) : ''; ?>">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label" for="password"><?= $language::get('password'); ?></label>
-                    <input type="text" class="form-control" id="password" name="password" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['password'], ENT_QUOTES) : ''; ?>">
-                </div>
-            </div>
-            <div class="row g-3">
-                <?php
-                $rSwitches = [
-                    'enabled' => $language::get('enabled'),
-                    'ssl'     => $language::get('ssl'),
-                    'legacy'  => $language::get('legacy_xc'),
-                    'hls'     => $language::get('use_hls'),
-                ];
-                foreach ($rSwitches as $rKey => $rLabel):
-                    $rChecked = $rKey === 'enabled' ? (!$rIsEdit || $rProvider['enabled'] == 1) : ($rIsEdit && $rProvider[$rKey] == 1);
-                ?>
-                    <div class="col-6 col-md-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="<?= $rKey; ?>" name="<?= $rKey; ?>" value="1" <?= $rChecked ? 'checked' : ''; ?>>
-                            <label class="form-check-label" for="<?= $rKey; ?>"><?= htmlspecialchars((string) $rLabel, ENT_QUOTES); ?></label>
+            <div class="tab-content p-0">
+                <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                    <?php if ($rIsEdit): ?>
+                        <div class="d-flex justify-content-end mb-4">
+                            <button type="button" class="btn btn-sm btn-label-info" id="import-epg"><i class="icon-base ti tabler-calendar-plus me-1"></i>Import EPG Source</button>
+                        </div>
+                    <?php endif; ?>
+                    <div class="row mb-6">
+                        <div class="col-md-6">
+                            <label class="form-label" for="name"><?= $language::get('provider_name'); ?></label>
+                            <input type="text" class="form-control" id="name" name="name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['name'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="ip"><?= $language::get('server_ip_domain'); ?></label>
+                            <input type="text" class="form-control" id="ip" name="ip" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['ip'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label" for="port"><?= $language::get('broadcast_port'); ?></label>
+                            <input type="text" inputmode="numeric" class="form-control" id="port" name="port" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['port'], ENT_QUOTES) : '80'; ?>">
                         </div>
                     </div>
-                <?php endforeach; ?>
+                    <div class="row mb-6">
+                        <div class="col-md-6">
+                            <label class="form-label" for="username"><?= $language::get('username'); ?></label>
+                            <input type="text" class="form-control" id="username" name="username" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['username'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="password"><?= $language::get('password'); ?></label>
+                            <input type="text" class="form-control" id="password" name="password" required value="<?= $rIsEdit ? htmlspecialchars((string) $rProvider['password'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <?php
+                        $rSwitches = [
+                            'enabled' => $language::get('enabled'),
+                            'ssl'     => $language::get('ssl'),
+                            'legacy'  => $language::get('legacy_xc'),
+                            'hls'     => $language::get('use_hls'),
+                        ];
+                        foreach ($rSwitches as $rKey => $rLabel):
+                            $rChecked = $rKey === 'enabled' ? (!$rIsEdit || $rProvider['enabled'] == 1) : ($rIsEdit && $rProvider[$rKey] == 1);
+                        ?>
+                            <div class="col-6 col-md-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="<?= $rKey; ?>" name="<?= $rKey; ?>" value="1" <?= $rChecked ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="<?= $rKey; ?>"><?= htmlspecialchars((string) $rLabel, ENT_QUOTES); ?></label>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php if ($rIsEdit): ?>
+                    <?php
+                    $rProvScheme = $rProvider['ssl'] ? 'https' : 'http';
+                    $rProvBase   = $rProvScheme . '://' . $rProvider['ip'] . ':' . $rProvider['port'];
+                    $rProvExt    = $rProvider['hls'] ? '.m3u8' : ($rProvider['legacy'] ? '.ts' : '');
+                    ?>
+                    <div class="tab-pane fade" id="tab-streams" role="tabpanel">
+                        <div class="card-datatable table-responsive">
+                            <table id="datatable-streams" class="table" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><?= $language::get('id'); ?></th>
+                                        <th><?= $language::get('stream_name'); ?></th>
+                                        <th><?= $language::get('categories'); ?></th>
+                                        <th><?= $language::get('modified'); ?></th>
+                                        <th class="text-center"><?= $language::get('actions'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="tab-pane fade" id="tab-movies" role="tabpanel">
+                        <div class="card-datatable table-responsive">
+                            <table id="datatable-movies" class="table" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th><?= $language::get('id'); ?></th>
+                                        <th><?= $language::get('movie_name'); ?></th>
+                                        <th><?= $language::get('categories'); ?></th>
+                                        <th><?= $language::get('modified'); ?></th>
+                                        <th class="text-center"><?= $language::get('actions'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody></tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -80,49 +133,6 @@ $rIsEdit = isset($rProvider);
         <button type="submit" class="btn btn-primary" id="provider-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
     </div>
 </form>
-
-<?php if ($rIsEdit): ?>
-    <?php
-    $rProvScheme = $rProvider['ssl'] ? 'https' : 'http';
-    $rProvBase   = $rProvScheme . '://' . $rProvider['ip'] . ':' . $rProvider['port'];
-    $rProvExt    = $rProvider['hls'] ? '.m3u8' : ($rProvider['legacy'] ? '.ts' : '');
-    ?>
-    <div class="card mb-6">
-        <div class="card-header"><h5 class="mb-0"><?= $language::get('available_streams'); ?></h5></div>
-        <div class="card-datatable table-responsive">
-            <table id="datatable-streams" class="table" style="width:100%">
-                <thead>
-                    <tr>
-                        <th><?= $language::get('id'); ?></th>
-                        <th><?= $language::get('stream_name'); ?></th>
-                        <th><?= $language::get('categories'); ?></th>
-                        <th><?= $language::get('modified'); ?></th>
-                        <th class="text-center"><?= $language::get('actions'); ?></th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="card-header"><h5 class="mb-0"><?= $language::get('available_movies'); ?></h5></div>
-        <div class="card-datatable table-responsive">
-            <table id="datatable-movies" class="table" style="width:100%">
-                <thead>
-                    <tr>
-                        <th><?= $language::get('id'); ?></th>
-                        <th><?= $language::get('movie_name'); ?></th>
-                        <th><?= $language::get('categories'); ?></th>
-                        <th><?= $language::get('modified'); ?></th>
-                        <th class="text-center"><?= $language::get('actions'); ?></th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-<?php endif; ?>
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
@@ -134,22 +144,45 @@ renderUnifiedLayoutFooter('admin');
         var $ = jQuery;
 
         // Port: digits only.
-        document.getElementById('port').addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+        document.getElementById('port').addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
 
         // Submit → post.php?action=provider.
         document.getElementById('provider-form').addEventListener('submit', function(e) {
             e.preventDefault();
             var btn = document.getElementById('provider-submit');
             btn.disabled = true;
-            fetch('post.php?action=provider', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=provider', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = dt.location || 'providers'; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'providers';
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
 
         <?php if ($rIsEdit): ?>
@@ -160,57 +193,126 @@ renderUnifiedLayoutFooter('admin');
                 pass: <?= json_encode($rProvider['password']); ?>,
                 ext: <?= json_encode($rProvExt); ?>
             };
-            var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
-            var fmtCats = function(json) { try { return esc(JSON.parse(json).join(', ')); } catch (e) { return ''; } };
-            var fmtDate = function(ts) { var d = new Date(ts * 1000); return d.toISOString().slice(0, 10) + '<br><small class="text-body-secondary">' + d.toISOString().slice(11, 19) + '</small>'; };
+            var esc = function(s) {
+                var d = document.createElement('div');
+                d.textContent = (s == null ? '' : String(s));
+                return d.innerHTML;
+            };
+            var fmtCats = function(json) {
+                try {
+                    return esc(JSON.parse(json).join(', '));
+                } catch (e) {
+                    return '';
+                }
+            };
+            var fmtDate = function(ts) {
+                var d = new Date(ts * 1000);
+                return d.toISOString().slice(0, 10) + '<br><small class="text-body-secondary">' + d.toISOString().slice(11, 19) + '</small>';
+            };
             var copyURL = function(url) {
-                if (navigator.clipboard) { navigator.clipboard.writeText(url); }
-                else { var t = document.createElement('textarea'); t.value = url; document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); }
+                if (navigator.clipboard) {
+                    navigator.clipboard.writeText(url);
+                } else {
+                    var t = document.createElement('textarea');
+                    t.value = url;
+                    document.body.appendChild(t);
+                    t.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(t);
+                }
             };
 
             var initProviderTable = function(tableId, streamType, urlFn, addPage) {
                 $('#' + tableId).DataTable({
                     processing: true,
                     serverSide: true,
-                    ajax: { url: './api?action=provider_streams&provider_id=' + p.id + '&stream_type=' + streamType, type: 'GET' },
-                    columns: [
-                        { data: 'stream_id', className: 'text-center' },
-                        { data: 'stream_display_name', render: esc },
-                        { data: 'category_array', orderable: false, render: function(d) { return fmtCats(d); } },
-                        { data: 'modified', className: 'text-nowrap', render: function(d) { return fmtDate(d); } },
+                    ajax: {
+                        url: './api?action=provider_streams&provider_id=' + p.id + '&stream_type=' + streamType,
+                        type: 'GET'
+                    },
+                    columns: [{
+                            data: 'stream_id',
+                            className: 'text-center'
+                        },
                         {
-                            data: null, orderable: false, className: 'text-center text-nowrap', render: function(d, t, row) {
+                            data: 'stream_display_name',
+                            render: esc
+                        },
+                        {
+                            data: 'category_array',
+                            orderable: false,
+                            render: function(d) {
+                                return fmtCats(d);
+                            }
+                        },
+                        {
+                            data: 'modified',
+                            className: 'text-nowrap',
+                            render: function(d) {
+                                return fmtDate(d);
+                            }
+                        },
+                        {
+                            data: null,
+                            orderable: false,
+                            className: 'text-center text-nowrap',
+                            render: function(d, t, row) {
                                 var url = urlFn(row);
-                                var addHref = (streamType === 'live')
-                                    ? 'stream?title=' + encodeURIComponent(row.stream_display_name) + '&url=' + encodeURIComponent(url) + '&icon=' + encodeURIComponent(row.stream_icon || '')
-                                    : 'movie?title=' + encodeURIComponent(row.stream_display_name) + '&path=' + encodeURIComponent(url);
+                                var addHref = (streamType === 'live') ?
+                                    'stream?title=' + encodeURIComponent(row.stream_display_name) + '&url=' + encodeURIComponent(url) + '&icon=' + encodeURIComponent(row.stream_icon || '') :
+                                    'movie?title=' + encodeURIComponent(row.stream_display_name) + '&path=' + encodeURIComponent(url);
                                 return '<a href="' + esc(addHref) + '" class="btn btn-sm btn-icon btn-label-primary" title="Import"><i class="icon-base ti tabler-plus"></i></a> ' +
                                     '<button type="button" class="btn btn-sm btn-icon btn-label-secondary js-copy" data-url="' + esc(url) + '" title="Copy URL"><i class="icon-base ti tabler-clipboard"></i></button>';
                             }
                         }
                     ],
-                    order: [[3, 'desc']],
+                    order: [
+                        [3, 'desc']
+                    ],
                     responsive: false,
-                    layout: { topStart: 'pageLength', topEnd: 'search' }
+                    layout: {
+                        topStart: 'pageLength',
+                        topEnd: 'search'
+                    }
                 });
             };
-            initProviderTable('datatable-streams', 'live', function(row) { return p.base + '/live/' + p.user + '/' + p.pass + '/' + row.stream_id + p.ext; }, 'stream');
-            initProviderTable('datatable-movies', 'movie', function(row) { return p.base + '/movie/' + p.user + '/' + p.pass + '/' + row.stream_id + '.' + row.channel_id; }, 'movie');
+            initProviderTable('datatable-streams', 'live', function(row) {
+                return p.base + '/live/' + p.user + '/' + p.pass + '/' + row.stream_id + p.ext;
+            }, 'stream');
+            initProviderTable('datatable-movies', 'movie', function(row) {
+                return p.base + '/movie/' + p.user + '/' + p.pass + '/' + row.stream_id + '.' + row.channel_id;
+            }, 'movie');
 
-            $(document).on('click', '.js-copy', function() { copyURL(this.getAttribute('data-url')); });
+            $(document).on('click', '.js-copy', function() {
+                copyURL(this.getAttribute('data-url'));
+            });
 
             // Import the provider's playlist as an EPG source.
             var epgBtn = document.getElementById('import-epg');
             if (epgBtn) {
                 epgBtn.addEventListener('click', function() {
                     epgBtn.disabled = true;
-                    fetch('./api?action=provider_import_epg&provider_id=' + p.id, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(d) {
-                            if (d && d.status === 1) { epgBtn.innerHTML = '<i class="icon-base ti tabler-check me-1"></i>EPG Imported'; epgBtn.classList.replace('btn-label-info', 'btn-label-success'); }
-                            else { alert(d && d.status === 2 ? 'EPG source already exists.' : ('Error: ' + ((d && d.data) || 'Could not import EPG source.'))); epgBtn.disabled = false; }
+                    fetch('./api?action=provider_import_epg&provider_id=' + p.id, {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
                         })
-                        .catch(function() { alert(errText); epgBtn.disabled = false; });
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(d) {
+                            if (d && d.status === 1) {
+                                epgBtn.innerHTML = '<i class="icon-base ti tabler-check me-1"></i>EPG Imported';
+                                epgBtn.classList.replace('btn-label-info', 'btn-label-success');
+                            } else {
+                                alert(d && d.status === 2 ? 'EPG source already exists.' : ('Error: ' + ((d && d.data) || 'Could not import EPG source.')));
+                                epgBtn.disabled = false;
+                            }
+                        })
+                        .catch(function() {
+                            alert(errText);
+                            epgBtn.disabled = false;
+                        });
                 });
             }
         <?php endif; ?>
