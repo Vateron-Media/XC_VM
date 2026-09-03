@@ -32,11 +32,20 @@ if (!function_exists('xc_admin_use_vuexy')) {
         if (defined('XC_ADMIN_LEGACY_UI')) {
             return false;
         }
-        if (isset($_GET['modal']) || !empty($GLOBALS['_SETUP'])) {
+        $page = \XcVm\Core\Util\AdminHelpers::getPageName();
+        // Modal (iframe) edit forms: only pages rebuilt for the Vuexy modal shell
+        // opt in; the setup wizard always stays legacy.
+        if (isset($_GET['modal'])) {
+            if (!empty($GLOBALS['_SETUP'])) {
+                return false;
+            }
+            static $migratedModals = ['line'];
+            return in_array($page, $migratedModals, true);
+        }
+        if (!empty($GLOBALS['_SETUP'])) {
             return false;
         }
-        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog', 'queue', 'user_logs', 'line_activity', 'live_connections', 'ondemand', 'theft_detection', 'stream_rank', 'ips', 'isps', 'useragents', 'hmacs', 'rtmp_ips', 'asns', 'groups', 'packages', 'codes', 'epgs', 'providers', 'users', 'series', 'mags', 'enigmas', 'movies', 'radios', 'backups', 'lines', 'streams', 'epg', 'code', 'ip', 'isp', 'useragent', 'rtmp_ip', 'hmac', 'provider', 'package', 'group'];
-        $page = \XcVm\Core\Util\AdminHelpers::getPageName();
+        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog', 'queue', 'user_logs', 'line_activity', 'live_connections', 'ondemand', 'theft_detection', 'stream_rank', 'ips', 'isps', 'useragents', 'hmacs', 'rtmp_ips', 'asns', 'groups', 'packages', 'codes', 'epgs', 'providers', 'users', 'series', 'mags', 'enigmas', 'movies', 'radios', 'backups', 'lines', 'streams', 'epg', 'code', 'ip', 'isp', 'useragent', 'rtmp_ip', 'hmac', 'provider', 'package', 'group', 'line'];
         return in_array($page, $migrated, true);
     }
 }

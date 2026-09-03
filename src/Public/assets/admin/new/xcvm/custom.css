@@ -73,3 +73,10 @@ ul.dtr-details > li .dtr-title {
 .card-datatable .dropdown-menu {
   z-index: 1085;
 }
+
+/* Vuexy iframe modal shell (edit forms opened in a modal). No sidebar/navbar —
+   just the form on the theme background. */
+.xm-modal-body {
+  background: var(--bs-body-bg);
+  min-height: 100vh;
+}

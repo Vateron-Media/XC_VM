@@ -116,6 +116,12 @@ if (!function_exists('_xc_nav_label')) {
     <script src="assets/new/js/config.js"></script>
 </head>
 
+<?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
+
+<body class="xm-modal-body">
+    <div class="container-fluid p-4">
+<?php else: ?>
+
 <body>
     <div class="layout-wrapper layout-content-navbar">
         <div class="layout-container">
@@ -270,3 +276,4 @@ if (!function_exists('_xc_nav_label')) {
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y">
                         <?php require __DIR__ . '/topbar.vuexy.php'; ?>
+<?php endif; /* modal vs full-layout body */ ?>
