@@ -141,6 +141,36 @@ $rStatusFilters = [
     </div>
 </div>
 
+<!-- Restart / failures log modal -->
+<div class="modal fade" id="failuresModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('stream_error_logs') ?: 'Stream Logs'; ?></h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-label-danger" id="fails-clear"><i class="icon-base ti tabler-trash me-1"></i><?= $language::get('clear_stream_logs'); ?></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table id="failures-table" class="table" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th><?= $language::get('server_name'); ?></th>
+                                <th><?= $language::get('source'); ?></th>
+                                <th><?= $language::get('action'); ?></th>
+                                <th><?= $language::get('date'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
@@ -173,14 +203,15 @@ renderUnifiedLayoutFooter('admin');
             return pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's';
         };
         // Fails indicator colour thresholds (mirror the legacy restart-count buckets).
-        var failsDot = function(f) {
+        var failsDot = function(f, id, server) {
             if (!f || !f[0]) { return ''; }
             var count = f[0], last = f[1] || 0, color;
             if (count <= 2) { color = 'success'; }
             else if (count <= 4 || last > 21600) { color = 'info'; }
             else if (count <= 144 || last > 600) { color = 'warning'; }
             else { color = 'danger'; }
-            return '<i class="icon-base ti tabler-alert-circle text-' + color + ' me-1" title="' + count + ' restarts"></i>';
+            // Clickable — opens the restart/failures log modal for this stream.
+            return '<a href="javascript:void(0);" class="js-fails me-1" data-id="' + esc(id) + '" data-server="' + esc(server) + '" title="' + count + ' restarts"><i class="icon-base ti tabler-alert-circle text-' + color + '"></i></a>';
         };
         var running = function(row) { return row.status === 1 || row.status === 2 || row.status === 3 || row.status === 5 || row.on_demand; };
 
@@ -254,7 +285,7 @@ renderUnifiedLayoutFooter('admin');
                     data: 'status',
                     className: 'text-center text-nowrap',
                     render: function(d, t, row) {
-                        var dot = failsDot(row.fails);
+                        var dot = failsDot(row.fails, row.id, row.server_col_id);
                         if (d === 1) { return dot + '<span class="badge bg-label-success">' + esc(fmtUptime(row.uptime)) + '</span>'; }
                         if (d === 6) { return '<span class="badge bg-label-primary">' + (row.encode_pct != null ? esc(row.encode_pct) + '% DONE' : 'Converting') + '</span>'; }
                         var s = STREAM[String(d)] || ['secondary', ''];
@@ -393,6 +424,39 @@ renderUnifiedLayoutFooter('admin');
         });
         jQuery('#streams-table tbody').on('click', '.js-finger', function() { openFrame(lang.fingerprint, 'fingerprint?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&type=stream&modal=1'); });
         frameModal.addEventListener('hidden.bs.modal', function() { document.getElementById('frame-src').src = 'about:blank'; table.ajax.reload(null, false); });
+
+        // Restart / failures log modal — opened by the fails indicator in the status
+        // column. Server-generated HTML rows (server link + action badge) come from
+        // TableController::handleFailuresModal (d.id = 'failures_modal').
+        var failsStream = null, failsServer = null;
+        var failsTable = jQuery('#failures-table').DataTable({
+            processing: true,
+            serverSide: true,
+            paging: false,
+            searching: false,
+            info: false,
+            ordering: false,
+            ajax: { url: './table', data: function(d) { d.id = 'failures_modal'; d.stream_id = failsStream; d.server_id = failsServer; } },
+            columns: [{ data: 0 }, { data: 1 }, { data: 2 }, { data: 3 }],
+            language: { emptyTable: '—' }
+        });
+        var failuresModal = document.getElementById('failuresModal');
+        jQuery('#streams-table tbody').on('click', '.js-fails', function() {
+            failsStream = this.getAttribute('data-id');
+            failsServer = this.getAttribute('data-server');
+            failsTable.ajax.reload();
+            bootstrap.Modal.getOrCreateInstance(failuresModal).show();
+        });
+        document.getElementById('fails-clear').addEventListener('click', function() {
+            if (!failsStream) { return; }
+            confirmSwal(lang.del + '?').then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=clear_failures&id=' + encodeURIComponent(failsStream), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } failsTable.ajax.reload(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            });
+        });
     })();
 </script>
 </body>
