@@ -66,13 +66,15 @@ $rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegis
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" for="pair_id"><?= $language::get('paired_user'); ?></label>
-                            <div class="input-group">
-                                <select id="pair_id" name="pair_id" class="form-select">
-                                    <?php if ($rPairId > 0): ?>
-                                        <option value="<?= $rPairId; ?>" selected><?= htmlspecialchars((string) ($rDevice['paired']['username'] ?? ''), ENT_QUOTES); ?></option>
-                                    <?php endif; ?>
-                                </select>
-                                <button type="button" class="btn btn-label-warning" id="unpair-user"><?= $language::get('unpair'); ?></button>
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="flex-grow-1">
+                                    <select id="pair_id" name="pair_id" class="form-select">
+                                        <?php if ($rPairId > 0): ?>
+                                            <option value="<?= $rPairId; ?>" selected><?= htmlspecialchars((string) ($rDevice['paired']['username'] ?? ''), ENT_QUOTES); ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-label-warning flex-shrink-0" id="unpair-user"><?= $language::get('unpair'); ?></button>
                             </div>
                         </div>
                     </div>
@@ -80,15 +82,17 @@ $rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegis
                     <div id="linked_info">
                         <div class="mb-6">
                             <label class="form-label" for="member_id"><?= $language::get('owner'); ?></label>
-                            <div class="input-group">
-                                <select name="member_id" id="member_id" class="form-select">
-                                    <?php if ($rOwnerRow): ?>
-                                        <option value="<?= (int) $rOwnerRow['id']; ?>" selected><?= htmlspecialchars((string) $rOwnerRow['username'], ENT_QUOTES); ?></option>
-                                    <?php else: ?>
-                                        <option value="<?= (int) ($rUserInfo['id'] ?? 0); ?>"><?= htmlspecialchars((string) ($rUserInfo['username'] ?? ''), ENT_QUOTES); ?></option>
-                                    <?php endif; ?>
-                                </select>
-                                <button type="button" class="btn btn-label-warning" id="clear-owner"><?= $language::get('clear'); ?></button>
+                            <div class="d-flex align-items-start gap-2">
+                                <div class="flex-grow-1">
+                                    <select name="member_id" id="member_id" class="form-select">
+                                        <?php if ($rOwnerRow): ?>
+                                            <option value="<?= (int) $rOwnerRow['id']; ?>" selected><?= htmlspecialchars((string) $rOwnerRow['username'], ENT_QUOTES); ?></option>
+                                        <?php else: ?>
+                                            <option value="<?= (int) ($rUserInfo['id'] ?? 0); ?>"><?= htmlspecialchars((string) ($rUserInfo['username'] ?? ''), ENT_QUOTES); ?></option>
+                                        <?php endif; ?>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-label-warning flex-shrink-0" id="clear-owner"><?= $language::get('clear'); ?></button>
                             </div>
                         </div>
 
