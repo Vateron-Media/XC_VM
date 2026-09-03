@@ -59,9 +59,9 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                     <label class="col-md-4 col-form-label" for="timezone"><?= $language::get('timezone') ?></label>
                                                     <div class="col-md-8">
                                                         <select name="timezone" id="timezone" class="form-control" data-toggle="select2">
-                                                            <option <?php if (empty($rUserInfo['timezone'])) {
-                                                                        echo 'selected ';
-                                                                    } ?><?= $language::get('valueserver_default') ?></option>
+                                                            <option value="" <?php if (empty($rUserInfo['timezone'])) {
+                                                                        echo 'selected';
+                                                                    } ?>><?= $language::get('server_default') ?></option>
                                                             <?php foreach (AdminHelpers::TimeZoneList() as $rValue) { ?>
                                                                 <option <?php if ($rUserInfo['timezone'] == $rValue['zone']) {
                                                                             echo 'selected ';

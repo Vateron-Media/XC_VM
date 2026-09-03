@@ -166,8 +166,8 @@ if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQ
                                                     <label class="col-md-4 col-form-label" for="transcode_profile_id">Transcoding Profile <i title="<?= $language::get('transcode_videos_using_a_profile_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
                                                     <div class="col-md-8">
                                                         <select name="transcode_profile_id" id="transcode_profile_id" class="form-control select2" data-toggle="select2">
-                                                            <option <?php if (!isset($rChannel) || (isset($rChannel) && intval($rChannel['transcode_profile_id']) == 0)) echo 'selected'; ?><?= $language::get('value0quick_transcode_copy_codecs') ?></option>
-                                                            <option <?php if (isset($rChannel) && intval($rChannel['transcode_profile_id']) == -1) echo 'selected'; ?><?= $language::get('value_1dont_transcode_symlink_files') ?></option>
+                                                            <option value="0" <?php if (!isset($rChannel) || (isset($rChannel) && intval($rChannel['transcode_profile_id']) == 0)) echo 'selected'; ?>><?= $language::get('quick_transcode_copy_codecs') ?></option>
+                                                            <option value="-1" <?php if (isset($rChannel) && intval($rChannel['transcode_profile_id']) == -1) echo 'selected'; ?>><?= $language::get('dont_transcode_symlink_files') ?></option>
                                                             <?php foreach ($rTranscodeProfiles as $rProfile): ?>
                                                                 <option <?php if (isset($rChannel) && intval($rChannel['transcode_profile_id']) == intval($rProfile['profile_id'])) echo 'selected'; ?> value="<?php echo $rProfile['profile_id']; ?>"><?php echo $rProfile['profile_name']; ?></option>
                                                             <?php endforeach; ?>
