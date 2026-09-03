@@ -1,430 +1,464 @@
 <?php
-use XcVm\Core\Config\SettingsManager;
+
+/**
+ * Enigma2 device add / edit (Bootstrap 5). Reached full-page from the enigmas
+ * table ("Add" → enigma) inside the normal admin shell, and as an iframe modal
+ * ("Edit" → enigma?id=X&modal=1) inside the modal shell. Vertical tabbed layout:
+ * Details (MAC, paired user, owner, expiry, switches, notes), Device Info
+ * (read-back STB fields — edit only), Advanced (forced connection/country, ISP,
+ * allowed-IP whitelist) and Bouquets (checkbox table). Pairing a user hides and
+ * disables the owner/expiry/advanced/bouquet inputs (the paired line's settings
+ * are used instead), mirroring the legacy evaluatePair(). Posts to
+ * post.php?action=enigma via fetch; in the modal it posts xcModalSaved to the
+ * parent (which closes the modal and reloads the table), full-page it returns to
+ * the list.
+ */
+
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\User\UserRepository;
+
+$rIsEdit      = isset($rDevice['device_id']);
+$rUser        = $rDevice['user'] ?? [];
+$rPairId      = (int) ($rUser['pair_id'] ?? 0);
+$rSelBouquets = is_array($rUser['bouquet'] ?? null)
+    ? $rUser['bouquet']
+    : (json_decode((string) ($rUser['bouquet'] ?? '[]'), true) ?: []);
+$rDeviceIPs   = (isset($rUser['allowed_ips']) && $rUser['allowed_ips'] !== '')
+    ? (json_decode((string) $rUser['allowed_ips'], true) ?: [])
+    : [];
+$rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegisteredUserById((int) $rUser['member_id']))) ? $rTmp : null;
 ?>
+
+<?php if (!isset($_GET['modal'])): ?>
+    <div class="d-flex align-items-center mb-4">
+        <a href="enigmas" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+        <h4 class="mb-0"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?> Enigma Device</h4>
+    </div>
+<?php endif; ?>
+
+<form id="enigma-form" autocomplete="off">
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rDevice['device_id']; ?>">
+    <?php endif; ?>
+    <input type="hidden" name="bouquets_selected" id="bouquets_selected" value="">
+
+    <div class="card mb-6">
+        <div class="card-header px-0 pt-2">
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                    <?php if ($rIsEdit): ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-device" role="tab"><i class="icon-base ti tabler-device-mobile me-1"></i><?= $language::get('device_info'); ?></button></li>
+                    <?php endif; ?>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced" role="tab"><i class="icon-base ti tabler-adjustments me-1"></i><?= $language::get('advanced'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-bouquets" role="tab"><i class="icon-base ti tabler-list me-1"></i><?= $language::get('bouquets'); ?></button></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="tab-content p-0">
+                <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                    <div class="row mb-6">
+                        <div class="col-md-6">
+                            <label class="form-label" for="mac"><?= $language::get('mac_address'); ?></label>
+                            <input type="text" class="form-control" id="mac" name="mac" value="<?= $rIsEdit ? htmlspecialchars((string) $rDevice['mac'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="pair_id"><?= $language::get('paired_user'); ?></label>
+                            <div class="input-group">
+                                <select id="pair_id" name="pair_id" class="form-select">
+                                    <?php if ($rPairId > 0): ?>
+                                        <option value="<?= $rPairId; ?>" selected><?= htmlspecialchars((string) ($rDevice['paired']['username'] ?? ''), ENT_QUOTES); ?></option>
+                                    <?php endif; ?>
+                                </select>
+                                <button type="button" class="btn btn-label-warning" id="unpair-user"><?= $language::get('unpair'); ?></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="linked_info">
+                        <div class="mb-6">
+                            <label class="form-label" for="member_id"><?= $language::get('owner'); ?></label>
+                            <div class="input-group">
+                                <select name="member_id" id="member_id" class="form-select">
+                                    <?php if ($rOwnerRow): ?>
+                                        <option value="<?= (int) $rOwnerRow['id']; ?>" selected><?= htmlspecialchars((string) $rOwnerRow['username'], ENT_QUOTES); ?></option>
+                                    <?php else: ?>
+                                        <option value="<?= (int) ($rUserInfo['id'] ?? 0); ?>"><?= htmlspecialchars((string) ($rUserInfo['username'] ?? ''), ENT_QUOTES); ?></option>
+                                    <?php endif; ?>
+                                </select>
+                                <button type="button" class="btn btn-label-warning" id="clear-owner"><?= $language::get('clear'); ?></button>
+                            </div>
+                        </div>
+
+                        <div class="row mb-6">
+                            <div class="col-md-8">
+                                <label class="form-label" for="exp_date"><?= $language::get('expiry'); ?></label>
+                                <input type="text" class="form-control" id="exp_date" name="exp_date" value="<?= $rIsEdit ? (empty($rUser['exp_date']) ? '' : date('Y-m-d H:i:s', (int) $rUser['exp_date'])) : date('Y-m-d H:i:s', time() + 2592000); ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label d-block">&nbsp;</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input class="form-check-input" type="checkbox" id="no_expire" name="no_expire" value="1" <?= ($rIsEdit && is_null($rUser['exp_date'] ?? null)) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="no_expire"><?= $language::get('never_expire'); ?></label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-6">
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="is_trial" name="is_trial" value="1" <?= ($rIsEdit && ($rUser['is_trial'] ?? 0) == 1) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="is_trial"><?= $language::get('trial_device'); ?></label>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="is_isplock" name="is_isplock" value="1" <?= ($rIsEdit && ($rUser['is_isplock'] ?? 0) == 1) ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="is_isplock"><?= $language::get('lock_to_isp'); ?></label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-check form-switch mb-6">
+                        <input class="form-check-input" type="checkbox" id="lock_device" name="lock_device" value="1" <?= (!$rIsEdit || ($rDevice['lock_device'] ?? 0) == 1) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="lock_device"><?= $language::get('device_lock'); ?></label>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label" for="admin_notes"><?= $language::get('admin_notes'); ?></label>
+                            <textarea id="admin_notes" name="admin_notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) ($rUser['admin_notes'] ?? ''), ENT_QUOTES) : ''; ?></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="reseller_notes"><?= $language::get('reseller_notes'); ?></label>
+                            <textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) ($rUser['reseller_notes'] ?? ''), ENT_QUOTES) : ''; ?></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <?php if ($rIsEdit): ?>
+                    <div class="tab-pane fade" id="tab-device" role="tabpanel">
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="username"><?= $language::get('line_username'); ?></label>
+                                <input type="text" class="form-control sticky" id="username" name="username" value="<?= htmlspecialchars((string) ($rUser['username'] ?? ''), ENT_QUOTES); ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="password"><?= $language::get('line_password'); ?></label>
+                                <input type="text" class="form-control sticky" id="password" name="password" value="<?= htmlspecialchars((string) ($rUser['password'] ?? ''), ENT_QUOTES); ?>">
+                            </div>
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="modem_mac"><?= $language::get('modem_mac'); ?></label>
+                                <input type="text" class="form-control" id="modem_mac" name="modem_mac" value="<?= htmlspecialchars((string) ($rDevice['modem_mac'] ?? ''), ENT_QUOTES); ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="local_ip"><?= $language::get('local_ip'); ?></label>
+                                <input type="text" class="form-control" id="local_ip" name="local_ip" value="<?= htmlspecialchars((string) ($rDevice['local_ip'] ?? ''), ENT_QUOTES); ?>">
+                            </div>
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="enigma_version"><?= $language::get('enigma_version'); ?></label>
+                                <input type="text" class="form-control" id="enigma_version" name="enigma_version" value="<?= htmlspecialchars((string) ($rDevice['enigma_version'] ?? ''), ENT_QUOTES); ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="cpu"><?= $language::get('cpu'); ?></label>
+                                <input type="text" class="form-control" id="cpu" name="cpu" value="<?= htmlspecialchars((string) ($rDevice['cpu'] ?? ''), ENT_QUOTES); ?>">
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="lversion"><?= $language::get('linux_version'); ?></label>
+                            <input type="text" class="form-control" id="lversion" name="lversion" value="<?= htmlspecialchars((string) ($rDevice['lversion'] ?? ''), ENT_QUOTES); ?>">
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="token"><?= $language::get('token'); ?></label>
+                            <input type="text" class="form-control" id="token" name="token" value="<?= htmlspecialchars((string) ($rDevice['token'] ?? ''), ENT_QUOTES); ?>">
+                        </div>
+                        <div class="d-flex justify-content-end">
+                            <button type="button" class="btn btn-label-warning" id="clear-device"><?= $language::get('clear_device_info'); ?></button>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
+                    <div class="alert alert-warning d-none" role="alert" id="advanced_warning"><?= $language::get('this_device_is_linked_to_a_user_the_options_for_that_user_will_be_used') ?: 'This device is linked to a user, the options for that user will be used.'; ?></div>
+                    <div id="advanced_info">
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="force_server_id">Forced Connection <i title="<?= $language::get('force_this_user_to_connect_tooltip'); ?>" class="icon-base ti tabler-help-circle text-secondary"></i></label>
+                                <select name="force_server_id" id="force_server_id" class="form-select">
+                                    <option value="0" <?= (!$rIsEdit || (int) ($rUser['force_server_id'] ?? 0) === 0) ? 'selected' : ''; ?>><?= $language::get('disabled'); ?></option>
+                                    <?php foreach ($rServers as $rServer): ?>
+                                        <option value="<?= (int) $rServer['id']; ?>" <?= ($rIsEdit && (int) ($rUser['force_server_id'] ?? 0) === (int) $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="forced_country">Forced Country <i title="<?= $language::get('force_user_to_connect_to_tooltip'); ?>" class="icon-base ti tabler-help-circle text-secondary"></i></label>
+                                <select name="forced_country" id="forced_country" class="form-select">
+                                    <?php foreach (GeoReference::countries() as $rCountry): ?>
+                                        <option value="<?= htmlspecialchars((string) $rCountry['id'], ENT_QUOTES); ?>" <?= ($rIsEdit && ($rUser['forced_country'] ?? null) == $rCountry['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rCountry['name'], ENT_QUOTES); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="form-label" for="isp_clear"><?= $language::get('current_isp'); ?></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" readonly id="isp_clear" name="isp_clear" value="<?= $rIsEdit ? htmlspecialchars((string) ($rUser['isp_desc'] ?? ''), ENT_QUOTES) : ''; ?>">
+                                <button type="button" class="btn btn-label-danger" id="clear-isp"><i class="icon-base ti tabler-x"></i></button>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="form-label" for="ip_field"><?= $language::get('allowed_ip_addresses'); ?></label>
+                            <div class="input-group mb-3">
+                                <input type="text" id="ip_field" class="form-control" placeholder="0.0.0.0">
+                                <button type="button" id="add_ip" class="btn btn-primary"><i class="icon-base ti tabler-plus"></i></button>
+                                <button type="button" id="remove_ip" class="btn btn-label-danger"><i class="icon-base ti tabler-trash"></i></button>
+                            </div>
+                            <select id="allowed_ips" name="allowed_ips[]" size="6" class="form-select" multiple>
+                                <?php foreach ($rDeviceIPs as $rIP): ?>
+                                    <option value="<?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rIP, ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-bouquets" role="tabpanel">
+                    <div class="alert alert-warning d-none" role="alert" id="bouquet_warning"><?= $language::get('this_device_is_linked_to_a_user_the_bouquets_for_that_user_will_be_used') ?: 'This device is linked to a user, the bouquets for that user will be used.'; ?></div>
+                    <div id="bouquets_info">
+                        <div class="d-flex justify-content-end mb-4">
+                            <button type="button" class="btn btn-label-secondary btn-sm" id="bqt-toggle"><?= $language::get('toggle_all'); ?></button>
+                        </div>
+                        <div class="card-datatable table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th style="width:1%"></th>
+                                        <th class="text-center"><?= $language::get('id'); ?></th>
+                                        <th><?= $language::get('bouquet_name'); ?></th>
+                                        <th class="text-center"><?= $language::get('streams'); ?></th>
+                                        <th class="text-center"><?= $language::get('movies'); ?></th>
+                                        <th class="text-center"><?= $language::get('series'); ?></th>
+                                        <th class="text-center"><?= $language::get('stations'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input enigma-bouquet-cb" type="checkbox" value="<?= (int) $rBouquet['id']; ?>" id="enigma-bouquet-<?= (int) $rBouquet['id']; ?>" <?= in_array($rBouquet['id'], $rSelBouquets) ? 'checked' : ''; ?>>
+                                                </div>
+                                            </td>
+                                            <td class="text-center"><label class="form-check-label" for="enigma-bouquet-<?= (int) $rBouquet['id']; ?>"><?= (int) $rBouquet['id']; ?></label></td>
+                                            <td><label class="form-check-label" for="enigma-bouquet-<?= (int) $rBouquet['id']; ?>"><?= htmlspecialchars((string) $rBouquet['bouquet_name'], ENT_QUOTES); ?></label></td>
+                                            <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_channels'], true) ?: []); ?></td>
+                                            <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_movies'], true) ?: []); ?></td>
+                                            <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_series'], true) ?: []); ?></td>
+                                            <td class="text-center"><?= count(json_decode((string) $rBouquet['bouquet_radios'], true) ?: []); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-end mb-6">
+        <button type="submit" class="btn btn-primary" id="enigma-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+    </div>
+</form>
+
 <?php
-?>
-<? 
-echo '<div class="wrapper boxed-layout"';
-
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-} else {
-	echo ' style="display: none;"';
-}
-
-echo '>' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '<h4 class="page-title">';
-
-if (isset($rDevice)) {
-	echo 'Edit';
-} else {
-	echo 'Add';
-}
-
-echo ' Enigma Device</h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-xl-12">' . "\r\n\t\t\t\t" . '<div class="card">' . "\r\n\t\t\t\t\t" . '<div class="card-body">' . "\r\n\t\t\t\t\t\t" . '<form action="#" method="POST" data-parsley-validate="">' . "\r\n\t\t\t\t\t\t\t";
-
-if (!isset($rDevice['device_id']) || isset($_STATUS)) {
-} else {
-	echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="edit" value="';
-	echo intval($rDevice['device_id']);
-	echo '" />' . "\r\n\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="bouquets_selected" id="bouquets_selected" value="" />' . "\r\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\r\n\t\t\t\t\t\t\t\t" . '<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-card-details-outline mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('details') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t";
-
-if (!isset($rDevice['device_id'])) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#device-info" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi mdi-cellphone-key mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('device_info') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-folder-alert-outline mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('advanced') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#bouquets" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-flower-tulip mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('bouquets') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="tab-content b-0 mb-0 pt-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="user-details">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="mac">' . $language::get('mac_address') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="mac" name="mac" value="';
-
-if (!isset($rDevice)) {
-} else {
-	echo htmlspecialchars($rDevice['mac']);
-}
-
-echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="pair_id">' . $language::get('paired_user') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-6">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select id="pair_id" name="pair_id" class="form-control" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-if (!(isset($rDevice) && 0 < $rDevice['user']['pair_id'])) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
-	echo $rDevice['user']['pair_id'];
-	echo '" selected="selected">';
-	echo $rDevice['paired']['username'];
-	echo '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" onClick="unpairUser();" class="btn btn-warning" style="width: 100%">' . $language::get('unpair') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                <div id="linked_info">' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="member_id">' . $language::get('owner') . '</label>' . "\r\n" . '                                                        <div class="col-md-6">' . "\r\n" . '                                                            <select name="member_id" id="member_id" class="form-control select2" data-toggle="select2">' . "\r\n" . '                                                                ';
-
-if (isset($rDevice['user']['member_id']) && ($rOwner = UserRepository::getRegisteredUserById(intval($rDevice['user']['member_id'])))) {
-	echo '                                                                <option value="';
-	echo intval($rOwner['id']);
-	echo '" selected="selected">';
-	echo $rOwner['username'];
-	echo '</option>' . "\r\n" . '                                                                ';
-} else {
-	echo '                                                                <option value="';
-	echo $rUserInfo['id'];
-	echo '">';
-	echo $rUserInfo['username'];
-	echo '</option>' . "\r\n" . '                                                                ';
-}
-
-echo '                                                            </select>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                        <div class="col-md-2">' . "\r\n" . '                                                            <a href="javascript: void(0);" onClick="clearOwner();" class="btn btn-warning" style="width: 100%">' . $language::get('clear') . '</a>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="exp_date">Expiry</i></label>' . "\r\n" . '                                                        <div class="col-md-3">' . "\r\n" . '                                                            <input type="text" class="form-control text-center date" id="exp_date" name="exp_date" value="';
-
-if (isset($rDevice)) {
-	if (!empty($rDevice['user']['exp_date'])) {
-		echo date('Y-m-d H:i:s', $rDevice['user']['exp_date']);
-	} else {
-		echo '" disabled="disabled';
-	}
-} else {
-	echo date('Y-m-d H:i:s', time() + 2592000);
-}
-
-echo '" data-toggle="date-picker" data-single-date-picker="true">' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                        <label class="col-md-3 col-form-label" for="exp_date">' . $language::get('never_expire') . '</label>' . "\r\n" . '                                                        <div class="col-md-2">' . "\r\n" . '                                                            <input name="no_expire" id="no_expire" type="checkbox" ';
-
-if (!isset($rDevice)) {
-} else {
-	if (!is_null($rDevice['user']['exp_date'])) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="is_trial">' . $language::get('trial_device') . '</label>' . "\r\n" . '                                                        <div class="col-md-3">' . "\r\n" . '                                                            <input name="is_trial" id="is_trial" type="checkbox" ';
-
-if (!isset($rDevice)) {
-} else {
-	if ($rDevice['user']['is_trial'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                        <label class="col-md-3 col-form-label" for="is_isplock">' . $language::get('lock_to_isp') . '</label>' . "\r\n" . '                                                        <div class="col-md-2">' . "\r\n" . '                                                            <input name="is_isplock" id="is_isplock" type="checkbox" ';
-
-if (!isset($rDevice)) {
-} else {
-	if ($rDevice['user']['is_isplock'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="lock_device">' . $language::get('device_lock') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="lock_device" id="lock_device" type="checkbox" ';
-
-if (isset($rDevice)) {
-	if ($rDevice['lock_device'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="admin_notes">' . $language::get('admin_notes') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<textarea id="admin_notes" name="admin_notes" class="form-control" rows="3" placeholder="">';
-
-if (!isset($rDevice)) {
-} else {
-	echo htmlspecialchars($rDevice['user']['admin_notes']);
-}
-
-echo '</textarea>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="reseller_notes">' . $language::get('reseller_notes') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3" placeholder="">';
-
-if (!isset($rDevice)) {
-} else {
-	echo htmlspecialchars($rDevice['user']['reseller_notes']);
-}
-
-echo '</textarea>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t";
-
-if (!isset($rDevice['device_id'])) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="device-info">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="username">' . $language::get('line_username') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control sticky" id="username" name="username" value="';
-	echo $rDevice['user']['username'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="username">' . $language::get('line_password') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control sticky" id="password" name="password" value="';
-	echo $rDevice['user']['password'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="modem_mac">' . $language::get('modem_mac') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="modem_mac" name="modem_mac" value="';
-	echo $rDevice['modem_mac'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-2 col-form-label" for="local_ip">' . $language::get('local_ip') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="local_ip" name="local_ip" value="';
-	echo $rDevice['local_ip'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="enigma_version">' . $language::get('enigma_version') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="enigma_version" name="enigma_version" value="';
-	echo $rDevice['enigma_version'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-2 col-form-label" for="cpu">' . $language::get('cpu') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="cpu" name="cpu" value="';
-	echo $rDevice['cpu'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="lversion">' . $language::get('linux_version') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="lversion" name="lversion" value="';
-	echo $rDevice['lversion'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="token">' . $language::get('token') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="token" name="token" value="';
-	echo $rDevice['token'];
-	echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" onClick="clearDevice();" class="btn btn-warning">' . $language::get('clear_device_info') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="advanced-options">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n" . '                                                <div class="alert alert-warning" role="alert" id="advanced_warning" style="display: none;">' . "\r\n" . '                                                    This device is linked to a user, the options for that user will be used.' . "\r\n" . '                                                </div>' . "\r\n" . '                                                <div id="advanced_info">' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="force_server_id">Forced Connection <i title="' . $language::get('force_this_user_to_connect_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>' . "\r\n" . '                                                        <div class="col-md-8">' . "\r\n" . '                                                            <select name="force_server_id" id="force_server_id" class="form-control select2" data-toggle="select2">' . "\r\n" . '                                                                <option ';
-
-if (!isset($rDevice)) {
-} else {
-	if (intval($rDevice['user']['force_server_id']) != 0) {
-	} else {
-		echo 'selected ';
-	}
-}
-
-echo 'value="0">' . $language::get('disabled') . '</option>' . "\r\n" . '                                                                ';
-
-foreach ($rServers as $rServer) {
-	echo '                                                                <option ';
-
-	if (!isset($rDevice)) {
-	} else {
-		if (intval($rDevice['user']['force_server_id']) != intval($rServer['id'])) {
-		} else {
-			echo 'selected ';
-		}
-	}
-
-	echo 'value="';
-	echo $rServer['id'];
-	echo '">';
-	echo htmlspecialchars($rServer['server_name']);
-	echo '</option>' . "\r\n" . '                                                                ';
-}
-echo '                                                            </select>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="forced_country">Forced Country <i title="' . $language::get('force_user_to_connect_to_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>' . "\r\n" . '                                                        <div class="col-md-8">' . "\r\n" . '                                                            <select name="forced_country" id="forced_country" class="form-control select2" data-toggle="select2">' . "\r\n" . '                                                                ';
-
-foreach (GeoReference::countries() as $rCountry) {
-	echo '                                                                <option ';
-
-	if (!isset($rDevice)) {
-	} else {
-		if ($rDevice['user']['forced_country'] != $rCountry['id']) {
-		} else {
-			echo 'selected ';
-		}
-	}
-
-	echo 'value="';
-	echo $rCountry['id'];
-	echo '">';
-	echo $rCountry['name'];
-	echo '</option>' . "\r\n" . '                                                                ';
-}
-echo '                                                            </select>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="isp_clear">' . $language::get('current_isp') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" readonly id="isp_clear" name="isp_clear" value="';
-
-if (!isset($rDevice['user'])) {
-} else {
-	echo htmlspecialchars($rDevice['user']['isp_desc']);
-}
-
-echo '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript:void(0)" onclick="clearISP()" class="btn btn-danger waves-effect waves-light"><i class="mdi mdi-close"></i></a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="ip_field">' . $language::get('allowed_ip_addresses') . '</label>' . "\r\n" . '                                                        <div class="col-md-8 input-group">' . "\r\n" . '                                                            <input type="text" id="ip_field" class="form-control" value="">' . "\r\n" . '                                                            <div class="input-group-append">' . "\r\n" . '                                                                <a href="javascript:void(0)" id="add_ip" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-plus"></i></a>' . "\r\n" . '                                                                <a href="javascript:void(0)" id="remove_ip" class="btn btn-danger waves-effect waves-light"><i class="mdi mdi-close"></i></a>' . "\r\n" . '                                                            </div>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                    <div class="form-group row mb-4">' . "\r\n" . '                                                        <label class="col-md-4 col-form-label" for="allowed_ips">&nbsp;</label>' . "\r\n" . '                                                        <div class="col-md-8">' . "\r\n" . '                                                            <select id="allowed_ips" name="allowed_ips[]" size=6 class="form-control" multiple="multiple">' . "\r\n" . '                                                            ';
-
-if (!isset($rDevice)) {
-} else {
-	foreach (json_decode($rDevice['user']['allowed_ips'], true) as $rIP) {
-		echo '                                                            <option value="';
-		echo $rIP;
-		echo '">';
-		echo $rIP;
-		echo '</option>' . "\r\n" . '                                                            ';
-	}
-}
-
-echo '                                                            </select>' . "\r\n" . '                                                        </div>' . "\r\n" . '                                                    </div>' . "\r\n" . '                                                </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="bouquets">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n" . '                                                <div class="alert alert-warning" role="alert" id="bouquet_warning" style="display: none;">' . "\r\n" . '                                                    This device is linked to a user, the bouquets for that user will be used.' . "\r\n" . '                                                </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4" id="bouquets_info">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable-bouquets" class="table table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead class="bg-light">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('id') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('bouquet_name') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $language::get('streams');
-echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-echo $language::get('movies');
-echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-echo $language::get('series');
-echo '</th>' . "\r\n" . '                                                                <th class="text-center">';
-echo $language::get('stations');
-echo '</th' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (BouquetService::getAllSimple() as $rBouquet) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
-
-	if (!(isset($rDevice) && in_array($rBouquet['id'], json_decode($rDevice['user']['bouquet'], true)))) {
-	} else {
-		echo " class='selected selectedfilter ui-selected'";
-	}
-
-	echo '>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-	echo $rBouquet['id'];
-	echo '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-	echo $rBouquet['bouquet_name'];
-	echo '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-	echo count(json_decode($rBouquet['bouquet_channels'], true));
-	echo '</td>' . "\r\n" . '                                                                <td class="text-center">';
-	echo count(json_decode($rBouquet['bouquet_movies'], true));
-	echo '</td>' . "\r\n" . '                                                                <td class="text-center">';
-	echo count(json_decode($rBouquet['bouquet_series'], true));
-	echo '</td>' . "\r\n" . '                                                                <td class="text-center">';
-	echo count(json_decode($rBouquet['bouquet_radios'], true));
-	echo '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" onClick="toggleBouquets()" class="btn btn-info" id="toggle_bouquets">' . $language::get('toggle_all') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_device" type="submit" class="btn btn-primary" value="';
-
-if (isset($rDevice)) {
-	echo 'Edit';
-} else {
-	echo 'Add';
-}
-
-echo '" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t" . '</form>' . "\r\n\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('admin'); ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php 
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var $ = window.jQuery;
 
-if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+        // select2 owner (registered users) + paired-user (all lines) remote search,
+        // same ./api actions the legacy form used.
+        if ($ && $.fn.select2) {
+            $('#member_id').select2({
+                width: '100%',
+                dropdownParent: $('#member_id').closest('.tab-pane'),
+                ajax: {
+                    url: './api', dataType: 'json', cache: true,
+                    data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };
+                    }
+                }
+            });
+            $('#pair_id').select2({
+                width: '100%',
+                allowClear: true,
+                placeholder: <?= json_encode($language::get('search_user')); ?>,
+                dropdownParent: $('#pair_id').closest('.tab-pane'),
+                ajax: {
+                    url: './api', dataType: 'json', cache: true,
+                    data: function(params) { return { search: params.term, action: 'userlist', page: params.page }; },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };
+                    }
+                }
+            });
+        }
 
-	<?php
-	echo '        ' . "\r\n\t\t";
+        var pairEl = document.getElementById('pair_id');
+        var isPaired = function() { return !!(pairEl && pairEl.value); };
 
-	if (isset($rDevice)) {
-		echo "\t\t" . 'var rBouquets = ';
-		echo $rDevice['user']['bouquet'];
-		echo ';' . "\r\n\t\t";
-	} else {
-		echo "\t\t" . 'var rBouquets = [];' . "\r\n\t\t";
-	}
+        // Pairing a user takes over the owner/expiry/advanced/bouquet inputs, so hide
+        // and disable them while paired (legacy evaluatePair()).
+        var pairedFields = ['exp_date', 'is_trial', 'no_expire', 'is_isplock', 'force_server_id', 'forced_country', 'ip_field', 'allowed_ips', 'member_id'];
+        var applyPair = function() {
+            var paired = isPaired();
+            document.getElementById('linked_info').classList.toggle('d-none', paired);
+            document.getElementById('advanced_info').classList.toggle('d-none', paired);
+            document.getElementById('bouquets_info').classList.toggle('d-none', paired);
+            document.getElementById('advanced_warning').classList.toggle('d-none', !paired);
+            document.getElementById('bouquet_warning').classList.toggle('d-none', !paired);
+            pairedFields.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) { el.disabled = paired; }
+            });
+        };
+        if ($ && pairEl) {
+            $('#pair_id').on('change', applyPair);
+        } else if (pairEl) {
+            pairEl.addEventListener('change', applyPair);
+        }
 
-	echo "\r\n\t\t" . 'function toggleBouquets() {' . "\r\n" . '            if (!$("#pair_id").val()) {' . "\r\n" . '                $("#datatable-bouquets tr").each(function() {' . "\r\n" . "                    if (\$(this).hasClass('selected')) {" . "\r\n" . "                        \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                        if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(this).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        }' . "\r\n" . '                    } else {            ' . "\r\n" . "                        \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                        if ($(this).find("td:eq(0)").text()) {' . "\r\n" . '                            window.rBouquets.push(parseInt($(this).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearDevice() {' . "\r\n\t\t\t" . '$("#device-info input").each(function() {' . "\r\n\t\t\t\t" . 'if (!$(this).hasClass("sticky")) {' . "\r\n\t\t\t\t\t" . '$(this).val("");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearISP() {' . "\r\n" . '            $("#isp_clear").val("");' . "\r\n" . '        }' . "\r\n\t\t" . 'function unpairUser() {' . "\r\n\t\t\t" . '$("#pair_id").val("").trigger("change");' . "\r\n\t\t" . '}' . "\r\n" . '        function evaluatePair() {' . "\r\n" . '            if ($("#pair_id").val()) {' . "\r\n" . '                $("#toggle_bouquets").addClass("disabled");' . "\r\n" . '                $("#advanced_warning").show();' . "\r\n" . '                $("#bouquet_warning").show();' . "\r\n" . '                $("#linked_info").hide();' . "\r\n" . '                $("#bouquets_info").hide();' . "\r\n" . '                $("#advanced_info").hide();' . "\r\n" . '            } else {' . "\r\n" . '                $("#toggle_bouquets").removeClass("disabled");' . "\r\n" . '                $("#advanced_warning").hide();' . "\r\n" . '                $("#bouquet_warning").hide();' . "\r\n" . '                $("#linked_info").show();' . "\r\n" . '                $("#bouquets_info").show();' . "\r\n" . '                $("#advanced_info").show();' . "\r\n" . '            }' . "\r\n" . '            $(["exp_date", "is_trial", "no_expire", "force_server_id", "forced_country", "ip_field", "allowed_ips"]).each(function(rID, rElement) {' . "\r\n" . '                if ($(rElement)) {' . "\r\n" . '                    if ($("#pair_id").val()) {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            setSwitch(window.rSwitches[rElement], false);' . "\r\n" . '                            window.rSwitches[rElement].disable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", true);' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        if (window.rSwitches[rElement]) {' . "\r\n" . '                            window.rSwitches[rElement].enable();' . "\r\n" . '                        } else {' . "\r\n" . '                            $("#" + rElement).prop("disabled", false);' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function clearOwner() {' . "\r\n" . "            \$('#member_id').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select.select2').select2({width: '100%'});" . "\r\n" . "            \$('#member_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#exp_date').daterangepicker({" . "\r\n\t\t\t\t" . 'singleDatePicker: true,' . "\r\n\t\t\t\t" . 'showDropdowns: true,' . "\r\n\t\t\t\t" . 'minDate: new Date(),' . "\r\n" . '                timePicker: true,' . "\r\n\t\t\t\t" . 'locale: {' . "\r\n\t\t\t\t\t" . "format: 'YYYY-MM-DD HH:mm'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#pair_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'userlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: '";
-	echo $language::get('search_user');
-	echo "'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t\r\n\t\t\t" . '$("#datatable-bouquets").DataTable({' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,2,3]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rBouquets) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-bouquets").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n" . '                    if (!$("#pair_id").val()) {' . "\r\n" . "                        if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n" . "                            \$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                            window.rBouquets.splice(parseInt($.inArray($(ui.selected).find("td:eq(0)").text()), window.rBouquets), 1);' . "\r\n" . '                        } else {            ' . "\r\n" . "                            \$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                            window.rBouquets.push(parseInt($(ui.selected).find("td:eq(0)").text()));' . "\r\n" . '                        }' . "\r\n" . '                    }' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#no_expire").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).prop("checked")) {' . "\r\n\t\t\t\t\t" . '$("#exp_date").prop("disabled", true);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#exp_date").removeAttr("disabled");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#add_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . '                    if (($("#ip_field").val()) && (isValidIP($("#ip_field").val()))) {' . "\r\n" . '                        var o = new Option($("#ip_field").val(), $("#ip_field").val());' . "\r\n" . '                        $("#allowed_ips").append(o);' . "\r\n" . '                        $("#ip_field").val("");' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("Please enter a valid IP address.");' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#remove_ip").click(function() {' . "\r\n" . '                if (!$("#pair_id").val()) {' . "\r\n" . "                    \$('#allowed_ips option:selected').remove();" . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#pair_id").change(function() {' . "\r\n" . '                evaluatePair();' . "\r\n" . '            });' . "\r\n" . '            $("#mac").on("input", function(e) {' . "\r\n" . '                var rRegex = /([a-f0-9]{2})([a-f0-9]{2})/i, rString = e.target.value.replace(/[^a-f0-9]/ig, "");' . "\r\n" . '                while (rRegex.test(rString)) {' . "\r\n" . "                    rString = rString.replace(rRegex, '\$1' + ':' + '\$2');" . "\r\n" . '                }' . "\r\n" . '                e.target.value = rString.slice(0, 17).toUpperCase();' . "\r\n" . '            });' . "\r\n" . '            evaluatePair();' . "\r\n" . '            $("#no_expire").trigger("change");' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . 'var rBouquets = [];' . "\r\n\t\t\t\t" . '$("#datatable-bouquets tr.selected").each(function() {' . "\r\n\t\t\t\t\t" . 'rBouquets.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#bouquets_selected").val(JSON.stringify(rBouquets));' . "\r\n\t\t\t\t" . "\$(\"#allowed_ips option\").prop('selected', true);" . "\r\n" . "                \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Unpair / clear-owner buttons.
+        document.getElementById('unpair-user').addEventListener('click', function() {
+            if ($) { $('#pair_id').val(null).trigger('change'); } else { pairEl.value = ''; applyPair(); }
+        });
+        document.getElementById('clear-owner').addEventListener('click', function() {
+            if ($) { $('#member_id').val('').trigger('change'); } else { document.getElementById('member_id').value = ''; }
+        });
+        document.getElementById('clear-isp').addEventListener('click', function() {
+            document.getElementById('isp_clear').value = '';
+        });
+
+        // MAC input formatter (legacy #mac input handler).
+        var macEl = document.getElementById('mac');
+        if (macEl) {
+            macEl.addEventListener('input', function(e) {
+                var re = /([a-f0-9]{2})([a-f0-9]{2})/i,
+                    s = e.target.value.replace(/[^a-f0-9]/ig, '');
+                while (re.test(s)) { s = s.replace(re, '$1:$2'); }
+                e.target.value = s.slice(0, 17).toUpperCase();
+            });
+        }
+
+        // Clear device-info fields (except sticky username/password).
+        var clearDev = document.getElementById('clear-device');
+        if (clearDev) {
+            clearDev.addEventListener('click', function() {
+                document.querySelectorAll('#tab-device input:not(.sticky)').forEach(function(i) { i.value = ''; });
+            });
+        }
+
+        // Never-expire disables the expiry field.
+        var noExpire = document.getElementById('no_expire'),
+            expDate = document.getElementById('exp_date');
+        var applyExpire = function() {
+            if (!isPaired()) { expDate.disabled = noExpire.checked; }
+        };
+        noExpire.addEventListener('change', applyExpire);
+
+        // Allowed-IP list widget.
+        var validIP = function(v) {
+            return /^[0-9.]+$/.test(v) || /^[0-9a-fA-F:]+$/.test(v);
+        };
+        var ipSel = document.getElementById('allowed_ips'),
+            ipField = document.getElementById('ip_field');
+        document.getElementById('add_ip').addEventListener('click', function() {
+            if (isPaired()) { return; }
+            var v = ipField.value.trim();
+            if (!v || !validIP(v)) { alert('Please enter a valid IP address.'); return; }
+            var exists = Array.prototype.some.call(ipSel.options, function(o) { return o.value === v; });
+            if (!exists) { ipSel.add(new Option(v, v)); }
+            ipField.value = '';
+        });
+        document.getElementById('remove_ip').addEventListener('click', function() {
+            if (isPaired()) { return; }
+            Array.prototype.slice.call(ipSel.selectedOptions).forEach(function(o) { o.remove(); });
+        });
+
+        // Bouquet toggle-all + collect.
+        document.getElementById('bqt-toggle').addEventListener('click', function() {
+            var boxes = document.querySelectorAll('.enigma-bouquet-cb');
+            var allOn = Array.prototype.every.call(boxes, function(c) { return c.checked; });
+            boxes.forEach(function(c) { c.checked = !allOn; });
+        });
+        var collect = function(cls) {
+            var ids = [];
+            document.querySelectorAll('.' + cls + ':checked').forEach(function(c) { ids.push(c.value); });
+            return JSON.stringify(ids);
+        };
+
+        applyPair();
+        applyExpire();
+
+        // Submit → post.php?action=enigma. Re-enable paired-disabled inputs so their
+        // values still post, select every allowed-IP option, then serialise bouquets.
+        document.getElementById('enigma-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!macEl.value) { alert('Please enter a valid MAC address.'); return; }
+            document.getElementById('bouquets_selected').value = collect('enigma-bouquet-cb');
+            Array.prototype.forEach.call(ipSel.options, function(o) { o.selected = true; });
+            pairedFields.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) { el.disabled = false; }
+            });
+            var btn = document.getElementById('enigma-submit');
+            btn.disabled = true;
+            fetch('post.php?action=enigma', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt;
+                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) {
+                        if (window.parent !== window) {
+                            window.parent.postMessage('xcModalSaved', '*');
+                        } else {
+                            window.location.href = dt.location || 'enigmas';
+                        }
+                        return;
+                    }
+                    btn.disabled = false;
+                    applyPair();
+                    alert(errText);
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    applyPair();
+                    alert(errText);
+                });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
