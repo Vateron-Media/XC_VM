@@ -299,7 +299,15 @@ if (count(get_included_files()) == 1) {
                 });
                 var allMatch = res.data.length === count && res.data.every(function(r) { return idxById[r.id] !== undefined; });
                 if (!allMatch) { dt.ajax.reload(null, false); return; }
-                res.data.forEach(function(row) { dt.row(idxById[row.id]).data(row); });
+                // Only re-render rows whose data actually changed — re-rendering an
+                // unchanged row needlessly flickers the table and closes any open
+                // row-action dropdown inside it.
+                res.data.forEach(function(row) {
+                    var idx = idxById[row.id];
+                    if (JSON.stringify(dt.row(idx).data()) !== JSON.stringify(row)) {
+                        dt.row(idx).data(row);
+                    }
+                });
             });
         }
 
@@ -309,7 +317,9 @@ if (count(get_included_files()) == 1) {
         var xcPage = <?= json_encode(\XcVm\Core\Util\AdminHelpers::getPageName()); ?>;
         if (LIVE_PAGES.indexOf(xcPage) !== -1) {
             setInterval(function() {
-                if (document.querySelector('.modal.show')) {
+                // Pause while a modal is open, or while a row-action dropdown is open
+                // (a refresh would re-render its row and close the menu mid-click).
+                if (document.querySelector('.modal.show') || document.querySelector('.dropdown-menu.show')) {
                     return;
                 }
                 var t = pickTable();
