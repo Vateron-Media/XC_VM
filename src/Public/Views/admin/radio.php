@@ -1,463 +1,313 @@
-<div class="wrapper boxed-layout" <?php 
+<?php
+
+/**
+ * Radio station add / edit (Bootstrap 5). Reached full-page from the radios
+ * table ("Add" → radio) inside the new-UI shell, and as an iframe modal
+ * ("Edit" → radio?id=X&modal=1) inside the modal shell. Tabs: Details (name,
+ * logo, source URL, categories, bouquets, notes), Advanced (direct source +
+ * ffmpeg/probe/proxy options), Auto-Restart (days + time) and Servers (the
+ * jstree load-balancer tree + on-demand list). Categories and bouquets use
+ * select2 tags — freshly typed names are collected into the *_create_list hidden
+ * inputs so the backend creates them. Posts to post.php?action=radio via fetch;
+ * in the modal it posts xcModalSaved to the parent, full-page it returns to the
+ * list. Requires the jstree bundle (declared by RadioController).
+ */
+
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                                        echo ' style="display: none;"';
-                                    } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li>
-                                <a href="./radios">
-                                    <button type="button" class="btn btn-primary waves-effect waves-light btn-sm">
-                                        <?= $language::get('view_stations'); ?>
-                                    </button>
-                                </a>
-                            </li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title"><?= isset($rStation['id']) ? $rStation['stream_display_name'] : $language::get('add_radio_station'); ?></h4>
-                </div>
+$rIsEdit     = isset($rStation);
+$rSource     = $rIsEdit ? (json_decode((string) $rStation['stream_source'], true)[0] ?? '') : '';
+$rStationCat = $rIsEdit ? (json_decode((string) $rStation['category_id'], true) ?: []) : [];
+$rAutoRestart = ($rIsEdit && !empty($rStation['auto_restart'])) ? (json_decode((string) $rStation['auto_restart'], true) ?: []) : [];
+$rRestartDays = (array) ($rAutoRestart['days'] ?? []);
+$rArg = static function (string $key, $rOptId) use ($rStationOptions, $rStationArguments) {
+    if (isset($rStationOptions[$rOptId]['value'])) {
+        return (string) $rStationOptions[$rOptId]['value'];
+    }
+    return (string) ($rStationArguments[$key]['argument_default_value'] ?? '');
+};
+?>
+
+<?php if (!isset($_GET['modal'])): ?>
+    <div class="d-flex align-items-center mb-4">
+        <a href="radios" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+        <h4 class="mb-0"><?= $rIsEdit ? htmlspecialchars((string) $rStation['stream_display_name'], ENT_QUOTES) : $language::get('add_radio_station'); ?></h4>
+    </div>
+<?php endif; ?>
+
+<form id="radio-form" autocomplete="off">
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rStation['id']; ?>">
+    <?php endif; ?>
+    <input type="hidden" name="server_tree_data" id="server_tree_data" value="">
+    <input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="">
+    <input type="hidden" name="category_create_list" id="category_create_list" value="">
+
+    <div class="card mb-6">
+        <div class="card-header px-0 pt-2">
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced" role="tab"><i class="icon-base ti tabler-adjustments me-1"></i><?= $language::get('advanced'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-restart" role="tab"><i class="icon-base ti tabler-clock me-1"></i><?= $language::get('auto_restart'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-servers" role="tab"><i class="icon-base ti tabler-server me-1"></i><?= $language::get('servers'); ?></button></li>
+                </ul>
             </div>
         </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <?php if (isset($_STATUS)) { ?>
-                    <div class="alert alert-<?= $_STATUS == 0 ? "success" : "danger"; ?> alert-dismissible fade show" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        <?= $_STATUS == 0 ? $language::get('radio_success') : ($_STATUS == 1 ? $language::get('radio_info_1') : $language::get('radio_info_2')); ?>
+        <div class="card-body">
+            <div class="tab-content p-0">
+                <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                    <div class="mb-6">
+                        <label class="form-label" for="stream_display_name"><?= $language::get('station_name'); ?></label>
+                        <input type="text" class="form-control" id="stream_display_name" name="stream_display_name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['stream_display_name'], ENT_QUOTES) : ''; ?>">
                     </div>
-                <?php } ?>
+                    <div class="mb-6">
+                        <label class="form-label" for="stream_icon"><?= $language::get('station_logo'); ?></label>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="stream_icon" name="stream_icon" value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['stream_icon'], ENT_QUOTES) : ''; ?>">
+                            <button type="button" class="btn btn-label-secondary" id="preview-icon"><i class="icon-base ti tabler-eye"></i></button>
+                        </div>
+                        <div class="mt-2"><img id="icon-preview" src="" alt="" style="max-height:96px" hidden></div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="stream_source"><?= $language::get('station_url'); ?></label>
+                        <input type="text" id="stream_source" name="stream_source[]" class="form-control" value="<?= htmlspecialchars((string) $rSource, ENT_QUOTES); ?>">
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="category_id"><?= $language::get('categories'); ?></label>
+                        <select name="category_id[]" id="category_id" class="form-select" multiple>
+                            <?php foreach (CategoryService::getAllByType('radio') as $rCategory): ?>
+                                <option value="<?= (int) $rCategory['id']; ?>" <?= in_array((int) $rCategory['id'], array_map('intval', $rStationCat), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="bouquets"><?= $language::get('bouquets'); ?></label>
+                        <select name="bouquets[]" id="bouquets" class="form-select" multiple>
+                            <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
+                                <option value="<?= (int) $rBouquet['id']; ?>" <?= ($rIsEdit && in_array((int) $rStation['id'], array_map('intval', json_decode((string) $rBouquet['bouquet_radios'], true) ?: []), true)) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rBouquet['bouquet_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label" for="notes"><?= $language::get('notes'); ?></label>
+                        <textarea id="notes" name="notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) $rStation['notes'], ENT_QUOTES) : ''; ?></textarea>
+                    </div>
+                </div>
 
-                <div class="card">
-                    <div class="card-body">
-                        <form action="#" method="POST" data-parsley-validate="">
-                            <?php if (isset($rStation['id'])) { ?>
-                                <input type="hidden" name="edit" value="<?= $rStation['id']; ?>" />
-                            <?php } ?>
-                            <input type="hidden" name="server_tree_data" id="server_tree_data" value="" />
-                            <input type="hidden" name="od_tree_data" id="od_tree_data" value="" />
-                            <input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="" />
-                            <input type="hidden" name="category_create_list" id="category_create_list" value="" />
-                            <div id="basicwizard">
-                                <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                    <li class="nav-item">
-                                        <a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('details'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#advanced-options" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-folder-alert-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('advanced'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#auto-restart" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-clock-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('auto_restart'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-server-network mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('servers'); ?></span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content b-0 mb-0 pt-0">
-                                    <div class="tab-pane" id="stream-details">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="stream_display_name"><?= $language::get('station_name'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="<?= isset($rStation) ? htmlspecialchars($rStation['stream_display_name']) : ''; ?>" required data-parsley-trigger="change">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="stream_icon"><?= $language::get('station_logo') ?></label>
-                                                    <div class="col-md-8 input-group">
-                                                        <input type="text" class="form-control" id="stream_icon" name="stream_icon" value="<?= isset($rStation) ? htmlspecialchars($rStation['stream_icon']) : ''; ?>">
-                                                        <div class="input-group-append">
-                                                            <a href="javascript:void(0)" onclick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4 stream-url">
-                                                    <label class="col-md-4 col-form-label" for="stream_source"><?= $language::get('station_url'); ?></label>
-                                                    <div class="col-md-8 input-group">
-                                                        <input type="text" id="stream_source" name="stream_source[]" class="form-control" value="<?= isset($rStation) ? htmlspecialchars(json_decode($rStation['stream_source'], true)[0]) : ''; ?>">
-                                                    </div>
-                                                </div>
-                                                <!-- Additional fields for categories, bouquets, notes, etc. go here -->
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="category_id"><?= $language::get('categories') ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
-                                                            <?php foreach (CategoryService::getAllByType('radio') as $rCategory): ?>
-                                                                <option <?php if (isset($rStation) && in_array(intval($rCategory['id']), json_decode($rStation['category_id'], true))) {
-                                                                            echo 'selected';
-                                                                        } ?> value="<?= $rCategory['id']; ?>"><?= $rCategory['category_name']; ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div id="category_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">
-                                                            <strong>New Categories:</strong> <span id="category_new"></span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
+                    <div class="form-check form-switch mb-6">
+                        <input class="form-check-input" type="checkbox" id="direct_source" name="direct_source" value="1" <?= ($rIsEdit && $rStation['direct_source'] == 1) ? 'checked' : ''; ?>>
+                        <label class="form-check-label" for="direct_source"><?= $language::get('direct_source'); ?> <i title="<?= $language::get('dont_run_source_through_xc_vm_just_redirect_instead'); ?>" class="icon-base ti tabler-help-circle text-secondary"></i></label>
+                    </div>
+                    <div class="row mb-6">
+                        <div class="col-md-6">
+                            <label class="form-label" for="probesize_ondemand"><?= $language::get('on_demand_probesize'); ?></label>
+                            <input type="text" inputmode="numeric" class="form-control opt-field" id="probesize_ondemand" name="probesize_ondemand" value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['probesize_ondemand'], ENT_QUOTES) : '128000'; ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="custom_sid"><?= $language::get('custom_channel_sid'); ?></label>
+                            <input type="text" class="form-control opt-field" id="custom_sid" name="custom_sid" value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['custom_sid'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?></label>
+                        <input type="text" class="form-control opt-field" id="custom_ffmpeg" name="custom_ffmpeg" value="<?= $rIsEdit ? htmlspecialchars((string) $rStation['custom_ffmpeg'], ENT_QUOTES) : ''; ?>">
+                    </div>
+                    <div class="row mb-6">
+                        <div class="col-md-6">
+                            <label class="form-label" for="user_agent"><?= $language::get('user_agent'); ?></label>
+                            <input type="text" class="form-control opt-field" id="user_agent" name="user_agent" value="<?= htmlspecialchars($rArg('user_agent', 1), ENT_QUOTES); ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="http_proxy"><?= $language::get('http_proxy'); ?></label>
+                            <input type="text" class="form-control opt-field" id="http_proxy" name="http_proxy" value="<?= htmlspecialchars($rArg('proxy', 2), ENT_QUOTES); ?>">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label class="form-label" for="cookie"><?= $language::get('cookie'); ?></label>
+                            <input type="text" class="form-control opt-field" id="cookie" name="cookie" value="<?= htmlspecialchars($rArg('cookie', 17), ENT_QUOTES); ?>">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="headers"><?= $language::get('headers'); ?></label>
+                            <input type="text" class="form-control opt-field" id="headers" name="headers" value="<?= htmlspecialchars($rArg('headers', 19), ENT_QUOTES); ?>">
+                        </div>
+                    </div>
+                </div>
 
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="bouquets"><?= $language::get('bouquets'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
-                                                            <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
-                                                                <option <?php if (isset($rStation) && in_array($rStation['id'], json_decode($rBouquet['bouquet_radios'], true))) {
-                                                                            echo 'selected';
-                                                                        } ?> value="<?= $rBouquet['id']; ?>"><?= htmlspecialchars($rBouquet['bouquet_name']); ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                        <div id="bouquet_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">
-                                                            <strong>New Bouquets:</strong> <span id="bouquet_new"></span>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                <div class="tab-pane fade" id="tab-restart" role="tabpanel">
+                    <div class="mb-6">
+                        <label class="form-label" for="days_to_restart"><?= $language::get('days_to_restart'); ?></label>
+                        <select id="days_to_restart" name="days_to_restart[]" class="form-select opt-field" multiple>
+                            <?php
+                            $rDaysMap = [
+                                $language::get('monday') => 'Monday', $language::get('tuesday') => 'Tuesday',
+                                $language::get('wednesday') => 'Wednesday', $language::get('thursday') => 'Thursday',
+                                $language::get('friday') => 'Friday', $language::get('saturday') => 'Saturday',
+                                $language::get('sunday') => 'Sunday',
+                            ];
+                            foreach ($rDaysMap as $rDayLabel => $rDayValue): ?>
+                                <option value="<?= htmlspecialchars((string) $rDayValue, ENT_QUOTES); ?>" <?= in_array($rDayValue, $rRestartDays, true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rDayLabel, ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="time_to_restart"><?= $language::get('time_to_restart'); ?></label>
+                        <input id="time_to_restart" name="time_to_restart" type="text" class="form-control opt-field" value="<?= htmlspecialchars((string) ($rAutoRestart['at'] ?? '06:00'), ENT_QUOTES); ?>">
+                    </div>
+                </div>
 
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="notes"><?= $language::get('notes'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <textarea id="notes" name="notes" class="form-control" rows="3" placeholder=""><?php if (isset($rStation)) {
-                                                                                                                                            echo htmlspecialchars($rStation['notes']);
-                                                                                                                                        } ?></textarea>
-                                                    </div>
-                                                </div>
-                                                <ul class="list-inline wizard mb-0">
-                                                    <li class="nextb list-inline-item float-right">
-                                                        <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next'); ?></a>
-                                                    </li>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                        <!-- Pagination and submission buttons go here -->
-                                    </div>
-
-                                    <!-- Additional tabs content (advanced-options, auto-restart, load-balancing) go here -->
-                                    <div class="tab-pane" id="advanced-options">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?> <i title="<?= $language::get('dont_run_source_through_xc_vm_just_redirect_instead') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-2">
-                                                        <input name="direct_source" id="direct_source" type="checkbox" <?php if (isset($rStation) && $rStation['direct_source'] == 1) {
-                                                                                                                            echo 'checked';
-                                                                                                                        } ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-                                                    </div>
-                                                    <label class="col-md-4 col-form-label" for="probesize_ondemand"><?= $language::get('on_demand_probesize'); ?> <i title="<?= $language::get('adjustable_probesize_for_ondemand_streams_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-2">
-                                                        <input type="text" class="form-control" id="probesize_ondemand" name="probesize_ondemand" value="<?php if (isset($rStation)) {
-                                                                                                                                                                echo htmlspecialchars($rStation['probesize_ondemand']);
-                                                                                                                                                            } else {
-                                                                                                                                                                echo '128000';
-                                                                                                                                                            } ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="custom_sid"><?= $language::get('custom_channel_sid'); ?> <i title="<?= $language::get('here_you_can_specify_the_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="custom_sid" name="custom_sid" value="<?php if (isset($rStation)) {
-                                                                                                                                                echo htmlspecialchars($rStation['custom_sid']);
-                                                                                                                                            } ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="custom_ffmpeg"><?= $language::get('custom_ffmpeg_command'); ?> <i title="<?= $language::get('in_this_field_you_can_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="custom_ffmpeg" name="custom_ffmpeg" value="<?php if (isset($rStation)) {
-                                                                                                                                                    echo htmlspecialchars($rStation['custom_ffmpeg']);
-                                                                                                                                                } ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="user_agent"><?= $language::get('user_agent'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="user_agent" name="user_agent" value="<?php if (isset($rStationOptions[1])) {
-                                                                                                                                                echo htmlspecialchars($rStationOptions[1]['value']);
-                                                                                                                                            } else {
-                                                                                                                                                echo htmlspecialchars($rStationArguments['user_agent']['argument_default_value']);
-                                                                                                                                            } ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="http_proxy"><?= $language::get('http_proxy'); ?> <i title="<?= $language::get('format_ipport') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="http_proxy" name="http_proxy" value="<?php if (isset($rStationOptions[2])) {
-                                                                                                                                                echo htmlspecialchars($rStationOptions[2]['value']);
-                                                                                                                                            } else {
-                                                                                                                                                echo htmlspecialchars($rStationArguments['proxy']['argument_default_value']);
-                                                                                                                                            } ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="cookie"><?= $language::get('cookie'); ?> <i title="<?= $language::get('format_keyvalue') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="cookie" name="cookie" value="<?php if (isset($rStationOptions[17])) {
-                                                                                                                                        echo htmlspecialchars($rStationOptions[17]['value']);
-                                                                                                                                    } else {
-                                                                                                                                        echo htmlspecialchars($rStationArguments['cookie']['argument_default_value']);
-                                                                                                                                    } ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="headers"><?= $language::get('headers'); ?> <i title="<?= $language::get('ffmpeg_headers_command') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="headers" name="headers" value="<?php if (isset($rStreamOptions[19])) {
-                                                                                                                                        echo htmlspecialchars($rStreamOptions[19]['value']);
-                                                                                                                                    } else {
-                                                                                                                                        echo htmlspecialchars($rStationArguments['headers']['argument_default_value']);
-                                                                                                                                    } ?>">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev'); ?></a>
-                                            </li>
-                                            <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('next'); ?></a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <div class="tab-pane" id="auto-restart">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="days_to_restart"><?= $language::get('days_to_restart'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <select id="days_to_restart" name="days_to_restart[]" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose'); ?>...">
-                                                            <?php
-                                                            $daysMap = array($language::get('monday') => 'Monday', $language::get('tuesday') => 'Tuesday', $language::get('wednesday') => 'Wednesday', $language::get('thursday') => 'Thursday', $language::get('friday') => 'Friday', $language::get('saturday') => 'Saturday', $language::get('sunday') => 'Sunday');
-                                                            foreach ($daysMap as $dayName => $dayValue): ?>
-                                                                <option value="<?= $dayValue; ?>" <?php if (isset($rAutoRestart['days']) && in_array($dayValue, $rAutoRestart['days'])) {
-                                                                                                        echo ' selected';
-                                                                                                    } ?>><?= $dayName; ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="time_to_restart"><?= $language::get('time_to_restart'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <div class="input-group clockpicker" data-placement="top" data-align="top" data-autoclose="true">
-                                                            <input id="time_to_restart" name="time_to_restart" type="text" class="form-control" value="<?= isset($rAutoRestart['at']) ? $rAutoRestart['at'] : '06:00'; ?>">
-                                                            <div class="input-group-append">
-                                                                <span class="input-group-text"><i class="mdi mdi-clock-outline"></i></span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="load-balancing">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="servers"><?= $language::get('server_tree'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <div id="server_tree"></div>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="on_demand"><?= $language::get('on_demand_servers') ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="on_demand[]" id="on_demand" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose_placeholder') ?>">
-                                                            <?php foreach ($rServers as $rServer): ?>
-                                                                <option value="<?= $rServer['id']; ?>" <?php if (isset($rStation) && in_array($rServer['id'], $rOnDemand)) {
-                                                                                                            echo ' selected';
-                                                                                                        } ?>><?= $rServer['server_name']; ?></option>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="restart_on_edit"><?= isset($rStation['id']) ? $language::get('restart_on_edit') : $language::get('start_stream_now'); ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="restart_on_edit" id="restart_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <ul class="list-inline wizard mb-0">
-                                        <li class="prevb list-inline-item">
-                                            <a href="javascript: void(0);" class="btn btn-secondary"><?= $language::get('prev'); ?></a>
-                                        </li>
-                                        <li class="nextb list-inline-item float-right">
-                                            <input name="submit_radio" type="submit" class="btn btn-primary" value="<?= isset($rStation['id']) ? $language::get('edit') : $language::get('add'); ?>" />
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </form>
+                <div class="tab-pane fade" id="tab-servers" role="tabpanel">
+                    <div class="mb-6">
+                        <label class="form-label"><?= $language::get('server_tree'); ?></label>
+                        <div id="server_tree" class="border rounded p-2"></div>
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="on_demand"><?= $language::get('on_demand_servers'); ?></label>
+                        <select name="on_demand[]" id="on_demand" class="form-select opt-field" multiple>
+                            <?php foreach ($rServers as $rServer): ?>
+                                <option value="<?= (int) $rServer['id']; ?>" <?= in_array((int) $rServer['id'], array_map('intval', $rOnDemand), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input opt-field" type="checkbox" id="restart_on_edit" name="restart_on_edit" value="1">
+                        <label class="form-check-label" for="restart_on_edit"><?= $rIsEdit ? $language::get('restart_on_edit') : $language::get('start_stream_now'); ?></label>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+
+    <div class="d-flex justify-content-end mb-6">
+        <button type="submit" class="btn btn-primary" id="radio-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+    </div>
+</form>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var nameErr = <?= json_encode($language::get('enter_a_radio_station_name')); ?>;
+        var $ = window.jQuery;
+        if (!$) { return; }
 
-    <?php
-    echo '        ' . "\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).parent().parent().find("input").val();' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rImage)," . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function evaluateServers() {' . "\r\n" . '            var rOVal = $("#on_demand").val();' . "\r\n" . '            $("#on_demand").empty();' . "\r\n" . "            \$(\$('#server_tree').jstree(true).get_json('source', {flat:true})).each(function(index, value) {" . "\r\n" . '                if (value.parent != "#") {' . "\r\n" . '                    $("#on_demand").append(new Option(value.text, value.id));' . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("#on_demand").val(rOVal).trigger("change");' . "\r\n" . '            if (!$("#on_demand").val()) {' . "\r\n" . '                $("#on_demand").val(0).trigger("change");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            $("#category_id").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#category_id').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#category_create").show();' . "\r\n" . "                    \$(\"#category_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#category_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#category_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n" . '            $("#bouquets").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#bouquets').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#bouquet_create").show();' . "\r\n" . "                    \$(\"#bouquet_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#bouquet_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#bouquet_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n\t\t\t" . '$(".clockpicker").clockpicker();' . "\r\n\t\t\t" . "\$('#server_tree').on('redraw.jstree', function (e, data) {" . "\r\n" . '                evaluateServers();' . "\r\n" . "            }).on('select_node.jstree', function (e, data) {" . "\r\n" . '                if (data.node.parent == "offline") {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#source\", \"last\");" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#offline\", \"first\");" . "\r\n" . '                }' . "\r\n" . "            }).jstree({ 'core' : {" . "\r\n\t\t\t\t" . "'check_callback': function (op, node, parent, position, more) {" . "\r\n\t\t\t\t\t" . 'switch (op) {' . "\r\n\t\t\t\t\t\t" . "case 'move_node':" . "\r\n\t\t\t\t\t\t\t" . 'if ((node.id == "offline") || (node.id == "source")) { return false; }' . "\r\n" . '                            if (parent.id == "#") { return false; }' . "\r\n\t\t\t\t\t\t\t" . 'return true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . "'data' : ";
-    echo json_encode(($rServerTree ?: array()));
-    echo "\t\t\t" . '}, "plugins" : [ "dnd" ]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#direct_source").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'function evaluateDirectSource() {' . "\r\n\t\t\t\t" . '$(["custom_ffmpeg", "probesize_ondemand", "user_agent", "http_proxy", "cookie", "headers", "days_to_restart", "time_to_restart", "on_demand", "restart_on_edit"]).each(function(rID, rElement) {' . "\r\n\t\t\t\t\t" . 'if ($(rElement)) {' . "\r\n\t\t\t\t\t\t" . 'if ($("#direct_source").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'setSwitch(window.rSwitches[rElement], false);' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].disable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].enable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", false);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . 'evaluateDirectSource();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . "                \$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n\t\t\t\t" . 'if ($("#stream_display_name").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-    echo $language::get('enter_a_radio_station_name');
-    echo '");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-    ?>
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
+        // Logo preview.
+        document.getElementById('preview-icon').addEventListener('click', function() {
+            var url = document.getElementById('stream_icon').value.trim(),
+                img = document.getElementById('icon-preview');
+            if (!url) { img.hidden = true; return; }
+            img.src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(url);
+            img.hidden = false;
         });
-    <?php endif; ?>
+
+        // select2 tags for categories/bouquets (freshly typed names are collected
+        // into *_create_list on submit); plain select2 for days/on_demand.
+        $('#category_id, #bouquets').select2({ width: '100%', tags: true, dropdownParent: $('#tab-details') });
+        $('#days_to_restart').select2({ width: '100%', dropdownParent: $('#tab-restart') });
+        $('#on_demand').select2({ width: '100%', dropdownParent: $('#tab-servers') });
+
+        // flatpickr time picker (replaces the legacy clockpicker).
+        if (window.flatpickr) {
+            flatpickr('#time_to_restart', { enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true });
+        }
+
+        // jstree load-balancer tree: click a server to toggle Online/Offline; drag
+        // also works. on_demand options mirror the Online servers.
+        function evaluateServers() {
+            var cur = $('#on_demand').val();
+            $('#on_demand').empty();
+            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function(i, v) {
+                if (v.parent !== '#') { $('#on_demand').append(new Option(v.text, v.id)); }
+            });
+            $('#on_demand').val(cur).trigger('change');
+        }
+        $('#server_tree')
+            .on('redraw.jstree', function() { evaluateServers(); })
+            .on('select_node.jstree', function(e, data) {
+                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                var to = (data.node.parent === 'offline') ? 'source' : 'offline';
+                $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
+            })
+            .jstree({
+                core: {
+                    check_callback: function(op, node, parent) {
+                        if (op === 'move_node') {
+                            if (node.id === 'offline' || node.id === 'source') { return false; }
+                            if (parent.id === '#') { return false; }
+                            return true;
+                        }
+                        return true;
+                    },
+                    data: <?= json_encode($rServerTree); ?>
+                },
+                plugins: ['dnd']
+            });
+
+        // Direct source disables the encode/restart/server options.
+        var directEl = document.getElementById('direct_source');
+        function applyDirect() {
+            var off = directEl.checked;
+            document.querySelectorAll('.opt-field').forEach(function(el) {
+                el.disabled = off;
+                if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', off).trigger('change.select2'); }
+            });
+        }
+        directEl.addEventListener('change', applyDirect);
+        applyDirect();
+
+        // Collect freshly typed select2 tags (non-numeric values) as the create list.
+        function collectNew(sel) {
+            var vals = $(sel).val() || [], nw = [];
+            vals.forEach(function(v) { if (!/^\d+$/.test(v)) { nw.push(v); } });
+            return JSON.stringify(nw);
+        }
+
+        document.getElementById('radio-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!document.getElementById('stream_display_name').value.trim()) { alert(nameErr); return; }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            document.getElementById('category_create_list').value = collectNew('#category_id');
+            document.getElementById('bouquet_create_list').value = collectNew('#bouquets');
+            // Re-enable direct-source-disabled fields so their values still post.
+            document.querySelectorAll('.opt-field').forEach(function(el) { el.disabled = false; });
+            var btn = document.getElementById('radio-submit');
+            btn.disabled = true;
+            fetch('post.php?action=radio', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt;
+                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) {
+                        if (window.parent !== window) {
+                            window.parent.postMessage('xcModalSaved', '*');
+                        } else {
+                            window.location.href = dt.location || 'radios';
+                        }
+                        return;
+                    }
+                    btn.disabled = false;
+                    applyDirect();
+                    alert(errText);
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    applyDirect();
+                    alert(errText);
+                });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

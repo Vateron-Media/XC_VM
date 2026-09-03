@@ -80,3 +80,47 @@ ul.dtr-details > li .dtr-title {
   background: var(--bs-body-bg);
   min-height: 100vh;
 }
+
+/*
+ * jstree load-balancer server tree (stream-class forms). jstree paints its node
+ * icons with a background-image sprite, but the new-UI renders Tabler icons via
+ * Iconify: a `currentColor` element masked by an inline SVG (mask-image). jstree's
+ * own background rules clobber the fill colour, so the masked glyph shows nothing.
+ * Restore the fill and drop jstree's sprite for the Tabler <i> in the tree, and
+ * give the tree a little breathing room.
+ */
+#server_tree .jstree-anchor > .jstree-themeicon.ti {
+  background-color: currentColor !important;
+  background-image: none !important;
+  vertical-align: middle;
+  width: 1.15rem;
+  height: 1.15rem;
+}
+#server_tree .jstree-anchor {
+  height: auto;
+  line-height: 1.7rem;
+}
+#server_tree .jstree-node,
+#server_tree .jstree-children {
+  min-height: 1.7rem;
+}
+/* Expand/collapse arrows: the jstree sprite (32px.png) is not shipped, so draw
+   them with the same Iconify mask trick (Tabler chevrons). */
+#server_tree .jstree-closed > .jstree-ocl,
+#server_tree .jstree-open > .jstree-ocl {
+  background-color: currentColor;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: 1rem 1rem;
+  mask-size: 1rem 1rem;
+}
+#server_tree .jstree-closed > .jstree-ocl {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
+}
+#server_tree .jstree-open > .jstree-ocl {
+  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}

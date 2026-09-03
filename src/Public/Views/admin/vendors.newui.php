@@ -59,6 +59,12 @@ if (!function_exists('xc_newui_vendor_manifest')) {
                     $b . 'jsvectormap/maps/world.js',
                 ],
             ],
+            // jstree (jQuery) drives the load-balancer server tree on stream-class
+            // edit forms (stream/movie/serie/radio/created_channel).
+            'jstree' => [
+                'css' => [$b . 'jstree/jstree.css'],
+                'js'  => [$b . 'jstree/jstree.min.js'],
+            ],
         ];
     }
 }
