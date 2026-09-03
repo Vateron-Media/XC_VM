@@ -1,786 +1,364 @@
 <?php
 
-use XcVm\Core\Config\SettingsManager;
+/**
+ * Member group add / edit (Vuexy). Full-page form reached from the groups table
+ * (href="group?id=X"). Vuexy vertical layout — each former wizard tab becomes its
+ * own section card: Details (name + admin/reseller switches), Packages (package
+ * checkboxes), Permissions (reseller limits + capability switches), Subresellers
+ * (create switch + sub-reseller group checkboxes), Dashboard notice (textarea) and
+ * Admin Permissions (advanced permission matrix). The Packages / Subresellers /
+ * Admin-permission checkbox tables serialise into the hidden packages_selected /
+ * groups_selected / permissions_selected inputs (JSON id arrays) on submit, exactly
+ * as the legacy datatable collectors did; the notice textarea posts as notice_html.
+ * Card visibility follows the is_admin / is_reseller switches (legacy
+ * validatePermissions). Posts to post.php?action=group via fetch; on success returns
+ * to the list.
+ */
+
 use XcVm\Core\Reference\PermissionReference;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\GroupService;
 
-echo '<div class="wrapper boxed-layout"';
-
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-} else {
-	echo ' style="display: none;"';
-}
-
-echo '>' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">';
-
-if (isset($rGroup)) {
-	echo $language::get('edit_group');
-} else {
-	echo $language::get('add_group');
-}
-
-echo '</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>     ' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-xl-12">' . "\n\t\t\t\t" . '<div class="card">' . "\n\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t" . '<form action="#" method="POST" data-parsley-validate="">' . "\n\t\t\t\t\t\t\t";
-
-if (!isset($rGroup)) {
-} else {
-	echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="edit" value="';
-	echo $rGroup['group_id'];
-	echo '" />' . "\n\t\t\t\t\t\t\t";
-}
-
-// Ensure arrays are defined to avoid in_array() TypeErrors when data missing
-if (isset($rGroup)) {
-    $rAllowedPages = json_decode($rGroup['allowed_pages'], true) ?: [];
-} else {
-    $rAllowedPages = [];
-}
-
-echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="permissions_selected" id="permissions_selected" value="" />' . "\n" . '                            <input type="hidden" name="packages_selected" id="packages_selected" value="" />' . "\n" . '                            <input type="hidden" name="groups_selected" id="groups_selected" value="" />' . "\n" . '                            <input type="hidden" name="notice_html" id="notice_html" value="" />' . "\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\n\t\t\t\t\t\t\t\t" . '<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#group-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-card-details-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-echo $language::get('details');
-echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    <li class="nav-item" id="package_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#packages" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-package mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('packages') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item" id="reseller_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#reseller" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-badge-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('permissions') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    <li class="nav-item" id="subreseller_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#subreseller" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-multiple-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('subresellers') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    <li class="nav-item" id="notice_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#notice" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-note mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('dashboard') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t";
-
-if (isset($rGroup) && !$rGroup['can_delete']) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item"  id="admin_tab">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#permissions" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-badge-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-	echo $language::get('admin_permissions');
-
-	echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t" . '<div class="tab-content b-0 mb-0 pt-0">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="group-details">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="group_name">';
-echo $language::get('group_name');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="group_name" name="group_name" value="';
-
-if (!isset($rGroup)) {
-} else {
-	echo htmlspecialchars($rGroup['group_name']);
-}
-
-echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="is_admin">';
-echo $language::get('is_admin');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="is_admin" id="is_admin" type="checkbox" ';
-
-
-
-
-
-
-
-
-if (!isset($rGroup)) {
-} else {
-	if (!$rGroup['is_admin']) {
-	} else {
-		echo 'checked ';
-	}
-
-	if ($rGroup['can_delete']) {
-	} else {
-		echo 'disabled ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="is_reseller">';
-echo $language::get('is_reseller');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="is_reseller" id="is_reseller" type="checkbox" ';
-
-if (!isset($rGroup)) {
-} else {
-	if (!$rGroup['is_reseller']) {
-	} else {
-		echo 'checked ';
-	}
-
-	if ($rGroup['can_delete']) {
-	} else {
-		echo 'disabled ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_group" type="submit" class="btn btn-primary" value="';
-
-
-
-if (isset($rGroup)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                    <div class="tab-pane" id="packages">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable-packages" class="table table-striped table-borderless mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $language::get('id');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $language::get('package_name');
-echo '</th>' . "\n" . '                                                                <th class="text-center">';
-echo $language::get('trial');
-echo '</th>' . "\n" . '                                                                <th class="text-center">';
-echo $language::get('official');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (PackageService::getAll() as $rPackage) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
-
-	if (!is_array($rPackageIDs) || !in_array($rPackage['id'], $rPackageIDs)) {
-	} else {
-		echo " class='selected selectedfilter ui-selected'";
-	}
-
-	echo '>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-	echo $rPackage['id'];
-	echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-	echo $rPackage['package_name'];
-	echo '</td>' . "\n" . '                                                                <td class="text-center">' . "\n" . '                                                                    ';
-
-	if ($rPackage['is_trial']) {
-		echo "                                                                    <i class='text-success mdi mdi-circle'></i>" . "\n" . '                                                                    ';
-	} else {
-		echo "                                                                    <i class='text-secondary mdi mdi-circle'></i>" . "\n" . '                                                                    ';
-	}
-
-	echo '                                                                </td>' . "\n" . '                                                                <td class="text-center">' . "\n" . '                                                                    ';
-
-	if ($rPackage['is_official']) {
-		echo "                                                                    <i class='text-success mdi mdi-circle'></i>" . "\n" . '                                                                    ';
-	} else {
-		echo "                                                                    <i class='text-secondary mdi mdi-circle'></i>" . "\n" . '                                                                    ';
-	}
-
-	echo '                                                                </td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n" . '                                                <a href="javascript: void(0);" onClick="togglePackages()" class="btn btn-info">' . $language::get('toggle_packages') . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_group" type="submit" class="btn btn-primary" value="';
-
-if (isset($rGroup)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="reseller">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<p class="sub-header">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t";
-echo $language::get('permissions_info');
-echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '</p>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="total_allowed_gen_trials">';
-echo $language::get('allowed_trials');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="total_allowed_gen_trials" name="total_allowed_gen_trials" value="';
-
-if (isset($rGroup)) {
-	echo intval($rGroup['total_allowed_gen_trials']);
-} else {
-	echo '0';
-}
-
-echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="total_allowed_gen_in">';
-echo $language::get('allowed_trials_in');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select name="total_allowed_gen_in" id="total_allowed_gen_in" class="form-control select2" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (array('Day', 'Month') as $rOption) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
-
-	if (!isset($rGroup)) {
-	} else {
-		if ($rGroup['total_allowed_gen_in'] != strtolower($rOption)) {
-		} else {
-			echo 'selected ';
-		}
-	}
-
-	echo 'value="';
-	echo strtolower($rOption);
-	echo '">';
-	echo $rOption;
-	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="minimum_trial_credits">';
-echo $language::get('minimum_credit_for_trials');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="minimum_trial_credits" name="minimum_trial_credits" value="';
-
-if (isset($rGroup)) {
-	echo intval($rGroup['minimum_trial_credits']);
-} else {
-	echo '0';
-}
-
-echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="create_sub_resellers_price">';
-echo $language::get('subreseller_price');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="create_sub_resellers_price" name="create_sub_resellers_price" value="';
-
-if (isset($rGroup)) {
-	echo htmlspecialchars($rGroup['create_sub_resellers_price']);
-} else {
-	echo '0';
-}
-
-echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="minimum_username_length">' . $language::get('minimum_username_length') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="minimum_username_length" name="minimum_username_length" value="';
-
-
-if (isset($rGroup)) {
-	echo intval($rGroup['minimum_username_length']);
-} else {
-	echo '8';
-}
-
-echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="minimum_password_length">' . $language::get('minimum_password_length') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="minimum_password_length" name="minimum_password_length" value="';
-
-if (isset($rGroup)) {
-	echo htmlspecialchars($rGroup['minimum_password_length']);
-} else {
-	echo '8';
-}
-
-echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="allow_restrictions">' . $language::get('allow_line_restrictions') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="allow_restrictions" id="allow_restrictions" type="checkbox" ';
-
-
-if (isset($rGroup)) {
-	if (!$rGroup['allow_restrictions']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#414d5f"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="allow_change_bouquets">' . $language::get('allow_bouquet_editing') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="allow_change_bouquets" id="allow_change_bouquets" type="checkbox" ';
-
-
-if (!isset($rGroup)) {
-} else {
-	if (!$rGroup['allow_change_bouquets']) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#414d5f"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="delete_users">';
-echo $language::get('can_delete_users');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="delete_users" id="delete_users" type="checkbox" ';
-
-if (isset($rGroup)) {
-	if (!$rGroup['delete_users']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="allow_download">' . $language::get('show_m3u_download') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="allow_download" id="allow_download" type="checkbox" ';
-
-if (isset($rGroup)) {
-	if (!$rGroup['allow_download']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="can_view_vod">';
-echo $language::get('can_view_vod_streams');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="can_view_vod" id="can_view_vod" type="checkbox" ';
-
-if (isset($rGroup)) {
-	if (!$rGroup['can_view_vod']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="reseller_client_connection_logs">';
-echo $language::get('can_view_live_connections');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="reseller_client_connection_logs" id="reseller_client_connection_logs" type="checkbox" ';
-
-if (isset($rGroup)) {
-	if (!$rGroup['reseller_client_connection_logs']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="allow_change_username">' . $language::get('change_usernames') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="allow_change_username" id="allow_change_username" type="checkbox" ';
-
-if (isset($rGroup)) {
-	if (!$rGroup['allow_change_username']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="allow_change_password">' . $language::get('change_passwords') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="allow_change_password" id="allow_change_password" type="checkbox" ';
-
-if (isset($rGroup)) {
-	if (!$rGroup['allow_change_password']) {
-	} else {
-		echo 'checked ';
-	}
-} else {
-	echo 'checked ';
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n" . '                                            <li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_group" type="submit" class="btn btn-primary" value="';
-
-if (isset($rGroup)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                    <div class="tab-pane" id="subreseller">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n" . '                                                <div class="form-group row mb-4">' . "\n" . '                                                    <label class="col-md-10 col-form-label" for="create_sub_resellers">' . $language::get('allow_subreseller_creation') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2 mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="create_sub_resellers" id="create_sub_resellers" type="checkbox" ';
-
-if (!isset($rGroup)) {
-} else {
-	if (!$rGroup['create_sub_resellers']) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable-groups" class="table table-striped table-borderless mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">';
-echo $language::get('id');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('group_name') . '</th>' . "\n" . '                                                                <th class="text-center">' . $language::get('allowed_subresellers') . '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (GroupService::getAll() as $rSubGroup) {
-	if ($rSubGroup['is_reseller'] && !(isset($rGroup) && $rGroup['group_id'] == $rSubGroup['group_id'])) {
-		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
-
-		if (!is_array($rGroupIDs) || !in_array($rSubGroup['group_id'], $rGroupIDs)) {
-		} else {
-			echo " class='selected selectedfilter ui-selected'";
-		}
-
-		echo '>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-		echo $rSubGroup['group_id'];
-		echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-		echo $rSubGroup['group_name'];
-		echo '</td>' . "\n" . '                                                                <td class="text-center">' . "\n" . '                                                                    ';
-
-		if ($rSubGroup['create_sub_resellers']) {
-			echo "                                                                    <i class='text-success mdi mdi-circle'></i>" . "\n" . '                                                                    ';
-		} else {
-			echo "                                                                    <i class='text-secondary mdi mdi-circle'></i>" . "\n" . '                                                                    ';
-		}
-
-		echo '                                                                </td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-	}
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n" . '                                            <li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_group" type="submit" class="btn btn-primary" value="';
-
-if (isset($rGroup)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                    <div class="tab-pane" id="notice">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<p class="sub-header">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . "Display a notice for this group when they've logged into the Reseller Dashboard." . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</p>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n" . '                                                    <div id="notice-editor" style="height: 400px;">';
-echo $rNotice;
-echo '</div>' . "\n" . '                                                </div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n" . '                                            <li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_group" type="submit" class="btn btn-primary" value="';
-
-if (isset($rGroup)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="permissions">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<p class="sub-header">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t";
-echo $language::get('advanced_permissions_info');
-echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '</p>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable-permissions" class="table table-borderless mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead class="bg-light">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th style="display:none;">';
-echo $language::get('id');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $language::get('permission');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $language::get('description');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (PermissionReference::advanced() as $rPermission) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
-
-	if (!(isset($rGroup) && is_array($rAllowedPages) && in_array($rPermission[0], $rAllowedPages))) {
-	} else {
-		echo " class='selected selectedfilter ui-selected'";
-	}
-
-	echo '>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td style="display:none;">';
-	echo $rPermission[0];
-	echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-	echo $rPermission[1];
-	echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-	echo $rPermission[2];
-	echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n" . '                                            <li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" onClick="selectAll()" class="btn btn-info">';
-echo $language::get('select_all');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" onClick="selectNone()" class="btn btn-warning">';
-echo $language::get('deselect_all');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_group" type="submit" class="btn btn-primary" value="';
-
-if (isset($rGroup)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
+$rIsEdit       = isset($rGroup);
+$rAllowedPages = ($rIsEdit && !empty($rGroup['allowed_pages'])) ? (json_decode((string) $rGroup['allowed_pages'], true) ?: []) : [];
+// Groups that can never be modified keep their admin/reseller flags locked.
+$rCanDelete    = !$rIsEdit || !empty($rGroup['can_delete']);
+$rAdminCard    = !$rIsEdit || !empty($rGroup['can_delete']);
+?>
+
+<div class="d-flex align-items-center mb-4">
+    <a href="groups" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+    <h4 class="mb-0"><?= $rIsEdit ? $language::get('edit_group') : $language::get('add_group'); ?></h4>
+</div>
+
+<form id="group-form" autocomplete="off">
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rGroup['group_id']; ?>">
+    <?php endif; ?>
+    <input type="hidden" name="permissions_selected" id="permissions_selected" value="">
+    <input type="hidden" name="packages_selected" id="packages_selected" value="">
+    <input type="hidden" name="groups_selected" id="groups_selected" value="">
+
+    <div class="card mb-6">
+        <div class="card-header">
+            <h5 class="mb-0"><?= $language::get('details'); ?></h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-6">
+                <label class="form-label" for="group_name"><?= $language::get('group_name'); ?></label>
+                <input type="text" class="form-control" id="group_name" name="group_name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES) : ''; ?>">
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="is_admin" name="is_admin" value="1" <?= ($rIsEdit && $rGroup['is_admin']) ? 'checked' : ''; ?> <?= $rCanDelete ? '' : 'disabled'; ?>>
+                        <label class="form-check-label" for="is_admin"><?= $language::get('is_admin'); ?></label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="is_reseller" name="is_reseller" value="1" <?= ($rIsEdit && $rGroup['is_reseller']) ? 'checked' : ''; ?> <?= $rCanDelete ? '' : 'disabled'; ?>>
+                        <label class="form-check-label" for="is_reseller"><?= $language::get('is_reseller'); ?></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-6" id="card-packages">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><?= $language::get('packages'); ?></h5>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-label-secondary" id="pkg-all"><?= $language::get('select_all'); ?></button>
+                <button type="button" class="btn btn-label-secondary" id="pkg-none"><?= $language::get('deselect_all'); ?></button>
+            </div>
+        </div>
+        <div class="card-datatable table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th style="width:1%"></th>
+                        <th class="text-center"><?= $language::get('id'); ?></th>
+                        <th><?= $language::get('package_name'); ?></th>
+                        <th class="text-center"><?= $language::get('trial'); ?></th>
+                        <th class="text-center"><?= $language::get('official'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach (PackageService::getAll() as $rPackage): ?>
+                        <tr>
+                            <td>
+                                <div class="form-check">
+                                    <input class="form-check-input group-package-cb" type="checkbox" value="<?= (int) $rPackage['id']; ?>" id="grp-package-<?= (int) $rPackage['id']; ?>" <?= (is_array($rPackageIDs) && in_array($rPackage['id'], $rPackageIDs)) ? 'checked' : ''; ?>>
+                                </div>
+                            </td>
+                            <td class="text-center"><label class="form-check-label" for="grp-package-<?= (int) $rPackage['id']; ?>"><?= (int) $rPackage['id']; ?></label></td>
+                            <td><label class="form-check-label" for="grp-package-<?= (int) $rPackage['id']; ?>"><?= htmlspecialchars((string) $rPackage['package_name'], ENT_QUOTES); ?></label></td>
+                            <td class="text-center"><i class="icon-base ti tabler-circle-filled <?= $rPackage['is_trial'] ? 'text-success' : 'text-secondary'; ?>"></i></td>
+                            <td class="text-center"><i class="icon-base ti tabler-circle-filled <?= $rPackage['is_official'] ? 'text-success' : 'text-secondary'; ?>"></i></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mb-6" id="card-reseller">
+        <div class="card-header">
+            <h5 class="mb-0"><?= $language::get('permissions'); ?></h5>
+        </div>
+        <div class="card-body">
+            <p class="text-body-secondary"><?= $language::get('permissions_info'); ?></p>
+
+            <div class="row mb-6">
+                <div class="col-md-6">
+                    <label class="form-label" for="total_allowed_gen_trials"><?= $language::get('allowed_trials'); ?></label>
+                    <input type="text" inputmode="numeric" class="form-control" id="total_allowed_gen_trials" name="total_allowed_gen_trials" required value="<?= $rIsEdit ? (int) $rGroup['total_allowed_gen_trials'] : '0'; ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="total_allowed_gen_in"><?= $language::get('allowed_trials_in'); ?></label>
+                    <select name="total_allowed_gen_in" id="total_allowed_gen_in" class="form-select">
+                        <?php foreach (['Day', 'Month'] as $rOption): ?>
+                            <option value="<?= strtolower($rOption); ?>" <?= ($rIsEdit && $rGroup['total_allowed_gen_in'] == strtolower($rOption)) ? 'selected' : ''; ?>><?= $rOption; ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-6">
+                <div class="col-md-6">
+                    <label class="form-label" for="minimum_trial_credits"><?= $language::get('minimum_credit_for_trials'); ?></label>
+                    <input type="text" inputmode="numeric" class="form-control" id="minimum_trial_credits" name="minimum_trial_credits" required value="<?= $rIsEdit ? (int) $rGroup['minimum_trial_credits'] : '0'; ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="create_sub_resellers_price"><?= $language::get('subreseller_price'); ?></label>
+                    <input type="text" inputmode="numeric" class="form-control" id="create_sub_resellers_price" name="create_sub_resellers_price" required value="<?= $rIsEdit ? htmlspecialchars((string) $rGroup['create_sub_resellers_price'], ENT_QUOTES) : '0'; ?>">
+                </div>
+            </div>
+            <div class="row mb-6">
+                <div class="col-md-6">
+                    <label class="form-label" for="minimum_username_length"><?= $language::get('minimum_username_length'); ?></label>
+                    <input type="text" inputmode="numeric" class="form-control" id="minimum_username_length" name="minimum_username_length" required value="<?= $rIsEdit ? (int) $rGroup['minimum_username_length'] : '8'; ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="minimum_password_length"><?= $language::get('minimum_password_length'); ?></label>
+                    <input type="text" inputmode="numeric" class="form-control" id="minimum_password_length" name="minimum_password_length" required value="<?= $rIsEdit ? htmlspecialchars((string) $rGroup['minimum_password_length'], ENT_QUOTES) : '8'; ?>">
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <?php
+                // Reseller capability switches. Every switch except allow_change_bouquets
+                // defaults to checked when adding (matching the legacy Switchery defaults).
+                $rGroupSwitches = [
+                    'allow_restrictions'              => ['label' => $language::get('allow_line_restrictions'), 'default' => true],
+                    'allow_change_bouquets'           => ['label' => $language::get('allow_bouquet_editing'),   'default' => false],
+                    'delete_users'                    => ['label' => $language::get('can_delete_users'),        'default' => true],
+                    'allow_download'                  => ['label' => $language::get('show_m3u_download'),        'default' => true],
+                    'can_view_vod'                    => ['label' => $language::get('can_view_vod_streams'),     'default' => true],
+                    'reseller_client_connection_logs' => ['label' => $language::get('can_view_live_connections'), 'default' => true],
+                    'allow_change_username'           => ['label' => $language::get('change_usernames'),        'default' => true],
+                    'allow_change_password'           => ['label' => $language::get('change_passwords'),        'default' => true],
+                ];
+                foreach ($rGroupSwitches as $rKey => $rInfo):
+                    $rChecked = $rIsEdit ? (bool) $rGroup[$rKey] : $rInfo['default'];
+                ?>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="<?= $rKey; ?>" name="<?= $rKey; ?>" value="1" <?= $rChecked ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="<?= $rKey; ?>"><?= htmlspecialchars((string) $rInfo['label'], ENT_QUOTES); ?></label>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-6" id="card-subreseller">
+        <div class="card-header">
+            <h5 class="mb-0"><?= $language::get('subresellers'); ?></h5>
+        </div>
+        <div class="card-body">
+            <div class="form-check form-switch mb-4">
+                <input class="form-check-input" type="checkbox" id="create_sub_resellers" name="create_sub_resellers" value="1" <?= ($rIsEdit && $rGroup['create_sub_resellers']) ? 'checked' : ''; ?>>
+                <label class="form-check-label" for="create_sub_resellers"><?= $language::get('allow_subreseller_creation'); ?></label>
+            </div>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th style="width:1%"></th>
+                            <th class="text-center"><?= $language::get('id'); ?></th>
+                            <th><?= $language::get('group_name'); ?></th>
+                            <th class="text-center"><?= $language::get('allowed_subresellers'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach (GroupService::getAll() as $rSubGroup): ?>
+                            <?php if ($rSubGroup['is_reseller'] && !($rIsEdit && $rGroup['group_id'] == $rSubGroup['group_id'])): ?>
+                                <tr>
+                                    <td>
+                                        <div class="form-check">
+                                            <input class="form-check-input group-subreseller-cb" type="checkbox" value="<?= (int) $rSubGroup['group_id']; ?>" id="grp-sub-<?= (int) $rSubGroup['group_id']; ?>" <?= (is_array($rGroupIDs) && in_array($rSubGroup['group_id'], $rGroupIDs)) ? 'checked' : ''; ?>>
+                                        </div>
+                                    </td>
+                                    <td class="text-center"><label class="form-check-label" for="grp-sub-<?= (int) $rSubGroup['group_id']; ?>"><?= (int) $rSubGroup['group_id']; ?></label></td>
+                                    <td><label class="form-check-label" for="grp-sub-<?= (int) $rSubGroup['group_id']; ?>"><?= htmlspecialchars((string) $rSubGroup['group_name'], ENT_QUOTES); ?></label></td>
+                                    <td class="text-center"><i class="icon-base ti tabler-circle-filled <?= $rSubGroup['create_sub_resellers'] ? 'text-success' : 'text-secondary'; ?>"></i></td>
+                                </tr>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-6" id="card-notice">
+        <div class="card-header">
+            <h5 class="mb-0"><?= $language::get('dashboard'); ?></h5>
+        </div>
+        <div class="card-body">
+            <p class="text-body-secondary">Display a notice for this group when they've logged into the Reseller Dashboard.</p>
+            <textarea class="form-control" id="notice_html" name="notice_html" rows="8"><?= $rIsEdit ? htmlspecialchars((string) $rNotice, ENT_QUOTES) : ''; ?></textarea>
+        </div>
+    </div>
+
+    <?php if ($rAdminCard): ?>
+        <div class="card mb-6" id="card-admin">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><?= $language::get('admin_permissions'); ?></h5>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-label-secondary" id="perm-all"><?= $language::get('select_all'); ?></button>
+                    <button type="button" class="btn btn-label-secondary" id="perm-none"><?= $language::get('deselect_all'); ?></button>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-body-secondary"><?= $language::get('advanced_permissions_info'); ?></p>
+            </div>
+            <div class="card-datatable table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th><?= $language::get('permission'); ?></th>
+                            <th><?= $language::get('description'); ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach (PermissionReference::advanced() as $rPermission): ?>
+                            <tr>
+                                <td>
+                                    <div class="form-check">
+                                        <input class="form-check-input group-permission-cb" type="checkbox" value="<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>" id="grp-perm-<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>" <?= (is_array($rAllowedPages) && in_array($rPermission[0], $rAllowedPages)) ? 'checked' : ''; ?>>
+                                        <label class="form-check-label" for="grp-perm-<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rPermission[1], ENT_QUOTES); ?></label>
+                                    </div>
+                                </td>
+                                <td><?= htmlspecialchars((string) $rPermission[2], ENT_QUOTES); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="d-flex justify-content-end mb-6">
+        <button type="submit" class="btn btn-primary" id="group-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+    </div>
+</form>
+
+<?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('admin'); ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
 
-	function togglePackages() {
-		$("#datatable-packages tr").each(function() {
-			if ($(this).hasClass('selected')) {
-				$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-			} else {
-				$(this).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-			}
-		});
-	}
+        // Numeric-only guards mirroring the legacy inputFilter (/^\d*$/).
+        ['total_allowed_gen_trials', 'minimum_trial_credits', 'create_sub_resellers_price', 'minimum_username_length', 'minimum_password_length'].forEach(function(id) {
+            var el = document.getElementById(id);
+            if (el) {
+                el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+            }
+        });
 
-	function selectAll() {
-		$("#datatable-permissions tr").each(function() {
-			if (!$(this).hasClass('selected')) {
-				$(this).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-			}
-		});
-	}
+        // Select-all / deselect-all button pairs for each checkbox table.
+        var bindToggle = function(allId, noneId, cls, guard) {
+            var all = document.getElementById(allId),
+                none = document.getElementById(noneId);
+            var set = function(state) {
+                if (guard && !guard()) { return; }
+                document.querySelectorAll('.' + cls).forEach(function(c) { c.checked = state; });
+            };
+            if (all) { all.addEventListener('click', function() { set(true); }); }
+            if (none) { none.addEventListener('click', function() { set(false); }); }
+        };
+        bindToggle('pkg-all', 'pkg-none', 'group-package-cb');
+        bindToggle('perm-all', 'perm-none', 'group-permission-cb');
 
-	function selectNone() {
-		$("#datatable-permissions tr").each(function() {
-			if ($(this).hasClass('selected')) {
-				$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-			}
-		});
-	}
+        // Sub-reseller selection is only permitted while create_sub_resellers is on;
+        // turning it off clears the current selection (legacy deselectGroups()).
+        var subSwitch = document.getElementById('create_sub_resellers');
+        var subCheckboxes = function() { return document.querySelectorAll('.group-subreseller-cb'); };
+        var applySubState = function() {
+            var on = subSwitch.checked;
+            subCheckboxes().forEach(function(c) {
+                c.disabled = !on;
+                if (!on) { c.checked = false; }
+            });
+        };
+        subSwitch.addEventListener('change', applySubState);
+        applySubState();
 
-	function deselectGroups() {
-		$("#datatable-groups tr").each(function() {
-			if ($(this).hasClass('selected')) {
-				$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-			}
-		});
-	}
+        // Card visibility mirrors the legacy validatePermissions() tab logic.
+        var isAdmin = document.getElementById('is_admin');
+        var isReseller = document.getElementById('is_reseller');
+        var show = function(id, visible) {
+            var el = document.getElementById(id);
+            if (el) { el.hidden = !visible; }
+        };
+        var validatePermissions = function() {
+            show('card-admin', isAdmin.checked);
+            var res = isReseller.checked;
+            show('card-reseller', res);
+            show('card-packages', res);
+            show('card-notice', res);
+            // Subresellers card is always visible (legacy keeps subreseller_tab shown).
+            if (!res) {
+                subCheckboxes().forEach(function(c) { c.checked = false; });
+            }
+        };
+        isAdmin.addEventListener('change', validatePermissions);
+        isReseller.addEventListener('change', validatePermissions);
+        validatePermissions();
 
-	function validatePermissions() {
-		if ($("#is_admin").is(":checked")) {
-			$("#admin_tab").show();
-		} else {
-			$("#admin_tab").hide();
-		}
-		if ($("#is_reseller").is(":checked")) {
-			$("#reseller_tab").show();
-			$("#subreseller_tab").show();
-			$("#package_tab").show();
-			$("#notice_tab").show();
-		} else {
-			$("#reseller_tab").hide();
-			$("#subreseller_tab").show();
-			$("#package_tab").hide();
-			$("#notice_tab").hide();
-			deselectGroups();
-		}
-	}
-	$(document).ready(function() {
-		$('select.select2').select2({
-			width: '100%'
-		})
-		$("#datatable-permissions").DataTable({
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			order: [
-				[1, "asc"]
-			],
-			paging: false,
-			bInfo: false,
-			searching: false
-		});
-		$("#datatable-permissions").selectable({
-			filter: 'tr',
-			selected: function(event, ui) {
-				if ($(ui.selected).hasClass('selectedfilter')) {
-					$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-				} else {
-					$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-				}
-			}
-		});
-		$("#datatable-permissions_wrapper").css("width", "100%");
-		$("#datatable-permissions").css("width", "100%");
-		$("#total_allowed_gen_trials").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#minimum_trial_credits").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#create_sub_resellers_price").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#minimum_username_length").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#minimum_password_length").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#is_admin").on("change", function() {
-			validatePermissions();
-		});
-		$("#is_reseller").on("change", function() {
-			validatePermissions();
-		});
-		$("#datatable-packages").DataTable({
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0]
-			}],
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			paging: false,
-			bInfo: false,
-			searching: false
-		});
-		$("#datatable-packages").selectable({
-			filter: 'tr',
-			selected: function(event, ui) {
-				if ($(ui.selected).hasClass('selectedfilter')) {
-					$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-				} else {
-					$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-				}
-			}
-		});
-		$("#datatable-groups").DataTable({
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0]
-			}],
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			paging: false,
-			bInfo: false,
-			searching: false
-		});
-		$("#datatable-groups").selectable({
-			filter: 'tr',
-			selected: function(event, ui) {
-				if (!window.rSwitches["create_sub_resellers"].isChecked()) {
-					return;
-				}
-				if ($(ui.selected).hasClass('selectedfilter')) {
-					$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-				} else {
-					$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-				}
-			}
-		});
-		$("#create_sub_resellers").change(function() {
-			if (!window.rSwitches["create_sub_resellers"].isChecked()) {
-				deselectGroups();
-			}
-		});
-		validatePermissions();
-		var quill = new Quill("#notice-editor", {
-			theme: "snow",
-			modules: {
-				toolbar: [
-					[{
-						font: []
-					}],
-					["bold", "italic", "underline", "strike"],
-					[{
-						color: []
-					}],
-					[{
-						header: [!1, 1, 2, 3, 4, 5, 6]
-					}],
-					[{
-						list: "ordered"
-					}, {
-						list: "bullet"
-					}, {
-						indent: "-1"
-					}, {
-						indent: "+1"
-					}],
-					["direction", {
-						align: []
-					}]
-				]
-			}
-		});
-		$("form").submit(function(e) {
-			e.preventDefault();
-			var rPermissions = [];
-			$("#datatable-permissions tr.selected").each(function() {
-				rPermissions.push($(this).find("td:eq(0)").text());
-			});
-			$("#permissions_selected").val(JSON.stringify(rPermissions));
-			var rPackages = [];
-			$("#datatable-packages tr.selected").each(function() {
-				rPackages.push($(this).find("td:eq(0)").text());
-			});
-			$("#packages_selected").val(JSON.stringify(rPackages));
-			var rGroups = [];
-			$("#datatable-groups tr.selected").each(function() {
-				rGroups.push($(this).find("td:eq(0)").text());
-			});
-			$("#groups_selected").val(JSON.stringify(rGroups));
-			$(':input[type="submit"]').prop('disabled', true);
-			$("#notice_html").val(quill.root.innerHTML);
-			submitForm(window.rCurrentPage, new FormData($("form")[0]));
-		});
-	});
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Collect checked ids as a JSON string array into the matching hidden input.
+        var collect = function(cls) {
+            var ids = [];
+            document.querySelectorAll('.' + cls + ':checked').forEach(function(c) { ids.push(c.value); });
+            return JSON.stringify(ids);
+        };
+
+        // Submit → post.php?action=group. notice_html posts directly via the textarea.
+        document.getElementById('group-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            document.getElementById('permissions_selected').value = collect('group-permission-cb');
+            document.getElementById('packages_selected').value = collect('group-package-cb');
+            document.getElementById('groups_selected').value = collect('group-subreseller-cb');
+            var btn = document.getElementById('group-submit');
+            btn.disabled = true;
+            fetch('post.php?action=group', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) { window.location.href = dt.location || 'groups'; return; }
+                    btn.disabled = false;
+                    alert(errText);
+                })
+                .catch(function() { btn.disabled = false; alert(errText); });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
