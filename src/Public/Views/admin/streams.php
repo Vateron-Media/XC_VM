@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Live Streams (Vuexy). The panel's most complex serverSide table. Clean-JSON
+ * Live Streams (Bootstrap 5). The panel's most complex serverSide table. Clean-JSON
  * pattern: TableController::handleStreams resolves each stream's status
  * (StatusBadge::stream code -1..7), live uptime, convert-to-channel encode
  * progress, restart-fails indicator, current server/source, client count, EPG

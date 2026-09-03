@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Provider (Supplier) add / edit (Vuexy). Full-page form reached from the
- * providers table (href="provider?id=X"). Vuexy vertical layout: a Details card
+ * Provider (Supplier) add / edit (Bootstrap 5). Full-page form reached from the
+ * providers table (href="provider?id=X"). Bootstrap 5 vertical layout: a Details card
  * with the connection settings, and — when editing — Available Streams / Movies
  * cards backed by serverSide datatables-bs5 tables that proxy the provider's
  * Xtream API (./api?action=provider_streams) and offer per-row import + copy-URL.

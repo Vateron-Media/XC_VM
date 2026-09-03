@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Radio stations (Vuexy). Clean-JSON table pattern: TableController::handleRadios
+ * Radio stations (Bootstrap 5). Clean-JSON table pattern: TableController::handleRadios
  * resolves the live-stream status (StatusBadge::stream code), category, server
  * info, client count, uptime and codec stream-info server-side; this page renders
  * the cells client-side. Bulk-select (action=multi&type=radio), row actions

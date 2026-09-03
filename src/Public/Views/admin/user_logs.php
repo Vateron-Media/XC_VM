@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Reseller logs (Vuexy). Clean-JSON table pattern:
+ * Reseller logs (Bootstrap 5). Clean-JSON table pattern:
  * TableController::handleRegUserLogs returns structured rows (server-composed
  * action text, permission-gated owner link, resolved target line/user/mag/enigma
  * or a deleted-info fallback) and this page renders the cells client-side via
@@ -27,7 +27,7 @@ endif;
     <div class="card-header">
         <h5 class="card-title mb-0"><?= $language::get('reseller_logs'); ?></h5>
     </div>
-    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
     <div class="card-body border-bottom">
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-4">

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * On-Demand scanner (Vuexy). Clean-JSON table pattern: the data gathering in
+ * On-Demand scanner (Bootstrap 5). Clean-JSON table pattern: the data gathering in
  * TableController::handleOndemand (with the up/down check aggregation) is
  * unchanged; only the row shape is now a structured JSON object. This page
  * renders the cells client-side via datatables-bs5 columns[].render. Server /
@@ -27,7 +27,7 @@ endif;
     <div class="card-header">
         <h5 class="card-title mb-0"><?= $language::get('ondemand_scanner'); ?></h5>
     </div>
-    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
     <div class="card-body border-bottom">
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-4">

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Packages (Vuexy). Client-side table: PackageService::getAll provides the rows
+ * Packages (Bootstrap 5). Client-side table: PackageService::getAll provides the rows
  * (add-ons are skipped), rendered server-side into the DOM, with a client-side
  * datatables-bs5 table. Delete via api?action=package&sub=delete.
  */

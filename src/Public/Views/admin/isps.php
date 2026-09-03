@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Blocked ISPs (Vuexy). Client-side table: BlocklistService::getAllISPs provides
+ * Blocked ISPs (Bootstrap 5). Client-side table: BlocklistService::getAllISPs provides
  * the rows, rendered server-side into the DOM, with a client-side datatables-bs5
  * table for search / pagination / Responsive. Delete via api?action=isp&sub=delete.
  */

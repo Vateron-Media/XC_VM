@@ -387,7 +387,7 @@ class StatsAjaxController extends BaseAjaxController {
     }
 
     /**
-     * action=save_ui_prefs — persist the current admin's Vuexy customizer state.
+     * action=save_ui_prefs — persist the current admin's Bootstrap 5 customizer state.
      *
      * Body is a JSON object of whitelisted settings (theme/color/skin/layout…).
      * Written only for the logged-in admin ($rUserInfo['id'], never a client id);

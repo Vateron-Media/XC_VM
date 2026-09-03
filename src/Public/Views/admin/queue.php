@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Encoding queue (Vuexy). Clean-JSON table pattern: TableController::handleQueue
+ * Encoding queue (Bootstrap 5). Clean-JSON table pattern: TableController::handleQueue
  * returns structured rows (permission-gated stream/server links resolved into url
  * fields, plus position + in_progress flag) and this page renders the cells
  * client-side via datatables-bs5 columns[].render. Stop/delete actions wired

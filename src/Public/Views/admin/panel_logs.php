@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Panel logs (Vuexy). First page on the clean-JSON table pattern: the ./table
+ * Panel logs (Bootstrap 5). First page on the clean-JSON table pattern: the ./table
  * endpoint (TableController::handlePanelLogs) returns structured rows and this
  * page renders the cells client-side via datatables-bs5 columns[].render — no
  * server-rendered HTML, no positional columns.

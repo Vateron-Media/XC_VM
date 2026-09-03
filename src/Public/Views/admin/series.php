@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Series (Vuexy). Clean-JSON table pattern: TableController::handleSeries returns
+ * Series (Bootstrap 5). Clean-JSON table pattern: TableController::handleSeries returns
  * structured rows (category resolved server-side) and this page renders the cells
  * client-side via datatables-bs5 columns[].render. Establishes the management-
  * table bulk-select pattern: a checkbox column + select-all + a bulk toolbar that

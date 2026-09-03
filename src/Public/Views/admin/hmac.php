@@ -1,8 +1,8 @@
 <?php
 
 /**
- * HMAC key add / edit (Vuexy). Full-page form reached from the hmacs table
- * (href="hmac?id=X"). Vuexy vertical layout. The key is generated client-side
+ * HMAC key add / edit (Bootstrap 5). Full-page form reached from the hmacs table
+ * (href="hmac?id=X"). Bootstrap 5 vertical layout. The key is generated client-side
  * (shown once — it is stored encrypted). Posts to post.php?action=hmac via fetch;
  * on success returns to the hmacs list.
  */

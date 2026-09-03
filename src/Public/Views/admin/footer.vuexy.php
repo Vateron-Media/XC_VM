@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Vuexy (Bootstrap 5) admin footer — closes the Vertical Menu shell opened in
- * header.vuexy.php and loads the core Vuexy script set.
+ * Bootstrap 5 admin footer — closes the Vertical Menu shell opened in
+ * header.vuexy.php and loads the core Bootstrap 5 script set.
  *
  * Reached only for pages opted in via xc_admin_use_vuexy() (modal/setup pages
  * are routed to the legacy footer.php upstream). Views call

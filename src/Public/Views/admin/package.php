@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Package add / edit (Vuexy). Full-page form reached from the packages table
- * (href="package?id=X"). Vuexy vertical layout — each former wizard tab becomes
+ * Package add / edit (Bootstrap 5). Full-page form reached from the packages table
+ * (href="package?id=X"). Bootstrap 5 vertical layout — each former wizard tab becomes
  * its own section card: Details (name + trial/standard pricing), Options (device
  * flags, forced connection, output formats, forced country), Groups (reseller
  * group checkboxes) and Bouquets (bouquet checkboxes). The Groups / Bouquets

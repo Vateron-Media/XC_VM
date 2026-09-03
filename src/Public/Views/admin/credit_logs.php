@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Credit logs (Vuexy). Clean-JSON table pattern: TableController::handleCreditsLog
+ * Credit logs (Bootstrap 5). Clean-JSON table pattern: TableController::handleCreditsLog
  * returns structured rows (permission-gated owner/target links resolved into url
  * fields) and this page renders the cells client-side via datatables-bs5
  * columns[].render. Reseller (select2 ajax) + date-range filters post extra
@@ -25,7 +25,7 @@ endif;
     <div class="card-header">
         <h5 class="card-title mb-0"><?= $language::get('credit_logs'); ?></h5>
     </div>
-    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
     <div class="card-body border-bottom">
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-4">

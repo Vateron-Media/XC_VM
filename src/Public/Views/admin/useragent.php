@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Block User-Agent (Vuexy). Full-page form reached from the useragents table
- * (href="useragent?id=X"). Vuexy vertical layout. Posts to post.php?action=useragent
+ * Block User-Agent (Bootstrap 5). Full-page form reached from the useragents table
+ * (href="useragent?id=X"). Bootstrap 5 vertical layout. Posts to post.php?action=useragent
  * via fetch; on success returns to the useragents list.
  */
 

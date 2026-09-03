@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Login logs (Vuexy). Clean-JSON table pattern: TableController::handleLoginLogs
+ * Login logs (Bootstrap 5). Clean-JSON table pattern: TableController::handleLoginLogs
  * returns structured rows and this page renders the cells client-side via
  * datatables-bs5 columns[].render — no server-rendered HTML, no positional
  * columns. IP whois lookup and the block-IP action are wired inline (no legacy

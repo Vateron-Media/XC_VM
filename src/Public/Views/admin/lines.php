@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Lines (Vuexy). The panel's largest management table. Clean-JSON pattern:
+ * Lines (Bootstrap 5). The panel's largest management table. Clean-JSON pattern:
  * TableController::handleLines resolves each line's status, live-connection count,
  * current stream and owner server-side; this page renders the status/online/trial/
  * restreamer dots, connection badges, expiration and last-connection cells and the

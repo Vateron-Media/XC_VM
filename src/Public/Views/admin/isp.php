@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Block ISP (Vuexy). Full-page form reached from the isps table (href="isp?id=X").
- * Vuexy vertical layout. Posts to post.php?action=isp via fetch; on success
+ * Block ISP (Bootstrap 5). Full-page form reached from the isps table (href="isp?id=X").
+ * Bootstrap 5 vertical layout. Posts to post.php?action=isp via fetch; on success
  * returns to the isps list.
  */
 

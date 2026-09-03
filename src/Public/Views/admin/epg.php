@@ -1,8 +1,8 @@
 <?php
 
 /**
- * EPG source add / edit (Vuexy). Full-page form reached from the epgs table
- * (href="epg?id=X"). Vuexy vertical layout — each section is its own card with a
+ * EPG source add / edit (Bootstrap 5). Full-page form reached from the epgs table
+ * (href="epg?id=X"). Bootstrap 5 vertical layout — each section is its own card with a
  * card-header title, labels stacked above full-width fields. The form posts to
  * post.php?action=epg (the legacy PostController path) via fetch; on success it
  * returns to the epgs list. When editing, the parsed channel list is shown in a

@@ -1,8 +1,8 @@
 <?php
 
 /**
- * RTMP IP add / edit (Vuexy). Full-page form reached from the rtmp_ips table
- * (href="rtmp_ip?id=X"). Vuexy vertical layout. Posts to post.php?action=rtmp_ip
+ * RTMP IP add / edit (Bootstrap 5). Full-page form reached from the rtmp_ips table
+ * (href="rtmp_ip?id=X"). Bootstrap 5 vertical layout. Posts to post.php?action=rtmp_ip
  * via fetch; on success returns to the rtmp_ips list.
  */
 

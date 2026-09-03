@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Blocked ASNs (Vuexy). Clean-JSON table pattern: TableController::handleAsns
+ * Blocked ASNs (Bootstrap 5). Clean-JSON table pattern: TableController::handleAsns
  * returns structured rows and this page renders the cells client-side via
  * datatables-bs5 columns[].render (country flag, status badge, block/allow
  * toggle). Type + status filters post extra ajax params.

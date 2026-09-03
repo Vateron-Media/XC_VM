@@ -1,7 +1,7 @@
 <?php
 
 /**
- * User groups (Vuexy). Client-side table: GroupService::getAll provides the rows,
+ * User groups (Bootstrap 5). Client-side table: GroupService::getAll provides the rows,
  * rendered server-side into the DOM, with a client-side datatables-bs5 table.
  * Delete via api?action=group&sub=delete.
  */

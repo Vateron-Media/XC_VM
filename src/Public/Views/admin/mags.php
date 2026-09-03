@@ -1,7 +1,7 @@
 <?php
 
 /**
- * MAG devices (Vuexy). Clean-JSON table pattern: TableController::handleMags
+ * MAG devices (Bootstrap 5). Clean-JSON table pattern: TableController::handleMags
  * returns structured rows (connection / last-activity gathering resolved
  * server-side) and this page renders the cells client-side via datatables-bs5
  * columns[].render. Bulk-select (action=multi&type=mag), row actions (MAG event,

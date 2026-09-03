@@ -1,7 +1,7 @@
 <?php
 
 /**
- * EPG sources (Vuexy). Client-side table: EpgService::getAll provides the rows,
+ * EPG sources (Bootstrap 5). Client-side table: EpgService::getAll provides the rows,
  * rendered server-side into the DOM, with a client-side datatables-bs5 table.
  * Force-reload / delete via api?action=epg&sub=reload|delete.
  */

@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Member group add / edit (Vuexy). Full-page form reached from the groups table
- * (href="group?id=X"). Vuexy vertical layout — each former wizard tab becomes its
+ * Member group add / edit (Bootstrap 5). Full-page form reached from the groups table
+ * (href="group?id=X"). Bootstrap 5 vertical layout — each former wizard tab becomes its
  * own section card: Details (name + admin/reseller switches), Packages (package
  * checkboxes), Permissions (reseller limits + capability switches), Subresellers
  * (create switch + sub-reseller group checkboxes), Dashboard notice (textarea) and

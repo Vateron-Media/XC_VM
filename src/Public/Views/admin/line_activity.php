@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Activity logs (Vuexy). Clean-JSON table pattern:
+ * Activity logs (Bootstrap 5). Clean-JSON table pattern:
  * TableController::handleLineActivity returns structured rows (user/device label
  * + link, stream/server links, proxy name, geoip country, raw timestamps +
  * duration seconds) and this page renders the cells client-side via
@@ -28,7 +28,7 @@ endif;
     <div class="card-header">
         <h5 class="card-title mb-0"><?= $language::get('activity_logs'); ?></h5>
     </div>
-    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
     <div class="card-body border-bottom">
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-3">

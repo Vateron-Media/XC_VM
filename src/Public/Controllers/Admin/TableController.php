@@ -246,7 +246,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? '') === "desc" ? "desc" : "asc";
-		// Leading false, false = Responsive control + bulk-select checkbox columns (Vuexy).
+		// Leading false, false = Responsive control + bulk-select checkbox columns (Bootstrap 5).
 		$rOrder = [false, false, "`lines`.`id`", "`lines`.`username`", "`lines`.`password`", "`lines`.`member_id`", "`lines`.`enabled` - `lines`.`admin_enabled`", "`active_connections` > 0", "`lines`.`is_trial`", "`lines`.`is_restreamer`", "`active_connections`", "`lines`.`max_connections`", "`lines`.`exp_date`", "`active_connections` " . $rOrderDirection . ", `last_activity`", false];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
@@ -570,7 +570,7 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
-						// Clean JSON for the Vuexy mags page (connection/last-activity gathering above unchanged).
+						// Clean JSON for the Bootstrap 5 mags page (connection/last-activity gathering above unchanged).
 						$rNotes = trim(($rRow["admin_notes"] ?? "") . "\n" . ($rRow["reseller_notes"] ?? ""));
 						$rReturn["data"][] = [
 							"mag_id"              => (int) $rRow["mag_id"],
@@ -765,7 +765,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("live");
-		// Leading false, false = Responsive control + bulk-select checkbox columns (Vuexy).
+		// Leading false, false = Responsive control + bulk-select checkbox columns (Bootstrap 5).
 		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
@@ -1167,7 +1167,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("radio");
-		// Leading false, false = the Vuexy Responsive control + bulk-select columns.
+		// Leading false, false = the Bootstrap 5 Responsive control + bulk-select columns.
 		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`server_name`", "`clients`", "`streams_servers`.`stream_started`", false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
@@ -1369,7 +1369,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("movie");
-		// Leading false, false = the Vuexy Responsive control + bulk-select columns.
+		// Leading false, false = the Bootstrap 5 Responsive control + bulk-select columns.
 		$rOrder = [false, false, "`streams`.`id`", false, "`streams`.`stream_display_name`", "`server_name`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
@@ -2011,7 +2011,7 @@ class TableController extends BaseAdminController {
 			$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
 		} else {
 			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			// Leading false = the Vuexy Responsive control column (client index 0);
+			// Leading false = the Bootstrap 5 Responsive control column (client index 0);
 			// index 1 is the hidden activity_id column, so the visible columns line up.
 			$rOrder = [false, "`lines_live`.`activity_id`", "`lines_live`.`divergence`", "`username` " . $rOrderDirection . ", `lines_live`.`hmac_identifier`", "`streams`.`stream_display_name`", "`server_name`", "`lines_live`.`user_agent`", "`lines_live`.`isp`", "`lines_live`.`user_ip`", "UNIX_TIMESTAMP() - `lines_live`.`date_start`", "`lines_live`.`container`", "`lines`.`is_restreamer`", false];
 			if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
@@ -2087,7 +2087,7 @@ class TableController extends BaseAdminController {
 				if ($rIsAPI) {
 					$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 				} else {
-					// Clean JSON for the Vuexy live_connections page (data gathering above is unchanged).
+					// Clean JSON for the Bootstrap 5 live_connections page (data gathering above is unchanged).
 					$rIsHmac = !empty($rRow["hmac_id"]);
 					$rUserUrl = null;
 					if ($rIsHmac) {
@@ -3204,7 +3204,7 @@ class TableController extends BaseAdminController {
 		if (!Authorization::check("adv", "mng_regusers")) {
 			exit;
 		}
-		// Leading false = the Vuexy Responsive control column (client index 0).
+		// Leading false = the Bootstrap 5 Responsive control column (client index 0).
 		$rOrder = [false, "`users`.`id`", "`users`.`username`", "`users`.`owner_id`", "`users`.`ip`", "`users`.`status`", "`users`.`member_group_id`", "`users`.`credits`", false, false, false, false, "`users`.`last_login`", false];
 		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
@@ -3295,7 +3295,7 @@ class TableController extends BaseAdminController {
 					if ($rIsAPI) {
 						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
 					} else {
-						// Clean JSON for the Vuexy users page (batch count queries above unchanged).
+						// Clean JSON for the Bootstrap 5 users page (batch count queries above unchanged).
 						$rReturn["data"][] = [
 							"id"              => (int) $rRow["id"],
 							"username"        => $rRow["username"],
@@ -3381,7 +3381,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("series");
-		// Leading false, false = the Vuexy Responsive control + bulk-select columns.
+		// Leading false, false = the Bootstrap 5 Responsive control + bulk-select columns.
 		$rOrder = [false, false, "`streams_series`.`id`", "`streams_series`.`cover`", "`streams_series`.`title`", "`streams_series`.`category_id`", "`latest_season`", "`episode_count`", false, "`streams_series`.`release_date`", "`streams_series`.`last_modified`", false];
 		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
 		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
@@ -5084,7 +5084,7 @@ class TableController extends BaseAdminController {
 			exit;
 		}
 		$rCategories = CategoryService::getAllByType("live");
-		// Leading false = the Vuexy Responsive control column (client index 0).
+		// Leading false = the Bootstrap 5 Responsive control column (client index 0).
 		$rOrder = [false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`server_id`", "`ondemand_check`.`status`", "`ondemand_check`.`response`", "`ondemand_check`.`resolution`", "`ondemand_check`.`date`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);

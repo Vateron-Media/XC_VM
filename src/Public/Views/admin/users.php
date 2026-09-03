@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Registered users / resellers (Vuexy). Clean-JSON table pattern:
+ * Registered users / resellers (Bootstrap 5). Clean-JSON table pattern:
  * TableController::handleRegUsers returns structured rows (batch line/mag/e2 and
  * group counts resolved server-side) and this page renders the cells client-side
  * via datatables-bs5 columns[].render. Row actions (edit modal, adjust credits,

@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Stream rank (Vuexy). This table is client-side: the controller passes the
+ * Stream rank (Bootstrap 5). This table is client-side: the controller passes the
  * precomputed $rRows (ranked by watch time for the chosen $rPeriod) into the
  * view, so the rows are rendered server-side into the DOM and a client-side
  * datatables-bs5 table handles search / pagination / Responsive. The period

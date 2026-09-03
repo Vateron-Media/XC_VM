@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Client logs (Vuexy). Clean-JSON table pattern: TableController::handleClientLogs
+ * Client logs (Bootstrap 5). Clean-JSON table pattern: TableController::handleClientLogs
  * returns structured rows (permission-gated links resolved into url fields, the
  * reason label from ClientFilter) and this page renders the cells client-side via
  * datatables-bs5 columns[].render. Reason + date-range filters post extra ajax
@@ -35,7 +35,7 @@ endif;
     <div class="card-header">
         <h5 class="card-title mb-0"><?= $language::get('client_logs'); ?></h5>
     </div>
-    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
     <div class="card-body border-bottom">
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-4">

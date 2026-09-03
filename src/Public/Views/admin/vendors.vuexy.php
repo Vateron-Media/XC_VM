@@ -1,17 +1,17 @@
 <?php
 
 /**
- * Vuexy vendor bundle manifest + emit helpers.
+ * Bootstrap 5 vendor bundle manifest + emit helpers.
  *
- * Maps a logical bundle name to the Vuexy (Bootstrap 5) plugin CSS/JS that a
+ * Maps a logical bundle name to the Bootstrap 5 plugin CSS/JS that a
  * page needs, and emits the <link>/<script> tags. Only bundles whose libraries
  * are vendored under assets/new/vendor/libs/ are listed; add more here as the
  * matching lib is copied in.
  *
  * Usage:
  *   - A default common bundle (tables + selects + pickers + alerts) loads on
- *     every Vuexy page. A controller can request extras BEFORE render():
- *         $GLOBALS['xmVuexyVendors'] = ['apexcharts'];
+ *     every Bootstrap 5 page. A controller can request extras BEFORE render():
+ *         $GLOBALS['xmBootstrap 5Vendors'] = ['apexcharts'];
  *   - header.vuexy.php calls xc_vuexy_vendor_css(); footer.vuexy.php calls
  *     xc_vuexy_vendor_js(), both via xc_vuexy_vendors_wanted().
  *
@@ -66,12 +66,12 @@ if (!function_exists('xc_vuexy_vendor_manifest')) {
 if (!function_exists('xc_vuexy_vendors_wanted')) {
     /**
      * Bundles to load for the current page: the always-on common set plus any
-     * per-page extras a controller declared via $GLOBALS['xmVuexyVendors'].
+     * per-page extras a controller declared via $GLOBALS['xmBootstrap 5Vendors'].
      * Unknown names are dropped.
      */
     function xc_vuexy_vendors_wanted(): array {
         $default = ['datatables', 'select2', 'flatpickr', 'sweetalert2'];
-        $extra   = (array) ($GLOBALS['xmVuexyVendors'] ?? []);
+        $extra   = (array) ($GLOBALS['xmBootstrap 5Vendors'] ?? []);
         $known   = array_keys(xc_vuexy_vendor_manifest());
         return array_values(array_intersect($known, array_unique(array_merge($default, $extra))));
     }

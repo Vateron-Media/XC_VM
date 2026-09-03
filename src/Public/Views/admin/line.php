@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Line add / edit (Vuexy). Reached two ways: full-page from the lines table
- * ("Add Line" → line) inside the normal Vuexy shell, and as an iframe modal
- * ("Edit" from the lines table → line?id=X&modal=1) inside the Vuexy modal shell.
- * Vuexy vertical layout — each former wizard tab becomes its own section card:
+ * Line add / edit (Bootstrap 5). Reached two ways: full-page from the lines table
+ * ("Add Line" → line) inside the normal Bootstrap 5 shell, and as an iframe modal
+ * ("Edit" from the lines table → line?id=X&modal=1) inside the Bootstrap 5 modal shell.
+ * Bootstrap 5 vertical layout — each former wizard tab becomes its own section card:
  * Details (credentials, owner, expiry, connections, contact, notes), Advanced
  * (forced connection, device/behaviour switches, ISP, access token, forced
  * country, output formats), Restrictions (allowed-IP / allowed-UA whitelists +

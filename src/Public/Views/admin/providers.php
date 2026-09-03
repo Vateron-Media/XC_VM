@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Stream providers (Vuexy). Client-side table: ProviderService::getAll provides
+ * Stream providers (Bootstrap 5). Client-side table: ProviderService::getAll provides
  * the rows, rendered server-side into the DOM, with a client-side datatables-bs5
  * table. Force-reload / delete via api?action=provider&sub=reload|delete.
  */

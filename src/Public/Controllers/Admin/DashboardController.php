@@ -96,14 +96,14 @@ class DashboardController extends BaseAdminController {
         // DB / filesystem probes). Each item: ['state', 'title', 'text'].
         $rStatusItems = $this->buildStatusItems($db, $rOrderedServers);
 
-        // The Vuexy dashboard renders CPU/network/connection charts with ApexCharts,
+        // The Bootstrap 5 dashboard renders CPU/network/connection charts with ApexCharts,
         // and (when enabled and there is data) a jsvectormap world map.
         $rVendors = ['apexcharts'];
         if (SettingsManager::get('save_closed_connection') && SettingsManager::get('dashboard_map') && $rConnectionCount > 0) {
             $rVendors[] = 'jsvectormap';
         }
-        $GLOBALS['xmVuexyVendors'] = array_values(array_unique(array_merge(
-            (array) ($GLOBALS['xmVuexyVendors'] ?? []),
+        $GLOBALS['xmBootstrap 5Vendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmBootstrap 5Vendors'] ?? []),
             $rVendors
         )));
 

@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Block IP (Vuexy). Full-page form reached from the ips table (href="ip").
- * Vuexy vertical layout: a single card with stacked fields. Posts to
+ * Block IP (Bootstrap 5). Full-page form reached from the ips table (href="ip").
+ * Bootstrap 5 vertical layout: a single card with stacked fields. Posts to
  * post.php?action=ip via fetch; on success returns to the ips list.
  */
 ?>

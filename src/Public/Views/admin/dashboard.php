@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Admin Dashboard (Vuexy). Rebuilt clean on the current backend:
+ * Admin Dashboard (Bootstrap 5). Rebuilt clean on the current backend:
  *  - Service-Status probes are prepared by DashboardController ($rStatusItems).
  *  - Live data keeps the legacy contract: ./api?action=stats (1s) and
  *    ./api?action=graph_stats (60s); DOM ids/classes are unchanged so the

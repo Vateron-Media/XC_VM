@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Enigma2 devices (Vuexy). Clean-JSON table pattern: TableController::handleEnigmas
+ * Enigma2 devices (Bootstrap 5). Clean-JSON table pattern: TableController::handleEnigmas
  * returns structured rows (connection / last-activity gathering server-side) and
  * this page renders the cells client-side via datatables-bs5 columns[].render.
  * Bulk-select (action=multi&type=enigma), row actions (convert, fingerprint, edit

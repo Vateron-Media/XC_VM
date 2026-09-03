@@ -1,7 +1,7 @@
 <?php
 
 /**
- * System (MySQL syslog) logs (Vuexy). Clean-JSON table pattern:
+ * System (MySQL syslog) logs (Bootstrap 5). Clean-JSON table pattern:
  * TableController::handleMysqlSyslog returns structured rows and this page
  * renders the cells client-side via datatables-bs5 columns[].render. IP whois +
  * block-IP action are wired inline (no legacy listings.js / jBox).

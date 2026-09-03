@@ -1,7 +1,7 @@
 <?php
 
 /**
- * HMAC keys (Vuexy). Client-side table: AuthRepository::getAllHMAC provides the
+ * HMAC keys (Bootstrap 5). Client-side table: AuthRepository::getAllHMAC provides the
  * rows, rendered server-side into the DOM, with a client-side datatables-bs5
  * table. Delete via api?action=hmac&sub=delete.
  */

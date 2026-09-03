@@ -1,13 +1,13 @@
 <?php
 
 /**
- * Vuexy vertical sidebar menu, driven by NavbarRegistry.
+ * Bootstrap 5 vertical sidebar menu, driven by NavbarRegistry.
  *
  * Included by header.vuexy.php (which defines the shared _xc_nav_visible() /
  * _xc_nav_label() helpers). Renders the same registry tree the legacy top
  * navigation uses, so core + module nav entries appear automatically.
  *
- * The tree is produced by XcVuexyMenuBuilder in a single pass: each node
+ * The tree is produced by XcBootstrap 5MenuBuilder in a single pass: each node
  * renders its own subtree first and reports back whether it (or a descendant)
  * is the current page, so ancestors can mark themselves `open active` without
  * re-walking the tree.
@@ -22,7 +22,7 @@ if (count(get_included_files()) == 1) {
 }
 
 /**
- * Map a registry nav icon to a bundled Vuexy (iconify Tabler) icon so every
+ * Map a registry nav icon to a bundled Bootstrap 5 (iconify Tabler) icon so every
  * sidebar glyph renders in one system: `ti tabler-*`. Legacy FontAwesome
  * (`fas fa-*`) / Feather (`fe-*`) classes from CoreNavbarProvider and modules
  * are translated here; the builder wraps the result in `menu-icon icon-base`.
@@ -70,14 +70,14 @@ if (!function_exists('_xc_vuexy_icon')) {
 }
 
 /**
- * Builds the Vuexy vertical menu markup from the NavbarRegistry tree.
+ * Builds the Bootstrap 5 vertical menu markup from the NavbarRegistry tree.
  *
  * Every render*() returns [html, isActive] so the active leaf and its ancestor
  * groups are resolved in one traversal. Only depth-0 items carry an icon, and
- * top-level dividers that carry a label become Vuexy section headers.
+ * top-level dividers that carry a label become Bootstrap 5 section headers.
  */
-if (!class_exists('XcVuexyMenuBuilder')) {
-    final class XcVuexyMenuBuilder {
+if (!class_exists('XcBootstrap 5MenuBuilder')) {
+    final class XcBootstrap 5MenuBuilder {
         public function __construct(
             private bool $mobile,
             private array $settings,
@@ -90,7 +90,7 @@ if (!class_exists('XcVuexyMenuBuilder')) {
          * Full contents of <ul class="menu-inner"> for the registry top level.
          *
          * $sections is an ordered list of ['title' => string, 'keys' => string[]]
-         * groups; each renders a Vuexy `menu-header` (when titled) followed by
+         * groups; each renders a Bootstrap 5 `menu-header` (when titled) followed by
          * the listed top-level items in the given order. Any visible top-level
          * item not placed in a section — e.g. one a module registered — falls
          * into a trailing catch-all group, so nothing silently disappears.
@@ -137,7 +137,7 @@ if (!class_exists('XcVuexyMenuBuilder')) {
             return $html;
         }
 
-        /** A Vuexy sidebar section caption (empty title renders nothing). */
+        /** A Bootstrap 5 sidebar section caption (empty title renders nothing). */
         private function sectionHeader(string $title): string {
             if ($title === '') {
                 return '';
@@ -213,10 +213,10 @@ if (!class_exists('XcVuexyMenuBuilder')) {
     }
 }
 
-$_menu = new XcVuexyMenuBuilder($rMobile, $rSettings, (string) $language, AdminHelpers::getPageName());
+$_menu = new XcBootstrap 5MenuBuilder($rMobile, $rSettings, (string) $language, AdminHelpers::getPageName());
 
 /**
- * Sidebar sections (view-level presentation, Vuexy `menu-header` captions).
+ * Sidebar sections (view-level presentation, Bootstrap 5 `menu-header` captions).
  * Keys are NavbarRegistry top-level keys — reorder/regroup/rename freely.
  * Any visible top-level item not listed here (e.g. one a module registers)
  * automatically lands in a trailing "More" section, so nothing is lost.

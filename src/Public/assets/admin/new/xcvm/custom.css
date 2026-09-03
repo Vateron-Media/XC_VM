@@ -1,5 +1,5 @@
 /*
- * XC_VM project overrides for the Vuexy (v10.11.1) admin theme.
+ * XC_VM project overrides for the Bootstrap 5 admin theme.
  * Keep project-specific tweaks here rather than editing vendored core.css.
  */
 
@@ -37,7 +37,7 @@
  * DataTables Responsive child row (the panel shown when a `+` row is expanded).
  * Lay each hidden column out as a two-column "label : value" grid so the values
  * line up instead of drifting with the label width. Applies to every migrated
- * Vuexy table (panel_logs, login_logs, ...).
+ * Bootstrap 5 table (panel_logs, login_logs, ...).
  */
 ul.dtr-details {
   display: block;
@@ -74,7 +74,7 @@ ul.dtr-details > li .dtr-title {
   z-index: 1085;
 }
 
-/* Vuexy iframe modal shell (edit forms opened in a modal). No sidebar/navbar —
+/* Bootstrap 5 iframe modal shell (edit forms opened in a modal). No sidebar/navbar —
    just the form on the theme background. */
 .xm-modal-body {
   background: var(--bs-body-bg);

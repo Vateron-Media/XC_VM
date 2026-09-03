@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Live connections (Vuexy). Clean-JSON table pattern: the data gathering in
+ * Live connections (Bootstrap 5). Clean-JSON table pattern: the data gathering in
  * TableController::handleLiveConnections (Redis or MySQL backed) is unchanged;
  * only the row shape is now a structured JSON object. This page renders the
  * cells client-side via datatables-bs5 columns[].render (divergence colour,
@@ -27,7 +27,7 @@ endif;
     <div class="card-header">
         <h5 class="card-title mb-0"><?= $language::get('live_connections'); ?></h5>
     </div>
-    <!-- Filters (Vuexy advanced-search layout: labelled fields in a grid). -->
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
     <div class="card-body border-bottom">
         <div class="row g-3">
             <div class="col-12 col-sm-6 col-lg-3">

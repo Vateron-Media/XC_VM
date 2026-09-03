@@ -1,9 +1,9 @@
 <?php
 
 /**
- * Vuexy (Bootstrap 5) admin header — Vertical Menu Template (v10.11.1).
+ * Bootstrap 5 admin header — Vertical Menu Template (v10.11.1).
  *
- * Rebuilt from the stock Vuexy vertical-menu shell and wired to the current
+ * Rebuilt from the stock Bootstrap 5 vertical-menu shell and wired to the current
  * XC_VM backend. Rendered by renderUnifiedLayoutHeader('admin') only for pages
  * opted in through xc_admin_use_vuexy() (see layouts/admin.php); every other
  * admin page keeps the legacy header.php shell.
@@ -26,7 +26,7 @@ if (count(get_included_files()) == 1) {
 $rUpdate  = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: []);
 $xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
 
-// Per-user Vuexy customizer state (see config.js + StatsAjaxController::saveUiPrefs).
+// Per-user Bootstrap 5 customizer state (see config.js + StatsAjaxController::saveUiPrefs).
 // The stored theme wins for the initial data-bs-theme paint; 'system'/unset falls
 // back to the legacy per-user theme column so there is no flash.
 $xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
@@ -89,7 +89,7 @@ if (!function_exists('_xc_nav_label')) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
 
-    <!-- Icons: Vuexy chrome uses Tabler (iconify) -->
+    <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
     <link rel="stylesheet" href="assets/new/vendor/fonts/iconify-icons.css">
 
     <!-- Core theme (single file serves both light & dark via data-bs-theme) -->

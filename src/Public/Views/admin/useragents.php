@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Blocked user-agents (Vuexy). Client-side table: BlocklistService::getAllUserAgents
+ * Blocked user-agents (Bootstrap 5). Client-side table: BlocklistService::getAllUserAgents
  * provides the rows, rendered server-side into the DOM, with a client-side
  * datatables-bs5 table. Delete via api?action=useragent&sub=delete.
  */

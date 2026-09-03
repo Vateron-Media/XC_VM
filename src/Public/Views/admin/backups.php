@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Backups (Vuexy). Dropbox / automatic-backup settings form + the backups list.
+ * Backups (Bootstrap 5). Dropbox / automatic-backup settings form + the backups list.
  * The table uses the clean-JSON pattern: TableController::handleBackups resolves
  * each backup's local presence and remote (Dropbox) upload state server-side
  * (yes / no / error / uploading) and this page renders the status dots, size and

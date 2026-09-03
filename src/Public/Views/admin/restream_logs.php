@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Restream detection logs (Vuexy). Clean-JSON table pattern:
+ * Restream detection logs (Bootstrap 5). Clean-JSON table pattern:
  * TableController::handleRestreamLogs returns structured rows (permission-gated
  * line/stream links resolved into url fields) and this page renders the cells
  * client-side via datatables-bs5 columns[].render. IP whois + block-IP action

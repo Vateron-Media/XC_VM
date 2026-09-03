@@ -17,7 +17,7 @@
 
 if (!function_exists('xc_admin_use_vuexy')) {
     /**
-     * Per-page opt-in to the Vuexy admin shell.
+     * Per-page opt-in to the admin shell.
      *
      * The redesign migrates admin pages one at a time, so the shell must stay
      * legacy for every page that has NOT been rebuilt yet. Only pages listed in
@@ -33,7 +33,7 @@ if (!function_exists('xc_admin_use_vuexy')) {
             return false;
         }
         $page = \XcVm\Core\Util\AdminHelpers::getPageName();
-        // Modal (iframe) edit forms: only pages rebuilt for the Vuexy modal shell
+        // Modal (iframe) edit forms: only pages rebuilt for the Bootstrap 5 modal shell
         // opt in; the setup wizard always stays legacy.
         if (isset($_GET['modal'])) {
             if (!empty($GLOBALS['_SETUP'])) {

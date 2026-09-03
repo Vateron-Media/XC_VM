@@ -1,7 +1,7 @@
 <?php
 
 /**
- * RTMP IPs (Vuexy). Client-side table: BlocklistService::getRTMPIPsSimple provides
+ * RTMP IPs (Bootstrap 5). Client-side table: BlocklistService::getRTMPIPsSimple provides
  * the rows, rendered server-side into the DOM, with a client-side datatables-bs5
  * table. Delete via api?action=rtmp_ip&sub=delete.
  */

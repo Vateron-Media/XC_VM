@@ -1,7 +1,7 @@
 <?php
 
 /**
- * VOD theft detection (Vuexy). This table is client-side: the controller passes
+ * VOD theft detection (Bootstrap 5). This table is client-side: the controller passes
  * the precomputed $rTheftDetection map (keyed by time range) into the view, so
  * the rows are rendered server-side into the DOM and a client-side datatables-bs5
  * table handles search / pagination / Responsive. The range select reloads the

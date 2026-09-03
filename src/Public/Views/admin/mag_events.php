@@ -1,7 +1,7 @@
 <?php
 
 /**
- * MAG event logs (Vuexy). Clean-JSON table pattern:
+ * MAG event logs (Bootstrap 5). Clean-JSON table pattern:
  * TableController::handleMagEvents returns structured rows and this page renders
  * the cells client-side via datatables-bs5 columns[].render. The per-row delete
  * action is wired inline (api?action=mag_event&sub=delete).

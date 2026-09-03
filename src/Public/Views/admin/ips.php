@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Blocked IP addresses (Vuexy). Client-side table: BlocklistService provides the
+ * Blocked IP addresses (Bootstrap 5). Client-side table: BlocklistService provides the
  * rows, rendered server-side into the DOM, and a client-side datatables-bs5 table
  * handles search / pagination / Responsive. Per-row delete wired inline
  * (api?action=ip&sub=delete).

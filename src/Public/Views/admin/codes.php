@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Access codes (Vuexy). Client-side table: AuthRepository::getAllCodes provides
+ * Access codes (Bootstrap 5). Client-side table: AuthRepository::getAllCodes provides
  * the rows, rendered server-side into the DOM, with a client-side datatables-bs5
  * table. Delete via api?action=code&sub=delete.
  */

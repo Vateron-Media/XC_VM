@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Access code add / edit (Vuexy). Full-page form reached from the codes table
- * (href="code?id=X"). Vuexy vertical layout — each section is its own card:
+ * Access code add / edit (Bootstrap 5). Full-page form reached from the codes table
+ * (href="code?id=X"). Bootstrap 5 vertical layout — each section is its own card:
  * Details (code + generate, access type, enabled), Groups (per-group checkboxes),
  * Restrictions (allowed-IP whitelist). Posts to post.php?action=code via fetch;
  * on success returns to the codes list.

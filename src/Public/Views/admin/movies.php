@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Movies / VOD (Vuexy). Clean-JSON table pattern: TableController::handleMovies
+ * Movies / VOD (Bootstrap 5). Clean-JSON table pattern: TableController::handleMovies
  * resolves the transcode status (StatusBadge::vod code), category, server info,
  * client count and codec stream-info server-side; this page renders the cells
  * client-side via datatables-bs5 columns[].render. Bulk-select

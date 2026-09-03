@@ -11,17 +11,17 @@ use XcVm\Core\Auth\Authorization;
  * refresh, and a dropdown of related tools/logs + Export CSV/JSON). Historically
  * this lived as a big `$rDropdown` literal inside Views/admin/topbar.php that
  * echoed legacy HTML. This class hoists that config out so BOTH the legacy
- * renderer (topbar.php) and the Vuexy renderer (topbar.vuexy.php) build from the
+ * renderer (topbar.php) and the Bootstrap 5 renderer (topbar.vuexy.php) build from the
  * same data.
  *
  * - config() returns the raw per-page map `label => [url, permission, attr]`.
  * - items() returns an ordered, permission-filtered, structured list ready to
- *   render (JSON-serialisable) — the shape the Vuexy partial consumes.
+ *   render (JSON-serialisable) — the shape the Bootstrap 5 partial consumes.
  *
  * Note: the per-EDIT-page `switch` unset adjustments and the stream_view /
  * server_view overrides from topbar.php are intentionally NOT reproduced here —
  * they only apply to edit pages (stream, movie, serie, server, …), none of which
- * are Vuexy-migrated table pages. When an edit page migrates, port its adjustment.
+ * are Bootstrap 5-migrated table pages. When an edit page migrates, port its adjustment.
  *
  * @package XC_VM_Core_Util
  * @author  Divarion_D <https://github.com/Divarion-D>
