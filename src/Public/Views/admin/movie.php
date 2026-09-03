@@ -1,790 +1,685 @@
-<div class="wrapper boxed-layout" <?php 
+<?php
+
+/**
+ * Movie add / edit / import (Bootstrap 5). Reached full-page from the movies
+ * table ("Add" → movie, "Import" → movie?import) inside the new-UI shell, and as
+ * an iframe modal ("Edit" → movie?id=X&modal=1) inside the modal shell. Tabs:
+ * Details (name/year, TMDb search, source path + file browser + provider search,
+ * categories, bouquets), Information (TMDb metadata — not in import mode),
+ * Advanced (encode/symlink/subtitle/transcode options) and Server (the jstree
+ * load-balancer tree). Categories/bouquets use select2 tags; the TMDb search
+ * box auto-fills the Information tab; the file browser and provider search are
+ * Bootstrap modals (magnificPopup is not part of the new-UI). Posts to
+ * post.php?action=movie via fetch; in the modal it posts xcModalSaved to the
+ * parent, full-page it returns to the list. Requires jstree (declared by the
+ * controller).
+ */
+
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Reference\LocaleReference;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Reference\LocaleReference;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
-use XcVm\Domain\Stream\StreamRepository;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest'): ?> style="display: none;" <?php endif; ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title">
-						<?php
-						if (isset($rMovie['id'])):
-							echo $rMovie['stream_display_name'];
-						else:
-							if (RequestManager::has('import')):
-								echo $language::get('import_movies');
-							else:
-								echo $language::get('add_movie');
-							endif;
-						endif;
-						?>
-					</h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-xl-12">
-				<?php if (isset($_STATUS) && $_STATUS == STATUS_FAILURE): ?>
-					<div class="alert alert-danger alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						<?php echo $language::get('movies_info_2'); ?>
-					</div>
-				<?php elseif (isset($_STATUS) && $_STATUS == STATUS_EXISTS_NAME): ?>
-					<div class="alert alert-danger alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						<?php echo $language::get('movies_info_3'); ?>
-					</div>
-				<?php elseif (isset($_STATUS) && $_STATUS == STATUS_NO_SOURCES): ?>
-					<div class="alert alert-danger alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						<?php echo $language::get('movies_info_4'); ?>
-					</div>
-				<?php endif; ?>
-				<?php if (isset($rMovie['id'])): ?>
-					<?php
-					$rEncodeErrors = StreamRepository::getEncodeErrors($rMovie['id']);
-					foreach ($rEncodeErrors as $rServerID => $rEncodeError):
-						if (in_array(intval($rServerID), $activeStreamingServers)):
-					?>
-							<div class="alert alert-warning alert-dismissible fade show" role="alert">
-								<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-									<span aria-hidden="true">&times;</span>
-								</button>
-								<strong><?php echo $language::get('error_on_server'); ?> - <?php echo $rServers[$rServerID]['server_name']; ?></strong><br />
-								<?php echo str_replace("\n", '<br/>', $rEncodeError); ?>
-							</div>
-						<?php endif; ?>
-					<?php endforeach; ?>
-				<?php endif; ?>
-				<?php if (isset($rMovie['id'])): ?>
-					<?php $rEncodeErrors = StreamRepository::getEncodeErrors($rMovie['id']); ?>
-					<?php foreach ($rEncodeErrors as $rServerID => $rEncodeError): ?>
-						<?php if (in_array(intval($rServerID), $activeStreamingServers)): ?>
-							<div class="alert alert-warning alert-dismissible fade show" role="alert">
-								<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-									<span aria-hidden="true">&times;</span>
-								</button>
-								<strong><?php echo $language::get('error_on_server'); ?> - <?php echo $rServers[$rServerID]['server_name']; ?></strong><br />
-								<?php echo str_replace("\n", '<br/>', $rEncodeError); ?>
-							</div>
-						<?php endif; ?>
-					<?php endforeach; ?>
-				<?php endif; ?>
+$rIsEdit   = isset($rMovie['id']);
+$rIsImport = RequestManager::has('import');
+$rProps    = $rMovie['properties'] ?? [];
+$rMovieCat = $rIsEdit ? (json_decode((string) $rMovie['category_id'], true) ?: []) : [];
+$rHasTmdb  = strlen((string) SettingsManager::get('tmdb_api_key')) > 0;
+$rTmdbLang = !empty($rMovie['tmdb_language']) ? $rMovie['tmdb_language'] : ($rSettings['tmdb_language'] ?? 'en');
+$rContainers = ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'];
 
-				<div class="card">
-					<div class="card-body">
-						<form<?php if (RequestManager::has('import')): ?> enctype="multipart/form-data" <?php endif; ?> action="#" method="POST" data-parsley-validate="">
-							<?php if (isset($rMovie['id'])): ?>
-								<input type="hidden" name="edit" value="<?php echo $rMovie['id']; ?>" />
-							<?php endif; ?>
-							<input type="hidden" id="tmdb_id" name="tmdb_id" value="<?php if (isset($rMovie)): ?><?php echo htmlspecialchars(($rMovie['tmdb_id'] ?: ($rMovie['properties']['tmdb_id'] ?? ''))); ?><?php endif; ?>" />
-							<input type="hidden" name="server_tree_data" id="server_tree_data" value="" />
-							<input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="" />
-							<input type="hidden" name="category_create_list" id="category_create_list" value="" />
-							<div id="basicwizard">
-								<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-									<li class="nav-item">
-										<a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-											<i class="mdi mdi-account-card-details-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
-										</a>
-									</li>
-									<?php if (!RequestManager::has('import')): ?>
-										<li class="nav-item">
-											<a href="#movie-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-												<i class="mdi mdi-movie-outline mr-1"></i>
-												<span class="d-none d-sm-inline"><?php echo $language::get('information'); ?></span>
-											</a>
-										</li>
-									<?php endif; ?>
-									<li class="nav-item">
-										<a href="#advanced-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-											<i class="mdi mdi-folder-alert-outline mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $language::get('advanced'); ?></span>
-										</a>
-									</li>
-									<li class="nav-item">
-										<a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-											<i class="mdi mdi-server-network mr-1"></i>
-											<span class="d-none d-sm-inline"><?php echo $language::get('server'); ?></span>
-										</a>
-									</li>
-								</ul>
-								<div class="tab-content b-0 mb-0 pt-0">
-									<div class="tab-pane" id="stream-details">
-										<div class="row">
-											<div class="col-12">
-												<?php if (!RequestManager::has('import')): ?>
-													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="stream_display_name"><?php echo $language::get('movie_name'); ?></label>
-														<div class="col-md-6">
-															<input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="<?php if (isset($rMovie)) {
-																																									echo htmlspecialchars($rMovie['stream_display_name']);
-																																								} elseif (RequestManager::has('title')) {
-																																									echo str_replace('"', '&quot;', RequestManager::get('title'));
-																																								} ?>" required data-parsley-trigger="change">
-														</div>
-														<div class="col-md-2">
-															<input type="text" placeholder="<?= $language::get('year') ?>" class="form-control text-center" id="year" name="year" value="<?php if (isset($rMovie)) {
-																																									echo htmlspecialchars($rMovie['year']);
-																																								} ?>">
-														</div>
-													</div>
-													<?php if (0 < strlen(SettingsManager::get('tmdb_api_key'))): ?>
-														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="tmdb_search"><?php echo $language::get('tmdb_results'); ?></label>
-															<div class="col-md-5">
-																<select id="tmdb_search" class="form-control" data-toggle="select2"></select>
-															</div>
-															<div class="col-md-3">
-																<select name="tmdb_language" id="tmdb_language" class="form-control" data-toggle="select2">
-																	<?php
-																	$rLanguageSet = (!empty($rMovie['tmdb_language']) ? $rMovie['tmdb_language'] : $rSettings['tmdb_language']);
-																	foreach (LocaleReference::tmdbLanguages() as $rKey => $rLanguage) {
-																		echo '<option value="' . $rKey . '"' . ($rKey == $rLanguageSet ? ' selected' : '') . '>' . $rLanguage . '</option>';
-																	}
-																	?>
-																</select>
-															</div>
-														</div>
-													<?php endif; ?>
-													<div class="form-group row mb-4 stream-url">
-														<label class="col-md-4 col-form-label" for="stream_source"><?php echo $language::get('movie_path_or_url'); ?></label>
-														<div class="col-md-8 input-group">
-															<input type="text" id="stream_source" name="stream_source" class="form-control" value="<?php echo isset($rMovie) ? $rPathSources : (RequestManager::has('path') ? htmlspecialchars(RequestManager::get('path')) : ''); ?>" required data-parsley-trigger="change">
-															<div class="input-group-append">
-																<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
-																<?php if (!$rMobile): ?>
-																	<a href="javascript:void(0);" id="provider-streams" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-magnify"></i></a>
-																<?php endif; ?>
-															</div>
-														</div>
-													</div>
-												<?php else: ?>
-													<p class="sub-header">
-														Importing Movies using this method will parse your M3U or folder and push the individual episodes through Watch Folder. If you have category and bouquet allocation set up in Watch Folder Settings then they will be used here too.
-													</p>
-													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="import_type"><?php echo $language::get('type'); ?></label>
-														<div class="col-md-8">
-															<div class="custom-control custom-radio mt-1">
-																<span>
-																	<input type="radio" id="import_type_1" name="customRadio" class="custom-control-input" checked>
-																	<label class="custom-control-label" for="import_type_1"><?php echo $language::get('m3u'); ?></label>
-																</span>
-																<span style="padding-left:50px;">
-																	<input type="radio" id="import_type_2" name="customRadio" class="custom-control-input">
-																	<label class="custom-control-label" for="import_type_2"><?php echo $language::get('folder'); ?></label>
-																</span>
-															</div>
-														</div>
-													</div>
-													<div id="import_m3uf_toggle">
-														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="m3u_file"><?php echo $language::get('m3u_file'); ?></label>
-															<div class="col-md-8">
-																<input type="file" id="m3u_file" name="m3u_file" />
-															</div>
-														</div>
-													</div>
-													<div id="import_folder_toggle" style="display:none;">
-														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="import_folder"><?php echo $language::get('folder'); ?></label>
-															<div class="col-md-8 input-group">
-																<input type="text" id="import_folder" name="import_folder" class="form-control" value="<?php echo $rPathSources; ?>">
-																<div class="input-group-append">
-																	<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
-																</div>
-															</div>
-														</div>
-														<div class="form-group row mb-4">
-															<label class="col-md-4 col-form-label" for="scan_recursive"><?php echo $language::get('scan_recursively'); ?></label>
-															<div class="col-md-2">
-																<input name="scan_recursive" id="scan_recursive" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-															</div>
-														</div>
-													</div>
-												<?php endif; ?>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="category_id"><?php if (!empty(RequestManager::get('import'))) {
-																													echo 'Fallback ';
-																												} ?>Categories</label>
-													<div class="col-md-8">
-														<select name="category_id[]" id="category_id" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $language::get('choose'); ?>...">
-															<?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
-																<option <?php if (isset($rMovie) && in_array(intval($rCategory['id']), json_decode($rMovie['category_id'], true))) {
-																			echo 'selected ';
-																		} ?>value="<?php echo $rCategory['id']; ?>"><?php echo $rCategory['category_name']; ?></option>
-															<?php endforeach; ?>
-														</select>
-														<div id="category_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">
-															<strong>New Categories:</strong> <span id="category_new"></span>
-														</div>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label"
-														for="bouquets"><?php if (!empty(RequestManager::get('import'))) {
-																			echo 'Fallback ';
-																		} ?><?php echo $language::get('bouquets'); ?></label>
-													<div class="col-md-8">
-														<select name="bouquets[]" id="bouquets" class="form-control select2-multiple" data-toggle="select2" multiple="multiple" data-placeholder="<?php echo $language::get('choose'); ?>...">
-															<?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
-																<option <?php if (isset($rMovie) && in_array($rMovie['id'], json_decode($rBouquet['bouquet_movies'], true))): ?>selected<?php endif; ?> value="<?php echo $rBouquet['id']; ?>"><?php echo $rBouquet['bouquet_name']; ?></option>
-															<?php endforeach; ?>
-														</select>
-														<div id="bouquet_create" class="alert bg-dark text-white border-0 mt-2 mb-0" role="alert" style="display: none;">
-															<strong>New Bouquets:</strong> <span id="bouquet_new"></span>
-														</div>
-													</div>
-												</div>
-												<?php if (RequestManager::has('import')): ?>
-													<div class="form-group row mb-4">
-														<label class="col-md-4 col-form-label" for="disable_tmdb">Disable TMDb <i title="<?= $language::get('do_not_use_tmdb_to_match_the_content') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-														<div class="col-md-2">
-															<input name="disable_tmdb" id="disable_tmdb" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-														</div>
-														<label class="col-md-4 col-form-label" for="ignore_no_match">Ignore No Match <i title="<?= $language::get('add_to_database_even_if_no_tmdb_match_is_found') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-														<div class="col-md-2">
-															<input name="ignore_no_match" id="ignore_no_match" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-														</div>
-													</div>
-												<?php endif; ?>
-											</div>
-										</div>
-										<ul class="list-inline wizard mb-0">
-											<li class="nextb list-inline-item float-right">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
-											</li>
-										</ul>
-									</div>
-									<div class="tab-pane" id="movie-information">
-										<div class="row">
-											<div class="col-12">
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="movie_image"><?php echo $language::get('poster_url'); ?></label>
-													<div class="col-md-8 input-group">
-														<input type="text" class="form-control" id="movie_image" name="movie_image" value="<?php if (isset($rMovie)) {
-																																				echo htmlspecialchars($rMovie['properties']['movie_image'] ?? '');
-																																			} ?>">
-														<div class="input-group-append">
-															<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
-														</div>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="backdrop_path"><?php echo $language::get('backdrop_url'); ?></label>
-													<div class="col-md-8 input-group">
-														<input type="text" class="form-control" id="backdrop_path" name="backdrop_path" value="<?php if (isset($rMovie)) {
-																																					echo htmlspecialchars($rMovie['properties']['backdrop_path'][0] ?? '');
-																																				} ?>">
-														<div class="input-group-append">
-															<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
-														</div>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="plot"><?php echo $language::get('plot'); ?></label>
-													<div class="col-md-8">
-														<textarea rows="6" class="form-control" id="plot" name="plot"><?php if (isset($rMovie)) {
-																															echo htmlspecialchars($rMovie['properties']['plot'] ?? '');
-																														} ?></textarea>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="cast"><?php echo $language::get('cast'); ?></label>
-													<div class="col-md-8">
-														<input type="text" class="form-control" id="cast" name="cast" value="<?php if (isset($rMovie)) {
-																																	echo htmlspecialchars($rMovie['properties']['cast'] ?? '');
-																																} ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="director"><?php echo $language::get('director'); ?></label>
-													<div class="col-md-3">
-														<input type="text" class="form-control" id="director" name="director" value="<?php if (isset($rMovie)) {
-																																			echo htmlspecialchars($rMovie['properties']['director'] ?? '');
-																																		} ?>">
-													</div>
-													<label class="col-md-2 col-form-label" for="genre"><?php echo $language::get('genres'); ?></label>
-													<div class="col-md-3">
-														<input type="text" class="form-control" id="genre" name="genre" value="<?php if (isset($rMovie)) {
-																																	echo htmlspecialchars($rMovie['properties']['genre'] ?? '');
-																																} ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="release_date"><?php echo $language::get('release_date'); ?></label>
-													<div class="col-md-3">
-														<input type="text" class="form-control text-center" id="release_date" name="release_date" value="<?php if (isset($rMovie)) {
-																																								echo htmlspecialchars($rMovie['properties']['release_date'] ?? '');
-																																							} ?>">
-													</div>
-													<label class="col-md-2 col-form-label" for="episode_run_time"><?php echo $language::get('runtime'); ?></label>
-													<div class="col-md-3">
-														<input type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="<?php if (isset($rMovie)) {
-																																										echo htmlspecialchars($rMovie['properties']['episode_run_time'] ?? '');
-																																									} ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="youtube_trailer"><?php echo $language::get('youtube_trailer'); ?></label>
-													<div class="col-md-3 input-group">
-														<input type="text" class="form-control text-center" id="youtube_trailer" name="youtube_trailer" value="<?php if (isset($rMovie)) {
-																																									echo htmlspecialchars($rMovie['properties']['youtube_trailer'] ?? '');
-																																								} ?>">
-														<div class="input-group-append">
-															<a href="javascript:void(0)" onClick="openYouTube(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>
-														</div>
-													</div>
-													<label class="col-md-2 col-form-label" for="rating"><?php echo $language::get('rating'); ?></label>
-													<div class="col-md-3">
-														<input type="text" class="form-control text-center" id="rating" name="rating" value="<?php if (isset($rMovie)) {
-																																					echo htmlspecialchars($rMovie['properties']['rating'] ?? '');
-																																				} ?>">
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="country"><?php echo $language::get('country'); ?></label>
-													<div class="col-md-8">
-														<input type="text" class="form-control" id="country" name="country" value="<?php if (isset($rMovie)) {
-																																		echo htmlspecialchars($rMovie['properties']['country'] ?? '');
-																																	} ?>">
-													</div>
-												</div>
-											</div>
-											<ul class="list-inline wizard mb-0">
-												<li class="prevb list-inline-item">
-													<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
-												</li>
-												<li class="nextb list-inline-item float-right">
-													<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
-												</li>
-											</ul>
-										</div>
-									</div>
+$rSubFile = '';
+if ($rIsEdit) {
+    $rSubData = json_decode((string) $rMovie['movie_subtitles'], true);
+    if (isset($rSubData['location'])) {
+        $rSubFile = 's:' . $rSubData['location'] . ':' . ($rSubData['files'][0] ?? '');
+    }
+}
+$rTitle = $rIsEdit ? $rMovie['stream_display_name'] : ($rIsImport ? $language::get('import_movies') : $language::get('add_movie'));
+?>
 
-									<div class="tab-pane" id="advanced-details">
-										<div class="row">
-											<div class="col-12">
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="direct_source"><?php echo $language::get('direct_source'); ?>
-														<i title="<?php echo $language::get('episode_tooltip_1'); ?>" class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-2">
-														<input name="direct_source" id="direct_source" type="checkbox" <?php if (isset($rMovie) && $rMovie['direct_source'] == 1) {
-																															echo 'checked ';
-																														} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-													<label class="col-md-4 col-form-label" for="direct_proxy">Direct Stream <i title="<?= $language::get('when_using_direct_source_hide_tooltip') ?>" class="tooltip text-secondary far fa-circle"></i></label>
-													<div class="col-md-2">
-														<input name="direct_proxy" id="direct_proxy" type="checkbox" <?php if (isset($rMovie) && $rMovie['direct_proxy'] == 1) {
-																															echo 'checked ';
-																														} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="read_native"><?php echo $language::get('native_frames'); ?></label>
-													<div class="col-md-2">
-														<input name="read_native" id="read_native" type="checkbox" <?php if (isset($rMovie) && $rMovie['read_native'] == 1) {
-																														echo 'checked ';
-																													} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-													<label class="col-md-4 col-form-label" for="movie_symlink"><?php echo $language::get('create_symlink'); ?>
-														<i title="<?php echo $language::get('episode_tooltip_2'); ?>" class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-2">
-														<input name="movie_symlink" id="movie_symlink" type="checkbox" <?php if (isset($rMovie) && $rMovie['movie_symlink'] == 1) {
-																															echo 'checked ';
-																														} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="remove_subtitles"><?php echo $language::get('remove_existing_subtitles'); ?>
-														<i title="<?php echo $language::get('episode_tooltip_3'); ?>" class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-2">
-														<input name="remove_subtitles" id="remove_subtitles" type="checkbox" <?php if (isset($rMovie) && $rMovie['remove_subtitles'] == 1) {
-																																	echo 'checked ';
-																																} ?>data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-												<?php if (!RequestManager::has('import')): ?>
-													<?php
-													$rSubFile = '';
-													if (isset($rMovie)) {
-														$rSubData = json_decode($rMovie['movie_subtitles'], true);
-														if (isset($rSubData['location'])) {
-															$rSubFile = 's:' . $rSubData['location'] . ':' . $rSubData['files'][0];
-														}
-													}
-													?>
-													<div class="form-group row mb-4 stream-url">
-														<label class="col-md-4 col-form-label" for="movie_subtitles"><?php echo $language::get('subtitle_location'); ?>
-															<i title="<?php echo $language::get('episode_tooltip_6'); ?>" class="tooltip text-secondary far fa-circle"></i>
-														</label>
-														<div class="col-md-8 input-group">
-															<input type="text" id="movie_subtitles" name="movie_subtitles" class="form-control" value="<?php echo htmlspecialchars($rSubFile); ?>">
-															<div class="input-group-append">
-																<a href="#file-browser" id="filebrowser-sub" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>
-															</div>
-														</div>
-													</div>
-												<?php endif; ?>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="transcode_profile_id"><?php echo $language::get('transcoding_profile'); ?>
-														<i title="<?php echo $language::get('episode_tooltip_7'); ?>" class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-8">
-														<select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2">
-															<option <?php if (isset($rMovie) && intval($rMovie['transcode_profile_id']) == 0) {
-																		echo 'selected ';
-																	} ?>value="0"><?php echo $language::get('transcoding_disabled'); ?></option>
-															<?php foreach ($rTranscodeProfiles as $rProfile): ?>
-																<option <?php if (isset($rMovie) && intval($rMovie['transcode_profile_id']) == intval($rProfile['profile_id'])) {
-																			echo 'selected ';
-																		} ?>value="<?php echo $rProfile['profile_id']; ?>"><?php echo $rProfile['profile_name']; ?></option>
-															<?php endforeach; ?>
-														</select>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="target_container"><?php echo $language::get('target_container'); ?>
-														<i title="<?php echo $language::get('episode_tooltip_4'); ?>" class="tooltip text-secondary far fa-circle"></i>
-													</label>
-													<div class="col-md-2">
-														<select name="target_container" id="target_container" class="form-control" data-toggle="select2">
-															<?php foreach (array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts') as $rContainer): ?>
-																<option <?php if (isset($rMovie) && $rMovie['target_container'] == $rContainer) {
-																			echo 'selected ';
-																		} ?>value="<?php echo $rContainer; ?>"><?php echo $rContainer; ?></option>
-															<?php endforeach; ?>
-														</select>
-													</div>
-												</div>
-											</div>
-										</div>
-										<ul class="list-inline wizard mb-0">
-											<li class="prevb list-inline-item">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
-											</li>
-											<li class="nextb list-inline-item float-right">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('next'); ?></a>
-											</li>
-										</ul>
-									</div>
+<?php if (!isset($_GET['modal'])): ?>
+    <div class="d-flex align-items-center mb-4">
+        <a href="movies" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+        <h4 class="mb-0"><?= htmlspecialchars((string) $rTitle, ENT_QUOTES); ?></h4>
+    </div>
+<?php endif; ?>
 
-									<div class="tab-pane" id="load-balancing">
-										<div class="row">
-											<div class="col-12">
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="servers"><?php echo $language::get('server_tree'); ?></label>
-													<div class="col-md-8">
-														<div id="server_tree"></div>
-													</div>
-												</div>
-												<div class="form-group row mb-4">
-													<label class="col-md-4 col-form-label" for="restart_on_edit"><?php echo isset($rMovie) ? $language::get('reprocess_on_edit') : $language::get('process_movie'); ?></label>
-													<div class="col-md-2">
-														<input name="restart_on_edit" id="restart_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-													</div>
-												</div>
-											</div>
-										</div>
-										<ul class="list-inline wizard mb-0">
-											<li class="prevb list-inline-item">
-												<a href="javascript: void(0);" class="btn btn-secondary"><?php echo $language::get('prev'); ?></a>
-											</li>
-											<li class="list-inline-item float-right">
-												<input name="submit_movie" type="submit" class="btn btn-primary" value="<?php echo isset($rMovie) ? 'Edit' : 'Add'; ?>" />
-											</li>
-										</ul>
-									</div>
-								</div>
-								</form>
-								<div id="file-browser" class="mfp-hide white-popup-block">
-									<div class="col-12">
-										<div class="form-group row mb-4">
-											<label class="col-md-4 col-form-label" for="server_id"><?php echo htmlspecialchars($language::get('server_name')); ?></label>
-											<div class="col-md-8">
-												<select id="server_id" class="form-control" data-toggle="select2">
-													<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
-														<option value="<?php echo htmlspecialchars($rServer['id']); ?>" <?php if (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']) echo ' selected'; ?>>
-															<?php echo htmlspecialchars($rServer['server_name']); ?>
-														</option>
-													<?php endforeach; ?>
-												</select>
-											</div>
-										</div>
-										<div class="form-group row mb-4">
-											<label class="col-md-4 col-form-label" for="current_path"><?php echo htmlspecialchars($language::get('current_path')); ?></label>
-											<div class="col-md-8 input-group">
-												<input type="text" id="current_path" name="current_path" class="form-control" value="/">
-												<div class="input-group-append">
-													<button class="btn btn-primary waves-effect waves-light" type="button" id="changeDir"><i class="mdi mdi-chevron-right"></i></button>
-												</div>
-											</div>
-										</div>
-										<?php if (!RequestManager::has('import')): ?>
-											<div class="form-group row mb-4">
-												<label class="col-md-4 col-form-label" for="search"><?php echo htmlspecialchars($language::get('search_directory')); ?></label>
-												<div class="col-md-8 input-group">
-													<input type="text" id="search" name="search" class="form-control" placeholder="<?php echo htmlspecialchars($language::get('filter_files')); ?>...">
-													<div class="input-group-append">
-														<button class="btn btn-warning waves-effect waves-light" type="button" onClick="clearSearch()"><i class="mdi mdi-close"></i></button>
-														<button class="btn btn-primary waves-effect waves-light" type="button" id="doSearch"><i class="mdi mdi-magnify"></i></button>
-													</div>
-												</div>
-											</div>
-										<?php endif; ?>
-										<div class="form-group row mb-4">
-											<div class="col-md-6">
-												<table id="datatable" class="table">
-													<thead>
-														<tr>
-															<th width="20px"></th>
-															<th><?php echo htmlspecialchars($language::get('directory')); ?></th>
-														</tr>
-													</thead>
-													<tbody></tbody>
-												</table>
-											</div>
-											<div class="col-md-6">
-												<table id="datatable-files" class="table">
-													<thead>
-														<tr>
-															<th width="20px"></th>
-															<th><?php echo htmlspecialchars($language::get('filename')); ?></th>
-														</tr>
-													</thead>
-													<tbody></tbody>
-												</table>
-											</div>
-										</div>
-										<?php if (RequestManager::has('import')): ?>
-											<div class="float-right">
-												<input id="select_folder" type="button" class="btn btn-info" value="Select" />
-											</div>
-										<?php endif; ?>
-									</div>
-								</div>
-							</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<form id="movie-form" autocomplete="off"<?= $rIsImport ? ' enctype="multipart/form-data"' : ''; ?>>
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rMovie['id']; ?>">
+    <?php endif; ?>
+    <input type="hidden" id="tmdb_id" name="tmdb_id" value="<?= $rIsEdit ? htmlspecialchars((string) ($rMovie['tmdb_id'] ?: ($rProps['tmdb_id'] ?? '')), ENT_QUOTES) : ''; ?>">
+    <input type="hidden" name="server_tree_data" id="server_tree_data" value="">
+    <input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="">
+    <input type="hidden" name="category_create_list" id="category_create_list" value="">
 
-	<?php
-	require_once __DIR__ . '/../layouts/footer.php';
-	renderUnifiedLayoutFooter('admin');
-	?>
-	<script id="scripts">
-		var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-		$(document).ready(function() {
-			resizeObserver.observe(document.body)
-			$("form").attr('autocomplete', 'off');
-			$(document).keypress(function(event) {
-				if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-			});
-			$.fn.dataTable.ext.errMode = 'none';
-			var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-			elems.forEach(function(html) {
-				var switchery = new Switchery(html, {
-					'color': '#414d5f'
-				});
-				window.rSwitches[$(html).attr("id")] = switchery;
-			});
-			setTimeout(pingSession, 30000);
-			<?php if (!$rMobile && $rSettings['header_stats']): ?>
-				headerStats();
-			<?php endif; ?>
-			bindHref();
-			refreshTooltips();
-			$(window).scroll(function() {
-				if ($(this).scrollTop() > 200) {
-					if ($(document).height() > $(window).height()) {
-						$('#scrollToBottom').fadeOut();
-					}
-					$('#scrollToTop').fadeIn();
-				} else {
-					$('#scrollToTop').fadeOut();
-					if ($(document).height() > $(window).height()) {
-						$('#scrollToBottom').fadeIn();
-					} else {
-						$('#scrollToBottom').hide();
-					}
-				}
-			});
-			$("#scrollToTop").unbind("click");
-			$('#scrollToTop').click(function() {
-				$('html, body').animate({
-					scrollTop: 0
-				}, 800);
-				return false;
-			});
-			$("#scrollToBottom").unbind("click");
-			$('#scrollToBottom').click(function() {
-				$('html, body').animate({
-					scrollTop: $(document).height()
-				}, 800);
-				return false;
-			});
-			$(window).scroll();
-			$(".nextb").unbind("click");
-			$(".nextb").click(function() {
-				var rPos = 0;
-				var rActive = null;
-				$(".nav .nav-item").each(function() {
-					if ($(this).find(".nav-link").hasClass("active")) {
-						rActive = rPos;
-					}
-					if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-						$(this).find(".nav-link").trigger("click");
-						return false;
-					}
-					rPos += 1;
-				});
-			});
-			$(".prevb").unbind("click");
-			$(".prevb").click(function() {
-				var rPos = 0;
-				var rActive = null;
-				$($(".nav .nav-item").get().reverse()).each(function() {
-					if ($(this).find(".nav-link").hasClass("active")) {
-						rActive = rPos;
-					}
-					if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-						$(this).find(".nav-link").trigger("click");
-						return false;
-					}
-					rPos += 1;
-				});
-			});
-			(function($) {
-				$.fn.inputFilter = function(inputFilter) {
-					return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-						if (inputFilter(this.value)) {
-							this.oldValue = this.value;
-							this.oldSelectionStart = this.selectionStart;
-							this.oldSelectionEnd = this.selectionEnd;
-						} else if (this.hasOwnProperty("oldValue")) {
-							this.value = this.oldValue;
-							this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-						}
-					});
-				};
-			}(jQuery));
-			<?php if ($rSettings['js_navigate']): ?>
-				$(".navigation-menu li").mouseenter(function() {
-					$(this).find(".submenu").show();
-				});
-				delParam("status");
-				$(window).on("popstate", function() {
-					if (window.rRealURL) {
-						if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-							navigate(window.location.href.split("/").reverse()[0]);
-						}
-					}
-				});
-			<?php endif; ?>
-			$(document).keydown(function(e) {
-				if (e.keyCode == 16) {
-					window.rShiftHeld = true;
-				}
-			});
-			$(document).keyup(function(e) {
-				if (e.keyCode == 16) {
-					window.rShiftHeld = false;
-				}
-			});
-			document.onselectstart = function() {
-				if (window.rShiftHeld) {
-					return false;
-				}
-			}
-		});
+    <div class="card mb-6">
+        <div class="card-header px-0 pt-2">
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                    <?php if (!$rIsImport): ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-info" role="tab"><i class="icon-base ti tabler-movie me-1"></i><?= $language::get('information'); ?></button></li>
+                    <?php endif; ?>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced" role="tab"><i class="icon-base ti tabler-adjustments me-1"></i><?= $language::get('advanced'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-server" role="tab"><i class="icon-base ti tabler-server me-1"></i><?= $language::get('server'); ?></button></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="tab-content p-0">
+                <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                    <?php if (!$rIsImport): ?>
+                        <div class="row mb-6">
+                            <div class="col-md-9">
+                                <label class="form-label" for="stream_display_name"><?= $language::get('movie_name'); ?></label>
+                                <input type="text" class="form-control" id="stream_display_name" name="stream_display_name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rMovie['stream_display_name'], ENT_QUOTES) : (RequestManager::has('title') ? htmlspecialchars((string) RequestManager::get('title'), ENT_QUOTES) : ''); ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="year"><?= $language::get('year'); ?></label>
+                                <input type="text" inputmode="numeric" class="form-control text-center" id="year" name="year" value="<?= $rIsEdit ? htmlspecialchars((string) $rMovie['year'], ENT_QUOTES) : ''; ?>">
+                            </div>
+                        </div>
+                        <?php if ($rHasTmdb): ?>
+                            <div class="row mb-6">
+                                <div class="col-md-8">
+                                    <label class="form-label" for="tmdb_search"><?= $language::get('tmdb_results'); ?></label>
+                                    <select id="tmdb_search" class="form-select"></select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="tmdb_language"><?= $language::get('language') ?: 'Language'; ?></label>
+                                    <select name="tmdb_language" id="tmdb_language" class="form-select">
+                                        <?php foreach (LocaleReference::tmdbLanguages() as $rKey => $rLanguage): ?>
+                                            <option value="<?= htmlspecialchars((string) $rKey, ENT_QUOTES); ?>" <?= ($rKey == $rTmdbLang) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rLanguage, ENT_QUOTES); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        <div class="mb-6">
+                            <label class="form-label" for="stream_source"><?= $language::get('movie_path_or_url'); ?></label>
+                            <div class="input-group">
+                                <input type="text" id="stream_source" name="stream_source" class="form-control" required value="<?= $rIsEdit ? htmlspecialchars((string) $rPathSources, ENT_QUOTES) : (RequestManager::has('path') ? htmlspecialchars((string) RequestManager::get('path'), ENT_QUOTES) : ''); ?>">
+                                <button type="button" class="btn btn-label-primary" id="filebrowser" data-target="stream_source"><i class="icon-base ti tabler-folder"></i></button>
+                                <?php if (empty($rMobile)): ?>
+                                    <button type="button" class="btn btn-label-primary" id="provider-streams"><i class="icon-base ti tabler-search"></i></button>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted small mb-3"><?= $language::get('import_movies_help') ?: 'Importing movies parses your M3U or folder and pushes each item through Watch Folder. Category and bouquet allocation from Watch Folder Settings applies here too.'; ?></p>
+                        <div class="mb-6">
+                            <label class="form-label d-block"><?= $language::get('type'); ?></label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="import_type_1" name="import_kind" value="m3u" checked>
+                                <label class="form-check-label" for="import_type_1"><?= $language::get('m3u'); ?></label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" id="import_type_2" name="import_kind" value="folder">
+                                <label class="form-check-label" for="import_type_2"><?= $language::get('folder'); ?></label>
+                            </div>
+                        </div>
+                        <div id="import_m3uf_toggle" class="mb-6">
+                            <label class="form-label" for="m3u_file"><?= $language::get('m3u_file'); ?></label>
+                            <input type="file" class="form-control" id="m3u_file" name="m3u_file">
+                        </div>
+                        <div id="import_folder_toggle" class="mb-6" hidden>
+                            <label class="form-label" for="import_folder"><?= $language::get('folder'); ?></label>
+                            <div class="input-group">
+                                <input type="text" id="import_folder" name="import_folder" class="form-control" value="<?= htmlspecialchars((string) $rPathSources, ENT_QUOTES); ?>">
+                                <button type="button" class="btn btn-label-primary" id="filebrowser" data-target="import_folder"><i class="icon-base ti tabler-folder"></i></button>
+                            </div>
+                            <div class="form-check form-switch mt-3">
+                                <input class="form-check-input" type="checkbox" id="scan_recursive" name="scan_recursive" value="1">
+                                <label class="form-check-label" for="scan_recursive"><?= $language::get('scan_recursively'); ?></label>
+                            </div>
+                        </div>
+                    <?php endif; ?>
 
-		<?php
-		echo '        ' . "\r\n\t\t" . 'var changeTitle = false;' . "\r\n\r\n\t\t" . 'function selectDirectory(elem) {' . "\r\n\t\t\t" . 'window.currentDirectory += elem + "/";' . "\r\n\t\t\t" . '$("#current_path").val(window.currentDirectory);' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectParent() {' . "\r\n\t\t\t" . '$("#current_path").val(window.currentDirectory.split("/").slice(0,-2).join("/") + "/");' . "\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectFile(rFile) {' . "\r\n\t\t\t" . "if (\$('li.nav-item .active').attr('href') == \"#stream-details\") {" . "\r\n\t\t\t\t" . '$("#stream_source").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);' . "\r\n\t\t\t\t" . "var rExtension = rFile.substr((rFile.lastIndexOf('.')+1));" . "\r\n\t\t\t\t" . "if (\$(\"#target_container option[value='\" + rExtension + \"']\").length > 0) {" . "\r\n\t\t\t\t\t" . "\$(\"#target_container\").val(rExtension).trigger('change');" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#movie_subtitles").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . '$.magnificPopup.close();' . "\r\n\t\t" . '}' . "\r\n" . '        function openYouTube(elem) {' . "\r\n" . '            rPath = $(elem).parent().parent().find("input").val();' . "\r\n" . '            if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'http://www.youtube.com/watch?v=' + rPath," . "\r\n" . "                        type: 'iframe'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n\t\t" . 'function openImage(elem) {' . "\r\n\t\t\t" . 'rPath = $(elem).parent().parent().find("input").val();' . "\r\n\t\t\t" . 'if (rPath) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . "                        src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath)," . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearSearch() {' . "\r\n\t\t\t" . '$("#search").val("");' . "\r\n\t\t\t" . '$("#doSearch").click();' . "\r\n\t\t" . '}' . "\r\n" . '        function addStream(rName, rURL) {' . "\r\n" . '            $("#stream_source").val(rURL);' . "\r\n" . '            $("#stream_display_name").val(rName).trigger("change");' . "\r\n" . '            $(".bs-provider-movies-modal-center").modal("hide");' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . '            $("#category_id").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#category_id').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#category_create").show();' . "\r\n" . "                    \$(\"#category_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#category_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#category_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n" . '            $("#bouquets").select2({' . "\r\n" . "                width: '100%'," . "\r\n" . '                tags: true' . "\r\n" . '            }).on("change", function(e) {' . "\r\n" . "                rData = \$('#bouquets').select2('data');" . "\r\n" . '                rAdded = [];' . "\r\n" . '                for (i = 0; i < rData.length; i++) {' . "\r\n" . '                    if (!rData[i].selected) {' . "\r\n" . '                        rAdded.push(rData[i].text);' . "\r\n" . '                    }' . "\r\n" . '                }' . "\r\n" . '                if (rAdded.length > 0) {' . "\r\n" . '                    $("#bouquet_create").show();' . "\r\n" . "                    \$(\"#bouquet_new\").html(rAdded.join(', '));" . "\r\n" . '                } else {' . "\r\n" . '                    $("#bouquet_create").hide();' . "\r\n" . '                }' . "\r\n" . '                $("#bouquet_create_list").val(JSON.stringify(rAdded));' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: false,' . "\r\n\t\t\t\t" . 'scrollY: "250px",' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0]},' . "\r\n\t\t\t\t" . '],' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . '"language": {' . "\r\n\t\t\t\t\t" . '"emptyTable": ""' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-files").DataTable({' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'scrollY: "250px",' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                },' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0]},' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"language": {' . "\r\n\t\t\t\t\t" . '"emptyTable": "';
-		echo $language::get('no_compatible_file');
-		echo '"' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#doSearch").click(function() {' . "\r\n\t\t\t\t" . "\$('#datatable-files').DataTable().search(\$(\"#search\").val()).draw();" . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . '$("#select_folder").click(function() {' . "\r\n\t\t\t\t" . '$("#import_folder").val("s:" + $("#server_id").val() + ":" + window.currentDirectory);' . "\r\n\t\t\t\t" . '$.magnificPopup.close();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#changeDir").click(function() {' . "\r\n\t\t\t\t" . '$("#search").val("");' . "\r\n\t\t\t\t" . 'window.currentDirectory = $("#current_path").val();' . "\r\n\t\t\t\t" . 'if (window.currentDirectory.substr(-1) != "/") {' . "\r\n\t\t\t\t\t" . 'window.currentDirectory += "/";' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '$("#current_path").val(window.currentDirectory);' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().clear();' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().row.add(["", "';
-		echo $language::get('loading');
-		echo '..."]);' . "\r\n\t\t\t\t" . '$("#datatable").DataTable().draw(true);' . "\r\n\t\t\t\t" . '$("#datatable-files").DataTable().clear();' . "\r\n\t\t\t\t" . '$("#datatable-files").DataTable().row.add(["", "';
-		echo $language::get('please_wait');
-		echo '..."]);' . "\r\n\t\t\t\t" . '$("#datatable-files").DataTable().draw(true);' . "\r\n\t\t\t\t" . "if (\$('li.nav-item .active').attr('href') == \"#stream-details\") {" . "\r\n\t\t\t\t\t" . 'rFilter = "video";' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'rFilter = "subs";' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=listdir&dir=" + window.currentDirectory + "&server=" + $("#server_id").val() + "&filter=" + rFilter, function(data) {' . "\r\n\t\t\t\t\t" . '$("#datatable").DataTable().clear();' . "\r\n\t\t\t\t\t" . '$("#datatable-files").DataTable().clear();' . "\r\n\t\t\t\t\t" . 'if (window.currentDirectory != "/") {' . "\r\n\t\t\t\t\t\t" . "\$(\"#datatable\").DataTable().row.add([\"<i class='mdi mdi-subdirectory-arrow-left'></i>\", \"";
-		echo $language::get('parent_directory');
-		echo '"]);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$(data.data.dirs).each(function(id, dir) {' . "\r\n\t\t\t\t\t\t\t" . "\$(\"#datatable\").DataTable().row.add([\"<i class='mdi mdi-folder-open-outline'></i>\", dir]);" . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t" . '$("#datatable").DataTable().draw(true);' . "\r\n\t\t\t\t\t\t" . '$(data.data.files).each(function(id, dir) {' . "\r\n\t\t\t\t\t\t\t" . "\$(\"#datatable-files\").DataTable().row.add([\"<i class='mdi mdi-file-video'></i>\", dir]);" . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t" . '$("#datatable-files").DataTable().draw(true);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable').on('click', 'tbody > tr', function() {" . "\r\n\t\t\t\t" . 'if ($(this).find("td").eq(1).html() == "';
-		echo $language::get('parent_directory');
-		echo '") {' . "\r\n\t\t\t\t\t" . 'selectParent();' . "\r\n\t\t\t\t" . '} else if ($(this).find("td").eq(1).html() != "';
-		echo $language::get('loading');
-		echo '...") {' . "\r\n\t\t\t\t\t" . 'selectDirectory($(this).find("td").eq(1).html());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#datatable-files').on('click', 'tbody > tr', function() {" . "\r\n\t\t\t\t" . 'selectFile($(this).find("td").eq(1).html());' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#server_tree').on('select_node.jstree', function (e, data) {" . "\r\n" . '                if (data.node.parent == "offline") {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#source\", \"last\");" . "\r\n" . '                } else {' . "\r\n" . "                    \$('#server_tree').jstree(\"move_node\", data.node.id, \"#offline\", \"first\");" . "\r\n" . '                }' . "\r\n" . "            }).jstree({ 'core' : {" . "\r\n\t\t\t\t" . "'check_callback': function (op, node, parent, position, more) {" . "\r\n\t\t\t\t\t" . 'switch (op) {' . "\r\n\t\t\t\t\t\t" . "case 'move_node':" . "\r\n\t\t\t\t\t\t\t" . 'if ((node.id == "offline") || (node.id == "source")) { return false; }' . "\r\n" . '                            if (parent.id != "offline" && parent.id != "source") { return false; }' . "\r\n" . '                            if (parent.id > 0 && $("#direct_proxy").is(":checked")) { return false; }' . "\r\n" . '                            if (parent.id == "#") { return false; }' . "\r\n\t\t\t\t\t\t\t" . 'return true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . "'data' : ";
-		echo json_encode(($rServerTree ?: array()));
-		echo "\t\t\t" . '}, "plugins" : [ "dnd" ]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#filebrowser").magnificPopup({' . "\r\n\t\t\t\t" . "type: 'inline'," . "\r\n\t\t\t\t" . 'preloader: false,' . "\r\n\t\t\t\t" . "focus: '#server_id'," . "\r\n\t\t\t\t" . 'callbacks: {' . "\r\n\t\t\t\t\t" . 'beforeOpen: function() {' . "\r\n\t\t\t\t\t\t" . 'if ($(window).width() < 830) {' . "\r\n\t\t\t\t\t\t\t" . 'this.st.focus = false;' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . "this.st.focus = '#server_id';" . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#filebrowser-sub").magnificPopup({' . "\r\n\t\t\t\t" . "type: 'inline'," . "\r\n\t\t\t\t" . 'preloader: false,' . "\r\n\t\t\t\t" . "focus: '#server_id'," . "\r\n\t\t\t\t" . 'callbacks: {' . "\r\n\t\t\t\t\t" . 'beforeOpen: function() {' . "\r\n\t\t\t\t\t\t" . 'if ($(window).width() < 830) {' . "\r\n\t\t\t\t\t\t\t" . 'this.st.focus = false;' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . "this.st.focus = '#server_id';" . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#filebrowser").on("mfpOpen", function() {' . "\r\n\t\t\t\t" . 'clearSearch();' . "\r\n\t\t\t\t" . "\$(\$.fn.dataTable.tables(true)).css('width', '100%');" . "\r\n\t\t\t\t" . '$($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#filebrowser-sub").on("mfpOpen", function() {' . "\r\n\t\t\t\t" . 'clearSearch();' . "\r\n\t\t\t\t" . "\$(\$.fn.dataTable.tables(true)).css('width', '100%');" . "\r\n\t\t\t\t" . '$($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#server_id").change(function() {' . "\r\n\t\t\t\t" . '$("#current_path").val("/");' . "\r\n\t\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#direct_source").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#direct_proxy").change(function() {' . "\r\n\t\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#movie_symlink").change(function() {' . "\r\n\t\t\t\t" . 'evaluateSymlink();' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#stream_source").change(function() {' . "\r\n\t\t\t\t" . 'checkSymlink();' . "\r\n\t\t\t" . '});' . "\r\n" . '            $("#datatable-provider-movies").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '},' . "\r\n\t\t\t\t\t" . 'infoFiltered: ""' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\t\t\t\t\t" . 'bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "provider_streams",' . "\r\n" . '                        d.type = "movie"' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [2]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"order": [[ 0, "asc" ]],' . "\r\n\t\t\t\t" . 'pageLength: ';
-		echo (intval($rSettings['default_entries']) ?: 10);
-		echo "\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-provider-movies").css("width", "100%");' . "\r\n" . '            $("#provider-streams").click(function() {' . "\r\n\t\t\t\t" . '$("#datatable-provider-movies").DataTable().search($("#stream_display_name").val()).draw();' . "\r\n" . '                $(".bs-provider-movies-modal-center").modal("show");' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'function evaluateDirectSource() {' . "\r\n\t\t\t\t" . '$(["movie_symlink", "read_native", "transcode_profile_id", "remove_subtitles", "movie_subtitles"]).each(function(rID, rElement) {' . "\r\n\t\t\t\t\t" . 'if ($(rElement)) {' . "\r\n\t\t\t\t\t\t" . 'if ($("#direct_source").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'setSwitch(window.rSwitches[rElement], false);' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].disable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].enable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", false);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n" . '                $(["direct_proxy"]).each(function(rID, rElement) {' . "\r\n\t\t\t\t\t" . 'if ($(rElement)) {' . "\r\n\t\t\t\t\t\t" . 'if (!$("#direct_source").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'setSwitch(window.rSwitches[rElement], false);' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].disable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].enable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", false);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '}' . "\r\n" . '            function checkSymlink() {' . "\r\n" . '                if (($("#movie_symlink").is(":checked")) && ($("#stream_source").val()) && (!$("#stream_source").val().startsWith("s:")) && (!$("#stream_source").val().startsWith("/"))) {' . "\r\n" . '                    $.toast("Please ensure the source is a local file before symlinking.");' . "\r\n" . '                    setSwitch(window.rSwitches["movie_symlink"], false);' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n\t\t\t" . 'function evaluateSymlink() {' . "\r\n" . '                if ($("#direct_source").is(":checked")) { return; }' . "\r\n" . '                checkSymlink();' . "\r\n\t\t\t\t" . '$(["direct_source", "direct_proxy", "read_native", "remove_subtitles", "target_container", "transcode_profile_id", "movie_subtitles"]).each(function(rID, rElement) {' . "\r\n\t\t\t\t\t" . 'if ($(rElement)) {' . "\r\n\t\t\t\t\t\t" . 'if ($("#movie_symlink").is(":checked")) {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'setSwitch(window.rSwitches[rElement], false);' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].disable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t" . 'if (window.rSwitches[rElement]) {' . "\r\n\t\t\t\t\t\t\t\t" . 'window.rSwitches[rElement].enable();' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#" + rElement).prop("disabled", false);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#tmdb_language").change(function() {' . "\r\n" . '                $("#stream_display_name").trigger("change");' . "\r\n" . '            });' . "\r\n\t\t\t" . '$("#stream_display_name").change(function() {' . "\r\n\t\t\t\t" . 'if (!window.changeTitle) {' . "\r\n\t\t\t\t\t" . "\$(\"#tmdb_search\").empty().trigger('change');" . "\r\n\t\t\t\t\t" . 'if ($("#stream_display_name").val()) {' . "\r\n\t\t\t\t\t\t" . '$.getJSON("./api?action=tmdb_search&type=movie&term=" + encodeURIComponent($("#stream_display_name").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {' . "\r\n\t\t\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t\t\t" . 'if (data.data.length > 0) {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'newOption = new Option("';
-		echo $language::get('found_results');
-		echo "\".replace('{num}', data.data.length), -1, true, true);" . "\r\n\t\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'newOption = new Option("';
-		echo $language::get('no_results_found');
-		echo '", -1, true, true);' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t\t" . "\$(\"#tmdb_search\").append(newOption).trigger('change');" . "\r\n\t\t\t\t\t\t\t\t" . '$(data.data).each(function(id, item) {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'if (item.release_date) {' . "\r\n" . '                                        ';
+                    <div class="mb-6">
+                        <label class="form-label" for="category_id"><?= $rIsImport ? 'Fallback ' : ''; ?><?= $language::get('categories'); ?></label>
+                        <select name="category_id[]" id="category_id" class="form-select" multiple>
+                            <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
+                                <option value="<?= (int) $rCategory['id']; ?>" <?= in_array((int) $rCategory['id'], array_map('intval', $rMovieCat), true) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="mb-6">
+                        <label class="form-label" for="bouquets"><?= $rIsImport ? 'Fallback ' : ''; ?><?= $language::get('bouquets'); ?></label>
+                        <select name="bouquets[]" id="bouquets" class="form-select" multiple>
+                            <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?>
+                                <option value="<?= (int) $rBouquet['id']; ?>" <?= ($rIsEdit && in_array((int) $rMovie['id'], array_map('intval', json_decode((string) $rBouquet['bouquet_movies'], true) ?: []), true)) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rBouquet['bouquet_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <?php if ($rIsImport): ?>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="disable_tmdb" name="disable_tmdb" value="1">
+                                    <label class="form-check-label" for="disable_tmdb">Disable TMDb</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="ignore_no_match" name="ignore_no_match" value="1">
+                                    <label class="form-check-label" for="ignore_no_match">Ignore No Match</label>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
-		if ($rSettings['movie_year_append'] == 0) {
-			echo "\t\t\t\t\t\t\t\t\t\t" . 'rTitle = item.title + " (" + item.release_date.substring(0, 4) + ")";' . "\r\n" . '                                        ';
-		} else {
-			if ($rSettings['movie_year_append'] == 1) {
-				echo '                                        rTitle = item.title + " - " + item.release_date.substring(0, 4);' . "\r\n" . '                                        ';
-			} else {
-				echo '                                        rTitle = item.title;' . "\r\n" . '                                        ';
-			}
-		}
+                <?php if (!$rIsImport): ?>
+                    <div class="tab-pane fade" id="tab-info" role="tabpanel">
+                        <div class="mb-6">
+                            <label class="form-label" for="movie_image"><?= $language::get('poster_url'); ?></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="movie_image" name="movie_image" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['movie_image'] ?? ''), ENT_QUOTES) : ''; ?>">
+                                <button type="button" class="btn btn-label-secondary js-img-preview" data-target="movie_image"><i class="icon-base ti tabler-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="backdrop_path"><?= $language::get('backdrop_url'); ?></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="backdrop_path" name="backdrop_path" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['backdrop_path'][0] ?? ''), ENT_QUOTES) : ''; ?>">
+                                <button type="button" class="btn btn-label-secondary js-img-preview" data-target="backdrop_path"><i class="icon-base ti tabler-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="plot"><?= $language::get('plot'); ?></label>
+                            <textarea rows="4" class="form-control" id="plot" name="plot"><?= $rIsEdit ? htmlspecialchars((string) ($rProps['plot'] ?? ''), ENT_QUOTES) : ''; ?></textarea>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="cast"><?= $language::get('cast'); ?></label>
+                            <input type="text" class="form-control" id="cast" name="cast" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['cast'] ?? ''), ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="director"><?= $language::get('director'); ?></label>
+                                <input type="text" class="form-control" id="director" name="director" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['director'] ?? ''), ENT_QUOTES) : ''; ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="genre"><?= $language::get('genres'); ?></label>
+                                <input type="text" class="form-control" id="genre" name="genre" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['genre'] ?? ''), ENT_QUOTES) : ''; ?>">
+                            </div>
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="release_date"><?= $language::get('release_date'); ?></label>
+                                <input type="text" class="form-control" id="release_date" name="release_date" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['release_date'] ?? ''), ENT_QUOTES) : ''; ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="episode_run_time"><?= $language::get('runtime'); ?></label>
+                                <input type="text" inputmode="numeric" class="form-control" id="episode_run_time" name="episode_run_time" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['episode_run_time'] ?? ''), ENT_QUOTES) : ''; ?>">
+                            </div>
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-8">
+                                <label class="form-label" for="youtube_trailer"><?= $language::get('youtube_trailer'); ?></label>
+                                <div class="input-group">
+                                    <input type="text" class="form-control" id="youtube_trailer" name="youtube_trailer" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['youtube_trailer'] ?? ''), ENT_QUOTES) : ''; ?>">
+                                    <button type="button" class="btn btn-label-secondary" id="yt-preview"><i class="icon-base ti tabler-eye"></i></button>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="rating"><?= $language::get('rating'); ?></label>
+                                <input type="text" class="form-control" id="rating" name="rating" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['rating'] ?? ''), ENT_QUOTES) : ''; ?>">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" for="country"><?= $language::get('country'); ?></label>
+                            <input type="text" class="form-control" id="country" name="country" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['country'] ?? ''), ENT_QUOTES) : ''; ?>">
+                        </div>
+                    </div>
+                <?php endif; ?>
 
-		echo "\t\t\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t\t\t" . 'rTitle = item.title;' . "\r\n\t\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t\t\t" . 'newOption = new Option(rTitle, item.id, true, true);' . "\r\n\t\t\t\t\t\t\t\t\t" . '$("#tmdb_search").append(newOption);' . "\r\n\t\t\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t\t\t" . 'newOption = new Option("';
-		echo $language::get('no_results_found');
-		echo '", -1, true, true);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . "\$(\"#tmdb_search\").val(-1).trigger('change');" . "\r\n\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'window.changeTitle = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#tmdb_search").change(function() {' . "\r\n\t\t\t\t" . 'if (($("#tmdb_search").val()) && ($("#tmdb_search").val() > -1)) {' . "\r\n\t\t\t\t\t" . '$.getJSON("./api?action=tmdb&type=movie&id=" + encodeURIComponent($("#tmdb_search").val()) + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {' . "\r\n\t\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t\t" . 'window.changeTitle = true;' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.release_date) {' . "\r\n" . '                                $("#year").val(data.data.release_date.substr(0, 4));' . "\r\n\t\t\t\t\t\t\t" . '} else {' . "\r\n" . '                                $("#year").val("");' . "\r\n" . '                            }' . "\r\n\t\t\t\t\t\t\t" . '$("#stream_display_name").val(data.data.title);' . "\r\n\t\t\t\t\t\t\t" . '$("#movie_image").val("");' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.poster_path) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#movie_image").val("https://image.tmdb.org/t/p/w600_and_h900_bestv2" + data.data.poster_path);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$("#backdrop_path").val("");' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.backdrop_path) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#backdrop_path").val("https://image.tmdb.org/t/p/w1280" + data.data.backdrop_path);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$("#release_date").val(data.data.release_date);' . "\r\n\t\t\t\t\t\t\t" . '$("#episode_run_time").val(data.data.runtime);' . "\r\n\t\t\t\t\t\t\t" . '$("#youtube_trailer").val("");' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.trailer) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#youtube_trailer").val(data.data.trailer);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . 'rCast = "";' . "\r\n\t\t\t\t\t\t\t" . 'rMemberID = 0;' . "\r\n\t\t\t\t\t\t\t" . '$(data.data.credits.cast).each(function(id, member) {' . "\r\n\t\t\t\t\t\t\t\t" . 'rMemberID += 1;' . "\r\n\t\t\t\t\t\t\t\t" . 'if (rMemberID <= 5) {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'if (rCast) {' . "\r\n\t\t\t\t\t\t\t\t\t\t" . 'rCast += ", ";' . "\r\n\t\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t\t\t" . 'rCast += member.name;' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t\t" . '$("#cast").val(rCast);' . "\r\n\t\t\t\t\t\t\t" . 'rGenres = "";' . "\r\n\t\t\t\t\t\t\t" . 'rGenreID = 0;' . "\r\n\t\t\t\t\t\t\t" . '$(data.data.genres).each(function(id, genre) {' . "\r\n\t\t\t\t\t\t\t\t" . 'rGenreID += 1;' . "\r\n\t\t\t\t\t\t\t\t" . 'if (rGenreID <= 3) {' . "\r\n\t\t\t\t\t\t\t\t\t" . 'if (rGenres) {' . "\r\n\t\t\t\t\t\t\t\t\t\t" . 'rGenres += ", ";' . "\r\n\t\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t\t\t" . 'rGenres += genre.name;' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '});' . "\r\n\t\t\t\t\t\t\t" . '$("#genre").val(rGenres);' . "\r\n" . '                            rDirectors = "";' . "\r\n" . '                            rDirectorID = 0;' . "\r\n\t\t\t\t\t\t\t" . '$(data.data.credits.crew).each(function(id, member) {' . "\r\n\t\t\t\t\t\t\t\t" . 'if ((member.department == "Directing") || (member.known_for_department == "Directing")) {' . "\r\n" . '                                    rDirectorID += 1;' . "\r\n" . '                                    if (rDirectorID <= 3) {' . "\r\n" . '                                        if (rDirectors) {' . "\r\n" . '                                            rDirectors += ", ";' . "\r\n" . '                                        }' . "\r\n" . '                                        rDirectors += member.name;' . "\r\n" . '                                    }' . "\r\n\t\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '});' . "\r\n" . '                            $("#director").val(rDirectors);' . "\r\n\t\t\t\t\t\t\t" . '$("#country").val("");' . "\r\n\t\t\t\t\t\t\t" . '$("#plot").val(data.data.overview);' . "\r\n\t\t\t\t\t\t\t" . 'if (data.data.production_countries) {' . "\r\n\t\t\t\t\t\t\t\t" . '$("#country").val(data.data.production_countries[0].name);' . "\r\n\t\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t\t\t" . '$("#rating").val(data.data.vote_average);' . "\r\n\t\t\t\t\t\t\t" . '$("#tmdb_id").val(data.data.id);' . "\r\n\t\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t";
+                <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
+                    <div class="row g-3 mb-6">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="direct_source" name="direct_source" value="1" <?= ($rIsEdit && $rMovie['direct_source'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="direct_source"><?= $language::get('direct_source'); ?></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="direct_proxy" name="direct_proxy" value="1" <?= ($rIsEdit && $rMovie['direct_proxy'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="direct_proxy">Direct Stream</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="read_native" name="read_native" value="1" <?= ($rIsEdit && $rMovie['read_native'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="read_native"><?= $language::get('native_frames'); ?></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="movie_symlink" name="movie_symlink" value="1" <?= ($rIsEdit && $rMovie['movie_symlink'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="movie_symlink"><?= $language::get('create_symlink'); ?></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="remove_subtitles" name="remove_subtitles" value="1" <?= ($rIsEdit && $rMovie['remove_subtitles'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="remove_subtitles"><?= $language::get('remove_existing_subtitles'); ?></label>
+                            </div>
+                        </div>
+                    </div>
+                    <?php if (!$rIsImport): ?>
+                        <div class="mb-6">
+                            <label class="form-label" for="movie_subtitles"><?= $language::get('subtitle_location'); ?></label>
+                            <div class="input-group">
+                                <input type="text" id="movie_subtitles" name="movie_subtitles" class="form-control" value="<?= htmlspecialchars((string) $rSubFile, ENT_QUOTES); ?>">
+                                <button type="button" class="btn btn-label-primary" id="filebrowser-sub" data-target="movie_subtitles"><i class="icon-base ti tabler-folder"></i></button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <label class="form-label" for="transcode_profile_id"><?= $language::get('transcoding_profile'); ?></label>
+                            <select name="transcode_profile_id" id="transcode_profile_id" class="form-select">
+                                <option value="0" <?= ($rIsEdit && (int) $rMovie['transcode_profile_id'] === 0) ? 'selected' : ''; ?>><?= $language::get('transcoding_disabled'); ?></option>
+                                <?php foreach ($rTranscodeProfiles as $rProfile): ?>
+                                    <option value="<?= (int) $rProfile['profile_id']; ?>" <?= ($rIsEdit && (int) $rMovie['transcode_profile_id'] === (int) $rProfile['profile_id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rProfile['profile_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="target_container"><?= $language::get('target_container'); ?></label>
+                            <select name="target_container" id="target_container" class="form-select">
+                                <?php foreach ($rContainers as $rContainer): ?>
+                                    <option value="<?= $rContainer; ?>" <?= ($rIsEdit && $rMovie['target_container'] === $rContainer) ? 'selected' : ''; ?>><?= $rContainer; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
 
-		if (!(isset($rMovie) || RequestManager::has('title'))) {
-		} else {
-			echo "\t\t\t" . "\$(\"#stream_display_name\").trigger('change');" . "\r\n\t\t\t";
-		}
+                <div class="tab-pane fade" id="tab-server" role="tabpanel">
+                    <div class="mb-6">
+                        <label class="form-label"><?= $language::get('server_tree'); ?></label>
+                        <div id="server_tree" class="border rounded p-2"></div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="restart_on_edit" name="restart_on_edit" value="1">
+                        <label class="form-check-label" for="restart_on_edit"><?= $rIsEdit ? $language::get('reprocess_on_edit') : $language::get('process_movie'); ?></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-		echo "\t\t\t" . '$("#import_type_1").click(function() {' . "\r\n\t\t\t\t" . '$("#import_m3uf_toggle").show();' . "\r\n\t\t\t\t" . '$("#import_folder_toggle").hide();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#import_type_2").click(function() {' . "\r\n\t\t\t\t" . '$("#import_m3uf_toggle").hide();' . "\r\n\t\t\t\t" . '$("#import_folder_toggle").show();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t\r\n\t\t\t" . '$("#runtime").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n" . '            $("#year").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t\r\n\t\t\t" . '$("#changeDir").click();' . "\r\n\t\t\t" . 'evaluateDirectSource();' . "\r\n\t\t\t" . 'evaluateSymlink();' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n" . '                rSubmit = true;' . "\r\n\t\t\t\t";
+    <div class="d-flex justify-content-end mb-6">
+        <button type="submit" class="btn btn-primary" id="movie-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+    </div>
+</form>
 
-		if (!RequestManager::has('import')) {
-			echo "\t\t\t\t" . 'if ($("#stream_display_name").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-			echo $language::get('enter_movie_name');
-			echo '");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t" . 'if ($("#stream_source").val().length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-			echo $language::get('enter_movie_source');
-			echo '");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t";
-		} else {
-			echo "\t\t\t\t" . 'if (($("#m3u_file").val().length == 0) && ($("#import_folder").val().length == 0)) {' . "\r\n\t\t\t\t\t" . '$.toast("';
-			echo $language::get('select_m3u_file');
-			echo '");' . "\r\n" . '                    rSubmit = false;' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t\t";
-		}
+<!-- File browser modal -->
+<div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('file_browser') ?: 'File Browser'; ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" for="fb_server"><?= $language::get('server_name'); ?></label>
+                        <select id="fb_server" class="form-select">
+                            <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
+                                <option value="<?= (int) $rServer['id']; ?>" <?= (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" for="fb_path"><?= $language::get('current_path'); ?></label>
+                        <div class="input-group">
+                            <input type="text" id="fb_path" class="form-control" value="/">
+                            <button class="btn btn-label-primary" type="button" id="fb_go"><i class="icon-base ti tabler-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" id="fb_search" class="form-control" placeholder="<?= htmlspecialchars((string) $language::get('filter_files'), ENT_QUOTES); ?>...">
+                        <button class="btn btn-label-secondary" type="button" id="fb_clear"><i class="icon-base ti tabler-x"></i></button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="fw-medium mb-1"><?= $language::get('directory'); ?></div>
+                        <ul class="list-group" id="fb_dirs" style="max-height:280px;overflow:auto"></ul>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="fw-medium mb-1"><?= $language::get('filename'); ?></div>
+                        <ul class="list-group" id="fb_files" style="max-height:280px;overflow:auto"></ul>
+                    </div>
+                </div>
+                <?php if ($rIsImport): ?>
+                    <div class="d-flex justify-content-end mt-3"><button type="button" class="btn btn-primary" id="fb_select_folder"><?= $language::get('select') ?: 'Select'; ?></button></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
 
-		echo "\t\t\t\t" . "\$(\"#server_tree_data\").val(JSON.stringify(\$('#server_tree').jstree(true).get_json('source', {flat:true})));" . "\r\n" . '                if (rSubmit) {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-		?>
-		<?php if (SettingsManager::get('enable_search')): ?>
-			$(document).ready(function() {
-				initSearch();
-			});
-		<?php endif; ?>
-	</script>
-	<script src="assets/old/js/listings.js"></script>
-	</body>
+<!-- Provider search modal -->
+<div class="modal fade" id="providerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('provider_streams') ?: 'Provider Streams'; ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card-datatable table-responsive">
+                    <table id="datatable-provider-movies" class="table"><thead><tr><th><?= $language::get('stream_name'); ?></th><th><?= $language::get('provider'); ?></th><th class="text-center"><?= $language::get('actions'); ?></th></tr></thead><tbody></tbody></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-	</html>
+<!-- Image / trailer preview modals -->
+<div class="modal fade" id="imgPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div></div></div>
+</div>
+<div class="modal fade" id="ytModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-0"><div class="ratio ratio-16x9"><iframe id="ytFrame" src="" allowfullscreen style="border:0"></iframe></div></div></div></div>
+</div>
+
+<?php
+require_once __DIR__ . '/../layouts/footer.php';
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var lang = {
+            errText: <?= json_encode($language::get('error_occured')); ?>,
+            noName: <?= json_encode($language::get('enter_movie_name')); ?>,
+            noSource: <?= json_encode($language::get('enter_movie_source')); ?>,
+            noM3u: <?= json_encode($language::get('select_m3u_file')); ?>,
+            parent: <?= json_encode($language::get('parent_directory')); ?>,
+            loading: <?= json_encode($language::get('loading')); ?>,
+            found: <?= json_encode($language::get('found_results')); ?>,
+            none: <?= json_encode($language::get('no_results_found')); ?>
+        };
+        var isImport = <?= $rIsImport ? 'true' : 'false'; ?>;
+        var yearAppend = <?= (int) ($rSettings['movie_year_append'] ?? 0); ?>;
+        var changeTitle = false;
+
+        // ---- select2 tags (categories / bouquets) ----
+        $('#category_id, #bouquets').select2({ width: '100%', tags: true, dropdownParent: $('#tab-details') });
+        $('#tmdb_search, #tmdb_language, #transcode_profile_id, #target_container').select2({ width: '100%', dropdownParent: $('#movie-form') });
+        function collectNew(sel) {
+            var vals = $(sel).val() || [], nw = [];
+            vals.forEach(function(v) { if (!/^\d+$/.test(v)) { nw.push(v); } });
+            return JSON.stringify(nw);
+        }
+
+        // ---- jstree server tree ----
+        $('#server_tree')
+            .on('select_node.jstree', function(e, data) {
+                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                var to = (data.node.parent === 'offline') ? 'source' : 'offline';
+                $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
+            })
+            .jstree({
+                core: {
+                    check_callback: function(op, node, parent) {
+                        if (op === 'move_node') {
+                            if (node.id === 'offline' || node.id === 'source') { return false; }
+                            if (parent.id !== 'offline' && parent.id !== 'source') { return false; }
+                            if (parent.id === '#') { return false; }
+                            return true;
+                        }
+                        return true;
+                    },
+                    data: <?= json_encode($rServerTree); ?>
+                },
+                plugins: ['dnd']
+            });
+
+        // ---- image / youtube preview ----
+        document.querySelectorAll('.js-img-preview').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var v = document.getElementById(btn.dataset.target).value.trim();
+                if (!v) { return; }
+                document.getElementById('imgPreviewImg').src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(v);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('imgPreviewModal')).show();
+            });
+        });
+        var ytBtn = document.getElementById('yt-preview');
+        if (ytBtn) {
+            ytBtn.addEventListener('click', function() {
+                var v = document.getElementById('youtube_trailer').value.trim();
+                if (!v) { return; }
+                document.getElementById('ytFrame').src = 'https://www.youtube.com/embed/' + encodeURIComponent(v);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('ytModal')).show();
+            });
+        }
+        document.getElementById('ytModal').addEventListener('hidden.bs.modal', function() { document.getElementById('ytFrame').src = ''; });
+
+        // ---- file browser ----
+        var fbTarget = 'stream_source', fbDir = '/';
+        var fbModal = document.getElementById('fileBrowserModal');
+        function fbList() {
+            var server = $('#fb_server').val();
+            fbDir = $('#fb_path').val();
+            if (fbDir.slice(-1) !== '/') { fbDir += '/'; }
+            $('#fb_path').val(fbDir);
+            var filter = (fbTarget === 'movie_subtitles') ? 'subs' : 'video';
+            $('#fb_dirs, #fb_files').html('<li class="list-group-item text-muted">' + lang.loading + '...</li>');
+            $.getJSON('./api?action=listdir&dir=' + encodeURIComponent(fbDir) + '&server=' + encodeURIComponent(server) + '&filter=' + filter, function(data) {
+                var dirs = '', files = '';
+                if (fbDir !== '/') { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>' + lang.parent + '</li>'; }
+                if (data && data.result === true) {
+                    $(data.data.dirs).each(function(i, d) { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>'; });
+                    $(data.data.files).each(function(i, f) { files += '<li class="list-group-item list-group-item-action fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>'; });
+                }
+                $('#fb_dirs').html(dirs || '<li class="list-group-item text-muted">—</li>');
+                $('#fb_files').html(files || '<li class="list-group-item text-muted">—</li>');
+            });
+        }
+        function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
+        document.querySelectorAll('#filebrowser, #filebrowser-sub').forEach(function(b) {
+            b.addEventListener('click', function() {
+                fbTarget = b.dataset.target;
+                $('#fb_path').val('/'); fbList();
+                bootstrap.Modal.getOrCreateInstance(fbModal).show();
+            });
+        });
+        document.getElementById('fb_go').addEventListener('click', fbList);
+        $('#fb_server').on('change', function() { $('#fb_path').val('/'); fbList(); });
+        document.getElementById('fb_clear').addEventListener('click', function() { $('#fb_search').val(''); $('#fb_files .fb-file').show(); });
+        $('#fb_search').on('input', function() {
+            var q = this.value.toLowerCase();
+            $('#fb_files .fb-file').each(function() { $(this).toggle($(this).data('name').toLowerCase().indexOf(q) !== -1); });
+        });
+        $('#fb_dirs').on('click', '.fb-dir', function() {
+            var name = $(this).data('name');
+            if (name === '..') { fbDir = fbDir.split('/').slice(0, -2).join('/') + '/'; }
+            else { fbDir += name + '/'; }
+            $('#fb_path').val(fbDir); fbList();
+        });
+        $('#fb_files').on('click', '.fb-file', function() {
+            var name = $(this).data('name'), val = 's:' + $('#fb_server').val() + ':' + fbDir + name;
+            document.getElementById(fbTarget).value = val;
+            if (fbTarget === 'stream_source') {
+                var ext = name.substr(name.lastIndexOf('.') + 1);
+                if ($('#target_container option[value="' + ext + '"]').length) { $('#target_container').val(ext).trigger('change'); }
+                $('#stream_source').trigger('change');
+            }
+            bootstrap.Modal.getInstance(fbModal).hide();
+        });
+        var fbSelFolder = document.getElementById('fb_select_folder');
+        if (fbSelFolder) {
+            fbSelFolder.addEventListener('click', function() {
+                document.getElementById('import_folder').value = 's:' + $('#fb_server').val() + ':' + fbDir;
+                bootstrap.Modal.getInstance(fbModal).hide();
+            });
+        }
+
+        // ---- provider search ----
+        var provBtn = document.getElementById('provider-streams');
+        if (provBtn) {
+            var provTable = $('#datatable-provider-movies').DataTable({
+                processing: true, serverSide: true, searchDelay: 250, responsive: false,
+                order: [[0, 'asc']], pageLength: <?= (int) ($rSettings['default_entries'] ?? 10) ?: 10; ?>,
+                ajax: { url: './table', data: function(d) { d.id = 'provider_streams'; d.type = 'movie'; } },
+                columnDefs: [{ className: 'dt-center', targets: [2] }]
+            });
+            provBtn.addEventListener('click', function() {
+                provTable.search(document.getElementById('stream_display_name').value).draw();
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('providerModal')).show();
+            });
+            // The provider rows render a button that calls this global (legacy contract).
+            window.addStream = function(name, url) {
+                if (url === undefined) { url = name; name = null; }
+                document.getElementById('stream_source').value = url;
+                if (name !== null) { $('#stream_display_name').val(name).trigger('change'); }
+                bootstrap.Modal.getInstance(document.getElementById('providerModal')).hide();
+            };
+        }
+
+        // ---- direct source / symlink enable-disable ----
+        function toggle(ids, off) { ids.forEach(function(id) { var el = document.getElementById(id); if (el) { el.disabled = off; } }); }
+        var dsFields = ['movie_symlink', 'read_native', 'transcode_profile_id', 'remove_subtitles', 'movie_subtitles'];
+        var slFields = ['direct_source', 'direct_proxy', 'read_native', 'remove_subtitles', 'target_container', 'transcode_profile_id', 'movie_subtitles'];
+        function evaluateDirectSource() {
+            var ds = document.getElementById('direct_source').checked;
+            toggle(dsFields, ds);
+            document.getElementById('direct_proxy').disabled = !ds;
+        }
+        function checkSymlink() {
+            var s = document.getElementById('stream_source').value;
+            if (document.getElementById('movie_symlink').checked && s && s.indexOf('s:') !== 0 && s.indexOf('/') !== 0) {
+                document.getElementById('movie_symlink').checked = false;
+            }
+        }
+        function evaluateSymlink() {
+            if (document.getElementById('direct_source').checked) { return; }
+            checkSymlink();
+            toggle(slFields, document.getElementById('movie_symlink').checked);
+        }
+        if (!isImport) {
+            document.getElementById('direct_source').addEventListener('change', function() { evaluateDirectSource(); evaluateSymlink(); });
+            document.getElementById('direct_proxy').addEventListener('change', evaluateDirectSource);
+            document.getElementById('movie_symlink').addEventListener('change', evaluateSymlink);
+            document.getElementById('stream_source').addEventListener('change', checkSymlink);
+            evaluateDirectSource();
+            evaluateSymlink();
+        }
+
+        // ---- import M3U/folder toggle ----
+        var it1 = document.getElementById('import_type_1'), it2 = document.getElementById('import_type_2');
+        if (it1 && it2) {
+            it1.addEventListener('change', function() { document.getElementById('import_m3uf_toggle').hidden = false; document.getElementById('import_folder_toggle').hidden = true; });
+            it2.addEventListener('change', function() { document.getElementById('import_m3uf_toggle').hidden = true; document.getElementById('import_folder_toggle').hidden = false; });
+        }
+
+        // ---- TMDb search + auto-fill ----
+        var tmdbSearch = document.getElementById('tmdb_search');
+        if (tmdbSearch) {
+            $('#tmdb_language').on('change', function() { $('#stream_display_name').trigger('change'); });
+            $('#stream_display_name').on('change', function() {
+                if (changeTitle) { changeTitle = false; return; }
+                $('#tmdb_search').empty().trigger('change');
+                var term = $('#stream_display_name').val();
+                if (!term) { return; }
+                $.getJSON('./api?action=tmdb_search&type=movie&term=' + encodeURIComponent(term) + '&language=' + encodeURIComponent($('#tmdb_language').val()), function(data) {
+                    if (!data || data.result !== true) { $('#tmdb_search').append(new Option(lang.none, -1, true, true)); return; }
+                    var head = data.data.length > 0 ? lang.found.replace('{num}', data.data.length) : lang.none;
+                    $('#tmdb_search').append(new Option(head, -1, true, true)).trigger('change');
+                    $(data.data).each(function(i, item) {
+                        var t = item.title;
+                        if (item.release_date) {
+                            var yr = item.release_date.substring(0, 4);
+                            t = yearAppend === 0 ? (item.title + ' (' + yr + ')') : (yearAppend === 1 ? (item.title + ' - ' + yr) : item.title);
+                        }
+                        $('#tmdb_search').append(new Option(t, item.id, true, true));
+                    });
+                    $('#tmdb_search').val(-1).trigger('change');
+                });
+            });
+            $('#tmdb_search').on('change', function() {
+                var id = $('#tmdb_search').val();
+                if (!id || id <= -1) { return; }
+                $.getJSON('./api?action=tmdb&type=movie&id=' + encodeURIComponent(id) + '&language=' + encodeURIComponent($('#tmdb_language').val()), function(data) {
+                    if (!data || data.result !== true) { return; }
+                    var d = data.data;
+                    changeTitle = true;
+                    $('#year').val(d.release_date ? d.release_date.substr(0, 4) : '');
+                    $('#stream_display_name').val(d.title);
+                    $('#movie_image').val(d.poster_path ? ('https://image.tmdb.org/t/p/w600_and_h900_bestv2' + d.poster_path) : '');
+                    $('#backdrop_path').val(d.backdrop_path ? ('https://image.tmdb.org/t/p/w1280' + d.backdrop_path) : '');
+                    $('#release_date').val(d.release_date || '');
+                    $('#episode_run_time').val(d.runtime || '');
+                    $('#youtube_trailer').val(d.trailer || '');
+                    $('#plot').val(d.overview || '');
+                    $('#rating').val(d.vote_average || '');
+                    $('#tmdb_id').val(d.id || '');
+                    var cast = ((d.credits && d.credits.cast) || []).slice(0, 5).map(function(m) { return m.name; }).join(', ');
+                    $('#cast').val(cast);
+                    var genres = (d.genres || []).slice(0, 3).map(function(g) { return g.name; }).join(', ');
+                    $('#genre').val(genres);
+                    var dirs = ((d.credits && d.credits.crew) || []).filter(function(m) { return m.department === 'Directing' || m.known_for_department === 'Directing'; }).slice(0, 3).map(function(m) { return m.name; }).join(', ');
+                    $('#director').val(dirs);
+                    $('#country').val((d.production_countries && d.production_countries[0]) ? d.production_countries[0].name : '');
+                });
+            });
+            <?php if ($rIsEdit || RequestManager::has('title')): ?>
+            $('#stream_display_name').trigger('change');
+            <?php endif; ?>
+        }
+
+        // ---- submit ----
+        document.getElementById('movie-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var ok = true;
+            if (!isImport) {
+                if (!document.getElementById('stream_display_name').value.trim()) { alert(lang.noName); ok = false; }
+                if (!document.getElementById('stream_source').value.trim()) { alert(lang.noSource); ok = false; }
+            } else if (!document.getElementById('m3u_file').value && !document.getElementById('import_folder').value) {
+                alert(lang.noM3u); ok = false;
+            }
+            if (!ok) { return; }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            document.getElementById('category_create_list').value = collectNew('#category_id');
+            document.getElementById('bouquet_create_list').value = collectNew('#bouquets');
+            // Re-enable disabled fields so their values still post.
+            document.querySelectorAll('#movie-form :disabled').forEach(function(el) { el.disabled = false; });
+            var btn = document.getElementById('movie-submit');
+            btn.disabled = true;
+            fetch('post.php?action=movie', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) {
+                        if (window.parent !== window) { window.parent.postMessage('xcModalSaved', '*'); }
+                        else { window.location.href = dt.location || 'movies'; }
+                        return;
+                    }
+                    btn.disabled = false;
+                    if (!isImport) { evaluateDirectSource(); evaluateSymlink(); }
+                    alert(lang.errText);
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    if (!isImport) { evaluateDirectSource(); evaluateSymlink(); }
+                    alert(lang.errText);
+                });
+        });
+    })();
+</script>
+</body>
+
+</html>
