@@ -388,6 +388,38 @@ if (count(get_included_files()) == 1) {
                 setTimeout(function() { el.remove(); }, 3500);
             }
         };
+
+        // Shared native HTML5 drag-and-drop reorder for a flat <li> list (replaces the
+        // legacy jQuery-Nestable / dual-listbox widgets). Views read the resulting order
+        // from the list's <li data-id> attributes on submit.
+        window.xcSortable = function(list) {
+            if (!list) { return; }
+            var dragEl = null;
+            list.addEventListener('dragstart', function(e) {
+                if (e.target.closest('button, a, input, select')) { e.preventDefault(); return; }
+                var li = e.target.closest('li');
+                if (!li || li.parentNode !== list) { return; }
+                dragEl = li;
+                li.classList.add('opacity-50');
+                e.dataTransfer.effectAllowed = 'move';
+            });
+            list.addEventListener('dragend', function() {
+                if (dragEl) { dragEl.classList.remove('opacity-50'); }
+                dragEl = null;
+            });
+            list.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                if (!dragEl) { return; }
+                var after = null, closest = -Infinity, items = list.querySelectorAll('li:not(.opacity-50)');
+                for (var i = 0; i < items.length; i++) {
+                    var box = items[i].getBoundingClientRect();
+                    var offset = e.clientY - box.top - box.height / 2;
+                    if (offset < 0 && offset > closest) { closest = offset; after = items[i]; }
+                }
+                if (after == null) { list.appendChild(dragEl); }
+                else { list.insertBefore(dragEl, after); }
+            });
+        };
     })();
 
     // An edit form inside an iframe modal posts this after a successful save;
