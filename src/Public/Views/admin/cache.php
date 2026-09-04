@@ -41,9 +41,12 @@ if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler'
 <form method="POST" id="cache-form">
     <div class="card mb-4">
         <div class="card-body">
-            <h5 class="card-title"><?= $rHeader; ?> Performance</h5>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="card-title mb-0"><i class="icon-base ti tabler-gauge text-<?= $rColour; ?> me-1"></i><?= $rHeader; ?> Performance</h5>
+                <span class="badge bg-label-<?= $rColour; ?>"><?= $rSize; ?>%</span>
+            </div>
             <p class="text-body-secondary"><?= $rMessage; ?></p>
-            <div class="progress" style="height:10px">
+            <div class="progress" style="height:8px">
                 <div class="progress-bar progress-bar-striped progress-bar-animated bg-<?= $rColour; ?>" role="progressbar" style="width:<?= $rSize; ?>%" aria-valuenow="<?= $rSize; ?>" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
         </div>
@@ -55,7 +58,7 @@ if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler'
                 <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#cache" role="tab"><i class="icon-base ti tabler-refresh me-1"></i><?= $language::get('xc_vm_caching_system'); ?></button></li>
                 <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#connections" role="tab"><i class="icon-base ti tabler-plug-connected me-1"></i><?= $language::get('redis_connection_handler'); ?></button></li>
             </ul>
-            <div class="tab-content p-0">
+            <div class="tab-content p-4 border rounded">
                 <!-- Caching system -->
                 <div class="tab-pane fade show active" id="cache" role="tabpanel">
                     <?php if ($rSettings['enable_cache']): ?>
@@ -92,11 +95,26 @@ if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler'
                                 </div>
                             </div>
                         </div>
-                        <div class="d-flex flex-wrap gap-2 mb-4">
-                            <span class="badge bg-label-info">Streams: <?= number_format($rStreamCountR); ?> / <?= number_format($rStreamCount); ?></span>
-                            <span class="badge bg-label-info">Lines: <?= number_format($rLineCountR); ?> / <?= number_format($rLineCount); ?></span>
-                            <span class="badge bg-label-info">Series: <?= number_format($rSeriesCountR); ?> / <?= number_format($rSeriesCount); ?></span>
-                            <span class="badge bg-label-secondary">Time Taken: <?= TimeUtils::secondsToTime($rSettings['last_cache_taken']); ?></span>
+                        <div class="row g-3 mb-4">
+                            <?php
+                            $rTiles = [
+                                ['tabler-player-play', 'Streams', number_format($rStreamCountR) . ' <span class="text-body-secondary">/ ' . number_format($rStreamCount) . '</span>', 'info'],
+                                ['tabler-users', 'Lines', number_format($rLineCountR) . ' <span class="text-body-secondary">/ ' . number_format($rLineCount) . '</span>', 'primary'],
+                                ['tabler-device-tv', 'Series', number_format($rSeriesCountR) . ' <span class="text-body-secondary">/ ' . number_format($rSeriesCount) . '</span>', 'success'],
+                                ['tabler-clock', 'Time Taken', TimeUtils::secondsToTime($rSettings['last_cache_taken']), 'secondary'],
+                            ];
+                            foreach ($rTiles as $rTile):
+                            ?>
+                                <div class="col-6 col-lg-3">
+                                    <div class="border rounded p-3 h-100 d-flex align-items-center gap-3">
+                                        <span class="badge bg-label-<?= $rTile[3]; ?> rounded p-2"><i class="icon-base ti <?= $rTile[0]; ?>"></i></span>
+                                        <div>
+                                            <div class="text-body-secondary small"><?= $rTile[1]; ?></div>
+                                            <div class="h6 mb-0"><?= $rTile[2]; ?></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                         <div class="d-flex flex-wrap justify-content-between gap-2">
                             <div class="d-flex gap-2">
@@ -126,9 +144,19 @@ if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler'
                             // status/auth stay false
                         }
                         ?>
-                        <div class="d-flex flex-wrap gap-3 my-3">
-                            <span class="badge bg-label-secondary">Server Status: <span class="badge bg-<?= $rStatus ? 'success' : 'danger'; ?> ms-1"><?= $rStatus ? $language::get('online_btn') : $language::get('offline'); ?></span></span>
-                            <span class="badge bg-label-secondary">Authentication: <span class="badge bg-<?= $rAuth ? 'success' : 'danger'; ?> ms-1"><?= $rAuth ? $language::get('authenticated') : $language::get('invalid_password'); ?></span></span>
+                        <div class="row g-3 my-1">
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 d-flex justify-content-between align-items-center">
+                                    <span class="d-flex align-items-center gap-2"><i class="icon-base ti tabler-server text-body-secondary"></i>Server Status</span>
+                                    <span class="badge bg-label-<?= $rStatus ? 'success' : 'danger'; ?>"><i class="icon-base ti tabler-<?= $rStatus ? 'circle-check' : 'circle-x'; ?> me-1"></i><?= $rStatus ? $language::get('online_btn') : $language::get('offline'); ?></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 d-flex justify-content-between align-items-center">
+                                    <span class="d-flex align-items-center gap-2"><i class="icon-base ti tabler-key text-body-secondary"></i>Authentication</span>
+                                    <span class="badge bg-label-<?= $rAuth ? 'success' : 'danger'; ?>"><i class="icon-base ti tabler-<?= $rAuth ? 'circle-check' : 'circle-x'; ?> me-1"></i><?= $rAuth ? $language::get('authenticated') : $language::get('invalid_password'); ?></span>
+                                </div>
+                            </div>
                         </div>
                         <div class="d-flex gap-2 mt-3">
                             <button type="button" class="btn btn-danger js-api" data-action="disable_handler"><?= $language::get('disable_handler'); ?></button>
