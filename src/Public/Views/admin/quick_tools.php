@@ -1,683 +1,132 @@
-<div class="wrapper boxed-layout-ext" <?php 
-use XcVm\Core\Config\SettingsManager;
+<?php
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                                            echo ' style="display: none;"';
-                                        } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
-                    </div>
-                    <h4 class="page-title"><?= $language::get('quick_tools') ?></h4>
-                </div>
-            </div>
-        </div>
-        <form action="#" method="POST">
-            <div class="row">
-                <div class="col-xl-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="basicwizard">
-                                <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                    <li class="nav-item">
-                                        <a href="#streams" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-play mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('streams') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#lines" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-user mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('lines') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#mag" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-hdd mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('mag') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#enigma" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-desktop mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('enigma') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#logs" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-clipboard mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('logs') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#general" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-wrench mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('general') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#asns" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="fas fa-server mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('asns') ?></span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content b-0 mb-0 pt-0">
-                                    <div class="tab-pane" id="streams">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('restart_all_streams') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="restart_all_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('restart_online_streams') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="restart_online_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('start_offline_streams') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="start_offline_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('stop_online_streams') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="stop_online_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('stop_down_streams') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="stop_down_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('restart_down_streams') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="restart_down_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('symlink_all_movies') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="symlink_all_movies" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('symlink_all_episodes') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="symlink_all_episodes" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('recreate_channels') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="recreate_channels" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('delete_duplicate_vod') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="delete_duplicates" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('replace_movie_years') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="replace_movie_years" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('replace_series_years') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="replace_series_years" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('check_web_player_compatibility') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="check_compatibility" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('re_scan_all_vod') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="rescan_vod" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('add_tmdb_id_to_movies') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="add_tmdb_ids" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('restore_lost_images') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="restore_images" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
+/**
+ * Quick tools (Bootstrap 5). Seven tabs of one-shot maintenance actions (streams / lines /
+ * MAG / Enigma / logs / general / ASN). Each action is a Run button that, after a
+ * confirmation, POSTs its action name to post.php?action=quick_tools (the handler checks
+ * isset($_POST[<action>])). Reached full-page in the new-UI shell.
+ */
 
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="lines">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_expired_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_expired" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_trial_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_trial" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_expired_trial_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_expired_trial" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_null_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_null_lines" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('enable_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="enable_isp" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('disable_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="disable_isp" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_isp" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="mag">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_expired_devices') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_expired_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_trial_devices') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_trial_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_expired_trial_devices') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_expired_trial_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_isp_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('enable_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="enable_isp_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('disable_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="disable_isp_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('enable_mag_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="enable_mag_lock" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('disable_mag_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="disable_mag_lock" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_mag_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_mag_lock" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('purge_unlinked_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="purge_unlinked_lines_mag" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('update_movie_ratings') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="update_ratings" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="enigma">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_expired_devices') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_expired_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_trial_devices') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_trial_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('remove_expired_trial_devices') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="remove_expired_trial_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_isp_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('enable_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="enable_isp_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('disable_isp_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="disable_isp_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('purge_unlinked_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="purge_unlinked_lines_e2" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="logs">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_activity_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_activity_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_client_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_client_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_credit_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_credit_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_login_flood') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_login_flood" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_login_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_login_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_mag_events') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_mag_events" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_panel_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_panel_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_stream_errors') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_stream_errors" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_stream_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_stream_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_user_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_user_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clear_watch_logs') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="clear_watch_logs" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="general">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('block_trial_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="block_trial_lines" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('unblock_trial_lines') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="unblock_trial_lines" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('reauthorise_mysql_on_servers') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="reauthorise_mysql" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_blocked_ips') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_blocked_ips" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_blocked_isps') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_blocked_isps" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_blocked_uas') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_blocked_uas" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_country_lock') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_country_lock" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('force_epg_update') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="force_epg_update" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('clean_up_streams_table') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="cleanup_streams" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('force_movies_tmdb_refresh') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="force_update_movies" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('force_series_tmdb_refresh') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="force_update_series" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('force_episodes_tmdb_refresh') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="force_update_episodes" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="asns">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('block_all_isps') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="block_all_isps" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('unblock_all_isps') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="unblock_all_isps" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('block_all_servers') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="block_all_servers" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('unblock_all_servers') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="unblock_all_servers" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('block_all_education') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="block_all_education" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('unblock_all_education') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="unblock_all_education" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('block_all_businesses') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="block_all_businesses" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                    <div class="col-md-2"></div>
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('unblock_all_businesses') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="unblock_all_businesses" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-3 col-form-label"><?= $language::get('flush_blocked_asns') ?></label>
-                                                    <div class="col-md-2">
-                                                        <input name="flush_blocked_asns" type="submit" class="btn btn-info" style="width:100%;" value="Run" />
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <!-- Additional tabs for Lines, MAG, Enigma, Logs, General, ASN's go here -->
+$rTabs = [
+    'streams' => ['tabler-player-play', 'streams', [
+        ['restart_all_streams', 'restart_all_streams'], ['restart_online_streams', 'restart_online_streams'],
+        ['start_offline_streams', 'start_offline_streams'], ['stop_online_streams', 'stop_online_streams'],
+        ['stop_down_streams', 'stop_down_streams'], ['restart_down_streams', 'restart_down_streams'],
+        ['symlink_all_movies', 'symlink_all_movies'], ['symlink_all_episodes', 'symlink_all_episodes'],
+        ['recreate_channels', 'recreate_channels'], ['delete_duplicate_vod', 'delete_duplicates'],
+        ['replace_movie_years', 'replace_movie_years'], ['replace_series_years', 'replace_series_years'],
+        ['check_web_player_compatibility', 'check_compatibility'], ['re_scan_all_vod', 'rescan_vod'],
+        ['add_tmdb_id_to_movies', 'add_tmdb_ids'], ['restore_lost_images', 'restore_images'],
+    ]],
+    'lines' => ['tabler-users', 'lines', [
+        ['remove_expired_lines', 'remove_expired'], ['remove_trial_lines', 'remove_trial'],
+        ['remove_expired_trial_lines', 'remove_expired_trial'], ['remove_null_lines', 'remove_null_lines'],
+        ['enable_isp_lock', 'enable_isp'], ['disable_isp_lock', 'disable_isp'], ['flush_isp_lock', 'flush_isp'],
+    ]],
+    'mag' => ['tabler-device-desktop', 'mag', [
+        ['remove_expired_devices', 'remove_expired_mag'], ['remove_trial_devices', 'remove_trial_mag'],
+        ['remove_expired_trial_devices', 'remove_expired_trial_mag'], ['flush_isp_lock', 'flush_isp_mag'],
+        ['enable_isp_lock', 'enable_isp_mag'], ['disable_isp_lock', 'disable_isp_mag'],
+        ['enable_mag_lock', 'enable_mag_lock'], ['disable_mag_lock', 'disable_mag_lock'],
+        ['flush_mag_lock', 'clear_mag_lock'], ['purge_unlinked_lines', 'purge_unlinked_lines_mag'],
+        ['update_movie_ratings', 'update_ratings'],
+    ]],
+    'enigma' => ['tabler-device-tv', 'enigma', [
+        ['remove_expired_devices', 'remove_expired_e2'], ['remove_trial_devices', 'remove_trial_e2'],
+        ['remove_expired_trial_devices', 'remove_expired_trial_e2'], ['flush_isp_lock', 'flush_isp_e2'],
+        ['enable_isp_lock', 'enable_isp_e2'], ['disable_isp_lock', 'disable_isp_e2'],
+        ['purge_unlinked_lines', 'purge_unlinked_lines_e2'],
+    ]],
+    'logs' => ['tabler-clipboard-text', 'logs', [
+        ['clear_activity_logs', 'clear_activity_logs'], ['clear_client_logs', 'clear_client_logs'],
+        ['clear_credit_logs', 'clear_credit_logs'], ['clear_login_flood', 'clear_login_flood'],
+        ['clear_login_logs', 'clear_login_logs'], ['clear_mag_events', 'clear_mag_events'],
+        ['clear_panel_logs', 'clear_panel_logs'], ['clear_stream_errors', 'clear_stream_errors'],
+        ['clear_stream_logs', 'clear_stream_logs'], ['clear_user_logs', 'clear_user_logs'],
+        ['clear_watch_logs', 'clear_watch_logs'],
+    ]],
+    'general' => ['tabler-tool', 'general', [
+        ['block_trial_lines', 'block_trial_lines'], ['unblock_trial_lines', 'unblock_trial_lines'],
+        ['reauthorise_mysql_on_servers', 'reauthorise_mysql'], ['flush_blocked_ips', 'flush_blocked_ips'],
+        ['flush_blocked_isps', 'flush_blocked_isps'], ['flush_blocked_uas', 'flush_blocked_uas'],
+        ['flush_country_lock', 'flush_country_lock'], ['force_epg_update', 'force_epg_update'],
+        ['clean_up_streams_table', 'cleanup_streams'], ['force_movies_tmdb_refresh', 'force_update_movies'],
+        ['force_series_tmdb_refresh', 'force_update_series'], ['force_episodes_tmdb_refresh', 'force_update_episodes'],
+    ]],
+    'asns' => ['tabler-server', 'asns', [
+        ['block_all_isps', 'block_all_isps'], ['unblock_all_isps', 'unblock_all_isps'],
+        ['block_all_servers', 'block_all_servers'], ['unblock_all_servers', 'unblock_all_servers'],
+        ['block_all_education', 'block_all_education'], ['unblock_all_education', 'unblock_all_education'],
+        ['block_all_businesses', 'block_all_businesses'], ['unblock_all_businesses', 'unblock_all_businesses'],
+        ['flush_blocked_asns', 'flush_blocked_asns'],
+    ]],
+];
+?>
+
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0"><?= $language::get('quick_tools'); ?></h4>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <ul class="nav nav-pills flex-wrap mb-4" role="tablist">
+            <?php $rFirst = true; foreach ($rTabs as $rId => $rTab): ?>
+                <li class="nav-item">
+                    <button type="button" class="nav-link <?= $rFirst ? 'active' : ''; ?>" data-bs-toggle="tab" data-bs-target="#qt-<?= $rId; ?>" role="tab"><i class="icon-base ti <?= $rTab[0]; ?> me-1"></i><?= $language::get($rTab[1]); ?></button>
+                </li>
+                <?php $rFirst = false; endforeach; ?>
+        </ul>
+        <div class="tab-content p-0">
+            <?php $rFirst = true; foreach ($rTabs as $rId => $rTab): ?>
+                <div class="tab-pane fade <?= $rFirst ? 'show active' : ''; ?>" id="qt-<?= $rId; ?>" role="tabpanel">
+                    <div class="row g-3">
+                        <?php foreach ($rTab[2] as $rAction): ?>
+                            <div class="col-md-6">
+                                <div class="border rounded p-3 d-flex justify-content-between align-items-center gap-3">
+                                    <span><?= $language::get($rAction[0]); ?></span>
+                                    <button type="button" class="btn btn-sm btn-label-info flex-shrink-0 js-run" data-action="<?= htmlspecialchars($rAction[1], ENT_QUOTES); ?>">Run</button>
                                 </div>
                             </div>
-                        </div>
+                        <?php endforeach; ?>
                     </div>
                 </div>
-            </div>
-        </form>
+                <?php $rFirst = false; endforeach; ?>
+        </div>
     </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var toast = window.xcToast || function() {};
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.js-run');
+            if (!btn) { return; }
+            var action = btn.getAttribute('data-action');
+            (window.xcConfirm ? window.xcConfirm("Run this tool? This can't be undone.") : Promise.resolve(confirm('Run this tool?'))).then(function(ok) {
+                if (!ok) { return; }
+                btn.disabled = true;
+                var original = btn.innerHTML;
+                btn.innerHTML = '<i class="icon-base ti tabler-loader"></i>';
+                var fd = new FormData();
+                fd.append(action, 'Run');
+                fetch('post.php?action=quick_tools', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.text(); })
+                    .then(function(txt) {
+                        var d; try { d = JSON.parse(txt); } catch (err) { d = { result: true }; }
+                        btn.disabled = false;
+                        btn.innerHTML = original;
+                        toast(d && d.result !== false ? 'Task started.' : errText, d && d.result !== false ? 'success' : 'error');
+                    })
+                    .catch(function() { btn.disabled = false; btn.innerHTML = original; toast(errText, 'error'); });
             });
         });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
-
-    $(document).ready(function() {
-        $("input[type='submit']").click(function(event) {
-            event.preventDefault();
-            var _this = $(this);
-            new jBox("Confirm", {
-                confirmButton: "Run",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to run this tool? This can't be undone.",
-                confirm: function() {
-                    var rForm = [$(_this).attr("name")];
-                    submitForm(window.rCurrentPage, rForm);
-                }
-            }).open();
-        });
-        $("form").submit(function(e) {
-            e.preventDefault();
-        });
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

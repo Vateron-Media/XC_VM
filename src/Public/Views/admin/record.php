@@ -1,414 +1,198 @@
-<div class="wrapper boxed-layout"
-    <?php 
+<?php
+
+/**
+ * Record an event (Bootstrap 5). Two stages: without a resolved stream, pick a channel
+ * (select2 ajax streamlist), a start datetime and a duration in minutes and POST to the
+ * record page; with a stream + programme, fill in the event details (title, description,
+ * poster, categories, bouquets, recording server) and POST to post.php?action=record.
+ * Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
+?>
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-    } else {
-        echo ' style="display: none;"';
-    } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0">Record an Event</h4>
+</div>
+
+<?php if (!$rStream): ?>
+    <!-- Stage 1: choose channel / start / duration -->
+    <div class="card">
+        <div class="card-body">
+            <form action="record" method="POST" id="record-pick">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-6">
+                        <label class="form-label" for="stream_id">Channel</label>
+                        <select id="stream_id" name="stream_id" class="form-select"></select>
                     </div>
-                    <h4 class="page-title">Record an Event</h4>
+                    <div class="col-md-4">
+                        <label class="form-label" for="start_date">Start</label>
+                        <input type="text" class="form-control" id="start_date" name="start_date" value="" autocomplete="off">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="duration">Minutes</label>
+                        <input type="text" class="form-control" id="duration" name="duration" value="0">
+                    </div>
                 </div>
-            </div>
+                <div class="text-end mt-4"><button type="submit" class="btn btn-primary">Continue</button></div>
+            </form>
         </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="card">
-                    <div class="card-body">
-                        <?php if ($rStream) {
-                        } else { ?>
-                            <form action="record" method="POST" data-parsley-validate="">
-                            <?php } ?>
-                            <table class="table table-borderless mb-0">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th>Channel</th>
-                                        <th class="text-center">Start</th>
-                                        <th class="text-center"><?php echo ($rStream ? 'Finish' : 'Minutes'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <?php if ($rStream) { ?>
-                                            <td><?php echo $rStream['stream_display_name']; ?></td>
-                                            <td class="text-center">
-                                                <?php echo date(SettingsManager::get('date_format'), $rProgramme['start']); ?><br /><?php echo date('H:i', $rProgramme['start']); ?>
-                                            </td>
-                                            <td class="text-center">
-                                                <?php echo date(SettingsManager::get('date_format'), $rProgramme['end']); ?><br /><?php echo date('H:i', $rProgramme['end']); ?>
-                                            </td>
-                                        <?php } else { ?>
-                                            <td><select id="stream_id" name="stream_id" class="form-control"
-                                                    data-toggle="select2"></select></td>
-                                            <td style="max-width:120px;" class="text-center"><input type="text"
-                                                    class="form-control text-center date" id="start_date" name="start_date"
-                                                    value="" data-toggle="date-picker" data-single-date-picker="true"></td>
-                                            <td style="max-width:40px;" class="text-center"><input type="text"
-                                                    class="form-control text-center" id="duration" name="duration"
-                                                    value="0"></td>
-                                        <?php } ?>
-                                    </tr>
-                                </tbody>
-                            </table>
-                            <?php if ($rStream) {
-                            } else { ?>
-                                <ul class="list-inline wizard mb-0">
-                                    <li class="list-inline-item float-right">
-                                        <input type="submit" class="btn btn-primary" value="Continue" />
-                                    </li>
-                                </ul>
-                            </form>
-                        <?php } ?>
+    </div>
+<?php else: ?>
+    <!-- Stage 2: event details -->
+    <?php if (empty($rProgramme['archive']) && $rProgramme['start'] <= time()): ?>
+        <div class="alert alert-warning text-center" role="alert">The programme you are intending to record has already started!</div>
+    <?php endif; ?>
+    <div class="card mb-4">
+        <div class="card-datatable table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr><th>Channel</th><th class="text-center">Start</th><th class="text-center">Finish</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="fw-medium"><?= htmlspecialchars((string) $rStream['stream_display_name'], ENT_QUOTES); ?></td>
+                        <td class="text-center"><?= date(SettingsManager::get('date_format'), $rProgramme['start']); ?><br><small class="text-body-secondary"><?= date('H:i', $rProgramme['start']); ?></small></td>
+                        <td class="text-center"><?= date(SettingsManager::get('date_format'), $rProgramme['end']); ?><br><small class="text-body-secondary"><?= date('H:i', $rProgramme['end']); ?></small></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="card">
+        <div class="card-body">
+            <form id="record-form">
+                <input type="hidden" name="stream_id" value="<?= (int) $rStream['id']; ?>">
+                <input type="hidden" name="start" value="<?= (int) $rProgramme['start']; ?>">
+                <input type="hidden" name="end" value="<?= (int) $rProgramme['end']; ?>">
+                <input type="hidden" name="archive" value="<?= isset($rProgramme['archive']) ? 1 : 0; ?>">
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label" for="title">Event Title</label>
+                    <div class="col-md-9"><input type="text" class="form-control" id="title" name="title" value="<?= htmlspecialchars((string) $rProgramme['title'], ENT_QUOTES); ?>" required></div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label" for="description">Event Description</label>
+                    <div class="col-md-9"><textarea rows="5" class="form-control" id="description" name="description"><?= htmlspecialchars((string) $rProgramme['description'], ENT_QUOTES); ?></textarea></div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label" for="stream_icon">Poster URL</label>
+                    <div class="col-md-9">
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="stream_icon" name="stream_icon" value="">
+                            <button type="button" class="btn btn-outline-secondary" id="poster-preview"><i class="icon-base ti tabler-eye"></i></button>
+                        </div>
                     </div>
                 </div>
-            </div>
-            <?php if (!$rStream) {
-            } else { ?>
-                <div class="col-xl-12">
-                    <?php if (!empty($rProgramme['archive']) || $rProgramme['start'] > time()) {
-                    } else { ?>
-                        <div class="alert alert-warning text-center" role="alert">
-                            The programme you are intending to record has already started!
-                        </div>
-                    <?php } ?>
-                    <div class="card">
-                        <div class="card-body">
-                            <form
-                                <?php if (!RequestManager::has('import')) {
-                                } else {
-                                    echo ' enctype="multipart/form-data"';
-                                } ?>
-                                action="#" method="POST" data-parsley-validate="">
-                                <input type="hidden" name="stream_id" value="<?php echo intval($rStream['id']); ?>" />
-                                <input type="hidden" name="start" value="<?php echo intval($rProgramme['start']); ?>" />
-                                <input type="hidden" name="end" value="<?php echo intval($rProgramme['end']); ?>" />
-                                <input type="hidden" name="archive"
-                                    value="<?php echo (isset($rProgramme['archive']) ? 1 : 0); ?>" />
-                                <div id="basicwizard">
-                                    <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                        <li class="nav-item">
-                                            <a href="#stream-details" data-toggle="tab"
-                                                class="nav-link rounded-0 pt-2 pb-2">
-                                                <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                                <span class="d-none d-sm-inline">Details</span>
-                                            </a>
-                                        </li>
-                                    </ul>
-                                    <div class="tab-content b-0 mb-0 pt-0">
-                                        <div class="tab-pane" id="stream-details">
-                                            <div class="row">
-                                                <div class="col-12">
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="title">Event
-                                                            Title</label>
-                                                        <div class="col-md-8">
-                                                            <input type="text" class="form-control" id="title" name="title"
-                                                                value="<?php echo str_replace('"', '&quot;', $rProgramme['title']); ?>"
-                                                                required data-parsley-trigger="change">
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="description">Event
-                                                            Description</label>
-                                                        <div class="col-md-8">
-                                                            <textarea rows="6" class="form-control" id="description"
-                                                                name="description"><?php echo htmlspecialchars($rProgramme['description']); ?></textarea>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="stream_icon">Poster
-                                                            URL</label>
-                                                        <div class="col-md-8 input-group">
-                                                            <input type="text" class="form-control" id="stream_icon"
-                                                                name="stream_icon" value="">
-                                                            <div class="input-group-append">
-                                                                <a href="javascript:void(0)" onClick="openImage(this)"
-                                                                    class="btn btn-primary waves-effect waves-light"><i
-                                                                        class="mdi mdi-eye"></i></a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label"
-                                                            for="category_id">Categories</label>
-                                                        <div class="col-md-8">
-                                                            <select name="category_id[]" id="category_id"
-                                                                class="form-control select2-multiple" data-toggle="select2"
-                                                                multiple="multiple" data-placeholder="Choose...">
-                                                                <?php foreach (CategoryService::getAllByType('movie') as $rCategory) { ?>
-                                                                    <option value="<?php echo $rCategory['id']; ?>">
-                                                                        <?php echo $rCategory['category_name']; ?></option>
-                                                                <?php } ?>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label"
-                                                            for="bouquets">Bouquets</label>
-                                                        <div class="col-md-8">
-                                                            <select name="bouquets[]" id="bouquets"
-                                                                class="form-control select2-multiple" data-toggle="select2"
-                                                                multiple="multiple" data-placeholder="Choose...">
-                                                                <?php foreach (BouquetService::getAllSimple() as $rBouquet) { ?>
-                                                                    <option value="<?php echo $rBouquet['id']; ?>">
-                                                                        <?php echo $rBouquet['bouquet_name']; ?></option>
-                                                                <?php } ?>
-                                                            </select>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row mb-4">
-                                                        <label class="col-md-4 col-form-label" for="source_id">Recording
-                                                            Server</label>
-                                                        <div class="col-md-8">
-                                                            <select name="source_id" id="source_id" class="form-control"
-                                                                data-toggle="select2">
-                                                                <?php foreach ((is_array($rAvailableServers ?? null) ? $rAvailableServers : []) as $rServerID) { ?>
-                                                                    <option
-                                                                        value="<?php echo ServerRepository::getAll()[$rServerID]['id']; ?>">
-                                                                        <?php echo ServerRepository::getAll()[$rServerID]['server_name']; ?>
-                                                                        - <?php echo ServerRepository::getAll()[$rServerID]['server_ip']; ?>
-                                                                    </option>
-                                                                <?php } ?>
-                                                            </select>
-                                                        </div>
-                                                    </div>
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label" for="category_id">Categories</label>
+                    <div class="col-md-9">
+                        <select name="category_id[]" id="category_id" class="form-select" multiple data-placeholder="Choose…">
+                            <?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?><option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label" for="bouquets">Bouquets</label>
+                    <div class="col-md-9">
+                        <select name="bouquets[]" id="bouquets" class="form-select" multiple data-placeholder="Choose…">
+                            <?php foreach (BouquetService::getAllSimple() as $rBouquet): ?><option value="<?= (int) $rBouquet['id']; ?>"><?= htmlspecialchars((string) $rBouquet['bouquet_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <label class="col-md-3 col-form-label" for="source_id">Recording Server</label>
+                    <div class="col-md-9">
+                        <select name="source_id" id="source_id" class="form-select">
+                            <?php foreach ((is_array($rAvailableServers ?? null) ? $rAvailableServers : []) as $rServerID): ?>
+                                <?php $rSrv = ServerRepository::getAll()[$rServerID] ?? null; ?>
+                                <?php if ($rSrv): ?><option value="<?= (int) $rSrv['id']; ?>"><?= htmlspecialchars((string) $rSrv['server_name'], ENT_QUOTES); ?> - <?= htmlspecialchars((string) $rSrv['server_ip'], ENT_QUOTES); ?></option><?php endif; ?>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="text-end"><button type="submit" class="btn btn-primary">Schedule</button></div>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
 
-                                                    <ul class="list-inline wizard mb-0">
-                                                        <li class="list-inline-item float-right">
-                                                            <input type="submit" class="btn btn-primary" value="Schedule" />
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            <?php } ?>
+<div class="modal fade" id="posterModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Poster</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body text-center"><img id="poster-img" src="" alt="" style="max-width:100%"></div>
         </div>
     </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var toast = window.xcToast || function() {};
+        var hasStream = <?= $rStream ? 'true' : 'false'; ?>;
+
+        if ($.fn.select2) { $('#category_id, #bouquets, #source_id').select2({ width: '100%' }); }
+
+        // Stage 1: stream select2 (ajax) + datetime picker + validation.
+        if (!hasStream) {
+            if ($.fn.select2) {
+                $('#stream_id').select2({
+                    width: '100%', placeholder: 'Search for a stream…',
+                    ajax: {
+                        url: './api', dataType: 'json', delay: 250,
+                        data: function(p) { return { search: p.term, action: 'streamlist', page: p.page }; },
+                        processResults: function(d, p) { p.page = p.page || 1; return { results: d.items, pagination: { more: (p.page * 100) < d.total_count } }; },
+                        cache: true
                     }
                 });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
             }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
-
-    function openImage(elem) {
-        rPath = $(elem).parent().parent().find("input").val();
-        if (rPath) {
-            $.magnificPopup.open({
-                items: {
-                    src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath),
-                    type: 'image'
-                }
+            var start = document.getElementById('start_date');
+            if (window.flatpickr) { window.flatpickr(start, { enableTime: true, dateFormat: 'Y-m-d H:i', minDate: 'today', time_24hr: true }); }
+            else { start.setAttribute('placeholder', 'YYYY-MM-DD HH:MM'); }
+            document.getElementById('duration').addEventListener('input', function() { this.value = this.value.replace(/[^\d]/g, ''); });
+            document.getElementById('record-pick').addEventListener('submit', function(e) {
+                if (!document.getElementById('stream_id').value) { e.preventDefault(); toast('Please select a stream.', 'warning'); return; }
+                if (parseInt(document.getElementById('duration').value, 10) <= 0) { e.preventDefault(); toast('Please enter a duration in minutes.', 'warning'); }
             });
         }
-    }
 
-    $(document).ready(function() {
-        $('select').select2({
-            width: '100%'
-        });
-        $('#stream_id').select2({
-            ajax: {
-                url: './api',
-                dataType: 'json',
-                data: function(params) {
-                    return {
-                        search: params.term,
-                        action: 'streamlist',
-                        page: params.page
-                    };
-                },
-                processResults: function(data, params) {
-                    params.page = params.page || 1;
-                    return {
-                        results: data.items,
-                        pagination: {
-                            more: (params.page * 100) < data.total_count
-                        }
-                    };
-                },
-                cache: true,
-                width: "100%"
-            },
-            placeholder: 'Search for a stream...'
-        });
-        $('#start_date').daterangepicker({
-            singleDatePicker: true,
-            showDropdowns: true,
-            minDate: new Date(),
-            timePicker: true,
-            locale: {
-                format: 'YYYY-MM-DD HH:mm'
-            }
-        });
-        <?php if ($rStream) { ?>
-            $("form").submit(function(e) {
+        // Stage 2: poster preview + submit.
+        var posterBtn = document.getElementById('poster-preview');
+        if (posterBtn) {
+            posterBtn.addEventListener('click', function() {
+                var url = document.getElementById('stream_icon').value;
+                if (!url) { return; }
+                document.getElementById('poster-img').src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(url);
+                if (window.bootstrap) { bootstrap.Modal.getOrCreateInstance(document.getElementById('posterModal')).show(); }
+            });
+        }
+        var form = document.getElementById('record-form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                $(':input[type="submit"]').prop('disabled', true);
-                submitForm(window.rCurrentPage, new FormData($("form")[0]));
+                var btn = form.querySelector('button[type="submit"]');
+                if (btn) { btn.disabled = true; }
+                fetch('post.php?action=record', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.text(); })
+                    .then(function(txt) {
+                        var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
+                        if (d && d.result !== false) { window.location.href = d.location || 'archive'; return; }
+                        if (btn) { btn.disabled = false; }
+                        toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                    })
+                    .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
             });
-        <?php } else { ?>
-            $("form").submit(function(e) {
-                if (!$("#stream_id").val()) {
-                    $.toast("Please select a stream.");
-                    e.preventDefault();
-                } else if ($("#duration").val() <= 0) {
-                    $.toast("Please enter a duration in minutes.");
-                    e.preventDefault();
-                }
-            });
-        <?php } ?>
-        $("#duration").inputFilter(function(value) {
-            return /^\d*$/.test(value);
-        });
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+        }
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
