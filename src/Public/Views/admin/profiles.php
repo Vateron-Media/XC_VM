@@ -1,244 +1,101 @@
-<div class="wrapper boxed-layout-ext" <?php 
+<?php
+
+/**
+ * Transcoding profiles (Bootstrap 5). A small client-rendered list:
+ * StreamConfigRepository::getTranscodeProfiles() is rendered server-side and a
+ * client-side DataTable adds search / sort / paging. Each row shows the codec
+ * summary (gpu / video / audio / resolution / logo) and edit / delete actions
+ * (delete via ./api?action=profile). Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\StreamConfigRepository;
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-										} else {
-											echo ' style="display: none;"';
-										} ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?php echo $language::get('transcode_profiles'); ?></h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-12">
-				<?php if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
-				} else { ?>
-					<div class="alert alert-success alert-dismissible fade show" role="alert">
-						<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-							<span aria-hidden="true">&times;</span>
-						</button>
-						<?php echo $language::get('profile_success'); ?>
-					</div>
-				<?php } ?>
-				<div class="card">
-					<div class="card-body" style="overflow-x:auto;">
-						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
-							<thead>
-								<tr>
-									<th class="text-center"><?php echo $language::get('id'); ?></th>
-									<th><?php echo $language::get('profile_name'); ?></th>
-									<th class="text-center"><?= $language::get('gpu') ?></th>
-									<th class="text-center"><?= $language::get('video') ?></th>
-									<th class="text-center"><?= $language::get('audio') ?></th>
-									<th class="text-center"><?= $language::get('resolution') ?></th>
-									<th class="text-center"><?= $language::get('logo') ?></th>
-									<th class="text-center"><?php echo $language::get('actions'); ?></th>
-								</tr>
-							</thead>
-							<tbody>
-								<?php foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile) {
-									$rProfileOptions = json_decode($rProfile['profile_options'], true); ?>
-									<tr id="profile-<?php echo $rProfile['profile_id']; ?>">
-										<td class="text-center"><?php echo $rProfile['profile_id']; ?></td>
-										<td><?php echo $rProfile['profile_name']; ?></td>
-										<td class="text-center">
-											<?php if (isset($rProfileOptions['gpu'])) {
-												echo '<i class="text-success fas fa-square"></i>';
-											} else {
-												echo '<i class="text-secondary fas fa-square"></i>';
-											} ?>
-										</td>
-										<td class="text-center"><?php echo ($rProfileOptions['-vcodec'] ?: 'None'); ?></td>
-										<td class="text-center"><?php echo ($rProfileOptions['-acodec'] ?: 'None'); ?></td>
-										<td class="text-center">
-											<?php if (isset($rProfileOptions['gpu'])) {
-												echo ($rProfileOptions['gpu']['resize'] ?: str_replace(':', 'x', $rProfileOptions[9]['val']));
-											} else {
-												echo str_replace(':', 'x', $rProfileOptions[9]['val']);
-											} ?>
-										</td>
-										<td class="text-center">
-											<?php if (isset($rProfileOptions[16])) {
-												echo '<i class="text-success fas fa-square"></i>';
-											} else {
-												echo '<i class="text-secondary fas fa-square"></i>';
-											} ?>
-										</td>
-										<td class="text-center">
-											<?php if (Authorization::check('adv', 'edit_tprofile')) { ?>
-												<div class="btn-group">
-													<a href="./profile?id=<?php echo $rProfile['profile_id']; ?>"><button type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-pencil-outline"></i></button></a>
-													<button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="api(<?php echo $rProfile['profile_id']; ?>, 'delete');"><i class="mdi mdi-close"></i></button>
-												</div>
-											<?php } else {
-												echo '--';
-											} ?>
-										</td>
-									</tr>
-								<?php } ?>
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+$rCanEdit = Authorization::check('adv', 'edit_tprofile');
+$rFlag = static fn(bool $on): string => $on
+    ? '<i class="icon-base ti tabler-circle-check-filled text-success"></i>'
+    : '<i class="icon-base ti tabler-minus text-body-secondary"></i>';
+?>
+
+<div class="card">
+    <div class="card-datatable table-responsive">
+        <table id="profiles-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th><?= $language::get('profile_name'); ?></th>
+                    <th class="text-center"><?= $language::get('gpu'); ?></th>
+                    <th class="text-center"><?= $language::get('video'); ?></th>
+                    <th class="text-center"><?= $language::get('audio'); ?></th>
+                    <th class="text-center"><?= $language::get('resolution'); ?></th>
+                    <th class="text-center"><?= $language::get('logo'); ?></th>
+                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile): ?>
+                    <?php
+                    $rOpt = json_decode((string) $rProfile['profile_options'], true) ?: [];
+                    $rGpu = isset($rOpt['gpu']);
+                    $rRes = $rGpu ? (($rOpt['gpu']['resize'] ?? '') ?: str_replace(':', 'x', (string) ($rOpt[9]['val'] ?? ''))) : str_replace(':', 'x', (string) ($rOpt[9]['val'] ?? ''));
+                    ?>
+                    <tr id="profile-<?= (int) $rProfile['profile_id']; ?>">
+                        <td class="fw-medium"><?= htmlspecialchars((string) $rProfile['profile_name'], ENT_QUOTES); ?></td>
+                        <td class="text-center"><?= $rFlag($rGpu); ?></td>
+                        <td class="text-center"><?= htmlspecialchars((string) (($rOpt['-vcodec'] ?? '') ?: 'None'), ENT_QUOTES); ?></td>
+                        <td class="text-center"><?= htmlspecialchars((string) (($rOpt['-acodec'] ?? '') ?: 'None'), ENT_QUOTES); ?></td>
+                        <td class="text-center"><?= htmlspecialchars((string) $rRes, ENT_QUOTES); ?></td>
+                        <td class="text-center"><?= $rFlag(isset($rOpt[16])); ?></td>
+                        <td class="text-center">
+                            <?php if ($rCanEdit): ?>
+                                <div class="btn-group">
+                                    <a href="profile?id=<?= (int) $rProfile['profile_id']; ?>" class="btn btn-sm btn-icon btn-label-secondary"><i class="icon-base ti tabler-pencil"></i></a>
+                                    <button type="button" class="btn btn-sm btn-icon btn-label-danger js-del" data-id="<?= (int) $rProfile['profile_id']; ?>"><i class="icon-base ti tabler-trash"></i></button>
+                                </div>
+                            <?php else: ?>
+                                <span class="text-body-secondary">—</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var delText = <?= json_encode($language::get('profile_delete_confirm') ?: $language::get('delete')); ?>;
 
-	<?php
-	echo '        ' . "\r\n\t\t" . 'function api(rID, rType, rConfirm=false) {' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-	echo $language::get('profile_delete_confirm');
-	echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=profile&sub=" + rType + "&profile_id=" + rID, function(data) {' . "\r\n" . '                    if (data.result === true) {' . "\r\n" . '                        if (rType == "delete") {' . "\r\n" . '                            if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {' . "\r\n" . '                                $("#datatable").DataTable().rows(rRow).remove().draw(false);' . "\r\n" . '                            }' . "\r\n" . '                            $.toast("';
-	echo $language::get('profile_deleted');
-	echo '");' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-	echo $language::get('error_occured');
-	echo '");' . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . '$("#datatable").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n" . '                order: [[ 1, "asc" ]],' . "\r\n" . '                columnDefs: [' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'responsive: false' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable").css("width", "100%");' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        var table = $('#profiles-table').DataTable({
+            order: [[0, 'asc']],
+            columnDefs: [{ orderable: false, targets: [6] }],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
+
+        function confirmSwal(text) {
+            if (window.Swal) { return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; }); }
+            return Promise.resolve(window.confirm(text));
+        }
+
+        $('#profiles-table tbody').on('click', '.js-del', function() {
+            var id = this.getAttribute('data-id');
+            confirmSwal(delText).then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=profile&sub=delete&profile_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row($('#profile-' + id)).remove().draw(false); })
+                    .catch(function() { alert(errText); });
+            });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
