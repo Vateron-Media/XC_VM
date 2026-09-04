@@ -1,473 +1,380 @@
 <?php
+
+/**
+ * Episodes (Bootstrap 5). Clean-JSON serverSide table: TableController::handleEpisodes
+ * (type=5 streams joined to streams_series/streams_episodes) resolves the transcode
+ * status (StatusBadge::vod code), series/season, server info, client count, duration
+ * and codec stream-info server-side; this page renders each cell and the per-row action
+ * dropdown client-side. Filters: series (select2 ajax) / server / status / resolution /
+ * video / audio. Bulk-select (action=multi&type=episode), row actions (encode/stop,
+ * edit, delete via action=episode), player and live-connections link are inline. The
+ * "+N servers" and duplicate drill-downs are links to the same table filtered by
+ * stream_id / source_id (read from the URL on load). Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Domain\Vod\SeriesService;
+
+if (!Authorization::check('adv', 'episodes') && !Authorization::check('adv', 'mass_sedits')):
 ?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
 <?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
+
+$rCanEdit = Authorization::check('adv', 'edit_episode');
+$rCanLive = Authorization::check('adv', 'live_connections');
+$rCanPlayer = Authorization::check('adv', 'player');
+
+$rFilters = [1 => 'encoded', 2 => 'encoding', 3 => 'down', 4 => 'ready', 5 => 'direct', 6 => 'duplicate', 7 => 'transcoding'];
 ?>
-<?
-echo '<div class="wrapper"';
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-} else {
-	echo ' style="display: none;"';
-}
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><?= $language::get('episodes'); ?></h5>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <?php if ($rCanEdit): ?>
+                <div id="bulk-bar" class="d-none align-items-center gap-2">
+                    <span class="text-body-secondary"><span id="bulk-count">0</span></span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-label-success" data-bulk="start"><?= $language::get('encode') ?: 'Encode'; ?></button>
+                        <button type="button" class="btn btn-label-secondary" data-bulk="stop"><?= $language::get('stop'); ?></button>
+                        <button type="button" class="btn btn-label-info" data-bulk="restart"><?= $language::get('restart'); ?></button>
+                        <button type="button" class="btn btn-label-dark" data-bulk="purge"><?= $language::get('kill'); ?></button>
+                        <button type="button" class="btn btn-label-danger" data-bulk="delete"><?= $language::get('delete'); ?></button>
+                    </div>
+                </div>
+                <button type="button" class="btn btn-sm btn-primary" id="add-episode-btn"><i class="icon-base ti tabler-plus me-1"></i>Add Episode</button>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="filter-series"><?= $language::get('series') ?: 'Series'; ?></label>
+                <select id="filter-series" class="form-select"></select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="filter-server"><?= $language::get('server'); ?></label>
+                <select id="filter-server" class="form-select">
+                    <option value=""><?= $language::get('all_servers'); ?></option>
+                    <option value="-1"><?= $language::get('no_servers'); ?></option>
+                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
+                        <option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-6 col-sm-4 col-lg-2">
+                <label class="form-label" for="filter-status"><?= $language::get('filter'); ?></label>
+                <select id="filter-status" class="form-select">
+                    <option value=""><?= $language::get('no_filter'); ?></option>
+                    <?php foreach ($rFilters as $rK => $rV): ?>
+                        <option value="<?= $rK; ?>"><?= $language::get($rV); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-4 col-sm-2 col-lg-1">
+                <label class="form-label" for="filter-resolution"><?= $language::get('quality'); ?></label>
+                <input type="text" id="filter-resolution" class="form-control" autocomplete="off">
+            </div>
+            <div class="col-4 col-sm-3 col-lg-1">
+                <label class="form-label" for="filter-video"><?= $language::get('video'); ?></label>
+                <input type="text" id="filter-video" class="form-control" autocomplete="off">
+            </div>
+            <div class="col-4 col-sm-3 col-lg-2">
+                <label class="form-label" for="filter-audio"><?= $language::get('audio'); ?></label>
+                <input type="text" id="filter-audio" class="form-control" autocomplete="off">
+            </div>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="episodes-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><input type="checkbox" class="form-check-input" id="check-all"></th>
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('image'); ?></th>
+                    <th><?= $language::get('name'); ?></th>
+                    <th><?= $language::get('server'); ?></th>
+                    <th><?= $language::get('clients'); ?></th>
+                    <th><?= $language::get('status'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                    <th><?= $language::get('player'); ?></th>
+                    <th><?= $language::get('duration') ?: 'Duration'; ?></th>
+                    <th><?= $language::get('stream_info'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
 
-echo '>' . "\n" . '    <div class="container-fluid">' . "\n" . '        <div class="row">' . "\n" . '            <div class="col-12">' . "\n" . '                <div class="page-title-box">' . "\n" . '                    <div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\n" . '                    <h4 class="page-title">';
-echo $language::get('episodes');
-echo '</h4>' . "\n" . '                </div>' . "\n" . '            </div>' . "\n" . '        </div>     ' . "\n" . '        <div class="row">' . "\n" . '            <div class="col-12">' . "\n" . '                <div class="card">' . "\n" . '                    <div class="card-body" style="overflow-x:auto;">' . "\n" . '                        <div id="collapse_filters" class="';
+<?php if ($rCanEdit): ?>
+    <div class="modal fade" id="addEpisodeModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Episode</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <label class="form-label" for="add-series"><?= $language::get('series') ?: 'Series'; ?></label>
+                    <select id="add-series" class="form-select"></select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-label-secondary" id="add-multi">Add Multiple</button>
+                    <button type="button" class="btn btn-primary" id="add-single">Add Episode</button>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
-if (!$rMobile) {
-} else {
-	echo 'collapse';
-}
-
-echo ' form-group row mb-4">' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <input type="text" class="form-control" id="episodes_search" value="';
-
-if (!RequestManager::has('search')) {
-} else {
-	echo htmlspecialchars(RequestManager::get('search'));
-}
-
-echo '" placeholder="';
-echo $language::get('search_episodes');
-echo '...">' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="episodes_server" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
-
-if (RequestManager::has('server')) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('all_servers');
-echo '</option>' . "\n" . '                                    <option value="-1"';
-
-if (!(RequestManager::has('server') && RequestManager::get('server') == -1)) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('no_servers') . '</option>' . "\n" . '                                    ';
-
-foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
-	echo '                                    <option value="';
-	echo $rServer['id'];
-	echo '"';
-
-	if (!(RequestManager::has('server') && RequestManager::get('server') == $rServer['id'])) {
-	} else {
-		echo ' selected';
-	}
-
-	echo '>';
-	echo $rServer['server_name'];
-	echo '</option>' . "\n" . '                                    ';
-}
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <label class="col-md-1 col-form-label text-center" for="episodes_series">Series &nbsp; <button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearSeries();"><i class="mdi mdi-close"></i></button></label>' . "\n" . '                            <div class="col-md-2">' . "\n" . '                                <select id="episodes_series" class="form-control" data-toggle="select2">' . "\n" . '                                    ';
-
-if (!(RequestManager::has('series') && ($rSeries = SeriesService::getById(intval(RequestManager::get('series')))))) {
-} else {
-	echo '                                    <option value="';
-	echo intval($rSeries['id']);
-	echo '" selected="selected">';
-	echo $rSeries['title'];
-	echo '</option>' . "\n" . '                                    ';
-}
-
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_filter" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
-
-if (RequestManager::has('filter')) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('no_filter');
-echo '</option>' . "\n" . '                                    <option value="1"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 1)) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('encoded');
-echo '</option>' . "\n" . '                                    <option value="2"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 2)) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('encoding');
-echo '</option>' . "\n" . '                                    <option value="3"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 3)) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('down');
-echo '</option>' . "\n" . '                                    <option value="4"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 4)) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('ready');
-echo '</option>' . "\n" . '                                    <option value="5"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 5)) {
-} else {
-	echo ' selected';
-}
-
-echo '>';
-echo $language::get('direct');
-echo '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="6"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 6)) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('duplicate') . '</option>' . "\n\t\t\t\t\t\t\t\t\t" . '<option value="7"';
-
-if (!(RequestManager::has('filter') && RequestManager::get('filter') == 7)) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('transcoding') . '</option>' . "\n" . '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_audio" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
-
-if (RequestManager::has('audio')) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('audio') . '</option>' . "\n" . '                                    <option value="-1"';
-
-if (!(RequestManager::has('audio') && RequestManager::get('audio') == '-1')) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('label_none') . '</option>' . "\n" . '                                    ';
-
-foreach ($rAudioCodecs as $rCodec) {
-	echo '                                    <option value="';
-	echo $rCodec;
-	echo '"';
-
-	if (!(RequestManager::has('audio') && RequestManager::get('audio') == $rCodec)) {
-	} else {
-		echo ' selected';
-	}
-
-	echo '>';
-	echo $rCodec;
-	echo '</option>' . "\n" . '                                    ';
-}
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_video" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
-
-if (RequestManager::has('video')) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('video') . '</option>' . "\n" . '                                    <option value="-1"';
-
-if (!(RequestManager::has('video') && RequestManager::get('video') == '-1')) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('label_none') . '</option>' . "\n" . '                                    ';
-
-foreach ($rVideoCodecs as $rCodec) {
-	echo '                                    <option value="';
-	echo $rCodec;
-	echo '"';
-
-	if (!(RequestManager::has('video') && RequestManager::get('video') == $rCodec)) {
-	} else {
-		echo ' selected';
-	}
-
-	echo '>';
-	echo $rCodec;
-	echo '</option>' . "\n" . '                                    ';
-}
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_resolution" class="form-control" data-toggle="select2">' . "\n" . '                                    <option value=""';
-
-if (RequestManager::has('resolution')) {
-} else {
-	echo ' selected';
-}
-
-echo '>' . $language::get('quality') . '</option>' . "\n" . '                                    ';
-
-foreach (array(240, 360, 480, 576, 720, 1080, 1440, 2160) as $rResolution) {
-	echo '                                    <option value="';
-	echo $rResolution;
-	echo '"';
-
-	if (!(RequestManager::has('resolution') && RequestManager::get('resolution') == $rResolution)) {
-	} else {
-		echo ' selected';
-	}
-
-	echo '>';
-	echo $rResolution;
-	echo 'p</option>' . "\n" . '                                    ';
-}
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                            <div class="col-md-1">' . "\n" . '                                <select id="episodes_show_entries" class="form-control" data-toggle="select2">' . "\n" . '                                    ';
-
-foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
-	echo '                                    <option';
-
-	if (RequestManager::has('entries')) {
-		if (RequestManager::get('entries') != $rShow) {
-		} else {
-			echo ' selected';
-		}
-	} else {
-		if ($rSettings['default_entries'] != $rShow) {
-		} else {
-			echo ' selected';
-		}
-	}
-
-	echo ' value="';
-	echo $rShow;
-	echo '">';
-	echo $rShow;
-	echo '</option>' . "\n" . '                                    ';
-}
-echo '                                </select>' . "\n" . '                            </div>' . "\n" . '                        </div>' . "\n" . '                        <table id="datatable-streampage" class="table table-striped table-borderless dt-responsive nowrap font-normal">' . "\n" . '                            <thead>' . "\n" . '                                <tr>' . "\n" . '                                    <th class="text-center">';
-echo $language::get('id');
-echo '</th>' . "\n" . '                                    <th class="text-center">' . $language::get('image') . '</th>' . "\n" . '                                    <th>';
-echo $language::get('name');
-echo '</th>' . "\n" . '                                    ';
-
-if ($rSettings['streams_grouped'] == 1) {
-	echo "\t\t\t\t\t\t\t\t\t" . '<th>';
-	echo $language::get('servers');
-	echo '</th>' . "\n" . '                                    ';
-} else {
-	echo '                                    <th>';
-	echo $language::get('server');
-	echo '</th>' . "\n\t\t\t\t\t\t\t\t\t";
-}
-
-echo '                                    <th class="text-center">';
-echo $language::get('clients');
-echo '</th>' . "\n" . '                                    <th class="text-center">';
-echo $language::get('status');
-echo '</th>' . "\n" . '                                    <th class="text-center">';
-echo $language::get('actions');
-echo '</th>' . "\n" . '                                    <th class="text-center">';
-echo $language::get('player');
-echo '</th>' . "\n" . '                                    <th class="text-center">';
-echo $language::get('stream_info');
-echo '</th>' . "\n" . '                                </tr>' . "\n" . '                            </thead>' . "\n" . '                            <tbody></tbody>' . "\n" . '                        </table>' . "\n" . '                    </div> ' . "\n" . '                </div> ' . "\n" . '            </div>' . "\n" . '        </div>' . "\n" . '    </div>' . "\n" . '</div>' . "\n";
+<?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('admin'); ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php 
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>, canLive = <?= $rCanLive ? 'true' : 'false'; ?>, canPlayer = <?= $rCanPlayer ? 'true' : 'false'; ?>;
+        var lang = {
+            encode: <?= json_encode($language::get('encode') ?: 'Encode'); ?>,
+            stopEnc: <?= json_encode($language::get('stop_encoding') ?: 'Stop Encoding'); ?>,
+            edit: <?= json_encode($language::get('edit')); ?>,
+            del: <?= json_encode($language::get('delete')); ?>,
+            kill: <?= json_encode($language::get('kill') ?: 'Kill Connections'); ?>,
+            selected: <?= json_encode($language::get('selected')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>
+        };
+        var toast = window.xcToast || function() {};
+        var confirmSwal = function(text) { return window.xcConfirm ? window.xcConfirm(text) : Promise.resolve(window.confirm(text)); };
+        // StatusBadge::vod — episode encode-state codes.
+        var STATUS = {
+            '0': ['dark', 'Not Encoded'], '1': ['success', 'Encoded'], '2': ['warning', 'Encoding'],
+            '3': ['danger', 'Down'], '4': ['info', 'On Demand'], '5': ['primary', 'Direct']
+        };
+        var qs = new URLSearchParams(location.search);
+        var urlStreamId = qs.get('stream_id') || '', urlSourceId = qs.get('source_id') || '';
 
-if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+        var seriesSelect2 = function(sel, placeholder) {
+            $(sel).select2({
+                width: '100%',
+                placeholder: placeholder,
+                allowClear: true,
+                ajax: {
+                    url: './api', dataType: 'json', delay: 250,
+                    data: function(params) { return { search: params.term, action: 'serieslist', page: params.page }; },
+                    processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
+                    cache: true
+                }
+            });
+        };
+        seriesSelect2('#filter-series', 'All Series');
 
-	<?php
-	echo '        var rClearing = false;' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).data("src");' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . '                        src: rImage,' . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function viewSources(rTitle, rID) {' . "\r\n" . '            $("#datatable-sources").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'searching: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "episodes";' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = rID;' . "\r\n" . '                        d.single = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [4,5,6,9]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0,1,2,7,8]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-streams-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n\t\t" . 'function viewDuplicates(rTitle, rSource) {' . "\r\n" . '            $("#datatable-sources").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'searching: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "episodes";' . "\r\n\t\t\t\t\t\t" . 'd.source_id = rSource;' . "\r\n" . '                        d.grouped = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,5,6,8]},' . "\t\r\n\t\t\t\t\t" . '{"visible": false, "targets": [1,4,7,9]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-streams-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n" . '        function viewLiveConnections(rStreamID, rServerID=-1) {' . "\r\n" . '            $("#datatable-live").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: true,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: true,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections";' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = rStreamID;' . "\r\n" . '                        d.server_id = rServerID;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [1,7,8,9,10,11]},' . "\r\n" . '                    {"visible": false, "targets": [0,3,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-live-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n" . '        function getStreamIDs() {' . "\r\n" . '            var rStreamIDs = [];' . "\r\n" . '            var rIndexes = [];' . "\r\n" . '            $("#datatable-streampage").DataTable().rows().every(function (rowIdx, tableLoop, rowLoop) {' . "\r\n" . '                rStreamIDs.push($($("#datatable-streampage").DataTable().row(rowIdx).data()[0]).text());' . "\r\n" . '                rIndexes.push(rowIdx);' . "\r\n" . '            });' . "\r\n" . '            return [rStreamIDs, rIndexes];' . "\r\n" . '        }' . "\r\n" . '        function refreshInformation() {' . "\r\n" . '            if (!window.rProcessing) {' . "\r\n" . '                var rUpdateColumns = [4,5,6,7,8];' . "\r\n" . '                var rStreamIDs = getStreamIDs();' . "\r\n" . '                if (rStreamIDs[0].length > 0) {' . "\r\n" . '                    $.getJSON("./table?" + $.param($("#datatable-streampage").DataTable().ajax.params()) + "&refresh=" + rStreamIDs[0].join(","), function(rTable) {' . "\r\n" . '                        if (!window.rProcessing) {' . "\r\n" . '                            $(rTable.data).each(function(rIndex, rItem) {' . "\r\n" . '                                for (i in rUpdateColumns) {' . "\r\n" . '                                    var rIndex = rStreamIDs[0].indexOf($(rItem[0]).text());' . "\r\n" . '                                    if (rIndex >= 0) {' . "\r\n" . "                                        if (\$('#datatable-streampage').DataTable().cell(rStreamIDs[1][rIndex], rUpdateColumns[i]).data() != rItem[rUpdateColumns[i]]) {" . "\r\n" . "                                            \$('#datatable-streampage').DataTable().cell(rStreamIDs[1][rIndex], rUpdateColumns[i]).data(rItem[rUpdateColumns[i]]);" . "\r\n" . '                                        }' . "\r\n" . '                                    }' . "\r\n" . '                                }' . "\r\n" . '                            });' . "\r\n" . '                            bindHref(); refreshTooltips(false);' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n" . '            clearTimeout(window.rRefresh);' . "\r\n" . '            window.rRefresh = setTimeout(refreshInformation, 5000);' . "\r\n" . '        }' . "\r\n" . '        function api(rID, rServerID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "';
-	echo $language::get('episode_delete_confirm');
-	echo '",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rServerID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rServerID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rServerID == "kill") && (!rConfirm)) {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '                rServerID = -1;' . "\r\n" . '                rType = "kill";' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=episode&sub=" + rType + "&stream_id=" + rID + "&server_id=" + rServerID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("';
-	echo $language::get('episode_encoding_start');
-	echo '");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("';
-	echo $language::get('episode_encoding_stop');
-	echo '");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("';
-	echo $language::get('episode_deleted');
-	echo '");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("Connection has been killed.");' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        if ($(".bs-streams-modal-center").is(":visible")) {' . "\r\n" . '                            $("#datatable-sources").DataTable().ajax.reload( null, false );' . "\r\n" . '                        }' . "\r\n" . '                        if ($(".bs-live-modal-center").is(":visible")) {' . "\r\n" . '                            $("#datatable-live").DataTable().ajax.reload( null, false );' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("';
-	echo $language::get('error_occured');
-	echo '");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("';
-	echo $language::get('error_occured');
-	echo '");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable-streampage tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these episodes?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=episode&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("Episodes have started endoding.");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("Episodes have stopped encoding.");' . "\r\n" . '                        } else if (rType == "restart") {' . "\r\n" . '                            $.toast("Episodes have been queued for re-encoding.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Episodes have been deleted.");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function player(rID, rContainer) {' . "\r\n" . '            $.magnificPopup.open({' . "\r\n" . '                items: {' . "\r\n" . '                    src: "./player?type=series&id=" + rID + "&container=" + rContainer,' . "\r\n" . "                    type: 'iframe'" . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '        }' . "\r\n" . '        function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        function getSeries() {' . "\r\n" . '            return $("#episodes_series").val();' . "\r\n" . '        }' . "\r\n" . '        function getFilter() {' . "\r\n" . '            return $("#episodes_filter").val();' . "\r\n" . '        }' . "\r\n" . '        function getServer() {' . "\r\n" . '            return $("#episodes_server").val();' . "\r\n" . '        }' . "\r\n" . '        function getVideo() {' . "\r\n\t\t\t" . 'return $("#episodes_video").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getAudio() {' . "\r\n\t\t\t" . 'return $("#episodes_audio").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function getResolution() {' . "\r\n\t\t\t" . 'return $("#episodes_resolution").val();' . "\r\n\t\t" . '}' . "\r\n" . '        function clearFilters() {' . "\r\n" . '            window.rClearing = true;' . "\r\n" . "            \$(\"#episodes_search\").val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_filter').val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_server').val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_series').val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_audio').val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_video').val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_resolution').val(\"\").trigger('change');" . "\r\n" . "            \$('#episodes_show_entries').val(\"";
-	echo (intval($rSettings['default_entries']) ?: 10);
-	echo "\").trigger('change');" . "\r\n" . '            window.rClearing = false;' . "\r\n" . "            \$('#datatable-streampage').DataTable().search(\$(\"#episodes_search\").val());" . "\r\n" . "            \$('#datatable-streampage').DataTable().page.len(\$('#episodes_show_entries').val());" . "\r\n" . "            \$(\"#datatable-streampage\").DataTable().page(0).draw('page');" . "\r\n" . '            $("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n" . '            delParams(["search", "server", "filter", "series", "page", "entries", "video", "audio", "resolution"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n" . '        }' . "\r\n" . '        function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "server", "filter", "series", "video", "audio", "resolution"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n" . '        function clearSeries() {' . "\r\n" . "            \$('#episodes_series').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n" . '        function showModal() {' . "\r\n" . '            if ($("#episodes_series").val()) {' . "\r\n" . "                rOption = \$(\"<option selected='selected'></option>\").val(\$(\"#episodes_series\").val()).text(\$(\"#episodes_series\").text());" . "\r\n" . "                \$(\"#add_series_id\").append(rOption).trigger('change');" . "\r\n" . '            } else {' . "\r\n" . '                $("#add_series_id").val("").trigger("change");' . "\r\n" . '            }' . "\r\n" . "            \$('.addModal').modal('show');" . "\r\n" . '        }' . "\r\n" . '        function addEpisode() {' . "\r\n" . '            if ($("#add_series_id").val()) {' . "\r\n" . '                navigate("./episode?sid=" + $("#add_series_id").val());' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function addEpisodes() {' . "\r\n" . '            if ($("#add_series_id").val()) {' . "\r\n" . '                navigate("./episode?sid=" + $("#add_series_id").val() + "&multi");' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        var rSearch;' . "\r\n" . '        $(document).ready(function() {' . "\r\n" . "            \$('select').select2({width: '100%'});" . "\r\n" . "            \$('#episodes_series').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'serieslist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for a series...'" . "\r\n\t\t\t" . '});' . "\r\n" . "            \$('#add_series_id').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'serieslist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for a series...'" . "\r\n\t\t\t" . '});' . "\r\n" . '            var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
-	echo intval($rSettings['default_entries']);
-	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n" . '                language: {' . "\r\n" . '                    paginate: {' . "\r\n" . "                        previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n" . "                        next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    window.rProcessing = false;' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    clearTimeout(window.rRefresh);' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().rows().count() <= 50) {' . "\r\n" . '                        setTimeout(refreshInformation, 5000);' . "\r\n" . '                    }' . "\r\n" . '                    ';
+        var selected = {};
+        var updateBulk = function() {
+            var n = Object.keys(selected).length, bar = document.getElementById('bulk-bar');
+            if (!bar) { return; }
+            document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
+            bar.classList.toggle('d-none', n === 0);
+            bar.classList.toggle('d-flex', n > 0);
+        };
 
-	if (!Authorization::check('adv', 'edit_episode')) {
-	} else {
-		echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable-streampage tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_streams_selected").html(window.rSelected.length + " episodes");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_streams").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_streams").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
-	}
+        var table = $('#episodes-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[2, 'desc']],
+            searchDelay: 400,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'episodes';
+                    d.series = document.getElementById('filter-series').value;
+                    d.server = document.getElementById('filter-server').value;
+                    d.filter = document.getElementById('filter-status').value;
+                    d.resolution = document.getElementById('filter-resolution').value;
+                    d.video = document.getElementById('filter-video').value;
+                    d.audio = document.getElementById('filter-audio').value;
+                    if (urlStreamId) { d.stream_id = urlStreamId; d.single = true; }
+                    if (urlSourceId) { d.source_id = urlSourceId; d.grouped = true; }
+                }
+            },
+            columns: [
+                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                { data: 'id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
+                { data: 'display_id', className: 'text-center', render: function(d, t, row) { return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body">' + esc(d) + '</a>'; } },
+                { data: 'image', orderable: false, render: function(d) { return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxh=32&maxw=64&url=' + encodeURIComponent(d) + '" alt=""></a>' : ''; } },
+                {
+                    data: 'title',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        var sub = esc(row.series || '') + (row.season != null && row.season !== '' ? ' — Season ' + esc(row.season) : '');
+                        return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body"><span class="fw-medium">' + esc(d) + '</span>' + (sub ? '<br><small class="text-body-secondary">' + sub + '</small>' : '') + '</a>';
+                    }
+                },
+                {
+                    data: 'server_name',
+                    render: function(d, t, row) {
+                        if (!d) { return '<span class="text-body-secondary">No Server Selected</span>'; }
+                        var html = row.server_url ? '<a href="' + esc(row.server_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                        if (row.server_count > 1) { html += ' <a href="episodes?stream_id=' + encodeURIComponent(row.id) + '" class="badge bg-label-info">+' + (row.server_count - 1) + '</a>'; }
+                        if (row.server_offline) { html += ' <i class="icon-base ti tabler-alert-triangle text-danger" title="Server offline"></i>'; }
+                        return html;
+                    }
+                },
+                {
+                    data: 'clients',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        if (d > 0 && canLive) { return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '&server_id=' + encodeURIComponent(row.server_col_id) + '" class="badge bg-label-info">' + Number(d).toLocaleString() + '</a>'; }
+                        return '<span class="badge bg-label-secondary">' + (d || 0) + '</span>';
+                    }
+                },
+                { data: 'status', className: 'text-center', render: function(d) { var s = STATUS[String(d)] || ['secondary', '']; return '<span class="badge bg-label-' + s[0] + '" title="' + esc(s[1]) + '">' + esc(s[1]) + '</span>'; } },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var items = '';
+                        if (canEdit) {
+                            if (row.status === 2) { items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="stop">' + esc(lang.stopEnc) + '</a>'; }
+                            else if (row.status !== 3) { items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="start">' + esc(lang.encode) + '</a>'; }
+                            if (row.clients > 0) { items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="purge">' + esc(lang.kill) + '</a>'; }
+                            items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-sid="' + esc(row.sid) + '">' + esc(lang.edit) + '</a>';
+                            items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="delete">' + esc(lang.del) + '</a>';
+                        }
+                        if (row.notes) { items = '<h6 class="dropdown-header text-wrap" style="max-width:18rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items; }
+                        if (!items) { return ''; }
+                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var playable = (row.status === 1 || row.status === 4);
+                        if (!canPlayer || !playable) { return '<button class="btn btn-sm btn-icon btn-label-secondary" disabled><i class="icon-base ti tabler-player-play"></i></button>'; }
+                        return '<button class="btn btn-sm btn-icon btn-label-info js-play" data-id="' + esc(row.id) + '" data-container="' + esc(row.target_container || '') + '"><i class="icon-base ti tabler-player-play"></i></button>';
+                    }
+                },
+                {
+                    data: 'duration',
+                    orderable: false,
+                    className: 'text-center text-nowrap',
+                    render: function(d, t, row) {
+                        if (row.duplicates != null) { return '<a href="episodes?source_id=' + encodeURIComponent(row.source) + '">Duplicate of <strong>' + esc(row.duplicates) + '</strong></a>'; }
+                        var dur = '<i class="icon-base ti tabler-clock text-success"></i> ' + esc(d || '--:--:--');
+                        return '<div>' + dur + '</div>' + (row.modified ? '<small class="text-body-secondary">' + esc(row.modified) + '</small>' : '');
+                    }
+                },
+                {
+                    data: 'info',
+                    orderable: false,
+                    render: function(d) {
+                        if (!d) { return '<small class="text-body-secondary">—</small>'; }
+                        return '<div class="d-flex flex-wrap gap-1">' +
+                            '<span class="badge bg-label-secondary">' + esc(Number(d.bitrate).toLocaleString()) + ' Kbps</span>' +
+                            '<span class="badge bg-label-primary">' + esc(d.width) + '×' + esc(d.height) + '</span>' +
+                            '<span class="badge bg-label-info">' + esc(d.video_codec) + '</span>' +
+                            '<span class="badge bg-label-success">' + esc(d.audio_codec) + '</span></div>';
+                    }
+                }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
 
-	echo '                },' . "\r\n" . '                responsive: false,' . "\r\n" . '                processing: true,' . "\r\n" . '                serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n" . '                ajax: {' . "\r\n" . '                    url: "./table",' . "\r\n" . '                    "data": function(d) {' . "\r\n" . '                        d.id = "episodes";' . "\r\n" . '                        d.series = getSeries();' . "\r\n" . '                        d.server = getServer();' . "\r\n" . '                        d.filter = getFilter();' . "\r\n" . '                        d.audio = getAudio();' . "\r\n" . '                        d.video = getVideo();' . "\r\n" . '                        d.resolution = getResolution();' . "\r\n" . '                    }' . "\r\n" . '                },' . "\r\n" . '                columnDefs: [' . "\r\n" . '                    {"className": "dt-center", "targets": [0,1,4,5,6,7,8]},' . "\r\n" . '                    ';
+        ['filter-series', 'filter-server', 'filter-status'].forEach(function(id) { $('#' + id).on('change', function() { table.ajax.reload(); }); });
+        ['filter-resolution', 'filter-video', 'filter-audio'].forEach(function(id) {
+            var el = document.getElementById(id), tmr;
+            el.addEventListener('input', function() { clearTimeout(tmr); tmr = setTimeout(function() { table.ajax.reload(); }, 400); });
+        });
 
-	if (SettingsManager::get('redis_handler')) {
-		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,4,6,7]},' . "\r\n\t\t\t\t\t";
-	} else {
-		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [1,6,7]},' . "\r\n\t\t\t\t\t";
-	}
+        // Row single actions.
+        $('#episodes-table tbody').on('click', '.js-act', function() {
+            var sub = this.getAttribute('data-sub'), id = this.getAttribute('data-id'), server = this.getAttribute('data-server');
+            var go = function() {
+                fetch('./api?action=episode&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(id) + '&server_id=' + encodeURIComponent(server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { toast(lang.error, 'error'); });
+            };
+            if (sub === 'delete') { confirmSwal(lang.del + '?').then(function(ok) { if (ok) { go(); } }); }
+            else if (sub === 'purge') { confirmSwal(lang.kill + '?').then(function(ok) { if (ok) { go(); } }); }
+            else { go(); }
+        });
 
-	echo '                    ';
+        // Edit (legacy full-page episode form).
+        $('#episodes-table tbody').on('click', '.js-edit', function() {
+            var id = this.getAttribute('data-id'), sid = this.getAttribute('data-sid');
+            window.location.href = 'episode?id=' + encodeURIComponent(id) + '&sid=' + encodeURIComponent(sid);
+        });
 
-	if ($rSettings['show_images']) {
-	} else {
-		echo '                    {"visible": false, "targets": [1]}' . "\r\n" . '                    ';
-	}
+        // Player.
+        $('#episodes-table tbody').on('click', '.js-play', function() {
+            var id = this.getAttribute('data-id'), container = this.getAttribute('data-container');
+            if (window.player) { window.player(id, container); } else { window.open('stream_view?id=' + encodeURIComponent(id)); }
+        });
 
-	echo '                ],' . "\r\n" . '                ';
+        // Bulk.
+        $('#episodes-table tbody').on('change', '.row-check', function() {
+            var id = this.getAttribute('data-id');
+            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            updateBulk();
+        });
+        var chkAll = document.getElementById('check-all');
+        if (chkAll) {
+            chkAll.addEventListener('change', function() {
+                var on = this.checked;
+                $('#episodes-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+                updateBulk();
+            });
+        }
+        table.on('draw', function() { if (chkAll) { chkAll.checked = false; } });
+        $('#bulk-bar').on('click', '[data-bulk]', function() {
+            var sub = this.getAttribute('data-bulk'), ids = Object.keys(selected);
+            if (!ids.length) { return; }
+            var run = function() {
+                fetch('./api?action=multi&type=episode&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                    .catch(function() { toast(lang.error, 'error'); });
+            };
+            if (sub === 'delete' || sub === 'purge') { confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) { if (ok) { run(); } }); }
+            else { run(); }
+        });
 
-	if (!$rMobile) {
-	} else {
-		echo 'scrollX: true,';
-	}
-
-	echo '                order: [[ ';
-	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
-	echo ', "';
-	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
-	echo '" ]],' . "\r\n" . '                pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n" . "            }).on('processing.dt', function (e, settings, processing) {" . "\r\n" . '                window.rProcessing = processing;' . "\r\n" . '            });' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n" . '            $("#datatable-streampage").css("width", "100%");' . "\r\n" . "            \$('#episodes_search').keyup(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#episodes_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    doSearch($(this).val());' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_show_entries').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#episodes_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n" . '                    rTable.page.len($(this).val()).draw();' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_series').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_series").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("series", $("#episodes_series").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("series");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    rTable.ajax.reload( null, false );' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_server').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_server").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#episodes_server").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    rTable.ajax.reload( null, false );' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_filter').change(function(){" . "\r\n" . '                if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#episodes_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n" . '                    rTable.ajax.reload( null, false );' . "\r\n" . '                }' . "\r\n" . '            })' . "\r\n" . "            \$('#episodes_audio').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_audio").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("audio", $("#episodes_audio").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("audio");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#episodes_video').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_video").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("video", $("#episodes_video").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("video");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            \$('#episodes_resolution').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#episodes_resolution").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("resolution", $("#episodes_resolution").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("resolution");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '})' . "\r\n" . "            if (\$('#episodes_search').val()) {" . "\r\n" . "                rTable.search(\$('#episodes_search').val()).draw();" . "\r\n" . '            }' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n" . '            checkClear();' . "\r\n" . '        });' . "\r\n" . '        ' . "\r\n" . '        ';
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Add Episode modal.
+        if (canEdit) {
+            seriesSelect2('#add-series', 'Search for a series...');
+            var addModal = document.getElementById('addEpisodeModal');
+            document.getElementById('add-episode-btn').addEventListener('click', function() {
+                var cur = document.getElementById('filter-series').value;
+                if (cur) { $('#add-series').val(cur).trigger('change'); }
+                bootstrap.Modal.getOrCreateInstance(addModal).show();
+            });
+            document.getElementById('add-single').addEventListener('click', function() {
+                var sid = document.getElementById('add-series').value;
+                if (sid) { window.location.href = 'episode?sid=' + encodeURIComponent(sid); }
+            });
+            document.getElementById('add-multi').addEventListener('click', function() {
+                var sid = document.getElementById('add-series').value;
+                if (sid) { window.location.href = 'episode?sid=' + encodeURIComponent(sid) + '&multi'; }
+            });
+        }
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
