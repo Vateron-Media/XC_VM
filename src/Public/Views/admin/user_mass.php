@@ -1,229 +1,257 @@
 <?php
 
-use XcVm\Core\Config\SettingsManager;
+/**
+ * Mass edit users (Bootstrap 5). Three tabs: a serverSide selection table (reg_users,
+ * click a row to select), a details tab whose fields are each gated by an "activate"
+ * checkbox (only ticked fields are applied), and a package-override table. On submit the
+ * selected ids (users_selected JSON) plus the activated fields POST to
+ * post.php?action=user_mass. Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\GroupService;
 use XcVm\Domain\User\UserRepository;
 
-echo '<div class="wrapper boxed-layout-ext"';
+$rOwner = (RequestManager::has('owner') && ($rO = UserRepository::getRegisteredUserById((int) RequestManager::get('owner')))) ? $rO : null;
+?>
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-} else {
-	echo ' style="display: none;"';
-}
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0"><?= $language::get('mass_edit_users'); ?> <small class="text-body-secondary" id="selected_count"></small></h4>
+</div>
 
-echo '>' . "\r\n" . '    <div class="container-fluid">' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t" . '<div class="page-title-box">' . "\r\n\t\t\t\t\t" . '<div class="page-title-right">' . "\r\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t" . '<h4 class="page-title">' . $language::get('mass_edit_users') . ' <small id="selected_count"></small></h4>' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t" . '</div>' . "\r\n\t\t" . '</div>     ' . "\r\n\t\t" . '<div class="row">' . "\r\n\t\t\t" . '<div class="col-xl-12">' . "\r\n\t\t\t\t";
+<div class="card">
+    <div class="card-body">
+        <form id="mass-form">
+            <input type="hidden" name="users_selected" id="users_selected" value="">
+            <ul class="nav nav-pills flex-wrap mb-4" role="tablist">
+                <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#user-selection" role="tab"><i class="icon-base ti tabler-users me-1"></i><?= $language::get('users'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#user-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#package-override" role="tab"><i class="icon-base ti tabler-flower me-1"></i><?= $language::get('package_override'); ?></button></li>
+            </ul>
+            <div class="tab-content p-4 border rounded">
+                <!-- Selection -->
+                <div class="tab-pane fade show active" id="user-selection" role="tabpanel">
+                    <div class="row g-2 align-items-center mb-3">
+                        <div class="col-md-3 col-6"><input type="text" class="form-control" id="user_search" placeholder="<?= $language::get('search_users'); ?>"></div>
+                        <div class="col-md-3">
+                            <select id="reseller_search" class="form-select">
+                                <?php if ($rOwner): ?><option value="<?= (int) $rOwner['id']; ?>" selected><?= htmlspecialchars((string) $rOwner['username'], ENT_QUOTES); ?></option><?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-1"><button type="button" class="btn btn-sm btn-label-secondary w-100" onclick="clearOwner()"><?= $language::get('clear_btn'); ?></button></div>
+                        <div class="col-md-2">
+                            <select id="filter" class="form-select">
+                                <option value="" selected><?= $language::get('no_filter'); ?></option>
+                                <option value="1"><?= $language::get('active'); ?></option>
+                                <option value="2"><?= $language::get('disabled'); ?></option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 col-8">
+                            <select id="show_entries" class="form-select">
+                                <?php foreach ([10, 25, 50, 250, 500, 1000] as $rShow): ?><option value="<?= $rShow; ?>" <?= $rSettings['default_entries'] == $rShow ? 'selected' : ''; ?>><?= $rShow; ?></option><?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-1 col-2"><button type="button" class="btn btn-info w-100" onclick="toggleUsers()" title="<?= $language::get('select'); ?>"><i class="icon-base ti tabler-select-all"></i></button></div>
+                    </div>
+                    <div class="table-responsive">
+                        <table id="datatable-mass" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('username'); ?></th>
+                                    <th><?= $language::get('owner'); ?></th>
+                                    <th class="text-center"><?= $language::get('ip'); ?></th>
+                                    <th class="text-center"><?= $language::get('status'); ?></th>
+                                    <th class="text-center"><?= $language::get('type'); ?></th>
+                                    <th class="text-center"><?= $language::get('credits'); ?></th>
+                                    <th class="text-center"><?= $language::get('users'); ?></th>
+                                    <th class="text-center"><?= $language::get('lines'); ?></th>
+                                    <th class="text-center"><?= $language::get('mags'); ?></th>
+                                    <th class="text-center"><?= $language::get('enigmas'); ?></th>
+                                    <th class="text-center"><?= $language::get('last_login'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Details -->
+                <div class="tab-pane fade" id="user-details" role="tabpanel">
+                    <p class="text-body-secondary"><?= $language::get('to_mass_edit_any_of_the_below'); ?></p>
+                    <?php
+                    // [label, id/name, control-type, options?]
+                    ?>
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="owner_id" name="c_owner_id"></div>
+                        <label class="col-md-3 col-form-label" for="owner_id"><?= $language::get('owner'); ?></label>
+                        <div class="col-md-8">
+                            <select disabled name="owner_id" id="owner_id" class="form-select">
+                                <option value="0"><?= $language::get('no_owner'); ?></option>
+                                <?php foreach (UserRepository::getRegisteredUsers() as $rRu): ?><option value="<?= (int) $rRu['id']; ?>"><?= htmlspecialchars((string) $rRu['username'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="member_group_id" name="c_member_group_id"></div>
+                        <label class="col-md-3 col-form-label" for="member_group_id"><?= $language::get('member_group'); ?></label>
+                        <div class="col-md-8">
+                            <select disabled name="member_group_id" id="member_group_id" class="form-select">
+                                <?php foreach (GroupService::getAll() as $rGroup): ?><option value="<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="reseller_dns" name="c_reseller_dns"></div>
+                        <label class="col-md-3 col-form-label" for="reseller_dns"><?= $language::get('reseller_dns'); ?></label>
+                        <div class="col-md-8"><input disabled type="text" class="form-control" id="reseller_dns" name="reseller_dns" value=""></div>
+                    </div>
+                    <div class="row mb-3 align-items-center">
+                        <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="status" name="c_status"></div>
+                        <label class="col-md-3 col-form-label" for="status"><?= $language::get('enabled'); ?></label>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled name="status" id="status" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Package override -->
+                <div class="tab-pane fade" id="package-override" role="tabpanel">
+                    <div class="alert alert-info"><?= $language::get('leave_the_override_cell_blank_to'); ?></div>
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead>
+                                <tr><th class="text-center">#</th><th><?= $language::get('package'); ?></th><th class="text-center"><?= $language::get('credits'); ?></th><th class="text-center"><?= $language::get('override'); ?></th></tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach (PackageService::getAll() as $rPackage): ?>
+                                    <?php if (!$rPackage['is_official']) {
+                                        continue;
+                                    } ?>
+                                    <tr>
+                                        <td class="text-center"><?= (int) $rPackage['id']; ?></td>
+                                        <td><?= htmlspecialchars((string) $rPackage['package_name'], ENT_QUOTES); ?></td>
+                                        <td class="text-center"><?= (int) $rPackage['official_credits']; ?></td>
+                                        <td class="text-center"><input class="form-control text-center orinput d-inline" name="override_<?= (int) $rPackage['id']; ?>" type="text" value="" style="width:100px"></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="form-check mt-3 text-center">
+                        <input type="checkbox" class="form-check-input" id="c_override" name="c_override">
+                        <label class="form-check-label" for="c_override"><?= $language::get('apply_package_override_hint'); ?></label>
+                    </div>
+                </div>
+            </div>
+            <div class="text-end mt-3"><button type="submit" class="btn btn-primary" name="submit_user" value="1"><?= $language::get('mass_edit') ?: 'Mass Edit'; ?></button></div>
+        </form>
+    </div>
+</div>
 
-if (!(isset($_STATUS) && $_STATUS == STATUS_SUCCESS)) {
-} else {
-	echo "\t\t\t\t" . '<div class="alert alert-success alert-dismissible fade show" role="alert">' . "\r\n\t\t\t\t\t" . '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' . "\r\n\t\t\t\t\t\t" . '<span aria-hidden="true">&times;</span>' . "\r\n\t\t\t\t\t" . '</button>' . "\r\n\t\t\t\t\t" . 'Mass edit of users was successfully executed!' . "\r\n\t\t\t\t" . '</div>' . "\r\n\t\t\t\t";
-}
-
-echo "\t\t\t\t" . '<div class="card">' . "\r\n\t\t\t\t\t" . '<div class="card-body">' . "\r\n\t\t\t\t\t\t" . '<form action="#" method="POST">' . "\r\n\t\t\t\t\t\t\t" . '<input type="hidden" name="users_selected" id="users_selected" value="" />' . "\r\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\r\n\t\t\t\t\t\t\t\t" . '<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#user-selection" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-group mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('users') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-card-details-outline mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('details') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#package-override" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-flower-tulip mr-1"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('package_override') . '</span>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t" . '<div class="tab-content b-0 mb-0 pt-0">' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="user-selection">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3 col-6">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="user_search" value="" placeholder="' . $language::get('search_users') . '">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\r\n" . '                                                <select id="reseller_search" class="form-control" data-toggle="select2">' . "\r\n" . '                                                    ';
-
-if (!(RequestManager::has('owner') && ($rOwner = UserRepository::getRegisteredUserById(intval(RequestManager::get('owner')))))) {
-} else {
-	echo '                                                    <option value="';
-	echo intval($rOwner['id']);
-	echo '" selected="selected">';
-	echo $rOwner['username'];
-	echo '</option>' . "\r\n" . '                                                    ';
-}
-
-echo '                                                </select>' . "\r\n" . '                                            </div>' . "\r\n" . '                                            <label class="col-md-1 col-form-label text-center" for="reseller_search"><button type="button" class="btn btn-light waves-effect waves-light btn-xs" onClick="clearOwner();">' . $language::get('clear_btn') . '</button></label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<select id="filter" class="form-control" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="" selected>' . $language::get('no_filter') . '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="1">' . $language::get('active') . '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="2">' . $language::get('disabled') . '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2 col-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<select id="show_entries" class="form-control" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option';
-
-	if ($rSettings['default_entries'] != $rShow) {
-	} else {
-		echo ' selected';
-	}
-
-	echo ' value="';
-	echo $rShow;
-	echo '">';
-	echo $rShow;
-	echo '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-1 col-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" class="btn btn-info waves-effect waves-light" onClick="toggleUsers()">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-selection"></i>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</button>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable-mass" class="table table-borderless mb-0" style="overflow-x:auto;">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead class="bg-light">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('id') . '</th>' . "\r\n" . '                                                        <th>' . $language::get('username') . '</th>' . "\r\n" . '                                                        <th>' . $language::get('owner') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('ip') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('status') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('type') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('credits') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('users') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('lines') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('mags') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('enigmas') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('last_login') . '</th>' . "\r\n" . '                                                        <th class="text-center">' . $language::get('actions') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="user-details">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<p class="sub-header">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . 'To mass edit any of the below options, tick the checkbox next to it and change the input value.' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</p>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="checkbox" class="activate" data-name="owner_id" name="c_owner_id">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label></label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="owner_id">' . $language::get('owner') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select disabled name="owner_id" id="owner_id" class="form-control select2" data-toggle="select2">' . "\r\n" . '                                                            <option value="0">' . $language::get('no_owner') . '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (UserRepository::getRegisteredUsers() as $rRegisteredUser) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
-	echo $rRegisteredUser['id'];
-	echo '">';
-	echo $rRegisteredUser['username'];
-	echo '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                <div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="checkbox" class="activate" data-name="member_group_id" name="c_member_group_id">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label></label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="member_group_id">' . $language::get('member_group') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select disabled name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (GroupService::getAll() as $rGroup) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
-	echo intval($rGroup['group_id']);
-	echo '">';
-	echo $rGroup['group_name'];
-	echo '</option>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n" . '                                                <div class="form-group row mb-4">' . "\r\n" . '                                                    <div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="checkbox" class="activate" data-name="reseller_dns" name="c_reseller_dns">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label></label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="reseller_dns">' . $language::get('reseller_dns') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input disabled type="text" class="form-control" id="reseller_dns" name="reseller_dns" value="">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="checkbox checkbox-single col-md-1 checkbox-offset checkbox-primary">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="checkbox" class="activate" data-name="status" data-type="switch" name="c_status">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label></label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="status">' . $language::get('enabled') . '</label>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input disabled name="status" id="status" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="package-override">' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row mb-4">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\r\n" . '                                                <div class="alert alert-info" role="alert">' . "\r\n" . '                                                    Leave the override cell blank to disable package override for the selected package.<br/>All packages are displayed below, however the users you have selected may not have access to a particular package.' . "\r\n" . '                                                </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable" class="table table-striped table-borderless mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">#</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('package') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('credits') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('override') . '</th>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (PackageService::getAll() as $rPackage) {
-	if (!$rPackage['is_official']) {
-	} else {
-		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-		echo intval($rPackage['id']);
-		echo '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-		echo $rPackage['package_name'];
-		echo '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-		echo intval($rPackage['official_credits']);
-		echo '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td align="center">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input class="form-control text-center orinput" onkeypress="return isNumberKey(event)" name="override_';
-		echo intval($rPackage['id']);
-		echo '" type="text" value="" style="width:100px; display: inline;" class="text-center" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</td>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-	}
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\r\n" . '                                                <div class="custom-control col-md-12 custom-checkbox text-center" style="margin-top:20px;">' . "\r\n" . '                                                    <input type="checkbox" class="custom-control-input" id="c_override" data-name="override" data-type="override" name="c_override">' . "\r\n" . '                                                    <label class="custom-control-label" for="c_override">' . $language::get('apply_package_override_hint') . '</label>' . "\r\n" . '                                                </div>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\r\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_user" type="submit" class="btn btn-primary" value="Mass Edit" />' . "\r\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\r\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\r\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t\t" . '</div> ' . "\r\n\t\t\t\t\t\t" . '</form>' . "\r\n\t\t\t\t\t" . '</div>' . "\r\n\t\t\t\t" . '</div> ' . "\r\n\t\t\t" . '</div> ' . "\r\n\t\t" . '</div>' . "\r\n\t" . '</div>' . "\r\n" . '</div>' . "\r\n";
+<?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('admin'); ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var toast = window.xcToast || function() {};
+        var selected = [];
 
-	<?php
-	echo '        ' . "\r\n\t\t" . 'var rSelected = [];' . "\r\n\r\n\t\t" . 'function getReseller() {' . "\r\n\t\t\t" . 'return $("#reseller_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function toggleUsers() {' . "\r\n\t\t\t" . '$("#datatable-mass tr").each(function() {' . "\r\n\t\t\t\t" . "if (\$(this).hasClass('selected')) {" . "\r\n\t\t\t\t\t" . "\$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t" . "\$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t" . 'if ($(this).find("td:eq(0)").text()) {' . "\r\n\t\t\t\t\t\t" . 'window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#selected_count").html(" - " + window.rSelected.length + " selected")' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearOwner() {' . "\r\n" . "            \$('#reseller_search').val(\"\").trigger('change');" . "\r\n" . '        }' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n" . "            \$('#reseller_search').select2({" . "\r\n\t\t\t" . '  ajax: {' . "\r\n\t\t\t\t" . "url: './api'," . "\r\n\t\t\t\t" . "dataType: 'json'," . "\r\n\t\t\t\t" . 'data: function (params) {' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'search: params.term,' . "\r\n\t\t\t\t\t" . "action: 'reguserlist'," . "\r\n\t\t\t\t\t" . 'page: params.page' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processResults: function (data, params) {' . "\r\n\t\t\t\t" . '  params.page = params.page || 1;' . "\r\n\t\t\t\t" . '  return {' . "\r\n\t\t\t\t\t" . 'results: data.items,' . "\r\n\t\t\t\t\t" . 'pagination: {' . "\r\n\t\t\t\t\t\t" . 'more: (params.page * 100) < data.total_count' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '  };' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'cache: true,' . "\r\n\t\t\t\t" . 'width: "100%"' . "\r\n\t\t\t" . '  },' . "\r\n\t\t\t" . "  placeholder: 'Search for an owner...'" . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("input[type=checkbox].activate").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).is(":checked")) {' . "\r\n\t\t\t\t\t" . 'if ($(this).data("type") == "switch") {' . "\r\n\t\t\t\t\t\t" . 'window.rSwitches[$(this).data("name")].enable();' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n" . '                        $("#" + $(this).data("name")).prop("disabled", false);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . 'if ($(this).data("type") == "switch") {' . "\r\n\t\t\t\t\t\t" . 'window.rSwitches[$(this).data("name")].disable();' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n" . '                        $("#" + $(this).data("name")).prop("disabled", true);' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'rTable = $("#datatable-mass").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    $("#datatable-mass a").removeAttr("href");' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "reg_users",' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter(),' . "\r\n\t\t\t\t\t\t" . 'd.reseller = getReseller()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,4,5,6,7]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [3,8,9,10,11,12]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . '"rowCallback": function(row, data) {' . "\r\n\t\t\t\t\t" . 'if ($.inArray(data[0], window.rSelected) !== -1) {' . "\r\n\t\t\t\t\t\t" . '$(row).addClass("selected");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
-	echo (intval($rSettings['default_entries']) ?: 10);
-	echo "\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#user_search').keyup(function(){" . "\r\n\t\t\t\t" . 'rTable.search($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#reseller_search').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload(null, false);' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . "\$('#filter').change(function(){" . "\r\n\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t" . '})' . "\r\n\t\t\t" . '$("#datatable-mass").selectable({' . "\r\n\t\t\t\t" . "filter: 'tr'," . "\r\n\t\t\t\t" . 'selected: function (event, ui) {' . "\r\n\t\t\t\t\t" . "if (\$(ui.selected).hasClass('selectedfilter')) {" . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSelected.splice($.inArray($(ui.selected).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n\t\t\t\t\t" . '} else {            ' . "\r\n\t\t\t\t\t\t" . "\$(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n\t\t\t\t\t\t" . 'window.rSelected.push($(ui.selected).find("td:eq(0)").text());' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#selected_count").html(" - " + window.rSelected.length + " selected")' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n" . "            \$(\".orinput\").on('keyup', function() {" . "\r\n" . '                if (($(this).val().length > 0) && (!$("#c_override").is(":checked"))) {' . "\r\n" . "                    \$(\"#c_override\").prop('checked', true);" . "\r\n" . '                }' . "\r\n" . '            });' . "\r\n" . '            $("form").submit(function(e){' . "\r\n" . '                e.preventDefault();' . "\r\n\t\t\t\t" . '$("#users_selected").val(JSON.stringify(window.rSelected));' . "\r\n\t\t\t\t" . 'if (window.rSelected.length == 0) {' . "\r\n\t\t\t\t\t" . '$.toast("Select at least one user to edit.");' . "\r\n\t\t\t\t" . '} else {' . "\r\n" . "                    \$(':input[type=\"submit\"]').prop('disabled', true);" . "\r\n" . '                    submitForm(window.rCurrentPage, new FormData($("form")[0]));' . "\r\n" . '                }' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
+        window.getReseller = function() { return document.getElementById('reseller_search').value; };
+        window.getFilter = function() { return document.getElementById('filter').value; };
+        window.clearOwner = function() { $('#reseller_search').val('').trigger('change'); };
+        window.toggleUsers = function() {
+            var allSelected = true;
+            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                var id = $(this).find('td:eq(0)').text().trim();
+                if (!id) { return; }
+                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
+                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            });
+            updateCount();
+        };
+
+        // Selection filters (select2).
+        if ($.fn.select2) {
+            $('#filter, #show_entries').select2({ width: '100%' });
+            $('#reseller_search').select2({
+                width: '100%', placeholder: 'Search for an owner…', allowClear: true,
+                ajax: { url: './api', dataType: 'json', delay: 250,
+                    data: function(p) { return { search: p.term, action: 'reguserlist', page: p.page }; },
+                    processResults: function(d, p) { p.page = p.page || 1; return { results: d.items, pagination: { more: (p.page * 100) < d.total_count } }; }, cache: true }
+            });
+        }
+
+        // Activate checkboxes enable/disable their field (switch is just a checkbox now).
+        $('.activate').on('change', function() { var t = document.getElementById(this.getAttribute('data-name')); if (t) { t.disabled = !this.checked; } });
+
+        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var statusMap = { 0: ['secondary', 'Disabled'], 1: ['success', 'Active'], 2: ['danger', 'Banned'] };
+        // reg_users is a clean-JSON handler (objects), so map fields to the 13 columns.
+        var rTable = $('#datatable-mass').DataTable({
+            processing: true, serverSide: true, searchDelay: 250,
+            ajax: { url: './table', data: function(d) { d.id = 'reg_users'; d.filter = getFilter(); d.reseller = getReseller(); } },
+            columns: [
+                { data: 'id', className: 'text-center' },
+                { data: 'username' },
+                { data: 'owner_username', orderable: false, render: function(d) { return d ? esc(d) : '<span class="text-body-secondary">—</span>'; } },
+                { data: 'ip', className: 'text-center', visible: false },
+                { data: 'status', className: 'text-center', render: function(d) { var s = statusMap[d] || ['secondary', '']; return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>'; } },
+                { data: 'is_reseller', className: 'text-center', render: function(d) { return d ? 'Reseller' : 'User'; } },
+                { data: 'credits', className: 'text-center' },
+                { data: 'user_count', className: 'text-center' },
+                { data: 'user_lines', className: 'text-center', visible: false },
+                { data: 'mag_lines', className: 'text-center', visible: false },
+                { data: 'e2_lines', className: 'text-center', visible: false },
+                { data: 'last_login', className: 'text-center', visible: false },
+                { data: null, orderable: false, searchable: false, defaultContent: '', visible: false }
+            ],
+            rowCallback: function(row, data) { if (selected.indexOf(String(data.id)) !== -1) { $(row).addClass('table-active'); } },
+            pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
+
+        // Row click toggles selection.
+        $('#datatable-mass tbody').on('click', 'tr', function() {
+            var id = $(this).find('td:eq(0)').text().trim();
+            if (!id) { return; }
+            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
+            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            updateCount();
+        });
+
+        $('#user_search').on('keyup', function() { rTable.search(this.value).draw(); });
+        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
+        $('#reseller_search, #filter').on('change', function() { rTable.ajax.reload(null, false); });
+
+        // Auto-tick override apply when a cell is filled.
+        $(document).on('keyup', '.orinput', function() { if (this.value.length > 0 && !document.getElementById('c_override').checked) { document.getElementById('c_override').checked = true; } });
+
+        document.getElementById('mass-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!selected.length) { toast('Select at least one user to edit.', 'warning'); return; }
+            document.getElementById('users_selected').value = JSON.stringify(selected);
+            var btn = this.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; }
+            var fd = new FormData(this);
+            fd.append('submit_user', '1');
+            fetch('post.php?action=user_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
+                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
+                    if (btn) { btn.disabled = false; }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                })
+                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
