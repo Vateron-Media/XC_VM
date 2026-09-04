@@ -1,328 +1,159 @@
-<div class="wrapper boxed-layout-ext" <?php 
-use XcVm\Core\Config\SettingsManager;
+<?php
+
+/**
+ * Recordings / TV Archive (Bootstrap 5). Client-rendered: either the scheduled/completed
+ * $rRecordings list or, for a single stream, its $rArchive timeshift segments is echoed as
+ * <tbody> with a plain client-side DataTable. Playback opens in a modal iframe; a recording
+ * is cancelled via ./api?action=delete_recording, an archive segment is (re)recorded via the
+ * record page. Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Http\RequestManager;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                                            echo ' style="display: none;"';
-                                        } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
-                    </div>
-                    <?php if (!is_null($rRecordings)) : ?>
-                        <h4 class="page-title"><?= $language::get('recordings') ?></h4>
-                    <?php else : ?>
-                        <h4 class="page-title"><?php echo $rStream['stream_display_name']; ?><small> - TV Archive</small></h4>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <?php if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS) : ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        Recording has been scheduled.
-                    </div>
-                <?php endif; ?>
-                <div class="card">
-                    <div class="card-body" style="overflow-x:auto;">
-                        <div class="table">
-                            <table id="datatable" class="table table-striped table-borderless mb-0">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center"><?= $language::get('id') ?></th>
-                                        <th class="text-center"><?= $language::get('date') ?></th>
-                                        <th class="text-center"><?= $language::get('duration') ?></th>
-                                        <th><?= $language::get('title') ?></th>
-                                        <th class="text-center"><?= $language::get('status') ?></th>
-                                        <th class="text-center"><?= $language::get('player') ?></th>
-                                        <th class="text-center"><?= $language::get('actions') ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php if (!is_null($rRecordings)) : ?>
-                                        <?php foreach ($rRecordings as $rItem) : ?>
-                                            <?php $rDuration = $rItem['end'] - $rItem['start']; ?>
-                                            <?php if ($rItem['status'] == 0 && !$rItem['archive'] && $rItem['end'] < time()) $rItem['status'] = 3; ?>
-                                            <tr>
-                                                <td><?php echo $rItem['id']; ?></td>
-                                                <td class="text-center"><?php echo date($rSettings['date_format'] . ' H:i', $rItem['start']); ?></td>
-                                                <td class="text-center"><?php echo sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60); ?></td>
-                                                <td><?php echo $rItem['title']; ?></td>
-                                                <td class="text-center">
-                                                    <?php if ($rItem['status'] == 0) : ?>
-                                                        <button type='button' class='btn btn-light btn-xs waves-effect waves-light'><?= $language::get('waiting') ?></button>
-                                                    <?php elseif ($rItem['status'] == 1) : ?>
-                                                        <button type='button' class='btn btn-info btn-xs waves-effect waves-light'><?= $language::get('recording') ?></button>
-                                                    <?php elseif ($rItem['status'] == 2) : ?>
-                                                        <button type='button' class='btn btn-success btn-xs waves-effect waves-light'><?= $language::get('complete') ?></button>
-                                                    <?php else : ?>
-                                                        <button type='button' class='btn btn-danger btn-xs waves-effect waves-light'><?= $language::get('failed') ?></button>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="text-center">
-                                                    <?php if ($rItem['created_id']) : ?>
-                                                        <button type="button" class="btn btn-info waves-effect waves-light btn-xs" onclick="player(<?php echo intval($rItem['created_id']); ?>);"><i class="mdi mdi-play"></i></button>
-                                                    <?php else : ?>
-                                                        <button disabled type="button" class="btn btn-info waves-effect waves-light btn-xs"><i class="mdi mdi-play"></i></button>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="text-center">
-                                                    <div class="btn-group">
-                                                        <?php if ($rItem['created_id']) : ?>
-                                                            <a href="stream_view?id=<?php echo intval($rItem['created_id']); ?>"><button title="<?= $language::get('view_movie') ?>" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-movie-outline"></i></button></a>
-                                                        <?php else : ?>
-                                                            <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-movie-outline"></i></button>
-                                                        <?php endif; ?>
-                                                        <button title="<?= $language::get('delete_recording') ?>" onClick="deleteRecording(<?php echo intval($rItem['id']); ?>)" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-close"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    <?php else : ?>
-                                        <?php foreach ($rArchive as $rItem) : ?>
-                                            <?php
-                                            $rDuration = $rItem['end'] - $rItem['start'];
-                                            $rItem['stream_id'] = RequestManager::get('id');
-                                            ?>
-                                            <tr>
-                                                <td><?php echo $rItem['id']; ?></td>
-                                                <td class="text-center"><?php echo date($rSettings['date_format'] . ' H:i', $rItem['start']); ?></td>
-                                                <td class="text-center"><?php echo sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60); ?></td>
-                                                <td><?php echo $rItem['title']; ?></td>
-                                                <td class="text-center">
-                                                    <?php if ($rItem['in_progress']) : ?>
-                                                        <button type='button' class='btn btn-info btn-xs waves-effect waves-light'><?= $language::get('in_progress') ?></button>
-                                                    <?php elseif ($rItem['complete']) : ?>
-                                                        <button type='button' class='btn btn-success btn-xs waves-effect waves-light'><?= $language::get('complete') ?></button>
-                                                    <?php else : ?>
-                                                        <button type='button' class='btn btn-warning btn-xs waves-effect waves-light'><?= $language::get('incomplete') ?></button>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td class="text-center"><button type="button" class="btn btn-info waves-effect waves-light btn-xs" onclick="player(<?php echo intval($rStream['id']); ?>, <?php echo intval($rItem['start']); ?>, <?php echo intval($rDuration / 60); ?>);"><i class="mdi mdi-play"></i></button></td>
-                                                <td class="text-center">
-                                                    <?php if (!$rItem['in_progress']) : ?>
-                                                        <a href="record?archive=<?php echo urlencode(base64_encode(json_encode($rItem))); ?>"><button type="button" class="btn btn-danger waves-effect waves-light btn-xs"><i class="mdi mdi-record"></i></button></a>
-                                                    <?php else : ?>
-                                                        <button disabled type="button" class="btn btn-danger waves-effect waves-light btn-xs"><i class="mdi mdi-record"></i></button>
-                                                    <?php endif; ?>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
+$rIsRecordings = !is_null($rRecordings);
+?>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <?php if ($rIsRecordings): ?>
+                <?= $language::get('recordings'); ?>
+            <?php else: ?>
+                <?= htmlspecialchars((string) $rStream['stream_display_name'], ENT_QUOTES); ?> <small class="text-body-secondary">— TV Archive</small>
+            <?php endif; ?>
+        </h5>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="archive-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th class="text-center"><?= $language::get('id'); ?></th>
+                    <th class="text-center"><?= $language::get('date'); ?></th>
+                    <th class="text-center"><?= $language::get('duration'); ?></th>
+                    <th><?= $language::get('title'); ?></th>
+                    <th class="text-center"><?= $language::get('status'); ?></th>
+                    <th class="text-center"><?= $language::get('player'); ?></th>
+                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if ($rIsRecordings): ?>
+                    <?php foreach ($rRecordings as $rItem): ?>
+                        <?php
+                        $rDuration = $rItem['end'] - $rItem['start'];
+                        if ($rItem['status'] == 0 && !$rItem['archive'] && $rItem['end'] < time()) {
+                            $rItem['status'] = 3;
+                        }
+                        $rStatus = [0 => ['secondary', $language::get('waiting')], 1 => ['info', $language::get('recording')], 2 => ['success', $language::get('complete')], 3 => ['danger', $language::get('failed')]][$rItem['status']] ?? ['secondary', ''];
+                        ?>
+                        <tr id="rec-<?= (int) $rItem['id']; ?>">
+                            <td class="text-center"><?= (int) $rItem['id']; ?></td>
+                            <td class="text-center text-nowrap"><?= date($rSettings['date_format'] . ' H:i', $rItem['start']); ?></td>
+                            <td class="text-center text-nowrap"><?= sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60); ?></td>
+                            <td class="fw-medium"><?= htmlspecialchars((string) $rItem['title'], ENT_QUOTES); ?></td>
+                            <td class="text-center"><span class="badge bg-label-<?= $rStatus[0]; ?>"><?= $rStatus[1]; ?></span></td>
+                            <td class="text-center">
+                                <?php if ($rItem['created_id']): ?>
+                                    <button type="button" class="btn btn-sm btn-icon btn-label-info js-play" data-url="./player?type=movie&id=<?= (int) $rItem['created_id']; ?>&container=mp4"><i class="icon-base ti tabler-player-play"></i></button>
+                                <?php else: ?>
+                                    <button disabled type="button" class="btn btn-sm btn-icon btn-label-secondary"><i class="icon-base ti tabler-player-play"></i></button>
+                                <?php endif; ?>
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group">
+                                    <?php if ($rItem['created_id']): ?>
+                                        <a href="stream_view?id=<?= (int) $rItem['created_id']; ?>" class="btn btn-sm btn-icon btn-label-secondary" title="<?= $language::get('view_movie'); ?>"><i class="icon-base ti tabler-movie"></i></a>
+                                    <?php else: ?>
+                                        <button disabled type="button" class="btn btn-sm btn-icon btn-label-secondary"><i class="icon-base ti tabler-movie"></i></button>
                                     <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+                                    <button type="button" class="btn btn-sm btn-icon btn-label-danger js-del" data-id="<?= (int) $rItem['id']; ?>" title="<?= $language::get('delete_recording'); ?>"><i class="icon-base ti tabler-x"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <?php foreach ($rArchive as $rItem): ?>
+                        <?php
+                        $rDuration = $rItem['end'] - $rItem['start'];
+                        $rItem['stream_id'] = RequestManager::get('id');
+                        if ($rItem['in_progress']) {
+                            $rStatus = ['info', $language::get('in_progress')];
+                        } elseif ($rItem['complete']) {
+                            $rStatus = ['success', $language::get('complete')];
+                        } else {
+                            $rStatus = ['warning', $language::get('incomplete')];
+                        }
+                        ?>
+                        <tr>
+                            <td class="text-center"><?= (int) $rItem['id']; ?></td>
+                            <td class="text-center text-nowrap"><?= date($rSettings['date_format'] . ' H:i', $rItem['start']); ?></td>
+                            <td class="text-center text-nowrap"><?= sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60); ?></td>
+                            <td class="fw-medium"><?= htmlspecialchars((string) $rItem['title'], ENT_QUOTES); ?></td>
+                            <td class="text-center"><span class="badge bg-label-<?= $rStatus[0]; ?>"><?= $rStatus[1]; ?></span></td>
+                            <td class="text-center"><button type="button" class="btn btn-sm btn-icon btn-label-info js-play" data-url="./player?type=timeshift&id=<?= (int) $rStream['id']; ?>&start=<?= (int) $rItem['start']; ?>&duration=<?= (int) ($rDuration / 60); ?>"><i class="icon-base ti tabler-player-play"></i></button></td>
+                            <td class="text-center">
+                                <?php if (!$rItem['in_progress']): ?>
+                                    <a href="record?archive=<?= urlencode(base64_encode(json_encode($rItem))); ?>" class="btn btn-sm btn-icon btn-label-danger" title="<?= $language::get('record') ?: 'Record'; ?>"><i class="icon-base ti tabler-player-record"></i></a>
+                                <?php else: ?>
+                                    <button disabled type="button" class="btn btn-sm btn-icon btn-label-secondary"><i class="icon-base ti tabler-player-record"></i></button>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><?= $language::get('player'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
+            <div class="modal-body p-0"><iframe id="player-frame" src="about:blank" style="width:100%;height:60vh;border:0"></iframe></div>
         </div>
     </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var toast = window.xcToast || function() {};
 
-    function player(rID, rStart = null, rDuration = null) {
-        if (rStart) {
-            rURL = "./player?type=timeshift&id=" + rID + "&start=" + rStart + "&duration=" + rDuration;
-        } else {
-            rURL = "./player?type=movie&id=" + rID + "&container=mp4";
-        }
-        $.magnificPopup.open({
-            items: {
-                src: rURL,
-                type: 'iframe'
-            }
+        var table = $('#archive-table').DataTable({
+            order: [[1, 'desc']],
+            columnDefs: [{ visible: false, targets: [0] }, { orderable: false, targets: [5, 6] }],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
         });
-    }
 
-    function deleteRecording(rID, rConfirm = false) {
-        if (!rConfirm) {
-            new jBox("Confirm", {
-                confirmButton: "Delete",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to cancel and delete this recording?",
-                confirm: function() {
-                    deleteRecording(rID, true);
-                }
-            }).open();
-        }
-        if (rConfirm) {
-            $.getJSON("./api?action=delete_recording&id=" + rID, function(data) {
-                if (data.result === true) {
-                    if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {
-                        $("#datatable").DataTable().rows(rRow).remove().draw(false);
-                    }
-                    $.toast("Recording has been deleted.");
-                } else {
-                    $.toast("<?php echo $language::get('error_occured'); ?>");
-                }
+        var playerModal = document.getElementById('playerModal');
+        $('#archive-table tbody').on('click', '.js-play', function() {
+            document.getElementById('player-frame').src = this.getAttribute('data-url');
+            if (window.bootstrap) { bootstrap.Modal.getOrCreateInstance(playerModal).show(); }
+        });
+        playerModal.addEventListener('hidden.bs.modal', function() { document.getElementById('player-frame').src = 'about:blank'; });
+
+        $('#archive-table tbody').on('click', '.js-del', function() {
+            var id = this.getAttribute('data-id');
+            (window.xcConfirm ? window.xcConfirm('Cancel and delete this recording?') : Promise.resolve(confirm('Delete this recording?'))).then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=delete_recording&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row($('#rec-' + id)).remove().draw(false); toast('Recording deleted.'); })
+                    .catch(function() { toast(errText, 'error'); });
             });
-        }
-    }
-
-    $(document).ready(function() {
-        $("#datatable").DataTable({
-            language: {
-                paginate: {
-                    previous: "<i class='mdi mdi-chevron-left'>",
-                    next: "<i class='mdi mdi-chevron-right'>"
-                }
-            },
-            drawCallback: function() {
-                bindHref();
-                refreshTooltips();
-            },
-            columnDefs: [{
-                "visible": false,
-                "targets": [0]
-            }],
-            order: [
-                [1, "desc"]
-            ]
         });
-        $("#datatable").css("width", "100%");
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

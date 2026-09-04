@@ -1,499 +1,203 @@
 <?php
 
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Enum\Theme;
-
-$xmIsDark = Theme::fromId($rUserInfo['theme'])->isDark();
-$xmTheme  = $xmIsDark ? 'xm-dark' : 'xm-light';
+/**
+ * Stream tools (Bootstrap 5). Four self-contained tools in tabs: DNS replacement and
+ * move-streams (posted to post.php?action=stream_tools), URL decrypt (./api?action=
+ * decrypt_text) and auto-assign EPG (batched ./api?action=epg_auto_assign, categories from
+ * ./api?action=epg_categories). Reached full-page in the new-UI shell.
+ */
 ?>
-<div class="wrapper xm-mag <?= $xmTheme ?>"
-    <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-    } else {
-        echo ' style="display: none;"';
-    } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0"><?= $language::get('stream_tools'); ?></h4>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <ul class="nav nav-pills flex-wrap mb-4" role="tablist">
+            <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#dns-replacement" role="tab"><i class="icon-base ti tabler-dna me-1"></i><?= $language::get('dns_replacement'); ?></button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#move-streams" role="tab"><i class="icon-base ti tabler-folder-symlink me-1"></i><?= $language::get('move_streams'); ?></button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#url-decrypt" role="tab"><i class="icon-base ti tabler-lock-open me-1"></i><?= $language::get('url_decrypt'); ?></button></li>
+            <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#epg-auto-assign" role="tab"><i class="icon-base ti tabler-calendar-check me-1"></i>Auto-assign EPG</button></li>
+        </ul>
+        <div class="tab-content p-0">
+            <!-- DNS replacement -->
+            <div class="tab-pane fade show active" id="dns-replacement" role="tabpanel">
+                <form id="dns_form">
+                    <input type="hidden" name="replace_dns" value="true">
+                    <p class="text-body-secondary">Replace any text within a stream's source (domain, username, password …) across all streams.</p>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="old_dns"><?= $language::get('old_dns'); ?></label>
+                        <div class="col-md-9"><input type="text" class="form-control" id="old_dns" name="old_dns" placeholder="http://example.com" required></div>
                     </div>
-                    <h4 class="page-title"><?= $language::get('stream_tools') ?></h4>
-                </div>
+                    <div class="row mb-4">
+                        <label class="col-md-3 col-form-label" for="new_dns"><?= $language::get('new_dns'); ?></label>
+                        <div class="col-md-9"><input type="text" class="form-control" id="new_dns" name="new_dns" placeholder="http://newdns.com" required></div>
+                    </div>
+                    <div class="text-end"><button type="submit" class="btn btn-primary">Replace DNS</button></div>
+                </form>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <?php if (isset($_STATUS) && $_STATUS == 1) { ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        Stream DNS replacement was successful.
-                    </div>
-                <?php } elseif (isset($_STATUS) && $_STATUS == 2) { ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        Streams have been moved from the source server to the replacement server.
-                    </div>
-                <?php } ?>
-                <div class="card">
-                    <div class="card-body">
-                        <div id="basicwizard">
-                            <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                <li class="nav-item">
-                                    <a href="#dns-replacement" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                        <i class="mdi mdi-dns mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?= $language::get('dns_replacement') ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#move-streams" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                        <i class="mdi mdi-folder-move mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?= $language::get('move_streams') ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#url-decrypt" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                        <i class="mdi mdi-lock-open mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?= $language::get('url_decrypt') ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="#epg-auto-assign" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                        <i class="mdi mdi-calendar-check mr-1"></i>
-                                        <span class="d-none d-sm-inline">Auto-assign EPG</span>
-                                    </a>
-                                </li>
-                            </ul>
-                            <div class="tab-content b-0 mb-0 pt-0">
-                                <div class="tab-pane" id="dns-replacement">
-                                    <form action="#" method="POST" id="dns_form" data-parsley-validate="">
-                                        <input type="hidden" name="replace_dns" value="true" />
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <p class="sub-header">
-                                                    The DNS replacement tool can be used to replace the domain name of a
-                                                    stream with another. It can replace any text within a stream, such
-                                                    as username and password.
-                                                </p>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="old_dns"><?= $language::get('old_dns') ?></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="old_dns"
-                                                            name="old_dns" value="" placeholder="http://example.com"
-                                                            required data-parsley-trigger="change">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="new_dns"><?= $language::get('new_dns') ?></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="new_dns"
-                                                            name="new_dns" value="" placeholder="http://newdns.com"
-                                                            required data-parsley-trigger="change">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="list-inline-item float-right">
-                                                <input name="replace_dns" id="replace_dns" type="submit"
-                                                    class="btn btn-primary" value="Replace DNS" />
-                                            </li>
-                                        </ul>
-                                    </form>
-                                </div>
-                                <div class="tab-pane" id="move-streams">
-                                    <form action="#" method="POST" id="move_form" data-parsley-validate="">
-                                        <input type="hidden" name="move_streams" value="true" />
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <p class="sub-header">
-                                                    This tool will allow you to move all streams from one server to
-                                                    another.
-                                                </p>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label"
-                                                        for="content_type">Content</label>
-                                                    <div class="col-md-8">
-                                                        <select name="content_type" id="content_type"
-                                                            class="form-control select2" data-toggle="select2">
-                                                            <?php foreach (array('Everything', 'Live Streams', 3 => 'Created Channels', 2 => 'Movies', 5 => 'TV Shows', 4 => 'Radio Stations') as $rID => $rType) { ?>
-                                                                <option value="<?php echo $rID; ?>"><?php echo $rType; ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="source_server">Source
-                                                        Server</label>
-                                                    <div class="col-md-8">
-                                                        <select name="source_server" id="source_server"
-                                                            class="form-control select2" data-toggle="select2">
-                                                            <?php foreach ($rServers as $rServer) { ?>
-                                                                <option value="<?php echo intval($rServer['id']); ?>">
-                                                                    <?php echo htmlspecialchars($rServer['server_name']); ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label"
-                                                        for="replacement_server">Replacement Server</label>
-                                                    <div class="col-md-8">
-                                                        <select name="replacement_server" id="replacement_server"
-                                                            class="form-control select2" data-toggle="select2">
-                                                            <?php foreach ($rServers as $rServer) { ?>
-                                                                <option value="<?php echo intval($rServer['id']); ?>">
-                                                                    <?php echo htmlspecialchars($rServer['server_name']); ?>
-                                                                </option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="list-inline-item float-right">
-                                                <input name="move_streams" id="move_streams" type="submit"
-                                                    class="btn btn-primary" value="Move Streams" />
-                                            </li>
-                                        </ul>
-                                    </form>
-                                </div>
-                                <div class="tab-pane" id="url-decrypt">
-                                    <form action="#" method="POST" id="decrypt_form" data-parsley-validate="">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <p class="sub-header">
-                                                    This tool will allow you to decrypt URLs or parts of an URL that
-                                                    your service encrypted.
-                                                </p>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label"
-                                                        for="encrypted_text">Encrypted Text</label>
-                                                    <div class="col-md-8">
-                                                        <textarea class="form-control" id="encrypted_text"
-                                                            name="encrypted_text" rows="8"></textarea>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label"
-                                                        for="decrypted_text">Decrypted Text</label>
-                                                    <div class="col-md-8">
-                                                        <textarea class="form-control" id="decrypted_text"
-                                                            name="decrypted_text" rows="8" readonly></textarea>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="list-inline-item float-right">
-                                                <input name="url_decrypt" id="url_decrypt" type="button"
-                                                    onClick="decryptText();" class="btn btn-primary"
-                                                    value="Decrypt Text" />
-                                            </li>
-                                        </ul>
-                                    </form>
-                                </div>
-                                <div class="tab-pane" id="epg-auto-assign">
-                                    <div class="row mb-3">
-                                        <div class="col-12">
-                                            <p class="text-muted mb-3">Automatically assigns EPG to live streams with no EPG configured. Suffixes like HD, FHD, SD, 4K are ignored during matching. Streams below the threshold are left unchanged.</p>
-                                            <div class="alert alert-info mb-3" style="border-left:4px solid #5b8dee;">
-                                                <p class="mb-2"><strong><i class="mdi mdi-information-outline mr-1"></i>Don't have EPG yet? Use your providers' guide in 3 steps:</strong></p>
-                                                <ol class="mb-0 pl-3" style="line-height:1.9;">
-                                                    <li>Go to <strong>Providers</strong>, open a provider and click <strong><i class="mdi mdi-calendar-import"></i> Import EPG Source</strong> — this saves the provider's XML guide URL automatically.</li>
-                                                    <li>Go to <strong>EPG</strong> and click <strong>Force Reload</strong> on the newly added source to download the channel list.</li>
-                                                    <li>Come back here, select a category (optional) and click <strong>Auto-assign EPG</strong>.</li>
-                                                </ol>
-                                            </div>
-                                            <div class="form-group mb-3">
-                                                <label for="epg_category_id" style="font-weight:600;">Category</label>
-                                                <select id="epg_category_id" class="form-control select2" style="width:100%;">
-                                                    <option value="">All categories</option>
-                                                </select>
-                                            </div>
-                                            <div class="form-group mb-2">
-                                                <label for="epg_threshold" style="font-weight:600;">
-                                                    Match threshold: <span id="epg_threshold_val">80</span>%
-                                                </label>
-                                                <div class="d-flex align-items-center" style="gap:10px;">
-                                                    <span class="text-muted" style="font-size:12px;">50%</span>
-                                                    <input type="range" id="epg_threshold" min="50" max="100" value="80" step="5" class="form-control-range" style="flex:1;" oninput="document.getElementById('epg_threshold_val').textContent=this.value">
-                                                    <span class="text-muted" style="font-size:12px;">100%</span>
-                                                </div>
-                                                <small class="text-muted">Higher = safer but fewer matches. 80% recommended.</small>
-                                            </div>
-                                            <div id="epg_assign_result" style="display:none;" class="alert mb-0"></div>
-                                        </div>
-                                    </div>
-                                    <ul class="list-inline wizard mb-0">
-                                        <li class="list-inline-item float-right">
-                                            <button type="button" id="epg_auto_assign_btn" class="btn btn-primary" onclick="epgAutoAssign();">
-                                                <i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG
-                                            </button>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+            <!-- Move streams -->
+            <div class="tab-pane fade" id="move-streams" role="tabpanel">
+                <form id="move_form">
+                    <input type="hidden" name="move_streams" value="true">
+                    <p class="text-body-secondary">Move all streams of the chosen content type from one server to another.</p>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="content_type">Content</label>
+                        <div class="col-md-9">
+                            <select name="content_type" id="content_type" class="form-select">
+                                <?php foreach (['Everything', 'Live Streams', 3 => 'Created Channels', 2 => 'Movies', 5 => 'TV Shows', 4 => 'Radio Stations'] as $rID => $rType): ?>
+                                    <option value="<?= $rID; ?>"><?= $rType; ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="source_server">Source Server</label>
+                        <div class="col-md-9">
+                            <select name="source_server" id="source_server" class="form-select">
+                                <?php foreach ($rServers as $rServer): ?><option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row mb-4">
+                        <label class="col-md-3 col-form-label" for="replacement_server">Replacement Server</label>
+                        <div class="col-md-9">
+                            <select name="replacement_server" id="replacement_server" class="form-select">
+                                <?php foreach ($rServers as $rServer): ?><option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option><?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-end"><button type="submit" class="btn btn-primary">Move Streams</button></div>
+                </form>
+            </div>
+            <!-- URL decrypt -->
+            <div class="tab-pane fade" id="url-decrypt" role="tabpanel">
+                <p class="text-body-secondary">Decrypt URLs (or parts of a URL) that your service encrypted.</p>
+                <div class="row mb-3">
+                    <label class="col-md-3 col-form-label" for="encrypted_text">Encrypted Text</label>
+                    <div class="col-md-9"><textarea class="form-control" id="encrypted_text" rows="6"></textarea></div>
                 </div>
+                <div class="row mb-4">
+                    <label class="col-md-3 col-form-label" for="decrypted_text">Decrypted Text</label>
+                    <div class="col-md-9"><textarea class="form-control" id="decrypted_text" rows="6" readonly></textarea></div>
+                </div>
+                <div class="text-end"><button type="button" class="btn btn-primary" id="decrypt-btn">Decrypt Text</button></div>
+            </div>
+            <!-- Auto-assign EPG -->
+            <div class="tab-pane fade" id="epg-auto-assign" role="tabpanel">
+                <p class="text-body-secondary">Automatically assigns EPG to live streams with no EPG configured. Suffixes like HD, FHD, SD, 4K are ignored during matching. Streams below the threshold are left unchanged.</p>
+                <div class="alert alert-info">
+                    <p class="mb-2"><strong>Don't have EPG yet? Use your providers' guide in 3 steps:</strong></p>
+                    <ol class="mb-0 ps-3">
+                        <li>Go to <strong>Providers</strong>, open a provider and click <strong>Import EPG Source</strong> — this saves the provider's XML guide URL automatically.</li>
+                        <li>Go to <strong>EPG</strong> and click <strong>Force Reload</strong> on the newly added source to download the channel list.</li>
+                        <li>Come back here, select a category (optional) and click <strong>Auto-assign EPG</strong>.</li>
+                    </ol>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-medium" for="epg_category_id">Category</label>
+                    <select id="epg_category_id" class="form-select"><option value="">All categories</option></select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-medium" for="epg_threshold">Match threshold: <span id="epg_threshold_val">80</span>%</label>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-body-secondary small">50%</span>
+                        <input type="range" id="epg_threshold" min="50" max="100" value="80" step="5" class="form-range flex-grow-1">
+                        <span class="text-body-secondary small">100%</span>
+                    </div>
+                    <small class="text-body-secondary">Higher = safer but fewer matches. 80% recommended.</small>
+                </div>
+                <div id="epg_assign_result" class="alert mb-3" hidden></div>
+                <div class="text-end"><button type="button" class="btn btn-primary" id="epg_auto_assign_btn"><i class="icon-base ti tabler-calendar-check me-1"></i>Auto-assign EPG</button></div>
             </div>
         </div>
     </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var toast = window.xcToast || function() {};
+        if ($.fn.select2) { $('#content_type, #source_server, #replacement_server').select2({ width: '100%' }); }
+
+        function postForm(form, okMsg) {
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; }
+            fetch('post.php?action=stream_tools', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var d; try { d = JSON.parse(txt); } catch (e) { d = { result: false }; }
+                    if (btn) { btn.disabled = false; }
+                    toast(d && d.result !== false ? okMsg : <?= json_encode($language::get('error_occured')); ?>, d && d.result !== false ? 'success' : 'error');
+                })
+                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+        }
+        document.getElementById('dns_form').addEventListener('submit', function(e) { e.preventDefault(); postForm(this, 'DNS replacement complete.'); });
+        document.getElementById('move_form').addEventListener('submit', function(e) { e.preventDefault(); postForm(this, 'Streams moved.'); });
+
+        // URL decrypt.
+        document.getElementById('decrypt-btn').addEventListener('click', function() {
+            var text = document.getElementById('encrypted_text').value;
+            var out = document.getElementById('decrypted_text');
+            out.value = '';
+            if (!text.length) { toast('Please enter data in the encrypted text field.', 'warning'); return; }
+            fetch('./api?action=decrypt_text&text=' + encodeURIComponent(text), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { if (d && d.data) { out.value = d.data.join('\n\n'); } else { toast('Text could not be decrypted.', 'error'); } })
+                .catch(function() { toast('Text could not be decrypted.', 'error'); });
         });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+
+        // Threshold slider label.
+        document.getElementById('epg_threshold').addEventListener('input', function() { document.getElementById('epg_threshold_val').textContent = this.value; });
+
+        // Auto-assign EPG — load categories on first tab show, then batch-process.
+        var epgLoaded = false;
+        document.querySelector('[data-bs-target="#epg-auto-assign"]').addEventListener('shown.bs.tab', function() {
+            if (epgLoaded) { return; }
+            epgLoaded = true;
+            fetch('./api?action=epg_categories', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                    if (d && d.status === 1 && d.data) {
+                        var sel = document.getElementById('epg_category_id');
+                        d.data.forEach(function(cat) { var o = document.createElement('option'); o.value = cat.id; o.textContent = cat.category_name; sel.appendChild(o); });
                     }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
+                }).catch(function() {});
+        });
+        document.getElementById('epg_auto_assign_btn').addEventListener('click', function() {
+            var btn = this, result = document.getElementById('epg_assign_result');
+            var totalAssigned = 0, totalSkipped = 0, totalProcessed = 0, grandTotal = 0;
+            var threshold = document.getElementById('epg_threshold').value || 80;
+            var categoryId = document.getElementById('epg_category_id').value || '';
+            btn.disabled = true;
+            result.className = 'alert alert-info mb-3';
+            result.hidden = false;
+            result.textContent = 'Starting…';
+            function runBatch(lastId) {
+                var url = './api?action=epg_auto_assign&last_id=' + lastId + '&threshold=' + threshold + (categoryId !== '' ? '&category_id=' + encodeURIComponent(categoryId) : '');
+                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        if (!d || d.status !== 1) { result.className = 'alert alert-danger mb-3'; result.textContent = 'Error during processing. Please try again.'; btn.disabled = false; return; }
+                        if (grandTotal === 0) { grandTotal = d.data.total; }
+                        totalAssigned += d.data.assigned; totalSkipped += d.data.skipped; totalProcessed += d.data.batch_size;
+                        var pct = grandTotal > 0 ? Math.min(100, Math.round(totalProcessed / grandTotal * 100)) : 100;
+                        result.textContent = 'Processing… ' + pct + '% (' + totalProcessed + ' / ' + grandTotal + ')';
+                        if (d.data.has_more) { runBatch(d.data.next_last_id); }
+                        else { result.className = 'alert alert-success mb-3'; result.textContent = 'Done! ' + totalAssigned + ' assigned — ' + totalSkipped + ' below threshold'; btn.disabled = false; }
+                    })
+                    .catch(function() { result.className = 'alert alert-danger mb-3'; result.textContent = 'Request failed. Please try again.'; btn.disabled = false; });
             }
+            runBatch(0);
         });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
-
-    function decryptText() {
-        var rText = $("#encrypted_text").val();
-        $("#decrypted_text").val("");
-        if (rText.length > 0) {
-            $.getJSON("./api?action=decrypt_text&text=" + encodeURIComponent(rText), function(rData) {
-                if ("data" in rData) {
-                    $("#decrypted_text").val(rData.data.join("\n\n"));
-                } else {
-                    $.toast("Text could not be decrypted...");
-                }
-            });
-        } else {
-            $.toast("Please enter data in the encrypted text field.");
-        }
-    }
-
-    $(document).ready(function() {
-        $('select').select2({
-            width: '100%'
-        });
-        $("#dns_form").submit(function(e) {
-            e.preventDefault();
-            $(':input[type="submit"]').prop('disabled', true);
-            submitForm(window.rCurrentPage, new FormData($("#dns_form")[0]));
-        });
-        $("#move_form").submit(function(e) {
-            e.preventDefault();
-            $(':input[type="submit"]').prop('disabled', true);
-            submitForm(window.rCurrentPage, new FormData($("#move_form")[0]));
-        });
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
-
-    function epgLoadCategories() {
-        var $sel = $("#epg_category_id");
-        if ($sel.find("option").length > 1) return;
-        $.getJSON("./api?action=epg_categories", function(rData) {
-            if (rData.status === 1 && rData.data) {
-                $.each(rData.data, function(i, cat) {
-                    $sel.append($('<option>').val(cat.id).text(cat.category_name));
-                });
-                try { $sel.select2('destroy'); } catch(e) {}
-                $sel.select2({ width: '100%' });
-            }
-        });
-    }
-
-    function epgAutoAssign() {
-        var $btn         = $("#epg_auto_assign_btn");
-        var $result      = $("#epg_assign_result");
-        var totalAssigned  = 0;
-        var totalSkipped   = 0;
-        var totalProcessed = 0;
-        var grandTotal     = 0;
-        var threshold      = $("#epg_threshold").val() || 80;
-        var categoryId     = $("#epg_category_id").val() || "";
-
-        $btn.prop("disabled", true);
-        $result.removeClass("alert-danger alert-success")
-               .addClass("alert alert-info")
-               .html('<i class="mdi mdi-loading mdi-spin mr-1"></i> Starting...')
-               .show();
-
-        function runBatch(lastId) {
-            var url = "./api?action=epg_auto_assign&last_id=" + lastId + "&threshold=" + threshold;
-            if (categoryId !== "") url += "&category_id=" + encodeURIComponent(categoryId);
-            $.getJSON(url, function(rData) {
-                if (rData.status !== 1) {
-                    $result.removeClass("alert-info").addClass("alert-danger")
-                           .html("Error during processing. Please try again.");
-                    $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG');
-                    return;
-                }
-
-                if (grandTotal === 0) grandTotal = rData.data.total;
-                totalAssigned  += rData.data.assigned;
-                totalSkipped   += rData.data.skipped;
-                totalProcessed += rData.data.batch_size;
-
-                var pct = grandTotal > 0 ? Math.min(100, Math.round(totalProcessed / grandTotal * 100)) : 100;
-                $result.html(
-                    '<i class="mdi mdi-loading mdi-spin mr-1"></i> Processing... ' + pct + '% &nbsp;' +
-                    '(<strong>' + totalProcessed + '</strong> / <strong>' + grandTotal + '</strong>)'
-                );
-
-                if (rData.data.has_more) {
-                    runBatch(rData.data.next_last_id);
-                } else {
-                    $result.removeClass("alert-info").addClass("alert-success").html(
-                        '<i class="mdi mdi-check mr-1"></i> Done! &nbsp;' +
-                        '<strong>' + totalAssigned + '</strong> assigned &mdash; ' +
-                        '<strong>' + totalSkipped  + '</strong> below threshold'
-                    );
-                    $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG');
-                }
-            }).fail(function() {
-                $result.removeClass("alert-info").addClass("alert-danger")
-                       .html("Request failed. Please try again.");
-                $btn.prop("disabled", false).html('<i class="mdi mdi-calendar-check mr-1"></i> Auto-assign EPG');
-            });
-        }
-
-        runBatch(0);
-    }
-
-    $(document).ready(function() {
-        $('a[href="#epg-auto-assign"]').on("shown.bs.tab", function() {
-            epgLoadCategories();
-        });
-    });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
