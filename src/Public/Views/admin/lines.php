@@ -372,7 +372,7 @@ renderUnifiedLayoutFooter('admin');
         };
         jQuery('#lines-table tbody').on('click', '.js-act', function() {
             var sub = this.getAttribute('data-sub'), id = this.getAttribute('data-id');
-            var go = function() { rowApi(id, sub).then(function() { table.ajax.reload(null, false); }).catch(function() { alert(lang.error); }); };
+            var go = function() { rowApi(id, sub).then(function() { table.ajax.reload(null, false); }).catch(function() { xcToast(lang.error, 'error'); }); };
             if (sub === 'delete') { confirmSwal(lang.confirmDelete).then(function(ok) { if (ok) { go(); } }); }
             else if (sub === 'kill') { confirmSwal(lang.confirmKill).then(function(ok) { if (ok) { go(); } }); }
             else { go(); }
@@ -400,7 +400,7 @@ renderUnifiedLayoutFooter('admin');
                 fetch('./api?action=multi&type=line&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function(r) { return r.json(); })
                     .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                    .catch(function() { xcToast(lang.error, 'error'); });
             };
             if (sub === 'delete' || sub === 'purge') { confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) { if (ok) { run(); } }); }
             else { run(); }
@@ -462,7 +462,7 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('wa_language').addEventListener('change', waUpdate);
         jQuery('#lines-table tbody').on('click', '.js-whatsapp', function() {
             var contact = this.getAttribute('data-contact');
-            if (!contact) { alert('This line has no WhatsApp number set.'); return; }
+            if (!contact) { xcToast('This line has no WhatsApp number set.', 'warning'); return; }
             var expUnix = parseInt(this.getAttribute('data-expunix'), 10);
             var expDate = expUnix ? new Date(expUnix * 1000) : null;
             var days = 0;

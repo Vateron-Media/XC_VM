@@ -95,7 +95,7 @@ renderUnifiedLayoutFooter('admin');
                         if (sub === 'delete') { table.row($('#ticket-' + id)).remove().draw(false); }
                         else { window.location.reload(); }
                     })
-                    .catch(function() { alert(errText); });
+                    .catch(function() { xcToast(errText, 'error'); });
             };
             if (sub === 'delete') { confirmSwal(delText + '?').then(function(ok) { if (ok) { go(); } }); }
             else { go(); }

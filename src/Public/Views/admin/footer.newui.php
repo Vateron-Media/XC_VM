@@ -350,6 +350,44 @@ if (count(get_included_files()) == 1) {
             }
             return Promise.resolve(window.confirm(text));
         };
+
+        // Shared non-blocking notification — a Bootstrap 5 toast (top-right,
+        // auto-dismiss). Views use it for success/error feedback instead of the
+        // native window.alert. type: 'success' (default) | 'error' | 'info' | 'warning'.
+        window.xcToast = function(msg, type) {
+            var cont = document.getElementById('xc-toast-container');
+            if (!cont) {
+                cont = document.createElement('div');
+                cont.id = 'xc-toast-container';
+                cont.className = 'toast-container position-fixed top-0 end-0 p-3';
+                cont.style.zIndex = '1090';
+                document.body.appendChild(cont);
+            }
+            var bg = type === 'error' ? 'bg-danger' : (type === 'info' ? 'bg-info' : (type === 'warning' ? 'bg-warning' : 'bg-success'));
+            var el = document.createElement('div');
+            el.className = 'toast align-items-center text-white border-0 ' + bg;
+            el.setAttribute('role', 'alert');
+            var flex = document.createElement('div');
+            flex.className = 'd-flex';
+            var body = document.createElement('div');
+            body.className = 'toast-body';
+            body.textContent = msg;
+            var close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'btn-close btn-close-white me-2 m-auto';
+            close.setAttribute('data-bs-dismiss', 'toast');
+            flex.appendChild(body);
+            flex.appendChild(close);
+            el.appendChild(flex);
+            cont.appendChild(el);
+            if (window.bootstrap) {
+                var t = new bootstrap.Toast(el, { delay: 3500 });
+                el.addEventListener('hidden.bs.toast', function() { el.remove(); });
+                t.show();
+            } else {
+                setTimeout(function() { el.remove(); }, 3500);
+            }
+        };
     })();
 
     // An edit form inside an iframe modal posts this after a successful save;

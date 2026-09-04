@@ -370,7 +370,7 @@ renderUnifiedLayoutFooter('admin');
                 fetch('./api?action=stream&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(id) + '&server_id=' + encodeURIComponent(server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function(r) { return r.json(); })
                     .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                    .catch(function() { xcToast(lang.error, 'error'); });
             };
             if (sub === 'delete') { confirmSwal(lang.del + '?').then(function(ok) { if (ok) { go(); } }); }
             else if (sub === 'purge') { confirmSwal(lang.kill + '?').then(function(ok) { if (ok) { go(); } }); }
@@ -405,7 +405,7 @@ renderUnifiedLayoutFooter('admin');
                 fetch('./api?action=multi&type=stream&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function(r) { return r.json(); })
                     .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                    .catch(function() { xcToast(lang.error, 'error'); });
             };
             if (sub === 'delete' || sub === 'purge') { confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) { if (ok) { run(); } }); }
             else { run(); }
@@ -454,7 +454,7 @@ renderUnifiedLayoutFooter('admin');
                 fetch('./api?action=clear_failures&id=' + encodeURIComponent(failsStream), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function(r) { return r.json(); })
                     .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } failsTable.ajax.reload(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                    .catch(function() { xcToast(lang.error, 'error'); });
             });
         });
     })();

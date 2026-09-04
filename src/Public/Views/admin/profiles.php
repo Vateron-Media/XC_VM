@@ -91,7 +91,7 @@ renderUnifiedLayoutFooter('admin');
                 fetch('./api?action=profile&sub=delete&profile_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                     .then(function(r) { return r.json(); })
                     .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row($('#profile-' + id)).remove().draw(false); })
-                    .catch(function() { alert(errText); });
+                    .catch(function() { xcToast(errText, 'error'); });
             });
         });
     })();
