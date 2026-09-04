@@ -40,6 +40,21 @@ class SettingsController extends BaseAdminController {
         $BinVersion = $binVersionData['release'] ?? 'N/A';
         $BinOS = self::resolveOsLabel($binVersionData);
 
+        // xc_fanout daemon (`-version`), xcvm_core extension marker and yt-dlp — Info tab.
+        $rFanoutBin = BIN_PATH . 'xc_fanout/xc_fanout';
+        $FanoutVersion = (is_file($rFanoutBin) && is_executable($rFanoutBin))
+            ? (ltrim(trim((string) shell_exec(escapeshellarg($rFanoutBin) . ' -version 2>/dev/null')), 'vV') ?: 'N/A')
+            : 'N/A';
+
+        $rCoreVerFile = rtrim((string) ini_get('extension_dir'), '/') . '/xcvm_core.version';
+        $XcvmCoreVersion = is_file($rCoreVerFile)
+            ? (trim((string) file_get_contents($rCoreVerFile)) ?: 'N/A')
+            : (extension_loaded('xcvm_core') ? (phpversion('xcvm_core') ?: 'N/A') : 'N/A');
+
+        $YtDlpVersion = (is_file(YOUTUBE_BIN) && is_executable(YOUTUBE_BIN))
+            ? (trim((string) shell_exec(escapeshellarg(YOUTUBE_BIN) . ' --version 2>/dev/null')) ?: 'N/A')
+            : 'N/A';
+
         $this->setTitle('Settings');
         $this->render('settings', compact(
             'rSettings',
@@ -49,7 +64,10 @@ class SettingsController extends BaseAdminController {
             'Nginx',
             'BinVersion',
             'BinOS',
-            'rUpdate'
+            'rUpdate',
+            'FanoutVersion',
+            'XcvmCoreVersion',
+            'YtDlpVersion'
         ));
     }
 

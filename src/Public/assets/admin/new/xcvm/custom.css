@@ -124,3 +124,21 @@ ul.dtr-details > li .dtr-title {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
+
+/* ---- Toggle switches ----
+ * The BS5 form-switch is smaller than the legacy Switchery it replaces. Bootstrap
+ * sizes the switch from the .form-switch container's font-size (track padding + input
+ * + knob all scale together in em), so scale it there — NOT on .form-check-input,
+ * which would desync the input's negative margin from the container padding and shift
+ * the switch. The label text is reset so only the toggle grows, not the caption.
+ */
+.form-switch {
+  font-size: 1.3rem;
+}
+.form-switch .form-check-input {
+  cursor: pointer;
+}
+.form-switch .form-check-label {
+  font-size: 1rem;
+  cursor: pointer;
+}
