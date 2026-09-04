@@ -1,470 +1,194 @@
-<div class="wrapper boxed-layout-ext" <?php 
+<?php
+
+/**
+ * Cache & Redis settings (Bootstrap 5). A performance summary bar plus two tabs — the
+ * caching system (cron schedule + thread count + live cache counters) and the Redis
+ * connection handler (server/auth status). Cron settings save via post.php?action=cache;
+ * enable/disable/regenerate/clear actions run through ./api?action=<action> and reload.
+ * Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Server\ServerRepository;
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-                                            echo '';
-                                        } else {
-                                            echo ' style="display: none;"';
-                                        } ?>>
-    <div class="container-fluid">
-        <form action="#" method="POST">
-            <div class="row">
-                <div class="col-12">
-                    <div class="page-title-box">
-                        <div class="page-title-right">
-                            <?php include 'topbar.php'; ?>
-                        </div>
-                        <h4 class="page-title"><?= $language::get('cache_redis_settings') ?></h4>
-                    </div>
-                </div>
+$rColour = 'secondary';
+$rHeader = 'Poor';
+$rSize = 25;
+$rMessage = "You're using neither Caching nor the Redis Connection Handler; the server will perform poorly compared to having either enabled.";
+if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler')) {
+    $rHeader = 'Good';
+    $rColour = 'info';
+    $rSize = 75;
+    $rMessage = "Redis Connection Handler is disabled. With a lot of throughput you'll see better performance with Redis enabled — consider it above ~10,000 concurrent connections.";
+    if (!SettingsManager::get('enable_cache')) {
+        $rSize = 50;
+        $rMessage = 'Caching is disabled; this significantly impacts performance under load.';
+    }
+    if (SettingsManager::get('enable_cache') && SettingsManager::get('redis_handler')) {
+        $rSize = 100;
+        $rColour = 'primary';
+        $rHeader = 'Maximum';
+        $rMessage = "You're using both Caching and the Redis Connection Handler — optimised for <strong>maximum performance</strong>!";
+    }
+}
+?>
+
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0"><?= $language::get('cache_redis_settings'); ?></h4>
+</div>
+
+<form method="POST" id="cache-form">
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title"><?= $rHeader; ?> Performance</h5>
+            <p class="text-body-secondary"><?= $rMessage; ?></p>
+            <div class="progress" style="height:10px">
+                <div class="progress-bar progress-bar-striped progress-bar-animated bg-<?= $rColour; ?>" role="progressbar" style="width:<?= $rSize; ?>%" aria-valuenow="<?= $rSize; ?>" aria-valuemin="0" aria-valuemax="100"></div>
             </div>
-            <div class="row">
-                <div class="col-xl-12">
-                    <?php if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS): ?>
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                <span aria-hidden="true">&times;</span>
-                            </button>
-                            Cache & Redis settings successfully updated!
-                        </div>
-                    <?php endif; ?>
-                    <div class="card">
-                        <div class="card-body">
-                            <?php
-                            $rColour = 'secondary'; // Default color
-                            $rHeader = 'Poor'; // Default header
-                            $rSize = 25; // Default size
+        </div>
+    </div>
 
-                            $rMessage = "You're using neither Caching or Redis Connection Handler, the server will perform poorly compared to having either enabled."; // Default message
-
-                            if (SettingsManager::get('enable_cache') || SettingsManager::get('redis_handler')) {
-                                $rHeader = 'Good';
-                                $rColour = 'info';
-                                $rMessage = "Redis Connection Handler is disabled on your service, if you have a lot of throughput you will see better performance with Redis enabled.<br/>If you maintain active connections of over 10,000 for example you should consider this. Below this amount you're unlikely to see any benefit.";
-                                $rSize = 75;
-
-                                if (!SettingsManager::get('enable_cache')) {
-                                    $rSize = 50;
-                                    $rMessage = 'Caching is disabled on your service, this will impact performance significantly under load compared to having it enabled.';
-                                }
-
-                                if (SettingsManager::get('enable_cache') && SettingsManager::get('redis_handler')) {
-                                    $rSize = 100;
-                                    $rColour = 'pink';
-                                    $rHeader = 'Maximum';
-                                    $rMessage = "You're using both Caching and Redis Connection Handler, your service is optimised for <strong>maximum performance</strong>!";
-                                }
-                            }
-                            ?>
-                            <h5 class="card-title"><?= $rHeader ?> Performance</h5>
-                            <p><?= $rMessage ?></p>
-                            <div class="progress mb-2">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated bg-<?= $rColour ?>" role="progressbar" aria-valuenow="<?= $rSize ?>" aria-valuemin="0" aria-valuemax="100" style="width: <?= $rSize ?>%"></div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card">
-                        <div class="card-body">
-                            <div id="basicwizard">
-                                <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                    <li class="nav-item">
-                                        <a href="#cache" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-cached mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('xc_vm_caching_system') ?></span>
-                                        </a>
-                                    </li>
-                                    <li class="nav-item">
-                                        <a href="#connections" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-lan-connect mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?= $language::get('redis_connection_handler') ?></span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content b-0 mb-0 pt-0">
-                                    <div class="tab-pane" id="cache">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <?php if ($rSettings['enable_cache']): ?>
-                                                    <?php
-                                                    $db->query("SELECT `time` FROM `crontab` WHERE `filename` = 'cache_engine';");
-                                                    list($rMinute, $rHour, $rDayOfMonth, $rMonth, $rDayOfWeek) = explode(' ', $db->get_row()['time']);
-                                                    $db->query('SELECT `id` FROM `lines`;');
-                                                    $rLineCount = $db->result->rowCount();
-                                                    $db->query('SELECT `id` FROM `streams`;');
-                                                    $rStreamCount = $db->result->rowCount();
-                                                    $db->query('SELECT `id` FROM `streams_series`;');
-                                                    $rSeriesCount = $db->result->rowCount();
-                                                    $rLineCountR = count(glob(LINES_TMP_PATH . 'line_i_*'));
-                                                    $rStreamCountR = count(glob(STREAMS_TMP_PATH . 'stream_*'));
-                                                    $rSeriesCountR = count(glob(SERIES_TMP_PATH . 'series_*')) - 2;
-                                                    $rSeriesCountR = max($rSeriesCountR, 0);
-                                                    $rFreeCache = 100 - intval(disk_free_space(MAIN_HOME . 'tmp') / disk_total_space(MAIN_HOME . 'tmp') * 100);
-                                                    ?>
-
-                                                    <?php if ($rFreeCache >= 90): ?>
-                                                        <div class="alert alert-danger mb-4" role="alert">
-                                                            Your cache tmpfs mount is <strong><?= $rFreeCache ?>% full</strong>! This can stop new lines and streams from caching and when the mount is completely full cache will not work correctly.<br /><br /><strong>You should increase the size of your tmpfs size in /etc/fstab and reboot.</strong>
-                                                        </div>
-                                                    <?php endif; ?>
-
-                                                    <?php if (!file_exists(CACHE_TMP_PATH . 'cache_complete')): ?>
-                                                        <div class="alert alert-warning mb-4" role="alert">
-                                                            Cache isn't complete yet! If you have a lot of streams and lines, the caching process can take a while to complete. For now, no users will be able to connect to the service.<br /><br />Player API and Playlist functionality will be limited until cache is complete. This is a requirement regardless of whether cache is enabled or not.
-                                                        </div>
-                                                    <?php endif; ?>
-
-                                                    <h5 class="card-title"><?= $language::get('cache_cron_execution') ?></h5>
-                                                    <p>Your last cron execution was at <strong><?= date($rSettings['datetime_format'], $rSettings['last_cache']) ?></strong>. If it takes longer to run a cron than the time between executions, you will have issues as the caching will be cut off before completion.<br /><br />The default is to run the cron every 5 minutes, but when your Streams and Lines tables grow larger it can take a fair amount of time to grab and cache this data. You can change the time to achieve a better balance between performance and data accuracy.<br /><br /><strong>Please ensure the cron format is correct, otherwise it won't run.</strong></p>
-                                                    <div class="form-group row mb-4">
-                                                        <table class="table table-striped table-borderless mb-0" id="datatable-cache">
-                                                            <tbody>
-                                                                <tr>
-                                                                    <td class="text-center">Minute</td>
-                                                                    <td style="width:250px;"><input type="text" class="form-control text-center" id="minute" name="minute" value="<?= $rMinute ?>"></td>
-                                                                    <td class="text-center">Hour</td>
-                                                                    <td style="width:250px;"><input type="text" class="form-control text-center" id="hour" name="hour" value="<?= $rHour ?>"></td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td class="text-center">Thread Count</td>
-                                                                    <td><input type="text" class="form-control text-center" id="cache_thread_count" name="cache_thread_count" value="<?= intval($rSettings['cache_thread_count']) ?>"></td>
-                                                                    <td class="text-center">Update Changes Only</td>
-                                                                    <td>
-                                                                        <input name="cache_changes" id="cache_changes" type="checkbox" <?= $rSettings['cache_changes'] == 1 ? 'checked' : '' ?> data-plugin="switchery" class="js-switch" data-color="#039cfd" />
-                                                                    </td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td class="text-center">Streams</td>
-                                                                    <td class="text-center">
-                                                                        <button type="button" class="btn btn-info btn-xs waves-effect waves-light"><?= number_format($rStreamCountR) ?> / <?= number_format($rStreamCount) ?></button>
-                                                                    </td>
-                                                                    <td class="text-center">Lines</td>
-                                                                    <td class="text-center">
-                                                                        <button type="button" class="btn btn-info btn-xs waves-effect waves-light"><?= number_format($rLineCountR) ?> / <?= number_format($rLineCount) ?></button>
-                                                                    </td>
-                                                                </tr>
-                                                                <tr>
-                                                                    <td class="text-center">Series</td>
-                                                                    <td class="text-center">
-                                                                        <button type="button" class="btn btn-info btn-xs waves-effect waves-light"><?= number_format($rSeriesCountR) ?> / <?= number_format($rSeriesCount) ?></button>
-                                                                    </td>
-                                                                    <td class="text-center">Time Taken</td>
-                                                                    <td class="text-center">
-                                                                        <button type="button" class="btn btn-info btn-xs waves-effect waves-light"><?= TimeUtils::secondsToTime($rSettings['last_cache_taken']) ?></button>
-                                                                    </td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <h5 class="card-title"><?= $language::get('cache_is_disabled') ?></h5>
-                                                    <p>You have chosen to disable Cache system. You can re-enable it by clicking the Enable Cache box below, however when doing so you would get best results restarting XC_VM on this server.</p>
-                                                <?php endif; ?>
-
-                                                <ul class="list-inline wizard mb-0" style="margin-top:30px;">
-                                                    <?php if ($rSettings['enable_cache']): ?>
-                                                        <li class="list-inline-item">
-                                                            <button id="disable_cache" onClick="api('disable_cache')" class="btn btn-danger" type="button"><?= $language::get('disable_cache') ?></button>
-                                                            <button id="regenerate_cache" onClick="api('regenerate_cache')" class="btn btn-info" type="button"><?= $language::get('regenerate_cache') ?></button>
-                                                        </li>
-                                                        <li class="list-inline-item float-right">
-                                                            <input name="submit_settings" type="submit" class="btn btn-primary" value="Save Cron" />
-                                                        </li>
-                                                    <?php else: ?>
-                                                        <li class="list-inline-item">
-                                                            <button id="enable_cache" onClick="api('enable_cache')" class="btn btn-success" type="button"><?= $language::get('enable_cache') ?></button>
-                                                        </li>
-                                                    <?php endif; ?>
-                                                </ul>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="tab-pane" id="connections">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <h5 class="card-title"><?= $language::get('redis_connection_handler') ?></h5>
-                                                <p>The handler will allow all connections from clients to load balancers to be verified and managed using Redis rather than through mysql connections.<br /><br /><strong>Disabling Redis handler will disconnect all of your active clients, enabling it however should move the live connections from MySQL to Redis without disconnects.</strong></p>
-                                                <h5 class="card-title mt-4"><?= $language::get('pros_and_cons') ?></h5>
-                                                <p>Before deciding whether Redis Connection Handler is right for you, you should know a few things. Firstly, enabling Redis will significantly increase XC_VM's ability to handle connections as the previous bottleneck would be from MySQL not being able to handle the amount of incoming client requests. You'll also find that zap time will be quicker, CPU should be lower and things will generally run quite smoothly.<br /><br />The drawbacks from using Redis is that the live connection database is stored in memory, although a backup is periodically written, restarting XC_VM can result in connection losses. In addition to this, your ability to filter or search some content in the Admin or Reseller interface will be diminished. For example, with Redis on you can only sort Live Connections by Time Active ascending or descending and you cannot search the live connection list. You also lose the ability to sort by Active Connections in Lines or Content pages etc.<br /><br />The best way to decide if Redis is right for you is to try it for yourself.</p>
-
-                                                <?php if ($rSettings['redis_handler']): ?>
-                                                    <?php
-                                                    try {
-                                                        $rTestRedis = new Redis();
-                                                        $rTestRedis->connect(ServerRepository::getAll()[SERVER_ID]['server_ip'], 6379);
-                                                        $rStatus = true;
-                                                    } catch (Exception $e) {
-                                                        $rStatus = false;
-                                                    }
-
-                                                    try {
-                                                        $rTestRedis->auth(SettingsManager::get('redis_password'));
-                                                        $rAuth = true;
-                                                    } catch (Exception $e) {
-                                                        $rAuth = false;
-                                                    }
-                                                    ?>
-
-                                                    <div class="form-group row mb-4 mt-4">
-                                                        <table class="table table-striped table-borderless mb-0" id="datatable-redis">
-                                                            <tbody>
-                                                                <tr>
-                                                                    <td class="text-center">Server Status</td>
-                                                                    <td class="text-center">
-                                                                        <?php if ($rStatus): ?>
-                                                                            <button type="button" class="btn btn-success btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('online_btn') ?></button>
-                                                                        <?php else: ?>
-                                                                            <button type="button" class="btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('offline') ?></button>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                    <td class="text-center">Authentication</td>
-                                                                    <td class="text-center">
-                                                                        <?php if ($rAuth): ?>
-                                                                            <button type="button" class="btn btn-success btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('authenticated') ?></button>
-                                                                        <?php else: ?>
-                                                                            <button type="button" class="btn btn-danger btn-xs waves-effect waves-light btn-fixed-xl"><?= $language::get('invalid_password') ?></button>
-                                                                        <?php endif; ?>
-                                                                    </td>
-                                                                </tr>
-                                                            </tbody>
-                                                        </table>
-                                                    </div>
-                                                <?php else: ?>
-                                                    <p><strong>You have chosen to disable Redis Connection Handler. Click the button below to re-enable it.</strong></p>
-                                                <?php endif; ?>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0" style="margin-top:30px;">
-                                            <?php if ($rSettings['redis_handler']): ?>
-                                                <li class="list-inline-item">
-                                                    <button id="disable_handler" onClick="api('disable_handler')" class="btn btn-danger" type="button"><?= $language::get('disable_handler') ?></button>
-                                                    <button id="clear_redis" onClick="api('clear_redis')" class="btn btn-info" type="button"><?= $language::get('clear_database') ?></button>
-                                                </li>
-                                            <?php else: ?>
-                                                <li class="list-inline-item">
-                                                    <button id="enable_handler" onClick="api('enable_handler')" class="btn btn-success" type="button"><?= $language::get('enable_handler') ?></button>
-                                                </li>
-                                            <?php endif; ?>
-                                        </ul>
-                                    </div>
+    <div class="card">
+        <div class="card-body">
+            <ul class="nav nav-pills flex-wrap mb-4" role="tablist">
+                <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#cache" role="tab"><i class="icon-base ti tabler-refresh me-1"></i><?= $language::get('xc_vm_caching_system'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#connections" role="tab"><i class="icon-base ti tabler-plug-connected me-1"></i><?= $language::get('redis_connection_handler'); ?></button></li>
+            </ul>
+            <div class="tab-content p-0">
+                <!-- Caching system -->
+                <div class="tab-pane fade show active" id="cache" role="tabpanel">
+                    <?php if ($rSettings['enable_cache']): ?>
+                        <?php
+                        $db->query("SELECT `time` FROM `crontab` WHERE `filename` = 'cache_engine';");
+                        [$rMinute, $rHour] = array_pad(explode(' ', (string) ($db->get_row()['time'] ?? '')), 2, '*');
+                        $db->query('SELECT `id` FROM `lines`;');
+                        $rLineCount = $db->result->rowCount();
+                        $db->query('SELECT `id` FROM `streams`;');
+                        $rStreamCount = $db->result->rowCount();
+                        $db->query('SELECT `id` FROM `streams_series`;');
+                        $rSeriesCount = $db->result->rowCount();
+                        $rLineCountR = count(glob(LINES_TMP_PATH . 'line_i_*'));
+                        $rStreamCountR = count(glob(STREAMS_TMP_PATH . 'stream_*'));
+                        $rSeriesCountR = max(count(glob(SERIES_TMP_PATH . 'series_*')) - 2, 0);
+                        $rFreeCache = 100 - (int) (disk_free_space(MAIN_HOME . 'tmp') / disk_total_space(MAIN_HOME . 'tmp') * 100);
+                        ?>
+                        <?php if ($rFreeCache >= 90): ?>
+                            <div class="alert alert-danger" role="alert">Your cache tmpfs mount is <strong><?= $rFreeCache; ?>% full</strong>! This can stop new lines and streams from caching. <strong>Increase the tmpfs size in /etc/fstab and reboot.</strong></div>
+                        <?php endif; ?>
+                        <?php if (!file_exists(CACHE_TMP_PATH . 'cache_complete')): ?>
+                            <div class="alert alert-warning" role="alert">Cache isn't complete yet. With many streams and lines the caching process can take a while; until it finishes, Player API and Playlist functionality is limited and users may be unable to connect.</div>
+                        <?php endif; ?>
+                        <h5 class="card-title"><?= $language::get('cache_cron_execution'); ?></h5>
+                        <p class="text-body-secondary">Last cron execution: <strong><?= date($rSettings['datetime_format'], $rSettings['last_cache']); ?></strong>. The default is every 5 minutes; as your Streams and Lines tables grow, tune the schedule for a balance between performance and data accuracy. <strong>Ensure the cron format is correct, otherwise it won't run.</strong></p>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3"><label class="form-label" for="minute">Minute</label><input type="text" class="form-control" id="minute" name="minute" value="<?= htmlspecialchars((string) $rMinute, ENT_QUOTES); ?>"></div>
+                            <div class="col-md-3"><label class="form-label" for="hour">Hour</label><input type="text" class="form-control" id="hour" name="hour" value="<?= htmlspecialchars((string) $rHour, ENT_QUOTES); ?>"></div>
+                            <div class="col-md-3"><label class="form-label" for="cache_thread_count">Thread Count</label><input type="text" class="form-control" id="cache_thread_count" name="cache_thread_count" value="<?= (int) $rSettings['cache_thread_count']; ?>"></div>
+                            <div class="col-md-3 d-flex align-items-end">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="cache_changes" name="cache_changes" value="1" <?= $rSettings['cache_changes'] == 1 ? 'checked' : ''; ?>>
+                                    <label class="form-check-label" for="cache_changes">Update Changes Only</label>
                                 </div>
                             </div>
                         </div>
-                    </div>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            <span class="badge bg-label-info">Streams: <?= number_format($rStreamCountR); ?> / <?= number_format($rStreamCount); ?></span>
+                            <span class="badge bg-label-info">Lines: <?= number_format($rLineCountR); ?> / <?= number_format($rLineCount); ?></span>
+                            <span class="badge bg-label-info">Series: <?= number_format($rSeriesCountR); ?> / <?= number_format($rSeriesCount); ?></span>
+                            <span class="badge bg-label-secondary">Time Taken: <?= TimeUtils::secondsToTime($rSettings['last_cache_taken']); ?></span>
+                        </div>
+                        <div class="d-flex flex-wrap justify-content-between gap-2">
+                            <div class="d-flex gap-2">
+                                <button type="button" class="btn btn-danger js-api" data-action="disable_cache"><?= $language::get('disable_cache'); ?></button>
+                                <button type="button" class="btn btn-info js-api" data-action="regenerate_cache"><?= $language::get('regenerate_cache'); ?></button>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Cron</button>
+                        </div>
+                    <?php else: ?>
+                        <h5 class="card-title"><?= $language::get('cache_is_disabled'); ?></h5>
+                        <p class="text-body-secondary">Caching is disabled. Re-enable it below; for best results restart XC_VM on this server afterwards.</p>
+                        <button type="button" class="btn btn-success js-api" data-action="enable_cache"><?= $language::get('enable_cache'); ?></button>
+                    <?php endif; ?>
+                </div>
+                <!-- Redis connection handler -->
+                <div class="tab-pane fade" id="connections" role="tabpanel">
+                    <h5 class="card-title"><?= $language::get('redis_connection_handler'); ?></h5>
+                    <p class="text-body-secondary">The handler verifies and manages all client→load-balancer connections through Redis instead of MySQL. <strong>Disabling it disconnects active clients; enabling it moves live connections from MySQL to Redis without disconnects.</strong></p>
+                    <?php if ($rSettings['redis_handler']): ?>
+                        <?php
+                        $rStatus = $rAuth = false;
+                        try {
+                            $rTestRedis = new \Redis();
+                            $rStatus = $rTestRedis->connect(ServerRepository::getAll()[SERVER_ID]['server_ip'], 6379);
+                            $rAuth = $rTestRedis->auth(SettingsManager::get('redis_password'));
+                        } catch (\Exception $e) {
+                            // status/auth stay false
+                        }
+                        ?>
+                        <div class="d-flex flex-wrap gap-3 my-3">
+                            <span class="badge bg-label-secondary">Server Status: <span class="badge bg-<?= $rStatus ? 'success' : 'danger'; ?> ms-1"><?= $rStatus ? $language::get('online_btn') : $language::get('offline'); ?></span></span>
+                            <span class="badge bg-label-secondary">Authentication: <span class="badge bg-<?= $rAuth ? 'success' : 'danger'; ?> ms-1"><?= $rAuth ? $language::get('authenticated') : $language::get('invalid_password'); ?></span></span>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="button" class="btn btn-danger js-api" data-action="disable_handler"><?= $language::get('disable_handler'); ?></button>
+                            <button type="button" class="btn btn-info js-api" data-action="clear_redis"><?= $language::get('clear_database'); ?></button>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-body-secondary"><strong>The Redis Connection Handler is disabled.</strong> Click below to re-enable it.</p>
+                        <button type="button" class="btn btn-success js-api" data-action="enable_handler"><?= $language::get('enable_handler'); ?></button>
+                    <?php endif; ?>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
-</div>
+</form>
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
+<script>
+    (function() {
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var toast = window.xcToast || function() {};
 
-    function checkRegex(e) {
-        var rRegex = /^[0-9\/*,-]+$/;
-        return rRegex.test(String.fromCharCode(e.which));
-    }
-
-    function api(rType, rConfirm = false) {
-        if ((rType == "clear_redis") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Clear",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to clear the Redis database? This will drop all connections.",
-                confirm: function() {
-                    api(rType, true);
-                }
-            }).open();
-        } else {
-            rConfirm = true;
-        }
-        if (rConfirm) {
-            if (rType == "regenerate_cache") {
-                $.toast("Regenerating cache in the background...");
-                $("#regenerate_cache").attr("disabled", true);
-            } else if (rType == "disable_cache") {
-                $.toast("Cache has been completely disabled!");
-                $("#disable_cache").attr("disabled", true);
-                $("#restart_cache").attr("disabled", true);
-            } else if (rType == "enable_cache") {
-                $.toast("Cache has been enabled!");
-                $("#enable_cache").attr("disabled", true);
-            } else if (rType == "disable_handler") {
-                $.toast("Handler has been completely disabled!");
-                $("#disable_handler").attr("disabled", true);
-            } else if (rType == "enable_handler") {
-                $.toast("Handler has been enabled!");
-                $("#enable_handler").attr("disabled", true);
-            } else if (rType == "clear_redis") {
-                $.toast("Redis database has been cleared!");
-                $("#clear_redis").attr("disabled", true);
-            }
-            $.getJSON("./api?action=" + rType, function(data) {
-                if (data.result == true) {
-                    window.location.reload();
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-            }).fail(function() {
-                $.toast("An error occured while processing your request.");
+        // enable/disable/regenerate/clear actions.
+        document.querySelectorAll('.js-api').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var action = this.getAttribute('data-action');
+                var run = function() {
+                    btn.disabled = true;
+                    fetch('./api?action=' + encodeURIComponent(action), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(d) { if (d && d.result === true) { location.reload(); } else { btn.disabled = false; toast(errText, 'error'); } })
+                        .catch(function() { btn.disabled = false; toast(errText, 'error'); });
+                };
+                if (action.indexOf('disable') === 0 || action === 'clear_redis' || action === 'regenerate_cache') {
+                    (window.xcConfirm ? window.xcConfirm('Are you sure?') : Promise.resolve(confirm('Are you sure?'))).then(function(ok) { if (ok) { run(); } });
+                } else { run(); }
             });
-        }
-    }
+        });
 
-    $(document).ready(function() {
-        $('select').select2({
-            width: '100%'
-        });
-        $("#minute").keypress(function(e) {
-            return checkRegex(e);
-        });
-        $("#hour").keypress(function(e) {
-            return checkRegex(e);
-        });
-        $("#cache_thread_count").inputFilter(function(value) {
-            return /^\d*$/.test(value);
-        });
-        $("form").submit(function(e) {
+        // Save cron settings.
+        var form = document.getElementById('cache-form');
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
-            $(':input[type="submit"]').prop('disabled', true);
-            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; }
+            var fd = new FormData(form);
+            fd.append('submit_settings', '1');
+            fetch('post.php?action=cache', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
+                    if (btn) { btn.disabled = false; }
+                    toast(d && d.result !== false ? 'Cache & Redis settings updated.' : errText, d && d.result !== false ? 'success' : 'error');
+                })
+                .catch(function() { if (btn) { btn.disabled = false; } toast(errText, 'error'); });
         });
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
