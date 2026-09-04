@@ -1,304 +1,132 @@
-<div class="wrapper boxed-layout" <?php 
+<?php
+
+/**
+ * Edit profile (Bootstrap 5). The current admin's own account: password, email, timezone,
+ * system theme, topbar hue, language and (for API-enabled groups) the API key. Saves via
+ * post.php?action=edit_profile. Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Enum\Theme;
 use XcVm\Core\Reference\UiReference;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Server\ServerRepository;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
-                                        echo ' style="display: none;"';
-                                    } ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <h4 class="page-title"><?php echo ucfirst($rUserInfo['username']); ?></h4>
+$rApiCode = null;
+foreach (AuthRepository::getAllCodes() as $rCode) {
+    if ($rCode['type'] == 3 && in_array($rUserInfo['member_group_id'], json_decode((string) $rCode['groups'], true) ?: [])) {
+        $rApiCode = $rCode;
+        break;
+    }
+}
+?>
+
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0"><?= htmlspecialchars(ucfirst((string) $rUserInfo['username']), ENT_QUOTES); ?></h4>
+</div>
+
+<div class="card">
+    <div class="card-body">
+        <form id="profile-form">
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="password"><?= $language::get('change_password'); ?></label>
+                <div class="col-md-9"><input type="text" class="form-control" id="password" name="password" value="" autocomplete="new-password"></div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="email"><?= $language::get('email_address'); ?></label>
+                <div class="col-md-9"><input type="email" id="email" class="form-control" name="email" value="<?= htmlspecialchars((string) $rUserInfo['email'], ENT_QUOTES); ?>"></div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="timezone"><?= $language::get('timezone'); ?></label>
+                <div class="col-md-9">
+                    <select name="timezone" id="timezone" class="form-select">
+                        <option value="" <?= empty($rUserInfo['timezone']) ? 'selected' : ''; ?>><?= $language::get('server_default'); ?></option>
+                        <?php foreach (AdminHelpers::TimeZoneList() as $rValue): ?>
+                            <option value="<?= htmlspecialchars((string) $rValue['zone'], ENT_QUOTES); ?>" <?= $rUserInfo['timezone'] == $rValue['zone'] ? 'selected' : ''; ?>><?= htmlspecialchars($rValue['zone'] . ' ' . $rValue['diff_from_GMT'], ENT_QUOTES); ?></option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <?php if (isset($_STATUS) && $_STATUS == STATUS_SUCCESS) { ?>
-                    <div class="alert alert-success alert-dismissible fade show" role="alert">
-                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                        <?php echo $language::get('profile_success'); ?>
-                    </div>
-                <?php } ?>
-                <div class="card">
-                    <div class="card-body">
-                        <form onSubmit="return false;" action="#" method="POST" data-parsley-validate="">
-                            <div id="basicwizard">
-                                <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                    <li class="nav-item">
-                                        <a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline"><?php echo $language::get('details'); ?></span>
-                                        </a>
-                                    </li>
-                                </ul>
-                                <div class="tab-content b-0 mb-0 pt-0">
-                                    <div class="tab-pane" id="user-details">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="password"><?php echo $language::get('change_password'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="password" name="password" value="">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="email"><?php echo $language::get('email_address'); ?></label>
-                                                    <div class="col-md-8">
-                                                        <input type="email" id="email" class="form-control" name="email" value="<?php echo htmlspecialchars($rUserInfo['email']); ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="timezone"><?= $language::get('timezone') ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="timezone" id="timezone" class="form-control" data-toggle="select2">
-                                                            <option value="" <?php if (empty($rUserInfo['timezone'])) {
-                                                                        echo 'selected';
-                                                                    } ?>><?= $language::get('server_default') ?></option>
-                                                            <?php foreach (AdminHelpers::TimeZoneList() as $rValue) { ?>
-                                                                <option <?php if ($rUserInfo['timezone'] == $rValue['zone']) {
-                                                                            echo 'selected ';
-                                                                        } ?>value="<?php echo $rValue['zone']; ?>"><?php echo $rValue['zone'] . " " . $rValue['diff_from_GMT']; ?></option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="theme"><?= $language::get('system_theme') ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="theme" id="theme" class="form-control" data-toggle="select2">
-                                                            <?php foreach (Theme::options() as $rValue => $rName) { ?>
-                                                                <option <?php if ($rUserInfo['theme'] == $rValue) {
-                                                                            echo 'selected ';
-                                                                        } ?>value="<?php echo $rValue; ?>"><?php echo $rName; ?></option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="hue"><?= $language::get('topbar_theme') ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="hue" id="hue" class="form-control" data-toggle="select2">
-                                                            <?php foreach (UiReference::hues() as $rValue => $rText) { ?>
-                                                                <option <?php if ($rUserInfo['hue'] == $rValue) {
-                                                                            echo 'selected ';
-                                                                        } ?>value="<?php echo $rValue; ?>"><?php echo $rText; ?></option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="lang"><?= $language::get('language') ?></label>
-                                                    <div class="col-md-8">
-                                                        <select name="lang" id="lang" class="form-control" data-toggle="select2">
-                                                            <?php foreach ((is_array($allowedLangs ?? null) ? $allowedLangs : []) as $rText) { ?>
-                                                                <option <?php if ($rUserInfo['lang'] == $rText) {
-                                                                            echo 'selected ';
-                                                                        } ?>value="<?php echo $rText; ?>"><?php echo $rText; ?></option>
-                                                            <?php } ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <?php foreach (AuthRepository::getAllCodes() as $rCode) {
-                                                    if ($rCode['type'] == 3 && in_array($rUserInfo['member_group_id'], json_decode($rCode['groups'], true))) { ?>
-                                                        <div class="form-group row mb-4">
-                                                            <label class="col-md-4 col-form-label" for="api_key">API Key <i title="API URL:<br/><?php echo ServerRepository::getAll()[SERVER_ID]['site_url'] . $rCode['code']; ?>/" class="tooltip text-secondary far fa-circle"></i></label>
-                                                            <div class="col-md-8 input-group">
-                                                                <input readonly type="text" maxlength="32" class="form-control" id="api_key" name="api_key" value="<?php echo htmlspecialchars($rUserInfo['api_key']); ?>">
-                                                                <div class="input-group-append">
-                                                                    <button class="btn btn-danger waves-effect waves-light" onClick="clearCode();" type="button"><i class="mdi mdi-close"></i></button>
-                                                                    <button class="btn btn-info waves-effect waves-light" onClick="generateCode();" type="button"><i class="mdi mdi-refresh"></i></button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                <?php break;
-                                                    }
-                                                } ?>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="list-inline-item float-right">
-                                                <input name="submit_profile" type="submit" class="btn btn-primary" value="<?php echo $language::get('save_profile'); ?>" />
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="theme"><?= $language::get('system_theme'); ?></label>
+                <div class="col-md-9">
+                    <select name="theme" id="theme" class="form-select">
+                        <?php foreach (Theme::options() as $rValue => $rName): ?><option value="<?= $rValue; ?>" <?= $rUserInfo['theme'] == $rValue ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rName, ENT_QUOTES); ?></option><?php endforeach; ?>
+                    </select>
                 </div>
             </div>
-        </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="hue"><?= $language::get('topbar_theme'); ?></label>
+                <div class="col-md-9">
+                    <select name="hue" id="hue" class="form-select">
+                        <?php foreach (UiReference::hues() as $rValue => $rText): ?><option value="<?= $rValue; ?>" <?= $rUserInfo['hue'] == $rValue ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rText, ENT_QUOTES); ?></option><?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="lang"><?= $language::get('language'); ?></label>
+                <div class="col-md-9">
+                    <select name="lang" id="lang" class="form-select">
+                        <?php foreach ((is_array($allowedLangs ?? null) ? $allowedLangs : []) as $rText): ?><option value="<?= htmlspecialchars((string) $rText, ENT_QUOTES); ?>" <?= $rUserInfo['lang'] == $rText ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rText, ENT_QUOTES); ?></option><?php endforeach; ?>
+                    </select>
+                </div>
+            </div>
+            <?php if ($rApiCode): ?>
+                <div class="row mb-4">
+                    <label class="col-md-3 col-form-label" for="api_key">API Key <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="API URL: <?= htmlspecialchars((ServerRepository::getAll()[SERVER_ID]['site_url'] ?? '') . $rApiCode['code'] . '/', ENT_QUOTES); ?>"></i></label>
+                    <div class="col-md-9">
+                        <div class="input-group">
+                            <input readonly type="text" maxlength="32" class="form-control" id="api_key" name="api_key" value="<?= htmlspecialchars((string) $rUserInfo['api_key'], ENT_QUOTES); ?>">
+                            <button class="btn btn-outline-danger" type="button" id="clear-code"><i class="icon-base ti tabler-x"></i></button>
+                            <button class="btn btn-outline-info" type="button" id="generate-code"><i class="icon-base ti tabler-refresh"></i></button>
+                        </div>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <div class="text-end"><button type="submit" class="btn btn-primary" name="submit_profile" value="1"><?= $language::get('save_profile'); ?></button></div>
+        </form>
     </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var toast = window.xcToast || function() {};
+        if ($.fn.select2) { $('#timezone, #theme, #hue, #lang').select2({ width: '100%' }); }
 
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
+        var gen = document.getElementById('generate-code');
+        if (gen) {
+            gen.addEventListener('click', function() {
+                var chars = 'ABCDEF0123456789', out = '';
+                for (var i = 0; i < 32; i++) { out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+                document.getElementById('api_key').value = out;
             });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
+            document.getElementById('clear-code').addEventListener('click', function() { document.getElementById('api_key').value = ''; });
         }
-    });
 
-    function generateCode() {
-        var result = '';
-        var characters = 'ABCDEF0123456789';
-        var charactersLength = characters.length;
-        for (var i = 0; i < 32; i++) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-        }
-        $("#api_key").val(result);
-    }
-
-    function clearCode() {
-        $("#api_key").val("");
-    }
-    $(document).ready(function() {
-        $('select').select2({
-            width: '100%'
-        });
-        $("form").submit(function(e) {
+        document.getElementById('profile-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            $(':input[type="submit"]').prop('disabled', true);
-            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+            var btn = this.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; }
+            var fd = new FormData(this);
+            fd.append('submit_profile', '1');
+            fetch('post.php?action=edit_profile', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
+                    if (d && d.result !== false) { window.location.reload(); return; }
+                    if (btn) { btn.disabled = false; }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                })
+                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
         });
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
