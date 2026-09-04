@@ -1,302 +1,465 @@
-<div class="wrapper" <?php 
+<?php
+
+/**
+ * Created Channels (Bootstrap 5). The streams serverSide table filtered to created channels (d.created=true; edit opens created_channel?id=X&modal=1). The panel's most complex serverSide table. Clean-JSON
+ * pattern: TableController::handleStreams resolves each stream's status
+ * (StatusBadge::stream code -1..7), live uptime, convert-to-channel encode
+ * progress, restart-fails indicator, current server/source, client count, EPG
+ * availability, player-codec compatibility and codec stream-info server-side;
+ * this page renders every cell and the per-row action dropdown client-side.
+ *
+ * Features: category / server / status / codec filters, bulk-select toolbar
+ * (start/stop/restart/kill/delete via action=multi&type=stream), per-row actions
+ * (edit + fingerprint iframe modals, start/stop/restart/purge/delete via
+ * action=stream), player, live-connections link and CSV export.
+ */
+
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-						} else {
-							echo ' style="display: none;"';
-						} ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?= $language::get('created_channels') ?></h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-12">
-				<div class="card">
-					<div class="card-body" style="overflow-x:auto;">
-						<div id="collapse_filters" class="form-group row mb-4<?php if (!$rMobile) {
-																				} else {
-																					echo ' collapse';
-																				} ?>">
-							<div class="col-md-2">
-								<input type="text" class="form-control" id="stream_search" value="<?php if (!RequestManager::has('search')) {
-																									} else {
-																										echo htmlspecialchars(RequestManager::get('search'));
-																									} ?>" placeholder="<?= $language::get('search_channels') ?>">
-							</div>
-							<div class="col-md-3">
-								<select id="stream_server_id" class="form-control" data-toggle="select2">
-									<option value="" selected><?= $language::get('all_servers') ?></option>
-									<option value="-1" <?php if (!(RequestManager::has('server') && RequestManager::get('server') == -1)) {
-														} else {
-															echo ' selected';
-														} ?>>No Servers</option>
-									<?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) { ?>
-										<option value="<?php echo $rServer['id']; ?>" <?php if (!(RequestManager::has('server') && RequestManager::get('server') == $rServer['id'])) {
-																						} else {
-																							echo ' selected';
-																						} ?>><?php echo $rServer['server_name']; ?></option>
-									<?php } ?>
-								</select>
-							</div>
-							<div class="col-md-3">
-								<select id="stream_category_id" class="form-control" data-toggle="select2">
-									<option value="" selected><?= $language::get('all_categories') ?></option>
-									<option value="-1" <?php if (!(RequestManager::has('category') && RequestManager::get('category') == -1)) {
-														} else {
-															echo ' selected';
-														} ?>>No Categories</option>
-									<?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
-										<option value="<?php echo $rCategory['id']; ?>" <?php if (!(RequestManager::has('category') && RequestManager::get('category') == $rCategory['id'])) {
-																						} else {
-																							echo ' selected';
-																						} ?>><?php echo $rCategory['category_name']; ?></option>
-									<?php } ?>
-								</select>
-							</div>
-							<div class="col-md-2">
-								<select id="stream_filter" class="form-control" data-toggle="select2">
-									<option value="" <?php if (RequestManager::has('filter')) {
-														} else {
-															echo ' selected';
-														} ?>>No Filter</option>
-									<option value="1" <?php if (!(RequestManager::has('filter') && RequestManager::get('filter') == 1)) {
-														} else {
-															echo ' selected';
-														} ?>>Online</option>
-									<option value="2" <?php if (!(RequestManager::has('filter') && RequestManager::get('filter') == 2)) {
-														} else {
-															echo ' selected';
-														} ?>>Stopped</option>
-									<option value="3" <?php if (!(RequestManager::has('filter') && RequestManager::get('filter') == 3)) {
-														} else {
-															echo ' selected';
-														} ?>>Creating</option>
-									<option value="4" <?php if (!(RequestManager::has('filter') && RequestManager::get('filter') == 4)) {
-														} else {
-															echo ' selected';
-														} ?>>Transcoding</option>
-								</select>
-							</div>
-							<label class="col-md-1 col-form-label text-center" for="stream_show_entries"><?= $language::get('show') ?></label>
-							<div class="col-md-1">
-								<select id="stream_show_entries" class="form-control" data-toggle="select2">
-									<?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
-										<option<?php if (RequestManager::has('entries') && RequestManager::get('entries') == $rShow) {
-													echo ' selected';
-												} elseif ($rSettings['default_entries'] == $rShow) {
-													echo ' selected';
-												} ?> value="<?php echo $rShow; ?>"><?php echo $rShow; ?></option>
-										<?php } ?>
-								</select>
-							</div>
-						</div>
-						<table id="datatable-streampage" class="table table-borderless table-striped dt-responsive nowrap font-normal">
-							<thead>
-								<tr>
-									<th class="text-center"><?= $language::get('id') ?></th>
-									<th class="text-center"><?= $language::get('icon') ?></th>
-									<th><?= $language::get('name') ?></th>
-									<?php if ($rSettings['streams_grouped'] == 1) { ?>
-										<th><?= $language::get('servers') ?></th>
-									<?php } else { ?>
-										<th><?= $language::get('server') ?></th>
-									<?php } ?>
-									<th class="text-center"><?= $language::get('clients') ?></th>
-									<th class="text-center"><?= $language::get('uptime') ?></th>
-									<th class="text-center"><?= $language::get('actions') ?></th>
-									<th class="text-center"><?= $language::get('player') ?></th>
-									<th class="text-center"><?= $language::get('channel_info') ?></th>
-								</tr>
-							</thead>
-							<tbody></tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+if (!Authorization::check('adv', 'created_channels') && !Authorization::check('adv', 'edit_cchannel')):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('admin');
+    echo '</body></html>';
+    return;
+endif;
+
+$rCanEdit = Authorization::check('adv', 'edit_cchannel');
+$rCanLive = Authorization::check('adv', 'live_connections');
+$rCanFinger = Authorization::check('adv', 'fingerprint');
+$rCanPlayer = Authorization::check('adv', 'player');
+
+$rStatusFilters = [
+    1 => 'Online', 2 => 'Down', 3 => 'Stopped', 4 => 'Starting', 5 => 'On Demand',
+    6 => 'Direct', 7 => 'Timeshift', 8 => 'Looping', 9 => 'Has EPG', 10 => 'No EPG',
+    11 => 'Adaptive', 12 => 'Title Sync', 13 => 'Transcoding',
+];
+?>
+
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><?= $language::get('created_channels'); ?></h5>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <?php if ($rCanEdit): ?>
+                <div id="bulk-bar" class="d-none align-items-center gap-2">
+                    <span class="text-body-secondary"><span id="bulk-count">0</span></span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-label-success" data-bulk="start"><?= $language::get('start'); ?></button>
+                        <button type="button" class="btn btn-label-secondary" data-bulk="stop"><?= $language::get('stop'); ?></button>
+                        <button type="button" class="btn btn-label-info" data-bulk="restart"><?= $language::get('restart'); ?></button>
+                        <button type="button" class="btn btn-label-dark" data-bulk="purge"><?= $language::get('kill'); ?></button>
+                        <button type="button" class="btn btn-label-danger" data-bulk="delete"><?= $language::get('delete'); ?></button>
+                    </div>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="filter-category"><?= $language::get('category'); ?></label>
+                <select id="filter-category" class="form-select">
+                    <option value=""><?= $language::get('all_categories'); ?></option>
+                    <option value="-1"><?= $language::get('no_category'); ?></option>
+                    <?php foreach (CategoryService::getAllByType('live') as $rCatId => $rCat): ?>
+                        <option value="<?= (int) $rCatId; ?>"><?= htmlspecialchars((string) $rCat['category_name'], ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="filter-server"><?= $language::get('server'); ?></label>
+                <select id="filter-server" class="form-select">
+                    <option value=""><?= $language::get('all_servers'); ?></option>
+                    <option value="-1"><?= $language::get('no_servers'); ?></option>
+                    <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
+                        <option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-3">
+                <label class="form-label" for="filter-status"><?= $language::get('filter'); ?></label>
+                <select id="filter-status" class="form-select">
+                    <option value=""><?= $language::get('no_filter'); ?></option>
+                    <?php foreach ($rStatusFilters as $rK => $rV): ?>
+                        <option value="<?= $rK; ?>"><?= $rV; ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-4 col-lg-1">
+                <label class="form-label" for="filter-resolution"><?= $language::get('resolution'); ?></label>
+                <input type="text" id="filter-resolution" class="form-control" autocomplete="off">
+            </div>
+            <div class="col-4 col-lg-1">
+                <label class="form-label" for="filter-video"><?= $language::get('video'); ?></label>
+                <input type="text" id="filter-video" class="form-control" autocomplete="off">
+            </div>
+            <div class="col-4 col-lg-1">
+                <label class="form-label" for="filter-audio"><?= $language::get('audio'); ?></label>
+                <input type="text" id="filter-audio" class="form-control" autocomplete="off">
+            </div>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="cchannels-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th><input type="checkbox" class="form-check-input" id="check-all"></th>
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('icon'); ?></th>
+                    <th><?= $language::get('title'); ?></th>
+                    <th><?= $language::get('server'); ?></th>
+                    <th><?= $language::get('connections'); ?></th>
+                    <th><?= $language::get('status'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                    <th><?= $language::get('player'); ?></th>
+                    <th>EPG</th>
+                    <th><?= $language::get('stream_info'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
+
+<!-- Edit / Fingerprint iframe modal -->
+<div class="modal fade" id="frameModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0" id="frameModalTitle"><?= $language::get('edit'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="frame-src" src="about:blank" style="width:100%;height:70vh;border:0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Restart / failures log modal -->
+<div class="modal fade" id="failuresModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('stream_error_logs') ?: 'Stream Logs'; ?></h5>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm btn-label-danger" id="fails-clear"><i class="icon-base ti tabler-trash me-1"></i><?= $language::get('clear_stream_logs'); ?></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table id="failures-table" class="table" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th><?= $language::get('server_name'); ?></th>
+                                <th><?= $language::get('source'); ?></th>
+                                <th><?= $language::get('action'); ?></th>
+                                <th><?= $language::get('date'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+<script>
+    (function() {
+        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>, canLive = <?= $rCanLive ? 'true' : 'false'; ?>, canFinger = <?= $rCanFinger ? 'true' : 'false'; ?>, canPlayer = <?= $rCanPlayer ? 'true' : 'false'; ?>;
+        var lang = {
+            start: <?= json_encode($language::get('start') ?: 'Start'); ?>,
+            stop: <?= json_encode($language::get('stop') ?: 'Stop'); ?>,
+            restart: <?= json_encode($language::get('restart') ?: 'Restart'); ?>,
+            kill: <?= json_encode($language::get('kill') ?: 'Kill Connections'); ?>,
+            fingerprint: <?= json_encode($language::get('fingerprint') ?: 'Fingerprint'); ?>,
+            edit: <?= json_encode($language::get('edit')); ?>,
+            del: <?= json_encode($language::get('delete')); ?>,
+            selected: <?= json_encode($language::get('selected')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>
+        };
+        // StatusBadge::stream — code => [bootstrap colour, label].
+        var STREAM = {
+            '-1': ['secondary', 'No Server'], '0': ['dark', 'Stopped'], '1': ['success', 'Online'],
+            '2': ['warning', 'Starting'], '3': ['danger', 'Down'], '4': ['info', 'On Demand'],
+            '5': ['primary', 'Direct Source'], '6': ['primary', 'Converting'], '7': ['danger', 'Proxy Down']
+        };
+        var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+        var fmtUptime = function(sec) {
+            sec = Math.max(0, Math.floor(sec));
+            if (sec >= 86400) { return pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm'; }
+            return pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's';
+        };
+        // Fails indicator colour thresholds (mirror the legacy restart-count buckets).
+        var failsDot = function(f, id, server) {
+            if (!f || !f[0]) { return ''; }
+            var count = f[0], last = f[1] || 0, color;
+            if (count <= 2) { color = 'success'; }
+            else if (count <= 4 || last > 21600) { color = 'info'; }
+            else if (count <= 144 || last > 600) { color = 'warning'; }
+            else { color = 'danger'; }
+            // Clickable — opens the restart/failures log modal for this stream.
+            return '<a href="javascript:void(0);" class="js-fails me-1" data-id="' + esc(id) + '" data-server="' + esc(server) + '" title="' + count + ' restarts"><i class="icon-base ti tabler-alert-circle text-' + color + '"></i></a>';
+        };
+        var running = function(row) { return row.status === 1 || row.status === 2 || row.status === 3 || row.status === 5 || row.on_demand; };
 
-	<?php
-	echo "\t\t" . 'var rClearing = false;' . "\r\n" . '        var rSelected = [];' . "\r\n\r\n" . '        function openImage(elem) {' . "\r\n" . '            var rImage = $(elem).data("src");' . "\r\n" . '            if (rImage) {' . "\r\n" . '                $.magnificPopup.open({' . "\r\n" . '                    items: {' . "\r\n" . '                        src: rImage,' . "\r\n" . "                        type: 'image'" . "\r\n" . '                    }' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n" . '        }' . "\r\n" . '        function viewSources(rTitle, rID) {' . "\r\n" . '            $("#datatable-sources").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'searching: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'bInfo: false,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams";' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = rID;' . "\r\n" . '                        d.single = true;' . "\r\n" . '                        d.created = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [4,5,6,9]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0,1,2,7,8]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-streams-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n" . '        function viewLiveConnections(rStreamID, rServerID=-1) {' . "\r\n" . '            $("#datatable-live").DataTable({' . "\r\n" . '                destroy: true,' . "\r\n\t\t\t\t" . 'ordering: true,' . "\r\n\t\t\t\t" . 'paging: true,' . "\r\n\t\t\t\t" . 'searching: true,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'bInfo: true,' . "\r\n" . '                drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections";' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = rStreamID;' . "\r\n" . '                        d.server_id = rServerID;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [1,7,8,9,10,11]},' . "\r\n" . '                    {"visible": false, "targets": [0,3,5,6]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t" . '});' . "\r\n" . '            $(".bs-live-modal-center").modal("show");' . "\r\n" . '        }' . "\r\n" . '        function getStreamIDs() {' . "\r\n" . '            var rStreamIDs = [];' . "\r\n" . '            var rIndexes = [];' . "\r\n" . '            $("#datatable-streampage").DataTable().rows().every(function (rowIdx, tableLoop, rowLoop) {' . "\r\n" . '                rStreamIDs.push($($("#datatable-streampage").DataTable().row(rowIdx).data()[0]).text());' . "\r\n" . '                rIndexes.push(rowIdx);' . "\r\n" . '            });' . "\r\n" . '            return [rStreamIDs, rIndexes];' . "\r\n" . '        }' . "\r\n" . '        function refreshInformation() {' . "\r\n" . '            if (!window.rProcessing) {' . "\r\n" . '                var rUpdateColumns = [4,5,6,7,8];' . "\r\n" . '                var rStreamIDs = getStreamIDs();' . "\r\n" . '                if (rStreamIDs[0].length > 0) {' . "\r\n" . '                    $.getJSON("./table?" + $.param($("#datatable-streampage").DataTable().ajax.params()) + "&refresh=" + rStreamIDs[0].join(","), function(rTable) {' . "\r\n" . '                        if (!window.rProcessing) {' . "\r\n" . '                            $(rTable.data).each(function(rIndex, rItem) {' . "\r\n" . '                                for (i in rUpdateColumns) {' . "\r\n" . '                                    var rIndex = rStreamIDs[0].indexOf($(rItem[0]).text());' . "\r\n" . '                                    if (rIndex >= 0) {' . "\r\n" . "                                        if (\$('#datatable-streampage').DataTable().cell(rStreamIDs[1][rIndex], rUpdateColumns[i]).data() != rItem[rUpdateColumns[i]]) {" . "\r\n" . "                                            \$('#datatable-streampage').DataTable().cell(rStreamIDs[1][rIndex], rUpdateColumns[i]).data(rItem[rUpdateColumns[i]]);" . "\r\n" . '                                        }' . "\r\n" . '                                    }' . "\r\n" . '                                }' . "\r\n" . '                            });' . "\r\n" . '                            bindHref(); refreshTooltips(false);' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                }' . "\r\n" . '            }' . "\r\n" . '            clearTimeout(window.rRefresh);' . "\r\n" . '            window.rRefresh = setTimeout(refreshInformation, 5000);' . "\r\n" . '        }' . "\r\n\t\t" . 'function api(rID, rServerID, rType, rConfirm=false) {' . "\r\n" . '            if ((window.rSelected) && (window.rSelected.length > 0)) {' . "\r\n" . '                $.toast("Individual actions disabled in multi-select mode.");' . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete this stream?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rServerID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        api(rID, rServerID, rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rServerID == "kill") && (!rConfirm)) {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '                rServerID = -1;' . "\r\n" . '                rType = "kill";' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=stream&sub=" + rType + "&stream_id=" + rID + "&server_id=" + rServerID, function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("Stream successfully started.");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("Stream successfully stopped.");' . "\r\n" . '                        } else if (rType == "restart") {' . "\r\n" . '                            $.toast("Stream successfully restarted.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Stream successfully deleted.");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        } else if (rType == "kill") {' . "\r\n" . '                            $.toast("Connection has been killed.");' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                        if ($(".bs-streams-modal-center").is(":visible")) {' . "\r\n" . '                            $("#datatable-sources").DataTable().ajax.reload( null, false );' . "\r\n" . '                        }' . "\r\n" . '                        if ($(".bs-live-modal-center").is(":visible")) {' . "\r\n" . '                            $("#datatable-live").DataTable().ajax.reload( null, false );' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n" . '        function multiAPI(rType, rConfirm=false) {' . "\r\n" . '            if (rType == "clear") {' . "\r\n" . '                if ("#header_stats") {' . "\r\n" . '                    $("#header_stats").show();' . "\r\n" . '                }' . "\r\n" . '                window.rSelected = [];' . "\r\n" . '                $(".multiselect").hide();' . "\r\n" . "                \$(\"#datatable-streampage tr\").removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                return;' . "\r\n" . '            }' . "\r\n" . '            if ((rType == "delete") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Delete",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to delete these channels?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n" . '            } else if ((rType == "purge") && (!rConfirm)) {' . "\r\n" . '                new jBox("Confirm", {' . "\r\n" . '                    confirmButton: "Kill",' . "\r\n" . '                    cancelButton: "Cancel",' . "\r\n" . '                    content: "Are you sure you want to kill all connections?",' . "\r\n" . '                    confirm: function () {' . "\r\n" . '                        multiAPI(rType, true);' . "\r\n" . '                    }' . "\r\n" . '                }).open();' . "\r\n\t\t\t" . '} else {' . "\r\n" . '                rConfirm = true;' . "\r\n" . '            }' . "\r\n" . '            if (rConfirm) {' . "\r\n" . '                $.getJSON("./api?action=multi&type=cchannel&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {' . "\r\n" . '                    if (data.result == true) {' . "\r\n" . '                        if (rType == "start") {' . "\r\n" . '                            $.toast("Channels have been started.");' . "\r\n" . '                        } else if (rType == "stop") {' . "\r\n" . '                            $.toast("Channels have been stopped.");' . "\r\n" . '                        } else if (rType == "restart") {' . "\r\n" . '                            $.toast("Channels have been restarted.");' . "\r\n" . '                        } else if (rType == "delete") {' . "\r\n" . '                            $.toast("Channels have been deleted.");' . "\r\n" . '                            refreshTable();' . "\r\n" . '                        } else if (rType == "purge") {' . "\r\n" . '                            $.toast("Connections have been killed.");' . "\r\n" . '                        }' . "\r\n" . '                    } else {' . "\r\n" . '                        $.toast("An error occured while processing your request.");' . "\r\n" . '                    }' . "\r\n" . '                }).fail(function() {' . "\r\n" . '                    $.toast("An error occured while processing your request.");' . "\r\n" . '                });' . "\r\n" . '                multiAPI("clear");' . "\r\n" . '            }' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function player(rID) {' . "\r\n\t\t\t" . '$.magnificPopup.open({' . "\r\n\t\t\t\t" . 'items: {' . "\r\n\t\t\t\t\t" . 'src: "./player?type=live&id=" + rID,' . "\r\n\t\t\t\t\t" . "type: 'iframe'" . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getCategory() {' . "\r\n\t\t\t" . 'return $("#stream_category_id").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getFilter() {' . "\r\n\t\t\t" . 'return $("#stream_filter").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getServer() {' . "\r\n\t\t\t" . 'return $("#stream_server_id").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function clearFilters() {' . "\r\n\t\t\t" . 'window.rClearing = true;' . "\r\n\t\t\t" . "\$(\"#stream_search\").val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#stream_filter').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#stream_server_id').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#stream_category_id').val(\"\").trigger('change');" . "\r\n\t\t\t" . "\$('#stream_show_entries').val(\"";
-	echo (intval($rSettings['default_entries']) ?: 10);
-	echo "\").trigger('change');" . "\r\n\t\t\t" . 'window.rClearing = false;' . "\r\n\t\t\t" . "\$('#datatable-streampage').DataTable().search(\$(\"#stream_search\").val());" . "\r\n\t\t\t" . "\$('#datatable-streampage').DataTable().page.len(\$('#stream_show_entries').val());" . "\r\n\t\t\t" . "\$(\"#datatable-streampage\").DataTable().page(0).draw('page');" . "\r\n\t\t\t" . '$("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . 'delParams(["search", "server", "filter", "category", "page", "entries"]);' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function checkClear() {' . "\r\n\t\t\t" . 'if (!hasParams(["search", "server", "category", "filter"])) {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", true);' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$("#clearFilters").prop("disabled", false);' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function refreshTable() {' . "\r\n\t\t\t" . '$("#datatable-streampage").DataTable().ajax.reload( null, false );' . "\r\n\t\t" . '}' . "\r\n" . '        var rSearch;' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'});" . "\r\n\t\t\t" . 'var rPage = getParam("page");' . "\r\n" . '            if (!rPage) { rPage = 1; }' . "\r\n" . '            var rEntries = getParam("entries");' . "\r\n" . '            if (!rEntries) { rEntries = ';
-	echo intval($rSettings['default_entries']);
-	echo '; }' . "\r\n\t\t\t" . 'var rTable = $("#datatable-streampage").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().page.info().page > 0) {' . "\r\n" . '                        setParam("page", $("#datatable-streampage").DataTable().page.info().page+1);' . "\r\n" . '                    } else {' . "\r\n" . '                        delParam("page");' . "\r\n" . '                    }' . "\r\n" . '                    var rOrder = $("#datatable-streampage").DataTable().order()[0];' . "\r\n" . '                    setParam("order", rOrder[0]); setParam("dir", rOrder[1]);' . "\r\n" . '                    clearTimeout(window.rRefresh);' . "\r\n" . '                    if ($("#datatable-streampage").DataTable().rows().count() <= 50) {' . "\r\n" . '                        setTimeout(refreshInformation, 5000);' . "\r\n" . '                    }' . "\r\n" . '                    ';
+        var selected = {};
+        var updateBulk = function() {
+            var n = Object.keys(selected).length, bar = document.getElementById('bulk-bar');
+            if (!bar) { return; }
+            document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
+            bar.classList.toggle('d-none', n === 0);
+            bar.classList.toggle('d-flex', n > 0);
+        };
+        var confirmSwal = function(text) {
+            if (window.Swal) { return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; }); }
+            return Promise.resolve(window.confirm(text));
+        };
 
-	if (!Authorization::check('adv', 'edit_cchannel')) {
-	} else {
-		echo '                    // Multi Actions' . "\r\n" . '                    multiAPI("clear");' . "\r\n" . '                    $("#datatable-streampage tr").click(function() {' . "\r\n" . '                        if (window.rShiftHeld) {' . "\r\n" . "                            if (\$(this).hasClass('selectedfilter')) {" . "\r\n" . "                                \$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass(\"selected\");" . "\r\n" . '                                window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);' . "\r\n" . '                            } else {            ' . "\r\n" . "                                \$(this).addClass('selectedfilter').addClass('ui-selected').addClass(\"selected\");" . "\r\n" . '                                window.rSelected.push($(this).find("td:eq(0)").text());' . "\r\n" . '                            }' . "\r\n" . '                        }' . "\r\n" . '                        $("#multi_streams_selected").html(window.rSelected.length + " channels");' . "\r\n" . '                        if (window.rSelected.length > 0) {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").hide();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_streams").show();' . "\r\n" . '                        } else {' . "\r\n" . '                            if ("#header_stats") {' . "\r\n" . '                                $("#header_stats").show();' . "\r\n" . '                            }' . "\r\n" . '                            $("#multiselect_streams").hide();' . "\r\n" . '                        }' . "\r\n" . '                    });' . "\r\n" . '                    ';
-	}
+        var table = jQuery('#cchannels-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: { details: { type: 'column', target: 0 } },
+            order: [[2, 'desc']],
+            searchDelay: 400,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'streams';
+                    d.created = true;
+                    d.category = document.getElementById('filter-category').value;
+                    d.server = document.getElementById('filter-server').value;
+                    d.filter = document.getElementById('filter-status').value;
+                    d.resolution = document.getElementById('filter-resolution').value;
+                    d.video = document.getElementById('filter-video').value;
+                    d.audio = document.getElementById('filter-audio').value;
+                }
+            },
+            columns: [
+                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+                { data: 'id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
+                { data: 'display_id', className: 'text-center', render: function(d, t, row) { return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body">' + esc(d) + '</a>'; } },
+                { data: 'icon', orderable: false, render: function(d) { return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxw=96&maxh=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : ''; } },
+                {
+                    data: 'title',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        var badges = '';
+                        if (row.archive) { badges += ' <a href="archive?id=' + encodeURIComponent(row.id) + '"><i class="icon-base ti tabler-player-record text-danger"></i></a>'; }
+                        if (row.adaptive) { badges += ' <a href="stream_view?id=' + encodeURIComponent(row.id) + '"><i class="icon-base ti tabler-antenna text-info"></i></a>'; }
+                        if (row.title_sync) { badges += ' <i class="icon-base ti tabler-refresh text-info" title="Title Sync"></i>'; }
+                        return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body"><span class="fw-medium">' + esc(d) + '</span>' + badges + '<br><small class="text-body-secondary">' + esc(row.category || '') + '</small></a>';
+                    }
+                },
+                {
+                    data: 'server_name',
+                    render: function(d, t, row) {
+                        if (!d) { return '<span class="text-body-secondary">No Server Selected</span>'; }
+                        var html = row.server_url ? '<a href="' + esc(row.server_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                        if (row.server_count > 1) { html += ' <a href="streams?stream_id=' + encodeURIComponent(row.id) + '" class="badge bg-label-info">+' + (row.server_count - 1) + '</a>'; }
+                        if (row.server_offline) { html += ' <i class="icon-base ti tabler-alert-triangle text-danger" title="Server offline"></i>'; }
+                        if (row.source_host) { html += '<br><small class="text-body-secondary">' + esc(row.source_host) + '</small>'; }
+                        return html;
+                    }
+                },
+                {
+                    data: 'clients',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        if (d > 0 && canLive) { return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '&server_id=' + encodeURIComponent(row.server_col_id) + '" class="badge bg-label-info">' + Number(d).toLocaleString() + '</a>'; }
+                        return '<span class="badge bg-label-secondary">' + (d || 0) + '</span>';
+                    }
+                },
+                {
+                    data: 'status',
+                    className: 'text-center text-nowrap',
+                    render: function(d, t, row) {
+                        var dot = failsDot(row.fails, row.id, row.server_col_id);
+                        if (d === 1) { return dot + '<span class="badge bg-label-success">' + esc(fmtUptime(row.uptime)) + '</span>'; }
+                        if (d === 6) { return '<span class="badge bg-label-primary">' + (row.encode_pct != null ? esc(row.encode_pct) + '% DONE' : 'Converting') + '</span>'; }
+                        var s = STREAM[String(d)] || ['secondary', ''];
+                        return dot + '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var items = '';
+                        if (canEdit) {
+                            if (running(row)) {
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="stop" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.stop) + '</a>';
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="restart" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.restart) + '</a>';
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="purge" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.kill) + '</a>';
+                            } else {
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="start" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.start) + '</a>';
+                            }
+                        }
+                        if (canFinger && row.clients > 0) { items += '<a class="dropdown-item js-finger" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.fingerprint) + '</a>'; }
+                        if (canEdit) {
+                            items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-type="' + esc(row.type) + '">' + esc(lang.edit) + '</a>';
+                            items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-sub="delete" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.del) + '</a>';
+                        }
+                        if (row.notes) { items = '<h6 class="dropdown-header text-wrap" style="max-width:18rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items; }
+                        if (!items) { return ''; }
+                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var playable = (row.status === 1 || row.status === 4);
+                        if (!canPlayer || !playable || !row.player_ok) { return '<button class="btn btn-sm btn-icon btn-label-secondary" disabled><i class="icon-base ti tabler-player-play"></i></button>'; }
+                        return '<button class="btn btn-sm btn-icon btn-label-info js-play" data-id="' + esc(row.id) + '"><i class="icon-base ti tabler-player-play"></i></button>';
+                    }
+                },
+                {
+                    data: 'epg',
+                    orderable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var map = { available: 'success', pending: 'warning', none: 'secondary' };
+                        var dot = '<i class="icon-base ti tabler-square-rounded-filled text-' + (map[d] || 'secondary') + '"></i>';
+                        return d === 'available' ? '<a href="epg_view?id=' + encodeURIComponent(row.id) + '">' + dot + '</a>' : dot;
+                    }
+                },
+                {
+                    data: 'info',
+                    orderable: false,
+                    render: function(d) {
+                        if (!d) { return '<small class="text-body-secondary">—</small>'; }
+                        return '<div class="d-flex flex-wrap gap-1">' +
+                            '<span class="badge bg-label-secondary">' + esc(d.bitrate) + ' Kbps</span>' +
+                            '<span class="badge bg-label-primary">' + esc(d.resolution) + '</span>' +
+                            '<span class="badge bg-label-info">' + esc(d.video) + '</span>' +
+                            '<span class="badge bg-label-success">' + esc(d.audio) + '</span>' +
+                            '<span class="badge bg-label-secondary">' + esc(d.speed) + '</span>' +
+                            '<span class="badge bg-label-secondary">' + esc(d.fps) + '</span></div>';
+                    }
+                }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
+        });
 
-	echo "\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'responsive: false,' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "streams",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory();' . "\r\n\t\t\t\t\t\t" . 'd.filter = getFilter();' . "\r\n\t\t\t\t\t\t" . 'd.server = getServer();' . "\r\n" . '                        d.created = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,1,4,5,6,7,8]},' . "\r\n\t\t\t\t\t";
+        ['filter-category', 'filter-server', 'filter-status'].forEach(function(id) { document.getElementById(id).addEventListener('change', function() { table.ajax.reload(); }); });
+        ['filter-resolution', 'filter-video', 'filter-audio'].forEach(function(id) {
+            var el = document.getElementById(id), tmr;
+            el.addEventListener('input', function() { clearTimeout(tmr); tmr = setTimeout(function() { table.ajax.reload(); }, 400); });
+        });
 
-	if (SettingsManager::get('redis_handler')) {
-		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [4,6,7]}' . "\r\n\t\t\t\t\t";
-	} else {
-		echo "\t\t\t\t\t" . '{"orderable": false, "targets": [6,7]}' . "\r\n\t\t\t\t\t";
-	}
+        // Row single actions.
+        jQuery('#cchannels-table tbody').on('click', '.js-act', function() {
+            var sub = this.getAttribute('data-sub'), id = this.getAttribute('data-id'), server = this.getAttribute('data-server');
+            var go = function() {
+                fetch('./api?action=stream&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(id) + '&server_id=' + encodeURIComponent(server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete') { confirmSwal(lang.del + '?').then(function(ok) { if (ok) { go(); } }); }
+            else if (sub === 'purge') { confirmSwal(lang.kill + '?').then(function(ok) { if (ok) { go(); } }); }
+            else { go(); }
+        });
 
-	echo "\t\t\t\t" . '],' . "\r\n" . '                ';
+        // Player.
+        jQuery('#cchannels-table tbody').on('click', '.js-play', function() {
+            var id = this.getAttribute('data-id');
+            if (window.player) { window.player(id); } else { window.open('stream_view?id=' + encodeURIComponent(id)); }
+        });
 
-	if (!$rMobile) {
-	} else {
-		echo 'scrollX: true,';
-	}
+        // Bulk.
+        jQuery('#cchannels-table tbody').on('change', '.row-check', function() {
+            var id = this.getAttribute('data-id');
+            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            updateBulk();
+        });
+        var chkAll = document.getElementById('check-all');
+        if (chkAll) {
+            chkAll.addEventListener('change', function() {
+                var on = this.checked;
+                jQuery('#cchannels-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+                updateBulk();
+            });
+        }
+        table.on('draw', function() { if (chkAll) { chkAll.checked = false; } });
+        jQuery('#bulk-bar').on('click', '[data-bulk]', function() {
+            var sub = this.getAttribute('data-bulk'), ids = Object.keys(selected);
+            if (!ids.length) { return; }
+            var run = function() {
+                fetch('./api?action=multi&type=cchannel&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            };
+            if (sub === 'delete' || sub === 'purge') { confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) { if (ok) { run(); } }); }
+            else { run(); }
+        });
 
-	echo "\t\t\t\t" . 'order: [[ ';
-	echo (RequestManager::has('order') ? intval(RequestManager::get('order')) : 0);
-	echo ', "';
-	echo (in_array(strtolower(RequestManager::get('dir') ?? ''), ['asc', 'desc'], true) ? strtolower(RequestManager::get('dir')) : 'desc');
-	echo '" ]],' . "\r\n\t\t\t\t" . 'pageLength: parseInt(rEntries),' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n" . '                displayStart: (parseInt(rPage)-1) * parseInt(rEntries)' . "\r\n\t\t\t" . '});' . "\r\n" . '            function doSearch(rValue) {' . "\r\n" . '                clearTimeout(window.rSearch); window.rSearch = setTimeout(function(){ rTable.search(rValue).draw(); }, 500);' . "\r\n" . '            }' . "\r\n\t\t\t" . '$("#datatable-streampage").css("width", "100%");' . "\r\n\t\t\t" . "\$('#stream_search').keyup(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_search").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("search", $("#stream_search").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("search");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'doSearch($(this).val());' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_show_entries').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n" . '                    if ($("#stream_show_entries").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("entries", $("#stream_show_entries").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("entries");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'rTable.page.len($(this).val()).draw();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_category_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_category_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("category", $("#stream_category_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("category");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_server_id').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_server_id").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("server", $("#stream_server_id").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("server");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_filter').change(function(){" . "\r\n\t\t\t\t" . 'if (!window.rClearing) {' . "\r\n" . '                    delParam("page");' . "\r\n" . '                    rTable.page(0);' . "\r\n\t\t\t\t\t" . 'if ($("#stream_filter").val()) {' . "\r\n\t\t\t\t\t\t" . 'setParam("filter", $("#stream_filter").val());' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . 'delParam("filter");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . 'checkClear();' . "\r\n\t\t\t\t\t" . 'rTable.ajax.reload( null, false );' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "if (\$('#stream_search').val()) {" . "\r\n\t\t\t\t" . "rTable.search(\$('#stream_search').val()).draw();" . "\r\n\t\t\t" . '}' . "\r\n" . '            $("#btn-export-csv").click(function() {' . "\r\n" . '                $.toast("Generating CSV report...");' . "\r\n" . '                window.location.href = "api?action=report&params=" + encodeURIComponent(JSON.stringify($("#datatable-streampage").DataTable().ajax.params()));' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . 'checkClear();' . "\r\n\t\t" . '});' . "\r\n\r\n" . '        ';
-	?>
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // Edit / fingerprint iframe modal.
+        var frameModal = document.getElementById('frameModal');
+        var openFrame = function(title, src) {
+            document.getElementById('frameModalTitle').textContent = title;
+            document.getElementById('frame-src').src = src;
+            bootstrap.Modal.getOrCreateInstance(frameModal).show();
+        };
+        jQuery('#cchannels-table tbody').on('click', '.js-edit', function() {
+            var id = this.getAttribute('data-id'), page = 'created_channel';
+            openFrame(lang.edit, page + '?id=' + encodeURIComponent(id) + '&modal=1');
+        });
+        jQuery('#cchannels-table tbody').on('click', '.js-finger', function() { openFrame(lang.fingerprint, 'fingerprint?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&type=stream&modal=1'); });
+        frameModal.addEventListener('hidden.bs.modal', function() { document.getElementById('frame-src').src = 'about:blank'; table.ajax.reload(null, false); });
+
+        // Restart / failures log modal — opened by the fails indicator in the status
+        // column. Server-generated HTML rows (server link + action badge) come from
+        // TableController::handleFailuresModal (d.id = 'failures_modal').
+        var failsStream = null, failsServer = null;
+        var failsTable = jQuery('#failures-table').DataTable({
+            processing: true,
+            serverSide: true,
+            paging: false,
+            searching: false,
+            info: false,
+            ordering: false,
+            ajax: { url: './table', data: function(d) { d.id = 'failures_modal'; d.stream_id = failsStream; d.server_id = failsServer; } },
+            columns: [{ data: 0 }, { data: 1 }, { data: 2 }, { data: 3 }],
+            language: { emptyTable: '—' }
+        });
+        var failuresModal = document.getElementById('failuresModal');
+        jQuery('#cchannels-table tbody').on('click', '.js-fails', function() {
+            failsStream = this.getAttribute('data-id');
+            failsServer = this.getAttribute('data-server');
+            failsTable.ajax.reload();
+            bootstrap.Modal.getOrCreateInstance(failuresModal).show();
+        });
+        document.getElementById('fails-clear').addEventListener('click', function() {
+            if (!failsStream) { return; }
+            confirmSwal(lang.del + '?').then(function(ok) {
+                if (!ok) { return; }
+                fetch('./api?action=clear_failures&id=' + encodeURIComponent(failsStream), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } failsTable.ajax.reload(); table.ajax.reload(null, false); })
+                    .catch(function() { alert(lang.error); });
+            });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
