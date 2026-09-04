@@ -1,879 +1,390 @@
-<div class="wrapper" <?php 
+<?php
+
+/**
+ * Servers management table (Bootstrap 5). Client-rendered: ServerRepository::getAll(true)
+ * is echoed as <tbody> and a plain client-side DataTable adds search / sort / paging.
+ * Live watchdog metrics (cpu / mem / network) are shown as compact progress bars, and
+ * per-server actions (start / stop / restart / kill / proxy / rollback / delete, plus the
+ * Server Tools modal) run through ./api?action=server&sub=… . Reached full-page in the
+ * new-UI shell.
+ */
+
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+$rCanEdit = Authorization::check('adv', 'edit_server');
+$rCanAdd = Authorization::check('adv', 'add_server');
+$rCanConns = Authorization::check('adv', 'live_connections');
+$rRedis = (bool) SettingsManager::get('redis_handler');
+$rMainVer = $rServers[SERVER_ID]['xc_vm_version'] ?? '';
+
+/** Compact coloured progress bar for a 0-100 percentage (cpu / mem). */
+$rBar = static function (int $pct): string {
+    $rColour = $pct <= 34 ? 'success' : ($pct <= 67 ? 'warning' : 'danger');
+    return '<div class="d-flex align-items-center gap-2" style="min-width:70px">'
+        . '<div class="progress w-100" style="height:6px"><div class="progress-bar bg-' . $rColour . '" style="width:' . $pct . '%"></div></div>'
+        . '<small class="text-body-secondary">' . $pct . '%</small></div>';
+};
+?>
+
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><?= $language::get('servers'); ?></h5>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <?php if ($rCanEdit): ?>
+                <div id="bulk-bar" class="d-none align-items-center gap-2">
+                    <span class="text-body-secondary small" id="bulk-count">0</span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-label-success" data-bulk="start"><?= $language::get('start'); ?></button>
+                        <button type="button" class="btn btn-label-secondary" data-bulk="stop"><?= $language::get('stop'); ?></button>
+                        <button type="button" class="btn btn-label-info" data-bulk="restart"><?= $language::get('restart'); ?></button>
+                        <button type="button" class="btn btn-label-dark" data-bulk="purge"><?= $language::get('kill'); ?></button>
+                        <button type="button" class="btn btn-label-danger" data-bulk="delete"><?= $language::get('delete'); ?></button>
                     </div>
-                    <h4 class="page-title"><?= $language::get('servers') ?></h4>
+                    <div class="dropdown">
+                        <button type="button" class="btn btn-sm btn-label-secondary dropdown-toggle" data-bs-toggle="dropdown">More</button>
+                        <div class="dropdown-menu dropdown-menu-end">
+                            <button type="button" class="dropdown-item" data-bulk="enable"><?= $language::get('enable_server'); ?></button>
+                            <button type="button" class="dropdown-item" data-bulk="disable"><?= $language::get('disable_server'); ?></button>
+                            <div class="dropdown-divider"></div>
+                            <button type="button" class="dropdown-item" data-bulk="enable_proxy"><?= $language::get('enable_proxy'); ?></button>
+                            <button type="button" class="dropdown-item" data-bulk="disable_proxy"><?= $language::get('disable_proxy'); ?></button>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-icon btn-label-secondary" id="bulk-clear" title="Clear selection"><i class="icon-base ti tabler-x"></i></button>
                 </div>
-            </div>
+                <div class="dropdown">
+                    <button type="button" class="btn btn-sm btn-label-primary dropdown-toggle" data-bs-toggle="dropdown"><i class="icon-base ti tabler-tool me-1"></i>Bulk</button>
+                    <div class="dropdown-menu dropdown-menu-end">
+                        <button type="button" class="dropdown-item" id="op-update-all"><i class="icon-base ti tabler-download me-2"></i>Update All Servers</button>
+                        <button type="button" class="dropdown-item" id="op-restart-services"><i class="icon-base ti tabler-refresh me-2"></i>Restart All Services</button>
+                        <button type="button" class="dropdown-item" id="op-update-binaries"><i class="icon-base ti tabler-package me-2"></i>Update All Binaries</button>
+                    </div>
+                </div>
+            <?php endif; ?>
+            <?php if ($rCanAdd): ?>
+                <a href="server_install" class="btn btn-sm btn-primary"><i class="icon-base ti tabler-plus me-1"></i>Add Server</a>
+            <?php endif; ?>
         </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body" style="overflow-x:auto;">
-                        <table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
-                            <thead>
-                                <tr>
-                                    <th class="text-center"><?= $language::get('order') ?></th>
-                                    <th class="text-center"><?= $language::get('status') ?></th>
-                                    <th class="text-center"><?= $language::get('proxied') ?></th>
-                                    <th><?= $language::get('server_name') ?></th>
-                                    <th class="text-center"><?= $language::get('server_ip') ?></th>
-                                    <th class="text-center"><?= $language::get('connections') ?></th>
-                                    <th class="text-center"><?= $language::get('network') ?></th>
-                                    <th class="text-center"><?= $language::get('cpu_header') ?></th>
-                                    <th class="text-center"><?= $language::get('mem') ?></th>
-                                    <th class="text-center"><?= $language::get('ping') ?></th>
-                                    <th class="text-center"><?= $language::get('version') ?></th>
-                                    <th class="text-center"><?= $language::get('actions') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($rServers as $rServer): ?>
-                                    <?php if ($rServer['server_type'] == 0): ?>
-                                        <?php
-                                        $rWatchDog = json_decode($rServer['watchdog_data'], true);
-                                        if (!is_array($rWatchDog)) {
-                                            $rWatchDog = array();
-                                        }
-                                        $rWatchDog += array('total_mem_used_percent' => 0, 'cpu' => 0, 'bytes_sent' => 0, 'bytes_received' => 0);
-                                        if (!$rServers[$rServer['id']]['server_online']) {
-                                            $rWatchDog['cpu'] = 0;
-                                            $rWatchDog['total_mem_used_percent'] = 0;
-                                            $rWatchDog['bytes_sent'] = 0;
-                                            $rWatchDog['bytes_received'] = 0;
-                                        }
-                                        ?>
-                                        <tr id="server-<?= $rServer['id'] ?>">
-                                            <td class="text-center">
-                                                <a data-id="<?= $rServer['id'] ?>" href="server_view?id=<?= $rServer['id'] ?>">
-                                                    <?= ($rServer['order'] ?: $rServer['id']) ?>
-                                                </a>
-                                            </td>
-                                            <td class="text-center">
-                                                <?php if (!$rServer['enabled']): ?>
-                                                    <i class="text-secondary fas fa-square tooltip" title="<?= $language::get('disabled') ?>"></i>
-                                                <?php elseif ($rServer['server_online']): ?>
-                                                    <?php if ($rServer['xc_vm_version'] && ($rServer['xc_vm_version'] != $rServers[SERVER_ID]['xc_vm_version'])): ?>
-                                                        <a href="javascript: void(0);" onClick="api(<?= intval($rServer['id']) ?>, 'update');">
-                                                            <i class="text-success mdi mdi-download tooltip" style="font-size:14pt;" title="An update is available! v<?= $rServers[SERVER_ID]['xc_vm_version'] ?>"></i>
-                                                        </a>
-                                                    <?php else: ?>
-                                                        <i class="text-success fas fa-square tooltip" title="<?= $language::get('online') ?>"></i>
-                                                    <?php endif; ?>
-                                                <?php else: ?>
-                                                    <?php
-                                                    $rPing = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
-                                                    ?>
-                                                    <?php if ($rServer['status'] == 3): ?>
-                                                        <i class="text-info fas fa-square tooltip" title="<?= $language::get('installing') ?>"></i>
-                                                    <?php elseif ($rServer['status'] == 4): ?>
-                                                        <i class="text-warning fas fa-square tooltip" title="<?= $language::get('installation_failed') ?>"></i>
-                                                    <?php elseif ($rServer['status'] == 5): ?>
-                                                        <i class="text-info fas fa-square tooltip" title="<?= $language::get('updating') ?>"></i>
-                                                    <?php elseif (!$rServer['remote_status']): ?>
-                                                        <i class="text-danger fas fa-square tooltip" title="Can't connect on <?= htmlentities($rServer['server_ip']) ?>:<?= intval($rServer['http_broadcast_port']) ?><br/>Last Ping: <?= $rPing ?>"></i>
-                                                    <?php else: ?>
-                                                        <i class="text-danger fas fa-square tooltip" title="Last Ping: <?= $rPing ?>"></i>
-                                                    <?php endif; ?>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-center">
-                                                <?php if ($rServer['enable_proxy']): ?>
-                                                    <i class="text-success fas fa-square"></i>
-                                                <?php else: ?>
-                                                    <i class="text-secondary fas fa-square"></i>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td>
-                                                <a href="server_view?id=<?= $rServer['id'] ?>">
-                                                    <?= $rServer['server_name'] ?>
-                                                    <?php if (!empty($rServer['domain_name'])): ?>
-                                                        <br /><small><?= explode(',', $rServer['domain_name'])[0] ?></small>
-                                                    <?php endif; ?>
-                                                </a>
-                                            </td>
-                                            <td class="text-center">
-                                                <a onClick="whois('<?= $rServer['server_ip'] ?>');" href="javascript: void(0);">
-                                                    <?= $rServer['server_ip'] ?>
-                                                </a>
-                                                <?php if (!empty($rServer['private_ip'])): ?>
-                                                    <br /><small style="font-size: 8pt;">private:
-                                                        <a onClick="whois('<?= $rServer['private_ip'] ?>');" href="javascript: void(0);">
-                                                            <?= $rServer['private_ip'] ?>
-                                                        </a>
-                                                    </small>
-                                                <?php endif; ?>
-                                            </td>
-                                            <td class="text-center">
-                                                <?php
-                                                if (SettingsManager::get('redis_handler')) {
-                                                    $rClients = $rServer['connections'];
-                                                } else {
-                                                    $rClients = ConnectionTracker::getLiveConnections($rServer['id']);
-                                                }
-                                                if (Authorization::check('adv', 'live_connections')) {
-                                                    $rClients = '<a href="./live_connections?server=' . $rServer['id'] . "\"><button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button></a>';
-                                                } else {
-                                                    $rClients = "<button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button>';
-                                                }
-                                                echo $rClients;
-                                                ?>
-                                                <br /><small>of <?= number_format($rServer['total_clients'], 0) ?></small>
-                                            </td>
-                                            <td class="text-center">
-                                                <button type="button" class="btn btn-dark bg-animate btn-xs waves-effect waves-light no-border">
-                                                    <span id="header_streams_up"><?= number_format($rWatchDog['bytes_sent'] / 125000, 0) ?></span>
-                                                    <i class="mdi mdi-arrow-up-thick"></i> &nbsp;
-                                                    <span id="header_streams_down"><?= number_format($rWatchDog['bytes_received'] / 125000, 0) ?></span>
-                                                    <i class="mdi mdi-arrow-down-thick"></i>
-                                                </button>
-                                                <br /><small><?= number_format($rServer['network_guaranteed_speed'], 0) ?> Mbps</small>
-                                            </td>
-                                            <td class="text-center">
-                                                <?php
-                                                if (intval($rWatchDog['cpu']) <= 34) {
-                                                    $rStatColor = '#23b397';
-                                                } elseif (intval($rWatchDog['cpu']) <= 67) {
-                                                    $rStatColor = '#f8cc6b';
-                                                } else {
-                                                    $rStatColor = '#f0643b';
-                                                }
-                                                ?>
-                                                <input data-plugin="knob" data-width="48" data-height="48"
-                                                    data-bgColor="<?= $rUserInfo['theme'] == 1 ? '#7e8e9d' : '#ebeff2' ?>"
-                                                    data-fgColor="<?= $rStatColor ?>"
-                                                    data-readOnly=true
-                                                    value="<?= intval($rWatchDog['cpu']) ?>" />
-                                            </td>
-                                            <td class="text-center">
-                                                <?php
-                                                if (intval($rWatchDog['total_mem_used_percent']) <= 34) {
-                                                    $rStatColor = '#23b397';
-                                                } elseif (intval($rWatchDog['total_mem_used_percent']) <= 67) {
-                                                    $rStatColor = '#f8cc6b';
-                                                } else {
-                                                    $rStatColor = '#f0643b';
-                                                }
-                                                ?>
-                                                <input data-plugin="knob" data-width="48" data-height="48"
-                                                    data-bgColor="<?= $rUserInfo['theme'] == 1 ? '#7e8e9d' : '#ebeff2' ?>"
-                                                    data-fgColor="<?= $rStatColor ?>"
-                                                    data-readOnly=true
-                                                    value="<?= intval($rWatchDog['total_mem_used_percent']) ?>" />
-                                            </td>
-                                            <td class="text-center">
-                                                <button type='button' class='btn btn-light btn-xs waves-effect waves-light'>
-                                                    <?= number_format(($rServer['server_online'] ? $rServer['ping'] : 0), 0) ?> ms
-                                                </button>
-                                            </td>
-                                            <td class="text-center">
-                                                <button type='button' class='btn <?= ($rServer['xc_vm_version'] != $rServers[SERVER_ID]['xc_vm_version']) ? 'btn-warning' : 'btn-light' ?> btn-xs waves-effect waves-light'>
-                                                    <?php if ($rServer['xc_vm_version']): ?>
-                                                        <?= $rServer['xc_vm_version'] ?>
-                                                    <?php else: ?>
-                                                        N/A
-                                                    <?php endif; ?>
-                                                </button>
-                                            </td>
-                                            <td class="text-center">
-                                                <?php if (Authorization::check('adv', 'edit_server')): ?>
-                                                    <?php if (SettingsManager::get('group_buttons')): ?>
-                                                        <div class="btn-group dropdown">
-                                                            <a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false">
-                                                                <i class="mdi mdi-menu"></i>
-                                                            </a>
-                                                            <div class="dropdown-menu dropdown-menu-right">
-                                                                <a class="dropdown-item btn-reboot-server" href="javascript:void(0);" data-id="<?= $rServer['id'] ?>">Server Tools</a>
-                                                                <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'restart');">Restart Live Streams</a>
-                                                                <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'start');">Start All Streams</a>
-                                                                <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'stop');">Stop All Streams</a>
-                                                                <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'kill');">Kill Connections</a>
-                                                                <a class="dropdown-item" href="./server?id=<?= $rServer['id'] ?>">Edit Server</a>
-                                                                <a class="dropdown-item" href="javascript:void(0);" onClick="rollbackServer(<?= $rServer['id'] ?>, '<?= $rServer['xc_vm_version'] ?>');">Rollback Version</a>
-                                                                <?php if ($rServer['enable_proxy']): ?>
-                                                                    <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'disable_proxy');">Disable Proxy</a>
-                                                                <?php else: ?>
-                                                                    <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'enable_proxy');">Enable Proxy</a>
-                                                                <?php endif; ?>
-                                                                <?php if ($rServer['is_main'] == 0): ?>
-                                                                    <?php if ($rServer['enabled']): ?>
-                                                                        <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'disable');">Disable Server</a>
-                                                                    <?php else: ?>
-                                                                        <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'enable');">Enable Server</a>
-                                                                    <?php endif; ?>
-                                                                    <a class="dropdown-item" href="javascript:void(0);" onClick="api(<?= $rServer['id'] ?>, 'delete');">Delete Server</a>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </div>
-                                                    <?php else: ?>
-                                                        <div class="btn-group">
-                                                            <button type="button" title="<?= $language::get('server_tools') ?>" class="btn btn-light waves-effect waves-light btn-xs btn-reboot-server tooltip" data-id="<?= $rServer['id'] ?>">
-                                                                <i class="mdi mdi-creation"></i>
-                                                            </button>
-                                                            <button type="button" title="<?= $language::get('restart_live_streams') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'restart');">
-                                                                <i class="mdi mdi-refresh"></i>
-                                                            </button>
-                                                            <button type="button" title="<?= $language::get('start_all_streams') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'start');">
-                                                                <i class="mdi mdi-play"></i>
-                                                            </button>
-                                                            <button type="button" title="<?= $language::get('stop_all_streams') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'stop');">
-                                                                <i class="mdi mdi-stop"></i>
-                                                            </button>
-                                                            <button type="button" title="<?= $language::get('kill_all_connections') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'kill');">
-                                                                <i class="fas fa-hammer"></i>
-                                                            </button>
-                                                            <a href="./server?id=<?= $rServer['id'] ?>">
-                                                                <button type="button" title="<?= $language::get('permission_edit_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip">
-                                                                    <i class="mdi mdi-pencil-outline"></i>
-                                                                </button>
-                                                            </a>
-                                                            <button type="button" title="Rollback Version" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="rollbackServer(<?= $rServer['id'] ?>, '<?= $rServer['xc_vm_version'] ?>');">
-                                                                <i class="mdi mdi-history"></i>
-                                                            </button>
-                                                            <?php if ($rServer['enable_proxy']): ?>
-                                                                <button type="button" title="<?= $language::get('disable_proxy') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable_proxy');">
-                                                                    <i class="mdi mdi-shield-off-outline"></i>
-                                                                </button>
-                                                            <?php else: ?>
-                                                                <button type="button" title="<?= $language::get('enable_proxy') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'enable_proxy');">
-                                                                    <i class="mdi mdi-shield-check-outline"></i>
-                                                                </button>
-                                                            <?php endif; ?>
-                                                            <?php if ($rServer['is_main'] == 0): ?>
-                                                                <?php if ($rServer['enabled']): ?>
-                                                                    <button type="button" title="<?= $language::get('disable_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'disable');">
-                                                                        <i class="mdi mdi-close-network-outline"></i>
-                                                                    </button>
-                                                                <?php else: ?>
-                                                                    <button type="button" title="<?= $language::get('enable_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'enable');">
-                                                                        <i class="mdi mdi-access-point-network"></i>
-                                                                    </button>
-                                                                <?php endif; ?>
-                                                                <button type="button" title="<?= $language::get('delete_server') ?>" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(<?= $rServer['id'] ?>, 'delete');">
-                                                                    <i class="mdi mdi-close"></i>
-                                                                </button>
-                                                            <?php else: ?>
-                                                                <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs">
-                                                                    <i class="mdi mdi-access-point-network"></i>
-                                                                </button>
-                                                                <button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs">
-                                                                    <i class="mdi mdi-close"></i>
-                                                                </button>
-                                                            <?php endif; ?>
-                                                        </div>
-                                                    <?php endif; ?>
-                                                <?php else: ?>
-                                                    --
-                                                <?php endif; ?>
-                                            </td>
-                                        </tr>
-                                    <?php endif; ?>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="servers-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <?php if ($rCanEdit): ?><th class="text-center" style="width:1%"><input type="checkbox" class="form-check-input" id="check-all"></th><?php endif; ?>
+                    <th class="text-center"><?= $language::get('order'); ?></th>
+                    <th class="text-center"><?= $language::get('status'); ?></th>
+                    <th class="text-center"><?= $language::get('proxied'); ?></th>
+                    <th><?= $language::get('server_name'); ?></th>
+                    <th class="text-center"><?= $language::get('server_ip'); ?></th>
+                    <th class="text-center"><?= $language::get('connections'); ?></th>
+                    <th class="text-center"><?= $language::get('network'); ?></th>
+                    <th class="text-center"><?= $language::get('cpu_header'); ?></th>
+                    <th class="text-center"><?= $language::get('mem'); ?></th>
+                    <th class="text-center"><?= $language::get('ping'); ?></th>
+                    <th class="text-center"><?= $language::get('version'); ?></th>
+                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($rServers as $rServer): ?>
+                    <?php if ($rServer['server_type'] != 0) {
+                        continue;
+                    } ?>
+                    <?php
+                    $rWatchDog = json_decode((string) $rServer['watchdog_data'], true);
+                    if (!is_array($rWatchDog)) {
+                        $rWatchDog = [];
+                    }
+                    $rWatchDog += ['total_mem_used_percent' => 0, 'cpu' => 0, 'bytes_sent' => 0, 'bytes_received' => 0];
+                    if (empty($rServers[$rServer['id']]['server_online'])) {
+                        $rWatchDog['cpu'] = $rWatchDog['total_mem_used_percent'] = $rWatchDog['bytes_sent'] = $rWatchDog['bytes_received'] = 0;
+                    }
+                    $rIsMain = ((int) $rServer['is_main'] === 1);
+                    $rUpdatable = ($rServer['xc_vm_version'] && $rServer['xc_vm_version'] != $rMainVer);
+                    $rClients = $rRedis ? (int) $rServer['connections'] : (int) ConnectionTracker::getLiveConnections($rServer['id']);
+                    ?>
+                    <tr id="server-<?= (int) $rServer['id']; ?>">
+                        <?php if ($rCanEdit): ?>
+                            <td class="text-center"><input type="checkbox" class="form-check-input row-check" data-id="<?= (int) $rServer['id']; ?>"></td>
+                        <?php endif; ?>
+                        <td class="text-center"><a href="server_view?id=<?= (int) $rServer['id']; ?>" class="fw-medium"><?= (int) ($rServer['order'] ?: $rServer['id']); ?></a></td>
+                        <td class="text-center">
+                            <?php if (!$rServer['enabled']): ?>
+                                <i class="icon-base ti tabler-circle-filled text-secondary" data-bs-toggle="tooltip" title="<?= $language::get('disabled'); ?>"></i>
+                            <?php elseif ($rServer['server_online']): ?>
+                                <?php if ($rUpdatable): ?>
+                                    <a href="javascript:void(0)" class="js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="update" data-bs-toggle="tooltip" title="Update available: v<?= htmlspecialchars((string) $rMainVer, ENT_QUOTES); ?>"><i class="icon-base ti tabler-circle-arrow-down-filled text-success"></i></a>
+                                <?php else: ?>
+                                    <i class="icon-base ti tabler-circle-filled text-success" data-bs-toggle="tooltip" title="<?= $language::get('online'); ?>"></i>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <?php
+                                $rPing = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
+                                if ($rServer['status'] == 3) {
+                                    $rSt = ['info', $language::get('installing')];
+                                } elseif ($rServer['status'] == 4) {
+                                    $rSt = ['warning', $language::get('installation_failed')];
+                                } elseif ($rServer['status'] == 5) {
+                                    $rSt = ['info', $language::get('updating')];
+                                } elseif (!$rServer['remote_status']) {
+                                    $rSt = ['danger', "Can't connect on " . htmlentities((string) $rServer['server_ip']) . ':' . (int) $rServer['http_broadcast_port'] . ' — Last Ping: ' . $rPing];
+                                } else {
+                                    $rSt = ['danger', 'Last Ping: ' . $rPing];
+                                }
+                                ?>
+                                <i class="icon-base ti tabler-circle-filled text-<?= $rSt[0]; ?>" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $rSt[1], ENT_QUOTES); ?>"></i>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center"><i class="icon-base ti tabler-circle-filled text-<?= $rServer['enable_proxy'] ? 'success' : 'secondary'; ?>"></i></td>
+                        <td>
+                            <a href="server_view?id=<?= (int) $rServer['id']; ?>" class="fw-medium"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></a>
+                            <?php if (!empty($rServer['domain_name'])): ?>
+                                <br><small class="text-body-secondary"><?= htmlspecialchars(explode(',', (string) $rServer['domain_name'])[0], ENT_QUOTES); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center">
+                            <?= htmlspecialchars((string) $rServer['server_ip'], ENT_QUOTES); ?>
+                            <?php if (!empty($rServer['private_ip'])): ?>
+                                <br><small class="text-body-secondary">private: <?= htmlspecialchars((string) $rServer['private_ip'], ENT_QUOTES); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center" data-order="<?= $rClients; ?>">
+                            <?php if ($rCanConns): ?>
+                                <a href="./live_connections?server=<?= (int) $rServer['id']; ?>" class="btn btn-xs btn-label-secondary"><?= number_format($rClients); ?></a>
+                            <?php else: ?>
+                                <span class="badge bg-label-secondary"><?= number_format($rClients); ?></span>
+                            <?php endif; ?>
+                            <br><small class="text-body-secondary">of <?= number_format((int) $rServer['total_clients']); ?></small>
+                        </td>
+                        <td class="text-center" style="min-width:120px">
+                            <span class="text-success"><i class="icon-base ti tabler-arrow-up"></i> <?= number_format($rWatchDog['bytes_sent'] / 125000, 0); ?></span>
+                            <span class="text-primary ms-2"><i class="icon-base ti tabler-arrow-down"></i> <?= number_format($rWatchDog['bytes_received'] / 125000, 0); ?></span>
+                            <br><small class="text-body-secondary"><?= number_format((int) $rServer['network_guaranteed_speed']); ?> Mbps</small>
+                        </td>
+                        <td class="text-center" data-order="<?= (int) $rWatchDog['cpu']; ?>"><?= $rBar((int) $rWatchDog['cpu']); ?></td>
+                        <td class="text-center" data-order="<?= (int) $rWatchDog['total_mem_used_percent']; ?>"><?= $rBar((int) $rWatchDog['total_mem_used_percent']); ?></td>
+                        <td class="text-center"><span class="badge bg-label-secondary"><?= number_format(($rServer['server_online'] ? $rServer['ping'] : 0), 0); ?> ms</span></td>
+                        <td class="text-center"><span class="badge bg-label-<?= $rUpdatable ? 'warning' : 'secondary'; ?>"><?= $rServer['xc_vm_version'] ? htmlspecialchars((string) $rServer['xc_vm_version'], ENT_QUOTES) : 'N/A'; ?></span></td>
+                        <td class="text-center">
+                            <?php if ($rCanEdit): ?>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <button type="button" class="dropdown-item js-tools" data-id="<?= (int) $rServer['id']; ?>"><i class="icon-base ti tabler-tool me-2"></i><?= $language::get('server_tools'); ?></button>
+                                        <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="restart"><i class="icon-base ti tabler-refresh me-2"></i><?= $language::get('restart_live_streams'); ?></button>
+                                        <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="start"><i class="icon-base ti tabler-player-play me-2"></i><?= $language::get('start_all_streams'); ?></button>
+                                        <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="stop"><i class="icon-base ti tabler-player-stop me-2"></i><?= $language::get('stop_all_streams'); ?></button>
+                                        <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="kill"><i class="icon-base ti tabler-hammer me-2"></i><?= $language::get('kill_all_connections'); ?></button>
+                                        <div class="dropdown-divider"></div>
+                                        <a class="dropdown-item" href="./server?id=<?= (int) $rServer['id']; ?>"><i class="icon-base ti tabler-pencil me-2"></i><?= $language::get('permission_edit_server'); ?></a>
+                                        <button type="button" class="dropdown-item js-rollback" data-id="<?= (int) $rServer['id']; ?>" data-version="<?= htmlspecialchars((string) $rServer['xc_vm_version'], ENT_QUOTES); ?>"><i class="icon-base ti tabler-history me-2"></i>Rollback Version</button>
+                                        <?php if ($rServer['enable_proxy']): ?>
+                                            <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="disable_proxy"><i class="icon-base ti tabler-shield-off me-2"></i><?= $language::get('disable_proxy'); ?></button>
+                                        <?php else: ?>
+                                            <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="enable_proxy"><i class="icon-base ti tabler-shield-check me-2"></i><?= $language::get('enable_proxy'); ?></button>
+                                        <?php endif; ?>
+                                        <?php if (!$rIsMain): ?>
+                                            <div class="dropdown-divider"></div>
+                                            <?php if ($rServer['enabled']): ?>
+                                                <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="disable"><i class="icon-base ti tabler-plug-off me-2"></i><?= $language::get('disable_server'); ?></button>
+                                            <?php else: ?>
+                                                <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="enable"><i class="icon-base ti tabler-plug-connected me-2"></i><?= $language::get('enable_server'); ?></button>
+                                            <?php endif; ?>
+                                            <button type="button" class="dropdown-item text-danger js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="delete"><i class="icon-base ti tabler-trash me-2"></i><?= $language::get('delete_server'); ?></button>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <span class="text-body-secondary">—</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<?php if ($rCanEdit): ?>
+    <div class="modal fade" id="serverToolsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><?= $language::get('server_tools'); ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><button type="button" class="btn btn-label-primary w-100 js-tool" data-tool="reinstall">Reinstall Server</button></div>
+                        <div class="col-md-4"><button type="button" class="btn btn-label-secondary w-100 js-tool" data-tool="restart_services">Restart Services</button></div>
+                        <div class="col-md-4"><button type="button" class="btn btn-label-secondary w-100 js-tool" data-tool="reboot_server">Reboot Server</button></div>
+                        <div class="col-md-6"><button type="button" class="btn btn-label-secondary w-100 js-tool" data-tool="update_binaries">Update Binaries</button></div>
+                        <div class="col-md-6"><button type="button" class="btn btn-label-secondary w-100 js-tool" data-tool="update">Update Server</button></div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+<?php endif; ?>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
+
+        var toast = window.xcToast || function() {};
+
+        function confirmSwal(text) {
+            if (window.Swal) {
+                return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; });
             }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
+            return Promise.resolve(window.confirm(text));
         }
-    });
 
-    var rSelected = [];
+        function getJSON(url) {
+            return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json(); });
+        }
 
-    function updateAll(rConfirm = false) {
-        if (!rConfirm) {
-            new jBox("Confirm", {
-                confirmButton: "Update",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to update all running servers?",
-                confirm: function() {
-                    updateAll(true);
-                }
-            }).open();
-        } else {
-            $.getJSON("./api?action=update_all_servers", function(data) {
-                $.toast("Servers are being updated in the background...");
-            });
-        }
-    }
-
-    function restartServices(rConfirm = false) {
-        if (!rConfirm) {
-            new jBox("Confirm", {
-                confirmButton: "Update",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to restart services on all running servers?",
-                confirm: function() {
-                    restartServices(true);
-                }
-            }).open();
-        } else {
-            $.getJSON("./api?action=restart_all_services", function(data) {
-                $.toast("Services will be restarted shortly...");
-            });
-        }
-    }
-
-    function updateBinaries(rConfirm = false) {
-        if (!rConfirm) {
-            new jBox("Confirm", {
-                confirmButton: "Update",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to update binaries on all running servers?",
-                confirm: function() {
-                    updateBinaries(true);
-                }
-            }).open();
-        } else {
-            $.getJSON("./api?action=update_all_binaries", function(data) {
-                $.toast("Binaries are being updated in the background...");
-            });
-        }
-    }
-
-    function rollbackServer(rID, rVersion) {
-        if ((window.rSelected) && (window.rSelected.length > 0)) {
-            $.toast("Individual actions disabled in multi-select mode.");
-            return;
-        }
-        $.getJSON("./api?action=rollback_versions&version=" + encodeURIComponent(rVersion || ""), function(data) {
-            if (!data || !data.result || !data.versions || !data.versions.length) {
-                $.toast("No earlier versions available for this server.");
-                return;
-            }
-            var rOpts = "";
-            $.each(data.versions, function(i, v) {
-                var rLabel = "v" + v.version + (v.beta ? " (beta)" : "");
-                rOpts += '<option value="' + v.version + '">' + rLabel + '</option>';
-            });
-            new jBox("Confirm", {
-                title: "Rollback server to an earlier version",
-                confirmButton: "Rollback",
-                cancelButton: "Cancel",
-                content: '<p class="mb-2">Select the version to roll this server back to. On the MAIN server a database backup is taken first. Downgrading does <b>not</b> undo database migrations — use only as a recovery step. The server restarts during rollback.</p><select id="rollback_server_version" class="form-control">' + rOpts + "</select>",
-                confirm: function() {
-                    var rVersionSel = $("#rollback_server_version").val();
-                    if (!rVersionSel) {
-                        return;
-                    }
-                    $.getJSON("./api?action=server&sub=rollback&server_id=" + rID + "&version=" + encodeURIComponent(rVersionSel), function(res) {
-                        if (res.result === true) {
-                            $.toast("Rollback to v" + rVersionSel + " started in the background...");
-                        } else {
-                            $.toast("Rollback request failed (invalid version?).");
-                        }
-                    });
-                }
-            }).open();
-        });
-    }
-
-    function api(rID, rType, rConfirm = false) {
-        if ((window.rSelected) && (window.rSelected.length > 0)) {
-            $.toast("Individual actions disabled in multi-select mode.");
-            return;
-        }
-        if ((rType == "delete") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Delete",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to delete this server and it's accompanying streams?",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "kill") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Kill",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to kill all connections to this server?",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "restart") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Restart",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to restart all running streams on this server?",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "start") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Start",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to start all streams on this server? This will start EVERYTHING.",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "stop") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Stop",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to stop all streams on this server?",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "disable") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Disable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to disable this server?",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "disable_proxy") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Disable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to disable all proxies on this server? All traffic will be routed through the original IP address.",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "enable_proxy") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Enable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to enable all proxies on this server? All traffic will be routed through the proxy servers.",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else if ((rType == "update") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Update",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to update this server? It will go offline until the update is completed.",
-                confirm: function() {
-                    api(rID, rType, true);
-                }
-            }).open();
-        } else {
-            rConfirm = true;
-        }
-        if (rConfirm) {
-            $.getJSON("./api?action=server&sub=" + rType + "&server_id=" + rID, function(data) {
-                if (data.result === true) {
-                    if (rType == "delete") {
-                        if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {
-                            $("#datatable").DataTable().rows(rRow).remove().draw(false);
-                        }
-                        $.toast("Server successfully deleted.");
-                    } else if (rType == "kill") {
-                        $.toast("All server connections have been killed.");
-                    } else if (rType == "restart") {
-                        $.toast("All streams on this server have been restarted.");
-                    } else if (rType == "start") {
-                        $.toast("All streams on this server have been started.");
-                    } else if (rType == "stop") {
-                        $.toast("All streams on this server have been stopped.");
-                    } else if (rType == "update") {
-                        $.toast("Updating server...");
-                    } else if (rType == "disable") {
-                        reloadPage();
-                    } else if (rType == "enable") {
-                        reloadPage();
-                    } else if (rType == "disable_proxy") {
-                        reloadPage();
-                    } else if (rType == "enable_proxy") {
-                        reloadPage();
-                    }
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-            });
-        }
-    }
-
-    function multiAPI(rType, rConfirm = false) {
-        if (rType == "clear") {
-            if ("#header_stats") {
-                $("#header_stats").show();
-            }
-            window.rSelected = [];
-            $(".multiselect").hide();
-            $("#datatable tr").removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-            return;
-        }
-        if (rType == "tools") {
-            $(".bs-server-modal-center").data("id", "[" + window.rSelected.join(",") + "]");
-            $(".bs-server-modal-center").modal("show");
-            $("#reinstall_server").prop("disabled", true);
-            return;
-        }
-        if ((rType == "delete") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Delete",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to delete these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "purge") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Kill",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to kill all connections?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "start") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Start",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to start all streams on these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "stop") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Stop",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to stop all streams on these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "restart") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Restart",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to restart all streams on these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "enable_proxy") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Enable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to enable Proxy on these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "disable_proxy") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Disable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to disable Proxy on these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "enable") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Enable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to enable these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else if ((rType == "disable") && (!rConfirm)) {
-            new jBox("Confirm", {
-                confirmButton: "Disable",
-                cancelButton: "Cancel",
-                content: "Are you sure you want to disable these servers?",
-                confirm: function() {
-                    multiAPI(rType, true);
-                }
-            }).open();
-        } else {
-            rConfirm = true;
-        }
-        if (rConfirm) {
-            $.getJSON("./api?action=multi&type=server&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {
-                if (data.result == true) {
-                    if (rType == "restart") {
-                        $.toast("Streams have been restarted.");
-                    } else if (rType == "start") {
-                        $.toast("Streams have been started.");
-                    } else if (rType == "stop") {
-                        $.toast("Streams have been stopped.");
-                    } else if (rType == "purge") {
-                        $.toast("Connections have been killed.");
-                    } else if (rType == "delete") {
-                        $.toast("Servers have been deleted.");
-                    } else if (rType == "enable_proxy") {
-                        $.toast("Proxy has been enabled for selected servers.");
-                    } else if (rType == "disable_proxy") {
-                        $.toast("Proxy has been disabled for selected servers.");
-                    } else if (rType == "enable") {
-                        $.toast("Servers have been enabled.");
-                    } else if (rType == "disable") {
-                        $.toast("Servers have been disabled.");
-                    }
-                    reloadPage();
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-            }).fail(function() {
-                $.toast("An error occured while processing your request.");
-            });
-            multiAPI("clear");
-        }
-    }
-
-    function bindServers() {
-        $("#reinstall_server").unbind();
-        $("#reinstall_server").click(function() {
-            navigate('./server_install?id=' + $(".bs-server-modal-center").data("id"));
-        });
-        $("#restart_services_ssh").unbind();
-        $("#restart_services_ssh").click(function() {
-            $(".bs-server-modal-center").modal("hide");
-            $.getJSON("./api?action=restart_services&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
-                if (data.result === true) {
-                    $.toast("XC_VM will be restarted shortly.");
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-                $(".bs-server-modal-center").data("id", "");
-            });
-        });
-        $("#reboot_server_ssh").unbind();
-        $("#reboot_server_ssh").click(function() {
-            $(".bs-server-modal-center").modal("hide");
-            $.getJSON("./api?action=reboot_server&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
-                if (data.result === true) {
-                    $.toast("Server will be rebooted shortly.");
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-                $(".bs-server-modal-center").data("id", "");
-            });
-        });
-        $("#update_binaries").unbind();
-        $("#update_binaries").click(function() {
-            $(".bs-server-modal-center").modal("hide");
-            $.getJSON("./api?action=update_binaries&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
-                if (data.result === true) {
-                    $.toast("Binaries are updating in the background...");
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-                $(".bs-server-modal-center").data("id", "");
-            });
-        });
-        $("#update_server").unbind();
-        $("#update_server").click(function() {
-            $(".bs-server-modal-center").modal("hide");
-            $.getJSON("./api?action=server&sub=update&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
-                if (data.result === true) {
-                    $.toast("Server is updating in the background...");
-                } else {
-                    $.toast("An error occured while processing your request.");
-                }
-                $(".bs-server-modal-center").data("id", "");
-            });
-        });
-        $(".btn-reboot-server").click(function() {
-            $(".bs-server-modal-center").data("id", $(this).data("id"));
-            $(".bs-server-modal-center").modal("show");
-            $("#reinstall_server").prop("disabled", false);
-        });
-        $("#update_server").prop("disabled", false);
-        $("#update_binaries").prop("disabled", false);
-    }
-    $(document).ready(function() {
-        $("#datatable").DataTable({
-            language: {
-                paginate: {
-                    previous: "<i class='mdi mdi-chevron-left'>",
-                    next: "<i class='mdi mdi-chevron-right'>"
-                }
-            },
+        var table = $('#servers-table').DataTable({
+            order: [[canEdit ? 1 : 0, 'asc']],
+            columnDefs: [{ orderable: false, targets: canEdit ? [0, 12] : [11] }],
+            layout: { topStart: 'pageLength', topEnd: 'search' },
             drawCallback: function() {
-                bindServers();
-                bindHref();
-                refreshTooltips();
-                <?php if (Authorization::check('adv', 'edit_server')): ?>
-                    // Multi Actions
-                    multiAPI("clear");
-                    $("#datatable tr").click(function() {
-                        if (window.rShiftHeld) {
-                            if ($(this).hasClass('selectedfilter')) {
-                                $(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-                                window.rSelected.splice($.inArray($($(this).find("td:eq(0)").html()).data("id"), window.rSelected), 1);
-                            } else {
-                                $(this).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-                                window.rSelected.push($($(this).find("td:eq(0)").html()).data("id"));
-                            }
-                        }
-                        $("#multi_servers_selected").html(window.rSelected.length + " servers");
-                        if (window.rSelected.length > 0) {
-                            if ("#header_stats") {
-                                $("#header_stats").hide();
-                            }
-                            $("#multiselect_servers").show();
-                        } else {
-                            if ("#header_stats") {
-                                $("#header_stats").show();
-                            }
-                            $("#multiselect_servers").hide();
-                        }
+                if (window.bootstrap) {
+                    document.querySelectorAll('#servers-table [data-bs-toggle="tooltip"]').forEach(function(el) {
+                        if (!el._tt) { el._tt = new bootstrap.Tooltip(el); }
                     });
-                <?php endif; ?>
-            },
-            responsive: false
+                }
+            }
         });
-        $("#datatable").css("width", "100%");
-    });
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
+
+        // --- single-server actions ------------------------------------------------
+        var confirmMsgs = {
+            'delete': 'Delete this server and its accompanying streams?',
+            'kill': 'Kill all connections to this server?',
+            'restart': 'Restart all running streams on this server?',
+            'start': 'Start ALL streams on this server?',
+            'stop': 'Stop all streams on this server?',
+            'disable': 'Disable this server?',
+            'enable': null,
+            'disable_proxy': 'Disable all proxies on this server? Traffic will route through the original IP.',
+            'enable_proxy': 'Enable all proxies on this server? Traffic will route through the proxy servers.',
+            'update': 'Update this server? It will go offline until the update completes.'
+        };
+
+        function runApi(id, sub) {
+            getJSON('./api?action=server&sub=' + encodeURIComponent(sub) + '&server_id=' + encodeURIComponent(id)).then(function(d) {
+                if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                if (sub === 'delete') {
+                    table.row($('#server-' + id)).remove().draw(false);
+                    toast('Server deleted.');
+                } else if (sub === 'enable' || sub === 'disable' || sub === 'enable_proxy' || sub === 'disable_proxy') {
+                    setTimeout(function() { location.reload(); }, 600);
+                    toast('Done.');
+                } else {
+                    toast('Done.');
+                }
+            }).catch(function() { toast(errText, 'error'); });
+        }
+
+        $('#servers-table tbody').on('click', '.js-api', function() {
+            var id = this.getAttribute('data-id'), sub = this.getAttribute('data-sub');
+            var msg = confirmMsgs.hasOwnProperty(sub) ? confirmMsgs[sub] : null;
+            if (!msg) { runApi(id, sub); return; }
+            confirmSwal(msg).then(function(ok) { if (ok) { runApi(id, sub); } });
         });
-    <?php endif; ?>
+
+        // --- rollback -------------------------------------------------------------
+        $('#servers-table tbody').on('click', '.js-rollback', function() {
+            var id = this.getAttribute('data-id'), version = this.getAttribute('data-version') || '';
+            getJSON('./api?action=rollback_versions&version=' + encodeURIComponent(version)).then(function(d) {
+                if (!d || !d.result || !d.versions || !d.versions.length) { toast('No earlier versions available for this server.', 'info'); return; }
+                var opts = {};
+                d.versions.forEach(function(v) { opts[v.version] = 'v' + v.version + (v.beta ? ' (beta)' : ''); });
+                if (!window.Swal) { return; }
+                Swal.fire({
+                    title: 'Rollback server',
+                    html: 'Downgrading does <b>not</b> undo database migrations — use only as a recovery step. The server restarts during rollback.',
+                    input: 'select', inputOptions: opts, showCancelButton: true, confirmButtonText: 'Rollback',
+                    customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false
+                }).then(function(r) {
+                    if (!r.isConfirmed || !r.value) { return; }
+                    getJSON('./api?action=server&sub=rollback&server_id=' + encodeURIComponent(id) + '&version=' + encodeURIComponent(r.value)).then(function(res) {
+                        toast(res && res.result === true ? 'Rollback to v' + r.value + ' started…' : 'Rollback request failed.', res && res.result === true ? 'success' : 'error');
+                    });
+                });
+            });
+        });
+
+        // --- server tools modal ---------------------------------------------------
+        if (canEdit) {
+            var toolsModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('serverToolsModal')) : null;
+            var toolsId = null;
+            $('#servers-table tbody').on('click', '.js-tools', function() {
+                toolsId = this.getAttribute('data-id');
+                if (toolsModal) { toolsModal.show(); }
+            });
+            $('#serverToolsModal').on('click', '.js-tool', function() {
+                var tool = this.getAttribute('data-tool');
+                if (toolsModal) { toolsModal.hide(); }
+                if (!toolsId) { return; }
+                var url;
+                if (tool === 'reinstall') { window.location.href = './server_install?id=' + toolsId; return; }
+                if (tool === 'restart_services') { url = './api?action=restart_services&server_id=' + toolsId; }
+                else if (tool === 'reboot_server') { url = './api?action=reboot_server&server_id=' + toolsId; }
+                else if (tool === 'update_binaries') { url = './api?action=update_binaries&server_id=' + toolsId; }
+                else { url = './api?action=server&sub=update&server_id=' + toolsId; }
+                getJSON(url).then(function(d) { toast(d && d.result === true ? 'Task started in the background…' : errText, d && d.result === true ? 'success' : 'error'); });
+            });
+
+            // --- global bulk operations ------------------------------------------
+            $('#op-update-all').on('click', function() { confirmSwal('Update ALL running servers?').then(function(ok) { if (ok) { getJSON('./api?action=update_all_servers').then(function() { toast('Servers are being updated in the background…'); }); } }); });
+            $('#op-restart-services').on('click', function() { confirmSwal('Restart services on ALL running servers?').then(function(ok) { if (ok) { getJSON('./api?action=restart_all_services').then(function() { toast('Services will be restarted shortly…'); }); } }); });
+            $('#op-update-binaries').on('click', function() { confirmSwal('Update binaries on ALL running servers?').then(function(ok) { if (ok) { getJSON('./api?action=update_all_binaries').then(function() { toast('Binaries are being updated in the background…'); }); } }); });
+
+            // --- multi-select bulk actions ---------------------------------------
+            function selectedIds() {
+                return $('.row-check:checked').map(function() { return parseInt(this.getAttribute('data-id'), 10); }).get();
+            }
+            function syncBar() {
+                var ids = selectedIds();
+                $('#bulk-count').text(ids.length + ' selected');
+                $('#bulk-bar').toggleClass('d-none', ids.length === 0).toggleClass('d-flex', ids.length > 0);
+            }
+            $('#check-all').on('change', function() { $('.row-check').prop('checked', this.checked); syncBar(); });
+            $('#servers-table tbody').on('change', '.row-check', syncBar);
+            $('#bulk-clear').on('click', function() { $('.row-check, #check-all').prop('checked', false); syncBar(); });
+
+            var bulkConfirm = {
+                'delete': 'Delete the selected servers?', 'purge': 'Kill all connections on the selected servers?',
+                'start': 'Start all streams on the selected servers?', 'stop': 'Stop all streams on the selected servers?',
+                'restart': 'Restart all streams on the selected servers?', 'enable': 'Enable the selected servers?',
+                'disable': 'Disable the selected servers?', 'enable_proxy': 'Enable proxy on the selected servers?',
+                'disable_proxy': 'Disable proxy on the selected servers?'
+            };
+            $('#bulk-bar').on('click', '[data-bulk]', function() {
+                var sub = this.getAttribute('data-bulk'), ids = selectedIds();
+                if (!ids.length) { return; }
+                confirmSwal((bulkConfirm[sub] || sub) + ' (' + ids.length + ')').then(function(ok) {
+                    if (!ok) { return; }
+                    getJSON('./api?action=multi&type=server&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids))).then(function(d) {
+                        if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                        toast('Done.');
+                        setTimeout(function() { location.reload(); }, 600);
+                    }).catch(function() { toast(errText, 'error'); });
+                });
+            });
+        }
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
