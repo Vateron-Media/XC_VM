@@ -1,636 +1,308 @@
-<div class="wrapper" <?php 
+<?php
+
+/**
+ * Proxy servers management table (Bootstrap 5). Client-rendered: the server_type==1
+ * rows of ServerRepository::getAll(true) are echoed as <tbody> and a plain client-side
+ * DataTable adds search / sort / paging. Live watchdog cpu / mem are compact progress
+ * bars; per-proxy actions (kill / enable / disable / delete, plus the Proxy Tools modal)
+ * run through ./api?action=proxy&sub=… . Reached full-page in the new-UI shell.
+ */
+
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 
-if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') echo 'style="display: none;"' ?>>
-	<div class="container-fluid">
-		<div class="row">
-			<div class="col-12">
-				<div class="page-title-box">
-					<div class="page-title-right">
-						<?php include 'topbar.php'; ?>
-					</div>
-					<h4 class="page-title"><?= $language::get('proxy_servers') ?></h4>
-				</div>
-			</div>
-		</div>
-		<div class="row">
-			<div class="col-12">
-				<div class="card">
-					<div class="card-body" style="overflow-x:auto;">
-						<table id="datatable" class="table table-striped table-borderless dt-responsive nowrap">
-							<thead>
-								<tr>
-									<th class="text-center"><?= $language::get('id') ?></th>
-									<th class="text-center"><?= $language::get('status') ?></th>
-									<th><?= $language::get('proxy_name') ?></th>
-									<th><?= $language::get('proxied_server') ?></th>
-									<th class="text-center"><?= $language::get('proxy_ip') ?></th>
-									<th class="text-center"><?= $language::get('network') ?></th>
-									<th class="text-center"><?= $language::get('connections') ?></th>
-									<th class="text-center"><?= $language::get('cpu_header') ?></th>
-									<th class="text-center"><?= $language::get('mem') ?></th>
-									<th class="text-center"><?= $language::get('ping') ?></th>
-									<th class="text-center"><?= $language::get('actions') ?></th>
-								</tr>
-							</thead>
-							<tbody>
-								<?php
-								foreach ($rServers as $rServer):
-									if ($rServer['server_type'] == 1):
-										$rWatchDog = json_decode($rServer['watchdog_data'], true);
+$rCanEdit = Authorization::check('adv', 'edit_server');
+$rCanAdd = Authorization::check('adv', 'add_server');
+$rCanConns = Authorization::check('adv', 'live_connections');
 
-										$rWatchDog = is_array($rWatchDog) ? $rWatchDog : array('total_mem_used_percent' => 0, 'cpu' => 0);
+/** Compact coloured progress bar for a 0-100 percentage (cpu / mem). */
+$rBar = static function (int $pct): string {
+    $rColour = $pct <= 34 ? 'success' : ($pct <= 67 ? 'warning' : 'danger');
+    return '<div class="d-flex align-items-center gap-2" style="min-width:70px">'
+        . '<div class="progress w-100" style="height:6px"><div class="progress-bar bg-' . $rColour . '" style="width:' . $pct . '%"></div></div>'
+        . '<small class="text-body-secondary">' . $pct . '%</small></div>';
+};
+?>
 
-										if (!$rServers[$rServer['id']]['server_online']) {
-											$rWatchDog['cpu'] = 0;
-											$rWatchDog['total_mem_used_percent'] = 0;
-										}
-								?>
-										<tr id="server-<?= $rServer['id'] ?>">
-											<td class="text-center"><?= $rServer['id']; ?></td>
-											<td class="text-center">
-
-										<?php
-										if (!$rServer['enabled']) {
-											echo '<i class="text-secondary fas fa-square tooltip" title="' . $language::get('disabled') . '"></i>';
-										} else {
-											if ($rServer['server_online']) {
-												echo '<i class="text-success fas fa-square tooltip" title="' . $language::get('online') . '"></i>';
-											} else {
-												$rLastCheck = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
-
-												if ($rServer['status'] == 3) {
-													echo '<i class="text-info fas fa-square tooltip" title="' . $language::get('installing') . '"></i>';
-												} elseif ($rServer['status'] == 4) {
-													echo '<i class="text-warning fas fa-square tooltip" title="' . $language::get('installation_failed') . '"></i>';
-												} elseif ($rServer['status'] == 5) {
-													echo '<i class="text-info fas fa-square tooltip" title="' . $language::get('updating') . '"></i>';
-												} else {
-													echo '<i class="text-danger fas fa-square tooltip" title="Last Ping: ' . $rLastCheck . '"></i>';
-												}
-											}
-										}
-
-										echo '                                    </td>' . "\n" . '                                    <td><a href="server_view?id=';
-										echo $rServer['id'];
-										echo '">';
-										echo $rServer['server_name'];
-										echo (!empty($rServer['domain_name']) ? '<br/><small>' . explode(',', $rServer['domain_name'])[0] . '</small>' : '');
-										echo '</a></td>' . "\n" . '                                    <td><a href="server_view?id=';
-										echo $rServer['parent_id'][0];
-										echo '">';
-										echo $rServers[$rServer['parent_id'][0]]['server_name'];
-										echo '</a>';
-
-										if (1 >= count($rServer['parent_id'])) {
-										} else {
-											echo '&nbsp; <button title="' . $language::get('view_all_servers') . '" onClick="viewServers(';
-											echo intval($rServer['id']);
-											echo ");\" type='button' class='tooltip-left btn btn-info btn-xs waves-effect waves-light'>+ ";
-											echo count($rServer['parent_id']) - 1;
-											echo '</button>';
-										}
-
-										echo '                                    </td>' . "\n\t\t\t\t\t\t\t\t\t" . "<td class=\"text-center\"><a onClick=\"whois('";
-										echo $rServer['server_ip'];
-										echo "');\" href=\"javascript: void(0);\">";
-										echo $rServer['server_ip'];
-										echo '</a></td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t";
-										$rClients = ConnectionTracker::getLiveConnections($rServer['id'], true);
-
-										if (Authorization::check('adv', 'live_connections')) {
-											$rClients = '<a href="./live_connections?server=' . $rServer['id'] . "\"><button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button></a>';
-										} else {
-											$rClients = "<button type='button' class='btn btn-dark bg-animate btn-xs waves-effect waves-light no-border'>" . number_format($rClients, 0) . '</button>';
-										}
-
-										echo $rClients;
-										echo "\t\t\t\t\t\t\t\t\t" . '<br/><small>of ';
-										echo number_format($rServer['total_clients'], 0);
-										echo '</small>' . "\n" . '                                    </td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n" . '                                        <button type="button" class="btn btn-dark bg-animate btn-xs waves-effect waves-light no-border"><span id="header_streams_up">';
-										echo number_format($rWatchDog['bytes_sent'] / 125000, 0);
-										echo '</span> <i class="mdi mdi-arrow-up-thick"></i> &nbsp; <span id="header_streams_down">';
-										echo number_format($rWatchDog['bytes_received'] / 125000, 0);
-										echo '</span> <i class="mdi mdi-arrow-down-thick"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<br/><small>';
-										echo number_format($rServer['network_guaranteed_speed'], 0);
-										echo ' Mbps</small>' . "\n" . '                                    </td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n" . '                                        ';
-
-										if (intval($rWatchDog['cpu']) <= 34) {
-											$statusColor = '#23b397';
-										} else {
-											if (intval($rWatchDog['cpu']) <= 67) {
-												$statusColor = '#f8cc6b';
-											} else {
-												$statusColor = '#f0643b';
-											}
-										}
-
-										echo '                                        <input data-plugin="knob" data-width="48" data-height="48" data-bgColor="';
-
-										if ($rUserInfo['theme'] == 1) {
-											echo '#7e8e9d';
-										} else {
-											echo '#ebeff2';
-										}
-
-										echo '" data-fgColor="';
-										echo $statusColor;
-										echo '" data-readOnly=true value="';
-										echo intval($rWatchDog['cpu']);
-										echo '"/>' . "\n" . '                                    </td>' . "\n" . '                                    <td class="text-center">' . "\n" . '                                        ';
-
-										if (intval($rWatchDog['total_mem_used_percent']) <= 34) {
-											$statusColor = '#23b397';
-										} elseif (intval($rWatchDog['total_mem_used_percent']) <= 67) {
-											$statusColor = '#f8cc6b';
-										} else {
-											$statusColor = '#f0643b';
-										}
-
-										echo '                                        <input data-plugin="knob" data-width="48" data-height="48" data-bgColor="';
-
-										if ($rUserInfo['theme'] == 1) {
-											echo '#7e8e9d';
-										} else {
-											echo '#ebeff2';
-										}
-
-										echo '" data-fgColor="';
-										echo $statusColor;
-										echo '" data-readOnly=true value="';
-										echo intval($rWatchDog['total_mem_used_percent']);
-										echo '"/>' . "\n" . '                                    </td>' . "\n\t\t\t\t\t\t\t\t\t" . "<td class=\"text-center\"><button type='button' class='btn btn-light btn-xs waves-effect waves-light'>";
-										echo number_format(($rServer['server_online'] ? $rServer['ping'] : 0), 0);
-										echo ' ms</button></td>' . "\n\t\t\t\t\t\t\t\t\t" . '<td class="text-center">' . "\n\t\t\t\t\t\t\t\t\t\t";
-
-										if (Authorization::check('adv', 'edit_server')) {
-											if (SettingsManager::get('group_buttons')) {
-												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group dropdown">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="table-action-btn dropdown-toggle arrow-none btn btn-light btn-sm" data-toggle="dropdown" aria-expanded="false"><i class="mdi mdi-menu"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="dropdown-menu dropdown-menu-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item btn-reboot-server" href="javascript:void(0);" data-id="';
-												echo $rServer['id'];
-												echo '">' . $language::get('proxy_tools') . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
-												echo $rServer['id'];
-												echo ", 'kill');\">Kill Connections</a>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="./proxy?id=';
-												echo $rServer['id'];
-												echo '">Edit Proxy</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-
-												if ($rServer['enabled']) {
-													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
-													echo $rServer['id'];
-													echo ", 'disable');\">Disable Proxy</a>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-												} else {
-													echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
-													echo $rServer['id'];
-													echo ", 'enable');\">Enable Proxy</a>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-												}
-
-												echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<a class="dropdown-item" href="javascript:void(0);" onClick="api(';
-												echo $rServer['id'];
-												echo ", 'delete');\">Delete Proxy</a>" . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t";
-											} else {
-												echo "\t\t\t\t\t\t\t\t\t\t" . '<div class="btn-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" title="' . $language::get('proxy_tools') . '" class="btn btn-light waves-effect waves-light btn-xs btn-reboot-server tooltip" data-id="';
-												echo $rServer['id'];
-												echo '"><i class="mdi mdi-creation"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button type="button" title="' . $language::get('kill_all_connections') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
-												echo $rServer['id'];
-												echo ", 'kill');\"><i class=\"fas fa-hammer\"></i></button>" . "\n" . '                                            <a href="./proxy?id=';
-												echo $rServer['id'];
-												echo '"><button type="button" title="' . $language::get('edit_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>' . "\n" . '                                            ';
-
-												if ($rServer['enabled']) {
-													echo '                                            <button type="button" title="' . $language::get('disable_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
-													echo $rServer['id'];
-													echo ", 'disable');\"><i class=\"mdi mdi-close-network-outline\"></i></button>" . "\n" . '                                            ';
-												} else {
-													echo '                                            <button type="button" title="' . $language::get('enable_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
-													echo $rServer['id'];
-													echo ", 'enable');\"><i class=\"mdi mdi-access-point-network\"></i></button>" . "\n" . '                                            ';
-												}
-
-												echo '                                            <button type="button" title="' . $language::get('delete_proxy') . '" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(';
-												echo $rServer['id'];
-												echo ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>" . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t";
-											}
-										} else {
-											echo '--';
-										}
-
-										echo "\t\t\t\t\t\t\t\t\t" . '</td>' . "\n\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t";
-									endif;
-								endforeach;
-
-										?>
-
-
-
-							</tbody>
-						</table>
-					</div>
-				</div>
-			</div>
-		</div>
-	</div>
+<div class="card">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <h5 class="card-title mb-0"><?= $language::get('proxy_servers'); ?></h5>
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <?php if ($rCanEdit): ?>
+                <div id="bulk-bar" class="d-none align-items-center gap-2">
+                    <span class="text-body-secondary small" id="bulk-count">0</span>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-label-dark" data-bulk="purge"><?= $language::get('kill'); ?></button>
+                        <button type="button" class="btn btn-label-success" data-bulk="enable"><?= $language::get('enable'); ?></button>
+                        <button type="button" class="btn btn-label-secondary" data-bulk="disable"><?= $language::get('disable'); ?></button>
+                        <button type="button" class="btn btn-label-danger" data-bulk="delete"><?= $language::get('delete'); ?></button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-icon btn-label-secondary" id="bulk-clear" title="Clear selection"><i class="icon-base ti tabler-x"></i></button>
+                </div>
+            <?php endif; ?>
+            <?php if ($rCanAdd): ?>
+                <a href="server_install?proxy=1" class="btn btn-sm btn-primary"><i class="icon-base ti tabler-plus me-1"></i>Add Proxy</a>
+            <?php endif; ?>
+        </div>
+    </div>
+    <div class="card-datatable table-responsive">
+        <table id="proxies-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <?php if ($rCanEdit): ?><th class="text-center" style="width:1%"><input type="checkbox" class="form-check-input" id="check-all"></th><?php endif; ?>
+                    <th class="text-center"><?= $language::get('id'); ?></th>
+                    <th class="text-center"><?= $language::get('status'); ?></th>
+                    <th><?= $language::get('proxy_name'); ?></th>
+                    <th><?= $language::get('proxied_server'); ?></th>
+                    <th class="text-center"><?= $language::get('proxy_ip'); ?></th>
+                    <th class="text-center"><?= $language::get('network'); ?></th>
+                    <th class="text-center"><?= $language::get('connections'); ?></th>
+                    <th class="text-center"><?= $language::get('cpu_header'); ?></th>
+                    <th class="text-center"><?= $language::get('mem'); ?></th>
+                    <th class="text-center"><?= $language::get('ping'); ?></th>
+                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($rServers as $rServer): ?>
+                    <?php if ($rServer['server_type'] != 1) {
+                        continue;
+                    } ?>
+                    <?php
+                    $rWatchDog = json_decode((string) $rServer['watchdog_data'], true);
+                    if (!is_array($rWatchDog)) {
+                        $rWatchDog = [];
+                    }
+                    $rWatchDog += ['total_mem_used_percent' => 0, 'cpu' => 0, 'bytes_sent' => 0, 'bytes_received' => 0];
+                    if (empty($rServers[$rServer['id']]['server_online'])) {
+                        $rWatchDog['cpu'] = $rWatchDog['total_mem_used_percent'] = $rWatchDog['bytes_sent'] = $rWatchDog['bytes_received'] = 0;
+                    }
+                    $rParents = (array) $rServer['parent_id'];
+                    $rParent0 = $rParents[0] ?? null;
+                    $rClients = (int) ConnectionTracker::getLiveConnections($rServer['id'], true);
+                    ?>
+                    <tr id="server-<?= (int) $rServer['id']; ?>">
+                        <?php if ($rCanEdit): ?>
+                            <td class="text-center"><input type="checkbox" class="form-check-input row-check" data-id="<?= (int) $rServer['id']; ?>"></td>
+                        <?php endif; ?>
+                        <td class="text-center fw-medium"><?= (int) $rServer['id']; ?></td>
+                        <td class="text-center">
+                            <?php if (!$rServer['enabled']): ?>
+                                <i class="icon-base ti tabler-circle-filled text-secondary" data-bs-toggle="tooltip" title="<?= $language::get('disabled'); ?>"></i>
+                            <?php elseif ($rServer['server_online']): ?>
+                                <i class="icon-base ti tabler-circle-filled text-success" data-bs-toggle="tooltip" title="<?= $language::get('online'); ?>"></i>
+                            <?php else: ?>
+                                <?php
+                                $rPing = $rServer['last_check_ago'] > 0 ? date($rSettings['datetime_format'], $rServer['last_check_ago']) : 'Never';
+                                if ($rServer['status'] == 3) {
+                                    $rSt = ['info', $language::get('installing')];
+                                } elseif ($rServer['status'] == 4) {
+                                    $rSt = ['warning', $language::get('installation_failed')];
+                                } elseif ($rServer['status'] == 5) {
+                                    $rSt = ['info', $language::get('updating')];
+                                } else {
+                                    $rSt = ['danger', 'Last Ping: ' . $rPing];
+                                }
+                                ?>
+                                <i class="icon-base ti tabler-circle-filled text-<?= $rSt[0]; ?>" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $rSt[1], ENT_QUOTES); ?>"></i>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <a href="server_view?id=<?= (int) $rServer['id']; ?>" class="fw-medium"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></a>
+                            <?php if (!empty($rServer['domain_name'])): ?>
+                                <br><small class="text-body-secondary"><?= htmlspecialchars(explode(',', (string) $rServer['domain_name'])[0], ENT_QUOTES); ?></small>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <?php if ($rParent0 !== null): ?>
+                                <a href="server_view?id=<?= (int) $rParent0; ?>"><?= htmlspecialchars((string) ($rServers[$rParent0]['server_name'] ?? $rParent0), ENT_QUOTES); ?></a>
+                                <?php if (count($rParents) > 1): ?>
+                                    <?php $rNames = array_map(static fn($p) => (string) ($rServers[$p]['server_name'] ?? $p), $rParents); ?>
+                                    <span class="badge bg-label-info ms-1" data-bs-toggle="tooltip" title="<?= htmlspecialchars(implode(', ', $rNames), ENT_QUOTES); ?>">+<?= count($rParents) - 1; ?></span>
+                                <?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-body-secondary">—</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="text-center"><?= htmlspecialchars((string) $rServer['server_ip'], ENT_QUOTES); ?></td>
+                        <td class="text-center" style="min-width:120px">
+                            <span class="text-success"><i class="icon-base ti tabler-arrow-up"></i> <?= number_format($rWatchDog['bytes_sent'] / 125000, 0); ?></span>
+                            <span class="text-primary ms-2"><i class="icon-base ti tabler-arrow-down"></i> <?= number_format($rWatchDog['bytes_received'] / 125000, 0); ?></span>
+                            <br><small class="text-body-secondary"><?= number_format((int) $rServer['network_guaranteed_speed']); ?> Mbps</small>
+                        </td>
+                        <td class="text-center" data-order="<?= $rClients; ?>">
+                            <?php if ($rCanConns): ?>
+                                <a href="./live_connections?server=<?= (int) $rServer['id']; ?>" class="btn btn-xs btn-label-secondary"><?= number_format($rClients); ?></a>
+                            <?php else: ?>
+                                <span class="badge bg-label-secondary"><?= number_format($rClients); ?></span>
+                            <?php endif; ?>
+                            <br><small class="text-body-secondary">of <?= number_format((int) $rServer['total_clients']); ?></small>
+                        </td>
+                        <td class="text-center" data-order="<?= (int) $rWatchDog['cpu']; ?>"><?= $rBar((int) $rWatchDog['cpu']); ?></td>
+                        <td class="text-center" data-order="<?= (int) $rWatchDog['total_mem_used_percent']; ?>"><?= $rBar((int) $rWatchDog['total_mem_used_percent']); ?></td>
+                        <td class="text-center"><span class="badge bg-label-secondary"><?= number_format(($rServer['server_online'] ? $rServer['ping'] : 0), 0); ?> ms</span></td>
+                        <td class="text-center">
+                            <?php if ($rCanEdit): ?>
+                                <div class="dropdown">
+                                    <button type="button" class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button>
+                                    <div class="dropdown-menu dropdown-menu-end">
+                                        <button type="button" class="dropdown-item js-tools" data-id="<?= (int) $rServer['id']; ?>"><i class="icon-base ti tabler-tool me-2"></i><?= $language::get('proxy_tools'); ?></button>
+                                        <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="kill"><i class="icon-base ti tabler-hammer me-2"></i><?= $language::get('kill_all_connections'); ?></button>
+                                        <a class="dropdown-item" href="./proxy?id=<?= (int) $rServer['id']; ?>"><i class="icon-base ti tabler-pencil me-2"></i><?= $language::get('edit_proxy'); ?></a>
+                                        <div class="dropdown-divider"></div>
+                                        <?php if ($rServer['enabled']): ?>
+                                            <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="disable"><i class="icon-base ti tabler-plug-off me-2"></i><?= $language::get('disable_proxy'); ?></button>
+                                        <?php else: ?>
+                                            <button type="button" class="dropdown-item js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="enable"><i class="icon-base ti tabler-plug-connected me-2"></i><?= $language::get('enable_proxy'); ?></button>
+                                        <?php endif; ?>
+                                        <button type="button" class="dropdown-item text-danger js-api" data-id="<?= (int) $rServer['id']; ?>" data-sub="delete"><i class="icon-base ti tabler-trash me-2"></i><?= $language::get('delete_proxy'); ?></button>
+                                    </div>
+                                </div>
+                            <?php else: ?>
+                                <span class="text-body-secondary">—</span>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    </div>
 </div>
+
+<?php if ($rCanEdit): ?>
+    <div class="modal fade" id="proxyToolsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><?= $language::get('proxy_tools'); ?></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><button type="button" class="btn btn-label-primary w-100 js-tool" data-tool="reinstall">Reinstall Proxy</button></div>
+                        <div class="col-md-4"><button type="button" class="btn btn-label-secondary w-100 js-tool" data-tool="restart_services">Restart Services</button></div>
+                        <div class="col-md-4"><button type="button" class="btn btn-label-secondary w-100 js-tool" data-tool="reboot_server">Reboot Server</button></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<?php endif; ?>
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
-	var rSelected = [];
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
+        var toast = window.xcToast || function() {};
 
-	function viewServers(rProxyID) {
-		$(".bs-proxies-modal-center #datatable-sources").DataTable({
-			destroy: true,
-			ordering: true,
-			paging: true,
-			searching: true,
-			responsive: false,
-			processing: true,
-			serverSide: true,
-			bInfo: true,
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			ajax: {
-				url: "./table",
-				"data": function(d) {
-					d.id = "parent_servers";
-					d.proxy_id = rProxyID;
-				}
-			},
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0, 2]
-			}],
-			order: [
-				[0, "asc"]
-			],
-		});
-		$(".bs-proxies-modal-center").data("id", rProxyID);
-		$(".bs-proxies-modal-center").modal("show");
-		$(".bs-proxies-modal-center #datatable-sources").css("width", "100%");
-	}
+        function confirmSwal(text) {
+            if (window.xcConfirm) { return window.xcConfirm(text); }
+            return Promise.resolve(window.confirm(text));
+        }
 
-	function api(rID, rType, rConfirm = false) {
-		if ((window.rSelected) && (window.rSelected.length > 0)) {
-			$.toast("Individual actions disabled in multi-select mode.");
-			return;
-		}
-		if ((rType == "delete") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Delete",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to delete this proxy server?",
-				confirm: function() {
-					api(rID, rType, true);
-				}
-			}).open();
-		} else if ((rType == "kill") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Kill",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to kill all connections to this proxy?",
-				confirm: function() {
-					api(rID, rType, true);
-				}
-			}).open();
-		} else if ((rType == "disable") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Disable",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to disable this proxy?",
-				confirm: function() {
-					api(rID, rType, true);
-				}
-			}).open();
-		} else if ((rType == "update") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Update",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to update this proxy? It will go offline until the update is completed.",
-				confirm: function() {
-					api(rID, rType, true);
-				}
-			}).open();
-		} else {
-			rConfirm = true;
-		}
-		if (rConfirm) {
-			$.getJSON("./api?action=proxy&sub=" + rType + "&server_id=" + rID, function(data) {
-				if (data.result === true) {
-					if (rType == "delete") {
-						if (rRow = findRowByID($("#datatable").DataTable(), 0, rID)) {
-							$("#datatable").DataTable().rows(rRow).remove().draw(false);
-						}
-						$.toast("Proxy successfully deleted.");
-					} else if (rType == "kill") {
-						$.toast("All proxy connections have been killed.");
-					} else if (rType == "update") {
-						$.toast("Updating proxy server...");
-					} else if (rType == "disable") {
-						reloadPage();
-					} else if (rType == "enable") {
-						reloadPage();
-					}
-				} else {
-					$.toast("An error occured while processing your request.");
-				}
-			});
-		}
-	}
+        function getJSON(url) {
+            return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json(); });
+        }
 
-	function multiAPI(rType, rConfirm = false) {
-		if (rType == "clear") {
-			if ("#header_stats") {
-				$("#header_stats").show();
-			}
-			window.rSelected = [];
-			$(".multiselect").hide();
-			$("#datatable tr").removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-			return;
-		}
-		if (rType == "tools") {
-			$(".bs-server-modal-center").data("id", "[" + window.rSelected.join(",") + "]");
-			$(".bs-server-modal-center").modal("show");
-			$("#reinstall_server").prop("disabled", true);
-			return;
-		}
-		if ((rType == "delete") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Delete",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to delete these proxies?",
-				confirm: function() {
-					multiAPI(rType, true);
-				}
-			}).open();
-		} else if ((rType == "purge") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Kill",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to kill all connections?",
-				confirm: function() {
-					multiAPI(rType, true);
-				}
-			}).open();
-		} else if ((rType == "enable") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Enable",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to enable these proxies?",
-				confirm: function() {
-					multiAPI(rType, true);
-				}
-			}).open();
-		} else if ((rType == "disable") && (!rConfirm)) {
-			new jBox("Confirm", {
-				confirmButton: "Disable",
-				cancelButton: "Cancel",
-				content: "Are you sure you want to disable these proxies?",
-				confirm: function() {
-					multiAPI(rType, true);
-				}
-			}).open();
-		} else {
-			rConfirm = true;
-		}
-		if (rConfirm) {
-			$.getJSON("./api?action=multi&type=proxy&sub=" + rType + "&ids=" + JSON.stringify(window.rSelected), function(data) {
-				if (data.result == true) {
-					if (rType == "purge") {
-						$.toast("Connections have been killed.");
-					} else if (rType == "delete") {
-						$.toast("Proxies have been deleted.");
-					} else if (rType == "enable") {
-						$.toast("Proxies have been enabled.");
-					} else if (rType == "disable") {
-						$.toast("Proxies have been disabled.");
-					}
-					reloadPage();
-				} else {
-					$.toast("An error occured while processing your request.");
-				}
-			}).fail(function() {
-				$.toast("An error occured while processing your request.");
-			});
-			multiAPI("clear");
-		}
-	}
+        var table = $('#proxies-table').DataTable({
+            order: [[canEdit ? 1 : 0, 'asc']],
+            columnDefs: [{ orderable: false, targets: canEdit ? [0, 11] : [10] }],
+            layout: { topStart: 'pageLength', topEnd: 'search' },
+            drawCallback: function() {
+                if (window.bootstrap) {
+                    document.querySelectorAll('#proxies-table [data-bs-toggle="tooltip"]').forEach(function(el) {
+                        if (!el._tt) { el._tt = new bootstrap.Tooltip(el); }
+                    });
+                }
+            }
+        });
 
-	function bindServers() {
-		$("#reinstall_server").unbind();
-		$("#reinstall_server").click(function() {
-			navigate('./server_install?id=' + $(".bs-server-modal-center").data("id") + "&proxy=1");
-		});
-		$("#restart_services_ssh").unbind();
-		$("#restart_services_ssh").click(function() {
-			$(".bs-server-modal-center").modal("hide");
-			$.getJSON("./api?action=restart_services&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
-				if (data.result === true) {
-					$.toast("XC_VM will be restarted shortly.");
-				} else {
-					$.toast("An error occured while processing your request.");
-				}
-				$(".bs-server-modal-center").data("id", "");
-			});
-		});
-		$("#reboot_server_ssh").unbind();
-		$("#reboot_server_ssh").click(function() {
-			$(".bs-server-modal-center").modal("hide");
-			$.getJSON("./api?action=reboot_server&server_id=" + $(".bs-server-modal-center").data("id"), function(data) {
-				if (data.result === true) {
-					$.toast("Server will be rebooted shortly.");
-				} else {
-					$.toast("An error occured while processing your request.");
-				}
-				$(".bs-server-modal-center").data("id", "");
-			});
-		});
-		$(".btn-reboot-server").click(function() {
-			$(".bs-server-modal-center").data("id", $(this).data("id"));
-			$(".bs-server-modal-center").modal("show");
-		});
-		$("#update_server").prop("disabled", true);
-		$("#update_binaries").prop("disabled", true);
-	}
-	$(document).ready(function() {
-		$("#datatable").DataTable({
-			language: {
-				paginate: {
-					previous: "<i class='mdi mdi-chevron-left'>",
-					next: "<i class='mdi mdi-chevron-right'>"
-				}
-			},
-			drawCallback: function() {
-				bindServers();
-				bindHref();
-				refreshTooltips();
-				<?php if (Authorization::check('adv', 'edit_server')): ?>
-					// Multi Actions
-					multiAPI("clear");
-					$("#datatable tr").click(function() {
-						if (window.rShiftHeld) {
-							if ($(this).hasClass('selectedfilter')) {
-								$(this).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-								window.rSelected.splice($.inArray($(this).find("td:eq(0)").text(), window.rSelected), 1);
-							} else {
-								$(this).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-								window.rSelected.push($(this).find("td:eq(0)").text());
-							}
-						}
-						$("#multi_proxies_selected").html(window.rSelected.length + " proxies");
-						if (window.rSelected.length > 0) {
-							if ("#header_stats") {
-								$("#header_stats").hide();
-							}
-							$("#multiselect_proxies").show();
-						} else {
-							if ("#header_stats") {
-								$("#header_stats").show();
-							}
-							$("#multiselect_proxies").hide();
-						}
-					});
-				<?php endif; ?>
-			},
-			responsive: false
-		});
-		$("#datatable").css("width", "100%");
-	});
+        // --- single-proxy actions -------------------------------------------------
+        var confirmMsgs = {
+            'delete': 'Delete this proxy server?',
+            'kill': 'Kill all connections to this proxy?',
+            'disable': 'Disable this proxy?',
+            'enable': null
+        };
 
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        function runApi(id, sub) {
+            getJSON('./api?action=proxy&sub=' + encodeURIComponent(sub) + '&server_id=' + encodeURIComponent(id)).then(function(d) {
+                if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                if (sub === 'delete') {
+                    table.row($('#server-' + id)).remove().draw(false);
+                    toast('Proxy deleted.');
+                } else if (sub === 'enable' || sub === 'disable') {
+                    setTimeout(function() { location.reload(); }, 600);
+                    toast('Done.');
+                } else {
+                    toast('Done.');
+                }
+            }).catch(function() { toast(errText, 'error'); });
+        }
+
+        $('#proxies-table tbody').on('click', '.js-api', function() {
+            var id = this.getAttribute('data-id'), sub = this.getAttribute('data-sub');
+            var msg = confirmMsgs.hasOwnProperty(sub) ? confirmMsgs[sub] : null;
+            if (!msg) { runApi(id, sub); return; }
+            confirmSwal(msg).then(function(ok) { if (ok) { runApi(id, sub); } });
+        });
+
+        // --- proxy tools modal ----------------------------------------------------
+        if (canEdit) {
+            var toolsModal = window.bootstrap ? new bootstrap.Modal(document.getElementById('proxyToolsModal')) : null;
+            var toolsId = null;
+            $('#proxies-table tbody').on('click', '.js-tools', function() {
+                toolsId = this.getAttribute('data-id');
+                if (toolsModal) { toolsModal.show(); }
+            });
+            $('#proxyToolsModal').on('click', '.js-tool', function() {
+                var tool = this.getAttribute('data-tool');
+                if (toolsModal) { toolsModal.hide(); }
+                if (!toolsId) { return; }
+                if (tool === 'reinstall') { window.location.href = './server_install?id=' + toolsId + '&proxy=1'; return; }
+                var url = tool === 'restart_services' ? './api?action=restart_services&server_id=' + toolsId : './api?action=reboot_server&server_id=' + toolsId;
+                getJSON(url).then(function(d) { toast(d && d.result === true ? 'Task started…' : errText, d && d.result === true ? 'success' : 'error'); });
+            });
+
+            // --- multi-select bulk actions ---------------------------------------
+            function selectedIds() {
+                return $('.row-check:checked').map(function() { return parseInt(this.getAttribute('data-id'), 10); }).get();
+            }
+            function syncBar() {
+                var ids = selectedIds();
+                $('#bulk-count').text(ids.length + ' selected');
+                $('#bulk-bar').toggleClass('d-none', ids.length === 0).toggleClass('d-flex', ids.length > 0);
+            }
+            $('#check-all').on('change', function() { $('.row-check').prop('checked', this.checked); syncBar(); });
+            $('#proxies-table tbody').on('change', '.row-check', syncBar);
+            $('#bulk-clear').on('click', function() { $('.row-check, #check-all').prop('checked', false); syncBar(); });
+
+            var bulkConfirm = {
+                'delete': 'Delete the selected proxies?', 'purge': 'Kill all connections on the selected proxies?',
+                'enable': 'Enable the selected proxies?', 'disable': 'Disable the selected proxies?'
+            };
+            $('#bulk-bar').on('click', '[data-bulk]', function() {
+                var sub = this.getAttribute('data-bulk'), ids = selectedIds();
+                if (!ids.length) { return; }
+                confirmSwal((bulkConfirm[sub] || sub) + ' (' + ids.length + ')').then(function(ok) {
+                    if (!ok) { return; }
+                    getJSON('./api?action=multi&type=proxy&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids))).then(function(d) {
+                        if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                        toast('Done.');
+                        setTimeout(function() { location.reload(); }, 600);
+                    }).catch(function() { toast(errText, 'error'); });
+                });
+            });
+        }
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
