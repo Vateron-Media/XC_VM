@@ -420,6 +420,18 @@ renderUnifiedLayoutFooter('admin');
         // Download playlist modal.
         var dlModal = document.getElementById('downloadModal');
         var dlType = document.getElementById('download_type'), outType = document.getElementById('output_type'), dlUrl = document.getElementById('download_url'), dlOpen = document.getElementById('download_open');
+        // Render both modal selects as select2 dropdowns so they match the rest of the UI.
+        jQuery(dlType).select2({
+            placeholder: '<?= $language::get('format'); ?>',
+            width: '100%',
+            dropdownParent: jQuery('#downloadModal')
+        });
+        jQuery(outType).select2({
+            placeholder: '<?= $language::get('all'); ?>',
+            width: '100%',
+            closeOnSelect: false,
+            dropdownParent: jQuery('#downloadModal')
+        });
         var buildDownload = function() {
             var key = dlType.value;
             if (!key) { dlUrl.value = ''; dlOpen.disabled = true; return; }
