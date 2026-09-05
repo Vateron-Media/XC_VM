@@ -8,9 +8,7 @@ use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\ClientFilter;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\StatusBadge;
-use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
@@ -977,14 +975,18 @@ class TableController extends BaseAdminController {
 					} else {
 						// Category label (primary + "(+N others)").
 						$rCategoryIDs = json_decode($rRow["category_id"], true);
-						if (!is_array($rCategoryIDs)) { $rCategoryIDs = []; }
+						if (!is_array($rCategoryIDs)) {
+							$rCategoryIDs = [];
+						}
 						if (0 < strlen(RequestManager::get("category") ?? '')) {
 							$rCategory = $rCategories[(int)(RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
 						} else {
 							$rCategory = $rCategoryIDs[0] ?? null;
 							$rCategory = $rCategories[$rCategory]['category_name'] ?? "No Category";
 						}
-						if (1 < count($rCategoryIDs)) { $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)"; }
+						if (1 < count($rCategoryIDs)) {
+							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
+						}
 
 						// Name badges + adaptive links.
 						$rHasArchive = (0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id']);
@@ -1092,21 +1094,38 @@ class TableController extends BaseAdminController {
 						$rPlayerVideo = "";
 						if ($rActualStatus == 1) {
 							$rStreamInfo = json_decode($rRow['stream_info'] ?? '', true);
-							if (!is_array($rStreamInfo)) { $rStreamInfo = []; }
+							if (!is_array($rStreamInfo)) {
+								$rStreamInfo = [];
+							}
 							$rProgressInfo = json_decode($rRow['progress_info'] ?? '', true) ?: [];
 							$rVideo = (is_array($rStreamInfo["codecs"]["video"] ?? null)) ? $rStreamInfo["codecs"]["video"] : [];
 							$rAudio = (is_array($rStreamInfo["codecs"]["audio"] ?? null)) ? $rStreamInfo["codecs"]["audio"] : [];
 							$rSpeed = "1x";
 							if (isset($rProgressInfo["speed"])) {
 								$rSpeedValue = null;
-								if (is_numeric($rProgressInfo["speed"])) { $rSpeedValue = (float) $rProgressInfo["speed"]; }
-								elseif (is_string($rProgressInfo["speed"]) && preg_match('/([0-9]+(?:\.[0-9]+)?)/', $rProgressInfo["speed"], $rSpeedMatch)) { $rSpeedValue = (float) $rSpeedMatch[1]; }
-								if ($rSpeedValue !== null) { $rSpeed = round($rSpeedValue, 2) . "x"; }
+								if (is_numeric($rProgressInfo["speed"])) {
+									$rSpeedValue = (float) $rProgressInfo["speed"];
+								} elseif (is_string($rProgressInfo["speed"]) && preg_match('/([0-9]+(?:\.[0-9]+)?)/', $rProgressInfo["speed"], $rSpeedMatch)) {
+									$rSpeedValue = (float) $rSpeedMatch[1];
+								}
+								if ($rSpeedValue !== null) {
+									$rSpeed = round($rSpeedValue, 2) . "x";
+								}
 							}
 							$rFPS = null;
-							if (isset($rProgressInfo["fps"])) { $rFPS = (int) $rProgressInfo["fps"]; }
-							elseif (isset($rVideo["r_frame_rate"])) { $rFPS = (int) $rVideo["r_frame_rate"]; }
-							if ($rFPS) { if (1000 <= $rFPS) { $rFPS = (int) ($rFPS / 1000); } $rFPS = $rFPS . " FPS"; } else { $rFPS = "--"; }
+							if (isset($rProgressInfo["fps"])) {
+								$rFPS = (int) $rProgressInfo["fps"];
+							} elseif (isset($rVideo["r_frame_rate"])) {
+								$rFPS = (int) $rVideo["r_frame_rate"];
+							}
+							if ($rFPS) {
+								if (1000 <= $rFPS) {
+									$rFPS = (int) ($rFPS / 1000);
+								}
+								$rFPS = $rFPS . " FPS";
+							} else {
+								$rFPS = "--";
+							}
 							$rInfo = [
 								"bitrate" => (is_numeric($rRow["bitrate"]) && $rRow["bitrate"] > 0) ? number_format((float) $rRow["bitrate"], 0) : "?",
 								"resolution" => ($rVideo["width"] ?? "?") . " x " . ($rVideo["height"] ?? "?"),
@@ -1291,7 +1310,9 @@ class TableController extends BaseAdminController {
 							$rCategory = $rCategoryIDs[0] ?? null;
 							$rCategory = $rCategories[$rCategory]["category_name"] ?? "No Category";
 						}
-						if (1 < count($rCategoryIDs)) { $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)"; }
+						if (1 < count($rCategoryIDs)) {
+							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
+						}
 						$rUptime = (0 < (int) $rRow["stream_started"]) ? (time() - (int) $rRow["stream_started"]) : 0;
 						if ($rRow["server_id"]) {
 							if ((int) $rRow["direct_source"] == 1) {
@@ -1324,7 +1345,9 @@ class TableController extends BaseAdminController {
 							}
 						}
 						$rStreamInfo = json_decode($rRow["stream_info"] ?? "", true);
-						if (!is_array($rStreamInfo)) { $rStreamInfo = []; }
+						if (!is_array($rStreamInfo)) {
+							$rStreamInfo = [];
+						}
 						$rProgressInfo = json_decode($rRow["progress_info"] ?? "", true) ?: [];
 						$rInfo = null;
 						if ($rActualStatus == 1) {
@@ -1527,14 +1550,18 @@ class TableController extends BaseAdminController {
 					} else {
 						$rCategoryIDs = json_decode((string) $rRow["category_id"], true) ?: [];
 						$rProperties  = json_decode((string) $rRow["movie_properties"], true);
-						if (!is_array($rProperties)) { $rProperties = []; }
+						if (!is_array($rProperties)) {
+							$rProperties = [];
+						}
 						if (0 < strlen(RequestManager::get("category") ?? "")) {
 							$rCategory = $rCategories[(int) (RequestManager::get("category") ?? 0)]["category_name"] ?: "No Category";
 						} else {
 							$rCategory = $rCategoryIDs[0] ?? null;
 							$rCategory = $rCategories[$rCategory]["category_name"] ?? "No Category";
 						}
-						if (1 < count($rCategoryIDs)) { $rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)"; }
+						if (1 < count($rCategoryIDs)) {
+							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
+						}
 						if ($rRow["server_id"]) {
 							if ((int) $rRow["direct_source"] == 1) {
 								$rActualStatus = ((int) $rRow["direct_proxy"] == 1) ? 5 : 3;
@@ -1550,7 +1577,9 @@ class TableController extends BaseAdminController {
 						$rGrouped   = (SettingsManager::getAll()["streams_grouped"] == 1);
 						$rServerCnt = (int) ($rServerCount[$rRow["id"]] ?? 1);
 						$rStreamInfo = json_decode($rRow["stream_info"] ?? "", true);
-						if (!is_array($rStreamInfo)) { $rStreamInfo = []; }
+						if (!is_array($rStreamInfo)) {
+							$rStreamInfo = [];
+						}
 						$rInfo = null;
 						if ($rActualStatus == 1) {
 							$rInfo = [
@@ -4190,8 +4219,7 @@ class TableController extends BaseAdminController {
 						if (1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rButtons = "<div class=\"btn-group\"><button data-id=\"" . $rRow["id"] . "\" data-type=\"stream\" type=\"button\" style=\"display: none;\" class=\"btn-remove btn btn-warning waves-effect waves-warning btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'stream');\"><i class=\"mdi mdi-minus\"></i></button>\r\n                <button data-id=\"" . $rRow["id"] . "\" data-type=\"stream\" type=\"button\" style=\"display: none;\" class=\"btn-add btn btn-success waves-effect waves-success btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'stream');\"><i class=\"mdi mdi-plus\"></i></button></div>";
-						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory, $rButtons];
+						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory];
 					}
 				}
 			}
@@ -4260,8 +4288,7 @@ class TableController extends BaseAdminController {
 						if (1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rButtons = "<div class=\"btn-group\"><button data-id=\"" . $rRow["id"] . "\" data-type=\"movies\" type=\"button\" style=\"display: none;\" class=\"btn-remove btn btn-warning waves-effect waves-warning btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'movies');\"><i class=\"mdi mdi-minus\"></i></button>\r\n                <button data-id=\"" . $rRow["id"] . "\" data-type=\"movies\" type=\"button\" style=\"display: none;\" class=\"btn-add btn btn-success waves-effect waves-success btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'movies');\"><i class=\"mdi mdi-plus\"></i></button></div>";
-						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory, $rButtons];
+						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory];
 					}
 				}
 			}
@@ -4329,8 +4356,7 @@ class TableController extends BaseAdminController {
 						if (1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rButtons = "<div class=\"btn-group\"><button data-id=\"" . $rRow["id"] . "\" data-type=\"series\" type=\"button\" style=\"display: none;\" class=\"btn-remove btn btn-warning waves-effect waves-warning btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'series');\"><i class=\"mdi mdi-minus\"></i></button>\r\n                <button data-id=\"" . $rRow["id"] . "\" data-type=\"series\" type=\"button\" style=\"display: none;\" class=\"btn-add btn btn-success waves-effect waves-success btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'series');\"><i class=\"mdi mdi-plus\"></i></button></div>";
-						$rReturn["data"][] = [$rRow["id"], $rRow["title"], $rCategory, $rButtons];
+						$rReturn["data"][] = [$rRow["id"], $rRow["title"], $rCategory];
 					}
 				}
 			}
@@ -4399,8 +4425,7 @@ class TableController extends BaseAdminController {
 						if (1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rButtons = "<div class=\"btn-group\"><button data-id=\"" . $rRow["id"] . "\" data-type=\"radios\" type=\"button\" style=\"display: none;\" class=\"btn-remove btn btn-warning waves-effect waves-warning btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'radios');\"><i class=\"mdi mdi-minus\"></i></button>\r\n                <button data-id=\"" . $rRow["id"] . "\" data-type=\"radios\" type=\"button\" style=\"display: none;\" class=\"btn-add btn btn-success waves-effect waves-success btn-xs\" onClick=\"toggleBouquet(" . $rRow["id"] . ", 'radios');\"><i class=\"mdi mdi-plus\"></i></button></div>";
-						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory, $rButtons];
+						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory];
 					}
 				}
 			}
