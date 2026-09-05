@@ -839,6 +839,7 @@ renderUnifiedLayoutFooter('admin');
         // ----- live connections modal -----
         window.viewLiveConnections = function(streamID, serverID) {
             if (typeof serverID === 'undefined') { serverID = -1; }
+            // The live_connections handler returns clean-JSON objects, so map columns by key.
             $('#datatable-live').DataTable({
                 destroy: true,
                 ordering: true,
@@ -848,17 +849,36 @@ renderUnifiedLayoutFooter('admin');
                 serverSide: true,
                 searchDelay: 250,
                 info: true,
+                order: [[8, 'desc']],
                 ajax: {
                     url: './table',
                     data: function(d) { d.id = 'live_connections'; d.stream_id = streamID; d.server_id = serverID; }
                 },
-                columnDefs: [
-                    { className: 'text-center', targets: [1, 7, 8, 9, 10, 11] },
-                    { visible: false, targets: [0, 3, 5, 6] }
+                columns: [
+                    { data: 'activity_id', className: 'text-center' },
+                    { data: 'divergence', className: 'text-center', orderable: false, render: function(d) { var pct = 100 - (d || 0); var cls = d <= 50 ? 'text-success' : (d <= 80 ? 'text-warning' : 'text-danger'); return '<i class="icon-base ti tabler-square-filled ' + cls + '" title="' + pct + '%"></i>'; } },
+                    { data: 'user_label', render: function(d, t, row) { if (!d) { return ''; } return row.user_url ? '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
+                    { data: 'stream_name', render: function(d, t, row) { if (!d) { return ''; } return row.stream_url ? '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
+                    { data: 'server_name', render: function(d, t, row) { var html = row.server_url ? '<a href="' + esc(row.server_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d || ''); if (row.proxy_via) { html += '<br><small class="text-body-secondary">(via ' + esc(row.proxy_via) + ')</small>'; } return html; } },
+                    { data: 'player' },
+                    { data: 'isp' },
+                    { data: 'user_ip', className: 'text-center text-nowrap', render: function(d, t, row) { var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : ''; return flag + esc(d || ''); } },
+                    { data: 'date_start', className: 'text-center', render: function(d) { return '<span class="badge bg-label-secondary">' + esc(fmtUptime(Math.floor(Date.now() / 1000) - (d || 0))) + '</span>'; } },
+                    { data: 'container', className: 'text-center' },
+                    { data: 'is_restreamer', className: 'text-center', orderable: false, render: function(d) { return '<i class="icon-base ti tabler-square-filled ' + (d ? 'text-info' : 'text-body-secondary') + '"></i>'; } },
+                    { data: null, orderable: false, searchable: false, className: 'text-center', render: function(d, t, row) { return '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-kill" title="' + esc(lang.kill) + '" data-uuid="' + esc(row.uuid) + '"><i class="icon-base ti tabler-hammer"></i></button>'; } }
                 ]
             });
             bootstrap.Modal.getOrCreateInstance(document.getElementById('liveModal')).show();
         };
+        // Kill one connection from the live modal.
+        $('#datatable-live tbody').on('click', '.js-kill', function() {
+            var uuid = this.getAttribute('data-uuid');
+            fetch('./api?action=line_activity&sub=kill&pid=' + encodeURIComponent(uuid), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { toast(d && d.result ? <?= json_encode($language::get('connection_has_been_killed')) ?> : lang.error, d && d.result ? 'success' : 'error'); $('#datatable-live').DataTable().ajax.reload(null, false); })
+                .catch(function() { toast(lang.error, 'error'); });
+        });
 
         // ----- small static tables -----
         $('#datatable-archive').DataTable({ ordering: false, searching: false, lengthChange: false, info: false, paging: false });

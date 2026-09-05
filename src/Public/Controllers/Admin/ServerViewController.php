@@ -87,6 +87,12 @@ class ServerViewController extends BaseAdminController {
         $title = ($rServer['server_type'] == 0) ? 'View Server' : 'View Proxy';
         $this->setTitle($title);
 
+        // The Resources / Network tabs draw ApexCharts; request the vendor for the new-UI shell.
+        $GLOBALS['xmNewuiVendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmNewuiVendors'] ?? []),
+            ['apexcharts']
+        )));
+
         $this->render('server_view', compact(
             'rServer',
             'rWatchdog',
