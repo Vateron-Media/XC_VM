@@ -92,6 +92,17 @@ class HLSGenerator {
 			return false;
 		}
 
+		// Keep MEDIA-SEQUENCE monotonic across the off-air ↔ live transition. The
+		// off-air placeholder numbers its loop floor(time()/10) (~1.7e8) while the
+		// daemon restarts its own counter from 0 per stream, so a cold on-demand
+		// start would drop the sequence by ~10^8 and stall players. Re-anchor the
+		// live sequence to the same wall-clock base via a persisted per-stream offset
+		// so it only ever advances (see HlsSequence).
+		if (preg_match('/#EXT-X-MEDIA-SEQUENCE:(\d+)/', $rSource, $rSeqMatch)) {
+			$rSeq = HlsSequence::liveSequence((int) $rStreamID, (int) $rSeqMatch[1]);
+			$rSource = preg_replace('/#EXT-X-MEDIA-SEQUENCE:\d+/', '#EXT-X-MEDIA-SEQUENCE:' . $rSeq, $rSource, 1);
+		}
+
 		// Encrypted HLS: the daemon serves AES-128-CBC segments (it was given the
 		// same key/iv), so declare the key exactly like generateHLS — URI to the
 		// /key token endpoint, IV from the stream's iv file.
