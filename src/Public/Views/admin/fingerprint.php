@@ -1,331 +1,262 @@
-<div class="wrapper boxed-layout-ext">
-    <?php 
+<?php
+
+/**
+ * Fingerprint stream (Bootstrap 5). A modal wizard: pick an active live stream, then
+ * overlay a fingerprint (activity id / username / custom message) on its connections.
+ * The stream picker (stream_unique) and the live-connections activity table both hit
+ * ./table; activation posts to ./api?action=fingerprint. Opened as an iframe modal
+ * (?modal=1) from the streams table.
+ */
+
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\CategoryService;
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-        echo ' style="display: none;"';
-    } ?>
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include 'topbar.php'; ?>
+$rRedis = (bool) SettingsManager::get('redis_handler');
+$rPageLen = (int) ($rSettings['default_entries'] ?? 10) ?: 10;
+$rSelCategory = RequestManager::has('category') ? (string) RequestManager::get('category') : '';
+?>
+
+<?php if (!isset($_GET['modal'])): ?>
+    <div class="d-flex align-items-center mb-4"><h4 class="mb-0"><?= $language::get('fingerprint_stream'); ?></h4></div>
+<?php endif; ?>
+
+<div class="card">
+    <div class="card-body">
+        <ul class="nav nav-tabs" role="tablist">
+            <li class="nav-item"><button type="button" class="nav-link active" id="fp-stream-tab" data-bs-toggle="tab" data-bs-target="#tab-fp-stream"><i class="icon-base ti tabler-player-play me-1"></i><?= $language::get('stream'); ?></button></li>
+            <li class="nav-item"><button type="button" class="nav-link disabled" id="fp-activity-tab" data-bs-toggle="tab" data-bs-target="#tab-fp-activity" disabled><i class="icon-base ti tabler-users me-1"></i><?= $language::get('activity'); ?></button></li>
+        </ul>
+
+        <div class="tab-content p-4 border border-top-0 rounded-bottom">
+            <!-- Stream selection -->
+            <div class="tab-pane fade show active" id="tab-fp-stream" role="tabpanel">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6"><input type="text" class="form-control" id="stream_search" value="" placeholder="<?= htmlspecialchars((string) $language::get('search_streams'), ENT_QUOTES); ?>"></div>
+                    <div class="col-md-6">
+                        <select id="category_search" class="form-select">
+                            <option value="" selected><?= $language::get('all_categories'); ?></option>
+                            <?php foreach (CategoryService::getAllByType('live') as $rCategory): ?>
+                                <option value="<?= (int) $rCategory['id']; ?>" <?= $rSelCategory === (string) $rCategory['id'] ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
-                    <h4 class="page-title"><?php echo $language::get('fingerprint_stream'); ?></h4>
+                </div>
+                <div class="table-responsive">
+                    <table id="datatable-md1" class="table" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th class="text-center"><?= $language::get('id'); ?></th>
+                                <th><?= $language::get('stream_name'); ?></th>
+                                <th><?= $language::get('category'); ?></th>
+                                <th class="text-center"><?= $language::get('clients'); ?></th>
+                                <th class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <div class="card">
-                    <div class="card-body">
-                        <div id="basicwizard">
-                            <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                <li class="nav-item" id="stream-selection-tab">
-                                    <a href="#stream-selection" id="stream-selection-nav" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                        <i class="mdi mdi-play mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?php echo $language::get('stream'); ?></span>
-                                    </a>
-                                </li>
-                                <li class="nav-item disabled" id="stream-activity-tab">
-                                    <a href="#stream-activity" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                        <i class="mdi mdi-account-group mr-1"></i>
-                                        <span class="d-none d-sm-inline"><?php echo $language::get('activity'); ?></span>
-                                    </a>
-                                </li>
-                            </ul>
-                            <div class="tab-content b-0 mb-0 pt-0">
-                                <div class="tab-pane" id="stream-selection">
-                                    <div class="row">
-                                        <?php if (SettingsManager::get('redis_handler')) { ?>
-                                            <div class="col-md-6 col-6">
-                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $language::get('search_streams'); ?>">
-                                            </div>
-                                            <div class="col-md-6 col-6">
-                                                <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected><?php echo $language::get('all_categories'); ?></option>
-                                                    <?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
-                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
-                                                                                                            echo ' selected';
-                                                                                                        } ?>>
-                                                            <?php echo $rCategory['category_name']; ?>
-                                                        </option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-                                        <?php } else { ?>
-                                            <div class="col-md-5 col-6">
-                                                <input type="text" class="form-control" id="stream_search" value="" placeholder="<?php echo $language::get('search_streams'); ?>">
-                                            </div>
-                                            <div class="col-md-4 col-6">
-                                                <select id="category_search" class="form-control" data-toggle="select2">
-                                                    <option value="" selected><?php echo $language::get('all_categories'); ?></option>
-                                                    <?php foreach (CategoryService::getAllByType('live') as $rCategory) { ?>
-                                                        <option value="<?php echo $rCategory['id']; ?>" <?php if (RequestManager::has('category') && RequestManager::get('category') == $rCategory['id']) {
-                                                                                                            echo ' selected';
-                                                                                                        } ?>><?php echo $rCategory['category_name']; ?></option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-                                            <label class="col-md-1 col-2 col-form-label text-center" for="show_entries"><?php echo $language::get('show'); ?></label>
-                                            <div class="col-md-2 col-8">
-                                                <select id="show_entries" class="form-control" data-toggle="select2">
-                                                    <?php foreach (array(10, 25, 50, 250, 500, 1000) as $rShow) { ?>
-                                                        <option value="<?php echo $rShow; ?>" <?php if ($rSettings['default_entries'] == $rShow) {
-                                                                                                    echo 'selected';
-                                                                                                } ?>><?php echo $rShow; ?></option>
-                                                    <?php } ?>
-                                                </select>
-                                            </div>
-                                        <?php } ?>
-                                        <table id="datatable-md1" class="table table-striped table-borderless mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th class="text-center"><?php echo $language::get('id'); ?></th>
-                                                    <th><?php echo $language::get('stream_name'); ?></th>
-                                                    <th><?php echo $language::get('category'); ?></th>
-                                                    <th class="text-center"><?php echo $language::get('clients'); ?></th>
-                                                    <th class="text-center"></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                                <div class="tab-pane" id="stream-activity">
-                                    <div class="row">
-                                        <div class="alert alert-warning alert-dismissible fade show col-md-12 col-12 text-center" role="alert">
-                                            <?php echo $language::get('warning_fingerprint'); ?>
-                                        </div>
-                                    </div>
-                                    <div class="row" id="filter_selection">
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="fingerprint_type"><?php echo $language::get('type'); ?></label>
-                                        <div class="col-md-2 col-6">
-                                            <select id="fingerprint_type" class="form-control text-center" data-toggle="select2">
-                                                <option value="1"><?php echo $language::get('activity_id'); ?></option>
-                                                <option value="2"><?php echo $language::get('username'); ?></option>
-                                                <option value="3"><?php echo $language::get('message'); ?></option>
-                                            </select>
-                                        </div>
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="font_size"><?php echo $language::get('size'); ?></label>
-                                        <div class="col-md-1 col-2">
-                                            <input type="text" class="form-control text-center" id="font_size" value="36" placeholder="">
-                                        </div>
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="font_color"><?php echo $language::get('colour'); ?></label>
-                                        <div class="col-md-2 col-2">
-                                            <input type="text" id="font_color" class="form-control text-center" value="#ffffff">
-                                        </div>
-                                        <label class="col-md-1 col-2 col-form-label text-center" for="position"><?php echo $language::get('position'); ?></label>
-                                        <div class="col-md-1 col-2">
-                                            <input type="text" class="form-control text-center" id="position_x" value="10" placeholder="X">
-                                        </div>
-                                        <div class="col-md-1 col-2">
-                                            <input type="text" class="form-control text-center" id="position_y" value="10" placeholder="Y">
-                                        </div>
-                                        <div class="col-md-1 col-2">
-                                            <button type="button" class="btn btn-info waves-effect waves-light" onClick="activateFingerprint()">
-                                                <i class="mdi mdi-fingerprint"></i>
-                                            </button>
-                                        </div>
-                                        <div class="col-md-12 col-2" style="margin-top:10px;display:none;" id="custom_message_div">
-                                            <input type="text" class="form-control" id="custom_message" value="" placeholder="<?php echo $language::get('custom_message'); ?>">
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <table id="datatable-md2" class="table table-striped table-borderless mb-0">
-                                            <thead>
-                                                <tr>
-                                                    <th></th>
-                                                    <th></th>
-                                                    <th><?= $language::get('username') ?></th>
-                                                    <th><?= $language::get('stream') ?></th>
-                                                    <th></th>
-                                                    <th></th>
-                                                    <th></th>
-                                                    <th class="text-center"><?= $language::get('ip') ?></th>
-                                                    <th class="text-center"><?= $language::get('duration') ?></th>
-                                                    <th></th>
-                                                    <th></th>
-                                                    <th class="text-center"><?php echo $language::get('actions'); ?></th>
-                                                </tr>
-                                            </thead>
-                                            <tbody></tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
+
+            <!-- Activity -->
+            <div class="tab-pane fade" id="tab-fp-activity" role="tabpanel">
+                <div class="alert alert-warning" role="alert"><?= $language::get('warning_fingerprint'); ?></div>
+                <div class="row g-2 align-items-end mb-3" id="filter_selection">
+                    <div class="col-md-3">
+                        <label class="form-label" for="fingerprint_type"><?= $language::get('type'); ?></label>
+                        <select id="fingerprint_type" class="form-select">
+                            <option value="1"><?= $language::get('activity_id'); ?></option>
+                            <option value="2"><?= $language::get('username'); ?></option>
+                            <option value="3"><?= $language::get('message'); ?></option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="font_size"><?= $language::get('size'); ?></label>
+                        <input type="text" class="form-control text-center" id="font_size" value="36">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label" for="font_color"><?= $language::get('colour'); ?></label>
+                        <input type="color" class="form-control form-control-color w-100" id="font_color" value="#ffffff">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="position_x"><?= $language::get('position'); ?></label>
+                        <div class="d-flex gap-2">
+                            <input type="text" class="form-control text-center" id="position_x" value="10" placeholder="X">
+                            <input type="text" class="form-control text-center" id="position_y" value="10" placeholder="Y">
                         </div>
                     </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary w-100" id="fp-activate"><i class="icon-base ti tabler-fingerprint me-1"></i><?= $language::get('fingerprint'); ?></button>
+                    </div>
+                    <div class="col-12" id="custom_message_div" style="display:none">
+                        <input type="text" class="form-control" id="custom_message" value="" placeholder="<?= htmlspecialchars((string) $language::get('custom_message'), ENT_QUOTES); ?>">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table id="datatable-md2" class="table" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th><?= $language::get('username'); ?></th>
+                                <th><?= $language::get('stream'); ?></th>
+                                <th class="text-center"><?= $language::get('ip'); ?></th>
+                                <th class="text-center"><?= $language::get('duration'); ?></th>
+                                <th class="text-center"><?= $language::get('actions'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var toast = window.xcToast || function() {};
         $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
+
+        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+        var isLocal = function(ip) { return !ip || ip === '127.0.0.1' || ip === '::1'; };
+        var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+        var fmtDuration = function(startTs, isRestreamer) {
+            var sec = Math.max(0, Math.floor(Date.now() / 1000) - (startTs || 0));
+            var colour = 'success', txt;
+            if (sec >= 86400) { txt = pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h'; colour = 'danger'; }
+            else if (sec >= 3600) { txt = pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm'; if (sec > 14400) { colour = 'warning'; } }
+            else { txt = pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's'; }
+            if (isRestreamer) { colour = 'success'; }
+            return '<span class="badge bg-label-' + colour + '">' + esc(txt) + '</span>';
+        };
+        var lang = {
+            killed: <?= json_encode($language::get('connection_has_been_killed')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>,
+            success: <?= json_encode($language::get('fingerprint_success')); ?>,
+            fail: <?= json_encode($language::get('fingerprint_fail')); ?>,
+            kill: <?= json_encode($language::get('kill')); ?>
+        };
+
+        var rStreamID = -1;
+
+        if ($.fn.select2) { $('#category_search, #fingerprint_type').select2({ width: '100%' }); }
+
+        // ----- stream picker (data-only rows; select button rendered here) -----
+        var md1 = $('#datatable-md1').DataTable({
+            processing: true,
+            serverSide: true,
+            <?= $rRedis ? 'paging: false,' : 'pageLength: ' . $rPageLen . ', lengthMenu: [10, 25, 50, 250, 500, 1000],'; ?>
+            order: [[<?= $rRedis ? '1' : '3'; ?>, '<?= $rRedis ? 'asc' : 'desc'; ?>']],
+            ajax: {
+                url: './table',
+                data: function(d) { d.id = 'stream_unique'; d.category = $('#category_search').val(); }
+            },
+            columns: [
+                { data: 0, className: 'text-center' },
+                { data: 1 },
+                { data: 2 },
+                { data: 3, className: 'text-center', orderable: false },
+                { data: 0, orderable: false, searchable: false, className: 'text-center', render: function(rID) {
+                    return '<button type="button" class="btn btn-sm btn-icon btn-label-info js-select" data-id="' + esc(rID) + '"><i class="icon-base ti tabler-fingerprint"></i></button>';
+                } }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
         });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
+        $('#stream_search').on('keyup', function() { md1.search($(this).val()).draw(); });
+        $('#category_search').on('select2:select change', function() { md1.ajax.reload(null, false); });
+
+        // ----- activity table (clean-JSON live_connections rows) -----
+        var md2 = $('#datatable-md2').DataTable({
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            pageLength: <?= $rPageLen; ?>,
+            lengthMenu: [10, 25, 50, 250, 500, 1000],
+            order: [[3, 'desc']],
+            ajax: {
+                url: './table',
+                data: function(d) { d.id = 'live_connections'; d.stream_id = rStreamID; d.fingerprint = true; }
+            },
+            columns: [
+                { data: 'user_label', render: function(d, t, row) { if (!d) { return ''; } return row.user_url ? '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
+                { data: 'stream_name', render: function(d, t, row) { if (!d) { return ''; } return row.stream_url ? '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
+                { data: 'user_ip', className: 'text-center text-nowrap', render: function(d, t, row) {
+                    var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : '';
+                    return flag + esc(d || '');
+                } },
+                { data: 'date_start', className: 'text-center', render: function(d, t, row) { return fmtDuration(d, row.is_restreamer); } },
+                { data: null, orderable: false, searchable: false, className: 'text-center', render: function(d, t, row) {
+                    return '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-kill" title="' + esc(lang.kill) + '" data-uuid="' + esc(row.uuid) + '"><i class="icon-base ti tabler-hammer"></i></button>';
+                } }
+            ],
+            layout: { topStart: 'pageLength', topEnd: 'search' }
         });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
+
+        // A stream is chosen: enable + open the activity tab and load its connections.
+        $('#datatable-md1 tbody').on('click', '.js-select', function() {
+            rStreamID = this.getAttribute('data-id');
+            $('#fp-activity-tab').removeClass('disabled').prop('disabled', false);
+            bootstrap.Tab.getOrCreateInstance(document.getElementById('fp-activity-tab')).show();
+            $('#filter_selection').show();
+            md2.ajax.reload(null, false);
         });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
+        // Returning to the stream tab clears the selection.
+        $('#fp-stream-tab').on('shown.bs.tab', function() {
+            rStreamID = -1;
+            $('#fp-activity-tab').addClass('disabled').prop('disabled', true);
+            md1.ajax.reload(null, false);
         });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
+
+        $('#fingerprint_type').on('change', function() {
+            document.getElementById('custom_message_div').style.display = (this.value === '3') ? '' : 'none';
         });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
+        var digitsOnly = function(id) {
+            var el = document.getElementById(id);
+            if (el) { el.addEventListener('input', function() { this.value = this.value.replace(/[^\d]/g, ''); }); }
+        };
+        digitsOnly('font_size');
+        digitsOnly('position_x');
+        digitsOnly('position_y');
+
+        // Apply the fingerprint overlay to the selected stream.
+        document.getElementById('fp-activate').addEventListener('click', function() {
+            var rArray = {
+                id: rStreamID,
+                font_size: $('#font_size').val(),
+                font_color: $('#font_color').val(),
+                message: '',
+                type: $('#fingerprint_type').val(),
+                xy_offset: ''
             };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
+            if (rArray.type === '3') { rArray.message = $('#custom_message').val(); }
+            if (($('#position_x').val() >= 0) && ($('#position_y').val() >= 0)) {
+                rArray.xy_offset = $('#position_x').val() + 'x' + $('#position_y').val();
             }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
+            if (!(rArray.font_size > 0) || !rArray.font_color || (!rArray.message && rArray.type === '3') || !rArray.xy_offset) {
+                toast(lang.fail, 'error');
+                return;
             }
+            fetch('./api?action=fingerprint&data=' + encodeURIComponent(JSON.stringify(rArray)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { toast(d && d.result ? lang.success : lang.error, d && d.result ? 'success' : 'error'); md2.ajax.reload(null, false); })
+                .catch(function() { toast(lang.error, 'error'); });
         });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
-        }
-    });
 
-    <?php
-    echo '        ' . "\r\n\t\t" . 'var rStreamID = -1;' . "\r\n\r\n\t\t" . 'function getCategory() {' . "\r\n\t\t\t" . 'return $("#category_search").val();' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function getStreamID() {' . "\r\n\t\t\t" . 'return window.rStreamID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function selectFingerprint(rID) {' . "\r\n\t\t\t" . '$("#stream-activity-tab").attr("disabled", false);' . "\r\n\t\t\t" . "\$('[href=\"#stream-activity\"]').tab('show');" . "\r\n\t\t\t" . 'window.rStreamID = rID;' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function activateFingerprint() {' . "\r\n\t\t\t" . 'rArray = {"id": window.rStreamID, "font_size": $("#font_size").val(), "font_color": $("#font_color").val(), "message": "", "type": $("#fingerprint_type").val(), "xy_offset": ""};' . "\r\n\t\t\t" . 'if (rArray.type == 3) {' . "\r\n\t\t\t\t" . 'rArray["message"] = $("#custom_message").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if (($("#position_x").val() >= 0) && ($("#position_y").val() >= 0)) {' . "\r\n\t\t\t\t" . 'rArray["xy_offset"] = $("#position_x").val() + "x" + $("#position_y").val();' . "\r\n\t\t\t" . '}' . "\r\n\t\t\t" . 'if ((rArray["font_size"] > 0) && (rArray["font_color"]) && ((rArray["message"]) || (rArray["type"] != 3))  && (rArray["font_size"] > 0) && (rArray["xy_offset"])) {' . "\r\n\t\t\t\t" . '$.getJSON("./api?action=fingerprint&data=" + encodeURIComponent(JSON.stringify(rArray)), function(data) {' . "\r\n\t\t\t\t\t" . 'if (data.result == true) {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-    echo $language::get('fingerprint_success');
-    echo '");' . "\r\n\t\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-    echo $language::get('error_occured');
-    echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t\t" . '$("#datatable-md2").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t\t" . '$("#filter_selection").fadeOut(500, function() {' . "\r\n\t\t\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().fadeIn(500);" . "\r\n\t\t\t\t" . '});' . "\r\n\t\t\t" . '} else {' . "\r\n\t\t\t\t" . '$.toast("';
-    echo $language::get('fingerprint_fail');
-    echo '");' . "\r\n\t\t\t" . '}' . "\r\n\t\t" . '}' . "\r\n\t\t" . 'function api(rID, rType, rAID) {' . "\r\n\t\t\t" . '$.getJSON("./api?action=line_activity&sub=" + rType + "&pid=" + rID, function(data) {' . "\r\n\t\t\t\t" . 'if (data.result === true) {' . "\r\n" . '                    if (rType == "kill") {' . "\r\n\t\t\t\t\t\t" . '$.toast("';
-    echo $language::get('connection_has_been_killed');
-    echo '");' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t\t" . '$("#datatable-md2").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$.toast("';
-    echo $language::get('error_occured');
-    echo '");' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '}' . "\r\n\t\t" . '$(document).ready(function() {' . "\r\n\t\t\t" . "\$('select').select2({width: '100%'})" . "\r\n\t\t\t" . '$("#font_color").colorpicker({format:"auto"});' . "\r\n\t\t\t" . '$("#probesize_ondemand").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#delay_minutes").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#tv_archive_duration").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#datatable-md1").DataTable({' . "\r\n\t\t\t\t";
-
-    if (SettingsManager::get('redis_handler')) {
-        echo "\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "stream_unique",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4]},' . "\r\n\t\t\t\t\t" . '{"orderable": false, "targets": [3,4]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'paging: false,' . "\r\n\t\t\t\t" . 'order: [[ 1, "asc" ]],' . "\r\n\t\t\t\t";
-    } else {
-        echo "\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "stream_unique",' . "\r\n\t\t\t\t\t\t" . 'd.category = getCategory()' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'pageLength: ';
-        echo (intval($rSettings['default_entries']) ?: 10);
-        echo ',' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [0,3,4]},' . "\r\n\t\t\t\t\t" . '{"orderable": false, "targets": [4]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'order: [[ 3, "desc" ]],' . "\r\n\t\t\t\t";
-    }
-
-    echo "\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#stream_search').keyup(function(){" . "\r\n\t\t\t\t" . '$("#datatable-md1").DataTable().search($(this).val()).draw();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#show_entries').change(function(){" . "\r\n\t\t\t\t" . '$("#datatable-md1").DataTable().page.len($(this).val()).draw();' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . "\$('#category_search').change(function(){" . "\r\n\t\t\t\t" . '$("#datatable-md1").DataTable().ajax.reload(null, false);' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#datatable-md2").DataTable({' . "\r\n\t\t\t\t" . 'language: {' . "\r\n\t\t\t\t\t" . 'paginate: {' . "\r\n\t\t\t\t\t\t" . "previous: \"<i class='mdi mdi-chevron-left'>\"," . "\r\n\t\t\t\t\t\t" . "next: \"<i class='mdi mdi-chevron-right'>\"" . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'drawCallback: function() {' . "\r\n\r\n" . '                    bindHref(); refreshTooltips();' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'rowCallback: function (row, data) {' . "\r\n\t\t\t\t\t" . '$(row).attr("id", "row-" + data[0]);' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'processing: true,' . "\r\n\t\t\t\t" . 'serverSide: true,' . "\r\n" . '                searchDelay: 250,' . "\r\n\t\t\t\t" . 'ajax: {' . "\r\n\t\t\t\t\t" . 'url: "./table",' . "\r\n\t\t\t\t\t" . '"data": function(d) {' . "\r\n\t\t\t\t\t\t" . 'd.id = "live_connections",' . "\r\n\t\t\t\t\t\t" . 'd.stream_id = getStreamID(),' . "\r\n\t\t\t\t\t\t" . 'd.fingerprint = true;' . "\r\n\t\t\t\t\t" . '}' . "\r\n\t\t\t\t" . '},' . "\r\n\t\t\t\t" . 'columnDefs: [' . "\r\n\t\t\t\t\t" . '{"className": "dt-center", "targets": [7,8,11]},' . "\r\n\t\t\t\t\t" . '{"visible": false, "targets": [0,1,4,5,6,9,10]}' . "\r\n\t\t\t\t" . '],' . "\r\n\t\t\t\t" . 'pageLength: ';
-    echo (intval($rSettings['default_entries']) ?: 10);
-    echo ',' . "\r\n\t\t\t\t" . 'lengthMenu: [10, 25, 50, 250, 500, 1000],' . "\r\n\t\t\t\t" . 'order: [[ 0, "desc" ]]' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#fingerprint_type").change(function() {' . "\r\n\t\t\t\t" . 'if ($(this).val() == 3) {' . "\r\n\t\t\t\t\t" . '$("#custom_message_div").show();' . "\r\n\t\t\t\t" . '} else {' . "\r\n\t\t\t\t\t" . '$("#custom_message_div").hide();' . "\r\n\t\t\t\t" . '}' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#font_size").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#position_x").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . '$("#position_y").inputFilter(function(value) { return /^\\d*$/.test(value); });' . "\r\n\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().hide();" . "\r\n\t\t\t" . '$(".nav li.disabled a").click(function() {' . "\r\n\t\t\t\t" . 'return false;' . "\r\n\t\t\t" . '});' . "\r\n\t\t\t" . '$("#stream-selection-nav").click(function() {' . "\r\n\t\t\t\t" . '$("#stream-activity-tab").attr("disabled", true);' . "\r\n\t\t\t\t" . 'window.rStreamID = -1;' . "\r\n\t\t\t\t" . '$("#filter_selection").show();' . "\r\n\t\t\t\t" . "\$('#datatable-md2').parents('div.dataTables_wrapper').first().hide();" . "\r\n\t\t\t\t" . '$("#datatable-md1").DataTable().ajax.reload( null, false );' . "\r\n\t\t\t" . '});' . "\r\n\t\t" . '});' . "\r\n" . '        ' . "\r\n\t\t";
-    ?>
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
+        // Kill a single connection.
+        $('#datatable-md2 tbody').on('click', '.js-kill', function() {
+            var uuid = this.getAttribute('data-uuid');
+            fetch('./api?action=line_activity&sub=kill&pid=' + encodeURIComponent(uuid), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.json(); })
+                .then(function(d) { toast(d && d.result ? lang.killed : lang.error, d && d.result ? 'success' : 'error'); md2.ajax.reload(null, false); })
+                .catch(function() { toast(lang.error, 'error'); });
         });
-    <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>

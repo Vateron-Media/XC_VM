@@ -3218,7 +3218,7 @@ class TableController extends BaseAdminController {
 						if (1 < count($rCategoryIDs)) {
 							$rCategory .= " (+" . (count($rCategoryIDs) - 1) . " others)";
 						}
-						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory, $rRow["active_count"], "<button type='button' class='btn btn-info waves-effect waves-light btn-xs' href='javascript:void(0);' onClick='selectFingerprint(" . $rRow["id"] . ")'><i class='mdi mdi-fingerprint'></i></button>"];
+						$rReturn["data"][] = [$rRow["id"], $rRow["stream_display_name"], $rCategory, $rRow["active_count"]];
 					}
 				}
 			}

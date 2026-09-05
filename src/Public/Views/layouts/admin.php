@@ -39,7 +39,7 @@ if (!function_exists('xc_admin_use_newui')) {
             if (!empty($GLOBALS['_SETUP'])) {
                 return false;
             }
-            static $migratedModals = ['line', 'enigma', 'mag', 'user', 'radio', 'movie', 'stream', 'serie', 'created_channel'];
+            static $migratedModals = ['line', 'enigma', 'mag', 'user', 'radio', 'movie', 'stream', 'serie', 'created_channel', 'fingerprint'];
             return in_array($page, $migratedModals, true);
         }
         if (!empty($GLOBALS['_SETUP'])) {
