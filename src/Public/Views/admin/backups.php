@@ -142,19 +142,43 @@ renderUnifiedLayoutFooter('admin');
             ordering: false,
             info: false,
             responsive: true,
-            ajax: { url: './table', data: function(d) { d.id = 'backups'; } },
-            columns: [
-                { data: 'date' },
-                { data: 'filename', render: esc },
-                { data: 'size', className: 'text-nowrap' },
-                { data: 'local', className: 'text-center', render: function(d) { return dot(d ? 'success' : 'secondary'); } },
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'backups';
+                }
+            },
+            columns: [{
+                    data: 'date'
+                },
+                {
+                    data: 'filename',
+                    render: esc
+                },
+                {
+                    data: 'size',
+                    className: 'text-nowrap'
+                },
+                {
+                    data: 'local',
+                    className: 'text-center',
+                    render: function(d) {
+                        return dot(d ? 'success' : 'secondary');
+                    }
+                },
                 {
                     data: 'remote',
                     className: 'text-center',
                     render: function(d, t, row) {
-                        if (d === 'yes') { return dot('success'); }
-                        if (d === 'error') { return dot('danger', row.remote_msg || 'Upload error'); }
-                        if (d === 'uploading') { return dot('warning', 'Uploading…'); }
+                        if (d === 'yes') {
+                            return dot('success');
+                        }
+                        if (d === 'error') {
+                            return dot('danger', row.remote_msg || 'Upload error');
+                        }
+                        if (d === 'uploading') {
+                            return dot('warning', 'Uploading…');
+                        }
                         return dot('secondary');
                     }
                 },
@@ -168,32 +192,55 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }
             ],
-            layout: { topStart: null, topEnd: null, bottomStart: null, bottomEnd: null }
+            layout: {
+                topStart: null,
+                topEnd: null,
+                bottomStart: null,
+                bottomEnd: null
+            }
         });
 
         var apiCall = function(id, sub) {
-            return fetch('./api?action=backup&sub=' + encodeURIComponent(sub) + '&filename=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); });
+            return fetch('./api?action=backup&sub=' + encodeURIComponent(sub) + '&filename=' + encodeURIComponent(id), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                });
         };
 
         jQuery('#backups-table tbody').on('click', '.js-delete', function() {
             var id = this.getAttribute('data-id');
             window.xcConfirm(lang.confirmDelete).then(function(ok) {
-                if (!ok) { return; }
+                if (!ok) {
+                    return;
+                }
                 apiCall(id, 'delete').then(function(dt) {
-                    if (!dt || dt.result !== true) { throw new Error('fail'); }
+                    if (!dt || dt.result !== true) {
+                        throw new Error('fail');
+                    }
                     table.ajax.reload(null, false);
-                }).catch(function() { alert(lang.error); });
+                }).catch(function() {
+                    alert(lang.error);
+                });
             });
         });
         jQuery('#backups-table tbody').on('click', '.js-restore', function() {
             var id = this.getAttribute('data-id');
             window.xcConfirm(lang.confirmRestore).then(function(ok) {
-                if (!ok) { return; }
+                if (!ok) {
+                    return;
+                }
                 apiCall(id, 'restore').then(function(dt) {
-                    if (!dt || dt.result !== true) { throw new Error('fail'); }
+                    if (!dt || dt.result !== true) {
+                        throw new Error('fail');
+                    }
                     table.ajax.reload(null, false);
-                }).catch(function() { alert(lang.error); });
+                }).catch(function() {
+                    alert(lang.error);
+                });
             });
         });
 
@@ -201,10 +248,18 @@ renderUnifiedLayoutFooter('admin');
             var btn = this;
             btn.disabled = true;
             apiCall('', 'backup').then(function(dt) {
-                if (!dt || dt.result !== true) { throw new Error('fail'); }
+                if (!dt || dt.result !== true) {
+                    throw new Error('fail');
+                }
                 alert(lang.creating);
-                setTimeout(function() { btn.disabled = false; table.ajax.reload(null, false); }, 2000);
-            }).catch(function() { btn.disabled = false; alert(lang.error); });
+                setTimeout(function() {
+                    btn.disabled = false;
+                    table.ajax.reload(null, false);
+                }, 2000);
+            }).catch(function() {
+                btn.disabled = false;
+                alert(lang.error);
+            });
         });
 
         // Settings save — mirrors legacy submitForm (POST FormData to post.php?action=backups).
@@ -212,15 +267,32 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var btn = document.getElementById('save-settings');
             btn.disabled = true;
-            fetch('post.php?action=backups', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=backups', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
                     var dt;
-                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     btn.disabled = false;
                     alert(dt && dt.result !== false ? lang.saved : lang.error);
                 })
-                .catch(function() { btn.disabled = false; alert(lang.error); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(lang.error);
+                });
         });
     })();
 </script>

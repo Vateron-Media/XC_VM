@@ -175,7 +175,7 @@ $rTitleText  = ($rType == 1 ? $language::get('stream') : $language::get('movie')
 $rBackHref   = $rType == 1 ? 'streams' : 'movies';
 ?>
 
-<form id="stream_form" action="./review?type=<?= intval($rType); ?>" method="POST" autocomplete="off"<?= !isset($rImport) ? ' enctype="multipart/form-data"' : ''; ?>>
+<form id="stream_form" action="./review?type=<?= intval($rType); ?>" method="POST" autocomplete="off" <?= !isset($rImport) ? ' enctype="multipart/form-data"' : ''; ?>>
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div class="d-flex align-items-center">
             <a href="<?= $rBackHref; ?>" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
@@ -516,15 +516,17 @@ require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
 ?>
 <script>
-    (function () {
+    (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
 
         var reviewPhase = <?= (isset($rImport) && $rImport) ? 'true' : 'false'; ?>;
-        var streamType  = <?= $rType == 1 ? 'true' : 'false'; ?>;
-        var tmdbLang    = <?= json_encode($rTmdbLang); ?>;
-        var yearAppend  = <?= (int) $rYearAppend; ?>;
-        var serverTree  = <?= json_encode($rServerTree ?? array()); ?>;
+        var streamType = <?= $rType == 1 ? 'true' : 'false'; ?>;
+        var tmdbLang = <?= json_encode($rTmdbLang); ?>;
+        var yearAppend = <?= (int) $rYearAppend; ?>;
+        var serverTree = <?= json_encode($rServerTree ?? array()); ?>;
         var lang = {
             selectPlaylist: <?= json_encode($language::get('select_playlist_toast') ?: 'Please select a playlist to upload & review.'); ?>,
             disabledText: <?= json_encode($language::get('disabled')); ?>
@@ -540,15 +542,17 @@ renderUnifiedLayoutFooter('admin');
         var rTrigger = true;
 
         // ---- poster preview (magnificPopup -> Bootstrap modal) ----
-        window.openImage = function (elem) {
+        window.openImage = function(elem) {
             var src = $(elem).data('src');
-            if (!src) { return; }
+            if (!src) {
+                return;
+            }
             document.getElementById('imgPreviewImg').src = src;
             bootstrap.Modal.getOrCreateInstance(document.getElementById('imgPreviewModal')).show();
         };
 
         // ---- EPG clear (streams) ----
-        window.clearEPG = function (elem) {
+        window.clearEPG = function(elem) {
             var id = $(elem).data('id');
             if ($('#epg_api_' + id).val()) {
                 $('#epg_api_' + id).val('').trigger('change');
@@ -556,9 +560,9 @@ renderUnifiedLayoutFooter('admin');
         };
 
         // ---- TMDb bulk / per-row search (movies) ----
-        window.scanTMDb = function (rIndivID) {
+        window.scanTMDb = function(rIndivID) {
             rIndivID = rIndivID || null;
-            $('#datatable tr').each(function () {
+            $('#datatable tr').each(function() {
                 try {
                     var rID = $(this).data('id');
                     if (($('#check_' + rID).is(':checked')) || (rID == rIndivID)) {
@@ -567,9 +571,9 @@ renderUnifiedLayoutFooter('admin');
                             if (rName) {
                                 var langVal = $('#tmdb_language').length ? $('#tmdb_language').val() : tmdbLang;
                                 $('#tmdb_search_' + rID).empty().trigger('change');
-                                $.getJSON('./api?action=tmdb_search&type=movie&term=' + encodeURIComponent(rName) + '&language=' + encodeURIComponent(langVal), function (rJSON) {
+                                $.getJSON('./api?action=tmdb_search&type=movie&term=' + encodeURIComponent(rName) + '&language=' + encodeURIComponent(langVal), function(rJSON) {
                                     if (rJSON && rJSON.result) {
-                                        $(rJSON.data).each(function () {
+                                        $(rJSON.data).each(function() {
                                             var rTitle;
                                             if (this.release_date) {
                                                 rTitle = yearAppend === 0 ? (this.title + ' (' + this.release_date.substring(0, 4) + ')') : (yearAppend === 1 ? (this.title + ' - ' + this.release_date.substring(0, 4)) : this.title);
@@ -593,7 +597,7 @@ renderUnifiedLayoutFooter('admin');
 
         // ---- copy visible inputs into the hidden posting inputs ----
         function saveChanges() {
-            $('#datatable tr').each(function () {
+            $('#datatable tr').each(function() {
                 var rID = $(this).data('id');
                 $('#name_i_' + rID).val($('#name_' + rID).val());
                 $('#category_id_i_' + rID).val(JSON.stringify($('#category_id_' + rID).val()));
@@ -615,7 +619,9 @@ renderUnifiedLayoutFooter('admin');
             $('#on_demand').empty();
             $('#vframes_server_id').empty().append(new Option(lang.disabledText, 0));
             $('#tv_archive_server_id').empty().append(new Option(lang.disabledText, 0));
-            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function (index, value) {
+            $($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            })).each(function(index, value) {
                 if (value.parent != '#') {
                     $('#vframes_server_id').append(new Option(value.text, value.id));
                     $('#tv_archive_server_id').append(new Option(value.text, value.id));
@@ -623,26 +629,41 @@ renderUnifiedLayoutFooter('admin');
                 }
             });
             $('#vframes_server_id').val(rVVal).trigger('change');
-            if (!$('#vframes_server_id').val()) { $('#vframes_server_id').val(0).trigger('change'); }
+            if (!$('#vframes_server_id').val()) {
+                $('#vframes_server_id').val(0).trigger('change');
+            }
             $('#tv_archive_server_id').val(rTVal).trigger('change');
-            if (!$('#tv_archive_server_id').val()) { $('#tv_archive_server_id').val(0).trigger('change'); }
+            if (!$('#tv_archive_server_id').val()) {
+                $('#tv_archive_server_id').val(0).trigger('change');
+            }
             $('#on_demand').val(rOVal).trigger('change');
-            if (!$('#on_demand').val()) { $('#on_demand').val(0).trigger('change'); }
+            if (!$('#on_demand').val()) {
+                $('#on_demand').val(0).trigger('change');
+            }
         }
 
         // ---- input-phase: direct-source cascade (Switchery -> plain disable) ----
         function toggleFields(ids, disabled) {
-            ids.forEach(function (id) {
+            ids.forEach(function(id) {
                 var el = document.getElementById(id);
-                if (!el) { return; }
-                if (disabled && el.type === 'checkbox') { el.checked = false; }
+                if (!el) {
+                    return;
+                }
+                if (disabled && el.type === 'checkbox') {
+                    el.checked = false;
+                }
                 el.disabled = disabled;
-                if ($(el).hasClass('select2-hidden-accessible')) { $(el).trigger('change.select2'); }
+                if ($(el).hasClass('select2-hidden-accessible')) {
+                    $(el).trigger('change.select2');
+                }
             });
         }
+
         function evaluateDirectSource() {
             var ds = document.getElementById('direct_source');
-            if (!ds) { return; }
+            if (!ds) {
+                return;
+            }
             var checked = ds.checked;
             toggleFields(['read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'rtmp_output', 'delay_minutes', 'probesize_ondemand', 'transcode_profile_id', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'], checked);
             toggleFields(['direct_proxy'], !checked);
@@ -653,12 +674,12 @@ renderUnifiedLayoutFooter('admin');
 
         // ---- review-phase: cascade changes down to checked rows ----
         function evaluateChanges() {
-            $('.bouquet').off('change.rev').on('change.rev', function () {
+            $('.bouquet').off('change.rev').on('change.rev', function() {
                 if (rTrigger) {
                     rTrigger = false;
                     var rThis = this;
                     var rChangeID = $(this).data('id');
-                    $('#datatable tr').each(function () {
+                    $('#datatable tr').each(function() {
                         var rID = $(this).data('id');
                         if ((rID > rChangeID) && ($('#check_' + rID).is(':checked'))) {
                             if ($.inArray(rID, rBouquetSet) == -1) {
@@ -672,12 +693,12 @@ renderUnifiedLayoutFooter('admin');
                     rTrigger = true;
                 }
             });
-            $('.category_id').off('change.rev').on('change.rev', function () {
+            $('.category_id').off('change.rev').on('change.rev', function() {
                 if (rTrigger) {
                     rTrigger = false;
                     var rThis = this;
                     var rChangeID = $(this).data('id');
-                    $('#datatable tr').each(function () {
+                    $('#datatable tr').each(function() {
                         var rID = $(this).data('id');
                         if ((rID > rChangeID) && ($('#check_' + rID).is(':checked'))) {
                             if ($.inArray(rID, rCategorySet) == -1) {
@@ -691,12 +712,12 @@ renderUnifiedLayoutFooter('admin');
                     rTrigger = true;
                 }
             });
-            $('.activate').off('change.rev').on('change.rev', function () {
+            $('.activate').off('change.rev').on('change.rev', function() {
                 if (rTrigger) {
                     rTrigger = false;
                     var rVal = $(this).prop('checked');
                     var rChangeID = $(this).data('id');
-                    $('#datatable tr').each(function () {
+                    $('#datatable tr').each(function() {
                         var rID = $(this).data('id');
                         if (rID > rChangeID) {
                             if (($.inArray(rID, rCheckSet) == -1) && ($('#check_' + rID).prop('checked') != rVal)) {
@@ -711,7 +732,7 @@ renderUnifiedLayoutFooter('admin');
                 }
             });
             if (streamType) {
-                $('.epg_api').off('change.rev').on('change.rev', function () {
+                $('.epg_api').off('change.rev').on('change.rev', function() {
                     var rID = $(this).data('id');
                     var rDataItem;
                     if (rData[rID]) {
@@ -746,10 +767,10 @@ renderUnifiedLayoutFooter('admin');
                     }
                 });
             } else {
-                $('.tmdb_search').off('change.rev').on('change.rev', function () {
+                $('.tmdb_search').off('change.rev').on('change.rev', function() {
                     var rID = $(this).data('id');
                     var val = $(this).val();
-                    if (($.inArray(val, rImages) == -1) && (typeof (rImages[val]) != 'undefined')) {
+                    if (($.inArray(val, rImages) == -1) && (typeof(rImages[val]) != 'undefined')) {
                         $('#picon_' + rID).find('a').data('src', './resize?maxw=512&maxh=512&url=' + rImages[val]);
                         $('#picon_' + rID).find('img').attr('src', './resize?maxw=96&maxh=32&url=' + rImages[val]);
                         $('#icon_' + rID).val(rImages[val]);
@@ -768,11 +789,11 @@ renderUnifiedLayoutFooter('admin');
         // ---- review-phase: rebuild each row's category options from #category_selection ----
         function scanCategories() {
             rTrigger = false;
-            $('#datatable tr').each(function () {
+            $('#datatable tr').each(function() {
                 var rID = $(this).data('id');
                 var rValues = $('#category_id_' + rID).val();
                 $('#category_id_' + rID).empty();
-                $($('#category_selection').val()).each(function () {
+                $($('#category_selection').val()).each(function() {
                     var rCategory = $("#category_selection option[value='" + this + "']");
                     $('#category_id_' + rID).append(new Option(rCategory.text(), rCategory.val()));
                 });
@@ -784,7 +805,7 @@ renderUnifiedLayoutFooter('admin');
         // ---- review-phase: auto-check rows flagged with the .checked marker class ----
         function enableChecked() {
             rTrigger = false;
-            $('#datatable tr').each(function () {
+            $('#datatable tr').each(function() {
                 var rID = $(this).data('id');
                 if ($('#check_' + rID).hasClass('checked')) {
                     $('#check_' + rID).prop('checked', true);
@@ -793,13 +814,20 @@ renderUnifiedLayoutFooter('admin');
             rTrigger = true;
         }
 
-        $(function () {
+        $(function() {
             $.fn.dataTable.ext.errMode = 'none';
 
             if (reviewPhase) {
-                $('#category_selection').select2({ width: '100%', tags: true });
-                $('#tmdb_language').select2({ width: '100%' });
-                $('#datatable select').not('.epg_api').select2({ width: '100%' });
+                $('#category_selection').select2({
+                    width: '100%',
+                    tags: true
+                });
+                $('#tmdb_language').select2({
+                    width: '100%'
+                });
+                $('#datatable select').not('.epg_api').select2({
+                    width: '100%'
+                });
 
                 if (streamType) {
                     $('.epg_api').select2({
@@ -807,14 +835,20 @@ renderUnifiedLayoutFooter('admin');
                         ajax: {
                             url: './api',
                             dataType: 'json',
-                            data: function (params) {
-                                return { search: params.term, action: 'epglist', page: params.page };
+                            data: function(params) {
+                                return {
+                                    search: params.term,
+                                    action: 'epglist',
+                                    page: params.page
+                                };
                             },
-                            processResults: function (data, params) {
+                            processResults: function(data, params) {
                                 params.page = params.page || 1;
                                 return {
                                     results: data.items,
-                                    pagination: { more: (params.page * 100) < data.total_count }
+                                    pagination: {
+                                        more: (params.page * 100) < data.total_count
+                                    }
                                 };
                             },
                             cache: true
@@ -830,11 +864,11 @@ renderUnifiedLayoutFooter('admin');
                             next: "<i class='icon-base ti tabler-chevron-right'></i>"
                         }
                     },
-                    drawCallback: function () {
+                    drawCallback: function() {
                         if ($.inArray($('#datatable').DataTable().page.info().page, rPages) == -1) {
                             enableChecked();
                             <?php if ($rType != 1): ?>
-                            scanTMDb();
+                                scanTMDb();
                             <?php endif; ?>
                             rPages.push($('#datatable').DataTable().page.info().page);
                         }
@@ -848,20 +882,26 @@ renderUnifiedLayoutFooter('admin');
                     paging: true,
                     pageLength: 50,
                     lengthChange: false
-                }).on('page.dt', function () {
+                }).on('page.dt', function() {
                     saveChanges();
                 });
                 $('#datatable').css('width', '100%');
 
-                $('#category_selection').on('change', function () { scanCategories(); });
+                $('#category_selection').on('change', function() {
+                    scanCategories();
+                });
                 saveChanges();
-                $('#stream_form').on('submit', function () { saveChanges(); });
+                $('#stream_form').on('submit', function() {
+                    saveChanges();
+                });
             } else {
-                $('#stream_form select').select2({ width: '100%' });
+                $('#stream_form select').select2({
+                    width: '100%'
+                });
 
-                $('#server_tree').on('redraw.jstree', function () {
+                $('#server_tree').on('redraw.jstree', function() {
                     evaluateServers();
-                }).on('select_node.jstree', function (e, data) {
+                }).on('select_node.jstree', function(e, data) {
                     if (data.node.parent == 'offline') {
                         $('#server_tree').jstree('move_node', data.node.id, '#source', 'last');
                     } else {
@@ -869,14 +909,20 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }).jstree({
                     core: {
-                        check_callback: function (op, node, parent) {
+                        check_callback: function(op, node, parent) {
                             switch (op) {
                                 case 'move_node':
-                                    if ((node.id == 'offline') || (node.id == 'source')) { return false; }
+                                    if ((node.id == 'offline') || (node.id == 'source')) {
+                                        return false;
+                                    }
                                     <?php if ($rType != 1): ?>
-                                    if (parent.id != 'offline' && parent.id != 'source') { return false; }
+                                        if (parent.id != 'offline' && parent.id != 'source') {
+                                            return false;
+                                        }
                                     <?php endif; ?>
-                                    if (parent.id == '#') { return false; }
+                                    if (parent.id == '#') {
+                                        return false;
+                                    }
                                     return true;
                             }
                             return true;
@@ -887,22 +933,32 @@ renderUnifiedLayoutFooter('admin');
                 });
 
                 if (document.getElementById('direct_source')) {
-                    $('#direct_source, #direct_proxy').on('change', function () { evaluateDirectSource(); });
+                    $('#direct_source, #direct_proxy').on('change', function() {
+                        evaluateDirectSource();
+                    });
                     evaluateDirectSource();
                 }
 
-                $('#stream_form').on('submit', function (e) {
+                $('#stream_form').on('submit', function(e) {
                     if ($('#server_tree_data').length) {
-                        $('#server_tree_data').val(JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true })));
+                        $('#server_tree_data').val(JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                            flat: true
+                        })));
                         if (!$('#m3u_file').val()) {
-                            if (window.xcToast) { window.xcToast(lang.selectPlaylist, 'error'); } else { alert(lang.selectPlaylist); }
+                            if (window.xcToast) {
+                                window.xcToast(lang.selectPlaylist, 'error');
+                            } else {
+                                alert(lang.selectPlaylist);
+                            }
                             e.preventDefault();
                         }
                     }
                 });
 
                 function numFilter(sel) {
-                    $(sel).on('input', function () { this.value = this.value.replace(/[^\d]/g, ''); });
+                    $(sel).on('input', function() {
+                        this.value = this.value.replace(/[^\d]/g, '');
+                    });
                 }
                 numFilter('#probesize_ondemand');
                 numFilter('#delay_minutes');

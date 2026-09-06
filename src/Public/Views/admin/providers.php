@@ -92,17 +92,41 @@ renderUnifiedLayoutFooter('admin');
         var errMsg = <?= json_encode($language::get('error_occured')); ?>;
         var delMsg = <?= json_encode($language::get('delete') . '?'); ?>;
         var table = jQuery('#providers-table').DataTable({
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[1, 'asc']],
-            columnDefs: [
-                { targets: 0, orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { targets: 1, visible: false }
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [1, 'asc']
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            columnDefs: [{
+                    targets: 0,
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    targets: 1,
+                    visible: false
+                }
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         function call(sub, id) {
-            return fetch('./api?action=provider&sub=' + sub + '&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json(); });
+            return fetch('./api?action=provider&sub=' + sub + '&id=' + encodeURIComponent(id), {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function(r) {
+                return r.json();
+            });
         }
         jQuery('#providers-table tbody').on('click', '.js-reload', function() {
             call('reload', this.getAttribute('data-id')).catch(function() {});
@@ -110,12 +134,23 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#providers-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             var row = jQuery(this).closest('tr');
-            if (!id) { return; }
+            if (!id) {
+                return;
+            }
             window.xcConfirm(delMsg).then(function(ok) {
-                if (!ok) { return; }
+                if (!ok) {
+                    return;
+                }
                 call('delete', id)
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
-                    .catch(function() { alert(errMsg); });
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.row(row).remove().draw(false);
+                    })
+                    .catch(function() {
+                        alert(errMsg);
+                    });
             });
         });
     })();

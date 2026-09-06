@@ -70,35 +70,80 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var delText = <?= json_encode($language::get('delete')); ?>;
 
         var table = $('#tickets-table').DataTable({
-            order: [[0, 'desc']],
-            columnDefs: [{ orderable: false, targets: [6] }],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [0, 'desc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: [6]
+            }],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         function confirmSwal(text) {
-            if (window.Swal) { return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; }); }
+            if (window.Swal) {
+                return Swal.fire({
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                        cancelButton: 'btn btn-label-secondary ms-2'
+                    },
+                    buttonsStyling: false
+                }).then(function(r) {
+                    return r.isConfirmed;
+                });
+            }
             return Promise.resolve(window.confirm(text));
         }
 
         $('#tickets-table tbody').on('click', '.js-ticket', function() {
-            var id = this.getAttribute('data-id'), sub = this.getAttribute('data-sub');
+            var id = this.getAttribute('data-id'),
+                sub = this.getAttribute('data-sub');
             var go = function() {
-                fetch('./api?action=ticket&sub=' + encodeURIComponent(sub) + '&ticket_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
-                        if (!d || d.result !== true) { throw new Error('fail'); }
-                        if (sub === 'delete') { table.row($('#ticket-' + id)).remove().draw(false); }
-                        else { window.location.reload(); }
+                fetch('./api?action=ticket&sub=' + encodeURIComponent(sub) + '&ticket_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     })
-                    .catch(function() { xcToast(errText, 'error'); });
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        if (sub === 'delete') {
+                            table.row($('#ticket-' + id)).remove().draw(false);
+                        } else {
+                            window.location.reload();
+                        }
+                    })
+                    .catch(function() {
+                        xcToast(errText, 'error');
+                    });
             };
-            if (sub === 'delete') { confirmSwal(delText + '?').then(function(ok) { if (ok) { go(); } }); }
-            else { go(); }
+            if (sub === 'delete') {
+                confirmSwal(delText + '?').then(function(ok) {
+                    if (ok) {
+                        go();
+                    }
+                });
+            } else {
+                go();
+            }
         });
     })();
 </script>

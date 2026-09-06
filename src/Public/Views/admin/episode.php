@@ -333,7 +333,11 @@ $rTitle = $rIsEdit ? $rEpisode['stream_display_name'] : ($rMulti ? $language::ge
 
 <!-- Image preview modal -->
 <div class="modal fade" id="imgPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div></div></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div>
+        </div>
+    </div>
 </div>
 
 <?php
@@ -343,7 +347,9 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var lang = {
             errText: <?= json_encode($language::get('error_occured')); ?>,
             noName: <?= json_encode($language::get('enter_an_episode_name')); ?>,
@@ -365,18 +371,38 @@ renderUnifiedLayoutFooter('admin');
         var fbFilesList = [];
         var videoExt = ['mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v'];
 
-        function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
-        function pad(n) { return n < 10 ? ('0' + n) : n; }
-        function numFilter(el) { if (el) { el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); }); } }
+        function esc(s) {
+            return $('<div>').text(s == null ? '' : s).html();
+        }
+
+        function pad(n) {
+            return n < 10 ? ('0' + n) : n;
+        }
+
+        function numFilter(el) {
+            if (el) {
+                el.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^0-9]/g, '');
+                });
+            }
+        }
 
         // ---- select2 ----
-        $('#tmdb_search, #target_container, #transcode_profile_id').select2({ width: '100%', dropdownParent: $('#episode-form') });
-        $('#fb_server').select2({ width: '100%', dropdownParent: $('#fileBrowserModal') });
+        $('#tmdb_search, #target_container, #transcode_profile_id').select2({
+            width: '100%',
+            dropdownParent: $('#episode-form')
+        });
+        $('#fb_server').select2({
+            width: '100%',
+            dropdownParent: $('#fileBrowserModal')
+        });
 
         // ---- jstree server tree ----
         $('#server_tree')
             .on('select_node.jstree', function(e, data) {
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -384,10 +410,18 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id !== 'offline' && parent.id !== 'source') { return false; }
-                            if (parent.id === '#') { return false; }
-                            if (parent.id > 0 && $('#direct_proxy').is(':checked')) { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id !== 'offline' && parent.id !== 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
+                            if (parent.id > 0 && $('#direct_proxy').is(':checked')) {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -401,30 +435,44 @@ renderUnifiedLayoutFooter('admin');
         document.querySelectorAll('.js-img-preview').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var v = document.getElementById(btn.dataset.target).value.trim();
-                if (!v) { return; }
+                if (!v) {
+                    return;
+                }
                 document.getElementById('imgPreviewImg').src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(v);
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('imgPreviewModal')).show();
             });
         });
 
         // ---- file browser ----
-        var fbTarget = 'stream_source', fbDir = '/';
+        var fbTarget = 'stream_source',
+            fbDir = '/';
         var fbModal = document.getElementById('fileBrowserModal');
+
         function fbList() {
             var server = $('#fb_server').val();
             fbDir = $('#fb_path').val();
-            if (fbDir.slice(-1) !== '/') { fbDir += '/'; }
+            if (fbDir.slice(-1) !== '/') {
+                fbDir += '/';
+            }
             $('#fb_path').val(fbDir);
             $('#fb_search').val('');
             var filter = (fbTarget === 'movie_subtitles') ? 'subs' : 'video';
             fbFilesList = [];
             $('#fb_dirs, #fb_files').html('<li class="list-group-item text-muted">' + lang.loading + '...</li>');
             $.getJSON('./api?action=listdir&dir=' + encodeURIComponent(fbDir) + '&server=' + encodeURIComponent(server) + '&filter=' + filter, function(data) {
-                var dirs = '', files = '';
-                if (fbDir !== '/') { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>' + lang.parent + '</li>'; }
+                var dirs = '',
+                    files = '';
+                if (fbDir !== '/') {
+                    dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>' + lang.parent + '</li>';
+                }
                 if (data && data.result === true) {
-                    $(data.data.dirs).each(function(i, d) { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>'; });
-                    $(data.data.files).each(function(i, f) { fbFilesList.push(f); files += '<li class="list-group-item list-group-item-action fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>'; });
+                    $(data.data.dirs).each(function(i, d) {
+                        dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>';
+                    });
+                    $(data.data.files).each(function(i, f) {
+                        fbFilesList.push(f);
+                        files += '<li class="list-group-item list-group-item-action fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>';
+                    });
                 }
                 $('#fb_dirs').html(dirs || '<li class="list-group-item text-muted">-</li>');
                 $('#fb_files').html(files || '<li class="list-group-item text-muted">-</li>');
@@ -433,30 +481,48 @@ renderUnifiedLayoutFooter('admin');
         document.querySelectorAll('#filebrowser, #filebrowser-sub').forEach(function(b) {
             b.addEventListener('click', function() {
                 fbTarget = b.dataset.target;
-                $('#fb_path').val('/'); fbList();
+                $('#fb_path').val('/');
+                fbList();
                 bootstrap.Modal.getOrCreateInstance(fbModal).show();
             });
         });
         document.getElementById('fb_go').addEventListener('click', fbList);
-        $('#fb_server').on('change', function() { $('#fb_path').val('/'); fbList(); });
-        document.getElementById('fb_clear').addEventListener('click', function() { $('#fb_search').val(''); $('#fb_files .fb-file').show(); });
+        $('#fb_server').on('change', function() {
+            $('#fb_path').val('/');
+            fbList();
+        });
+        document.getElementById('fb_clear').addEventListener('click', function() {
+            $('#fb_search').val('');
+            $('#fb_files .fb-file').show();
+        });
         $('#fb_search').on('input', function() {
             var q = this.value.toLowerCase();
-            $('#fb_files .fb-file').each(function() { $(this).toggle($(this).data('name').toLowerCase().indexOf(q) !== -1); });
+            $('#fb_files .fb-file').each(function() {
+                $(this).toggle($(this).data('name').toLowerCase().indexOf(q) !== -1);
+            });
         });
         $('#fb_dirs').on('click', '.fb-dir', function() {
             var name = $(this).data('name');
-            if (name === '..') { fbDir = fbDir.split('/').slice(0, -2).join('/') + '/'; }
-            else { fbDir += name + '/'; }
-            $('#fb_path').val(fbDir); fbList();
+            if (name === '..') {
+                fbDir = fbDir.split('/').slice(0, -2).join('/') + '/';
+            } else {
+                fbDir += name + '/';
+            }
+            $('#fb_path').val(fbDir);
+            fbList();
         });
         $('#fb_files').on('click', '.fb-file', function() {
-            if (isMulti) { return; }
-            var name = $(this).data('name'), val = 's:' + $('#fb_server').val() + ':' + fbDir + name;
+            if (isMulti) {
+                return;
+            }
+            var name = $(this).data('name'),
+                val = 's:' + $('#fb_server').val() + ':' + fbDir + name;
             document.getElementById(fbTarget).value = val;
             if (fbTarget === 'stream_source') {
                 var ext = name.substr(name.lastIndexOf('.') + 1);
-                if ($('#target_container option[value="' + ext + '"]').length) { $('#target_container').val(ext).trigger('change'); }
+                if ($('#target_container option[value="' + ext + '"]').length) {
+                    $('#target_container').val(ext).trigger('change');
+                }
                 $('#stream_source').trigger('change');
             }
             bootstrap.Modal.getInstance(fbModal).hide();
@@ -468,7 +534,8 @@ renderUnifiedLayoutFooter('admin');
             fbSelFolder.addEventListener('click', function() {
                 document.getElementById('season_folder').value = fbDir;
                 document.getElementById('server').value = $('#fb_server').val();
-                var rID = 1, rNames = {};
+                var rID = 1,
+                    rNames = {};
                 $('#episode_add').html('');
                 fbFilesList.forEach(function(fileName) {
                     var ext = fileName.split('.').pop().toLowerCase();
@@ -482,11 +549,17 @@ renderUnifiedLayoutFooter('admin');
                         rID++;
                     }
                 });
-                $.post('./api?action=get_episode_ids', { data: JSON.stringify(rNames) }, function(data) {
-                    $(data.data).each(function(id, item) { $('#episode_' + item[0] + '_num').val(item[1]); });
+                $.post('./api?action=get_episode_ids', {
+                    data: JSON.stringify(rNames)
+                }, function(data) {
+                    $(data.data).each(function(id, item) {
+                        $('#episode_' + item[0] + '_num').val(item[1]);
+                    });
                     var nextEpisode = 1;
                     $('[id^=episode_][id$=_num]').each(function() {
-                        if (!$(this).val()) { $(this).val(nextEpisode); }
+                        if (!$(this).val()) {
+                            $(this).val(nextEpisode);
+                        }
                         nextEpisode++;
                     });
                 }, 'json');
@@ -497,37 +570,58 @@ renderUnifiedLayoutFooter('admin');
         // ---- direct source / symlink enable-disable ----
         function setDisabled(id, off) {
             var el = document.getElementById(id);
-            if (!el) { return; }
+            if (!el) {
+                return;
+            }
             el.disabled = off;
-            if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', off).trigger('change.select2'); }
+            if ($(el).hasClass('select2-hidden-accessible')) {
+                $(el).prop('disabled', off).trigger('change.select2');
+            }
         }
-        function toggle(ids, off) { ids.forEach(function(id) { setDisabled(id, off); }); }
+
+        function toggle(ids, off) {
+            ids.forEach(function(id) {
+                setDisabled(id, off);
+            });
+        }
         var dsFields = ['movie_symlink', 'read_native', 'transcode_profile_id', 'remove_subtitles', 'movie_subtitles'];
         var slFields = ['direct_source', 'read_native', 'remove_subtitles', 'target_container', 'transcode_profile_id', 'movie_subtitles'];
+
         function evaluateDirectSource() {
             var ds = document.getElementById('direct_source').checked;
             toggle(dsFields, ds);
             document.getElementById('direct_proxy').disabled = !ds;
         }
+
         function checkSymlink() {
             var src = document.getElementById('stream_source');
-            if (!src) { return; }
+            if (!src) {
+                return;
+            }
             var s = src.value;
             if (document.getElementById('movie_symlink').checked && s && s.indexOf('s:') !== 0 && s.indexOf('/') !== 0) {
                 document.getElementById('movie_symlink').checked = false;
                 window.xcToast(lang.symlink, 'error');
             }
         }
+
         function evaluateSymlink() {
-            if (document.getElementById('direct_source').checked) { return; }
+            if (document.getElementById('direct_source').checked) {
+                return;
+            }
             checkSymlink();
             toggle(slFields, document.getElementById('movie_symlink').checked);
         }
-        document.getElementById('direct_source').addEventListener('change', function() { evaluateDirectSource(); evaluateSymlink(); });
+        document.getElementById('direct_source').addEventListener('change', function() {
+            evaluateDirectSource();
+            evaluateSymlink();
+        });
         document.getElementById('direct_proxy').addEventListener('change', evaluateDirectSource);
         document.getElementById('movie_symlink').addEventListener('change', evaluateSymlink);
         var srcEl = document.getElementById('stream_source');
-        if (srcEl) { srcEl.addEventListener('change', checkSymlink); }
+        if (srcEl) {
+            srcEl.addEventListener('change', checkSymlink);
+        }
         evaluateDirectSource();
         evaluateSymlink();
 
@@ -540,12 +634,21 @@ renderUnifiedLayoutFooter('admin');
         var tmdbSearch = document.getElementById('tmdb_search');
         if (tmdbSearch && !isMulti) {
             $('#season_num').on('change', function() {
-                if (changeTitle) { changeTitle = false; return; }
+                if (changeTitle) {
+                    changeTitle = false;
+                    return;
+                }
                 $('#tmdb_search').empty().trigger('change');
-                if (!$('#season_num').val()) { return; }
+                if (!$('#season_num').val()) {
+                    return;
+                }
                 rEpisodes = {};
                 $.getJSON('./api?action=tmdb_search&type=episode&term=' + encodeURIComponent(seriesTmdbId) + '&season=' + encodeURIComponent($('#season_num').val()) + '&language=' + encodeURIComponent($('#tmdb_language').val()), function(data) {
-                    if (!data || data.result !== true) { $('#tmdb_search').append(new Option(lang.none, -1, true, true)); $('#tmdb_search').val(-1).trigger('change'); return; }
+                    if (!data || data.result !== true) {
+                        $('#tmdb_search').append(new Option(lang.none, -1, true, true));
+                        $('#tmdb_search').val(-1).trigger('change');
+                        return;
+                    }
                     var eps = (data.data && data.data.episodes) || [];
                     var head = eps.length > 0 ? lang.foundEp.replace('{num}', eps.length) : lang.noneEp;
                     $('#tmdb_search').append(new Option(head, -1, true, true)).trigger('change');
@@ -558,9 +661,13 @@ renderUnifiedLayoutFooter('admin');
             });
             $('#tmdb_search').on('change', function() {
                 var id = $('#tmdb_search').val();
-                if (!id || id <= -1) { return; }
+                if (!id || id <= -1) {
+                    return;
+                }
                 var ep = rEpisodes[id];
-                if (!ep) { return; }
+                if (!ep) {
+                    return;
+                }
                 var rFormat = 'S' + pad(ep.season_number) + 'E' + pad(ep.episode_number);
                 $('#stream_display_name').val($('#series_name').val() + ' - ' + rFormat + ' - ' + ep.name);
                 $('#movie_image').val(ep.still_path ? ('https://image.tmdb.org/t/p/w1280' + ep.still_path) : '');
@@ -572,7 +679,7 @@ renderUnifiedLayoutFooter('admin');
                 $('#episode').val(ep.episode_number || '');
             });
             <?php if ($rIsEdit): ?>
-            $('#season_num').trigger('change');
+                $('#season_num').trigger('change');
             <?php endif; ?>
         }
 
@@ -581,21 +688,50 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var ok = true;
             if (!isMulti) {
-                if (!document.getElementById('stream_display_name').value.trim()) { window.xcToast(lang.noName, 'error'); ok = false; }
-                if (!document.getElementById('stream_source').value.trim()) { window.xcToast(lang.noSource, 'error'); ok = false; }
+                if (!document.getElementById('stream_display_name').value.trim()) {
+                    window.xcToast(lang.noName, 'error');
+                    ok = false;
+                }
+                if (!document.getElementById('stream_source').value.trim()) {
+                    window.xcToast(lang.noSource, 'error');
+                    ok = false;
+                }
             }
-            if (!ok) { return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!ok) {
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             // Re-enable disabled fields so their values still post.
-            document.querySelectorAll('#episode-form :disabled').forEach(function(el) { el.disabled = false; });
+            document.querySelectorAll('#episode-form :disabled').forEach(function(el) {
+                el.disabled = false;
+            });
             var btn = document.getElementById('episode-submit');
             btn.disabled = true;
-            fetch('post.php?action=episode&referer=', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=episode&referer=', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     if (dt && dt.result !== false) {
-                        if (dt.location) { window.location = dt.location; }
+                        if (dt.location) {
+                            window.location = dt.location;
+                        }
                         return;
                     }
                     btn.disabled = false;

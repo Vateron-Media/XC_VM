@@ -15,7 +15,9 @@ $rIsEdit = isset($rIPArr);
 </div>
 
 <div class="card">
-    <div class="card-header"><h5 class="mb-0"><?= $language::get('details'); ?></h5></div>
+    <div class="card-header">
+        <h5 class="mb-0"><?= $language::get('details'); ?></h5>
+    </div>
     <div class="card-body">
         <form id="rtmp-form" autocomplete="off">
             <?php if ($rIsEdit): ?>
@@ -61,15 +63,36 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var btn = document.getElementById('rtmp-submit');
             btn.disabled = true;
-            fetch('post.php?action=rtmp_ip', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=rtmp_ip', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = dt.location || 'rtmp_ips'; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'rtmp_ips';
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

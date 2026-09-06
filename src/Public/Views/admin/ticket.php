@@ -38,18 +38,41 @@ renderUnifiedLayoutFooter('admin');
         var ticketId = <?= (int) $rTicket['id']; ?>;
         document.getElementById('ticket-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!document.getElementById('message').value.trim()) { return; }
+            if (!document.getElementById('message').value.trim()) {
+                return;
+            }
             var btn = document.getElementById('ticket-submit');
             btn.disabled = true;
-            fetch('post.php?action=ticket', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=ticket', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = 'ticket_view?id=' + ticketId; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = 'ticket_view?id=' + ticketId;
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

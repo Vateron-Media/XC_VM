@@ -309,7 +309,11 @@ renderUnifiedLayoutFooter('admin');
 
         // Owner clear (legacy clearOwner()); trigger change so select2 repaints.
         document.getElementById('clear-owner').addEventListener('click', function() {
-            if ($) { $('#member_id').val('').trigger('change'); } else { document.getElementById('member_id').value = ''; }
+            if ($) {
+                $('#member_id').val('').trigger('change');
+            } else {
+                document.getElementById('member_id').value = '';
+            }
         });
 
         // Access-token generate / clear (legacy generateToken() / clearToken()).

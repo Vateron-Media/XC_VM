@@ -64,24 +64,59 @@ renderUnifiedLayoutFooter('admin');
         var errMsg = <?= json_encode($language::get('error_occured')); ?>;
         var delMsg = <?= json_encode($language::get('delete') . '?'); ?>;
         var table = jQuery('#isps-table').DataTable({
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[1, 'desc']],
-            columnDefs: [
-                { targets: 0, orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { targets: 1, visible: false }
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [1, 'desc']
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            columnDefs: [{
+                    targets: 0,
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    targets: 1,
+                    visible: false
+                }
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
         jQuery('#isps-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             var row = jQuery(this).closest('tr');
-            if (!id) { return; }
+            if (!id) {
+                return;
+            }
             window.xcConfirm(delMsg).then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=isp&sub=delete&isp_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row(row).remove().draw(false); })
-                    .catch(function() { alert(errMsg); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=isp&sub=delete&isp_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.row(row).remove().draw(false);
+                    })
+                    .catch(function() {
+                        alert(errMsg);
+                    });
             });
         });
     })();

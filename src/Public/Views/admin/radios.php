@@ -107,12 +107,17 @@ renderUnifiedLayoutFooter('admin');
             d.textContent = (s == null ? '' : String(s));
             return d.innerHTML;
         };
-        var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+        var pad = function(n) {
+            return (n < 10 ? '0' : '') + n;
+        };
         var fmtUptime = function(sec) {
-            if (sec >= 86400) { return pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm'; }
+            if (sec >= 86400) {
+                return pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm';
+            }
             return pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's';
         };
-        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>, canLive = <?= $rCanLive ? 'true' : 'false'; ?>;
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>,
+            canLive = <?= $rCanLive ? 'true' : 'false'; ?>;
         var lang = {
             start: <?= json_encode($language::get('start') ?: 'Start'); ?>,
             stop: <?= json_encode($language::get('stop') ?: 'Stop'); ?>,
@@ -125,25 +130,42 @@ renderUnifiedLayoutFooter('admin');
         };
         // StatusBadge::stream — code => [bootstrap colour, label].
         var STREAM = {
-            '-1': ['secondary', 'NO SERVERS'], '0': ['dark', 'STOPPED'], '1': ['success', 'ONLINE'],
-            '2': ['warning', 'STARTING'], '3': ['danger', 'DOWN'], '4': ['info', 'ON DEMAND'], '5': ['dark', 'DIRECT SOURCE']
+            '-1': ['secondary', 'NO SERVERS'],
+            '0': ['dark', 'STOPPED'],
+            '1': ['success', 'ONLINE'],
+            '2': ['warning', 'STARTING'],
+            '3': ['danger', 'DOWN'],
+            '4': ['info', 'ON DEMAND'],
+            '5': ['dark', 'DIRECT SOURCE']
         };
         var selected = {};
         var updateBulk = function() {
-            var n = Object.keys(selected).length, bar = document.getElementById('bulk-bar');
-            if (!bar) { return; }
+            var n = Object.keys(selected).length,
+                bar = document.getElementById('bulk-bar');
+            if (!bar) {
+                return;
+            }
             document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
             bar.classList.toggle('d-none', n === 0);
             bar.classList.toggle('d-flex', n > 0);
         };
         // Statuses that mean the stream is up (Stop/Restart/Kill offered instead of Start).
-        var running = function(row) { return row.status === 1 || row.status === 2 || row.status === 3 || row.status === 5 || row.on_demand; };
+        var running = function(row) {
+            return row.status === 1 || row.status === 2 || row.status === 3 || row.status === 5 || row.on_demand;
+        };
 
         var table = jQuery('#radios-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[2, 'desc']],
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [2, 'desc']
+            ],
             ajax: {
                 url: './table',
                 data: function(d) {
@@ -152,11 +174,37 @@ renderUnifiedLayoutFooter('admin');
                     d.server = document.getElementById('filter-server').value;
                 }
             },
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { data: 'id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
-                { data: 'display_id', className: 'text-center', render: function(d, t, row) { return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'icon', orderable: false, render: function(d) { return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxw=96&maxh=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : ''; } },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>';
+                    }
+                },
+                {
+                    data: 'display_id',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'icon',
+                    orderable: false,
+                    render: function(d) {
+                        return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxw=96&maxh=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : '';
+                    }
+                },
                 {
                     data: 'title',
                     responsivePriority: 1,
@@ -168,10 +216,16 @@ renderUnifiedLayoutFooter('admin');
                 {
                     data: 'server_name',
                     render: function(d, t, row) {
-                        if (!d) { return '<span class="text-body-secondary">No Server</span>'; }
+                        if (!d) {
+                            return '<span class="text-body-secondary">No Server</span>';
+                        }
                         var html = row.server_url ? '<a href="' + esc(row.server_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
-                        if (row.server_count > 1) { html += ' <a href="radios?stream_id=' + encodeURIComponent(row.id) + '" class="badge bg-label-info">+' + (row.server_count - 1) + '</a>'; }
-                        if (row.server_offline) { html += ' <i class="icon-base ti tabler-alert-triangle text-danger" title="Server offline"></i>'; }
+                        if (row.server_count > 1) {
+                            html += ' <a href="radios?stream_id=' + encodeURIComponent(row.id) + '" class="badge bg-label-info">+' + (row.server_count - 1) + '</a>';
+                        }
+                        if (row.server_offline) {
+                            html += ' <i class="icon-base ti tabler-alert-triangle text-danger" title="Server offline"></i>';
+                        }
                         return html;
                     }
                 },
@@ -179,7 +233,9 @@ renderUnifiedLayoutFooter('admin');
                     data: 'clients',
                     className: 'text-center',
                     render: function(d, t, row) {
-                        if (d > 0 && canLive) { return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '&server_id=' + encodeURIComponent(row.server_col_id) + '" class="badge bg-label-info">' + d + '</a>'; }
+                        if (d > 0 && canLive) {
+                            return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '&server_id=' + encodeURIComponent(row.server_col_id) + '" class="badge bg-label-info">' + d + '</a>';
+                        }
                         return '<span class="badge bg-label-secondary">' + (d || 0) + '</span>';
                     }
                 },
@@ -187,7 +243,9 @@ renderUnifiedLayoutFooter('admin');
                     data: 'status',
                     className: 'text-center text-nowrap',
                     render: function(d, t, row) {
-                        if (d === 1) { return '<span class="badge bg-label-success">' + esc(fmtUptime(row.uptime)) + '</span>'; }
+                        if (d === 1) {
+                            return '<span class="badge bg-label-success">' + esc(fmtUptime(row.uptime)) + '</span>';
+                        }
                         var s = STREAM[String(d)] || ['secondary', ''];
                         return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>';
                     }
@@ -210,8 +268,12 @@ renderUnifiedLayoutFooter('admin');
                             items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.edit) + '</a>';
                             items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-sub="delete" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '">' + esc(lang.del) + '</a>';
                         }
-                        if (row.notes) { items = '<h6 class="dropdown-header text-truncate" style="max-width:16rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items; }
-                        if (!items) { return ''; }
+                        if (row.notes) {
+                            items = '<h6 class="dropdown-header text-truncate" style="max-width:16rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items;
+                        }
+                        if (!items) {
+                            return '';
+                        }
                         return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
                     }
                 },
@@ -219,7 +281,9 @@ renderUnifiedLayoutFooter('admin');
                     data: 'info',
                     orderable: false,
                     render: function(d) {
-                        if (!d) { return '<small class="text-body-secondary">—</small>'; }
+                        if (!d) {
+                            return '<small class="text-body-secondary">—</small>';
+                        }
                         return '<div class="d-flex flex-wrap gap-1">' +
                             '<span class="badge bg-label-secondary">' + esc(d.bitrate) + ' Kbps</span>' +
                             '<span class="badge bg-label-success">' + esc(d.audio_codec) + '</span>' +
@@ -227,47 +291,108 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
-        ['filter-category', 'filter-server'].forEach(function(id) { document.getElementById(id).addEventListener('change', function() { table.ajax.reload(); }); });
+        ['filter-category', 'filter-server'].forEach(function(id) {
+            document.getElementById(id).addEventListener('change', function() {
+                table.ajax.reload();
+            });
+        });
 
         jQuery('#radios-table tbody').on('click', '.js-act', function() {
             var sub = this.getAttribute('data-sub');
-            var _id = this.getAttribute('data-id'), _server = this.getAttribute('data-server');
+            var _id = this.getAttribute('data-id'),
+                _server = this.getAttribute('data-server');
             var _do = function() {
-                fetch('./api?action=stream&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(_id) + '&server_id=' + encodeURIComponent(_server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                fetch('./api?action=stream&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(_id) + '&server_id=' + encodeURIComponent(_server), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(dt) {
+                        if (!dt || dt.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.ajax.reload(null, false);
+                    })
+                    .catch(function() {
+                        alert(lang.error);
+                    });
             };
-            if (sub === 'delete') { window.xcConfirm(lang.del + '?').then(function(ok) { if (ok) { _do(); } }); }
-            else { _do(); }
+            if (sub === 'delete') {
+                window.xcConfirm(lang.del + '?').then(function(ok) {
+                    if (ok) {
+                        _do();
+                    }
+                });
+            } else {
+                _do();
+            }
         });
 
         // Bulk delete.
         jQuery('#radios-table tbody').on('change', '.row-check', function() {
             var id = this.getAttribute('data-id');
-            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            if (this.checked) {
+                selected[id] = true;
+            } else {
+                delete selected[id];
+            }
             updateBulk();
         });
         document.getElementById('check-all').addEventListener('change', function() {
             var on = this.checked;
-            jQuery('#radios-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+            jQuery('#radios-table tbody .row-check').each(function() {
+                this.checked = on;
+                var id = this.getAttribute('data-id');
+                if (on) {
+                    selected[id] = true;
+                } else {
+                    delete selected[id];
+                }
+            });
             updateBulk();
         });
-        table.on('draw', function() { document.getElementById('check-all').checked = false; });
+        table.on('draw', function() {
+            document.getElementById('check-all').checked = false;
+        });
         var bulkDel = document.getElementById('bulk-delete');
         if (bulkDel) {
             bulkDel.addEventListener('click', function() {
                 var ids = Object.keys(selected);
-                if (!ids.length) { return; }
+                if (!ids.length) {
+                    return;
+                }
                 window.xcConfirm(lang.del + ' (' + ids.length + ')?').then(function(ok) {
-                    if (!ok) { return; }
-                    fetch('./api?action=multi&type=radio&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                        .catch(function() { alert(lang.error); });
+                    if (!ok) {
+                        return;
+                    }
+                    fetch('./api?action=multi&type=radio&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(dt) {
+                            if (!dt || dt.result !== true) {
+                                throw new Error('fail');
+                            }
+                            selected = {};
+                            updateBulk();
+                            table.ajax.reload(null, false);
+                        })
+                        .catch(function() {
+                            alert(lang.error);
+                        });
                 });
             });
         }
@@ -278,7 +403,10 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('edit-frame').src = 'radio?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1';
             bootstrap.Modal.getOrCreateInstance(editModal).show();
         });
-        editModal.addEventListener('hidden.bs.modal', function() { document.getElementById('edit-frame').src = 'about:blank'; table.ajax.reload(null, false); });
+        editModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('edit-frame').src = 'about:blank';
+            table.ajax.reload(null, false);
+        });
     })();
 </script>
 </body>

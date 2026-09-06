@@ -93,7 +93,9 @@ renderUnifiedLayoutFooter('admin');
             el.addEventListener('input', function() {
                 var re = allowNeg ? /[^0-9-]/g : /[^0-9]/g;
                 var v = el.value.replace(re, '');
-                if (allowNeg) { v = v.replace(/(?!^)-/g, ''); }
+                if (allowNeg) {
+                    v = v.replace(/(?!^)-/g, '');
+                }
                 el.value = v;
             });
         };
@@ -101,7 +103,17 @@ renderUnifiedLayoutFooter('admin');
         digitsOnly(document.getElementById('offset'), true);
 
         <?php if ($rIsEdit): ?>
-            jQuery('#epg-channels-table').DataTable({ paging: true, searching: true, info: false, order: [], responsive: true, layout: { topStart: 'pageLength', topEnd: 'search' } });
+            jQuery('#epg-channels-table').DataTable({
+                paging: true,
+                searching: true,
+                info: false,
+                order: [],
+                responsive: true,
+                layout: {
+                    topStart: 'pageLength',
+                    topEnd: 'search'
+                }
+            });
         <?php endif; ?>
 
         // Submit → post.php?action=epg (legacy PostController path), then back to the list.
@@ -109,15 +121,36 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var btn = document.getElementById('epg-submit');
             btn.disabled = true;
-            fetch('post.php?action=epg', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=epg', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = dt.location || 'epgs'; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'epgs';
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

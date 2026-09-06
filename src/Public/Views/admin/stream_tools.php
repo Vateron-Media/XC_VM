@@ -97,7 +97,9 @@
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-medium" for="epg_category_id">Category</label>
-                    <select id="epg_category_id" class="form-select"><option value="">All categories</option></select>
+                    <select id="epg_category_id" class="form-select">
+                        <option value="">All categories</option>
+                    </select>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-medium" for="epg_threshold">Match threshold: <span id="epg_threshold_val">80</span>%</label>
@@ -122,77 +124,174 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
-        if ($.fn.select2) { $('#content_type, #source_server, #replacement_server').select2({ width: '100%' }); }
+        if ($.fn.select2) {
+            $('#content_type, #source_server, #replacement_server').select2({
+                width: '100%'
+            });
+        }
 
         function postForm(form, okMsg) {
             var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
-            fetch('post.php?action=stream_tools', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            if (btn) {
+                btn.disabled = true;
+            }
+            fetch('post.php?action=stream_tools', {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (e) { d = { result: false }; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (e) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(d && d.result !== false ? okMsg : <?= json_encode($language::get('error_occured')); ?>, d && d.result !== false ? 'success' : 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         }
-        document.getElementById('dns_form').addEventListener('submit', function(e) { e.preventDefault(); postForm(this, 'DNS replacement complete.'); });
-        document.getElementById('move_form').addEventListener('submit', function(e) { e.preventDefault(); postForm(this, 'Streams moved.'); });
+        document.getElementById('dns_form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            postForm(this, 'DNS replacement complete.');
+        });
+        document.getElementById('move_form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            postForm(this, 'Streams moved.');
+        });
 
         // URL decrypt.
         document.getElementById('decrypt-btn').addEventListener('click', function() {
             var text = document.getElementById('encrypted_text').value;
             var out = document.getElementById('decrypted_text');
             out.value = '';
-            if (!text.length) { toast('Please enter data in the encrypted text field.', 'warning'); return; }
-            fetch('./api?action=decrypt_text&text=' + encodeURIComponent(text), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { if (d && d.data) { out.value = d.data.join('\n\n'); } else { toast('Text could not be decrypted.', 'error'); } })
-                .catch(function() { toast('Text could not be decrypted.', 'error'); });
+            if (!text.length) {
+                toast('Please enter data in the encrypted text field.', 'warning');
+                return;
+            }
+            fetch('./api?action=decrypt_text&text=' + encodeURIComponent(text), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(d) {
+                    if (d && d.data) {
+                        out.value = d.data.join('\n\n');
+                    } else {
+                        toast('Text could not be decrypted.', 'error');
+                    }
+                })
+                .catch(function() {
+                    toast('Text could not be decrypted.', 'error');
+                });
         });
 
         // Threshold slider label.
-        document.getElementById('epg_threshold').addEventListener('input', function() { document.getElementById('epg_threshold_val').textContent = this.value; });
+        document.getElementById('epg_threshold').addEventListener('input', function() {
+            document.getElementById('epg_threshold_val').textContent = this.value;
+        });
 
         // Auto-assign EPG — load categories on first tab show, then batch-process.
         var epgLoaded = false;
         document.querySelector('[data-bs-target="#epg-auto-assign"]').addEventListener('shown.bs.tab', function() {
-            if (epgLoaded) { return; }
+            if (epgLoaded) {
+                return;
+            }
             epgLoaded = true;
-            fetch('./api?action=epg_categories', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
+            fetch('./api?action=epg_categories', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
                 .then(function(d) {
                     if (d && d.status === 1 && d.data) {
                         var sel = document.getElementById('epg_category_id');
-                        d.data.forEach(function(cat) { var o = document.createElement('option'); o.value = cat.id; o.textContent = cat.category_name; sel.appendChild(o); });
+                        d.data.forEach(function(cat) {
+                            var o = document.createElement('option');
+                            o.value = cat.id;
+                            o.textContent = cat.category_name;
+                            sel.appendChild(o);
+                        });
                     }
                 }).catch(function() {});
         });
         document.getElementById('epg_auto_assign_btn').addEventListener('click', function() {
-            var btn = this, result = document.getElementById('epg_assign_result');
-            var totalAssigned = 0, totalSkipped = 0, totalProcessed = 0, grandTotal = 0;
+            var btn = this,
+                result = document.getElementById('epg_assign_result');
+            var totalAssigned = 0,
+                totalSkipped = 0,
+                totalProcessed = 0,
+                grandTotal = 0;
             var threshold = document.getElementById('epg_threshold').value || 80;
             var categoryId = document.getElementById('epg_category_id').value || '';
             btn.disabled = true;
             result.className = 'alert alert-info mb-3';
             result.hidden = false;
             result.textContent = 'Starting…';
+
             function runBatch(lastId) {
                 var url = './api?action=epg_auto_assign&last_id=' + lastId + '&threshold=' + threshold + (categoryId !== '' ? '&category_id=' + encodeURIComponent(categoryId) : '');
-                fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
+                fetch(url, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
                     .then(function(d) {
-                        if (!d || d.status !== 1) { result.className = 'alert alert-danger mb-3'; result.textContent = 'Error during processing. Please try again.'; btn.disabled = false; return; }
-                        if (grandTotal === 0) { grandTotal = d.data.total; }
-                        totalAssigned += d.data.assigned; totalSkipped += d.data.skipped; totalProcessed += d.data.batch_size;
+                        if (!d || d.status !== 1) {
+                            result.className = 'alert alert-danger mb-3';
+                            result.textContent = 'Error during processing. Please try again.';
+                            btn.disabled = false;
+                            return;
+                        }
+                        if (grandTotal === 0) {
+                            grandTotal = d.data.total;
+                        }
+                        totalAssigned += d.data.assigned;
+                        totalSkipped += d.data.skipped;
+                        totalProcessed += d.data.batch_size;
                         var pct = grandTotal > 0 ? Math.min(100, Math.round(totalProcessed / grandTotal * 100)) : 100;
                         result.textContent = 'Processing… ' + pct + '% (' + totalProcessed + ' / ' + grandTotal + ')';
-                        if (d.data.has_more) { runBatch(d.data.next_last_id); }
-                        else { result.className = 'alert alert-success mb-3'; result.textContent = 'Done! ' + totalAssigned + ' assigned — ' + totalSkipped + ' below threshold'; btn.disabled = false; }
+                        if (d.data.has_more) {
+                            runBatch(d.data.next_last_id);
+                        } else {
+                            result.className = 'alert alert-success mb-3';
+                            result.textContent = 'Done! ' + totalAssigned + ' assigned — ' + totalSkipped + ' below threshold';
+                            btn.disabled = false;
+                        }
                     })
-                    .catch(function() { result.className = 'alert alert-danger mb-3'; result.textContent = 'Request failed. Please try again.'; btn.disabled = false; });
+                    .catch(function() {
+                        result.className = 'alert alert-danger mb-3';
+                        result.textContent = 'Request failed. Please try again.';
+                        btn.disabled = false;
+                    });
             }
             runBatch(0);
         });

@@ -87,8 +87,15 @@ renderUnifiedLayoutFooter('admin');
         var table = jQuery('#asns-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[5, 'desc']],
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [5, 'desc']
+            ],
             ajax: {
                 url: './table',
                 data: function(d) {
@@ -97,11 +104,25 @@ renderUnifiedLayoutFooter('admin');
                     d.filter = document.getElementById('filter-status').value;
                 }
             },
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { data: 'asn', className: 'text-nowrap', responsivePriority: 1 },
-                { data: 'isp' },
-                { data: 'domain' },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'asn',
+                    className: 'text-nowrap',
+                    responsivePriority: 1
+                },
+                {
+                    data: 'isp'
+                },
+                {
+                    data: 'domain'
+                },
                 {
                     data: 'country',
                     className: 'text-center',
@@ -109,8 +130,17 @@ renderUnifiedLayoutFooter('admin');
                         return d ? '<img loading="lazy" src="assets/img/countries/' + esc(d) + '.png" alt="' + esc(d) + '">' : '';
                     }
                 },
-                { data: 'num_ips', className: 'text-center', render: function(d) { return (d == null ? '' : Number(d).toLocaleString()); } },
-                { data: 'type', className: 'text-center' },
+                {
+                    data: 'num_ips',
+                    className: 'text-center',
+                    render: function(d) {
+                        return (d == null ? '' : Number(d).toLocaleString());
+                    }
+                },
+                {
+                    data: 'type',
+                    className: 'text-center'
+                },
                 {
                     data: 'blocked',
                     className: 'text-center',
@@ -132,19 +162,39 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
-        document.getElementById('filter-type').addEventListener('change', function() { table.ajax.reload(); });
-        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+        document.getElementById('filter-type').addEventListener('change', function() {
+            table.ajax.reload();
+        });
+        document.getElementById('filter-status').addEventListener('change', function() {
+            table.ajax.reload();
+        });
 
         jQuery('#asns-table tbody').on('click', '.js-toggle', function() {
             var id = this.getAttribute('data-id');
             var sub = this.getAttribute('data-sub');
-            fetch('./api?action=asn&sub=' + encodeURIComponent(sub) + '&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            fetch('./api?action=asn&sub=' + encodeURIComponent(sub) + '&id=' + encodeURIComponent(id), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(d) {
+                    if (!d || d.result !== true) {
+                        throw new Error('fail');
+                    }
+                    table.ajax.reload(null, false);
+                })
+                .catch(function() {
+                    alert(lang.error);
+                });
         });
     })();
 </script>

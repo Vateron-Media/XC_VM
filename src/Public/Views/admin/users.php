@@ -170,8 +170,15 @@ renderUnifiedLayoutFooter('admin');
         var table = jQuery('#users-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[1, 'desc']],
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [1, 'desc']
+            ],
             ajax: {
                 url: './table',
                 data: function(d) {
@@ -180,16 +187,41 @@ renderUnifiedLayoutFooter('admin');
                     d.filter = document.getElementById('filter-status').value;
                 }
             },
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { data: 'id', className: 'text-center', render: function(d) { return '<a href="user?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return '<a href="user?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>'; } },
-                { data: 'owner_username', render: function(d, t, row) { return d ? '<a href="user?id=' + encodeURIComponent(row.owner_id) + '" class="text-body">' + esc(d) + '</a>' : ''; } },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'id',
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<a href="user?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'username',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        return '<a href="user?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'owner_username',
+                    render: function(d, t, row) {
+                        return d ? '<a href="user?id=' + encodeURIComponent(row.owner_id) + '" class="text-body">' + esc(d) + '</a>' : '';
+                    }
+                },
                 {
                     data: 'ip',
                     className: 'text-nowrap',
                     render: function(d) {
-                        if (isLocal(d)) { return '<span class="text-body-secondary">' + esc(d || '') + '</span>'; }
+                        if (isLocal(d)) {
+                            return '<span class="text-body-secondary">' + esc(d || '') + '</span>';
+                        }
                         return '<a href="javascript:void(0);" class="text-body js-whois" data-ip="' + esc(d) + '">' + esc(d) + '</a>';
                     }
                 },
@@ -215,11 +247,41 @@ renderUnifiedLayoutFooter('admin');
                         return row.is_reseller ? '<span class="badge bg-label-primary">' + Number(d).toLocaleString() + '</span>' : '<span class="badge bg-label-secondary">-</span>';
                     }
                 },
-                { data: 'user_count', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'users?owner=' + row.id); } },
-                { data: 'user_lines', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'lines?owner=' + row.id); } },
-                { data: 'mag_lines', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'mags?owner=' + row.id); } },
-                { data: 'e2_lines', className: 'text-center', render: function(d, t, row) { return countBadge(d, 'enigmas?owner=' + row.id); } },
-                { data: 'last_login', className: 'text-nowrap text-center', render: function(d) { return esc(d); } },
+                {
+                    data: 'user_count',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return countBadge(d, 'users?owner=' + row.id);
+                    }
+                },
+                {
+                    data: 'user_lines',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return countBadge(d, 'lines?owner=' + row.id);
+                    }
+                },
+                {
+                    data: 'mag_lines',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return countBadge(d, 'mags?owner=' + row.id);
+                    }
+                },
+                {
+                    data: 'e2_lines',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return countBadge(d, 'enigmas?owner=' + row.id);
+                    }
+                },
+                {
+                    data: 'last_login',
+                    className: 'text-nowrap text-center',
+                    render: function(d) {
+                        return esc(d);
+                    }
+                },
                 {
                     data: null,
                     orderable: false,
@@ -248,20 +310,45 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
-        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+        document.getElementById('filter-status').addEventListener('change', function() {
+            table.ajax.reload();
+        });
         if (jQuery.fn.select2) {
             jQuery('#filter-reseller').select2({
-                width: '100%', allowClear: true, placeholder: <?= json_encode($language::get('reseller')); ?>,
+                width: '100%',
+                allowClear: true,
+                placeholder: <?= json_encode($language::get('reseller')); ?>,
                 ajax: {
-                    url: './api', dataType: 'json', delay: 250,
-                    data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
-                    processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
+                    url: './api',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            action: 'reguserlist',
+                            page: params.page
+                        };
+                    },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data.items,
+                            pagination: {
+                                more: (params.page * 100) < data.total_count
+                            }
+                        };
+                    },
                     cache: true
                 }
-            }).on('change', function() { table.ajax.reload(); });
+            }).on('change', function() {
+                table.ajax.reload();
+            });
         }
 
         // Row actions (enable/disable/delete).
@@ -269,13 +356,33 @@ renderUnifiedLayoutFooter('admin');
             var id = this.getAttribute('data-id');
             var sub = this.getAttribute('data-sub');
             var _do = function() {
-                fetch('./api?action=reg_user&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                fetch('./api?action=reg_user&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.ajax.reload(null, false);
+                    })
+                    .catch(function() {
+                        alert(lang.error);
+                    });
             };
-            if (sub === 'delete') { window.xcConfirm(lang.delConfirm.replace(/IP address/i, 'user')).then(function(ok) { if (ok) { _do(); } }); }
-            else { _do(); }
+            if (sub === 'delete') {
+                window.xcConfirm(lang.delConfirm.replace(/IP address/i, 'user')).then(function(ok) {
+                    if (ok) {
+                        _do();
+                    }
+                });
+            } else {
+                _do();
+            }
         });
 
         // Edit modal (iframe of the edit form).
@@ -302,14 +409,24 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('credits-submit').addEventListener('click', function() {
             var amount = document.getElementById('credits-amount').value;
             var reason = document.getElementById('credits-reason').value;
-            fetch('./api?action=adjust_credits&id=' + encodeURIComponent(creditsId) + '&reason=' + encodeURIComponent(reason) + '&credits=' + encodeURIComponent(amount), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
+            fetch('./api?action=adjust_credits&id=' + encodeURIComponent(creditsId) + '&reason=' + encodeURIComponent(reason) + '&credits=' + encodeURIComponent(amount), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
                 .then(function(d) {
                     bootstrap.Modal.getOrCreateInstance(creditsModal).hide();
-                    if (!d || d.result !== true) { throw new Error('fail'); }
+                    if (!d || d.result !== true) {
+                        throw new Error('fail');
+                    }
                     table.ajax.reload(null, false);
                 })
-                .catch(function() { alert(lang.error); });
+                .catch(function() {
+                    alert(lang.error);
+                });
         });
 
         // Whois.
@@ -319,18 +436,30 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('whois-ip').textContent = ip;
             body.innerHTML = '<div class="text-center py-3"><span class="spinner-border" role="status"></span></div>';
             bootstrap.Modal.getOrCreateInstance(document.getElementById('whoisModal')).show();
-            fetch('./api?action=ip_whois&isp=1&ip=' + encodeURIComponent(ip), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
+            fetch('./api?action=ip_whois&isp=1&ip=' + encodeURIComponent(ip), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
                 .then(function(w) {
                     var rows = [];
-                    var add = function(label, val) { if (val) { rows.push('<dt class="col-4 text-body-secondary">' + esc(label) + '</dt><dd class="col-8">' + esc(val) + '</dd>'); } };
+                    var add = function(label, val) {
+                        if (val) {
+                            rows.push('<dt class="col-4 text-body-secondary">' + esc(label) + '</dt><dd class="col-8">' + esc(val) + '</dd>');
+                        }
+                    };
                     add(<?= json_encode($language::get('country')); ?>, w && w.country && w.country.names && w.country.names.en);
                     add(<?= json_encode($language::get('city')); ?>, w && w.city && w.city.names && w.city.names.en);
                     add(<?= json_encode($language::get('isp')); ?>, w && w.isp && (w.isp.isp || w.isp.organization));
                     add('ASN', w && w.isp && w.isp.autonomous_system_number);
                     body.innerHTML = rows.length ? '<dl class="row mb-0">' + rows.join('') + '</dl>' : '<div class="text-center text-body-secondary py-2">—</div>';
                 })
-                .catch(function() { body.innerHTML = '<div class="alert alert-danger mb-0">' + esc(lang.error) + '</div>'; });
+                .catch(function() {
+                    body.innerHTML = '<div class="alert alert-danger mb-0">' + esc(lang.error) + '</div>';
+                });
         });
     })();
 </script>

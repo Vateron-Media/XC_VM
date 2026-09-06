@@ -216,23 +216,33 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
 
         // select2 dropdowns (jQuery so codec toggles keep firing 'change').
         if ($.fn.select2) {
-            $('#profile-form select').select2({ width: '100%' });
+            $('#profile-form select').select2({
+                width: '100%'
+            });
         }
 
         if (window.bootstrap) {
-            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) { new bootstrap.Tooltip(el); });
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                new bootstrap.Tooltip(el);
+            });
         }
 
         // Digits-only input filter (reimplements the legacy inputFilter helper).
         var numericOnly = function(id) {
             var el = document.getElementById(id);
-            if (!el) { return; }
-            el.addEventListener('input', function() { this.value = this.value.replace(/[^\d]/g, ''); });
+            if (!el) {
+                return;
+            }
+            el.addEventListener('input', function() {
+                this.value = this.value.replace(/[^\d]/g, '');
+            });
         };
         ['video_bitrate', 'audio_bitrate', 'min_tolerance', 'max_tolerance', 'buffer_size', 'framerate', 'samplerate', 'audio_channels', 'threads', 'crf_value'].forEach(numericOnly);
 
@@ -276,24 +286,50 @@ renderUnifiedLayoutFooter('admin');
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(form);
-            fetch('post.php?action=profile&referer=', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=profile&referer=', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.location) { window.location = d.location; return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.location) {
+                        window.location = d.location;
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
                 .catch(function() {
-                    if (btn) { btn.disabled = false; }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 });
         });
 
         <?php if (SettingsManager::get('enable_search')): ?>
-        if (typeof initSearch === 'function') { initSearch(); }
+            if (typeof initSearch === 'function') {
+                initSearch();
+            }
         <?php endif; ?>
     })();
 </script>

@@ -158,8 +158,11 @@ renderUnifiedLayoutFooter('admin');
         };
         var selected = {};
         var updateBulk = function() {
-            var n = Object.keys(selected).length, bar = document.getElementById('bulk-bar');
-            if (!bar) { return; }
+            var n = Object.keys(selected).length,
+                bar = document.getElementById('bulk-bar');
+            if (!bar) {
+                return;
+            }
             document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
             bar.classList.toggle('d-none', n === 0);
             bar.classList.toggle('d-flex', n > 0);
@@ -168,8 +171,15 @@ renderUnifiedLayoutFooter('admin');
         var table = jQuery('#movies-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[2, 'desc']],
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [2, 'desc']
+            ],
             ajax: {
                 url: './table',
                 data: function(d) {
@@ -181,11 +191,37 @@ renderUnifiedLayoutFooter('admin');
                     d.audio = document.getElementById('filter-audio').value;
                 }
             },
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { data: 'id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
-                { data: 'display_id', className: 'text-center', render: function(d, t, row) { return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'image', orderable: false, render: function(d) { return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxh=58&maxw=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : ''; } },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>';
+                    }
+                },
+                {
+                    data: 'display_id',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return '<a href="stream_view?id=' + encodeURIComponent(row.id) + '" class="text-body">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'image',
+                    orderable: false,
+                    render: function(d) {
+                        return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxh=58&maxw=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : '';
+                    }
+                },
                 {
                     data: 'title',
                     responsivePriority: 1,
@@ -197,10 +233,16 @@ renderUnifiedLayoutFooter('admin');
                 {
                     data: 'server_name',
                     render: function(d, t, row) {
-                        if (!d) { return '<span class="text-body-secondary">' + esc('No Server') + '</span>'; }
+                        if (!d) {
+                            return '<span class="text-body-secondary">' + esc('No Server') + '</span>';
+                        }
                         var html = row.server_url ? '<a href="' + esc(row.server_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
-                        if (row.server_count > 1) { html += ' <a href="movies?stream_id=' + encodeURIComponent(row.id) + '" class="badge bg-label-info">+' + (row.server_count - 1) + '</a>'; }
-                        if (row.server_offline) { html += ' <i class="icon-base ti tabler-alert-triangle text-danger" title="Server offline"></i>'; }
+                        if (row.server_count > 1) {
+                            html += ' <a href="movies?stream_id=' + encodeURIComponent(row.id) + '" class="badge bg-label-info">+' + (row.server_count - 1) + '</a>';
+                        }
+                        if (row.server_offline) {
+                            html += ' <i class="icon-base ti tabler-alert-triangle text-danger" title="Server offline"></i>';
+                        }
                         return html;
                     }
                 },
@@ -208,12 +250,27 @@ renderUnifiedLayoutFooter('admin');
                     data: 'clients',
                     className: 'text-center',
                     render: function(d, t, row) {
-                        if (d > 0 && canLive) { return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '&server_id=' + encodeURIComponent(row.server_col_id) + '" class="badge bg-label-info">' + d + '</a>'; }
+                        if (d > 0 && canLive) {
+                            return '<a href="live_connections?stream_id=' + encodeURIComponent(row.id) + '&server_id=' + encodeURIComponent(row.server_col_id) + '" class="badge bg-label-info">' + d + '</a>';
+                        }
                         return '<span class="badge bg-label-secondary">' + (d || 0) + '</span>';
                     }
                 },
-                { data: 'status', className: 'text-center', render: function(d) { var s = STATUS[String(d)] || ['secondary', '']; return '<span class="badge bg-label-' + s[0] + '" title="' + esc(s[1]) + '">' + esc(s[1]) + '</span>'; } },
-                { data: 'tmdb', className: 'text-center', render: function(d) { return d ? '<i class="icon-base ti tabler-circle-check text-success"></i>' : '<i class="icon-base ti tabler-circle-minus text-body-secondary"></i>'; } },
+                {
+                    data: 'status',
+                    className: 'text-center',
+                    render: function(d) {
+                        var s = STATUS[String(d)] || ['secondary', ''];
+                        return '<span class="badge bg-label-' + s[0] + '" title="' + esc(s[1]) + '">' + esc(s[1]) + '</span>';
+                    }
+                },
+                {
+                    data: 'tmdb',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ? '<i class="icon-base ti tabler-circle-check text-success"></i>' : '<i class="icon-base ti tabler-circle-minus text-body-secondary"></i>';
+                    }
+                },
                 {
                     data: null,
                     orderable: false,
@@ -222,13 +279,20 @@ renderUnifiedLayoutFooter('admin');
                     render: function(d, t, row) {
                         var items = '';
                         if (canEdit) {
-                            if (row.status === 2) { items += '<a class="dropdown-item js-enc" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="stop">' + esc(lang.stopEnc) + '</a>'; }
-                            else if (row.status !== 3 && row.status !== 5) { items += '<a class="dropdown-item js-enc" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="start">' + esc(row.status === 1 ? lang.encode : lang.startEnc) + '</a>'; }
+                            if (row.status === 2) {
+                                items += '<a class="dropdown-item js-enc" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="stop">' + esc(lang.stopEnc) + '</a>';
+                            } else if (row.status !== 3 && row.status !== 5) {
+                                items += '<a class="dropdown-item js-enc" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '" data-sub="start">' + esc(row.status === 1 ? lang.encode : lang.startEnc) + '</a>';
+                            }
                             items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.edit) + '</a>';
                             items += '<a class="dropdown-item text-danger js-del" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_id) + '">' + esc(lang.del) + '</a>';
                         }
-                        if (row.notes) { items = '<h6 class="dropdown-header text-truncate" style="max-width:16rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items; }
-                        if (!items) { return ''; }
+                        if (row.notes) {
+                            items = '<h6 class="dropdown-header text-truncate" style="max-width:16rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items;
+                        }
+                        if (!items) {
+                            return '';
+                        }
                         return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
                     }
                 },
@@ -239,7 +303,9 @@ renderUnifiedLayoutFooter('admin');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var playable = (row.status === 1 || row.status === 3);
-                        if (!canPlayer || !playable) { return '<button class="btn btn-sm btn-icon btn-label-secondary" disabled><i class="icon-base ti tabler-player-play"></i></button>'; }
+                        if (!canPlayer || !playable) {
+                            return '<button class="btn btn-sm btn-icon btn-label-secondary" disabled><i class="icon-base ti tabler-player-play"></i></button>';
+                        }
                         return '<button class="btn btn-sm btn-icon btn-label-info js-play" data-id="' + esc(row.id) + '" data-container="' + esc(row.target_container || '') + '"><i class="icon-base ti tabler-player-play"></i></button>';
                     }
                 },
@@ -247,7 +313,9 @@ renderUnifiedLayoutFooter('admin');
                     data: 'info',
                     orderable: false,
                     render: function(d) {
-                        if (!d) { return '<small class="text-body-secondary">—</small>'; }
+                        if (!d) {
+                            return '<small class="text-body-secondary">—</small>';
+                        }
                         return '<div class="d-flex flex-wrap gap-1">' +
                             '<span class="badge bg-label-secondary">' + esc(Number(d.bitrate).toLocaleString()) + ' Kbps</span>' +
                             '<span class="badge bg-label-primary">' + esc(d.width) + '×' + esc(d.height) + '</span>' +
@@ -257,13 +325,26 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
-        ['filter-category', 'filter-server'].forEach(function(id) { document.getElementById(id).addEventListener('change', function() { table.ajax.reload(); }); });
+        ['filter-category', 'filter-server'].forEach(function(id) {
+            document.getElementById(id).addEventListener('change', function() {
+                table.ajax.reload();
+            });
+        });
         ['filter-resolution', 'filter-video', 'filter-audio'].forEach(function(id) {
-            var el = document.getElementById(id), tmr;
-            el.addEventListener('input', function() { clearTimeout(tmr); tmr = setTimeout(function() { table.ajax.reload(); }, 400); });
+            var el = document.getElementById(id),
+                tmr;
+            el.addEventListener('input', function() {
+                clearTimeout(tmr);
+                tmr = setTimeout(function() {
+                    table.ajax.reload();
+                }, 400);
+            });
         });
 
         // Encode start/stop + delete.
@@ -271,51 +352,106 @@ renderUnifiedLayoutFooter('admin');
             call(this.getAttribute('data-sub'), this.getAttribute('data-id'), this.getAttribute('data-server'));
         });
         jQuery('#movies-table tbody').on('click', '.js-del', function() {
-            var _id = this.getAttribute('data-id'), _server = this.getAttribute('data-server');
+            var _id = this.getAttribute('data-id'),
+                _server = this.getAttribute('data-server');
             window.xcConfirm(lang.del + '?').then(function(ok) {
-                if (!ok) { return; }
+                if (!ok) {
+                    return;
+                }
                 call('delete', _id, _server);
             });
         });
+
         function call(sub, id, server) {
-            fetch('./api?action=movie&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(id) + '&server_id=' + encodeURIComponent(server), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                .catch(function() { alert(lang.error); });
+            fetch('./api?action=movie&sub=' + encodeURIComponent(sub) + '&stream_id=' + encodeURIComponent(id) + '&server_id=' + encodeURIComponent(server), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(dt) {
+                    if (!dt || dt.result !== true) {
+                        throw new Error('fail');
+                    }
+                    table.ajax.reload(null, false);
+                })
+                .catch(function() {
+                    alert(lang.error);
+                });
         }
 
         // Player (legacy modal if available, else open the stream page).
         var playerModal = document.getElementById('playerModal');
         jQuery('#movies-table tbody').on('click', '.js-play', function() {
-            var id = this.getAttribute('data-id'), container = this.getAttribute('data-container') || '';
+            var id = this.getAttribute('data-id'),
+                container = this.getAttribute('data-container') || '';
             document.getElementById('player-frame').src = './player?type=movie&id=' + encodeURIComponent(id) + '&container=' + encodeURIComponent(container);
-            if (window.bootstrap) { bootstrap.Modal.getOrCreateInstance(playerModal).show(); }
+            if (window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(playerModal).show();
+            }
         });
-        playerModal.addEventListener('hidden.bs.modal', function() { document.getElementById('player-frame').src = 'about:blank'; });
+        playerModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('player-frame').src = 'about:blank';
+        });
 
         // Bulk.
         jQuery('#movies-table tbody').on('change', '.row-check', function() {
             var id = this.getAttribute('data-id');
-            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            if (this.checked) {
+                selected[id] = true;
+            } else {
+                delete selected[id];
+            }
             updateBulk();
         });
         document.getElementById('check-all').addEventListener('change', function() {
             var on = this.checked;
-            jQuery('#movies-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+            jQuery('#movies-table tbody .row-check').each(function() {
+                this.checked = on;
+                var id = this.getAttribute('data-id');
+                if (on) {
+                    selected[id] = true;
+                } else {
+                    delete selected[id];
+                }
+            });
             updateBulk();
         });
-        table.on('draw', function() { document.getElementById('check-all').checked = false; });
+        table.on('draw', function() {
+            document.getElementById('check-all').checked = false;
+        });
         var bulkDel = document.getElementById('bulk-delete');
         if (bulkDel) {
             bulkDel.addEventListener('click', function() {
                 var ids = Object.keys(selected);
-                if (!ids.length) { return; }
+                if (!ids.length) {
+                    return;
+                }
                 window.xcConfirm(lang.del + ' (' + ids.length + ')?').then(function(ok) {
-                    if (!ok) { return; }
-                    fetch('./api?action=multi&type=movie&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                        .catch(function() { alert(lang.error); });
+                    if (!ok) {
+                        return;
+                    }
+                    fetch('./api?action=multi&type=movie&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(dt) {
+                            if (!dt || dt.result !== true) {
+                                throw new Error('fail');
+                            }
+                            selected = {};
+                            updateBulk();
+                            table.ajax.reload(null, false);
+                        })
+                        .catch(function() {
+                            alert(lang.error);
+                        });
                 });
             });
         }
@@ -326,7 +462,10 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('edit-frame').src = 'movie?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1';
             bootstrap.Modal.getOrCreateInstance(editModal).show();
         });
-        editModal.addEventListener('hidden.bs.modal', function() { document.getElementById('edit-frame').src = 'about:blank'; table.ajax.reload(null, false); });
+        editModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('edit-frame').src = 'about:blank';
+            table.ajax.reload(null, false);
+        });
     })();
 </script>
 </body>

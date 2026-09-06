@@ -118,7 +118,9 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var lang = {
             validMac: <?= json_encode($language::get('enter_valid_mac')) ?>,
@@ -136,7 +138,9 @@ renderUnifiedLayoutFooter('admin');
         var formatMAC = function(e) {
             var r = /([a-f0-9]{2})([a-f0-9]{2})/i;
             var str = e.target.value.replace(/[^a-f0-9]/ig, '');
-            while (r.test(str)) { str = str.replace(r, '$1:$2'); }
+            while (r.test(str)) {
+                str = str.replace(r, '$1:$2');
+            }
             e.target.value = str.slice(0, 17);
         };
         document.getElementById('whitelist_mac').addEventListener('keyup', formatMAC);
@@ -145,22 +149,49 @@ renderUnifiedLayoutFooter('admin');
         // Add a validated, de-duplicated value into a listbox.
         var addValue = function(inputId, listId, regex, invalidMsg, emptyMsg, dupMsg) {
             var val = $('#' + inputId).val().trim();
-            if (!val) { toast(emptyMsg, 'error'); return; }
-            if (!regex.test(val)) { toast(invalidMsg, 'error'); return; }
+            if (!val) {
+                toast(emptyMsg, 'error');
+                return;
+            }
+            if (!regex.test(val)) {
+                toast(invalidMsg, 'error');
+                return;
+            }
             var exists = false;
-            $('#' + listId + ' option').each(function() { if (this.value === val) { exists = true; } });
-            if (exists) { toast(dupMsg, 'error'); return; }
+            $('#' + listId + ' option').each(function() {
+                if (this.value === val) {
+                    exists = true;
+                }
+            });
+            if (exists) {
+                toast(dupMsg, 'error');
+                return;
+            }
             $('#' + listId).append(new Option(val, val));
             $('#' + inputId).val('');
         };
-        var removeSelected = function(listId) { $('#' + listId + ' option:selected').remove(); };
+        var removeSelected = function(listId) {
+            $('#' + listId + ' option:selected').remove();
+        };
 
-        $('#add_mac').on('click', function() { addValue('whitelist_mac', 'whitelist_macs', macRegex, lang.validMac, lang.enterMac, lang.macWhitelisted); });
-        $('#remove_mac').on('click', function() { removeSelected('whitelist_macs'); });
-        $('#add_black_mac').on('click', function() { addValue('blacklist_mac', 'blacklist_macs', macRegex, lang.validMac, lang.enterMac, lang.macBlacklisted); });
-        $('#remove_black_mac').on('click', function() { removeSelected('blacklist_macs'); });
-        $('#add_ip').on('click', function() { addValue('whitelist_ip', 'whitelist_ips', ipRegex, lang.validIp, lang.enterIp, lang.ipWhitelisted); });
-        $('#remove_ip').on('click', function() { removeSelected('whitelist_ips'); });
+        $('#add_mac').on('click', function() {
+            addValue('whitelist_mac', 'whitelist_macs', macRegex, lang.validMac, lang.enterMac, lang.macWhitelisted);
+        });
+        $('#remove_mac').on('click', function() {
+            removeSelected('whitelist_macs');
+        });
+        $('#add_black_mac').on('click', function() {
+            addValue('blacklist_mac', 'blacklist_macs', macRegex, lang.validMac, lang.enterMac, lang.macBlacklisted);
+        });
+        $('#remove_black_mac').on('click', function() {
+            removeSelected('blacklist_macs');
+        });
+        $('#add_ip').on('click', function() {
+            addValue('whitelist_ip', 'whitelist_ips', ipRegex, lang.validIp, lang.enterIp, lang.ipWhitelisted);
+        });
+        $('#remove_ip').on('click', function() {
+            removeSelected('whitelist_ips');
+        });
 
         // Select every list entry so the full lists post.
         document.getElementById('magscan-form').addEventListener('submit', function() {

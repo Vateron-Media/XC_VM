@@ -187,14 +187,36 @@ renderUnifiedLayoutFooter('admin');
                 var action = this.getAttribute('data-action');
                 var run = function() {
                     btn.disabled = true;
-                    fetch('./api?action=' + encodeURIComponent(action), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(d) { if (d && d.result === true) { location.reload(); } else { btn.disabled = false; toast(errText, 'error'); } })
-                        .catch(function() { btn.disabled = false; toast(errText, 'error'); });
+                    fetch('./api?action=' + encodeURIComponent(action), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(d) {
+                            if (d && d.result === true) {
+                                location.reload();
+                            } else {
+                                btn.disabled = false;
+                                toast(errText, 'error');
+                            }
+                        })
+                        .catch(function() {
+                            btn.disabled = false;
+                            toast(errText, 'error');
+                        });
                 };
                 if (action.indexOf('disable') === 0 || action === 'clear_redis' || action === 'regenerate_cache') {
-                    (window.xcConfirm ? window.xcConfirm('Are you sure?') : Promise.resolve(confirm('Are you sure?'))).then(function(ok) { if (ok) { run(); } });
-                } else { run(); }
+                    (window.xcConfirm ? window.xcConfirm('Are you sure?') : Promise.resolve(confirm('Are you sure?'))).then(function(ok) {
+                        if (ok) {
+                            run();
+                        }
+                    });
+                } else {
+                    run();
+                }
             });
         });
 
@@ -203,17 +225,41 @@ renderUnifiedLayoutFooter('admin');
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(form);
             fd.append('submit_settings', '1');
-            fetch('post.php?action=cache', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=cache', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(d && d.result !== false ? 'Cache & Redis settings updated.' : errText, d && d.result !== false ? 'success' : 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(errText, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(errText, 'error');
+                });
         });
     })();
 </script>

@@ -69,29 +69,68 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var delText = <?= json_encode($language::get('profile_delete_confirm') ?: $language::get('delete')); ?>;
 
         var table = $('#profiles-table').DataTable({
-            order: [[0, 'asc']],
-            columnDefs: [{ orderable: false, targets: [6] }],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [0, 'asc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: [6]
+            }],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         function confirmSwal(text) {
-            if (window.Swal) { return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; }); }
+            if (window.Swal) {
+                return Swal.fire({
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                        cancelButton: 'btn btn-label-secondary ms-2'
+                    },
+                    buttonsStyling: false
+                }).then(function(r) {
+                    return r.isConfirmed;
+                });
+            }
             return Promise.resolve(window.confirm(text));
         }
 
         $('#profiles-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             confirmSwal(delText).then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=profile&sub=delete&profile_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row($('#profile-' + id)).remove().draw(false); })
-                    .catch(function() { xcToast(errText, 'error'); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=profile&sub=delete&profile_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.row($('#profile-' + id)).remove().draw(false);
+                    })
+                    .catch(function() {
+                        xcToast(errText, 'error');
+                    });
             });
         });
     })();

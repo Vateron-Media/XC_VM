@@ -121,8 +121,12 @@ $rTitle = $rIsEdit ? $rChannel['stream_display_name'] : 'Create Channel';
                         </select>
                     </div>
                     <div class="row g-3 mb-6">
-                        <div class="col-md-6"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rtmp_output" name="rtmp_output" value="1" <?= ($rIsEdit && $rChannel['rtmp_output'] == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="rtmp_output">Output RTMP</label></div></div>
-                        <div class="col-md-6"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="allow_record" name="allow_record" value="1" <?= (!$rIsEdit || $rChannel['allow_record'] == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="allow_record">Allow Recording</label></div></div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="rtmp_output" name="rtmp_output" value="1" <?= ($rIsEdit && $rChannel['rtmp_output'] == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="rtmp_output">Output RTMP</label></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="allow_record" name="allow_record" value="1" <?= (!$rIsEdit || $rChannel['allow_record'] == 1) ? 'checked' : ''; ?>><label class="form-check-label" for="allow_record">Allow Recording</label></div>
+                        </div>
                     </div>
                     <div class="mb-6">
                         <label class="form-label" for="custom_sid">Custom Channel SID</label>
@@ -162,7 +166,17 @@ $rTitle = $rIsEdit ? $rChannel['stream_display_name'] : 'Create Channel';
                         </div>
                     </div>
                     <div class="card-datatable table-responsive">
-                        <table id="datatable-movies" class="table"><thead><tr><th class="text-center"><?= $language::get('id'); ?></th><th><?= $language::get('name'); ?></th><th><?= $language::get('category_series'); ?></th><th class="text-center"><?= $language::get('actions'); ?></th></tr></thead><tbody></tbody></table>
+                        <table id="datatable-movies" class="table">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('name'); ?></th>
+                                    <th><?= $language::get('category_series'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -215,7 +229,7 @@ $rTitle = $rIsEdit ? $rChannel['stream_display_name'] : 'Create Channel';
                                     <input type="text" class="form-control rtmp-url" value="<?= htmlspecialchars((string) $rSource, ENT_QUOTES); ?>" placeholder="rtmp://...">
                                     <button type="button" class="btn btn-label-danger rtmp-remove"><i class="icon-base ti tabler-x"></i></button>
                                 </div>
-                                <?php $i++;
+                        <?php $i++;
                             endforeach;
                         endforeach; ?>
                     </div>
@@ -259,7 +273,9 @@ $rTitle = $rIsEdit ? $rChannel['stream_display_name'] : 'Create Channel';
 <div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title mb-0"><?= $language::get('file_browser'); ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('file_browser'); ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <div class="modal-body">
                 <div class="row mb-3">
                     <div class="col-md-6 mb-2">
@@ -293,7 +309,13 @@ $rTitle = $rIsEdit ? $rChannel['stream_display_name'] : 'Create Channel';
         </div>
     </div>
 </div>
-<div class="modal fade" id="imgPreviewModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div></div></div></div>
+<div class="modal fade" id="imgPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div>
+        </div>
+    </div>
+</div>
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
@@ -302,26 +324,55 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var VIDEO_EXT = ['mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v'];
-        function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
+
+        function esc(s) {
+            return $('<div>').text(s == null ? '' : s).html();
+        }
+
         function collectNew(sel) {
-            var vals = $(sel).val() || [], nw = [];
-            vals.forEach(function(v) { if (!/^\d+$/.test(v)) { nw.push(v); } });
+            var vals = $(sel).val() || [],
+                nw = [];
+            vals.forEach(function(v) {
+                if (!/^\d+$/.test(v)) {
+                    nw.push(v);
+                }
+            });
             return JSON.stringify(nw);
         }
 
-        $('#category_id, #bouquets').select2({ width: '100%', tags: true, dropdownParent: $('#tab-details') });
-        $('#channel_type, #series_no, #transcode_profile_id').select2({ width: '100%', dropdownParent: $('#tab-details') });
-        $('#server_idc, #category_idv').select2({ width: '100%', dropdownParent: $('#tab-selection') });
-        $('#on_demand').select2({ width: '100%', dropdownParent: $('#tab-server') });
+        $('#category_id, #bouquets').select2({
+            width: '100%',
+            tags: true,
+            dropdownParent: $('#tab-details')
+        });
+        $('#channel_type, #series_no, #transcode_profile_id').select2({
+            width: '100%',
+            dropdownParent: $('#tab-details')
+        });
+        $('#server_idc, #category_idv').select2({
+            width: '100%',
+            dropdownParent: $('#tab-selection')
+        });
+        $('#on_demand').select2({
+            width: '100%',
+            dropdownParent: $('#tab-server')
+        });
 
         // ---- logo preview ----
         document.getElementById('icon-preview').addEventListener('click', function() {
-            var v = document.getElementById('stream_icon').value.trim(), img = document.getElementById('icon-img');
-            if (!v) { img.hidden = true; return; }
-            img.src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(v); img.hidden = false;
+            var v = document.getElementById('stream_icon').value.trim(),
+                img = document.getElementById('icon-img');
+            if (!v) {
+                img.hidden = true;
+                return;
+            }
+            img.src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(v);
+            img.hidden = false;
         });
 
         // ---- channel_type drives which tabs/rows show ----
@@ -335,7 +386,9 @@ renderUnifiedLayoutFooter('admin');
         $('#channel_type').on('change', applyType);
         applyType();
         $('#series_no').on('change', function() {
-            if ($('#series_no').val() > 0) { $('#stream_display_name').val('24/7 ' + $('#series_no option:selected').text()); }
+            if ($('#series_no').val() > 0) {
+                $('#stream_display_name').val('24/7 ' + $('#series_no option:selected').text());
+            }
         });
         $('#transcode_profile_id').on('change', function() {
             var v = $(this).val();
@@ -345,92 +398,172 @@ renderUnifiedLayoutFooter('admin');
         // ---- ordered list ops (review / videos) ----
         document.querySelectorAll('[data-sort]').forEach(function(btn) {
             btn.addEventListener('click', function() {
-                var sel = $('#' + btn.dataset.sort + '_sort'), op = btn.dataset.op, opts = sel.find('option:selected');
+                var sel = $('#' + btn.dataset.sort + '_sort'),
+                    op = btn.dataset.op,
+                    opts = sel.find('option:selected');
                 if (op === 'atoz') {
                     sel.append(sel.find('option').remove().sort(function(a, b) {
-                        var at = $(a).text().toUpperCase().split('/').pop(), bt = $(b).text().toUpperCase().split('/').pop();
+                        var at = $(a).text().toUpperCase().split('/').pop(),
+                            bt = $(b).text().toUpperCase().split('/').pop();
                         return at > bt ? 1 : (at < bt ? -1 : 0);
                     }));
                     return;
                 }
-                if (!opts.length) { return; }
-                if (op === 'up') { var p = opts.first().prev(); if (p.length) { p.before(opts); } }
-                else if (op === 'down') { var n = opts.last().next(); if (n.length) { n.after(opts); } }
-                else if (op === 'remove') { opts.remove(); }
+                if (!opts.length) {
+                    return;
+                }
+                if (op === 'up') {
+                    var p = opts.first().prev();
+                    if (p.length) {
+                        p.before(opts);
+                    }
+                } else if (op === 'down') {
+                    var n = opts.last().next();
+                    if (n.length) {
+                        n.after(opts);
+                    }
+                } else if (op === 'remove') {
+                    opts.remove();
+                }
             });
         });
 
         // ---- VOD selection ----
         var rSelection = [];
+
         function reviewSelection() {
-            $.post('./api?action=review_selection', { data: rSelection }, function(rData) {
-                if (!rData || rData.result !== true) { return; }
+            $.post('./api?action=review_selection', {
+                data: rSelection
+            }, function(rData) {
+                if (!rData || rData.result !== true) {
+                    return;
+                }
                 var active = [];
                 $(rData.streams).each(function(i) {
                     var src = $.parseJSON(rData.streams[i].stream_source)[0];
                     active.push(src);
                     var ext = src.split('.').pop().toLowerCase();
-                    if (VIDEO_EXT.indexOf(ext) !== -1 && $('#review_sort option').filter(function() { return this.value === src; }).length === 0) {
+                    if (VIDEO_EXT.indexOf(ext) !== -1 && $('#review_sort option').filter(function() {
+                            return this.value === src;
+                        }).length === 0) {
                         $('#review_sort').append(new Option(src, src));
                     }
                 });
-                $('#review_sort option').each(function() { if (active.indexOf(this.value) === -1) { $(this).remove(); } });
+                $('#review_sort option').each(function() {
+                    if (active.indexOf(this.value) === -1) {
+                        $(this).remove();
+                    }
+                });
             }, 'json');
         }
         window.toggleSelection = function(id) {
             id = parseInt(id, 10);
             var idx = rSelection.indexOf(id);
-            if (idx > -1) { rSelection.splice(idx, 1); } else { rSelection.push(id); }
-            if (window.__ccMovies) { window.__ccMovies.ajax.reload(null, false); }
+            if (idx > -1) {
+                rSelection.splice(idx, 1);
+            } else {
+                rSelection.push(id);
+            }
+            if (window.__ccMovies) {
+                window.__ccMovies.ajax.reload(null, false);
+            }
             reviewSelection();
         };
         window.__ccMovies = $('#datatable-movies').DataTable({
-            processing: true, serverSide: true, searching: true, lengthChange: false, info: false,
+            processing: true,
+            serverSide: true,
+            searching: true,
+            lengthChange: false,
+            info: false,
             pageLength: <?= (int) ($rSettings['default_entries'] ?? 10) ?: 10; ?>,
-            ajax: { url: './table', data: function(d) { d.id = 'vod_selection'; d.category_id = $('#category_idv').val(); d.server_id = $('#server_idc').val(); } },
-            columnDefs: [{ className: 'dt-center', targets: [0, 3] }],
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'vod_selection';
+                    d.category_id = $('#category_idv').val();
+                    d.server_id = $('#server_idc').val();
+                }
+            },
+            columnDefs: [{
+                className: 'dt-center',
+                targets: [0, 3]
+            }],
             createdRow: function(row, data) {
                 $(row).addClass('vod-' + data[0]);
-                if (rSelection.indexOf(parseInt(data[0], 10)) > -1) { $(row).find('.btn-remove').show(); } else { $(row).find('.btn-add').show(); }
+                if (rSelection.indexOf(parseInt(data[0], 10)) > -1) {
+                    $(row).find('.btn-remove').show();
+                } else {
+                    $(row).find('.btn-add').show();
+                }
             }
         });
-        $('#category_idv, #server_idc').on('change', function() { window.__ccMovies.ajax.reload(null, false); });
-        $('#vod_search').on('keyup', function() { window.__ccMovies.search($(this).val()).draw(); });
+        $('#category_idv, #server_idc').on('change', function() {
+            window.__ccMovies.ajax.reload(null, false);
+        });
+        $('#vod_search').on('keyup', function() {
+            window.__ccMovies.search($(this).val()).draw();
+        });
 
         // ---- file browser (videos) ----
-        var fbDir = '/', fbModal = document.getElementById('fileBrowserModal');
+        var fbDir = '/',
+            fbModal = document.getElementById('fileBrowserModal');
+
         function fbList() {
             var server = $('#fb_server').val();
             fbDir = $('#fb_path').val();
-            if (fbDir.slice(-1) !== '/') { fbDir += '/'; }
+            if (fbDir.slice(-1) !== '/') {
+                fbDir += '/';
+            }
             $('#fb_path').val(fbDir);
             $('#fb_dirs, #fb_files').html('<li class="list-group-item text-muted">…</li>');
             $.getJSON('./api?action=listdir&dir=' + encodeURIComponent(fbDir) + '&server=' + encodeURIComponent(server) + '&filter=video', function(data) {
-                var dirs = '', files = '';
-                if (fbDir !== '/') { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>..</li>'; }
+                var dirs = '',
+                    files = '';
+                if (fbDir !== '/') {
+                    dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>..</li>';
+                }
                 if (data && data.result === true) {
-                    $(data.data.dirs).each(function(i, d) { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>'; });
-                    $(data.data.files).each(function(i, f) { files += '<li class="list-group-item fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>'; });
+                    $(data.data.dirs).each(function(i, d) {
+                        dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>';
+                    });
+                    $(data.data.files).each(function(i, f) {
+                        files += '<li class="list-group-item fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>';
+                    });
                 }
                 $('#fb_dirs').html(dirs || '<li class="list-group-item text-muted">—</li>');
                 $('#fb_files').html(files || '<li class="list-group-item text-muted">—</li>');
             });
         }
-        document.getElementById('filebrowser').addEventListener('click', function() { $('#fb_path').val('/'); fbList(); bootstrap.Modal.getOrCreateInstance(fbModal).show(); });
+        document.getElementById('filebrowser').addEventListener('click', function() {
+            $('#fb_path').val('/');
+            fbList();
+            bootstrap.Modal.getOrCreateInstance(fbModal).show();
+        });
         document.getElementById('fb_go').addEventListener('click', fbList);
-        $('#fb_server').on('change', function() { $('#fb_path').val('/'); fbList(); });
+        $('#fb_server').on('change', function() {
+            $('#fb_path').val('/');
+            fbList();
+        });
         $('#fb_dirs').on('click', '.fb-dir', function() {
             var name = $(this).data('name');
-            if (name === '..') { fbDir = fbDir.split('/').slice(0, -2).join('/') + '/'; } else { fbDir += name + '/'; }
-            $('#fb_path').val(fbDir); fbList();
+            if (name === '..') {
+                fbDir = fbDir.split('/').slice(0, -2).join('/') + '/';
+            } else {
+                fbDir += name + '/';
+            }
+            $('#fb_path').val(fbDir);
+            fbList();
         });
         document.getElementById('fb_add_dir').addEventListener('click', function() {
             var server = $('#fb_server').val();
             $('#cc_folder').val($('#fb_server option:selected').text());
             $('#fb_files .fb-file').each(function() {
-                var name = $(this).data('name'), ext = name.split('.').pop().toLowerCase();
+                var name = $(this).data('name'),
+                    ext = name.split('.').pop().toLowerCase();
                 var val = 's:' + server + ':' + fbDir + name;
-                if (VIDEO_EXT.indexOf(ext) !== -1 && $('#videos_sort option').filter(function() { return this.value === val; }).length === 0) {
+                if (VIDEO_EXT.indexOf(ext) !== -1 && $('#videos_sort option').filter(function() {
+                        return this.value === val;
+                    }).length === 0) {
                     $('#videos_sort').append(new Option(fbDir + name, val));
                 }
             });
@@ -439,32 +572,51 @@ renderUnifiedLayoutFooter('admin');
 
         // ---- RTMP rows ----
         document.getElementById('rtmp-add').addEventListener('click', function() {
-            var list = document.getElementById('rtmp-list'), first = list.querySelector('.rtmp-row');
-            if (!first) { return; }
+            var list = document.getElementById('rtmp-list'),
+                first = list.querySelector('.rtmp-row');
+            if (!first) {
+                return;
+            }
             var clone = first.cloneNode(true);
             clone.querySelector('.rtmp-url').value = '';
             list.appendChild(clone);
-            $(clone).find('.rtmp-server').select2({ width: '100%' });
+            $(clone).find('.rtmp-server').select2({
+                width: '100%'
+            });
         });
         $('#rtmp-list').on('click', '.rtmp-remove', function() {
             var rows = document.querySelectorAll('#rtmp-list .rtmp-row');
-            if (rows.length > 1) { this.closest('.rtmp-row').remove(); } else { this.closest('.rtmp-row').querySelector('.rtmp-url').value = ''; }
+            if (rows.length > 1) {
+                this.closest('.rtmp-row').remove();
+            } else {
+                this.closest('.rtmp-row').querySelector('.rtmp-url').value = '';
+            }
         });
-        $('#rtmp-list .rtmp-server').select2({ width: '100%' });
+        $('#rtmp-list .rtmp-server').select2({
+            width: '100%'
+        });
 
         // ---- jstree server tree ----
         function evaluateServers() {
             var cur = $('#on_demand').val();
             $('#on_demand').empty();
-            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function(i, v) {
-                if (v.parent !== '#') { $('#on_demand').append(new Option(v.text, v.id)); }
+            $($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            })).each(function(i, v) {
+                if (v.parent !== '#') {
+                    $('#on_demand').append(new Option(v.text, v.id));
+                }
             });
             $('#on_demand').val(cur).trigger('change');
         }
         $('#server_tree')
-            .on('redraw.jstree', function() { evaluateServers(); })
+            .on('redraw.jstree', function() {
+                evaluateServers();
+            })
             .on('select_node.jstree', function(e, data) {
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -472,8 +624,12 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -486,42 +642,92 @@ renderUnifiedLayoutFooter('admin');
         // ---- submit ----
         document.getElementById('cchannel-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            var t = $('#channel_type').val(), files = [], ok = true;
-            if (t === '0') { if ($('#series_no').val() == 0) { alert('Please select a series to map.'); ok = false; } }
-            else if (t === '1') {
-                if ($('#videos_sort option').length === 0) { alert('Please add at least one video.'); ok = false; }
-                $('#videos_sort option').each(function() { files.push(this.value); });
+            var t = $('#channel_type').val(),
+                files = [],
+                ok = true;
+            if (t === '0') {
+                if ($('#series_no').val() == 0) {
+                    alert('Please select a series to map.');
+                    ok = false;
+                }
+            } else if (t === '1') {
+                if ($('#videos_sort option').length === 0) {
+                    alert('Please add at least one video.');
+                    ok = false;
+                }
+                $('#videos_sort option').each(function() {
+                    files.push(this.value);
+                });
             } else if (t === '2') {
-                if ($('#review_sort option').length === 0) { alert('Please add at least one video.'); ok = false; }
-                $('#review_sort option').each(function() { files.push(this.value); });
+                if ($('#review_sort option').length === 0) {
+                    alert('Please add at least one video.');
+                    ok = false;
+                }
+                $('#review_sort option').each(function() {
+                    files.push(this.value);
+                });
             }
-            if (!$('#transcode_profile_id').val()) { alert('Please select a transcoding profile.'); ok = false; }
-            if (!document.getElementById('stream_display_name').value.trim()) { ok = false; }
-            if (!ok) { return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!$('#transcode_profile_id').val()) {
+                alert('Please select a transcoding profile.');
+                ok = false;
+            }
+            if (!document.getElementById('stream_display_name').value.trim()) {
+                ok = false;
+            }
+            if (!ok) {
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             document.getElementById('video_files').value = JSON.stringify(files);
             document.getElementById('category_create_list').value = collectNew('#category_id');
             document.getElementById('bouquet_create_list').value = collectNew('#bouquets');
             var rtmp = {};
             document.querySelectorAll('#rtmp-list .rtmp-row').forEach(function(row) {
-                var sid = row.querySelector('.rtmp-server').value, src = row.querySelector('.rtmp-url').value;
-                if (sid > 0 && src.length > 0) { (rtmp[sid] = rtmp[sid] || []).push(src); }
+                var sid = row.querySelector('.rtmp-server').value,
+                    src = row.querySelector('.rtmp-url').value;
+                if (sid > 0 && src.length > 0) {
+                    (rtmp[sid] = rtmp[sid] || []).push(src);
+                }
             });
             document.getElementById('external_push').value = JSON.stringify(rtmp);
             var btn = document.getElementById('cchannel-submit');
             btn.disabled = true;
-            fetch('post.php?action=created_channel', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=created_channel', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     if (dt && dt.result !== false) {
-                        if (window.parent !== window) { window.parent.postMessage('xcModalSaved', '*'); }
-                        else { window.location.href = dt.location || 'created_channels'; }
+                        if (window.parent !== window) {
+                            window.parent.postMessage('xcModalSaved', '*');
+                        } else {
+                            window.location.href = dt.location || 'created_channels';
+                        }
                         return;
                     }
-                    btn.disabled = false; alert(errText);
+                    btn.disabled = false;
+                    alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

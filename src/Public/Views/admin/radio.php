@@ -144,9 +144,12 @@ $rArg = static function (string $key, $rOptId) use ($rStationOptions, $rStationA
                         <select id="days_to_restart" name="days_to_restart[]" class="form-select opt-field" multiple>
                             <?php
                             $rDaysMap = [
-                                $language::get('monday') => 'Monday', $language::get('tuesday') => 'Tuesday',
-                                $language::get('wednesday') => 'Wednesday', $language::get('thursday') => 'Thursday',
-                                $language::get('friday') => 'Friday', $language::get('saturday') => 'Saturday',
+                                $language::get('monday') => 'Monday',
+                                $language::get('tuesday') => 'Tuesday',
+                                $language::get('wednesday') => 'Wednesday',
+                                $language::get('thursday') => 'Thursday',
+                                $language::get('friday') => 'Friday',
+                                $language::get('saturday') => 'Saturday',
                                 $language::get('sunday') => 'Sunday',
                             ];
                             foreach ($rDaysMap as $rDayLabel => $rDayValue): ?>
@@ -196,26 +199,46 @@ renderUnifiedLayoutFooter('admin');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var nameErr = <?= json_encode($language::get('enter_a_radio_station_name')); ?>;
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
 
         // Logo preview.
         document.getElementById('preview-icon').addEventListener('click', function() {
             var url = document.getElementById('stream_icon').value.trim(),
                 img = document.getElementById('icon-preview');
-            if (!url) { img.hidden = true; return; }
+            if (!url) {
+                img.hidden = true;
+                return;
+            }
             img.src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(url);
             img.hidden = false;
         });
 
         // select2 tags for categories/bouquets (freshly typed names are collected
         // into *_create_list on submit); plain select2 for days/on_demand.
-        $('#category_id, #bouquets').select2({ width: '100%', tags: true, dropdownParent: $('#tab-details') });
-        $('#days_to_restart').select2({ width: '100%', dropdownParent: $('#tab-restart') });
-        $('#on_demand').select2({ width: '100%', dropdownParent: $('#tab-servers') });
+        $('#category_id, #bouquets').select2({
+            width: '100%',
+            tags: true,
+            dropdownParent: $('#tab-details')
+        });
+        $('#days_to_restart').select2({
+            width: '100%',
+            dropdownParent: $('#tab-restart')
+        });
+        $('#on_demand').select2({
+            width: '100%',
+            dropdownParent: $('#tab-servers')
+        });
 
         // flatpickr time picker (replaces the legacy clockpicker).
         if (window.flatpickr) {
-            flatpickr('#time_to_restart', { enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true });
+            flatpickr('#time_to_restart', {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: 'H:i',
+                time_24hr: true
+            });
         }
 
         // jstree load-balancer tree: click a server to toggle Online/Offline; drag
@@ -223,15 +246,23 @@ renderUnifiedLayoutFooter('admin');
         function evaluateServers() {
             var cur = $('#on_demand').val();
             $('#on_demand').empty();
-            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function(i, v) {
-                if (v.parent !== '#') { $('#on_demand').append(new Option(v.text, v.id)); }
+            $($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            })).each(function(i, v) {
+                if (v.parent !== '#') {
+                    $('#on_demand').append(new Option(v.text, v.id));
+                }
             });
             $('#on_demand').val(cur).trigger('change');
         }
         $('#server_tree')
-            .on('redraw.jstree', function() { evaluateServers(); })
+            .on('redraw.jstree', function() {
+                evaluateServers();
+            })
             .on('select_node.jstree', function(e, data) {
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -239,8 +270,12 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -252,11 +287,14 @@ renderUnifiedLayoutFooter('admin');
 
         // Direct source disables the encode/restart/server options.
         var directEl = document.getElementById('direct_source');
+
         function applyDirect() {
             var off = directEl.checked;
             document.querySelectorAll('.opt-field').forEach(function(el) {
                 el.disabled = off;
-                if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', off).trigger('change.select2'); }
+                if ($(el).hasClass('select2-hidden-accessible')) {
+                    $(el).prop('disabled', off).trigger('change.select2');
+                }
             });
         }
         directEl.addEventListener('change', applyDirect);
@@ -264,30 +302,52 @@ renderUnifiedLayoutFooter('admin');
 
         // Collect freshly typed select2 tags (non-numeric values) as the create list.
         function collectNew(sel) {
-            var vals = $(sel).val() || [], nw = [];
-            vals.forEach(function(v) { if (!/^\d+$/.test(v)) { nw.push(v); } });
+            var vals = $(sel).val() || [],
+                nw = [];
+            vals.forEach(function(v) {
+                if (!/^\d+$/.test(v)) {
+                    nw.push(v);
+                }
+            });
             return JSON.stringify(nw);
         }
 
         document.getElementById('radio-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!document.getElementById('stream_display_name').value.trim()) { alert(nameErr); return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!document.getElementById('stream_display_name').value.trim()) {
+                alert(nameErr);
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             document.getElementById('category_create_list').value = collectNew('#category_id');
             document.getElementById('bouquet_create_list').value = collectNew('#bouquets');
             // Re-enable direct-source-disabled fields so their values still post.
-            document.querySelectorAll('.opt-field').forEach(function(el) { el.disabled = false; });
+            document.querySelectorAll('.opt-field').forEach(function(el) {
+                el.disabled = false;
+            });
             var btn = document.getElementById('radio-submit');
             btn.disabled = true;
             fetch('post.php?action=radio', {
                     method: 'POST',
                     body: new FormData(e.target),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 })
-                .then(function(r) { return r.text(); })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
                     var dt;
-                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     if (dt && dt.result !== false) {
                         if (window.parent !== window) {
                             window.parent.postMessage('xcModalSaved', '*');

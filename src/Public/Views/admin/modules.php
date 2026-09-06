@@ -83,7 +83,9 @@
             </thead>
             <tbody>
                 <?php if (empty($modules)): ?>
-                    <tr><td colspan="6" class="text-center text-body-secondary">No modules found.</td></tr>
+                    <tr>
+                        <td colspan="6" class="text-center text-body-secondary">No modules found.</td>
+                    </tr>
                 <?php else: ?>
                     <?php foreach ($modules as $module): ?>
                         <tr>
@@ -152,34 +154,72 @@
 </div>
 
 <script>
-    (function () {
+    (function() {
         'use strict';
         var endpoint = window.location.href.split('#')[0];
         var CHOOSE_FILE = <?= json_encode($language::get('choose_file')); ?>;
         var TOGGLE_FAIL = <?= json_encode($language::get('failed_toggle_module')); ?>;
 
         function escapeHtml(s) {
-            return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+            return String(s).replace(/[&<>"']/g, function(c) {
+                return {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                } [c];
+            });
         }
+
         function showFlash(type, message) {
             var box = document.getElementById('module-flash');
             var cls = ['success', 'warning', 'danger', 'info'].indexOf(type) !== -1 ? type : 'info';
-            if (window.xcToast) { window.xcToast(message || '', cls === 'danger' ? 'error' : (cls === 'success' ? 'success' : (cls === 'warning' ? 'warning' : 'info'))); }
-            if (!box) { return; }
+            if (window.xcToast) {
+                window.xcToast(message || '', cls === 'danger' ? 'error' : (cls === 'success' ? 'success' : (cls === 'warning' ? 'warning' : 'info')));
+            }
+            if (!box) {
+                return;
+            }
             box.innerHTML = '<div class="alert alert-' + cls + ' alert-dismissible" role="alert">' + escapeHtml(message || '') + '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
-            box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            box.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest'
+            });
         }
+
         function postAction(formData) {
-            return fetch(endpoint, { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin', body: formData })
-                .then(function (r) { return r.json().catch(function () { return { type: 'danger', message: 'Unexpected server response.' }; }); });
+            return fetch(endpoint, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    credentials: 'same-origin',
+                    body: formData
+                })
+                .then(function(r) {
+                    return r.json().catch(function() {
+                        return {
+                            type: 'danger',
+                            message: 'Unexpected server response.'
+                        };
+                    });
+                });
         }
+
         function refreshTable() {
-            return fetch(endpoint, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (html) {
+            return fetch(endpoint, {
+                credentials: 'same-origin'
+            }).then(function(r) {
+                return r.text();
+            }).then(function(html) {
                 var doc = new DOMParser().parseFromString(html, 'text/html');
                 var fresh = doc.querySelector('#modules-table tbody');
                 var current = document.querySelector('#modules-table tbody');
-                if (fresh && current) { current.innerHTML = fresh.innerHTML; }
-            }).catch(function () {});
+                if (fresh && current) {
+                    current.innerHTML = fresh.innerHTML;
+                }
+            }).catch(function() {});
         }
 
         // File input + drag & drop.
@@ -188,45 +228,101 @@
         var uploadBtn = document.getElementById('module_upload_btn');
         var zone = document.getElementById('module-drop-zone');
         if (input) {
-            input.addEventListener('change', function () {
-                if (label) { label.textContent = this.files[0] ? this.files[0].name : CHOOSE_FILE; }
-                if (uploadBtn) { uploadBtn.disabled = !this.files.length; }
+            input.addEventListener('change', function() {
+                if (label) {
+                    label.textContent = this.files[0] ? this.files[0].name : CHOOSE_FILE;
+                }
+                if (uploadBtn) {
+                    uploadBtn.disabled = !this.files.length;
+                }
             });
         }
         if (zone) {
-            zone.addEventListener('click', function (e) { if (input && e.target !== input && e.target.tagName !== 'A') { input.click(); } });
-            ['dragover', 'dragenter'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.style.backgroundColor = 'rgba(105,108,255,0.06)'; }); });
-            ['dragleave', 'drop'].forEach(function (ev) { zone.addEventListener(ev, function (e) { e.preventDefault(); zone.style.backgroundColor = ''; }); });
-            zone.addEventListener('drop', function (e) { if (input && e.dataTransfer.files.length) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); } });
+            zone.addEventListener('click', function(e) {
+                if (input && e.target !== input && e.target.tagName !== 'A') {
+                    input.click();
+                }
+            });
+            ['dragover', 'dragenter'].forEach(function(ev) {
+                zone.addEventListener(ev, function(e) {
+                    e.preventDefault();
+                    zone.style.backgroundColor = 'rgba(105,108,255,0.06)';
+                });
+            });
+            ['dragleave', 'drop'].forEach(function(ev) {
+                zone.addEventListener(ev, function(e) {
+                    e.preventDefault();
+                    zone.style.backgroundColor = '';
+                });
+            });
+            zone.addEventListener('drop', function(e) {
+                if (input && e.dataTransfer.files.length) {
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change'));
+                }
+            });
         }
-        function resetUploadForm(form) { form.reset(); if (label) { label.textContent = CHOOSE_FILE; } if (uploadBtn) { uploadBtn.disabled = true; } }
+
+        function resetUploadForm(form) {
+            form.reset();
+            if (label) {
+                label.textContent = CHOOSE_FILE;
+            }
+            if (uploadBtn) {
+                uploadBtn.disabled = true;
+            }
+        }
 
         // AJAX submit for every module action form.
-        document.addEventListener('submit', function (e) {
+        document.addEventListener('submit', function(e) {
             var form = e.target.closest('.js-module-form');
-            if (!form) { return; }
+            if (!form) {
+                return;
+            }
             e.preventDefault();
             var confirmMsg = form.getAttribute('data-confirm');
-            var _proceed = function () {
+            var _proceed = function() {
                 var btn = form.querySelector('[type="submit"]');
                 var originalHtml = btn ? btn.innerHTML : '';
                 var isUpload = form.id === 'module-upload-form';
-                if (btn) { btn.disabled = true; btn.innerHTML = '<i class="icon-base ti tabler-loader me-1"></i>…'; }
-                postAction(new FormData(form)).then(function (resp) {
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="icon-base ti tabler-loader me-1"></i>…';
+                }
+                postAction(new FormData(form)).then(function(resp) {
                     showFlash(resp.type, resp.message);
-                    if (resp.type !== 'danger') { if (isUpload) { resetUploadForm(form); } return refreshTable(); }
-                }).catch(function () { showFlash('danger', 'Request failed.'); }).finally(function () {
-                    if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+                    if (resp.type !== 'danger') {
+                        if (isUpload) {
+                            resetUploadForm(form);
+                        }
+                        return refreshTable();
+                    }
+                }).catch(function() {
+                    showFlash('danger', 'Request failed.');
+                }).finally(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = originalHtml;
+                    }
                 });
             };
-            if (confirmMsg) { (window.xcConfirm ? window.xcConfirm(confirmMsg) : Promise.resolve(confirm(confirmMsg))).then(function (ok) { if (ok) { _proceed(); } }); }
-            else { _proceed(); }
+            if (confirmMsg) {
+                (window.xcConfirm ? window.xcConfirm(confirmMsg) : Promise.resolve(confirm(confirmMsg))).then(function(ok) {
+                    if (ok) {
+                        _proceed();
+                    }
+                });
+            } else {
+                _proceed();
+            }
         });
 
         // Enable/disable toggle (optimistic in-place update).
-        document.addEventListener('click', function (e) {
+        document.addEventListener('click', function(e) {
             var btn = e.target.closest('.module-toggle-btn');
-            if (!btn) { return; }
+            if (!btn) {
+                return;
+            }
             e.preventDefault();
             var moduleName = btn.getAttribute('data-module');
             var isEnabled = btn.getAttribute('data-enabled') === '1';
@@ -235,17 +331,31 @@
             var fd = new FormData();
             fd.append('module_name', moduleName);
             fd.append('module_action', isEnabled ? 'disable' : 'enable');
-            postAction(fd).then(function (resp) {
-                if (resp && resp.type === 'danger') { btn.disabled = false; btn.innerHTML = isEnabled ? 'Disable' : 'Enable'; showFlash('danger', resp.message || 'Operation failed.'); return; }
+            postAction(fd).then(function(resp) {
+                if (resp && resp.type === 'danger') {
+                    btn.disabled = false;
+                    btn.innerHTML = isEnabled ? 'Disable' : 'Enable';
+                    showFlash('danger', resp.message || 'Operation failed.');
+                    return;
+                }
                 var nowEnabled = !isEnabled;
                 btn.setAttribute('data-enabled', nowEnabled ? '1' : '0');
                 btn.className = 'btn btn-sm me-1 module-toggle-btn ' + (nowEnabled ? 'btn-warning' : 'btn-success');
                 btn.innerHTML = nowEnabled ? 'Disable' : 'Enable';
                 btn.disabled = false;
                 var badge = document.querySelector('.module-status-badge[data-module="' + moduleName + '"]');
-                if (badge) { badge.className = 'badge module-status-badge ' + (nowEnabled ? 'bg-label-success' : 'bg-label-secondary'); badge.textContent = nowEnabled ? 'Enabled' : 'Disabled'; }
-                if (resp && resp.message) { showFlash(resp.type || 'success', resp.message); }
-            }).catch(function () { btn.disabled = false; btn.innerHTML = isEnabled ? 'Disable' : 'Enable'; showFlash('danger', TOGGLE_FAIL); });
+                if (badge) {
+                    badge.className = 'badge module-status-badge ' + (nowEnabled ? 'bg-label-success' : 'bg-label-secondary');
+                    badge.textContent = nowEnabled ? 'Enabled' : 'Disabled';
+                }
+                if (resp && resp.message) {
+                    showFlash(resp.type || 'success', resp.message);
+                }
+            }).catch(function() {
+                btn.disabled = false;
+                btn.innerHTML = isEnabled ? 'Disable' : 'Enable';
+                showFlash('danger', TOGGLE_FAIL);
+            });
         });
     })();
 </script>

@@ -66,25 +66,51 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var delText = <?= json_encode($language::get('delete_confirm')); ?>;
         var toast = window.xcToast || function() {};
 
         var table = $('#bouquets-table').DataTable({
-            order: [[0, 'asc']],
-            columnDefs: [{ orderable: false, targets: [6] }],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [0, 'asc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: [6]
+            }],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         $('#bouquets-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             (window.xcConfirm ? window.xcConfirm(delText) : Promise.resolve(confirm(delText))).then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=bouquet&sub=delete&bouquet_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row($('#bouquet-' + id)).remove().draw(false); toast('Deleted.'); })
-                    .catch(function() { toast(errText, 'error'); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=bouquet&sub=delete&bouquet_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.row($('#bouquet-' + id)).remove().draw(false);
+                        toast('Deleted.');
+                    })
+                    .catch(function() {
+                        toast(errText, 'error');
+                    });
             });
         });
     })();

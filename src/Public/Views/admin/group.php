@@ -215,38 +215,38 @@ $rAdminCard    = !$rIsEdit || !empty($rGroup['can_delete']);
                     <textarea class="form-control" id="notice_html" name="notice_html" rows="8"><?= $rIsEdit ? htmlspecialchars((string) $rNotice, ENT_QUOTES) : ''; ?></textarea>
                 </div>
                 <?php if ($rAdminCard): ?>
-                <div class="tab-pane fade" id="tab-admin" role="tabpanel">
-                    <div class="d-flex justify-content-end mb-4">
-                        <div class="btn-group btn-group-sm">
-                            <button type="button" class="btn btn-label-secondary" id="perm-all"><?= $language::get('select_all'); ?></button>
-                            <button type="button" class="btn btn-label-secondary" id="perm-none"><?= $language::get('deselect_all'); ?></button>
+                    <div class="tab-pane fade" id="tab-admin" role="tabpanel">
+                        <div class="d-flex justify-content-end mb-4">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-label-secondary" id="perm-all"><?= $language::get('select_all'); ?></button>
+                                <button type="button" class="btn btn-label-secondary" id="perm-none"><?= $language::get('deselect_all'); ?></button>
+                            </div>
+                        </div>
+                        <p class="text-body-secondary"><?= $language::get('advanced_permissions_info'); ?></p>
+                        <div class="card-datatable table-responsive">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th><?= $language::get('permission'); ?></th>
+                                        <th><?= $language::get('description'); ?></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (PermissionReference::advanced() as $rPermission): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input group-permission-cb" type="checkbox" value="<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>" id="grp-perm-<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>" <?= (is_array($rAllowedPages) && in_array($rPermission[0], $rAllowedPages)) ? 'checked' : ''; ?>>
+                                                    <label class="form-check-label" for="grp-perm-<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rPermission[1], ENT_QUOTES); ?></label>
+                                                </div>
+                                            </td>
+                                            <td><?= htmlspecialchars((string) $rPermission[2], ENT_QUOTES); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
-                    <p class="text-body-secondary"><?= $language::get('advanced_permissions_info'); ?></p>
-                    <div class="card-datatable table-responsive">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th><?= $language::get('permission'); ?></th>
-                                    <th><?= $language::get('description'); ?></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach (PermissionReference::advanced() as $rPermission): ?>
-                                    <tr>
-                                        <td>
-                                            <div class="form-check">
-                                                <input class="form-check-input group-permission-cb" type="checkbox" value="<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>" id="grp-perm-<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>" <?= (is_array($rAllowedPages) && in_array($rPermission[0], $rAllowedPages)) ? 'checked' : ''; ?>>
-                                                <label class="form-check-label" for="grp-perm-<?= htmlspecialchars((string) $rPermission[0], ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rPermission[1], ENT_QUOTES); ?></label>
-                                            </div>
-                                        </td>
-                                        <td><?= htmlspecialchars((string) $rPermission[2], ENT_QUOTES); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
                 <?php endif; ?>
             </div>
         </div>

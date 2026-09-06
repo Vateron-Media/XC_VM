@@ -144,37 +144,49 @@ $rAutoRestart = ['days' => [], 'at' => '06:00'];
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="gen_timestamps" name="c_gen_timestamps"></div>
                         <label class="col-md-3 col-form-label" for="gen_timestamps"><?= $language::get('generate_pts'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="gen_timestamps" id="gen_timestamps"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="gen_timestamps" id="gen_timestamps"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="read_native" name="c_read_native"></div>
                         <label class="col-md-3 col-form-label" for="read_native"><?= $language::get('native_frames'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="read_native" id="read_native"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="read_native" id="read_native"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="stream_all" name="c_stream_all"></div>
                         <label class="col-md-3 col-form-label" for="stream_all"><?= $language::get('stream_all_codecs'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="stream_all" id="stream_all"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="stream_all" id="stream_all"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="allow_record" name="c_allow_record"></div>
                         <label class="col-md-3 col-form-label" for="allow_record"><?= $language::get('allow_recording'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="allow_record" id="allow_record"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="allow_record" id="allow_record"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="direct_source" name="c_direct_source"></div>
                         <label class="col-md-3 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="direct_source" id="direct_source"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="direct_source" id="direct_source"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="direct_proxy" name="c_direct_proxy"></div>
                         <label class="col-md-3 col-form-label" for="direct_proxy"><?= $language::get('direct_stream'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="direct_proxy" id="direct_proxy"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="direct_proxy" id="direct_proxy"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
@@ -192,7 +204,9 @@ $rAutoRestart = ['days' => [], 'at' => '06:00'];
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="fps_restart" name="c_fps_restart"></div>
                         <label class="col-md-3 col-form-label" for="fps_restart"><?= $language::get('restart_on_fps_drop'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="fps_restart" id="fps_restart"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="fps_restart" id="fps_restart"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
@@ -204,7 +218,9 @@ $rAutoRestart = ['days' => [], 'at' => '06:00'];
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="rtmp_output" name="c_rtmp_output"></div>
                         <label class="col-md-3 col-form-label" for="rtmp_output"><?= $language::get('output_rtmp'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="rtmp_output" id="rtmp_output"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="rtmp_output" id="rtmp_output"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
@@ -277,7 +293,9 @@ $rAutoRestart = ['days' => [], 'at' => '06:00'];
                     <div class="row mb-3">
                         <div class="col-md-1 text-center"><input type="checkbox" data-name="server_tree" class="form-check-input activate" name="c_server_tree" id="c_server_tree"></div>
                         <label class="col-md-3 col-form-label" for="server_tree"><?= $language::get('server_tree'); ?></label>
-                        <div class="col-md-8"><div id="server_tree" class="border rounded p-2"></div></div>
+                        <div class="col-md-8">
+                            <div id="server_tree" class="border rounded p-2"></div>
+                        </div>
                     </div>
 
                     <div class="row mb-3 align-items-center">
@@ -351,7 +369,9 @@ $rAutoRestart = ['days' => [], 'at' => '06:00'];
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
                         <label class="col-md-3 col-form-label" for="restart_on_edit"><?= $language::get('restart_on_edit'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input type="checkbox" value="1" class="form-check-input" name="restart_on_edit" id="restart_on_edit"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input type="checkbox" value="1" class="form-check-input" name="restart_on_edit" id="restart_on_edit"></div>
+                        </div>
                     </div>
                 </div>
 
@@ -368,43 +388,80 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var selected = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        window.getCategory = function() { return document.getElementById('category_search').value; };
-        window.getServer = function() { return document.getElementById('stream_server_id').value; };
-        window.getFilter = function() { return document.getElementById('stream_filter').value; };
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+        window.getCategory = function() {
+            return document.getElementById('category_search').value;
+        };
+        window.getServer = function() {
+            return document.getElementById('stream_server_id').value;
+        };
+        window.getFilter = function() {
+            return document.getElementById('stream_filter').value;
+        };
         window.toggleStreams = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
 
         // select2 on every filter + detail select (all live inside #mass-form).
         if ($.fn.select2) {
-            $('#mass-form select').select2({ width: '100%' });
+            $('#mass-form select').select2({
+                width: '100%'
+            });
         }
 
         // flatpickr time picker (replaces the legacy clockpicker).
         if (window.flatpickr) {
-            flatpickr('#time_to_restart', { enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true });
+            flatpickr('#time_to_restart', {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: 'H:i',
+                time_24hr: true
+            });
         }
 
         // Enable/disable a field (and its select2 mirror) by id.
         function setEnabled(id, on) {
             var el = document.getElementById(id);
-            if (!el) { return; }
+            if (!el) {
+                return;
+            }
             el.disabled = !on;
-            if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', !on).trigger('change.select2'); }
+            if ($(el).hasClass('select2-hidden-accessible')) {
+                $(el).prop('disabled', !on).trigger('change.select2');
+            }
         }
 
         // Activate checkboxes gate their field; some fields carry extra companions.
@@ -412,10 +469,19 @@ renderUnifiedLayoutFooter('admin');
             var name = this.getAttribute('data-name');
             var on = this.checked;
             setEnabled(name, on);
-            if (name === 'days_to_restart') { setEnabled('time_to_restart', on); }
-            if (name === 'server_tree') { setEnabled('on_demand', on); setEnabled('server_type', on); }
-            if (name === 'category_id') { setEnabled('category_id_type', on); }
-            if (name === 'bouquets') { setEnabled('bouquets_type', on); }
+            if (name === 'days_to_restart') {
+                setEnabled('time_to_restart', on);
+            }
+            if (name === 'server_tree') {
+                setEnabled('on_demand', on);
+                setEnabled('server_type', on);
+            }
+            if (name === 'category_id') {
+                setEnabled('category_id_type', on);
+            }
+            if (name === 'bouquets') {
+                setEnabled('bouquets_type', on);
+            }
         });
 
         // jstree load-balancer tree: click a server to toggle Online/Offline; drag
@@ -423,16 +489,24 @@ renderUnifiedLayoutFooter('admin');
         function evaluateServers() {
             var cur = $('#on_demand').val();
             $('#on_demand').empty();
-            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function(i, v) {
-                if (v.parent !== '#') { $('#on_demand').append(new Option(v.text, v.id)); }
+            $($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            })).each(function(i, v) {
+                if (v.parent !== '#') {
+                    $('#on_demand').append(new Option(v.text, v.id));
+                }
             });
             $('#on_demand').val(cur).trigger('change');
         }
         $('#server_tree')
-            .on('redraw.jstree', function() { evaluateServers(); })
+            .on('redraw.jstree', function() {
+                evaluateServers();
+            })
             .on('select_node.jstree', function(e, data) {
                 $('#c_server_tree').prop('checked', true).trigger('change');
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -440,8 +514,12 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -452,46 +530,121 @@ renderUnifiedLayoutFooter('admin');
             });
 
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250,
-            ajax: { url: './table', data: function(d) { d.id = 'stream_list'; d.category = getCategory(); d.filter = getFilter(); d.server = getServer(); } },
-            columnDefs: [{ className: 'text-center', targets: [0, 1, 5] }],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data[0])) !== -1) { $(row).addClass('table-active'); } },
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'stream_list';
+                    d.category = getCategory();
+                    d.filter = getFilter();
+                    d.server = getServer();
+                }
+            },
+            columnDefs: [{
+                className: 'text-center',
+                targets: [0, 1, 5]
+            }],
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data[0])) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            order: [[0, 'desc']],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [0, 'desc']
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         // Row click toggles selection.
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
 
-        $('#stream_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#stream_filter, #stream_server_id, #category_search').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#stream_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#stream_filter, #stream_server_id, #category_search').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast('Select at least one stream to edit.', 'warning'); return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!selected.length) {
+                toast('Select at least one stream to edit.', 'warning');
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             document.getElementById('streams').value = JSON.stringify(selected);
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_stream', '1');
-            fetch('post.php?action=stream_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=stream_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(errText, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(errText, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(errText, 'error');
+                });
         });
     })();
 </script>

@@ -62,8 +62,12 @@ if (RequestManager::has('id')) {
             // canPlayType() rejects made-up MIMEs like video/mkv, so unknown containers
             // are declared as video/mp4 — the browser sniffs the real container itself.
             $rMimeMap = array(
-                'mp4'  => 'video/mp4',  'm4v' => 'video/mp4', 'mov' => 'video/mp4',
-                'webm' => 'video/webm', 'ogg' => 'video/ogg', 'ogv' => 'video/ogg',
+                'mp4'  => 'video/mp4',
+                'm4v' => 'video/mp4',
+                'mov' => 'video/mp4',
+                'webm' => 'video/webm',
+                'ogg' => 'video/ogg',
+                'ogv' => 'video/ogg',
             );
             $rMime = ($streamType === 'hls')
                 ? 'application/x-mpegURL'
@@ -77,7 +81,8 @@ if (RequestManager::has('id')) {
                 <link rel="stylesheet" href="assets/vendor/libs/videojs/video-js.min.css">
                 <script src="assets/vendor/libs/videojs/video.min.js"></script>
                 <style>
-                    html, body {
+                    html,
+                    body {
                         margin: 0;
                         padding: 0;
                         width: 100%;
@@ -92,8 +97,16 @@ if (RequestManager::has('id')) {
                 <video id="now__playing__player" class="video-js vjs-big-play-centered" controls preload="auto"></video>
                 <script>
                     $(document).ready(function() {
-                        var rPlayer = videojs("now__playing__player", { autoplay: true, fill: true, liveui: true, controls: true });
-                        rPlayer.src({ src: "<?php echo $rURL; ?>", type: "<?php echo $rMime; ?>" });
+                        var rPlayer = videojs("now__playing__player", {
+                            autoplay: true,
+                            fill: true,
+                            liveui: true,
+                            controls: true
+                        });
+                        rPlayer.src({
+                            src: "<?php echo $rURL; ?>",
+                            type: "<?php echo $rMime; ?>"
+                        });
                     });
                 </script>
             </body>

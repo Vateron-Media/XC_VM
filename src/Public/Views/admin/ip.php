@@ -13,7 +13,9 @@
 </div>
 
 <div class="card">
-    <div class="card-header"><h5 class="mb-0"><?= $language::get('details'); ?></h5></div>
+    <div class="card-header">
+        <h5 class="mb-0"><?= $language::get('details'); ?></h5>
+    </div>
     <div class="card-body">
         <form id="ip-form" autocomplete="off">
             <div class="mb-6">
@@ -42,15 +44,36 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var btn = document.getElementById('ip-submit');
             btn.disabled = true;
-            fetch('post.php?action=ip', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=ip', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = dt.location || 'ips'; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'ips';
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

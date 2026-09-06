@@ -43,22 +43,52 @@ renderUnifiedLayoutFooter('admin');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var toast = window.xcToast || function() {};
         var list = document.getElementById('server-list');
-        if (window.xcSortable) { window.xcSortable(list); }
+        if (window.xcSortable) {
+            window.xcSortable(list);
+        }
         var form = document.getElementById('server-form');
         form.addEventListener('submit', function(e) {
             e.preventDefault();
-            var order = [].map.call(list.querySelectorAll('li'), function(li) { return { id: parseInt(li.getAttribute('data-id'), 10) }; });
+            var order = [].map.call(list.querySelectorAll('li'), function(li) {
+                return {
+                    id: parseInt(li.getAttribute('data-id'), 10)
+                };
+            });
             document.getElementById('server_order').value = JSON.stringify(order);
             var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
-            fetch('post.php?action=server_order', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            if (btn) {
+                btn.disabled = true;
+            }
+            fetch('post.php?action=server_order', {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(d && d.result !== false ? 'Servers re-ordered.' : errText, d && d.result !== false ? 'success' : 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(errText, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(errText, 'error');
+                });
         });
     })();
 </script>

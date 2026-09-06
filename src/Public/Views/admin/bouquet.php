@@ -45,185 +45,185 @@ $rPageLen = (int) ($rSettings['default_entries'] ?? 10) ?: 10;
 
                 <!-- Streams -->
                 <div class="tab-pane fade" id="tab-streams" role="tabpanel">
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="category_id"><?= $language::get('category_name'); ?></label>
-                            <div class="col-md-9">
-                                <select id="category_id" class="form-select">
-                                    <option value="" selected><?= $language::get('all_categories'); ?></option>
-                                    <?php foreach ($liveCategories as $rCategory): ?>
-                                        <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="category_id"><?= $language::get('category_name'); ?></label>
+                        <div class="col-md-9">
+                            <select id="category_id" class="form-select">
+                                <option value="" selected><?= $language::get('all_categories'); ?></option>
+                                <?php foreach ($liveCategories as $rCategory): ?>
+                                    <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="stream_search"><?= $language::get('search'); ?></label>
-                            <div class="col-md-9"><input type="text" class="form-control" id="stream_search" value=""></div>
-                        </div>
-                        <div class="table-responsive mb-3">
-                            <table id="datatable-stream" class="table" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center"><?= $language::get('id'); ?></th>
-                                        <th><?= $language::get('stream_name'); ?></th>
-                                        <th><?= $language::get('category'); ?></th>
-                                        <th class="text-center"><?= $language::get('actions'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-stream')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
                     </div>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="stream_search"><?= $language::get('search'); ?></label>
+                        <div class="col-md-9"><input type="text" class="form-control" id="stream_search" value=""></div>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table id="datatable-stream" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('stream_name'); ?></th>
+                                    <th><?= $language::get('category'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-stream')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
+                </div>
 
-                    <!-- Movies -->
-                    <div class="tab-pane fade" id="tab-movies" role="tabpanel">
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="category_idv"><?= $language::get('category_name'); ?></label>
-                            <div class="col-md-9">
-                                <select id="category_idv" class="form-select">
-                                    <option value="" selected><?= $language::get('all_categories'); ?></option>
-                                    <?php foreach ($movieCategories as $rCategory): ?>
-                                        <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                <!-- Movies -->
+                <div class="tab-pane fade" id="tab-movies" role="tabpanel">
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="category_idv"><?= $language::get('category_name'); ?></label>
+                        <div class="col-md-9">
+                            <select id="category_idv" class="form-select">
+                                <option value="" selected><?= $language::get('all_categories'); ?></option>
+                                <?php foreach ($movieCategories as $rCategory): ?>
+                                    <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="vod_search"><?= $language::get('search'); ?></label>
-                            <div class="col-md-9"><input type="text" class="form-control" id="vod_search" value=""></div>
-                        </div>
-                        <div class="table-responsive mb-3">
-                            <table id="datatable-movies" class="table" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center"><?= $language::get('id'); ?></th>
-                                        <th><?= $language::get('vod_name'); ?></th>
-                                        <th><?= $language::get('category'); ?></th>
-                                        <th class="text-center"><?= $language::get('actions'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-movies')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
                     </div>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="vod_search"><?= $language::get('search'); ?></label>
+                        <div class="col-md-9"><input type="text" class="form-control" id="vod_search" value=""></div>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table id="datatable-movies" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('vod_name'); ?></th>
+                                    <th><?= $language::get('category'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-movies')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
+                </div>
 
-                    <!-- Series -->
-                    <div class="tab-pane fade" id="tab-series" role="tabpanel">
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="category_ids"><?= $language::get('category_name'); ?></label>
-                            <div class="col-md-9">
-                                <select id="category_ids" class="form-select">
-                                    <option value="" selected><?= $language::get('all_categories'); ?></option>
-                                    <?php foreach ($seriesCategories as $rCategory): ?>
-                                        <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                <!-- Series -->
+                <div class="tab-pane fade" id="tab-series" role="tabpanel">
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="category_ids"><?= $language::get('category_name'); ?></label>
+                        <div class="col-md-9">
+                            <select id="category_ids" class="form-select">
+                                <option value="" selected><?= $language::get('all_categories'); ?></option>
+                                <?php foreach ($seriesCategories as $rCategory): ?>
+                                    <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="series_search"><?= $language::get('search'); ?></label>
-                            <div class="col-md-9"><input type="text" class="form-control" id="series_search" value=""></div>
-                        </div>
-                        <div class="table-responsive mb-3">
-                            <table id="datatable-series" class="table" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center"><?= $language::get('id'); ?></th>
-                                        <th><?= $language::get('series_name'); ?></th>
-                                        <th><?= $language::get('category'); ?></th>
-                                        <th class="text-center"><?= $language::get('actions'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-series')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
                     </div>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="series_search"><?= $language::get('search'); ?></label>
+                        <div class="col-md-9"><input type="text" class="form-control" id="series_search" value=""></div>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table id="datatable-series" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('series_name'); ?></th>
+                                    <th><?= $language::get('category'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-series')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
+                </div>
 
-                    <!-- Radios -->
-                    <div class="tab-pane fade" id="tab-radios" role="tabpanel">
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="category_idr"><?= $language::get('category_name'); ?></label>
-                            <div class="col-md-9">
-                                <select id="category_idr" class="form-select">
-                                    <option value="" selected><?= $language::get('all_categories'); ?></option>
-                                    <?php foreach ($radioCategories as $rCategory): ?>
-                                        <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+                <!-- Radios -->
+                <div class="tab-pane fade" id="tab-radios" role="tabpanel">
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="category_idr"><?= $language::get('category_name'); ?></label>
+                        <div class="col-md-9">
+                            <select id="category_idr" class="form-select">
+                                <option value="" selected><?= $language::get('all_categories'); ?></option>
+                                <?php foreach ($radioCategories as $rCategory): ?>
+                                    <option value="<?= (int) $rCategory['id']; ?>"><?= htmlspecialchars((string) $rCategory['category_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
-                        <div class="row mb-3">
-                            <label class="col-md-3 col-form-label" for="radios_search"><?= $language::get('search'); ?></label>
-                            <div class="col-md-9"><input type="text" class="form-control" id="radios_search" value=""></div>
-                        </div>
-                        <div class="table-responsive mb-3">
-                            <table id="datatable-radios" class="table" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center"><?= $language::get('id'); ?></th>
-                                        <th><?= $language::get('station_name'); ?></th>
-                                        <th><?= $language::get('category'); ?></th>
-                                        <th class="text-center"><?= $language::get('actions'); ?></th>
-                                    </tr>
-                                </thead>
-                                <tbody></tbody>
-                            </table>
-                        </div>
-                        <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-radios')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
                     </div>
+                    <div class="row mb-3">
+                        <label class="col-md-3 col-form-label" for="radios_search"><?= $language::get('search'); ?></label>
+                        <div class="col-md-9"><input type="text" class="form-control" id="radios_search" value=""></div>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table id="datatable-radios" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('station_name'); ?></th>
+                                    <th><?= $language::get('category'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                    <div class="text-end"><button type="button" onClick="toggleBouquets('datatable-radios')" class="btn btn-label-primary"><?= $language::get('toggle_page'); ?></button></div>
+                </div>
 
-                    <!-- Review -->
-                    <div class="tab-pane fade" id="tab-review" role="tabpanel">
-                        <div class="table-responsive mb-3">
-                            <table id="datatable-review" class="table" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th class="text-center"><?= $language::get('id'); ?></th>
-                                        <th><?= $language::get('type'); ?></th>
-                                        <th><?= $language::get('display_name'); ?></th>
-                                        <th class="text-center"><?= $language::get('actions'); ?></th>
+                <!-- Review -->
+                <div class="tab-pane fade" id="tab-review" role="tabpanel">
+                    <div class="table-responsive mb-3">
+                        <table id="datatable-review" class="table" style="width:100%">
+                            <thead>
+                                <tr>
+                                    <th class="text-center"><?= $language::get('id'); ?></th>
+                                    <th><?= $language::get('type'); ?></th>
+                                    <th><?= $language::get('display_name'); ?></th>
+                                    <th class="text-center"><?= $language::get('actions'); ?></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($rBouquetChannels as $rChannel): ?>
+                                    <tr id="stream-<?= (int) $rChannel; ?>">
+                                        <td class="text-center"><?= (int) $rChannel; ?></td>
+                                        <td><?= $language::get('stream'); ?></td>
+                                        <td><?= htmlspecialchars((string) ($rNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
+                                        <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'stream');"><i class="icon-base ti tabler-minus"></i></button></td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($rBouquetChannels as $rChannel): ?>
-                                        <tr id="stream-<?= (int) $rChannel; ?>">
-                                            <td class="text-center"><?= (int) $rChannel; ?></td>
-                                            <td><?= $language::get('stream'); ?></td>
-                                            <td><?= htmlspecialchars((string) ($rNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
-                                            <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'stream');"><i class="icon-base ti tabler-minus"></i></button></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    <?php foreach ($rBouquetMovies as $rChannel): ?>
-                                        <tr id="movies-<?= (int) $rChannel; ?>">
-                                            <td class="text-center"><?= (int) $rChannel; ?></td>
-                                            <td><?= $language::get('movies'); ?></td>
-                                            <td><?= htmlspecialchars((string) ($rNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
-                                            <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'movies');"><i class="icon-base ti tabler-minus"></i></button></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    <?php foreach ($rBouquetRadios as $rChannel): ?>
-                                        <tr id="radios-<?= (int) $rChannel; ?>">
-                                            <td class="text-center"><?= (int) $rChannel; ?></td>
-                                            <td><?= $language::get('radios'); ?></td>
-                                            <td><?= htmlspecialchars((string) ($rNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
-                                            <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'radios');"><i class="icon-base ti tabler-minus"></i></button></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                    <?php foreach ($rBouquetSeries as $rChannel): ?>
-                                        <tr id="series-<?= (int) $rChannel; ?>">
-                                            <td class="text-center"><?= (int) $rChannel; ?></td>
-                                            <td><?= $language::get('series'); ?></td>
-                                            <td><?= htmlspecialchars((string) ($rSeriesNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
-                                            <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'series');"><i class="icon-base ti tabler-minus"></i></button></td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                                <?php endforeach; ?>
+                                <?php foreach ($rBouquetMovies as $rChannel): ?>
+                                    <tr id="movies-<?= (int) $rChannel; ?>">
+                                        <td class="text-center"><?= (int) $rChannel; ?></td>
+                                        <td><?= $language::get('movies'); ?></td>
+                                        <td><?= htmlspecialchars((string) ($rNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
+                                        <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'movies');"><i class="icon-base ti tabler-minus"></i></button></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($rBouquetRadios as $rChannel): ?>
+                                    <tr id="radios-<?= (int) $rChannel; ?>">
+                                        <td class="text-center"><?= (int) $rChannel; ?></td>
+                                        <td><?= $language::get('radios'); ?></td>
+                                        <td><?= htmlspecialchars((string) ($rNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
+                                        <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'radios');"><i class="icon-base ti tabler-minus"></i></button></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                                <?php foreach ($rBouquetSeries as $rChannel): ?>
+                                    <tr id="series-<?= (int) $rChannel; ?>">
+                                        <td class="text-center"><?= (int) $rChannel; ?></td>
+                                        <td><?= $language::get('series'); ?></td>
+                                        <td><?= htmlspecialchars((string) ($rSeriesNames[$rChannel] ?? ''), ENT_QUOTES); ?></td>
+                                        <td class="text-center"><button type="button" class="btn-remove btn btn-sm btn-icon btn-label-warning" onClick="toggleBouquet(<?= (int) $rChannel; ?>, 'series');"><i class="icon-base ti tabler-minus"></i></button></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
                     </div>
+                </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2 mt-4">
@@ -264,7 +264,9 @@ renderUnifiedLayoutFooter('admin');
 
     // Add / remove an item from the review DataTable and flip its add/remove buttons.
     function toggleBouquet(rID, rType, rDraw) {
-        if (rDraw === undefined) { rDraw = true; }
+        if (rDraw === undefined) {
+            rDraw = true;
+        }
         var $ = window.jQuery;
         var rIndex = rBouquet[rType].indexOf(parseInt(rID));
         if (rIndex > -1) {
@@ -313,86 +315,133 @@ renderUnifiedLayoutFooter('admin');
 
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         $.fn.dataTable.ext.errMode = 'none';
 
         $(function() {
             // Picker-table factory: serverSide rows are positional arrays
-                // [id, name, category, buttonsHtml]; createdRow flips add/remove per rBouquet.
-                function buildPicker(rTableId, rTypeKey, rDataId, rCategorySel) {
-                    return $('#' + rTableId).DataTable({
-                        processing: true,
-                        serverSide: true,
-                        info: false,
-                        lengthChange: false,
-                        pageLength: <?= $rPageLen; ?>,
-                        ajax: {
-                            url: './table',
-                            data: function(d) {
-                                d.id = rDataId;
-                                d.category_id = $(rCategorySel).val();
-                            }
-                        },
-                        columnDefs: [
-                            { className: 'text-center', targets: 0 },
-                            { targets: 3, data: 0, orderable: false, className: 'text-center', render: function(rID) { return pickerButtons(rID, rTypeKey); } }
-                        ],
-                        createdRow: function(row, data) {
-                            $(row).attr('id', rTypeKey + '-' + data[0]);
-                            if (rBouquet[rTypeKey].indexOf(parseInt(data[0])) > -1) {
-                                $(row).find('.btn-remove').show();
-                            } else {
-                                $(row).find('.btn-add').show();
-                            }
-                        },
-                        layout: { topStart: 'pageLength' }
-                    });
-                }
-
-                var rStreamTable = buildPicker('datatable-stream', 'stream', 'bouquets_streams', '#category_id');
-                var rMoviesTable = buildPicker('datatable-movies', 'movies', 'bouquets_vod', '#category_idv');
-                var rSeriesTable = buildPicker('datatable-series', 'series', 'bouquets_series', '#category_ids');
-                var rRadiosTable = buildPicker('datatable-radios', 'radios', 'bouquets_radios', '#category_idr');
-
-                $('#datatable-review').DataTable({
+            // [id, name, category, buttonsHtml]; createdRow flips add/remove per rBouquet.
+            function buildPicker(rTableId, rTypeKey, rDataId, rCategorySel) {
+                return $('#' + rTableId).DataTable({
+                    processing: true,
+                    serverSide: true,
                     info: false,
                     lengthChange: false,
                     pageLength: <?= $rPageLen; ?>,
-                    columnDefs: [{ className: 'text-center', targets: [0, 1, 3] }],
-                    createdRow: function(row, data) {
-                        // data[1] is the ucwords type (Stream/Movies/Series/Radios); the row id
-                        // keys back to rBouquet and lets delRow('#type-id') find it.
-                        $(row).attr('id', ('' + data[1]).toLowerCase() + '-' + data[0]);
+                    ajax: {
+                        url: './table',
+                        data: function(d) {
+                            d.id = rDataId;
+                            d.category_id = $(rCategorySel).val();
+                        }
                     },
-                    layout: { topStart: 'pageLength', topEnd: 'search' }
+                    columnDefs: [{
+                            className: 'text-center',
+                            targets: 0
+                        },
+                        {
+                            targets: 3,
+                            data: 0,
+                            orderable: false,
+                            className: 'text-center',
+                            render: function(rID) {
+                                return pickerButtons(rID, rTypeKey);
+                            }
+                        }
+                    ],
+                    createdRow: function(row, data) {
+                        $(row).attr('id', rTypeKey + '-' + data[0]);
+                        if (rBouquet[rTypeKey].indexOf(parseInt(data[0])) > -1) {
+                            $(row).find('.btn-remove').show();
+                        } else {
+                            $(row).find('.btn-add').show();
+                        }
+                    },
+                    layout: {
+                        topStart: 'pageLength'
+                    }
                 });
+            }
 
-                if ($.fn.select2) { $('#category_id, #category_idv, #category_ids, #category_idr').select2({ width: '100%' }); }
+            var rStreamTable = buildPicker('datatable-stream', 'stream', 'bouquets_streams', '#category_id');
+            var rMoviesTable = buildPicker('datatable-movies', 'movies', 'bouquets_vod', '#category_idv');
+            var rSeriesTable = buildPicker('datatable-series', 'series', 'bouquets_series', '#category_ids');
+            var rRadiosTable = buildPicker('datatable-radios', 'radios', 'bouquets_radios', '#category_idr');
 
-                // Category filter reloads the matching table; the per-tab search input
-                // drives that table's client-side search().
-                $('#category_id').on('select2:select change', function() { rStreamTable.ajax.reload(null, false); });
-                $('#stream_search').on('keyup', function() { rStreamTable.search($(this).val()).draw(); });
-                $('#category_idv').on('select2:select change', function() { rMoviesTable.ajax.reload(null, false); });
-                $('#vod_search').on('keyup', function() { rMoviesTable.search($(this).val()).draw(); });
-                $('#category_ids').on('select2:select change', function() { rSeriesTable.ajax.reload(null, false); });
-                $('#series_search').on('keyup', function() { rSeriesTable.search($(this).val()).draw(); });
-                $('#category_idr').on('select2:select change', function() { rRadiosTable.ajax.reload(null, false); });
-                $('#radios_search').on('keyup', function() { rRadiosTable.search($(this).val()).draw(); });
-
-                // "Next" advances to the following tab; hide it once the last tab is active.
-                var rTabs = $('#bouquet_form .nav-link').toArray();
-                function syncNext() {
-                    var rActive = rTabs.findIndex(function(t) { return t.classList.contains('active'); });
-                    $('#bouquet-next').toggle(rActive > -1 && rActive < rTabs.length - 1);
+            $('#datatable-review').DataTable({
+                info: false,
+                lengthChange: false,
+                pageLength: <?= $rPageLen; ?>,
+                columnDefs: [{
+                    className: 'text-center',
+                    targets: [0, 1, 3]
+                }],
+                createdRow: function(row, data) {
+                    // data[1] is the ucwords type (Stream/Movies/Series/Radios); the row id
+                    // keys back to rBouquet and lets delRow('#type-id') find it.
+                    $(row).attr('id', ('' + data[1]).toLowerCase() + '-' + data[0]);
+                },
+                layout: {
+                    topStart: 'pageLength',
+                    topEnd: 'search'
                 }
-                $('#bouquet-next').on('click', function() {
-                    var rActive = rTabs.findIndex(function(t) { return t.classList.contains('active'); });
-                    if (rActive > -1 && rActive < rTabs.length - 1) { rTabs[rActive + 1].click(); }
+            });
+
+            if ($.fn.select2) {
+                $('#category_id, #category_idv, #category_ids, #category_idr').select2({
+                    width: '100%'
                 });
-                $('#bouquet_form .nav-link').on('shown.bs.tab', syncNext);
-                syncNext();
+            }
+
+            // Category filter reloads the matching table; the per-tab search input
+            // drives that table's client-side search().
+            $('#category_id').on('select2:select change', function() {
+                rStreamTable.ajax.reload(null, false);
+            });
+            $('#stream_search').on('keyup', function() {
+                rStreamTable.search($(this).val()).draw();
+            });
+            $('#category_idv').on('select2:select change', function() {
+                rMoviesTable.ajax.reload(null, false);
+            });
+            $('#vod_search').on('keyup', function() {
+                rMoviesTable.search($(this).val()).draw();
+            });
+            $('#category_ids').on('select2:select change', function() {
+                rSeriesTable.ajax.reload(null, false);
+            });
+            $('#series_search').on('keyup', function() {
+                rSeriesTable.search($(this).val()).draw();
+            });
+            $('#category_idr').on('select2:select change', function() {
+                rRadiosTable.ajax.reload(null, false);
+            });
+            $('#radios_search').on('keyup', function() {
+                rRadiosTable.search($(this).val()).draw();
+            });
+
+            // "Next" advances to the following tab; hide it once the last tab is active.
+            var rTabs = $('#bouquet_form .nav-link').toArray();
+
+            function syncNext() {
+                var rActive = rTabs.findIndex(function(t) {
+                    return t.classList.contains('active');
+                });
+                $('#bouquet-next').toggle(rActive > -1 && rActive < rTabs.length - 1);
+            }
+            $('#bouquet-next').on('click', function() {
+                var rActive = rTabs.findIndex(function(t) {
+                    return t.classList.contains('active');
+                });
+                if (rActive > -1 && rActive < rTabs.length - 1) {
+                    rTabs[rActive + 1].click();
+                }
+            });
+            $('#bouquet_form .nav-link').on('shown.bs.tab', syncNext);
+            syncNext();
 
             $('#bouquet_form').on('submit', function(e) {
                 e.preventDefault();
@@ -402,21 +451,45 @@ renderUnifiedLayoutFooter('admin');
                     return;
                 }
                 var rButtons = this.querySelectorAll('button[type="submit"]');
-                rButtons.forEach(function(b) { b.disabled = true; });
-                fetch('post.php?action=bouquet', { method: 'POST', body: new FormData(this), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.text(); })
+                rButtons.forEach(function(b) {
+                    b.disabled = true;
+                });
+                fetch('post.php?action=bouquet', {
+                        method: 'POST',
+                        body: new FormData(this),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.text();
+                    })
                     .then(function(txt) {
-                        var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
+                        var d;
+                        try {
+                            d = JSON.parse(txt);
+                        } catch (err) {
+                            d = {
+                                result: false
+                            };
+                        }
                         if (d && d.result) {
-                            if (window.parent !== window) { window.parent.postMessage('xcModalSaved', '*'); }
-                            else { window.location = 'bouquets'; }
+                            if (window.parent !== window) {
+                                window.parent.postMessage('xcModalSaved', '*');
+                            } else {
+                                window.location = 'bouquets';
+                            }
                             return;
                         }
-                        rButtons.forEach(function(b) { b.disabled = false; });
+                        rButtons.forEach(function(b) {
+                            b.disabled = false;
+                        });
                         toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                     })
                     .catch(function() {
-                        rButtons.forEach(function(b) { b.disabled = false; });
+                        rButtons.forEach(function(b) {
+                            b.disabled = false;
+                        });
                         toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                     });
             });

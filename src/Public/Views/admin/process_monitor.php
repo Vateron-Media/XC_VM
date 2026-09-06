@@ -81,7 +81,9 @@ $rServerId = (int) RequestManager::get('server');
     ?>
     <?php if (count($rUsageRows) > 0): ?>
         <div class="card mb-4">
-            <div class="card-header"><h6 class="mb-0"><?= $language::get('mount_usage'); ?></h6></div>
+            <div class="card-header">
+                <h6 class="mb-0"><?= $language::get('mount_usage'); ?></h6>
+            </div>
             <div class="card-datatable table-responsive">
                 <table class="table mb-0">
                     <thead>
@@ -121,7 +123,9 @@ $rServerId = (int) RequestManager::get('server');
         </div>
     </div>
     <?php if (empty($rProcesses)): ?>
-        <div class="card-body"><div class="alert alert-warning text-center mb-0"><i class="icon-base ti tabler-alert-circle me-1"></i>Unable to retrieve process list. The server API may be temporarily unavailable. Please try refreshing the page.</div></div>
+        <div class="card-body">
+            <div class="alert alert-warning text-center mb-0"><i class="icon-base ti tabler-alert-circle me-1"></i>Unable to retrieve process list. The server API may be temporarily unavailable. Please try refreshing the page.</div>
+        </div>
     <?php endif; ?>
     <div class="card-datatable table-responsive">
         <table id="procs-table" class="table" style="width:100%">
@@ -212,7 +216,9 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var killedText = <?= json_encode($language::get('process_has_been_killed_wait')); ?>;
         var serverId = <?= $rServerId; ?>;
@@ -220,10 +226,18 @@ renderUnifiedLayoutFooter('admin');
 
         if ($('#procs-table tbody tr').length) {
             $('#procs-table').DataTable({
-                order: [[<?= RequestManager::has('mem') ? 4 : 3; ?>, 'desc']],
-                columnDefs: [{ orderable: false, targets: [7] }],
+                order: [
+                    [<?= RequestManager::has('mem') ? 4 : 3; ?>, 'desc']
+                ],
+                columnDefs: [{
+                    orderable: false,
+                    targets: [7]
+                }],
                 pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-                layout: { topStart: 'pageLength', topEnd: 'search' }
+                layout: {
+                    topStart: 'pageLength',
+                    topEnd: 'search'
+                }
             });
         }
         document.getElementById('live_filter').addEventListener('change', function() {
@@ -232,11 +246,23 @@ renderUnifiedLayoutFooter('admin');
         $('#procs-table tbody').on('click', '.js-kill', function() {
             var pid = this.getAttribute('data-pid');
             (window.xcConfirm ? window.xcConfirm('Kill this process?') : Promise.resolve(confirm('Kill this process?'))).then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=process&pid=' + encodeURIComponent(pid) + '&server=' + encodeURIComponent(serverId), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { toast(d && d.result === true ? killedText : errText, d && d.result === true ? 'success' : 'error'); })
-                    .catch(function() { toast(errText, 'error'); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=process&pid=' + encodeURIComponent(pid) + '&server=' + encodeURIComponent(serverId), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        toast(d && d.result === true ? killedText : errText, d && d.result === true ? 'success' : 'error');
+                    })
+                    .catch(function() {
+                        toast(errText, 'error');
+                    });
             });
         });
     })();

@@ -96,7 +96,7 @@ $rRtmpBase = htmlspecialchars((string) (ServerRepository::getAll()[$rServerId]['
                             break;
                         }
                     }
-                    ?>
+                ?>
                     <tr>
                         <td class="text-center"><?= htmlspecialchars((string) $rStream['name'], ENT_QUOTES); ?></td>
                         <td class="text-truncate" style="max-width:320px"><?= $rRtmpBase . htmlspecialchars((string) $rStream['name'], ENT_QUOTES); ?></td>
@@ -127,17 +127,27 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var serverId = <?= $rServerId; ?>;
         var toast = window.xcToast || function() {};
 
         if ($('#rtmp-table tbody tr').length) {
             $('#rtmp-table').DataTable({
-                order: [[0, 'asc']],
-                columnDefs: [{ orderable: false, targets: [5, 6] }],
+                order: [
+                    [0, 'asc']
+                ],
+                columnDefs: [{
+                    orderable: false,
+                    targets: [5, 6]
+                }],
                 pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-                layout: { topStart: 'pageLength', topEnd: 'search' }
+                layout: {
+                    topStart: 'pageLength',
+                    topEnd: 'search'
+                }
             });
         }
         document.getElementById('live_filter').addEventListener('change', function() {
@@ -146,11 +156,23 @@ renderUnifiedLayoutFooter('admin');
         $('#rtmp-table tbody').on('click', '.js-kill', function() {
             var name = this.getAttribute('data-name');
             (window.xcConfirm ? window.xcConfirm('Kill this RTMP stream?') : Promise.resolve(confirm('Kill this RTMP stream?'))).then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=rtmp_kill&name=' + encodeURIComponent(name) + '&server=' + encodeURIComponent(serverId), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { toast(d && d.result === true ? 'Stream killed. It may reconnect unless auth is revoked.' : errText, d && d.result === true ? 'success' : 'error'); })
-                    .catch(function() { toast(errText, 'error'); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=rtmp_kill&name=' + encodeURIComponent(name) + '&server=' + encodeURIComponent(serverId), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        toast(d && d.result === true ? 'Stream killed. It may reconnect unless auth is revoked.' : errText, d && d.result === true ? 'success' : 'error');
+                    })
+                    .catch(function() {
+                        toast(errText, 'error');
+                    });
             });
         });
     })();

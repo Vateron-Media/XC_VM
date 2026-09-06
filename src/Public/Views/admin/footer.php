@@ -297,16 +297,32 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
         // fall back to a full reload so paging/counts stay correct.
         function softLive(dt) {
             var url, params;
-            try { url = dt.ajax.url(); params = dt.ajax.params(); } catch (e) { return; }
+            try {
+                url = dt.ajax.url();
+                params = dt.ajax.params();
+            } catch (e) {
+                return;
+            }
             $.getJSON(url, params).done(function(res) {
-                if (!res || !Array.isArray(res.data)) { return; }
-                var idxById = {}, count = 0;
+                if (!res || !Array.isArray(res.data)) {
+                    return;
+                }
+                var idxById = {},
+                    count = 0;
                 dt.rows().every(function() {
                     var d = this.data();
-                    if (d && d.id != null) { idxById[d.id] = this.index(); count++; }
+                    if (d && d.id != null) {
+                        idxById[d.id] = this.index();
+                        count++;
+                    }
                 });
-                var allMatch = res.data.length === count && res.data.every(function(r) { return idxById[r.id] !== undefined; });
-                if (!allMatch) { dt.ajax.reload(null, false); return; }
+                var allMatch = res.data.length === count && res.data.every(function(r) {
+                    return idxById[r.id] !== undefined;
+                });
+                if (!allMatch) {
+                    dt.ajax.reload(null, false);
+                    return;
+                }
                 // Only re-render rows whose data actually changed — re-rendering an
                 // unchanged row needlessly flickers the table and closes any open
                 // row-action dropdown inside it.
@@ -389,11 +405,17 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
             el.appendChild(flex);
             cont.appendChild(el);
             if (window.bootstrap) {
-                var t = new bootstrap.Toast(el, { delay: 3500 });
-                el.addEventListener('hidden.bs.toast', function() { el.remove(); });
+                var t = new bootstrap.Toast(el, {
+                    delay: 3500
+                });
+                el.addEventListener('hidden.bs.toast', function() {
+                    el.remove();
+                });
                 t.show();
             } else {
-                setTimeout(function() { el.remove(); }, 3500);
+                setTimeout(function() {
+                    el.remove();
+                }, 3500);
             }
         };
 
@@ -401,31 +423,50 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
         // legacy jQuery-Nestable / dual-listbox widgets). Views read the resulting order
         // from the list's <li data-id> attributes on submit.
         window.xcSortable = function(list) {
-            if (!list) { return; }
+            if (!list) {
+                return;
+            }
             var dragEl = null;
             list.addEventListener('dragstart', function(e) {
-                if (e.target.closest('button, a, input, select')) { e.preventDefault(); return; }
+                if (e.target.closest('button, a, input, select')) {
+                    e.preventDefault();
+                    return;
+                }
                 var li = e.target.closest('li');
-                if (!li || li.parentNode !== list) { return; }
+                if (!li || li.parentNode !== list) {
+                    return;
+                }
                 dragEl = li;
                 li.classList.add('opacity-50');
                 e.dataTransfer.effectAllowed = 'move';
             });
             list.addEventListener('dragend', function() {
-                if (dragEl) { dragEl.classList.remove('opacity-50'); }
+                if (dragEl) {
+                    dragEl.classList.remove('opacity-50');
+                }
                 dragEl = null;
             });
             list.addEventListener('dragover', function(e) {
                 e.preventDefault();
-                if (!dragEl) { return; }
-                var after = null, closest = -Infinity, items = list.querySelectorAll('li:not(.opacity-50)');
+                if (!dragEl) {
+                    return;
+                }
+                var after = null,
+                    closest = -Infinity,
+                    items = list.querySelectorAll('li:not(.opacity-50)');
                 for (var i = 0; i < items.length; i++) {
                     var box = items[i].getBoundingClientRect();
                     var offset = e.clientY - box.top - box.height / 2;
-                    if (offset < 0 && offset > closest) { closest = offset; after = items[i]; }
+                    if (offset < 0 && offset > closest) {
+                        closest = offset;
+                        after = items[i];
+                    }
                 }
-                if (after == null) { list.appendChild(dragEl); }
-                else { list.insertBefore(dragEl, after); }
+                if (after == null) {
+                    list.appendChild(dragEl);
+                } else {
+                    list.insertBefore(dragEl, after);
+                }
             });
         };
     })();
@@ -491,11 +532,27 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
         (function() {
             var input = document.getElementById('xc-quick-search');
             var box = document.getElementById('xc-search-results');
-            if (!input || !box) { return; }
-            var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+            if (!input || !box) {
+                return;
+            }
+            var esc = function(s) {
+                var d = document.createElement('div');
+                d.textContent = (s == null ? '' : String(s));
+                return d.innerHTML;
+            };
             // Legacy search variants -> new-UI bg-label-* palette.
             var variant = function(v) {
-                var map = { purple: 'primary', pink: 'danger', success: 'success', danger: 'danger', info: 'info', warning: 'warning', primary: 'primary', secondary: 'secondary', dark: 'dark' };
+                var map = {
+                    purple: 'primary',
+                    pink: 'danger',
+                    success: 'success',
+                    danger: 'danger',
+                    info: 'info',
+                    warning: 'warning',
+                    primary: 'primary',
+                    secondary: 'secondary',
+                    dark: 'dark'
+                };
                 return map[v] || 'secondary';
             };
             var noRes = <?= json_encode($language::get('no_results') ?: 'No results') ?>;
@@ -515,9 +572,9 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                     var badge = d.badge ? '<span class="badge bg-label-' + variant(d.badge.variant) + ' me-2">' + esc(d.badge.text) + '</span>' : '';
                     var sub = d.category ? '<small class="text-body-secondary d-block text-truncate">' + esc(d.category) + '</small>' : '';
                     var href = it.url ? esc(it.url) : 'javascript:void(0)';
-                    return '<a class="dropdown-item d-flex flex-column py-2 border-bottom" href="' + href + '">'
-                        + '<span class="text-truncate">' + badge + '<span class="fw-medium">' + esc(d.title || it.text || '') + '</span></span>'
-                        + sub + '</a>';
+                    return '<a class="dropdown-item d-flex flex-column py-2 border-bottom" href="' + href + '">' +
+                        '<span class="text-truncate">' + badge + '<span class="fw-medium">' + esc(d.title || it.text || '') + '</span></span>' +
+                        sub + '</a>';
                 }).join('');
                 box.classList.add('show');
             };
@@ -525,19 +582,43 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
             input.addEventListener('input', function() {
                 var term = this.value.trim();
                 clearTimeout(timer);
-                if (term.length < 3) { box.classList.remove('show'); box.innerHTML = ''; return; }
+                if (term.length < 3) {
+                    box.classList.remove('show');
+                    box.innerHTML = '';
+                    return;
+                }
                 box.innerHTML = '<div class="text-center text-body-secondary py-4"><span class="spinner-border spinner-border-sm"></span></div>';
                 box.classList.add('show');
                 timer = setTimeout(function() {
                     lastTerm = term;
-                    fetch('./api?action=search&search=' + encodeURIComponent(term), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(data) { if (input.value.trim() === lastTerm) { render((data && data.items) || []); } })
-                        .catch(function() { box.classList.remove('show'); });
+                    fetch('./api?action=search&search=' + encodeURIComponent(term), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(data) {
+                            if (input.value.trim() === lastTerm) {
+                                render((data && data.items) || []);
+                            }
+                        })
+                        .catch(function() {
+                            box.classList.remove('show');
+                        });
                 }, 300);
             });
-            input.addEventListener('focus', function() { if (box.innerHTML && this.value.trim().length >= 3) { box.classList.add('show'); } });
-            document.addEventListener('click', function(e) { if (!input.contains(e.target) && !box.contains(e.target)) { box.classList.remove('show'); } });
+            input.addEventListener('focus', function() {
+                if (box.innerHTML && this.value.trim().length >= 3) {
+                    box.classList.add('show');
+                }
+            });
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !box.contains(e.target)) {
+                    box.classList.remove('show');
+                }
+            });
         })();
     </script>
 <?php endif; ?>

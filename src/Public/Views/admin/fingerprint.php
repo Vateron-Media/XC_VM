@@ -18,7 +18,9 @@ $rSelCategory = RequestManager::has('category') ? (string) RequestManager::get('
 ?>
 
 <?php if (!isset($_GET['modal'])): ?>
-    <div class="d-flex align-items-center mb-4"><h4 class="mb-0"><?= $language::get('fingerprint_stream'); ?></h4></div>
+    <div class="d-flex align-items-center mb-4">
+        <h4 class="mb-0"><?= $language::get('fingerprint_stream'); ?></h4>
+    </div>
 <?php endif; ?>
 
 <div class="card">
@@ -118,20 +120,41 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         $.fn.dataTable.ext.errMode = 'none';
 
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
-        var isLocal = function(ip) { return !ip || ip === '127.0.0.1' || ip === '::1'; };
-        var pad = function(n) { return (n < 10 ? '0' : '') + n; };
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var isLocal = function(ip) {
+            return !ip || ip === '127.0.0.1' || ip === '::1';
+        };
+        var pad = function(n) {
+            return (n < 10 ? '0' : '') + n;
+        };
         var fmtDuration = function(startTs, isRestreamer) {
             var sec = Math.max(0, Math.floor(Date.now() / 1000) - (startTs || 0));
-            var colour = 'success', txt;
-            if (sec >= 86400) { txt = pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h'; colour = 'danger'; }
-            else if (sec >= 3600) { txt = pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm'; if (sec > 14400) { colour = 'warning'; } }
-            else { txt = pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's'; }
-            if (isRestreamer) { colour = 'success'; }
+            var colour = 'success',
+                txt;
+            if (sec >= 86400) {
+                txt = pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h';
+                colour = 'danger';
+            } else if (sec >= 3600) {
+                txt = pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm';
+                if (sec > 14400) {
+                    colour = 'warning';
+                }
+            } else {
+                txt = pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's';
+            }
+            if (isRestreamer) {
+                colour = 'success';
+            }
             return '<span class="badge bg-label-' + colour + '">' + esc(txt) + '</span>';
         };
         var lang = {
@@ -144,31 +167,63 @@ renderUnifiedLayoutFooter('admin');
 
         var rStreamID = -1;
 
-        if ($.fn.select2) { $('#category_search, #fingerprint_type').select2({ width: '100%' }); }
+        if ($.fn.select2) {
+            $('#category_search, #fingerprint_type').select2({
+                width: '100%'
+            });
+        }
 
         // ----- stream picker (data-only rows; select button rendered here) -----
         var md1 = $('#datatable-md1').DataTable({
             processing: true,
             serverSide: true,
             <?= $rRedis ? 'paging: false,' : 'pageLength: ' . $rPageLen . ', lengthMenu: [10, 25, 50, 250, 500, 1000],'; ?>
-            order: [[<?= $rRedis ? '1' : '3'; ?>, '<?= $rRedis ? 'asc' : 'desc'; ?>']],
+            order: [
+                [<?= $rRedis ? '1' : '3'; ?>, '<?= $rRedis ? 'asc' : 'desc'; ?>']
+            ],
             ajax: {
                 url: './table',
-                data: function(d) { d.id = 'stream_unique'; d.category = $('#category_search').val(); }
+                data: function(d) {
+                    d.id = 'stream_unique';
+                    d.category = $('#category_search').val();
+                }
             },
-            columns: [
-                { data: 0, className: 'text-center' },
-                { data: 1 },
-                { data: 2 },
-                { data: 3, className: 'text-center', orderable: false },
-                { data: 0, orderable: false, searchable: false, className: 'text-center', render: function(rID) {
-                    return '<button type="button" class="btn btn-sm btn-icon btn-label-info js-select" data-id="' + esc(rID) + '"><i class="icon-base ti tabler-fingerprint"></i></button>';
-                } }
+            columns: [{
+                    data: 0,
+                    className: 'text-center'
+                },
+                {
+                    data: 1
+                },
+                {
+                    data: 2
+                },
+                {
+                    data: 3,
+                    className: 'text-center',
+                    orderable: false
+                },
+                {
+                    data: 0,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(rID) {
+                        return '<button type="button" class="btn btn-sm btn-icon btn-label-info js-select" data-id="' + esc(rID) + '"><i class="icon-base ti tabler-fingerprint"></i></button>';
+                    }
+                }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
-        $('#stream_search').on('keyup', function() { md1.search($(this).val()).draw(); });
-        $('#category_search').on('select2:select change', function() { md1.ajax.reload(null, false); });
+        $('#stream_search').on('keyup', function() {
+            md1.search($(this).val()).draw();
+        });
+        $('#category_search').on('select2:select change', function() {
+            md1.ajax.reload(null, false);
+        });
 
         // ----- activity table (clean-JSON live_connections rows) -----
         var md2 = $('#datatable-md2').DataTable({
@@ -177,24 +232,64 @@ renderUnifiedLayoutFooter('admin');
             searchDelay: 250,
             pageLength: <?= $rPageLen; ?>,
             lengthMenu: [10, 25, 50, 250, 500, 1000],
-            order: [[3, 'desc']],
+            order: [
+                [3, 'desc']
+            ],
             ajax: {
                 url: './table',
-                data: function(d) { d.id = 'live_connections'; d.stream_id = rStreamID; d.fingerprint = true; }
+                data: function(d) {
+                    d.id = 'live_connections';
+                    d.stream_id = rStreamID;
+                    d.fingerprint = true;
+                }
             },
-            columns: [
-                { data: 'user_label', render: function(d, t, row) { if (!d) { return ''; } return row.user_url ? '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
-                { data: 'stream_name', render: function(d, t, row) { if (!d) { return ''; } return row.stream_url ? '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
-                { data: 'user_ip', className: 'text-center text-nowrap', render: function(d, t, row) {
-                    var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/img/countries/' + esc(row.country) + '.png" alt="">' : '';
-                    return flag + esc(d || '');
-                } },
-                { data: 'date_start', className: 'text-center', render: function(d, t, row) { return fmtDuration(d, row.is_restreamer); } },
-                { data: null, orderable: false, searchable: false, className: 'text-center', render: function(d, t, row) {
-                    return '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-kill" title="' + esc(lang.kill) + '" data-uuid="' + esc(row.uuid) + '"><i class="icon-base ti tabler-hammer"></i></button>';
-                } }
+            columns: [{
+                    data: 'user_label',
+                    render: function(d, t, row) {
+                        if (!d) {
+                            return '';
+                        }
+                        return row.user_url ? '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                    }
+                },
+                {
+                    data: 'stream_name',
+                    render: function(d, t, row) {
+                        if (!d) {
+                            return '';
+                        }
+                        return row.stream_url ? '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                    }
+                },
+                {
+                    data: 'user_ip',
+                    className: 'text-center text-nowrap',
+                    render: function(d, t, row) {
+                        var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/img/countries/' + esc(row.country) + '.png" alt="">' : '';
+                        return flag + esc(d || '');
+                    }
+                },
+                {
+                    data: 'date_start',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return fmtDuration(d, row.is_restreamer);
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-kill" title="' + esc(lang.kill) + '" data-uuid="' + esc(row.uuid) + '"><i class="icon-base ti tabler-hammer"></i></button>';
+                    }
+                }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         // A stream is chosen: enable + open the activity tab and load its connections.
@@ -217,7 +312,11 @@ renderUnifiedLayoutFooter('admin');
         });
         var digitsOnly = function(id) {
             var el = document.getElementById(id);
-            if (el) { el.addEventListener('input', function() { this.value = this.value.replace(/[^\d]/g, ''); }); }
+            if (el) {
+                el.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^\d]/g, '');
+                });
+            }
         };
         digitsOnly('font_size');
         digitsOnly('position_x');
@@ -233,7 +332,9 @@ renderUnifiedLayoutFooter('admin');
                 type: $('#fingerprint_type').val(),
                 xy_offset: ''
             };
-            if (rArray.type === '3') { rArray.message = $('#custom_message').val(); }
+            if (rArray.type === '3') {
+                rArray.message = $('#custom_message').val();
+            }
             if (($('#position_x').val() >= 0) && ($('#position_y').val() >= 0)) {
                 rArray.xy_offset = $('#position_x').val() + 'x' + $('#position_y').val();
             }
@@ -241,19 +342,41 @@ renderUnifiedLayoutFooter('admin');
                 toast(lang.fail, 'error');
                 return;
             }
-            fetch('./api?action=fingerprint&data=' + encodeURIComponent(JSON.stringify(rArray)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { toast(d && d.result ? lang.success : lang.error, d && d.result ? 'success' : 'error'); md2.ajax.reload(null, false); })
-                .catch(function() { toast(lang.error, 'error'); });
+            fetch('./api?action=fingerprint&data=' + encodeURIComponent(JSON.stringify(rArray)), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(d) {
+                    toast(d && d.result ? lang.success : lang.error, d && d.result ? 'success' : 'error');
+                    md2.ajax.reload(null, false);
+                })
+                .catch(function() {
+                    toast(lang.error, 'error');
+                });
         });
 
         // Kill a single connection.
         $('#datatable-md2 tbody').on('click', '.js-kill', function() {
             var uuid = this.getAttribute('data-uuid');
-            fetch('./api?action=line_activity&sub=kill&pid=' + encodeURIComponent(uuid), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(d) { toast(d && d.result ? lang.killed : lang.error, d && d.result ? 'success' : 'error'); md2.ajax.reload(null, false); })
-                .catch(function() { toast(lang.error, 'error'); });
+            fetch('./api?action=line_activity&sub=kill&pid=' + encodeURIComponent(uuid), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(d) {
+                    toast(d && d.result ? lang.killed : lang.error, d && d.result ? 'success' : 'error');
+                    md2.ajax.reload(null, false);
+                })
+                .catch(function() {
+                    toast(lang.error, 'error');
+                });
         });
     })();
 </script>

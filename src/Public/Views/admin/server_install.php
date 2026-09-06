@@ -112,7 +112,9 @@ $rCoverage = $rIsEdit ? (ServerRepository::getAll()[$rServerArr['id']]['parent_i
                                     </thead>
                                     <tbody>
                                         <?php foreach (ServerRepository::getAll() as $rServer): ?>
-                                            <?php if ($rServer['server_type'] != 0) { continue; } ?>
+                                            <?php if ($rServer['server_type'] != 0) {
+                                                continue;
+                                            } ?>
                                             <tr class="<?= in_array($rServer['id'], (array) $rCoverage) ? 'selected table-active' : ''; ?>" style="cursor:pointer">
                                                 <td class="text-center"><?= (int) $rServer['id']; ?></td>
                                                 <td><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></td>
@@ -138,21 +140,31 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var form = document.getElementById('install-form');
-        if (!form) { return; }
+        if (!form) {
+            return;
+        }
 
         if (window.bootstrap) {
-            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) { new bootstrap.Tooltip(el); });
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                new bootstrap.Tooltip(el);
+            });
         }
 
         var numericOnly = function(id, max) {
             var el = document.getElementById(id);
-            if (!el) { return; }
+            if (!el) {
+                return;
+            }
             el.addEventListener('input', function() {
                 var v = this.value.replace(/[^\d]/g, '');
-                if (max && v !== '' && parseInt(v, 10) > max) { v = String(max); }
+                if (max && v !== '' && parseInt(v, 10) > max) {
+                    v = String(max);
+                }
                 this.value = v;
             });
         };
@@ -182,20 +194,49 @@ renderUnifiedLayoutFooter('admin');
                 document.getElementById('parent_id').value = '[' + rServers.join(',') + ']';
             }
             var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
-            fetch('post.php?action=server_install&referer=', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            if (btn) {
+                btn.disabled = true;
+            }
+            fetch('post.php?action=server_install&referer=', {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.location) { window.location = d.location; return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.location) {
+                        window.location = d.location;
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')) ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')) ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')) ?>, 'error');
+                });
         });
 
         <?php if (SettingsManager::get('enable_search')): ?>
-        if (typeof initSearch === 'function') { initSearch(); }
+            if (typeof initSearch === 'function') {
+                initSearch();
+            }
         <?php endif; ?>
     })();
 </script>

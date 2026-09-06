@@ -119,189 +119,193 @@ if (!function_exists('_xc_nav_label')) {
 
 <?php if (!empty($GLOBALS['_SETUP'])): /* setup wizard — branded bare shell: no sidebar / navbar / menu, and never touches $rUserInfo */ ?>
 
-<body>
-    <!-- Setup top bar: brand only (no sidebar / navbar / user menu / header stats) -->
-    <nav class="layout-navbar navbar navbar-expand-xl align-items-center bg-navbar-theme mb-4">
-        <div class="container-xxl">
-            <span class="app-brand-link d-flex align-items-center">
-                <span class="app-brand-logo demo">
-                    <img src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?>" height="24">
+    <body>
+        <!-- Setup top bar: brand only (no sidebar / navbar / user menu / header stats) -->
+        <nav class="layout-navbar navbar navbar-expand-xl align-items-center bg-navbar-theme mb-4">
+            <div class="container-xxl">
+                <span class="app-brand-link d-flex align-items-center">
+                    <span class="app-brand-logo demo">
+                        <img src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?>" height="24">
+                    </span>
+                    <span class="app-brand-text fw-bold ms-3"><?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?></span>
                 </span>
-                <span class="app-brand-text fw-bold ms-3"><?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?></span>
-            </span>
-        </div>
-    </nav>
-    <div class="container-xxl py-4" style="max-width:900px;margin:auto;">
-<?php elseif (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
+            </div>
+        </nav>
+        <div class="container-xxl py-4" style="max-width:900px;margin:auto;">
+        <?php elseif (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
 
-<body class="xm-modal-body">
-    <div class="container-fluid p-4">
-<?php else: ?>
+            <body class="xm-modal-body">
+                <div class="container-fluid p-4">
+                <?php else: ?>
 
-<body>
-    <div class="layout-wrapper layout-content-navbar">
-        <div class="layout-container">
+                    <body>
+                        <div class="layout-wrapper layout-content-navbar">
+                            <div class="layout-container">
 
-            <?php require __DIR__ . '/menu.php'; ?>
+                                <?php require __DIR__ . '/menu.php'; ?>
 
-            <!-- Layout page -->
-            <div class="layout-page">
+                                <!-- Layout page -->
+                                <div class="layout-page">
 
-                <!-- Navbar -->
-                <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
-                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-                        <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
-                            <i class="icon-base ti tabler-menu-2 icon-md"></i>
-                        </a>
-                    </div>
+                                    <!-- Navbar -->
+                                    <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
+                                        <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+                                            <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
+                                                <i class="icon-base ti tabler-menu-2 icon-md"></i>
+                                            </a>
+                                        </div>
 
-                    <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
+                                        <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
 
-                        <!-- Left: live header stats (polled by the inline poller in footer.php) -->
-                        <div class="navbar-nav align-items-center">
-                            <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
-                                <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1 rounded-pill bg-body-tertiary" id="header_stats">
-                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('connections') ?: 'Connections'); ?>">
-                                        <i class="icon-base ti tabler-plug-connected icon-22px me-1 text-primary"></i>
-                                        <span class="fw-medium" id="header_connections">0</span>
-                                    </a>
-                                    <div class="vr opacity-25 my-1"></div>
-                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('users') ?: 'Users'); ?>">
-                                        <i class="icon-base ti tabler-users icon-22px me-1 text-info"></i>
-                                        <span class="fw-medium" id="header_users">0</span>
-                                    </a>
-                                    <div class="vr opacity-25 my-1"></div>
-                                    <a href="streams" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('shell_streams_online_offline'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-player-play icon-22px me-1 text-body-secondary"></i>
-                                        <span class="fw-medium text-success" id="header_streams_up">0</span>
-                                        <span class="mx-1 text-body-secondary">/</span>
-                                        <span class="fw-medium text-danger" id="header_streams_down">0</span>
-                                    </a>
-                                    <div class="vr opacity-25 my-1"></div>
-                                    <span class="d-inline-flex align-items-center text-heading" title="<?= htmlspecialchars($language::get('shell_network_throughput'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-arrows-up-down icon-22px me-1 text-body-secondary"></i>
-                                        <span class="fw-medium" id="header_network_up">0</span>
-                                        <span class="mx-1 text-body-secondary">/</span>
-                                        <span class="fw-medium" id="header_network_down">0</span>
-                                        <small class="ms-1 text-body-secondary">Mbps</small>
-                                    </span>
-                                </div>
-                            <?php endif; ?>
-                        </div>
+                                            <!-- Left: live header stats (polled by the inline poller in footer.php) -->
+                                            <div class="navbar-nav align-items-center">
+                                                <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
+                                                    <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1 rounded-pill bg-body-tertiary" id="header_stats">
+                                                        <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('connections') ?: 'Connections'); ?>">
+                                                            <i class="icon-base ti tabler-plug-connected icon-22px me-1 text-primary"></i>
+                                                            <span class="fw-medium" id="header_connections">0</span>
+                                                        </a>
+                                                        <div class="vr opacity-25 my-1"></div>
+                                                        <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('users') ?: 'Users'); ?>">
+                                                            <i class="icon-base ti tabler-users icon-22px me-1 text-info"></i>
+                                                            <span class="fw-medium" id="header_users">0</span>
+                                                        </a>
+                                                        <div class="vr opacity-25 my-1"></div>
+                                                        <a href="streams" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('shell_streams_online_offline'), ENT_QUOTES); ?>">
+                                                            <i class="icon-base ti tabler-player-play icon-22px me-1 text-body-secondary"></i>
+                                                            <span class="fw-medium text-success" id="header_streams_up">0</span>
+                                                            <span class="mx-1 text-body-secondary">/</span>
+                                                            <span class="fw-medium text-danger" id="header_streams_down">0</span>
+                                                        </a>
+                                                        <div class="vr opacity-25 my-1"></div>
+                                                        <span class="d-inline-flex align-items-center text-heading" title="<?= htmlspecialchars($language::get('shell_network_throughput'), ENT_QUOTES); ?>">
+                                                            <i class="icon-base ti tabler-arrows-up-down icon-22px me-1 text-body-secondary"></i>
+                                                            <span class="fw-medium" id="header_network_up">0</span>
+                                                            <span class="mx-1 text-body-secondary">/</span>
+                                                            <span class="fw-medium" id="header_network_down">0</span>
+                                                            <small class="ms-1 text-body-secondary">Mbps</small>
+                                                        </span>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
 
-                        <ul class="navbar-nav flex-row align-items-center ms-auto">
+                                            <ul class="navbar-nav flex-row align-items-center ms-auto">
 
-                            <!-- Global quick search -->
-                            <?php if (!empty($rSettings['enable_search'])): ?>
-                                <li class="nav-item me-3 d-none d-lg-block" style="position:relative; width:300px;">
-                                    <i class="icon-base ti tabler-search position-absolute text-body-secondary" style="left:0.85rem; top:50%; transform:translateY(-50%); pointer-events:none; z-index:4;"></i>
-                                    <input type="text" id="xc-quick-search" class="form-control form-control-sm rounded-pill" style="padding-left:2.4rem;" autocomplete="off" placeholder="<?= htmlspecialchars($language::get('search_placeholder'), ENT_QUOTES); ?>">
-                                    <div id="xc-search-results" class="dropdown-menu w-100 mt-2 p-0 shadow border-0" style="max-height:70vh; overflow-y:auto; min-width:340px;"></div>
-                                </li>
-                            <?php endif; ?>
+                                                <!-- Global quick search -->
+                                                <?php if (!empty($rSettings['enable_search'])): ?>
+                                                    <li class="nav-item me-3 d-none d-lg-block" style="position:relative; width:300px;">
+                                                        <i class="icon-base ti tabler-search position-absolute text-body-secondary" style="left:0.85rem; top:50%; transform:translateY(-50%); pointer-events:none; z-index:4;"></i>
+                                                        <input type="text" id="xc-quick-search" class="form-control form-control-sm rounded-pill" style="padding-left:2.4rem;" autocomplete="off" placeholder="<?= htmlspecialchars($language::get('search_placeholder'), ENT_QUOTES); ?>">
+                                                        <div id="xc-search-results" class="dropdown-menu w-100 mt-2 p-0 shadow border-0" style="max-height:70vh; overflow-y:auto; min-width:340px;"></div>
+                                                    </li>
+                                                <?php endif; ?>
 
-                            <!-- Server status indicator -->
-                            <?php if (($rServerError ?? false) && Authorization::check('adv', 'servers')): ?>
-                                <li class="nav-item">
-                                    <a class="nav-link btn btn-icon btn-text-secondary rounded-pill text-danger" href="servers" title="<?= htmlspecialchars($language::get('shell_server_issue'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-wifi-off icon-22px"></i>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
+                                                <!-- Server status indicator -->
+                                                <?php if (($rServerError ?? false) && Authorization::check('adv', 'servers')): ?>
+                                                    <li class="nav-item">
+                                                        <a class="nav-link btn btn-icon btn-text-secondary rounded-pill text-danger" href="servers" title="<?= htmlspecialchars($language::get('shell_server_issue'), ENT_QUOTES); ?>">
+                                                            <i class="icon-base ti tabler-wifi-off icon-22px"></i>
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
 
-                            <!-- NOTE: the tickets dropdown (legacy header ran raw $db queries inline here)
+                                                <!-- NOTE: the tickets dropdown (legacy header ran raw $db queries inline here)
                                  is intentionally deferred; it will return fed by a controller/provider,
                                  not inline DB access in the shell. -->
 
-                            <!-- Theme switcher (light / dark / system) -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
-                                    id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
-                                    <i class="icon-base ti tabler-sun icon-22px theme-icon-active text-heading"></i>
-                                    <span class="d-none ms-2" id="nav-theme-text"><?= $language::get('shell_toggle_theme'); ?></span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
-                                    <li>
-                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="light">
-                                            <span><i class="icon-base ti tabler-sun icon-22px me-3" data-icon="sun"></i><?= $language::get('shell_theme_light'); ?></span>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark">
-                                            <span><i class="icon-base ti tabler-moon-stars icon-22px me-3" data-icon="moon-stars"></i><?= $language::get('shell_theme_dark'); ?></span>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system">
-                                            <span><i class="icon-base ti tabler-device-desktop-analytics icon-22px me-3" data-icon="device-desktop-analytics"></i><?= $language::get('shell_theme_system'); ?></span>
-                                        </button>
-                                    </li>
-                                </ul>
-                            </li>
+                                                <!-- Theme switcher (light / dark / system) -->
+                                                <li class="nav-item dropdown">
+                                                    <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
+                                                        id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                                        <i class="icon-base ti tabler-sun icon-22px theme-icon-active text-heading"></i>
+                                                        <span class="d-none ms-2" id="nav-theme-text"><?= $language::get('shell_toggle_theme'); ?></span>
+                                                    </a>
+                                                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
+                                                        <li>
+                                                            <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="light">
+                                                                <span><i class="icon-base ti tabler-sun icon-22px me-3" data-icon="sun"></i><?= $language::get('shell_theme_light'); ?></span>
+                                                            </button>
+                                                        </li>
+                                                        <li>
+                                                            <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark">
+                                                                <span><i class="icon-base ti tabler-moon-stars icon-22px me-3" data-icon="moon-stars"></i><?= $language::get('shell_theme_dark'); ?></span>
+                                                            </button>
+                                                        </li>
+                                                        <li>
+                                                            <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system">
+                                                                <span><i class="icon-base ti tabler-device-desktop-analytics icon-22px me-3" data-icon="device-desktop-analytics"></i><?= $language::get('shell_theme_system'); ?></span>
+                                                            </button>
+                                                        </li>
+                                                    </ul>
+                                                </li>
 
-                            <!-- Update badge -->
-                            <?php if (!$rMobile && isset($rUpdate['version']) && (version_compare($rUpdate['version'], XC_VM_VERSION) >= 0)): ?>
-                                <li class="nav-item">
-                                    <a class="nav-link btn btn-icon btn-text-secondary rounded-pill text-warning" href="settings"
-                                        title="<?= htmlspecialchars($language::get('shell_update_available', ['{version}' => $rUpdate['version']]), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-arrow-big-up-lines icon-22px"></i>
-                                    </a>
-                                </li>
-                            <?php endif; ?>
+                                                <!-- Update badge -->
+                                                <?php if (!$rMobile && isset($rUpdate['version']) && (version_compare($rUpdate['version'], XC_VM_VERSION) >= 0)): ?>
+                                                    <li class="nav-item">
+                                                        <a class="nav-link btn btn-icon btn-text-secondary rounded-pill text-warning" href="settings"
+                                                            title="<?= htmlspecialchars($language::get('shell_update_available', ['{version}' => $rUpdate['version']]), ENT_QUOTES); ?>">
+                                                            <i class="icon-base ti tabler-arrow-big-up-lines icon-22px"></i>
+                                                        </a>
+                                                    </li>
+                                                <?php endif; ?>
 
-                            <!-- User dropdown — registry-driven (CoreNavbarProvider 'profile' + module links) -->
-                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
-                                    <div class="avatar avatar-online">
-                                        <span class="avatar-initial rounded-circle bg-label-primary">
-                                            <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
-                                        </span>
-                                    </div>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <div class="dropdown-item mt-0 d-flex align-items-center">
-                                            <div class="flex-shrink-0 me-2">
-                                                <div class="avatar avatar-online">
-                                                    <span class="avatar-initial rounded-circle bg-label-primary">
-                                                        <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
-                                                <small class="text-body-secondary"><?= $language::get('shell_role_admin'); ?></small>
-                                            </div>
+                                                <!-- User dropdown — registry-driven (CoreNavbarProvider 'profile' + module links) -->
+                                                <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                                    <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                                        <div class="avatar avatar-online">
+                                                            <span class="avatar-initial rounded-circle bg-label-primary">
+                                                                <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                            </span>
+                                                        </div>
+                                                    </a>
+                                                    <ul class="dropdown-menu dropdown-menu-end">
+                                                        <li>
+                                                            <div class="dropdown-item mt-0 d-flex align-items-center">
+                                                                <div class="flex-shrink-0 me-2">
+                                                                    <div class="avatar avatar-online">
+                                                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                                                            <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="flex-grow-1">
+                                                                    <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
+                                                                    <small class="text-body-secondary"><?= $language::get('shell_role_admin'); ?></small>
+                                                                </div>
+                                                            </div>
+                                                        </li>
+                                                        <li>
+                                                            <div class="dropdown-divider my-1 mx-n2"></div>
+                                                        </li>
+                                                        <?php
+                                                        $_profileItems = [];
+                                                        foreach (NavbarRegistry::getChildren('profile') as $_pi) {
+                                                            if (_xc_nav_visible($_pi, $rMobile, $rSettings)) $_profileItems[] = $_pi;
+                                                        }
+                                                        foreach (NavbarRegistry::collapseDividers($_profileItems) as $_pi):
+                                                            if ($_pi->divider): ?>
+                                                                <li>
+                                                                    <div class="dropdown-divider my-1 mx-n2"></div>
+                                                                </li>
+                                                            <?php else: ?>
+                                                                <li>
+                                                                    <a class="dropdown-item" href="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>">
+                                                                        <i class="icon-base ti tabler-chevron-right me-3 icon-md"></i>
+                                                                        <span class="align-middle"><?= _xc_nav_label($_pi, $language); ?></span>
+                                                                    </a>
+                                                                </li>
+                                                        <?php endif;
+                                                        endforeach; ?>
+                                                    </ul>
+                                                </li>
+                                                <!--/ User dropdown -->
+                                            </ul>
                                         </div>
-                                    </li>
-                                    <li><div class="dropdown-divider my-1 mx-n2"></div></li>
-                                    <?php
-                                    $_profileItems = [];
-                                    foreach (NavbarRegistry::getChildren('profile') as $_pi) {
-                                        if (_xc_nav_visible($_pi, $rMobile, $rSettings)) $_profileItems[] = $_pi;
-                                    }
-                                    foreach (NavbarRegistry::collapseDividers($_profileItems) as $_pi):
-                                        if ($_pi->divider): ?>
-                                            <li><div class="dropdown-divider my-1 mx-n2"></div></li>
-                                        <?php else: ?>
-                                            <li>
-                                                <a class="dropdown-item" href="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>">
-                                                    <i class="icon-base ti tabler-chevron-right me-3 icon-md"></i>
-                                                    <span class="align-middle"><?= _xc_nav_label($_pi, $language); ?></span>
-                                                </a>
-                                            </li>
-                                    <?php endif;
-                                    endforeach; ?>
-                                </ul>
-                            </li>
-                            <!--/ User dropdown -->
-                        </ul>
-                    </div>
-                </nav>
-                <!-- / Navbar -->
+                                    </nav>
+                                    <!-- / Navbar -->
 
-                <!-- Content wrapper (closed in footer.php) -->
-                <div class="content-wrapper">
-                    <div class="container-xxl flex-grow-1 container-p-y">
-                        <?php require __DIR__ . '/topbar.php'; ?>
-<?php endif; /* modal vs full-layout body */ ?>
+                                    <!-- Content wrapper (closed in footer.php) -->
+                                    <div class="content-wrapper">
+                                        <div class="container-xxl flex-grow-1 container-p-y">
+                                            <?php require __DIR__ . '/topbar.php'; ?>
+                                        <?php endif; /* modal vs full-layout body */ ?>

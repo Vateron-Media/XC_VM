@@ -150,7 +150,9 @@ use XcVm\Domain\Server\ServerRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" data-name="server_tree" class="form-check-input activate" name="c_server_tree" id="c_server_tree"></div>
                         <label class="col-md-3 col-form-label" for="server_tree"><?= $language::get('server_tree'); ?></label>
-                        <div class="col-md-8"><div id="server_tree" class="border rounded p-2"></div></div>
+                        <div class="col-md-8">
+                            <div id="server_tree" class="border rounded p-2"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
@@ -173,9 +175,13 @@ use XcVm\Domain\Server\ServerRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
                         <label class="col-md-3 col-form-label" for="reencode_on_edit"><?= $language::get('reencode_on_edit'); ?></label>
-                        <div class="col-md-2"><div class="form-check form-switch"><input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch"><input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                         <label class="col-md-3 col-form-label" for="restart_on_edit"><?= $language::get('restart_on_edit'); ?></label>
-                        <div class="col-md-2"><div class="form-check form-switch"><input name="restart_on_edit" id="restart_on_edit" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch"><input name="restart_on_edit" id="restart_on_edit" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -191,63 +197,120 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var selected = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        window.getCategory = function() { return document.getElementById('category_search').value; };
-        window.getServer = function() { return document.getElementById('stream_server_id').value; };
-        window.getFilter = function() { return document.getElementById('stream_filter').value; };
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+        window.getCategory = function() {
+            return document.getElementById('category_search').value;
+        };
+        window.getServer = function() {
+            return document.getElementById('stream_server_id').value;
+        };
+        window.getFilter = function() {
+            return document.getElementById('stream_filter').value;
+        };
         window.toggleStreams = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
 
         // Selection filters + detail/server selects (select2).
         if ($.fn.select2) {
-            $('#stream_server_id, #category_search, #stream_filter, #show_entries').select2({ width: '100%' });
-            $('#category_id, #category_id_type, #bouquets, #bouquets_type, #transcode_profile_id').select2({ width: '100%', dropdownParent: $('#stream-details') });
-            $('#server_type, #on_demand').select2({ width: '100%', dropdownParent: $('#load-balancing') });
+            $('#stream_server_id, #category_search, #stream_filter, #show_entries').select2({
+                width: '100%'
+            });
+            $('#category_id, #category_id_type, #bouquets, #bouquets_type, #transcode_profile_id').select2({
+                width: '100%',
+                dropdownParent: $('#stream-details')
+            });
+            $('#server_type, #on_demand').select2({
+                width: '100%',
+                dropdownParent: $('#load-balancing')
+            });
         }
 
         // Enable/disable a select2-backed field + refresh its widget.
         function toggleField(id, enabled) {
             var e = document.getElementById(id);
-            if (e) { e.disabled = !enabled; $(e).trigger('change.select2'); }
+            if (e) {
+                e.disabled = !enabled;
+                $(e).trigger('change.select2');
+            }
         }
         // Activate checkboxes gate their field (switch is just a checkbox now).
         $('.activate').on('change', function() {
             var name = this.getAttribute('data-name');
             var checked = this.checked;
             var t = document.getElementById(name);
-            if (t) { t.disabled = !checked; if (t.tagName === 'SELECT') { $(t).trigger('change.select2'); } }
-            if (name === 'category_id') { toggleField('category_id_type', checked); }
-            if (name === 'bouquets') { toggleField('bouquets_type', checked); }
-            if (name === 'server_tree') { toggleField('server_type', checked); toggleField('on_demand', checked); }
+            if (t) {
+                t.disabled = !checked;
+                if (t.tagName === 'SELECT') {
+                    $(t).trigger('change.select2');
+                }
+            }
+            if (name === 'category_id') {
+                toggleField('category_id_type', checked);
+            }
+            if (name === 'bouquets') {
+                toggleField('bouquets_type', checked);
+            }
+            if (name === 'server_tree') {
+                toggleField('server_type', checked);
+                toggleField('on_demand', checked);
+            }
         });
 
         // jstree active/offline server tree.
         function evaluateServers() {
             var cur = $('#on_demand').val();
             $('#on_demand').empty();
-            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function(i, v) {
-                if (v.parent !== '#') { $('#on_demand').append(new Option(v.text, v.id)); }
+            $($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            })).each(function(i, v) {
+                if (v.parent !== '#') {
+                    $('#on_demand').append(new Option(v.text, v.id));
+                }
             });
             $('#on_demand').val(cur).trigger('change');
         }
         $('#server_tree')
-            .on('redraw.jstree', function() { evaluateServers(); })
+            .on('redraw.jstree', function() {
+                evaluateServers();
+            })
             .on('select_node.jstree', function(e, data) {
                 $('#c_server_tree').prop('checked', true).trigger('change');
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -255,8 +318,12 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -268,46 +335,122 @@ renderUnifiedLayoutFooter('admin');
 
         // stream_list is a positional-array handler; keep legacy columnDefs.
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250,
-            ajax: { url: './table', data: function(d) { d.id = 'stream_list'; d.category = getCategory(); d.filter = getFilter(); d.server = getServer(); d.only_channels = 1; } },
-            columnDefs: [{ className: 'text-center', targets: [0, 1, 5] }],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data[0])) !== -1) { $(row).addClass('table-active'); } },
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'stream_list';
+                    d.category = getCategory();
+                    d.filter = getFilter();
+                    d.server = getServer();
+                    d.only_channels = 1;
+                }
+            },
+            columnDefs: [{
+                className: 'text-center',
+                targets: [0, 1, 5]
+            }],
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data[0])) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            order: [[0, 'desc']],
-            layout: { topStart: null, topEnd: null }
+            order: [
+                [0, 'desc']
+            ],
+            layout: {
+                topStart: null,
+                topEnd: null
+            }
         });
 
         // Row click toggles selection.
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
 
-        $('#stream_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#stream_server_id, #category_search, #stream_filter').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#stream_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#stream_server_id, #category_search, #stream_filter').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast('Select at least one stream to edit.', 'warning'); return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!selected.length) {
+                toast('Select at least one stream to edit.', 'warning');
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             document.getElementById('streams').value = JSON.stringify(selected);
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_stream', '1');
-            fetch('post.php?action=created_channel_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=created_channel_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

@@ -15,7 +15,7 @@ use XcVm\Core\Reference\GeoReference;
 
 <style>
     /* Center the selected value of the PHP-services select2 (single digit reads better centered). */
-    #total_services + .select2-container .select2-selection__rendered {
+    #total_services+.select2-container .select2-selection__rendered {
         text-align: center;
         padding-right: 20px;
     }
@@ -322,30 +322,53 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
 
         // select2 dropdowns.
         if ($.fn.select2) {
-            $('#network_interface, #geoip_type, #geoip_countries, #total_services, #governor').select2({ width: '100%' });
+            $('#network_interface, #geoip_type, #geoip_countries, #total_services, #governor').select2({
+                width: '100%'
+            });
             var portCreateTag = function(params) {
-                if (!$.isNumeric(params.term) || params.term < 80 || params.term > 65535) { return null; }
-                return { id: params.term, text: params.term };
+                if (!$.isNumeric(params.term) || params.term < 80 || params.term > 65535) {
+                    return null;
+                }
+                return {
+                    id: params.term,
+                    text: params.term
+                };
             };
-            $('#http_broadcast_ports').select2({ width: '100%', tags: true, createTag: portCreateTag });
-            $('#https_broadcast_ports').select2({ width: '100%', tags: true, createTag: portCreateTag });
+            $('#http_broadcast_ports').select2({
+                width: '100%',
+                tags: true,
+                createTag: portCreateTag
+            });
+            $('#https_broadcast_ports').select2({
+                width: '100%',
+                tags: true,
+                createTag: portCreateTag
+            });
         }
 
         if (window.bootstrap) {
-            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) { new bootstrap.Tooltip(el); });
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                new bootstrap.Tooltip(el);
+            });
         }
 
         // Numeric-only input filters.
         var numericOnly = function(el, max) {
-            if (!el) { return; }
+            if (!el) {
+                return;
+            }
             el.addEventListener('input', function() {
                 var v = this.value.replace(/[^\d]/g, '');
-                if (max && v !== '' && parseInt(v, 10) > max) { v = this.value.slice(0, -1).replace(/[^\d]/g, ''); }
+                if (max && v !== '' && parseInt(v, 10) > max) {
+                    v = this.value.slice(0, -1).replace(/[^\d]/g, '');
+                }
                 this.value = v;
             });
         };
@@ -355,8 +378,12 @@ renderUnifiedLayoutFooter('admin');
         numericOnly(document.getElementById('limit_requests'));
         numericOnly(document.getElementById('limit_burst'));
 
-        var isValidIP = function(v) { return /^(\d{1,3}\.){3}\d{1,3}$/.test(v); };
-        var isValidDomain = function(v) { return /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(v); };
+        var isValidIP = function(v) {
+            return /^(\d{1,3}\.){3}\d{1,3}$/.test(v);
+        };
+        var isValidDomain = function(v) {
+            return /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(v);
+        };
 
         var domainSelect = document.getElementById('domain_name');
         var addBtn = document.getElementById('add_ip');
@@ -376,7 +403,9 @@ renderUnifiedLayoutFooter('admin');
         if (removeBtn) {
             removeBtn.addEventListener('click', function() {
                 for (var i = domainSelect.options.length - 1; i >= 0; i--) {
-                    if (domainSelect.options[i].selected) { domainSelect.remove(i); }
+                    if (domainSelect.options[i].selected) {
+                        domainSelect.remove(i);
+                    }
                 }
             });
         }
@@ -418,35 +447,69 @@ renderUnifiedLayoutFooter('admin');
         if (sslBtn) {
             sslBtn.addEventListener('click', function() {
                 document.getElementById('regenerate_ssl').value = '1';
-                if (form.requestSubmit) { form.requestSubmit(); } else { form.dispatchEvent(new Event('submit', { cancelable: true })); }
+                if (form.requestSubmit) {
+                    form.requestSubmit();
+                } else {
+                    form.dispatchEvent(new Event('submit', {
+                        cancelable: true
+                    }));
+                }
             });
         }
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             // Select every entry so the whole domain_name[] list is posted, order preserved.
-            for (var i = 0; i < domainSelect.options.length; i++) { domainSelect.options[i].selected = true; }
+            for (var i = 0; i < domainSelect.options.length; i++) {
+                domainSelect.options[i].selected = true;
+            }
             var btn = form.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(form);
-            fetch('post.php?action=server&referer=', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=server&referer=', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.location) { window.location = d.location; return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.location) {
+                        window.location = d.location;
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     document.getElementById('regenerate_ssl').value = '0';
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
                 .catch(function() {
-                    if (btn) { btn.disabled = false; }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     document.getElementById('regenerate_ssl').value = '0';
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 });
         });
 
         <?php if (SettingsManager::get('enable_search')): ?>
-        if (typeof initSearch === 'function') { initSearch(); }
+            if (typeof initSearch === 'function') {
+                initSearch();
+            }
         <?php endif; ?>
     })();
 </script>

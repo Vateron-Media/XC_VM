@@ -227,140 +227,375 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var selected = [];
         var bouquetsSel = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        window.getReseller = function() { return document.getElementById('reseller_search').value; };
-        window.getFilter = function() { return document.getElementById('filter').value; };
-        window.clearOwner = function() { $('#reseller_search').val('').trigger('change'); };
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+        window.getReseller = function() {
+            return document.getElementById('reseller_search').value;
+        };
+        window.getFilter = function() {
+            return document.getElementById('filter').value;
+        };
+        window.clearOwner = function() {
+            $('#reseller_search').val('').trigger('change');
+        };
         window.toggleUsers = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
         window.toggleBouquets = function() {
             var allSelected = true;
-            $('#datatable-bouquets tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-bouquets tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-bouquets tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = bouquetsSel.indexOf(id); if (i > -1) { bouquetsSel.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (bouquetsSel.indexOf(id) === -1) { bouquetsSel.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = bouquetsSel.indexOf(id);
+                    if (i > -1) {
+                        bouquetsSel.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (bouquetsSel.indexOf(id) === -1) {
+                        bouquetsSel.push(id);
+                    }
+                }
             });
             document.getElementById('c_bouquets').checked = true;
         };
 
         // Selection filters (select2).
         if ($.fn.select2) {
-            $('#filter, #show_entries').select2({ width: '100%' });
+            $('#filter, #show_entries').select2({
+                width: '100%'
+            });
             $('#reseller_search').select2({
-                width: '100%', placeholder: 'Search for an owner…', allowClear: true,
-                ajax: { url: './api', dataType: 'json', delay: 250,
-                    data: function(p) { return { search: p.term, action: 'reguserlist', page: p.page }; },
-                    processResults: function(d, p) { p.page = p.page || 1; return { results: d.items, pagination: { more: (p.page * 100) < d.total_count } }; }, cache: true }
+                width: '100%',
+                placeholder: 'Search for an owner…',
+                allowClear: true,
+                ajax: {
+                    url: './api',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(p) {
+                        return {
+                            search: p.term,
+                            action: 'reguserlist',
+                            page: p.page
+                        };
+                    },
+                    processResults: function(d, p) {
+                        p.page = p.page || 1;
+                        return {
+                            results: d.items,
+                            pagination: {
+                                more: (p.page * 100) < d.total_count
+                            }
+                        };
+                    },
+                    cache: true
+                }
             });
         }
 
         // Date picker for the expiry field.
-        if (window.flatpickr) { flatpickr('#exp_date', { enableTime: true, time_24hr: true, dateFormat: 'Y-m-d H:i' }); }
+        if (window.flatpickr) {
+            flatpickr('#exp_date', {
+                enableTime: true,
+                time_24hr: true,
+                dateFormat: 'Y-m-d H:i'
+            });
+        }
         $('#no_expire').on('change', function() {
             var ed = document.getElementById('exp_date');
-            if (this.checked) { ed.disabled = true; } else { ed.disabled = false; }
+            if (this.checked) {
+                ed.disabled = true;
+            } else {
+                ed.disabled = false;
+            }
         });
 
         // Activate checkboxes enable/disable their field(s).
         $('.activate').on('change', function() {
             var name = this.getAttribute('data-name');
             var on = this.checked;
-            if (name === 'access_output') { document.querySelectorAll('.output').forEach(function(el) { el.disabled = !on; }); return; }
+            if (name === 'access_output') {
+                document.querySelectorAll('.output').forEach(function(el) {
+                    el.disabled = !on;
+                });
+                return;
+            }
             if (name === 'exp_date') {
-                var ne = document.getElementById('no_expire'); if (ne) { ne.disabled = !on; }
-                var ed = document.getElementById('exp_date'); if (ed) { ed.disabled = !on || (ne && ne.checked); }
+                var ne = document.getElementById('no_expire');
+                if (ne) {
+                    ne.disabled = !on;
+                }
+                var ed = document.getElementById('exp_date');
+                if (ed) {
+                    ed.disabled = !on || (ne && ne.checked);
+                }
                 return;
             }
             var t = document.getElementById(name);
-            if (t) { t.disabled = !on; }
+            if (t) {
+                t.disabled = !on;
+            }
         });
 
-        var statusMap = { active: 'success', disabled: 'secondary', banned: 'danger', expired: 'warning' };
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
-        var pad = function(n) { return (n < 10 ? '0' : '') + n; };
-        var yn = function(d) { return d ? '<i class="icon-base ti tabler-check text-success"></i>' : '<span class="text-body-secondary">—</span>'; };
-        var dash = function(d) { return d ? esc(d) : '<span class="text-body-secondary">—</span>'; };
+        var statusMap = {
+            active: 'success',
+            disabled: 'secondary',
+            banned: 'danger',
+            expired: 'warning'
+        };
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var pad = function(n) {
+            return (n < 10 ? '0' : '') + n;
+        };
+        var yn = function(d) {
+            return d ? '<i class="icon-base ti tabler-check text-success"></i>' : '<span class="text-body-secondary">—</span>';
+        };
+        var dash = function(d) {
+            return d ? esc(d) : '<span class="text-body-secondary">—</span>';
+        };
 
         // lines is a clean-JSON handler (objects): map fields to the 13 columns.
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250, ordering: false,
-            ajax: { url: './table', data: function(d) { d.id = 'lines'; d.filter = getFilter(); d.reseller = getReseller(); } },
-            columns: [
-                { data: 'id', className: 'text-center' },
-                { data: 'username' },
-                { data: 'password', visible: false },
-                { data: 'owner_name', render: dash },
-                { data: 'status', className: 'text-center', render: function(d) { return '<span class="badge bg-label-' + (statusMap[d] || 'secondary') + '">' + esc(d) + '</span>'; } },
-                { data: 'member_id', className: 'text-center', visible: false },
-                { data: 'trial', className: 'text-center', render: yn },
-                { data: 'restreamer', className: 'text-center', render: yn },
-                { data: 'stream_display_name', visible: false },
-                { data: 'active_connections', className: 'text-center', render: function(d, t, row) { return esc(d) + ' / ' + esc(row.max_connections); } },
-                { data: 'exp_str', className: 'text-center', render: dash },
-                { data: 'last_str', visible: false },
-                { data: 'notes', visible: false }
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ordering: false,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'lines';
+                    d.filter = getFilter();
+                    d.reseller = getReseller();
+                }
+            },
+            columns: [{
+                    data: 'id',
+                    className: 'text-center'
+                },
+                {
+                    data: 'username'
+                },
+                {
+                    data: 'password',
+                    visible: false
+                },
+                {
+                    data: 'owner_name',
+                    render: dash
+                },
+                {
+                    data: 'status',
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<span class="badge bg-label-' + (statusMap[d] || 'secondary') + '">' + esc(d) + '</span>';
+                    }
+                },
+                {
+                    data: 'member_id',
+                    className: 'text-center',
+                    visible: false
+                },
+                {
+                    data: 'trial',
+                    className: 'text-center',
+                    render: yn
+                },
+                {
+                    data: 'restreamer',
+                    className: 'text-center',
+                    render: yn
+                },
+                {
+                    data: 'stream_display_name',
+                    visible: false
+                },
+                {
+                    data: 'active_connections',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return esc(d) + ' / ' + esc(row.max_connections);
+                    }
+                },
+                {
+                    data: 'exp_str',
+                    className: 'text-center',
+                    render: dash
+                },
+                {
+                    data: 'last_str',
+                    visible: false
+                },
+                {
+                    data: 'notes',
+                    visible: false
+                }
             ],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data.id)) !== -1) { $(row).addClass('table-active'); } },
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data.id)) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         // Bouquets table (client-side; click to select).
-        $('#datatable-bouquets').DataTable({ paging: false, searching: false, info: false, ordering: false });
+        $('#datatable-bouquets').DataTable({
+            paging: false,
+            searching: false,
+            info: false,
+            ordering: false
+        });
 
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
         $('#datatable-bouquets tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = bouquetsSel.indexOf(id); if (i > -1) { bouquetsSel.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (bouquetsSel.indexOf(id) === -1) { bouquetsSel.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = bouquetsSel.indexOf(id);
+                if (i > -1) {
+                    bouquetsSel.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (bouquetsSel.indexOf(id) === -1) {
+                    bouquetsSel.push(id);
+                }
+            }
             document.getElementById('c_bouquets').checked = true;
         });
 
-        $('#user_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#reseller_search, #filter').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#user_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#reseller_search, #filter').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast('Select at least one line to edit.', 'warning'); return; }
+            if (!selected.length) {
+                toast('Select at least one line to edit.', 'warning');
+                return;
+            }
             document.getElementById('users_selected').value = JSON.stringify(selected);
             document.getElementById('bouquets_selected').value = JSON.stringify(bouquetsSel);
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_line', '1');
-            fetch('post.php?action=line_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=line_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

@@ -116,88 +116,200 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var selected = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        window.getCategory = function() { return document.getElementById('category_search').value; };
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+        window.getCategory = function() {
+            return document.getElementById('category_search').value;
+        };
         window.toggleStreams = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
 
         // select2 for the selection filters and the details multi-selects.
         if ($.fn.select2) {
-            $('#category_search, #show_entries').select2({ width: '100%' });
-            $('#category_id, #bouquets').select2({ width: '100%', dropdownParent: $('#series-details') });
-            $('#category_id_type, #bouquets_type').select2({ width: '100%', dropdownParent: $('#series-details') });
+            $('#category_search, #show_entries').select2({
+                width: '100%'
+            });
+            $('#category_id, #bouquets').select2({
+                width: '100%',
+                dropdownParent: $('#series-details')
+            });
+            $('#category_id_type, #bouquets_type').select2({
+                width: '100%',
+                dropdownParent: $('#series-details')
+            });
         }
 
         // Activate checkboxes enable/disable their field (and its companion type select).
-        var companions = { category_id: 'category_id_type', bouquets: 'bouquets_type' };
+        var companions = {
+            category_id: 'category_id_type',
+            bouquets: 'bouquets_type'
+        };
         $('.activate').on('change', function() {
             var name = this.getAttribute('data-name');
             [name, companions[name]].forEach(function(id) {
-                if (!id) { return; }
+                if (!id) {
+                    return;
+                }
                 var el = document.getElementById(id);
-                if (!el) { return; }
+                if (!el) {
+                    return;
+                }
                 el.disabled = !this.checked;
-                if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', !this.checked).trigger('change.select2'); }
+                if ($(el).hasClass('select2-hidden-accessible')) {
+                    $(el).prop('disabled', !this.checked).trigger('change.select2');
+                }
             }, this);
         });
 
         // array-based handler (series_list) → columnDefs by index, no columns map.
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250,
-            ajax: { url: './table', data: function(d) { d.id = 'series_list'; d.category = getCategory(); } },
-            columnDefs: [
-                { className: 'text-center', targets: [0, 1, 4, 5, 6, 7, 8] },
-                { orderable: false, targets: [1, 6] }
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'series_list';
+                    d.category = getCategory();
+                }
+            },
+            columnDefs: [{
+                    className: 'text-center',
+                    targets: [0, 1, 4, 5, 6, 7, 8]
+                },
+                {
+                    orderable: false,
+                    targets: [1, 6]
+                }
             ],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data[0])) !== -1) { $(row).addClass('table-active'); } },
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data[0])) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            order: [[0, 'desc']],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [0, 'desc']
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         // Row click toggles selection.
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
 
-        $('#stream_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#category_search').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#stream_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#category_search').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast(<?= json_encode($language::get('select_at_least_one_series')); ?>, 'warning'); return; }
+            if (!selected.length) {
+                toast(<?= json_encode($language::get('select_at_least_one_series')); ?>, 'warning');
+                return;
+            }
             document.getElementById('series').value = JSON.stringify(selected);
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_series', '1');
-            fetch('post.php?action=series_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=series_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

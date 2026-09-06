@@ -47,7 +47,7 @@ $rTitle = $rIsEdit ? $rMovie['stream_display_name'] : ($rIsImport ? $language::g
     </div>
 <?php endif; ?>
 
-<form id="movie-form" autocomplete="off"<?= $rIsImport ? ' enctype="multipart/form-data"' : ''; ?>>
+<form id="movie-form" autocomplete="off" <?= $rIsImport ? ' enctype="multipart/form-data"' : ''; ?>>
     <?php if ($rIsEdit): ?>
         <input type="hidden" name="edit" value="<?= (int) $rMovie['id']; ?>">
     <?php endif; ?>
@@ -379,7 +379,16 @@ $rTitle = $rIsEdit ? $rMovie['stream_display_name'] : ($rIsImport ? $language::g
             </div>
             <div class="modal-body">
                 <div class="card-datatable table-responsive">
-                    <table id="datatable-provider-movies" class="table"><thead><tr><th><?= $language::get('stream_name'); ?></th><th><?= $language::get('provider'); ?></th><th class="text-center"><?= $language::get('actions'); ?></th></tr></thead><tbody></tbody></table>
+                    <table id="datatable-provider-movies" class="table">
+                        <thead>
+                            <tr>
+                                <th><?= $language::get('stream_name'); ?></th>
+                                <th><?= $language::get('provider'); ?></th>
+                                <th class="text-center"><?= $language::get('actions'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -388,10 +397,20 @@ $rTitle = $rIsEdit ? $rMovie['stream_display_name'] : ($rIsImport ? $language::g
 
 <!-- Image / trailer preview modals -->
 <div class="modal fade" id="imgPreviewModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div></div></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div>
+        </div>
+    </div>
 </div>
 <div class="modal fade" id="ytModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body p-0"><div class="ratio ratio-16x9"><iframe id="ytFrame" src="" allowfullscreen style="border:0"></iframe></div></div></div></div>
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <div class="ratio ratio-16x9"><iframe id="ytFrame" src="" allowfullscreen style="border:0"></iframe></div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <?php
@@ -401,7 +420,9 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var lang = {
             errText: <?= json_encode($language::get('error_occured')); ?>,
             noName: <?= json_encode($language::get('enter_movie_name')); ?>,
@@ -417,18 +438,33 @@ renderUnifiedLayoutFooter('admin');
         var changeTitle = false;
 
         // ---- select2 tags (categories / bouquets) ----
-        $('#category_id, #bouquets').select2({ width: '100%', tags: true, dropdownParent: $('#tab-details') });
-        $('#tmdb_search, #tmdb_language, #transcode_profile_id, #target_container').select2({ width: '100%', dropdownParent: $('#movie-form') });
+        $('#category_id, #bouquets').select2({
+            width: '100%',
+            tags: true,
+            dropdownParent: $('#tab-details')
+        });
+        $('#tmdb_search, #tmdb_language, #transcode_profile_id, #target_container').select2({
+            width: '100%',
+            dropdownParent: $('#movie-form')
+        });
+
         function collectNew(sel) {
-            var vals = $(sel).val() || [], nw = [];
-            vals.forEach(function(v) { if (!/^\d+$/.test(v)) { nw.push(v); } });
+            var vals = $(sel).val() || [],
+                nw = [];
+            vals.forEach(function(v) {
+                if (!/^\d+$/.test(v)) {
+                    nw.push(v);
+                }
+            });
             return JSON.stringify(nw);
         }
 
         // ---- jstree server tree ----
         $('#server_tree')
             .on('select_node.jstree', function(e, data) {
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -436,9 +472,15 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id !== 'offline' && parent.id !== 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id !== 'offline' && parent.id !== 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -452,7 +494,9 @@ renderUnifiedLayoutFooter('admin');
         document.querySelectorAll('.js-img-preview').forEach(function(btn) {
             btn.addEventListener('click', function() {
                 var v = document.getElementById(btn.dataset.target).value.trim();
-                if (!v) { return; }
+                if (!v) {
+                    return;
+                }
                 document.getElementById('imgPreviewImg').src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(v);
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('imgPreviewModal')).show();
             });
@@ -461,61 +505,95 @@ renderUnifiedLayoutFooter('admin');
         if (ytBtn) {
             ytBtn.addEventListener('click', function() {
                 var v = document.getElementById('youtube_trailer').value.trim();
-                if (!v) { return; }
+                if (!v) {
+                    return;
+                }
                 document.getElementById('ytFrame').src = 'https://www.youtube.com/embed/' + encodeURIComponent(v);
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('ytModal')).show();
             });
         }
-        document.getElementById('ytModal').addEventListener('hidden.bs.modal', function() { document.getElementById('ytFrame').src = ''; });
+        document.getElementById('ytModal').addEventListener('hidden.bs.modal', function() {
+            document.getElementById('ytFrame').src = '';
+        });
 
         // ---- file browser ----
-        var fbTarget = 'stream_source', fbDir = '/';
+        var fbTarget = 'stream_source',
+            fbDir = '/';
         var fbModal = document.getElementById('fileBrowserModal');
+
         function fbList() {
             var server = $('#fb_server').val();
             fbDir = $('#fb_path').val();
-            if (fbDir.slice(-1) !== '/') { fbDir += '/'; }
+            if (fbDir.slice(-1) !== '/') {
+                fbDir += '/';
+            }
             $('#fb_path').val(fbDir);
             var filter = (fbTarget === 'movie_subtitles') ? 'subs' : 'video';
             $('#fb_dirs, #fb_files').html('<li class="list-group-item text-muted">' + lang.loading + '...</li>');
             $.getJSON('./api?action=listdir&dir=' + encodeURIComponent(fbDir) + '&server=' + encodeURIComponent(server) + '&filter=' + filter, function(data) {
-                var dirs = '', files = '';
-                if (fbDir !== '/') { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>' + lang.parent + '</li>'; }
+                var dirs = '',
+                    files = '';
+                if (fbDir !== '/') {
+                    dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>' + lang.parent + '</li>';
+                }
                 if (data && data.result === true) {
-                    $(data.data.dirs).each(function(i, d) { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>'; });
-                    $(data.data.files).each(function(i, f) { files += '<li class="list-group-item list-group-item-action fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>'; });
+                    $(data.data.dirs).each(function(i, d) {
+                        dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>';
+                    });
+                    $(data.data.files).each(function(i, f) {
+                        files += '<li class="list-group-item list-group-item-action fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>';
+                    });
                 }
                 $('#fb_dirs').html(dirs || '<li class="list-group-item text-muted">—</li>');
                 $('#fb_files').html(files || '<li class="list-group-item text-muted">—</li>');
             });
         }
-        function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
+
+        function esc(s) {
+            return $('<div>').text(s == null ? '' : s).html();
+        }
         document.querySelectorAll('#filebrowser, #filebrowser-sub').forEach(function(b) {
             b.addEventListener('click', function() {
                 fbTarget = b.dataset.target;
-                $('#fb_path').val('/'); fbList();
+                $('#fb_path').val('/');
+                fbList();
                 bootstrap.Modal.getOrCreateInstance(fbModal).show();
             });
         });
         document.getElementById('fb_go').addEventListener('click', fbList);
-        $('#fb_server').on('change', function() { $('#fb_path').val('/'); fbList(); });
-        document.getElementById('fb_clear').addEventListener('click', function() { $('#fb_search').val(''); $('#fb_files .fb-file').show(); });
+        $('#fb_server').on('change', function() {
+            $('#fb_path').val('/');
+            fbList();
+        });
+        document.getElementById('fb_clear').addEventListener('click', function() {
+            $('#fb_search').val('');
+            $('#fb_files .fb-file').show();
+        });
         $('#fb_search').on('input', function() {
             var q = this.value.toLowerCase();
-            $('#fb_files .fb-file').each(function() { $(this).toggle($(this).data('name').toLowerCase().indexOf(q) !== -1); });
+            $('#fb_files .fb-file').each(function() {
+                $(this).toggle($(this).data('name').toLowerCase().indexOf(q) !== -1);
+            });
         });
         $('#fb_dirs').on('click', '.fb-dir', function() {
             var name = $(this).data('name');
-            if (name === '..') { fbDir = fbDir.split('/').slice(0, -2).join('/') + '/'; }
-            else { fbDir += name + '/'; }
-            $('#fb_path').val(fbDir); fbList();
+            if (name === '..') {
+                fbDir = fbDir.split('/').slice(0, -2).join('/') + '/';
+            } else {
+                fbDir += name + '/';
+            }
+            $('#fb_path').val(fbDir);
+            fbList();
         });
         $('#fb_files').on('click', '.fb-file', function() {
-            var name = $(this).data('name'), val = 's:' + $('#fb_server').val() + ':' + fbDir + name;
+            var name = $(this).data('name'),
+                val = 's:' + $('#fb_server').val() + ':' + fbDir + name;
             document.getElementById(fbTarget).value = val;
             if (fbTarget === 'stream_source') {
                 var ext = name.substr(name.lastIndexOf('.') + 1);
-                if ($('#target_container option[value="' + ext + '"]').length) { $('#target_container').val(ext).trigger('change'); }
+                if ($('#target_container option[value="' + ext + '"]').length) {
+                    $('#target_container').val(ext).trigger('change');
+                }
                 $('#stream_source').trigger('change');
             }
             bootstrap.Modal.getInstance(fbModal).hide();
@@ -532,10 +610,25 @@ renderUnifiedLayoutFooter('admin');
         var provBtn = document.getElementById('provider-streams');
         if (provBtn) {
             var provTable = $('#datatable-provider-movies').DataTable({
-                processing: true, serverSide: true, searchDelay: 250, responsive: false,
-                order: [[0, 'asc']], pageLength: <?= (int) ($rSettings['default_entries'] ?? 10) ?: 10; ?>,
-                ajax: { url: './table', data: function(d) { d.id = 'provider_streams'; d.type = 'movie'; } },
-                columnDefs: [{ className: 'dt-center', targets: [2] }]
+                processing: true,
+                serverSide: true,
+                searchDelay: 250,
+                responsive: false,
+                order: [
+                    [0, 'asc']
+                ],
+                pageLength: <?= (int) ($rSettings['default_entries'] ?? 10) ?: 10; ?>,
+                ajax: {
+                    url: './table',
+                    data: function(d) {
+                        d.id = 'provider_streams';
+                        d.type = 'movie';
+                    }
+                },
+                columnDefs: [{
+                    className: 'dt-center',
+                    targets: [2]
+                }]
             });
             provBtn.addEventListener('click', function() {
                 provTable.search(document.getElementById('stream_display_name').value).draw();
@@ -543,35 +636,55 @@ renderUnifiedLayoutFooter('admin');
             });
             // The provider rows render a button that calls this global (legacy contract).
             window.addStream = function(name, url) {
-                if (url === undefined) { url = name; name = null; }
+                if (url === undefined) {
+                    url = name;
+                    name = null;
+                }
                 document.getElementById('stream_source').value = url;
-                if (name !== null) { $('#stream_display_name').val(name).trigger('change'); }
+                if (name !== null) {
+                    $('#stream_display_name').val(name).trigger('change');
+                }
                 bootstrap.Modal.getInstance(document.getElementById('providerModal')).hide();
             };
         }
 
         // ---- direct source / symlink enable-disable ----
-        function toggle(ids, off) { ids.forEach(function(id) { var el = document.getElementById(id); if (el) { el.disabled = off; } }); }
+        function toggle(ids, off) {
+            ids.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) {
+                    el.disabled = off;
+                }
+            });
+        }
         var dsFields = ['movie_symlink', 'read_native', 'transcode_profile_id', 'remove_subtitles', 'movie_subtitles'];
         var slFields = ['direct_source', 'direct_proxy', 'read_native', 'remove_subtitles', 'target_container', 'transcode_profile_id', 'movie_subtitles'];
+
         function evaluateDirectSource() {
             var ds = document.getElementById('direct_source').checked;
             toggle(dsFields, ds);
             document.getElementById('direct_proxy').disabled = !ds;
         }
+
         function checkSymlink() {
             var s = document.getElementById('stream_source').value;
             if (document.getElementById('movie_symlink').checked && s && s.indexOf('s:') !== 0 && s.indexOf('/') !== 0) {
                 document.getElementById('movie_symlink').checked = false;
             }
         }
+
         function evaluateSymlink() {
-            if (document.getElementById('direct_source').checked) { return; }
+            if (document.getElementById('direct_source').checked) {
+                return;
+            }
             checkSymlink();
             toggle(slFields, document.getElementById('movie_symlink').checked);
         }
         if (!isImport) {
-            document.getElementById('direct_source').addEventListener('change', function() { evaluateDirectSource(); evaluateSymlink(); });
+            document.getElementById('direct_source').addEventListener('change', function() {
+                evaluateDirectSource();
+                evaluateSymlink();
+            });
             document.getElementById('direct_proxy').addEventListener('change', evaluateDirectSource);
             document.getElementById('movie_symlink').addEventListener('change', evaluateSymlink);
             document.getElementById('stream_source').addEventListener('change', checkSymlink);
@@ -580,23 +693,40 @@ renderUnifiedLayoutFooter('admin');
         }
 
         // ---- import M3U/folder toggle ----
-        var it1 = document.getElementById('import_type_1'), it2 = document.getElementById('import_type_2');
+        var it1 = document.getElementById('import_type_1'),
+            it2 = document.getElementById('import_type_2');
         if (it1 && it2) {
-            it1.addEventListener('change', function() { document.getElementById('import_m3uf_toggle').hidden = false; document.getElementById('import_folder_toggle').hidden = true; });
-            it2.addEventListener('change', function() { document.getElementById('import_m3uf_toggle').hidden = true; document.getElementById('import_folder_toggle').hidden = false; });
+            it1.addEventListener('change', function() {
+                document.getElementById('import_m3uf_toggle').hidden = false;
+                document.getElementById('import_folder_toggle').hidden = true;
+            });
+            it2.addEventListener('change', function() {
+                document.getElementById('import_m3uf_toggle').hidden = true;
+                document.getElementById('import_folder_toggle').hidden = false;
+            });
         }
 
         // ---- TMDb search + auto-fill ----
         var tmdbSearch = document.getElementById('tmdb_search');
         if (tmdbSearch) {
-            $('#tmdb_language').on('change', function() { $('#stream_display_name').trigger('change'); });
+            $('#tmdb_language').on('change', function() {
+                $('#stream_display_name').trigger('change');
+            });
             $('#stream_display_name').on('change', function() {
-                if (changeTitle) { changeTitle = false; return; }
+                if (changeTitle) {
+                    changeTitle = false;
+                    return;
+                }
                 $('#tmdb_search').empty().trigger('change');
                 var term = $('#stream_display_name').val();
-                if (!term) { return; }
+                if (!term) {
+                    return;
+                }
                 $.getJSON('./api?action=tmdb_search&type=movie&term=' + encodeURIComponent(term) + '&language=' + encodeURIComponent($('#tmdb_language').val()), function(data) {
-                    if (!data || data.result !== true) { $('#tmdb_search').append(new Option(lang.none, -1, true, true)); return; }
+                    if (!data || data.result !== true) {
+                        $('#tmdb_search').append(new Option(lang.none, -1, true, true));
+                        return;
+                    }
                     var head = data.data.length > 0 ? lang.found.replace('{num}', data.data.length) : lang.none;
                     $('#tmdb_search').append(new Option(head, -1, true, true)).trigger('change');
                     $(data.data).each(function(i, item) {
@@ -612,9 +742,13 @@ renderUnifiedLayoutFooter('admin');
             });
             $('#tmdb_search').on('change', function() {
                 var id = $('#tmdb_search').val();
-                if (!id || id <= -1) { return; }
+                if (!id || id <= -1) {
+                    return;
+                }
                 $.getJSON('./api?action=tmdb&type=movie&id=' + encodeURIComponent(id) + '&language=' + encodeURIComponent($('#tmdb_language').val()), function(data) {
-                    if (!data || data.result !== true) { return; }
+                    if (!data || data.result !== true) {
+                        return;
+                    }
                     var d = data.data;
                     changeTitle = true;
                     $('#year').val(d.release_date ? d.release_date.substr(0, 4) : '');
@@ -627,17 +761,25 @@ renderUnifiedLayoutFooter('admin');
                     $('#plot').val(d.overview || '');
                     $('#rating').val(d.vote_average || '');
                     $('#tmdb_id').val(d.id || '');
-                    var cast = ((d.credits && d.credits.cast) || []).slice(0, 5).map(function(m) { return m.name; }).join(', ');
+                    var cast = ((d.credits && d.credits.cast) || []).slice(0, 5).map(function(m) {
+                        return m.name;
+                    }).join(', ');
                     $('#cast').val(cast);
-                    var genres = (d.genres || []).slice(0, 3).map(function(g) { return g.name; }).join(', ');
+                    var genres = (d.genres || []).slice(0, 3).map(function(g) {
+                        return g.name;
+                    }).join(', ');
                     $('#genre').val(genres);
-                    var dirs = ((d.credits && d.credits.crew) || []).filter(function(m) { return m.department === 'Directing' || m.known_for_department === 'Directing'; }).slice(0, 3).map(function(m) { return m.name; }).join(', ');
+                    var dirs = ((d.credits && d.credits.crew) || []).filter(function(m) {
+                        return m.department === 'Directing' || m.known_for_department === 'Directing';
+                    }).slice(0, 3).map(function(m) {
+                        return m.name;
+                    }).join(', ');
                     $('#director').val(dirs);
                     $('#country').val((d.production_countries && d.production_countries[0]) ? d.production_countries[0].name : '');
                 });
             });
             <?php if ($rIsEdit || RequestManager::has('title')): ?>
-            $('#stream_display_name').trigger('change');
+                $('#stream_display_name').trigger('change');
             <?php endif; ?>
         }
 
@@ -646,35 +788,72 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var ok = true;
             if (!isImport) {
-                if (!document.getElementById('stream_display_name').value.trim()) { alert(lang.noName); ok = false; }
-                if (!document.getElementById('stream_source').value.trim()) { alert(lang.noSource); ok = false; }
+                if (!document.getElementById('stream_display_name').value.trim()) {
+                    alert(lang.noName);
+                    ok = false;
+                }
+                if (!document.getElementById('stream_source').value.trim()) {
+                    alert(lang.noSource);
+                    ok = false;
+                }
             } else if (!document.getElementById('m3u_file').value && !document.getElementById('import_folder').value) {
-                alert(lang.noM3u); ok = false;
+                alert(lang.noM3u);
+                ok = false;
             }
-            if (!ok) { return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!ok) {
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             document.getElementById('category_create_list').value = collectNew('#category_id');
             document.getElementById('bouquet_create_list').value = collectNew('#bouquets');
             // Re-enable disabled fields so their values still post.
-            document.querySelectorAll('#movie-form :disabled').forEach(function(el) { el.disabled = false; });
+            document.querySelectorAll('#movie-form :disabled').forEach(function(el) {
+                el.disabled = false;
+            });
             var btn = document.getElementById('movie-submit');
             btn.disabled = true;
-            fetch('post.php?action=movie', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=movie', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     if (dt && dt.result !== false) {
-                        if (window.parent !== window) { window.parent.postMessage('xcModalSaved', '*'); }
-                        else { window.location.href = dt.location || 'movies'; }
+                        if (window.parent !== window) {
+                            window.parent.postMessage('xcModalSaved', '*');
+                        } else {
+                            window.location.href = dt.location || 'movies';
+                        }
                         return;
                     }
                     btn.disabled = false;
-                    if (!isImport) { evaluateDirectSource(); evaluateSymlink(); }
+                    if (!isImport) {
+                        evaluateDirectSource();
+                        evaluateSymlink();
+                    }
                     alert(lang.errText);
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    if (!isImport) { evaluateDirectSource(); evaluateSymlink(); }
+                    if (!isImport) {
+                        evaluateDirectSource();
+                        evaluateSymlink();
+                    }
                     alert(lang.errText);
                 });
         });

@@ -118,7 +118,9 @@ use XcVm\Domain\Server\ServerRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="direct_source" name="c_direct_source"></div>
                         <label class="col-md-3 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="direct_source" id="direct_source"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled type="checkbox" value="1" class="form-check-input" name="direct_source" id="direct_source"></div>
+                        </div>
                     </div>
                 </div>
                 <!-- Servers -->
@@ -126,7 +128,9 @@ use XcVm\Domain\Server\ServerRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="server_tree" name="c_server_tree" id="c_server_tree"></div>
                         <label class="col-md-3 col-form-label" for="server_tree"><?= $language::get('server_tree'); ?></label>
-                        <div class="col-md-8"><div id="server_tree"></div></div>
+                        <div class="col-md-8">
+                            <div id="server_tree"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
@@ -149,7 +153,9 @@ use XcVm\Domain\Server\ServerRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
                         <label class="col-md-3 col-form-label" for="restart_on_edit"><?= $language::get('restart_on_edit'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input type="checkbox" value="1" class="form-check-input" name="restart_on_edit" id="restart_on_edit"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input type="checkbox" value="1" class="form-check-input" name="restart_on_edit" id="restart_on_edit"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,47 +171,93 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var selected = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        function getCategory() { return $('#category_search').val(); }
-        function getServer() { return $('#station_server_id').val(); }
-        function getFilter() { return $('#station_filter').val(); }
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+
+        function getCategory() {
+            return $('#category_search').val();
+        }
+
+        function getServer() {
+            return $('#station_server_id').val();
+        }
+
+        function getFilter() {
+            return $('#station_filter').val();
+        }
 
         window.toggleStreams = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
 
         function evaluateServers() {
-            if (!$.fn.jstree) { return; }
+            if (!$.fn.jstree) {
+                return;
+            }
             var rOVal = $('#on_demand').val();
             $('#on_demand').empty();
-            $($('#server_tree').jstree(true).get_json('source', { flat: true })).each(function(index, value) {
-                if (value.parent !== '#') { $('#on_demand').append(new Option(value.text, value.id)); }
+            $($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            })).each(function(index, value) {
+                if (value.parent !== '#') {
+                    $('#on_demand').append(new Option(value.text, value.id));
+                }
             });
             $('#on_demand').val(rOVal).trigger('change');
         }
 
-        if ($.fn.select2) { $('#mass-form select').select2({ width: '100%' }); }
+        if ($.fn.select2) {
+            $('#mass-form select').select2({
+                width: '100%'
+            });
+        }
 
         // Activate checkboxes enable/disable their field (+ companion selects).
         $('.activate').on('change', function() {
             var name = $(this).data('name');
             var on = $(this).is(':checked');
             $('#' + name).prop('disabled', !on);
-            if (name === 'category_id') { $('#category_id_type').prop('disabled', !on); }
-            if (name === 'bouquets') { $('#bouquets_type').prop('disabled', !on); }
-            if (name === 'server_tree') { $('#server_type').prop('disabled', !on); $('#on_demand').prop('disabled', !on); }
+            if (name === 'category_id') {
+                $('#category_id_type').prop('disabled', !on);
+            }
+            if (name === 'bouquets') {
+                $('#bouquets_type').prop('disabled', !on);
+            }
+            if (name === 'server_tree') {
+                $('#server_type').prop('disabled', !on);
+                $('#on_demand').prop('disabled', !on);
+            }
         });
 
         // Load-balancer server tree (jstree).
@@ -214,14 +266,21 @@ renderUnifiedLayoutFooter('admin');
                 evaluateServers();
             }).on('select_node.jstree', function(e, data) {
                 $('#c_server_tree').prop('checked', true).trigger('change');
-                if (data.node.parent === 'offline') { $('#server_tree').jstree('move_node', data.node.id, '#source', 'last'); }
-                else { $('#server_tree').jstree('move_node', data.node.id, '#offline', 'first'); }
+                if (data.node.parent === 'offline') {
+                    $('#server_tree').jstree('move_node', data.node.id, '#source', 'last');
+                } else {
+                    $('#server_tree').jstree('move_node', data.node.id, '#offline', 'first');
+                }
             }).jstree({
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                     },
@@ -232,49 +291,130 @@ renderUnifiedLayoutFooter('admin');
         }
 
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250,
-            ajax: { url: './table', data: function(d) { d.id = 'radio_list'; d.category = getCategory(); d.filter = getFilter(); d.server = getServer(); } },
-            columnDefs: [
-                { className: 'text-center', targets: [0, 1, 5] },
-                { orderable: false, targets: [1] }
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'radio_list';
+                    d.category = getCategory();
+                    d.filter = getFilter();
+                    d.server = getServer();
+                }
+            },
+            columnDefs: [{
+                    className: 'text-center',
+                    targets: [0, 1, 5]
+                },
+                {
+                    orderable: false,
+                    targets: [1]
+                }
             ],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data[0])) !== -1) { $(row).addClass('table-active'); } },
-            drawCallback: function() { $('#datatable-mass a').removeAttr('href'); },
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data[0])) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
+            drawCallback: function() {
+                $('#datatable-mass a').removeAttr('href');
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            order: [[0, 'desc']],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [0, 'desc']
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
 
-        $('#stream_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#category_search, #station_server_id, #station_filter').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#stream_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#category_search, #station_server_id, #station_filter').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast(<?= json_encode($language::get('select_at_least_one_station') ?: 'Select at least one station to edit.'); ?>, 'warning'); return; }
+            if (!selected.length) {
+                toast(<?= json_encode($language::get('select_at_least_one_station') ?: 'Select at least one station to edit.'); ?>, 'warning');
+                return;
+            }
             document.getElementById('streams').value = JSON.stringify(selected);
-            if ($.fn.jstree) { document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true })); }
+            if ($.fn.jstree) {
+                document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                    flat: true
+                }));
+            }
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_stream', '1');
-            fetch('post.php?action=radio_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=radio_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

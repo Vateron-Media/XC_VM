@@ -153,8 +153,8 @@ $rStatusFilters = [1 => 'Active', 2 => 'Disabled', 3 => 'Banned', 4 => 'Expired'
                         ?>
                             <optgroup label="<?= $rName; ?>">
                                 <option<?= $rTextAttr; ?> value="<?= $rKey; ?>?output=hls"><?= $rName; ?> - HLS</option>
-                                <option<?= $rTextAttr; ?> value="<?= $rKey; ?>"><?= $rName; ?> - MPEGTS</option>
-                                <option<?= $rTextAttr; ?> value="<?= $rKey; ?>?output=rtmp"><?= $rName; ?> - RTMP</option>
+                                    <option<?= $rTextAttr; ?> value="<?= $rKey; ?>"><?= $rName; ?> - MPEGTS</option>
+                                        <option<?= $rTextAttr; ?> value="<?= $rKey; ?>?output=rtmp"><?= $rName; ?> - RTMP</option>
                             </optgroup>
                         <?php endforeach; ?>
                     </select>
@@ -216,8 +216,15 @@ renderUnifiedLayoutFooter('admin');
 ?>
 <script>
     (function() {
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
-        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>, canLive = <?= $rCanLive ? 'true' : 'false'; ?>, canFinger = <?= $rCanFinger ? 'true' : 'false'; ?>, redis = <?= $rRedis ? 'true' : 'false'; ?>;
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>,
+            canLive = <?= $rCanLive ? 'true' : 'false'; ?>,
+            canFinger = <?= $rCanFinger ? 'true' : 'false'; ?>,
+            redis = <?= $rRedis ? 'true' : 'false'; ?>;
         var siteUrl = <?= json_encode($rSiteUrl); ?>;
         var lang = {
             edit: <?= json_encode($language::get('edit')); ?>,
@@ -236,52 +243,154 @@ renderUnifiedLayoutFooter('admin');
             confirmKill: 'Are you sure you want to kill all connections for this line?'
         };
         // Status code -> [bootstrap colour, label].
-        var STATUS = { banned: ['danger', 'Banned'], disabled: ['secondary', 'Disabled'], expired: ['warning', 'Expired'], active: ['success', 'Active'] };
-        var dot = function(color, title) { return '<i class="icon-base ti tabler-circle-filled text-' + color + '"' + (title ? ' title="' + esc(title) + '"' : '') + '></i>'; };
+        var STATUS = {
+            banned: ['danger', 'Banned'],
+            disabled: ['secondary', 'Disabled'],
+            expired: ['warning', 'Expired'],
+            active: ['success', 'Active']
+        };
+        var dot = function(color, title) {
+            return '<i class="icon-base ti tabler-circle-filled text-' + color + '"' + (title ? ' title="' + esc(title) + '"' : '') + '></i>';
+        };
         var fmtUptime = function(sec) {
             sec = Math.max(0, Math.floor(sec));
-            var d = Math.floor(sec / 86400), h = Math.floor(sec / 3600) % 24, m = Math.floor(sec / 60) % 60, s = sec % 60;
-            var p = function(n) { return (n < 10 ? '0' : '') + n; };
+            var d = Math.floor(sec / 86400),
+                h = Math.floor(sec / 3600) % 24,
+                m = Math.floor(sec / 60) % 60,
+                s = sec % 60;
+            var p = function(n) {
+                return (n < 10 ? '0' : '') + n;
+            };
             return (d > 0 ? d + 'd ' : '') + p(h) + ':' + p(m) + ':' + p(s);
         };
 
         var selected = {};
         var updateBulk = function() {
-            var n = Object.keys(selected).length, bar = document.getElementById('bulk-bar');
-            if (!bar) { return; }
+            var n = Object.keys(selected).length,
+                bar = document.getElementById('bulk-bar');
+            if (!bar) {
+                return;
+            }
             document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
             bar.classList.toggle('d-none', n === 0);
             bar.classList.toggle('d-flex', n > 0);
         };
         var confirmSwal = function(text) {
-            if (window.Swal) { return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; }); }
+            if (window.Swal) {
+                return Swal.fire({
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                        cancelButton: 'btn btn-label-secondary ms-2'
+                    },
+                    buttonsStyling: false
+                }).then(function(r) {
+                    return r.isConfirmed;
+                });
+            }
             return Promise.resolve(window.confirm(text));
         };
 
         var table = jQuery('#lines-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[2, 'desc']],
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [2, 'desc']
+            ],
             searchDelay: 400,
             lengthMenu: [10, 25, 50, 250, 500, 1000],
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 25); ?>,
             ajax: {
                 url: './table',
-                data: function(d) { d.id = 'lines'; d.filter = document.getElementById('filter-status').value; d.reseller = jQuery('#filter-reseller').val() || ''; }
+                data: function(d) {
+                    d.id = 'lines';
+                    d.filter = document.getElementById('filter-status').value;
+                    d.reseller = jQuery('#filter-reseller').val() || '';
+                }
             },
-            columnDefs: [{ orderable: false, targets: [0, 1, 8, 9, 14].concat(redis ? [7, 10] : []) }],
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { data: 'id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
-                { data: 'id', className: 'text-center', render: function(d) { return '<a href="line?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'username', responsivePriority: 1, render: function(d, t, row) { return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>'; } },
-                { data: 'password', render: esc },
-                { data: 'owner_name', render: function(d, t, row) { return row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d || ''); } },
-                { data: 'status', className: 'text-center', render: function(d) { var s = STATUS[d] || ['secondary', d]; return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>'; } },
-                { data: 'active_connections', className: 'text-center', render: function(d) { return dot(d > 0 ? 'success' : 'secondary'); } },
-                { data: 'trial', className: 'text-center', render: function(d) { return dot(d ? 'warning' : 'secondary'); } },
-                { data: 'restreamer', className: 'text-center', render: function(d) { return dot(d ? 'info' : 'secondary'); } },
+            columnDefs: [{
+                orderable: false,
+                targets: [0, 1, 8, 9, 14].concat(redis ? [7, 10] : [])
+            }],
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'id',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>';
+                    }
+                },
+                {
+                    data: 'id',
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<a href="line?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'username',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        return '<a href="line?id=' + encodeURIComponent(row.id) + '" class="text-body fw-medium">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'password',
+                    render: esc
+                },
+                {
+                    data: 'owner_name',
+                    render: function(d, t, row) {
+                        return row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d || '');
+                    }
+                },
+                {
+                    data: 'status',
+                    className: 'text-center',
+                    render: function(d) {
+                        var s = STATUS[d] || ['secondary', d];
+                        return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>';
+                    }
+                },
+                {
+                    data: 'active_connections',
+                    className: 'text-center',
+                    render: function(d) {
+                        return dot(d > 0 ? 'success' : 'secondary');
+                    }
+                },
+                {
+                    data: 'trial',
+                    className: 'text-center',
+                    render: function(d) {
+                        return dot(d ? 'warning' : 'secondary');
+                    }
+                },
+                {
+                    data: 'restreamer',
+                    className: 'text-center',
+                    render: function(d) {
+                        return dot(d ? 'info' : 'secondary');
+                    }
+                },
                 {
                     data: 'active_connections',
                     className: 'text-center',
@@ -290,12 +399,20 @@ renderUnifiedLayoutFooter('admin');
                         return (d > 0 && canLive) ? '<a href="live_connections?user_id=' + encodeURIComponent(row.id) + '">' + badge + '</a>' : badge;
                     }
                 },
-                { data: 'max_connections', className: 'text-center', render: function(d) { return '<span class="badge bg-label-dark">' + (d == 0 ? '&infin;' : d) + '</span>'; } },
+                {
+                    data: 'max_connections',
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<span class="badge bg-label-dark">' + (d == 0 ? '&infin;' : d) + '</span>';
+                    }
+                },
                 {
                     data: 'exp_str',
                     className: 'text-center text-nowrap',
                     render: function(d, t, row) {
-                        if (!d) { return '<span class="fs-4">&infin;</span>'; }
+                        if (!d) {
+                            return '<span class="fs-4">&infin;</span>';
+                        }
                         var parts = String(d).split(' ');
                         var body = esc(parts[0]) + (parts[1] ? '<br><small class="text-body-secondary">' + esc(parts[1]) + '</small>' : '');
                         return row.exp_expired ? '<span class="text-danger">' + body + '</span>' : body;
@@ -309,7 +426,10 @@ renderUnifiedLayoutFooter('admin');
                             var name = row.stream_display_name ? '<a href="stream_view?id=' + encodeURIComponent(row.stream_id) + '" class="text-body">' + esc(row.stream_display_name) + '</a>' : '<span class="text-body">#' + esc(row.stream_id) + '</span>';
                             return name + '<br><small class="text-success">Online: ' + fmtUptime(Math.floor(Date.now() / 1000) - d) + '</small>';
                         }
-                        if (row.last_str) { var p = String(row.last_str).split(' '); return esc(p[0]) + (p[1] ? '<br><small class="text-body-secondary">' + esc(p[1]) + '</small>' : ''); }
+                        if (row.last_str) {
+                            var p = String(row.last_str).split(' ');
+                            return esc(p[0]) + (p[1] ? '<br><small class="text-body-secondary">' + esc(p[1]) + '</small>' : '');
+                        }
                         return '<span class="text-body-secondary">Never</span>';
                     }
                 },
@@ -320,27 +440,36 @@ renderUnifiedLayoutFooter('admin');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (row.notes) { items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>'; }
-                        if (canEdit) { items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-user="' + esc(row.username) + '">' + esc(lang.edit) + '</a>'; }
-                        if (canFinger && row.active_connections > 0) { items += '<a class="dropdown-item js-finger" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.fingerprint) + '</a>'; }
+                        if (row.notes) {
+                            items += '<h6 class="dropdown-header text-wrap" style="max-width:18rem">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>';
+                        }
+                        if (canEdit) {
+                            items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-user="' + esc(row.username) + '">' + esc(lang.edit) + '</a>';
+                        }
+                        if (canFinger && row.active_connections > 0) {
+                            items += '<a class="dropdown-item js-finger" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.fingerprint) + '</a>';
+                        }
                         items += '<a class="dropdown-item js-download" href="javascript:void(0);" data-user="' + esc(row.username) + '" data-pass="' + esc(row.password) + '">' + esc(lang.download) + '</a>';
                         items += '<a class="dropdown-item js-whatsapp" href="javascript:void(0);" data-user="' + esc(row.username) + '" data-contact="' + esc(row.contact || '') + '" data-expunix="' + esc(row.exp_unix || '') + '"><i class="icon-base ti tabler-brand-whatsapp text-success me-1"></i>' + esc(lang.whatsapp) + '</a>';
                         if (canEdit) {
                             items += '<div class="dropdown-divider"></div>';
                             items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="kill" data-id="' + esc(row.id) + '">' + esc(lang.kill) + '</a>';
-                            items += row.admin_enabled
-                                ? '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="ban" data-id="' + esc(row.id) + '">' + esc(lang.ban) + '</a>'
-                                : '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="unban" data-id="' + esc(row.id) + '">' + esc(lang.unban) + '</a>';
-                            items += row.enabled
-                                ? '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="disable" data-id="' + esc(row.id) + '">' + esc(lang.disable) + '</a>'
-                                : '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="enable" data-id="' + esc(row.id) + '">' + esc(lang.enable) + '</a>';
+                            items += row.admin_enabled ?
+                                '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="ban" data-id="' + esc(row.id) + '">' + esc(lang.ban) + '</a>' :
+                                '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="unban" data-id="' + esc(row.id) + '">' + esc(lang.unban) + '</a>';
+                            items += row.enabled ?
+                                '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="disable" data-id="' + esc(row.id) + '">' + esc(lang.disable) + '</a>' :
+                                '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="enable" data-id="' + esc(row.id) + '">' + esc(lang.enable) + '</a>';
                             items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-sub="delete" data-id="' + esc(row.id) + '">' + esc(lang.del) + '</a>';
                         }
                         return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: null }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: null
+            }
         });
 
         // Filters.
@@ -351,59 +480,149 @@ renderUnifiedLayoutFooter('admin');
                 url: './api',
                 dataType: 'json',
                 delay: 250,
-                data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
-                processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
+                data: function(params) {
+                    return {
+                        search: params.term,
+                        action: 'reguserlist',
+                        page: params.page
+                    };
+                },
+                processResults: function(data, params) {
+                    params.page = params.page || 1;
+                    return {
+                        results: data.items,
+                        pagination: {
+                            more: (params.page * 100) < data.total_count
+                        }
+                    };
+                },
                 cache: true
             }
-        }).on('change', function() { table.ajax.reload(); });
-        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+        }).on('change', function() {
+            table.ajax.reload();
+        });
+        document.getElementById('filter-status').addEventListener('change', function() {
+            table.ajax.reload();
+        });
         var searchTimer;
         document.getElementById('filter-search').addEventListener('keyup', function() {
             var v = this.value;
             clearTimeout(searchTimer);
-            searchTimer = setTimeout(function() { table.search(v).draw(); }, 400);
+            searchTimer = setTimeout(function() {
+                table.search(v).draw();
+            }, 400);
         });
 
         // Row single actions.
         var rowApi = function(id, sub) {
-            return fetch('./api?action=line&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
-                .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } });
+            return fetch('./api?action=line&sub=' + encodeURIComponent(sub) + '&user_id=' + encodeURIComponent(id), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(dt) {
+                    if (!dt || dt.result !== true) {
+                        throw new Error('fail');
+                    }
+                });
         };
         jQuery('#lines-table tbody').on('click', '.js-act', function() {
-            var sub = this.getAttribute('data-sub'), id = this.getAttribute('data-id');
-            var go = function() { rowApi(id, sub).then(function() { table.ajax.reload(null, false); }).catch(function() { xcToast(lang.error, 'error'); }); };
-            if (sub === 'delete') { confirmSwal(lang.confirmDelete).then(function(ok) { if (ok) { go(); } }); }
-            else if (sub === 'kill') { confirmSwal(lang.confirmKill).then(function(ok) { if (ok) { go(); } }); }
-            else { go(); }
+            var sub = this.getAttribute('data-sub'),
+                id = this.getAttribute('data-id');
+            var go = function() {
+                rowApi(id, sub).then(function() {
+                    table.ajax.reload(null, false);
+                }).catch(function() {
+                    xcToast(lang.error, 'error');
+                });
+            };
+            if (sub === 'delete') {
+                confirmSwal(lang.confirmDelete).then(function(ok) {
+                    if (ok) {
+                        go();
+                    }
+                });
+            } else if (sub === 'kill') {
+                confirmSwal(lang.confirmKill).then(function(ok) {
+                    if (ok) {
+                        go();
+                    }
+                });
+            } else {
+                go();
+            }
         });
 
         // Bulk actions.
         jQuery('#lines-table tbody').on('change', '.row-check', function() {
             var id = this.getAttribute('data-id');
-            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            if (this.checked) {
+                selected[id] = true;
+            } else {
+                delete selected[id];
+            }
             updateBulk();
         });
         var chkAll = document.getElementById('check-all');
         if (chkAll) {
             chkAll.addEventListener('change', function() {
                 var on = this.checked;
-                jQuery('#lines-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+                jQuery('#lines-table tbody .row-check').each(function() {
+                    this.checked = on;
+                    var id = this.getAttribute('data-id');
+                    if (on) {
+                        selected[id] = true;
+                    } else {
+                        delete selected[id];
+                    }
+                });
                 updateBulk();
             });
         }
-        table.on('draw', function() { if (chkAll) { chkAll.checked = false; } });
+        table.on('draw', function() {
+            if (chkAll) {
+                chkAll.checked = false;
+            }
+        });
         jQuery('#bulk-bar').on('click', '[data-bulk]', function() {
-            var sub = this.getAttribute('data-bulk'), ids = Object.keys(selected);
-            if (!ids.length) { return; }
+            var sub = this.getAttribute('data-bulk'),
+                ids = Object.keys(selected);
+            if (!ids.length) {
+                return;
+            }
             var run = function() {
-                fetch('./api?action=multi&type=line&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { xcToast(lang.error, 'error'); });
+                fetch('./api?action=multi&type=line&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(dt) {
+                        if (!dt || dt.result !== true) {
+                            throw new Error('fail');
+                        }
+                        selected = {};
+                        updateBulk();
+                        table.ajax.reload(null, false);
+                    })
+                    .catch(function() {
+                        xcToast(lang.error, 'error');
+                    });
             };
-            if (sub === 'delete' || sub === 'purge') { confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) { if (ok) { run(); } }); }
-            else { run(); }
+            if (sub === 'delete' || sub === 'purge') {
+                confirmSwal((sub === 'delete' ? lang.del : lang.kill) + ' (' + ids.length + ')?').then(function(ok) {
+                    if (ok) {
+                        run();
+                    }
+                });
+            } else {
+                run();
+            }
         });
 
         // Edit / fingerprint iframe modal.
@@ -413,13 +632,23 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('frame-src').src = src;
             bootstrap.Modal.getOrCreateInstance(frameModal).show();
         };
-        jQuery('#lines-table tbody').on('click', '.js-edit', function() { openFrame(lang.edit + ': ' + this.getAttribute('data-user'), 'line?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1'); });
-        jQuery('#lines-table tbody').on('click', '.js-finger', function() { openFrame(lang.fingerprint, 'fingerprint?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&type=user&modal=1'); });
-        frameModal.addEventListener('hidden.bs.modal', function() { document.getElementById('frame-src').src = 'about:blank'; table.ajax.reload(null, false); });
+        jQuery('#lines-table tbody').on('click', '.js-edit', function() {
+            openFrame(lang.edit + ': ' + this.getAttribute('data-user'), 'line?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1');
+        });
+        jQuery('#lines-table tbody').on('click', '.js-finger', function() {
+            openFrame(lang.fingerprint, 'fingerprint?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&type=user&modal=1');
+        });
+        frameModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('frame-src').src = 'about:blank';
+            table.ajax.reload(null, false);
+        });
 
         // Download playlist modal.
         var dlModal = document.getElementById('downloadModal');
-        var dlType = document.getElementById('download_type'), outType = document.getElementById('output_type'), dlUrl = document.getElementById('download_url'), dlOpen = document.getElementById('download_open');
+        var dlType = document.getElementById('download_type'),
+            outType = document.getElementById('output_type'),
+            dlUrl = document.getElementById('download_url'),
+            dlOpen = document.getElementById('download_open');
         // Render both modal selects as select2 dropdowns so they match the rest of the UI.
         jQuery(dlType).select2({
             placeholder: '<?= $language::get('format'); ?>',
@@ -434,26 +663,51 @@ renderUnifiedLayoutFooter('admin');
         });
         var buildDownload = function() {
             var key = dlType.value;
-            if (!key) { dlUrl.value = ''; dlOpen.disabled = true; return; }
-            var u = dlModal.getAttribute('data-username'), p = dlModal.getAttribute('data-password');
+            if (!key) {
+                dlUrl.value = '';
+                dlOpen.disabled = true;
+                return;
+            }
+            var u = dlModal.getAttribute('data-username'),
+                p = dlModal.getAttribute('data-password');
             var text = siteUrl + '/playlist/' + u + '/' + p + '/' + decodeURIComponent(key);
-            var outs = Array.prototype.filter.call(outType.options, function(o) { return o.selected; }).map(function(o) { return o.value; });
-            if (outs.length) { text += (text.indexOf('?output=') !== -1 ? '&' : '?') + 'key=' + outs.join(','); }
+            var outs = Array.prototype.filter.call(outType.options, function(o) {
+                return o.selected;
+            }).map(function(o) {
+                return o.value;
+            });
+            if (outs.length) {
+                text += (text.indexOf('?output=') !== -1 ? '&' : '?') + 'key=' + outs.join(',');
+            }
             var opt = dlType.options[dlType.selectedIndex];
-            if (opt && opt.getAttribute('data-text')) { dlUrl.value = opt.getAttribute('data-text').replace('{DEVICE_LINK}', '"' + text + '"'); dlOpen.disabled = true; }
-            else { dlUrl.value = text; dlOpen.disabled = false; }
+            if (opt && opt.getAttribute('data-text')) {
+                dlUrl.value = opt.getAttribute('data-text').replace('{DEVICE_LINK}', '"' + text + '"');
+                dlOpen.disabled = true;
+            } else {
+                dlUrl.value = text;
+                dlOpen.disabled = false;
+            }
         };
         jQuery(dlType).on('change', buildDownload);
         jQuery(outType).on('change', buildDownload);
         jQuery('#lines-table tbody').on('click', '.js-download', function() {
             dlModal.setAttribute('data-username', this.getAttribute('data-user'));
             dlModal.setAttribute('data-password', this.getAttribute('data-pass'));
-            jQuery(dlType).val('').trigger('change'); jQuery(outType).val(null).trigger('change');
-            dlUrl.value = ''; dlOpen.disabled = true;
+            jQuery(dlType).val('').trigger('change');
+            jQuery(outType).val(null).trigger('change');
+            dlUrl.value = '';
+            dlOpen.disabled = true;
             bootstrap.Modal.getOrCreateInstance(dlModal).show();
         });
-        document.getElementById('download_copy').addEventListener('click', function() { dlUrl.select(); document.execCommand('copy'); });
-        dlOpen.addEventListener('click', function() { if (dlUrl.value) { window.open(dlUrl.value); } });
+        document.getElementById('download_copy').addEventListener('click', function() {
+            dlUrl.select();
+            document.execCommand('copy');
+        });
+        dlOpen.addEventListener('click', function() {
+            if (dlUrl.value) {
+                window.open(dlUrl.value);
+            }
+        });
 
         // WhatsApp renewal modal.
         var waModal = document.getElementById('whatsappModal');
@@ -474,11 +728,16 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('wa_language').addEventListener('change', waUpdate);
         jQuery('#lines-table tbody').on('click', '.js-whatsapp', function() {
             var contact = this.getAttribute('data-contact');
-            if (!contact) { xcToast('This line has no WhatsApp number set.', 'warning'); return; }
+            if (!contact) {
+                xcToast('This line has no WhatsApp number set.', 'warning');
+                return;
+            }
             var expUnix = parseInt(this.getAttribute('data-expunix'), 10);
             var expDate = expUnix ? new Date(expUnix * 1000) : null;
             var days = 0;
-            if (expDate) { days = Math.max(0, Math.ceil((expDate - new Date()) / 86400000)); }
+            if (expDate) {
+                days = Math.max(0, Math.ceil((expDate - new Date()) / 86400000));
+            }
             document.getElementById('wa_phone').value = contact;
             document.getElementById('wa_username').value = this.getAttribute('data-user');
             document.getElementById('wa_expdate').value = expDate ? expDate.toLocaleDateString('de-DE') : 'Never';

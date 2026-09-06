@@ -100,22 +100,30 @@ use XcVm\Domain\Stream\StreamConfigRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="direct_source" name="c_direct_source"></div>
                         <label class="col-md-3 col-form-label" for="direct_source"><?= $language::get('direct_source'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled name="direct_source" id="direct_source" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled name="direct_source" id="direct_source" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="movie_symlink" name="c_movie_symlink"></div>
                         <label class="col-md-3 col-form-label" for="movie_symlink"><?= $language::get('create_symlink'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled name="movie_symlink" id="movie_symlink" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled name="movie_symlink" id="movie_symlink" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="remove_subtitles" name="c_remove_subtitles"></div>
                         <label class="col-md-3 col-form-label" for="remove_subtitles"><?= $language::get('remove_subtitles'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled name="remove_subtitles" id="remove_subtitles" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled name="remove_subtitles" id="remove_subtitles" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="read_native" name="c_read_native"></div>
                         <label class="col-md-3 col-form-label" for="read_native"><?= $language::get('native_frames'); ?></label>
-                        <div class="col-md-8"><div class="form-check form-switch"><input disabled name="read_native" id="read_native" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-8">
+                            <div class="form-check form-switch"><input disabled name="read_native" id="read_native" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" class="form-check-input activate" data-name="target_container" name="c_target_container"></div>
@@ -146,7 +154,9 @@ use XcVm\Domain\Stream\StreamConfigRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1 text-center"><input type="checkbox" data-name="server_tree" class="form-check-input activate" name="c_server_tree" id="c_server_tree"></div>
                         <label class="col-md-3 col-form-label" for="server_tree"><?= $language::get('server_tree'); ?></label>
-                        <div class="col-md-8"><div id="server_tree" class="border rounded p-2"></div></div>
+                        <div class="col-md-8">
+                            <div id="server_tree" class="border rounded p-2"></div>
+                        </div>
                     </div>
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
@@ -160,9 +170,13 @@ use XcVm\Domain\Stream\StreamConfigRepository;
                     <div class="row mb-3 align-items-center">
                         <div class="col-md-1"></div>
                         <label class="col-md-3 col-form-label" for="reencode_on_edit"><?= $language::get('reencode_on_edit'); ?></label>
-                        <div class="col-md-2"><div class="form-check form-switch"><input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch"><input name="reencode_on_edit" id="reencode_on_edit" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                         <label class="col-md-3 col-form-label" for="reprocess_tmdb"><?= $language::get('reprocess_tmdb_data'); ?></label>
-                        <div class="col-md-2"><div class="form-check form-switch"><input name="reprocess_tmdb" id="reprocess_tmdb" type="checkbox" value="1" class="form-check-input"></div></div>
+                        <div class="col-md-2">
+                            <div class="form-check form-switch"><input name="reprocess_tmdb" id="reprocess_tmdb" type="checkbox" value="1" class="form-check-input"></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -178,31 +192,65 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var selected = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        window.getSeries = function() { return document.getElementById('series_id').value; };
-        window.getServer = function() { return document.getElementById('episode_server_id').value; };
-        window.getFilter = function() { return document.getElementById('filter').value; };
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+        window.getSeries = function() {
+            return document.getElementById('series_id').value;
+        };
+        window.getServer = function() {
+            return document.getElementById('episode_server_id').value;
+        };
+        window.getFilter = function() {
+            return document.getElementById('filter').value;
+        };
         window.toggleStreams = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
 
         // Selection filters + detail selects (select2).
         if ($.fn.select2) {
-            $('#series_id, #episode_server_id, #filter, #show_entries').select2({ width: '100%' });
-            $('#serie_name, #target_container, #transcode_profile_id').select2({ width: '100%', dropdownParent: $('#stream-details') });
-            $('#server_type').select2({ width: '100%', dropdownParent: $('#load-balancing') });
+            $('#series_id, #episode_server_id, #filter, #show_entries').select2({
+                width: '100%'
+            });
+            $('#serie_name, #target_container, #transcode_profile_id').select2({
+                width: '100%',
+                dropdownParent: $('#stream-details')
+            });
+            $('#server_type').select2({
+                width: '100%',
+                dropdownParent: $('#load-balancing')
+            });
         }
 
         // Activate checkboxes gate their field (switch is just a checkbox now).
@@ -210,10 +258,18 @@ renderUnifiedLayoutFooter('admin');
             var name = this.getAttribute('data-name');
             var checked = this.checked;
             var t = document.getElementById(name);
-            if (t) { t.disabled = !checked; if (t.tagName === 'SELECT') { $(t).trigger('change.select2'); } }
+            if (t) {
+                t.disabled = !checked;
+                if (t.tagName === 'SELECT') {
+                    $(t).trigger('change.select2');
+                }
+            }
             if (name === 'server_tree') {
                 var st = document.getElementById('server_type');
-                if (st) { st.disabled = !checked; $(st).trigger('change.select2'); }
+                if (st) {
+                    st.disabled = !checked;
+                    $(st).trigger('change.select2');
+                }
             }
         });
 
@@ -221,7 +277,9 @@ renderUnifiedLayoutFooter('admin');
         $('#server_tree')
             .on('select_node.jstree', function(e, data) {
                 $('#c_server_tree').prop('checked', true).trigger('change');
-                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                if (data.node.id === 'source' || data.node.id === 'offline') {
+                    return;
+                }
                 var to = (data.node.parent === 'offline') ? 'source' : 'offline';
                 $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
             })
@@ -229,9 +287,15 @@ renderUnifiedLayoutFooter('admin');
                 core: {
                     check_callback: function(op, node, parent) {
                         if (op === 'move_node') {
-                            if (node.id === 'offline' || node.id === 'source') { return false; }
-                            if (parent.id !== 'offline' && parent.id !== 'source') { return false; }
-                            if (parent.id === '#') { return false; }
+                            if (node.id === 'offline' || node.id === 'source') {
+                                return false;
+                            }
+                            if (parent.id !== 'offline' && parent.id !== 'source') {
+                                return false;
+                            }
+                            if (parent.id === '#') {
+                                return false;
+                            }
                             return true;
                         }
                         return true;
@@ -243,49 +307,126 @@ renderUnifiedLayoutFooter('admin');
 
         // episode_list is a positional-array handler; keep legacy columnDefs.
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250,
-            ajax: { url: './table', data: function(d) { d.id = 'episode_list'; d.series = getSeries(); d.filter = getFilter(); d.server = getServer(); } },
-            columnDefs: [
-                { className: 'text-center', targets: [0, 1, 4] },
-                { orderable: false, targets: [1] }
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'episode_list';
+                    d.series = getSeries();
+                    d.filter = getFilter();
+                    d.server = getServer();
+                }
+            },
+            columnDefs: [{
+                    className: 'text-center',
+                    targets: [0, 1, 4]
+                },
+                {
+                    orderable: false,
+                    targets: [1]
+                }
             ],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data[0])) !== -1) { $(row).addClass('table-active'); } },
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data[0])) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            order: [[0, 'desc']],
-            layout: { topStart: null, topEnd: null }
+            order: [
+                [0, 'desc']
+            ],
+            layout: {
+                topStart: null,
+                topEnd: null
+            }
         });
 
         // Row click toggles selection.
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
 
-        $('#stream_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#series_id, #episode_server_id, #filter').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#stream_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#series_id, #episode_server_id, #filter').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast(<?= json_encode($language::get('select_at_least_one_episode')); ?>, 'warning'); return; }
-            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            if (!selected.length) {
+                toast(<?= json_encode($language::get('select_at_least_one_episode')); ?>, 'warning');
+                return;
+            }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
+                flat: true
+            }));
             document.getElementById('streams').value = JSON.stringify(selected);
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_stream', '1');
-            fetch('post.php?action=episodes_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=episodes_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

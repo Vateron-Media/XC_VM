@@ -121,7 +121,12 @@ $rOwner = (RequestManager::has('owner') && ($rO = UserRepository::getRegisteredU
                     <div class="table-responsive">
                         <table class="table mb-0">
                             <thead>
-                                <tr><th class="text-center">#</th><th><?= $language::get('package'); ?></th><th class="text-center"><?= $language::get('credits'); ?></th><th class="text-center"><?= $language::get('override'); ?></th></tr>
+                                <tr>
+                                    <th class="text-center">#</th>
+                                    <th><?= $language::get('package'); ?></th>
+                                    <th class="text-center"><?= $language::get('credits'); ?></th>
+                                    <th class="text-center"><?= $language::get('override'); ?></th>
+                                </tr>
                             </thead>
                             <tbody>
                                 <?php foreach (PackageService::getAll() as $rPackage): ?>
@@ -156,99 +161,287 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var selected = [];
 
-        function updateCount() { document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : ''; }
-        window.getReseller = function() { return document.getElementById('reseller_search').value; };
-        window.getFilter = function() { return document.getElementById('filter').value; };
-        window.clearOwner = function() { $('#reseller_search').val('').trigger('change'); };
+        function updateCount() {
+            document.getElementById('selected_count').textContent = selected.length ? '— ' + selected.length + ' selected' : '';
+        }
+        window.getReseller = function() {
+            return document.getElementById('reseller_search').value;
+        };
+        window.getFilter = function() {
+            return document.getElementById('filter').value;
+        };
+        window.clearOwner = function() {
+            $('#reseller_search').val('').trigger('change');
+        };
         window.toggleUsers = function() {
             var allSelected = true;
-            $('#datatable-mass tbody tr').each(function() { if (!$(this).hasClass('table-active')) { allSelected = false; } });
+            $('#datatable-mass tbody tr').each(function() {
+                if (!$(this).hasClass('table-active')) {
+                    allSelected = false;
+                }
+            });
             $('#datatable-mass tbody tr').each(function() {
                 var id = $(this).find('td:eq(0)').text().trim();
-                if (!id) { return; }
-                if (allSelected) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-                else if (!$(this).hasClass('table-active')) { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+                if (!id) {
+                    return;
+                }
+                if (allSelected) {
+                    $(this).removeClass('table-active');
+                    var i = selected.indexOf(id);
+                    if (i > -1) {
+                        selected.splice(i, 1);
+                    }
+                } else if (!$(this).hasClass('table-active')) {
+                    $(this).addClass('table-active');
+                    if (selected.indexOf(id) === -1) {
+                        selected.push(id);
+                    }
+                }
             });
             updateCount();
         };
 
         // Selection filters (select2).
         if ($.fn.select2) {
-            $('#filter, #show_entries').select2({ width: '100%' });
+            $('#filter, #show_entries').select2({
+                width: '100%'
+            });
             $('#reseller_search').select2({
-                width: '100%', placeholder: 'Search for an owner…', allowClear: true,
-                ajax: { url: './api', dataType: 'json', delay: 250,
-                    data: function(p) { return { search: p.term, action: 'reguserlist', page: p.page }; },
-                    processResults: function(d, p) { p.page = p.page || 1; return { results: d.items, pagination: { more: (p.page * 100) < d.total_count } }; }, cache: true }
+                width: '100%',
+                placeholder: 'Search for an owner…',
+                allowClear: true,
+                ajax: {
+                    url: './api',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(p) {
+                        return {
+                            search: p.term,
+                            action: 'reguserlist',
+                            page: p.page
+                        };
+                    },
+                    processResults: function(d, p) {
+                        p.page = p.page || 1;
+                        return {
+                            results: d.items,
+                            pagination: {
+                                more: (p.page * 100) < d.total_count
+                            }
+                        };
+                    },
+                    cache: true
+                }
             });
         }
 
         // Activate checkboxes enable/disable their field (switch is just a checkbox now).
-        $('.activate').on('change', function() { var t = document.getElementById(this.getAttribute('data-name')); if (t) { t.disabled = !this.checked; } });
+        $('.activate').on('change', function() {
+            var t = document.getElementById(this.getAttribute('data-name'));
+            if (t) {
+                t.disabled = !this.checked;
+            }
+        });
 
-        var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
-        var statusMap = { 0: ['secondary', 'Disabled'], 1: ['success', 'Active'], 2: ['danger', 'Banned'] };
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var statusMap = {
+            0: ['secondary', 'Disabled'],
+            1: ['success', 'Active'],
+            2: ['danger', 'Banned']
+        };
         // reg_users is a clean-JSON handler (objects), so map fields to the 13 columns.
         var rTable = $('#datatable-mass').DataTable({
-            processing: true, serverSide: true, searchDelay: 250,
-            ajax: { url: './table', data: function(d) { d.id = 'reg_users'; d.filter = getFilter(); d.reseller = getReseller(); } },
-            columns: [
-                { data: 'id', className: 'text-center' },
-                { data: 'username' },
-                { data: 'owner_username', orderable: false, render: function(d) { return d ? esc(d) : '<span class="text-body-secondary">—</span>'; } },
-                { data: 'ip', className: 'text-center', visible: false },
-                { data: 'status', className: 'text-center', render: function(d) { var s = statusMap[d] || ['secondary', '']; return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>'; } },
-                { data: 'is_reseller', className: 'text-center', render: function(d) { return d ? 'Reseller' : 'User'; } },
-                { data: 'credits', className: 'text-center' },
-                { data: 'user_count', className: 'text-center' },
-                { data: 'user_lines', className: 'text-center', visible: false },
-                { data: 'mag_lines', className: 'text-center', visible: false },
-                { data: 'e2_lines', className: 'text-center', visible: false },
-                { data: 'last_login', className: 'text-center', visible: false },
-                { data: null, orderable: false, searchable: false, defaultContent: '', visible: false }
+            processing: true,
+            serverSide: true,
+            searchDelay: 250,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'reg_users';
+                    d.filter = getFilter();
+                    d.reseller = getReseller();
+                }
+            },
+            columns: [{
+                    data: 'id',
+                    className: 'text-center'
+                },
+                {
+                    data: 'username'
+                },
+                {
+                    data: 'owner_username',
+                    orderable: false,
+                    render: function(d) {
+                        return d ? esc(d) : '<span class="text-body-secondary">—</span>';
+                    }
+                },
+                {
+                    data: 'ip',
+                    className: 'text-center',
+                    visible: false
+                },
+                {
+                    data: 'status',
+                    className: 'text-center',
+                    render: function(d) {
+                        var s = statusMap[d] || ['secondary', ''];
+                        return '<span class="badge bg-label-' + s[0] + '">' + esc(s[1]) + '</span>';
+                    }
+                },
+                {
+                    data: 'is_reseller',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ? 'Reseller' : 'User';
+                    }
+                },
+                {
+                    data: 'credits',
+                    className: 'text-center'
+                },
+                {
+                    data: 'user_count',
+                    className: 'text-center'
+                },
+                {
+                    data: 'user_lines',
+                    className: 'text-center',
+                    visible: false
+                },
+                {
+                    data: 'mag_lines',
+                    className: 'text-center',
+                    visible: false
+                },
+                {
+                    data: 'e2_lines',
+                    className: 'text-center',
+                    visible: false
+                },
+                {
+                    data: 'last_login',
+                    className: 'text-center',
+                    visible: false
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    defaultContent: '',
+                    visible: false
+                }
             ],
-            rowCallback: function(row, data) { if (selected.indexOf(String(data.id)) !== -1) { $(row).addClass('table-active'); } },
+            rowCallback: function(row, data) {
+                if (selected.indexOf(String(data.id)) !== -1) {
+                    $(row).addClass('table-active');
+                }
+            },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         // Row click toggles selection.
         $('#datatable-mass tbody').on('click', 'tr', function() {
             var id = $(this).find('td:eq(0)').text().trim();
-            if (!id) { return; }
-            if ($(this).hasClass('table-active')) { $(this).removeClass('table-active'); var i = selected.indexOf(id); if (i > -1) { selected.splice(i, 1); } }
-            else { $(this).addClass('table-active'); if (selected.indexOf(id) === -1) { selected.push(id); } }
+            if (!id) {
+                return;
+            }
+            if ($(this).hasClass('table-active')) {
+                $(this).removeClass('table-active');
+                var i = selected.indexOf(id);
+                if (i > -1) {
+                    selected.splice(i, 1);
+                }
+            } else {
+                $(this).addClass('table-active');
+                if (selected.indexOf(id) === -1) {
+                    selected.push(id);
+                }
+            }
             updateCount();
         });
 
-        $('#user_search').on('keyup', function() { rTable.search(this.value).draw(); });
-        $('#show_entries').on('change', function() { rTable.page.len(parseInt(this.value, 10)).draw(); });
-        $('#reseller_search, #filter').on('change', function() { rTable.ajax.reload(null, false); });
+        $('#user_search').on('keyup', function() {
+            rTable.search(this.value).draw();
+        });
+        $('#show_entries').on('change', function() {
+            rTable.page.len(parseInt(this.value, 10)).draw();
+        });
+        $('#reseller_search, #filter').on('change', function() {
+            rTable.ajax.reload(null, false);
+        });
 
         // Auto-tick override apply when a cell is filled.
-        $(document).on('keyup', '.orinput', function() { if (this.value.length > 0 && !document.getElementById('c_override').checked) { document.getElementById('c_override').checked = true; } });
+        $(document).on('keyup', '.orinput', function() {
+            if (this.value.length > 0 && !document.getElementById('c_override').checked) {
+                document.getElementById('c_override').checked = true;
+            }
+        });
 
         document.getElementById('mass-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!selected.length) { toast('Select at least one user to edit.', 'warning'); return; }
+            if (!selected.length) {
+                toast('Select at least one user to edit.', 'warning');
+                return;
+            }
             document.getElementById('users_selected').value = JSON.stringify(selected);
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_user', '1');
-            fetch('post.php?action=user_mass', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=user_mass', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { toast('Mass edit applied.', 'success'); setTimeout(function() { location.reload(); }, 800); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        toast('Mass edit applied.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 800);
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

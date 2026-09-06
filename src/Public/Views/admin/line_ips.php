@@ -65,12 +65,22 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         $('#lineips-table').DataTable({
-            order: [[2, 'desc']],
-            columnDefs: [{ orderable: false, targets: [3] }],
+            order: [
+                [2, 'desc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: [3]
+            }],
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
         document.getElementById('range').addEventListener('change', function() {
             window.location.href = 'line_ips?range=' + encodeURIComponent(this.value);

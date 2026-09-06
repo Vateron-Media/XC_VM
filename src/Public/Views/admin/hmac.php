@@ -21,7 +21,9 @@ $rIsEdit = isset($rHMAC);
 </div>
 
 <div class="card">
-    <div class="card-header"><h5 class="mb-0"><?= $language::get('details'); ?></h5></div>
+    <div class="card-header">
+        <h5 class="mb-0"><?= $language::get('details'); ?></h5>
+    </div>
     <div class="card-body">
         <form id="hmac-form" autocomplete="off">
             <?php if ($rIsEdit): ?>
@@ -62,11 +64,16 @@ renderUnifiedLayoutFooter('admin');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         // 32-char alphanumeric HMAC key.
         var genKey = function() {
-            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789', out = '';
-            for (var i = 0; i < 32; i++) { out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+            var chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789',
+                out = '';
+            for (var i = 0; i < 32; i++) {
+                out += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
             return out;
         };
-        document.getElementById('gen-key').addEventListener('click', function() { document.getElementById('keygen').value = genKey(); });
+        document.getElementById('gen-key').addEventListener('click', function() {
+            document.getElementById('keygen').value = genKey();
+        });
         <?php if (!$rIsEdit): ?>
             document.getElementById('keygen').value = genKey();
         <?php endif; ?>
@@ -75,15 +82,36 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             var btn = document.getElementById('hmac-submit');
             btn.disabled = true;
-            fetch('post.php?action=hmac', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=hmac', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
-                    if (dt && dt.result !== false) { window.location.href = dt.location || 'hmacs'; return; }
+                    var dt;
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'hmacs';
+                        return;
+                    }
                     btn.disabled = false;
                     alert(errText);
                 })
-                .catch(function() { btn.disabled = false; alert(errText); });
+                .catch(function() {
+                    btn.disabled = false;
+                    alert(errText);
+                });
         });
     })();
 </script>

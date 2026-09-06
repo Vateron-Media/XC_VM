@@ -125,31 +125,64 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var toast = window.xcToast || function() {};
 
         var table = $('#archive-table').DataTable({
-            order: [[1, 'desc']],
-            columnDefs: [{ visible: false, targets: [0] }, { orderable: false, targets: [5, 6] }],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            order: [
+                [1, 'desc']
+            ],
+            columnDefs: [{
+                visible: false,
+                targets: [0]
+            }, {
+                orderable: false,
+                targets: [5, 6]
+            }],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
         var playerModal = document.getElementById('playerModal');
         $('#archive-table tbody').on('click', '.js-play', function() {
             document.getElementById('player-frame').src = this.getAttribute('data-url');
-            if (window.bootstrap) { bootstrap.Modal.getOrCreateInstance(playerModal).show(); }
+            if (window.bootstrap) {
+                bootstrap.Modal.getOrCreateInstance(playerModal).show();
+            }
         });
-        playerModal.addEventListener('hidden.bs.modal', function() { document.getElementById('player-frame').src = 'about:blank'; });
+        playerModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('player-frame').src = 'about:blank';
+        });
 
         $('#archive-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             (window.xcConfirm ? window.xcConfirm('Cancel and delete this recording?') : Promise.resolve(confirm('Delete this recording?'))).then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=delete_recording&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.row($('#rec-' + id)).remove().draw(false); toast('Recording deleted.'); })
-                    .catch(function() { toast(errText, 'error'); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=delete_recording&id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.row($('#rec-' + id)).remove().draw(false);
+                        toast('Recording deleted.');
+                    })
+                    .catch(function() {
+                        toast(errText, 'error');
+                    });
             });
         });
     })();

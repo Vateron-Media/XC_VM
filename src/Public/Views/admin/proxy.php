@@ -148,22 +148,32 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
 
         if ($.fn.select2) {
-            $('#geoip_type, #geoip_countries').select2({ width: '100%' });
+            $('#geoip_type, #geoip_countries').select2({
+                width: '100%'
+            });
         }
         if (window.bootstrap) {
-            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) { new bootstrap.Tooltip(el); });
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) {
+                new bootstrap.Tooltip(el);
+            });
         }
 
         // Numeric-only input filters.
         var numericOnly = function(el, max) {
-            if (!el) { return; }
+            if (!el) {
+                return;
+            }
             el.addEventListener('input', function() {
                 var v = this.value.replace(/[^\d]/g, '');
-                if (max && v !== '' && parseInt(v, 10) > max) { v = this.value.slice(0, -1).replace(/[^\d]/g, ''); }
+                if (max && v !== '' && parseInt(v, 10) > max) {
+                    v = this.value.slice(0, -1).replace(/[^\d]/g, '');
+                }
                 this.value = v;
             });
         };
@@ -172,8 +182,12 @@ renderUnifiedLayoutFooter('admin');
         numericOnly(document.getElementById('https_broadcast_port'), 65535);
         numericOnly(document.getElementById('network_guaranteed_speed'));
 
-        var isValidIP = function(v) { return /^(\d{1,3}\.){3}\d{1,3}$/.test(v); };
-        var isValidDomain = function(v) { return /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(v); };
+        var isValidIP = function(v) {
+            return /^(\d{1,3}\.){3}\d{1,3}$/.test(v);
+        };
+        var isValidDomain = function(v) {
+            return /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i.test(v);
+        };
 
         var domainSelect = document.getElementById('domain_name');
         document.getElementById('add_ip').addEventListener('click', function() {
@@ -188,7 +202,9 @@ renderUnifiedLayoutFooter('admin');
         });
         document.getElementById('remove_ip').addEventListener('click', function() {
             for (var i = domainSelect.options.length - 1; i >= 0; i--) {
-                if (domainSelect.options[i].selected) { domainSelect.remove(i); }
+                if (domainSelect.options[i].selected) {
+                    domainSelect.remove(i);
+                }
             }
         });
         document.getElementById('move_up').addEventListener('click', function() {
@@ -211,23 +227,54 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('proxy-form').addEventListener('submit', function(e) {
             e.preventDefault();
             // Select every entry so the whole domain_name[] list is posted, order preserved.
-            for (var i = 0; i < domainSelect.options.length; i++) { domainSelect.options[i].selected = true; }
+            for (var i = 0; i < domainSelect.options.length; i++) {
+                domainSelect.options[i].selected = true;
+            }
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
-            fetch('post.php?action=proxy&referer=', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=proxy&referer=', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.location) { window.location = d.location; return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.location) {
+                        window.location = d.location;
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
 
         <?php if (SettingsManager::get('enable_search')): ?>
-        if (typeof initSearch === 'function') { initSearch(); }
+            if (typeof initSearch === 'function') {
+                initSearch();
+            }
         <?php endif; ?>
     })();
 </script>

@@ -50,7 +50,11 @@ use XcVm\Domain\Stream\CategoryService;
         <div class="card-datatable table-responsive">
             <table class="table mb-0">
                 <thead>
-                    <tr><th>Channel</th><th class="text-center">Start</th><th class="text-center">Finish</th></tr>
+                    <tr>
+                        <th>Channel</th>
+                        <th class="text-center">Start</th>
+                        <th class="text-center">Finish</th>
+                    </tr>
                 </thead>
                 <tbody>
                     <tr>
@@ -122,7 +126,9 @@ use XcVm\Domain\Stream\CategoryService;
 <div class="modal fade" id="posterModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Poster</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-header">
+                <h5 class="modal-title">Poster</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <div class="modal-body text-center"><img id="poster-img" src="" alt="" style="max-width:100%"></div>
         </div>
     </div>
@@ -135,32 +141,72 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var hasStream = <?= $rStream ? 'true' : 'false'; ?>;
 
-        if ($.fn.select2) { $('#category_id, #bouquets, #source_id').select2({ width: '100%' }); }
+        if ($.fn.select2) {
+            $('#category_id, #bouquets, #source_id').select2({
+                width: '100%'
+            });
+        }
 
         // Stage 1: stream select2 (ajax) + datetime picker + validation.
         if (!hasStream) {
             if ($.fn.select2) {
                 $('#stream_id').select2({
-                    width: '100%', placeholder: 'Search for a stream…',
+                    width: '100%',
+                    placeholder: 'Search for a stream…',
                     ajax: {
-                        url: './api', dataType: 'json', delay: 250,
-                        data: function(p) { return { search: p.term, action: 'streamlist', page: p.page }; },
-                        processResults: function(d, p) { p.page = p.page || 1; return { results: d.items, pagination: { more: (p.page * 100) < d.total_count } }; },
+                        url: './api',
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(p) {
+                            return {
+                                search: p.term,
+                                action: 'streamlist',
+                                page: p.page
+                            };
+                        },
+                        processResults: function(d, p) {
+                            p.page = p.page || 1;
+                            return {
+                                results: d.items,
+                                pagination: {
+                                    more: (p.page * 100) < d.total_count
+                                }
+                            };
+                        },
                         cache: true
                     }
                 });
             }
             var start = document.getElementById('start_date');
-            if (window.flatpickr) { window.flatpickr(start, { enableTime: true, dateFormat: 'Y-m-d H:i', minDate: 'today', time_24hr: true }); }
-            else { start.setAttribute('placeholder', 'YYYY-MM-DD HH:MM'); }
-            document.getElementById('duration').addEventListener('input', function() { this.value = this.value.replace(/[^\d]/g, ''); });
+            if (window.flatpickr) {
+                window.flatpickr(start, {
+                    enableTime: true,
+                    dateFormat: 'Y-m-d H:i',
+                    minDate: 'today',
+                    time_24hr: true
+                });
+            } else {
+                start.setAttribute('placeholder', 'YYYY-MM-DD HH:MM');
+            }
+            document.getElementById('duration').addEventListener('input', function() {
+                this.value = this.value.replace(/[^\d]/g, '');
+            });
             document.getElementById('record-pick').addEventListener('submit', function(e) {
-                if (!document.getElementById('stream_id').value) { e.preventDefault(); toast('Please select a stream.', 'warning'); return; }
-                if (parseInt(document.getElementById('duration').value, 10) <= 0) { e.preventDefault(); toast('Please enter a duration in minutes.', 'warning'); }
+                if (!document.getElementById('stream_id').value) {
+                    e.preventDefault();
+                    toast('Please select a stream.', 'warning');
+                    return;
+                }
+                if (parseInt(document.getElementById('duration').value, 10) <= 0) {
+                    e.preventDefault();
+                    toast('Please enter a duration in minutes.', 'warning');
+                }
             });
         }
 
@@ -169,9 +215,13 @@ renderUnifiedLayoutFooter('admin');
         if (posterBtn) {
             posterBtn.addEventListener('click', function() {
                 var url = document.getElementById('stream_icon').value;
-                if (!url) { return; }
+                if (!url) {
+                    return;
+                }
                 document.getElementById('poster-img').src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(url);
-                if (window.bootstrap) { bootstrap.Modal.getOrCreateInstance(document.getElementById('posterModal')).show(); }
+                if (window.bootstrap) {
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('posterModal')).show();
+                }
             });
         }
         var form = document.getElementById('record-form');
@@ -179,16 +229,43 @@ renderUnifiedLayoutFooter('admin');
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
                 var btn = form.querySelector('button[type="submit"]');
-                if (btn) { btn.disabled = true; }
-                fetch('post.php?action=record', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.text(); })
+                if (btn) {
+                    btn.disabled = true;
+                }
+                fetch('post.php?action=record', {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.text();
+                    })
                     .then(function(txt) {
-                        var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                        if (d && d.result !== false) { window.location.href = d.location || 'archive'; return; }
-                        if (btn) { btn.disabled = false; }
+                        var d;
+                        try {
+                            d = JSON.parse(txt);
+                        } catch (err) {
+                            d = {
+                                result: false
+                            };
+                        }
+                        if (d && d.result !== false) {
+                            window.location.href = d.location || 'archive';
+                            return;
+                        }
+                        if (btn) {
+                            btn.disabled = false;
+                        }
                         toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                     })
-                    .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                    .catch(function() {
+                        if (btn) {
+                            btn.disabled = false;
+                        }
+                        toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                    });
             });
         }
     })();

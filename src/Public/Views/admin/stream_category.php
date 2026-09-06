@@ -85,7 +85,9 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
         var edit = <?= $rEdit ? 'true' : 'false'; ?>;
 
@@ -93,13 +95,35 @@ renderUnifiedLayoutFooter('admin');
             // Channels list — reuses the legacy serverSide *_short handler (HTML rows).
             var channelsInit = false;
             document.querySelector('[data-bs-target="#view-channels"]').addEventListener('shown.bs.tab', function() {
-                if (channelsInit) { return; }
+                if (channelsInit) {
+                    return;
+                }
                 channelsInit = true;
                 $('#channels-table').DataTable({
-                    processing: true, serverSide: true, info: false,
-                    ajax: { url: './table', data: function(d) { d.id = <?= json_encode($rTypeMap[$rCategoryArr['category_type']] ?? 'streams_short'); ?>; d.category_id = <?= (int) $rCategoryArr['id']; ?>; } },
-                    columns: [{ data: 0, className: 'text-center' }, { data: 1 }, { data: 2, className: 'text-center', orderable: false }],
-                    layout: { topStart: 'pageLength', topEnd: 'search' }
+                    processing: true,
+                    serverSide: true,
+                    info: false,
+                    ajax: {
+                        url: './table',
+                        data: function(d) {
+                            d.id = <?= json_encode($rTypeMap[$rCategoryArr['category_type']] ?? 'streams_short'); ?>;
+                            d.category_id = <?= (int) $rCategoryArr['id']; ?>;
+                        }
+                    },
+                    columns: [{
+                        data: 0,
+                        className: 'text-center'
+                    }, {
+                        data: 1
+                    }, {
+                        data: 2,
+                        className: 'text-center',
+                        orderable: false
+                    }],
+                    layout: {
+                        topStart: 'pageLength',
+                        topEnd: 'search'
+                    }
                 });
             });
         <?php endif; ?>
@@ -107,16 +131,43 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('category-form').addEventListener('submit', function(e) {
             e.preventDefault();
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
-            fetch('post.php?action=stream_category', { method: 'POST', body: new FormData(this), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            if (btn) {
+                btn.disabled = true;
+            }
+            fetch('post.php?action=stream_category', {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { window.location.href = d.location || 'stream_categories'; return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        window.location.href = d.location || 'stream_categories';
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>

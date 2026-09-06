@@ -87,7 +87,9 @@ renderUnifiedLayoutFooter('admin');
         var toast = window.xcToast || function() {};
 
         function confirmSwal(text) {
-            if (window.xcConfirm) { return window.xcConfirm(text); }
+            if (window.xcConfirm) {
+                return window.xcConfirm(text);
+            }
             return Promise.resolve(window.confirm(text));
         }
 
@@ -95,52 +97,103 @@ renderUnifiedLayoutFooter('admin');
         function initSortable(list) {
             var dragEl = null;
             list.addEventListener('dragstart', function(e) {
-                if (e.target.closest('button, a')) { e.preventDefault(); return; }
+                if (e.target.closest('button, a')) {
+                    e.preventDefault();
+                    return;
+                }
                 var li = e.target.closest('li');
-                if (!li) { return; }
+                if (!li) {
+                    return;
+                }
                 dragEl = li;
                 li.classList.add('opacity-50');
                 e.dataTransfer.effectAllowed = 'move';
             });
             list.addEventListener('dragend', function() {
-                if (dragEl) { dragEl.classList.remove('opacity-50'); }
+                if (dragEl) {
+                    dragEl.classList.remove('opacity-50');
+                }
                 dragEl = null;
             });
             list.addEventListener('dragover', function(e) {
                 e.preventDefault();
-                if (!dragEl) { return; }
-                var after = null, closest = -Infinity;
+                if (!dragEl) {
+                    return;
+                }
+                var after = null,
+                    closest = -Infinity;
                 var items = list.querySelectorAll('li:not(.opacity-50)');
                 for (var i = 0; i < items.length; i++) {
                     var box = items[i].getBoundingClientRect();
                     var offset = e.clientY - box.top - box.height / 2;
-                    if (offset < 0 && offset > closest) { closest = offset; after = items[i]; }
+                    if (offset < 0 && offset > closest) {
+                        closest = offset;
+                        after = items[i];
+                    }
                 }
-                if (after == null) { list.appendChild(dragEl); }
-                else { list.insertBefore(dragEl, after); }
+                if (after == null) {
+                    list.appendChild(dragEl);
+                } else {
+                    list.insertBefore(dragEl, after);
+                }
             });
         }
 
         [1, 2, 3, 4].forEach(function(tab) {
             var list = document.getElementById('category_order-' + tab);
-            if (list) { initSortable(list); }
+            if (list) {
+                initSortable(list);
+            }
             var form = document.getElementById('stream_categories_form-' + tab);
-            if (!form) { return; }
+            if (!form) {
+                return;
+            }
             form.addEventListener('submit', function(e) {
                 e.preventDefault();
-                var order = [].map.call(list.querySelectorAll('li'), function(li) { return { id: parseInt(li.getAttribute('data-id'), 10) }; });
+                var order = [].map.call(list.querySelectorAll('li'), function(li) {
+                    return {
+                        id: parseInt(li.getAttribute('data-id'), 10)
+                    };
+                });
                 document.getElementById('categories_input-' + tab).value = JSON.stringify(order);
                 var btn = form.querySelector('button[type="submit"]');
-                if (btn) { btn.disabled = true; }
-                fetch('post.php?action=stream_categories', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.text(); })
-                    .then(function(txt) {
-                        var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                        if (btn) { btn.disabled = false; }
-                        if (d && d.result !== false) { toast('Categories re-ordered.'); }
-                        else { toast(errText, 'error'); }
+                if (btn) {
+                    btn.disabled = true;
+                }
+                fetch('post.php?action=stream_categories', {
+                        method: 'POST',
+                        body: new FormData(form),
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
                     })
-                    .catch(function() { if (btn) { btn.disabled = false; } toast(errText, 'error'); });
+                    .then(function(r) {
+                        return r.text();
+                    })
+                    .then(function(txt) {
+                        var d;
+                        try {
+                            d = JSON.parse(txt);
+                        } catch (err) {
+                            d = {
+                                result: false
+                            };
+                        }
+                        if (btn) {
+                            btn.disabled = false;
+                        }
+                        if (d && d.result !== false) {
+                            toast('Categories re-ordered.');
+                        } else {
+                            toast(errText, 'error');
+                        }
+                    })
+                    .catch(function() {
+                        if (btn) {
+                            btn.disabled = false;
+                        }
+                        toast(errText, 'error');
+                    });
             });
         });
 
@@ -149,16 +202,30 @@ renderUnifiedLayoutFooter('admin');
             btn.addEventListener('click', function() {
                 var id = this.getAttribute('data-id');
                 confirmSwal('Delete this category? All attached streams will be uncategorised.').then(function(ok) {
-                    if (!ok) { return; }
-                    fetch('./api?action=category&sub=delete&category_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
+                    if (!ok) {
+                        return;
+                    }
+                    fetch('./api?action=category&sub=delete&category_id=' + encodeURIComponent(id), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
                         .then(function(d) {
-                            if (!d || d.result !== true) { throw new Error('fail'); }
+                            if (!d || d.result !== true) {
+                                throw new Error('fail');
+                            }
                             var row = document.querySelector('.category-' + id);
-                            if (row) { row.remove(); }
+                            if (row) {
+                                row.remove();
+                            }
                             toast('Category deleted.');
                         })
-                        .catch(function() { toast(errText, 'error'); });
+                        .catch(function() {
+                            toast(errText, 'error');
+                        });
                 });
             });
         });
@@ -168,11 +235,26 @@ renderUnifiedLayoutFooter('admin');
         if (imp) {
             imp.addEventListener('click', function() {
                 confirmSwal('Import TMDB genre categories?').then(function(ok) {
-                    if (!ok) { return; }
+                    if (!ok) {
+                        return;
+                    }
                     imp.disabled = true;
-                    fetch('post.php?action=import_tmdb_categories', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function() { toast('Categories will be added automatically.'); setTimeout(function() { location.reload(); }, 900); })
-                        .catch(function() { imp.disabled = false; toast(errText, 'error'); });
+                    fetch('post.php?action=import_tmdb_categories', {
+                            method: 'POST',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function() {
+                            toast('Categories will be added automatically.');
+                            setTimeout(function() {
+                                location.reload();
+                            }, 900);
+                        })
+                        .catch(function() {
+                            imp.disabled = false;
+                            toast(errText, 'error');
+                        });
                 });
             });
         }

@@ -120,11 +120,23 @@ renderUnifiedLayoutFooter('admin');
         var selected = {};
 
         var stars = function(rating) {
-            if (!rating) { return ''; }
-            var v = Math.round(rating) / 2, full = Math.floor(v), half = (v - full) > 0, empty = 5 - full - (half ? 1 : 0), h = '';
-            for (var i = 0; i < full; i++) { h += '<i class="icon-base ti tabler-star-filled text-warning"></i>'; }
-            if (half) { h += '<i class="icon-base ti tabler-star-half-filled text-warning"></i>'; }
-            for (var j = 0; j < empty; j++) { h += '<i class="icon-base ti tabler-star text-body-secondary"></i>'; }
+            if (!rating) {
+                return '';
+            }
+            var v = Math.round(rating) / 2,
+                full = Math.floor(v),
+                half = (v - full) > 0,
+                empty = 5 - full - (half ? 1 : 0),
+                h = '';
+            for (var i = 0; i < full; i++) {
+                h += '<i class="icon-base ti tabler-star-filled text-warning"></i>';
+            }
+            if (half) {
+                h += '<i class="icon-base ti tabler-star-half-filled text-warning"></i>';
+            }
+            for (var j = 0; j < empty; j++) {
+                h += '<i class="icon-base ti tabler-star text-body-secondary"></i>';
+            }
             return h;
         };
 
@@ -138,23 +150,52 @@ renderUnifiedLayoutFooter('admin');
         var table = jQuery('#series-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[2, 'desc']],
-            ajax: { url: './table', data: function(d) { d.id = 'series'; d.category = document.getElementById('filter-category').value; } },
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [2, 'desc']
+            ],
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'series';
+                    d.category = document.getElementById('filter-category').value;
+                }
+            },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
                 {
                     data: 'id',
                     orderable: false,
                     searchable: false,
                     className: 'text-center',
-                    render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; }
+                    render: function(d) {
+                        return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>';
+                    }
                 },
-                { data: 'id', className: 'text-center', render: function(d) { return canEpisodes ? '<a href="serie?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
+                {
+                    data: 'id',
+                    className: 'text-center',
+                    render: function(d) {
+                        return canEpisodes ? '<a href="serie?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                    }
+                },
                 {
                     data: 'cover',
                     orderable: false,
-                    render: function(d) { return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxh=58&maxw=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : ''; }
+                    render: function(d) {
+                        return d ? '<a href="resize?maxw=512&maxh=512&url=' + encodeURIComponent(d) + '" target="_blank"><img loading="lazy" src="resize?maxh=58&maxw=32&url=' + encodeURIComponent(d) + '" alt=""></a>' : '';
+                    }
                 },
                 {
                     data: 'title',
@@ -166,12 +207,45 @@ renderUnifiedLayoutFooter('admin');
                         return canEpisodes ? '<a href="serie?id=' + encodeURIComponent(row.id) + '" class="text-body">' + body + '</a>' : body;
                     }
                 },
-                { data: 'category' },
-                { data: 'latest_season', className: 'text-center', render: function(d) { return '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>'; } },
-                { data: 'episode_count', className: 'text-center', render: function(d, t, row) { var b = '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>'; return (d > 0 && canEpisodes) ? '<a href="episodes?series=' + encodeURIComponent(row.id) + '">' + b + '</a>' : b; } },
-                { data: 'tmdb', className: 'text-center', render: function(d) { return d ? '<i class="icon-base ti tabler-circle-check text-success"></i>' : '<i class="icon-base ti tabler-circle-minus text-body-secondary"></i>'; } },
-                { data: 'release_date', className: 'text-nowrap', render: function(d) { return esc(d || ''); } },
-                { data: 'last_modified', className: 'text-nowrap', render: function(d) { return d ? esc(fmtDate(d)) : lang.never; } },
+                {
+                    data: 'category'
+                },
+                {
+                    data: 'latest_season',
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>';
+                    }
+                },
+                {
+                    data: 'episode_count',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var b = '<span class="badge bg-label-' + (d > 0 ? 'info' : 'secondary') + '">' + (d || 0) + '</span>';
+                        return (d > 0 && canEpisodes) ? '<a href="episodes?series=' + encodeURIComponent(row.id) + '">' + b + '</a>' : b;
+                    }
+                },
+                {
+                    data: 'tmdb',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ? '<i class="icon-base ti tabler-circle-check text-success"></i>' : '<i class="icon-base ti tabler-circle-minus text-body-secondary"></i>';
+                    }
+                },
+                {
+                    data: 'release_date',
+                    className: 'text-nowrap',
+                    render: function(d) {
+                        return esc(d || '');
+                    }
+                },
+                {
+                    data: 'last_modified',
+                    className: 'text-nowrap',
+                    render: function(d) {
+                        return d ? esc(fmtDate(d)) : lang.never;
+                    }
+                },
                 {
                     data: null,
                     orderable: false,
@@ -179,26 +253,41 @@ renderUnifiedLayoutFooter('admin');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (canAddEpisode) { items += '<a class="dropdown-item" href="episode?sid=' + encodeURIComponent(row.id) + '">' + esc(lang.add) + '</a>'; }
-                        if (canEpisodes) { items += '<a class="dropdown-item" href="episodes?series=' + encodeURIComponent(row.id) + '">' + esc(lang.view) + '</a>'; }
+                        if (canAddEpisode) {
+                            items += '<a class="dropdown-item" href="episode?sid=' + encodeURIComponent(row.id) + '">' + esc(lang.add) + '</a>';
+                        }
+                        if (canEpisodes) {
+                            items += '<a class="dropdown-item" href="episodes?series=' + encodeURIComponent(row.id) + '">' + esc(lang.view) + '</a>';
+                        }
                         if (canEditSeries) {
                             items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.edit) + '</a>';
                             items += '<a class="dropdown-item text-danger js-del" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.del) + '</a>';
                         }
-                        if (!items) { return ''; }
+                        if (!items) {
+                            return '';
+                        }
                         return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
-        document.getElementById('filter-category').addEventListener('change', function() { table.ajax.reload(); });
+        document.getElementById('filter-category').addEventListener('change', function() {
+            table.ajax.reload();
+        });
 
         // Bulk selection.
         jQuery('#series-table tbody').on('change', '.row-check', function() {
             var id = this.getAttribute('data-id');
-            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            if (this.checked) {
+                selected[id] = true;
+            } else {
+                delete selected[id];
+            }
             updateBulk();
         });
         document.getElementById('check-all').addEventListener('change', function() {
@@ -206,22 +295,47 @@ renderUnifiedLayoutFooter('admin');
             jQuery('#series-table tbody .row-check').each(function() {
                 this.checked = on;
                 var id = this.getAttribute('data-id');
-                if (on) { selected[id] = true; } else { delete selected[id]; }
+                if (on) {
+                    selected[id] = true;
+                } else {
+                    delete selected[id];
+                }
             });
             updateBulk();
         });
-        table.on('draw', function() { document.getElementById('check-all').checked = false; });
+        table.on('draw', function() {
+            document.getElementById('check-all').checked = false;
+        });
         var bulkDel = document.getElementById('bulk-delete');
         if (bulkDel) {
             bulkDel.addEventListener('click', function() {
                 var ids = Object.keys(selected);
-                if (!ids.length) { return; }
+                if (!ids.length) {
+                    return;
+                }
                 window.xcConfirm(lang.del + ' (' + ids.length + ')?').then(function(ok) {
-                    if (!ok) { return; }
-                    fetch('./api?action=multi&type=series&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                        .then(function(r) { return r.json(); })
-                        .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                        .catch(function() { alert(lang.error); });
+                    if (!ok) {
+                        return;
+                    }
+                    fetch('./api?action=multi&type=series&sub=delete&ids=' + encodeURIComponent(JSON.stringify(ids)), {
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(function(r) {
+                            return r.json();
+                        })
+                        .then(function(dt) {
+                            if (!dt || dt.result !== true) {
+                                throw new Error('fail');
+                            }
+                            selected = {};
+                            updateBulk();
+                            table.ajax.reload(null, false);
+                        })
+                        .catch(function() {
+                            alert(lang.error);
+                        });
                 });
             });
         }
@@ -230,11 +344,26 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#series-table tbody').on('click', '.js-del', function() {
             var id = this.getAttribute('data-id');
             window.xcConfirm(lang.del + '?').then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=series&sub=delete&series_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(dt) { if (!dt || dt.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=series&sub=delete&series_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(dt) {
+                        if (!dt || dt.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.ajax.reload(null, false);
+                    })
+                    .catch(function() {
+                        alert(lang.error);
+                    });
             });
         });
 

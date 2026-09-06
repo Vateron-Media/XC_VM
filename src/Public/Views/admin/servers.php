@@ -236,7 +236,9 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
 
@@ -244,23 +246,51 @@ renderUnifiedLayoutFooter('admin');
 
         function confirmSwal(text) {
             if (window.Swal) {
-                return Swal.fire({ text: text, icon: 'warning', showCancelButton: true, confirmButtonText: 'OK', customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false }).then(function(r) { return r.isConfirmed; });
+                return Swal.fire({
+                    text: text,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                        cancelButton: 'btn btn-label-secondary ms-2'
+                    },
+                    buttonsStyling: false
+                }).then(function(r) {
+                    return r.isConfirmed;
+                });
             }
             return Promise.resolve(window.confirm(text));
         }
 
         function getJSON(url) {
-            return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json(); });
+            return fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function(r) {
+                return r.json();
+            });
         }
 
         var table = $('#servers-table').DataTable({
-            order: [[canEdit ? 1 : 0, 'asc']],
-            columnDefs: [{ orderable: false, targets: canEdit ? [0, 12] : [11] }],
-            layout: { topStart: 'pageLength', topEnd: 'search' },
+            order: [
+                [canEdit ? 1 : 0, 'asc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: canEdit ? [0, 12] : [11]
+            }],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            },
             drawCallback: function() {
                 if (window.bootstrap) {
                     document.querySelectorAll('#servers-table [data-bs-toggle="tooltip"]').forEach(function(el) {
-                        if (!el._tt) { el._tt = new bootstrap.Tooltip(el); }
+                        if (!el._tt) {
+                            el._tt = new bootstrap.Tooltip(el);
+                        }
                     });
                 }
             }
@@ -282,41 +312,73 @@ renderUnifiedLayoutFooter('admin');
 
         function runApi(id, sub) {
             getJSON('./api?action=server&sub=' + encodeURIComponent(sub) + '&server_id=' + encodeURIComponent(id)).then(function(d) {
-                if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                if (!d || d.result !== true) {
+                    toast(errText, 'error');
+                    return;
+                }
                 if (sub === 'delete') {
                     table.row($('#server-' + id)).remove().draw(false);
                     toast('Server deleted.');
                 } else if (sub === 'enable' || sub === 'disable' || sub === 'enable_proxy' || sub === 'disable_proxy') {
-                    setTimeout(function() { location.reload(); }, 600);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 600);
                     toast('Done.');
                 } else {
                     toast('Done.');
                 }
-            }).catch(function() { toast(errText, 'error'); });
+            }).catch(function() {
+                toast(errText, 'error');
+            });
         }
 
         $('#servers-table tbody').on('click', '.js-api', function() {
-            var id = this.getAttribute('data-id'), sub = this.getAttribute('data-sub');
+            var id = this.getAttribute('data-id'),
+                sub = this.getAttribute('data-sub');
             var msg = confirmMsgs.hasOwnProperty(sub) ? confirmMsgs[sub] : null;
-            if (!msg) { runApi(id, sub); return; }
-            confirmSwal(msg).then(function(ok) { if (ok) { runApi(id, sub); } });
+            if (!msg) {
+                runApi(id, sub);
+                return;
+            }
+            confirmSwal(msg).then(function(ok) {
+                if (ok) {
+                    runApi(id, sub);
+                }
+            });
         });
 
         // --- rollback -------------------------------------------------------------
         $('#servers-table tbody').on('click', '.js-rollback', function() {
-            var id = this.getAttribute('data-id'), version = this.getAttribute('data-version') || '';
+            var id = this.getAttribute('data-id'),
+                version = this.getAttribute('data-version') || '';
             getJSON('./api?action=rollback_versions&version=' + encodeURIComponent(version)).then(function(d) {
-                if (!d || !d.result || !d.versions || !d.versions.length) { toast('No earlier versions available for this server.', 'info'); return; }
+                if (!d || !d.result || !d.versions || !d.versions.length) {
+                    toast('No earlier versions available for this server.', 'info');
+                    return;
+                }
                 var opts = {};
-                d.versions.forEach(function(v) { opts[v.version] = 'v' + v.version + (v.beta ? ' (beta)' : ''); });
-                if (!window.Swal) { return; }
+                d.versions.forEach(function(v) {
+                    opts[v.version] = 'v' + v.version + (v.beta ? ' (beta)' : '');
+                });
+                if (!window.Swal) {
+                    return;
+                }
                 Swal.fire({
                     title: 'Rollback server',
                     html: 'Downgrading does <b>not</b> undo database migrations — use only as a recovery step. The server restarts during rollback.',
-                    input: 'select', inputOptions: opts, showCancelButton: true, confirmButtonText: 'Rollback',
-                    customClass: { confirmButton: 'btn btn-primary', cancelButton: 'btn btn-label-secondary ms-2' }, buttonsStyling: false
+                    input: 'select',
+                    inputOptions: opts,
+                    showCancelButton: true,
+                    confirmButtonText: 'Rollback',
+                    customClass: {
+                        confirmButton: 'btn btn-primary',
+                        cancelButton: 'btn btn-label-secondary ms-2'
+                    },
+                    buttonsStyling: false
                 }).then(function(r) {
-                    if (!r.isConfirmed || !r.value) { return; }
+                    if (!r.isConfirmed || !r.value) {
+                        return;
+                    }
                     getJSON('./api?action=server&sub=rollback&server_id=' + encodeURIComponent(id) + '&version=' + encodeURIComponent(r.value)).then(function(res) {
                         toast(res && res.result === true ? 'Rollback to v' + r.value + ' started…' : 'Rollback request failed.', res && res.result === true ? 'success' : 'error');
                     });
@@ -330,56 +392,121 @@ renderUnifiedLayoutFooter('admin');
             var toolsId = null;
             $('#servers-table tbody').on('click', '.js-tools', function() {
                 toolsId = this.getAttribute('data-id');
-                if (toolsModal) { toolsModal.show(); }
+                if (toolsModal) {
+                    toolsModal.show();
+                }
             });
             $('#serverToolsModal').on('click', '.js-tool', function() {
                 var tool = this.getAttribute('data-tool');
-                if (toolsModal) { toolsModal.hide(); }
-                if (!toolsId) { return; }
+                if (toolsModal) {
+                    toolsModal.hide();
+                }
+                if (!toolsId) {
+                    return;
+                }
                 var url;
-                if (tool === 'reinstall') { window.location.href = './server_install?id=' + toolsId; return; }
-                if (tool === 'restart_services') { url = './api?action=restart_services&server_id=' + toolsId; }
-                else if (tool === 'reboot_server') { url = './api?action=reboot_server&server_id=' + toolsId; }
-                else if (tool === 'update_binaries') { url = './api?action=update_binaries&server_id=' + toolsId; }
-                else { url = './api?action=server&sub=update&server_id=' + toolsId; }
-                getJSON(url).then(function(d) { toast(d && d.result === true ? 'Task started in the background…' : errText, d && d.result === true ? 'success' : 'error'); });
+                if (tool === 'reinstall') {
+                    window.location.href = './server_install?id=' + toolsId;
+                    return;
+                }
+                if (tool === 'restart_services') {
+                    url = './api?action=restart_services&server_id=' + toolsId;
+                } else if (tool === 'reboot_server') {
+                    url = './api?action=reboot_server&server_id=' + toolsId;
+                } else if (tool === 'update_binaries') {
+                    url = './api?action=update_binaries&server_id=' + toolsId;
+                } else {
+                    url = './api?action=server&sub=update&server_id=' + toolsId;
+                }
+                getJSON(url).then(function(d) {
+                    toast(d && d.result === true ? 'Task started in the background…' : errText, d && d.result === true ? 'success' : 'error');
+                });
             });
 
             // --- global bulk operations ------------------------------------------
-            $('#op-update-all').on('click', function() { confirmSwal('Update ALL running servers?').then(function(ok) { if (ok) { getJSON('./api?action=update_all_servers').then(function() { toast('Servers are being updated in the background…'); }); } }); });
-            $('#op-restart-services').on('click', function() { confirmSwal('Restart services on ALL running servers?').then(function(ok) { if (ok) { getJSON('./api?action=restart_all_services').then(function() { toast('Services will be restarted shortly…'); }); } }); });
-            $('#op-update-binaries').on('click', function() { confirmSwal('Update binaries on ALL running servers?').then(function(ok) { if (ok) { getJSON('./api?action=update_all_binaries').then(function() { toast('Binaries are being updated in the background…'); }); } }); });
+            $('#op-update-all').on('click', function() {
+                confirmSwal('Update ALL running servers?').then(function(ok) {
+                    if (ok) {
+                        getJSON('./api?action=update_all_servers').then(function() {
+                            toast('Servers are being updated in the background…');
+                        });
+                    }
+                });
+            });
+            $('#op-restart-services').on('click', function() {
+                confirmSwal('Restart services on ALL running servers?').then(function(ok) {
+                    if (ok) {
+                        getJSON('./api?action=restart_all_services').then(function() {
+                            toast('Services will be restarted shortly…');
+                        });
+                    }
+                });
+            });
+            $('#op-update-binaries').on('click', function() {
+                confirmSwal('Update binaries on ALL running servers?').then(function(ok) {
+                    if (ok) {
+                        getJSON('./api?action=update_all_binaries').then(function() {
+                            toast('Binaries are being updated in the background…');
+                        });
+                    }
+                });
+            });
 
             // --- multi-select bulk actions ---------------------------------------
             function selectedIds() {
-                return $('.row-check:checked').map(function() { return parseInt(this.getAttribute('data-id'), 10); }).get();
+                return $('.row-check:checked').map(function() {
+                    return parseInt(this.getAttribute('data-id'), 10);
+                }).get();
             }
+
             function syncBar() {
                 var ids = selectedIds();
                 $('#bulk-count').text(ids.length + ' selected');
                 $('#bulk-bar').toggleClass('d-none', ids.length === 0).toggleClass('d-flex', ids.length > 0);
             }
-            $('#check-all').on('change', function() { $('.row-check').prop('checked', this.checked); syncBar(); });
+            $('#check-all').on('change', function() {
+                $('.row-check').prop('checked', this.checked);
+                syncBar();
+            });
             $('#servers-table tbody').on('change', '.row-check', syncBar);
-            $('#bulk-clear').on('click', function() { $('.row-check, #check-all').prop('checked', false); syncBar(); });
+            $('#bulk-clear').on('click', function() {
+                $('.row-check, #check-all').prop('checked', false);
+                syncBar();
+            });
 
             var bulkConfirm = {
-                'delete': 'Delete the selected servers?', 'purge': 'Kill all connections on the selected servers?',
-                'start': 'Start all streams on the selected servers?', 'stop': 'Stop all streams on the selected servers?',
-                'restart': 'Restart all streams on the selected servers?', 'enable': 'Enable the selected servers?',
-                'disable': 'Disable the selected servers?', 'enable_proxy': 'Enable proxy on the selected servers?',
+                'delete': 'Delete the selected servers?',
+                'purge': 'Kill all connections on the selected servers?',
+                'start': 'Start all streams on the selected servers?',
+                'stop': 'Stop all streams on the selected servers?',
+                'restart': 'Restart all streams on the selected servers?',
+                'enable': 'Enable the selected servers?',
+                'disable': 'Disable the selected servers?',
+                'enable_proxy': 'Enable proxy on the selected servers?',
                 'disable_proxy': 'Disable proxy on the selected servers?'
             };
             $('#bulk-bar').on('click', '[data-bulk]', function() {
-                var sub = this.getAttribute('data-bulk'), ids = selectedIds();
-                if (!ids.length) { return; }
+                var sub = this.getAttribute('data-bulk'),
+                    ids = selectedIds();
+                if (!ids.length) {
+                    return;
+                }
                 confirmSwal((bulkConfirm[sub] || sub) + ' (' + ids.length + ')').then(function(ok) {
-                    if (!ok) { return; }
+                    if (!ok) {
+                        return;
+                    }
                     getJSON('./api?action=multi&type=server&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids))).then(function(d) {
-                        if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                        if (!d || d.result !== true) {
+                            toast(errText, 'error');
+                            return;
+                        }
                         toast('Done.');
-                        setTimeout(function() { location.reload(); }, 600);
-                    }).catch(function() { toast(errText, 'error'); });
+                        setTimeout(function() {
+                            location.reload();
+                        }, 600);
+                    }).catch(function() {
+                        toast(errText, 'error');
+                    });
                 });
             });
         }

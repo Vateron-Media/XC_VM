@@ -26,9 +26,30 @@ $xmTopbarItems = Topbar::items($xmTopbarPage, [
 if (!empty($xmTopbarItems)):
     // Table/list pages also get clear-filters + refresh (mirrors legacy topbar).
     $xmTopbarTablePages = [
-        'streams', 'created_channels', 'movies', 'series', 'users', 'mags', 'lines', 'radios', 'enigmas', 'ondemand', 'episodes',
+        'streams',
+        'created_channels',
+        'movies',
+        'series',
+        'users',
+        'mags',
+        'lines',
+        'radios',
+        'enigmas',
+        'ondemand',
+        'episodes',
         // Log / list tables: give them the same instant refresh + clear-filters.
-        'client_logs', 'credit_logs', 'user_logs', 'line_activity', 'live_connections', 'stream_errors', 'login_logs', 'mysql_syslog', 'mag_events', 'panel_logs', 'asns', 'backups',
+        'client_logs',
+        'credit_logs',
+        'user_logs',
+        'line_activity',
+        'live_connections',
+        'stream_errors',
+        'login_logs',
+        'mysql_syslog',
+        'mag_events',
+        'panel_logs',
+        'asns',
+        'backups',
     ];
     $xmTopbarTools = in_array($xmTopbarPage, $xmTopbarTablePages, true);
 

@@ -144,11 +144,17 @@ renderUnifiedLayoutFooter('admin');
             d.textContent = (s == null ? '' : String(s));
             return d.innerHTML;
         };
-        var sq = function(cls, title) { return '<i class="icon-base ti tabler-square-filled ' + cls + '" title="' + esc(title || '') + '"></i>'; };
+        var sq = function(cls, title) {
+            return '<i class="icon-base ti tabler-square-filled ' + cls + '" title="' + esc(title || '') + '"></i>';
+        };
         var fmtDur = function(sec) {
             sec = Math.max(0, sec);
-            if (sec >= 86400) { return Math.floor(sec / 86400) + 'd ' + (Math.floor(sec / 3600) % 24) + 'h'; }
-            if (sec >= 3600) { return Math.floor(sec / 3600) + 'h ' + (Math.floor(sec / 60) % 60) + 'm'; }
+            if (sec >= 86400) {
+                return Math.floor(sec / 86400) + 'd ' + (Math.floor(sec / 3600) % 24) + 'h';
+            }
+            if (sec >= 3600) {
+                return Math.floor(sec / 3600) + 'h ' + (Math.floor(sec / 60) % 60) + 'm';
+            }
             return (Math.floor(sec / 60) % 60) + 'm ' + (sec % 60) + 's';
         };
         var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>,
@@ -178,42 +184,123 @@ renderUnifiedLayoutFooter('admin');
         var updateBulk = function() {
             var n = Object.keys(selected).length;
             var bar = document.getElementById('bulk-bar');
-            if (!bar) { return; }
+            if (!bar) {
+                return;
+            }
             document.getElementById('bulk-count').textContent = n + ' ' + lang.selected;
             bar.classList.toggle('d-none', n === 0);
             bar.classList.toggle('d-flex', n > 0);
         };
 
         var statusCell = function(row) {
-            if (!row.line_id) { return sq('text-danger', 'Damaged'); }
-            if (!row.admin_enabled) { return sq('text-danger', lang.statusBanned); }
-            if (!row.enabled) { return sq('text-body-secondary', lang.statusDisabled); }
-            if (row.exp_date && row.exp_date < (Date.now() / 1000)) { return sq('text-warning', lang.statusExpired); }
+            if (!row.line_id) {
+                return sq('text-danger', 'Damaged');
+            }
+            if (!row.admin_enabled) {
+                return sq('text-danger', lang.statusBanned);
+            }
+            if (!row.enabled) {
+                return sq('text-body-secondary', lang.statusDisabled);
+            }
+            if (row.exp_date && row.exp_date < (Date.now() / 1000)) {
+                return sq('text-warning', lang.statusExpired);
+            }
             return sq('text-success', lang.statusActive);
         };
 
         var table = jQuery('#mags-table').DataTable({
             processing: true,
             serverSide: true,
-            responsive: { details: { type: 'column', target: 0 } },
-            order: [[2, 'desc']],
-            ajax: { url: './table', data: function(d) { d.id = 'mags'; d.reseller = jQuery('#filter-reseller').val() || ''; d.filter = document.getElementById('filter-status').value; } },
-            columns: [
-                { data: null, defaultContent: '', orderable: false, searchable: false, className: 'control', responsivePriority: 2 },
-                { data: 'mag_id', orderable: false, searchable: false, className: 'text-center', render: function(d) { return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>'; } },
-                { data: 'mag_id', className: 'text-center', render: function(d) { return '<a href="mag?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'username', responsivePriority: 1 },
-                { data: 'mac', className: 'text-nowrap', render: function(d, t, row) { return '<a href="mag?id=' + encodeURIComponent(row.mag_id) + '" class="text-body">' + esc(d) + '</a>'; } },
-                { data: 'stb_type', className: 'text-center' },
-                { data: 'owner_name', render: function(d, t, row) { return d ? (row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d)) : ''; } },
-                { data: null, className: 'text-center', render: function(d, t, row) { return statusCell(row); } },
-                { data: 'active_connections', className: 'text-center', render: function(d) { return d > 0 ? sq('text-success') : sq('text-warning'); } },
-                { data: 'is_trial', className: 'text-center', render: function(d) { return d ? sq('text-warning') : sq('text-body-secondary'); } },
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [2, 'desc']
+            ],
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'mags';
+                    d.reseller = jQuery('#filter-reseller').val() || '';
+                    d.filter = document.getElementById('filter-status').value;
+                }
+            },
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'mag_id',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<input type="checkbox" class="form-check-input row-check" data-id="' + esc(d) + '"' + (selected[d] ? ' checked' : '') + '>';
+                    }
+                },
+                {
+                    data: 'mag_id',
+                    className: 'text-center',
+                    render: function(d) {
+                        return '<a href="mag?id=' + encodeURIComponent(d) + '" class="text-body">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'username',
+                    responsivePriority: 1
+                },
+                {
+                    data: 'mac',
+                    className: 'text-nowrap',
+                    render: function(d, t, row) {
+                        return '<a href="mag?id=' + encodeURIComponent(row.mag_id) + '" class="text-body">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'stb_type',
+                    className: 'text-center'
+                },
+                {
+                    data: 'owner_name',
+                    render: function(d, t, row) {
+                        return d ? (row.member_id > 0 ? '<a href="user?id=' + encodeURIComponent(row.member_id) + '" class="text-body">' + esc(d) + '</a>' : esc(d)) : '';
+                    }
+                },
+                {
+                    data: null,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return statusCell(row);
+                    }
+                },
+                {
+                    data: 'active_connections',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d > 0 ? sq('text-success') : sq('text-warning');
+                    }
+                },
+                {
+                    data: 'is_trial',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ? sq('text-warning') : sq('text-body-secondary');
+                    }
+                },
                 {
                     data: 'exp_date',
                     className: 'text-nowrap text-center',
                     render: function(d) {
-                        if (!d) { return '∞'; }
+                        if (!d) {
+                            return '∞';
+                        }
                         var s = new Date(d * 1000).toLocaleDateString();
                         return d < (Date.now() / 1000) ? '<span class="text-danger">' + esc(s) + '</span>' : esc(s);
                     }
@@ -236,8 +323,12 @@ renderUnifiedLayoutFooter('admin');
                     className: 'text-center',
                     render: function(d, t, row) {
                         var items = '';
-                        if (canEvents) { items += '<a class="dropdown-item js-event" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-mac="' + esc(row.mac) + '">' + esc(lang.event) + '</a>'; }
-                        if (canConvert) { items += '<a class="dropdown-item js-api" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-sub="convert">' + esc(lang.convert) + '</a>'; }
+                        if (canEvents) {
+                            items += '<a class="dropdown-item js-event" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-mac="' + esc(row.mac) + '">' + esc(lang.event) + '</a>';
+                        }
+                        if (canConvert) {
+                            items += '<a class="dropdown-item js-api" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-sub="convert">' + esc(lang.convert) + '</a>';
+                        }
                         if (canEdit) {
                             items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '">' + esc(lang.edit) + '</a>';
                             items += row.admin_enabled ?
@@ -248,25 +339,52 @@ renderUnifiedLayoutFooter('admin');
                                 '<a class="dropdown-item js-api" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-sub="enable">' + esc(lang.enable) + '</a>';
                             items += '<a class="dropdown-item text-danger js-api" href="javascript:void(0);" data-id="' + esc(row.mag_id) + '" data-sub="delete">' + esc(lang.del) + '</a>';
                         }
-                        if (!items) { return ''; }
+                        if (!items) {
+                            return '';
+                        }
                         return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
                     }
                 }
             ],
-            layout: { topStart: 'pageLength', topEnd: 'search' }
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
         });
 
-        document.getElementById('filter-status').addEventListener('change', function() { table.ajax.reload(); });
+        document.getElementById('filter-status').addEventListener('change', function() {
+            table.ajax.reload();
+        });
         if (jQuery.fn.select2) {
             jQuery('#filter-reseller').select2({
-                width: '100%', allowClear: true, placeholder: <?= json_encode($language::get('reseller')); ?>,
+                width: '100%',
+                allowClear: true,
+                placeholder: <?= json_encode($language::get('reseller')); ?>,
                 ajax: {
-                    url: './api', dataType: 'json', delay: 250,
-                    data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
-                    processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
+                    url: './api',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            action: 'reguserlist',
+                            page: params.page
+                        };
+                    },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data.items,
+                            pagination: {
+                                more: (params.page * 100) < data.total_count
+                            }
+                        };
+                    },
                     cache: true
                 }
-            }).on('change', function() { table.ajax.reload(); });
+            }).on('change', function() {
+                table.ajax.reload();
+            });
         }
 
         // Single row actions.
@@ -274,37 +392,90 @@ renderUnifiedLayoutFooter('admin');
             var id = this.getAttribute('data-id');
             var sub = this.getAttribute('data-sub');
             var _do = function() {
-                fetch('./api?action=mag&sub=' + encodeURIComponent(sub) + '&mag_id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                fetch('./api?action=mag&sub=' + encodeURIComponent(sub) + '&mag_id=' + encodeURIComponent(id), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        table.ajax.reload(null, false);
+                    })
+                    .catch(function() {
+                        alert(lang.error);
+                    });
             };
-            if (sub === 'delete') { window.xcConfirm(lang.del + '?').then(function(ok) { if (ok) { _do(); } }); }
-            else { _do(); }
+            if (sub === 'delete') {
+                window.xcConfirm(lang.del + '?').then(function(ok) {
+                    if (ok) {
+                        _do();
+                    }
+                });
+            } else {
+                _do();
+            }
         });
 
         // Bulk.
         jQuery('#mags-table tbody').on('change', '.row-check', function() {
             var id = this.getAttribute('data-id');
-            if (this.checked) { selected[id] = true; } else { delete selected[id]; }
+            if (this.checked) {
+                selected[id] = true;
+            } else {
+                delete selected[id];
+            }
             updateBulk();
         });
         document.getElementById('check-all').addEventListener('change', function() {
             var on = this.checked;
-            jQuery('#mags-table tbody .row-check').each(function() { this.checked = on; var id = this.getAttribute('data-id'); if (on) { selected[id] = true; } else { delete selected[id]; } });
+            jQuery('#mags-table tbody .row-check').each(function() {
+                this.checked = on;
+                var id = this.getAttribute('data-id');
+                if (on) {
+                    selected[id] = true;
+                } else {
+                    delete selected[id];
+                }
+            });
             updateBulk();
         });
-        table.on('draw', function() { document.getElementById('check-all').checked = false; });
+        table.on('draw', function() {
+            document.getElementById('check-all').checked = false;
+        });
         jQuery('.js-bulk').on('click', function() {
             var sub = this.getAttribute('data-sub');
             var ids = Object.keys(selected);
-            if (!ids.length) { return; }
+            if (!ids.length) {
+                return;
+            }
             window.xcConfirm((sub === 'delete' ? lang.del : sub) + ' (' + ids.length + ')?').then(function(ok) {
-                if (!ok) { return; }
-                fetch('./api?action=multi&type=mag&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) { if (!d || d.result !== true) { throw new Error('fail'); } selected = {}; updateBulk(); table.ajax.reload(null, false); })
-                    .catch(function() { alert(lang.error); });
+                if (!ok) {
+                    return;
+                }
+                fetch('./api?action=multi&type=mag&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids)), {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(function(r) {
+                        return r.json();
+                    })
+                    .then(function(d) {
+                        if (!d || d.result !== true) {
+                            throw new Error('fail');
+                        }
+                        selected = {};
+                        updateBulk();
+                        table.ajax.reload(null, false);
+                    })
+                    .catch(function() {
+                        alert(lang.error);
+                    });
             });
         });
 
@@ -314,7 +485,10 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('edit-frame').src = 'mag?id=' + encodeURIComponent(this.getAttribute('data-id')) + '&modal=1';
             bootstrap.Modal.getOrCreateInstance(editModal).show();
         });
-        editModal.addEventListener('hidden.bs.modal', function() { document.getElementById('edit-frame').src = 'about:blank'; table.ajax.reload(null, false); });
+        editModal.addEventListener('hidden.bs.modal', function() {
+            document.getElementById('edit-frame').src = 'about:blank';
+            table.ajax.reload(null, false);
+        });
 
         // MAG event modal.
         var eventModal = document.getElementById('eventModal');
@@ -334,16 +508,33 @@ renderUnifiedLayoutFooter('admin');
         });
         document.getElementById('event-submit').addEventListener('click', function() {
             var type = document.getElementById('event-type').value;
-            var payload = { id: eventId, type: type };
-            if (type === 'send_msg') { payload.message = document.getElementById('event-message').value; }
-            if (type === 'play_channel') { payload.channel = document.getElementById('event-channel').value; }
-            fetch('./api?action=send_event&data=' + encodeURIComponent(JSON.stringify(payload)), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.json(); })
+            var payload = {
+                id: eventId,
+                type: type
+            };
+            if (type === 'send_msg') {
+                payload.message = document.getElementById('event-message').value;
+            }
+            if (type === 'play_channel') {
+                payload.channel = document.getElementById('event-channel').value;
+            }
+            fetch('./api?action=send_event&data=' + encodeURIComponent(JSON.stringify(payload)), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
                 .then(function(d) {
                     bootstrap.Modal.getOrCreateInstance(eventModal).hide();
-                    if (!d || d.result !== true) { throw new Error('fail'); }
+                    if (!d || d.result !== true) {
+                        throw new Error('fail');
+                    }
                 })
-                .catch(function() { alert(lang.error); });
+                .catch(function() {
+                    alert(lang.error);
+                });
         });
     })();
 </script>

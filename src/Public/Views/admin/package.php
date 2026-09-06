@@ -138,9 +138,9 @@ $rPackageOutputs = ($rIsEdit && !empty($rPackage['output_formats'])) ? (json_dec
                             <label class="form-label" for="force_server_id"><?= $language::get('forced_connection'); ?></label>
                             <select name="force_server_id" id="force_server_id" class="form-select">
                                 <option value="0" <?= (!$rIsEdit || (int) $rPackage['force_server_id'] === 0) ? 'selected' : ''; ?>><?= $language::get('disabled'); ?></option>
-                                    <?php foreach ($rServers as $rServer): ?>
-                                <option value="<?= htmlspecialchars((string) $rServer['id'], ENT_QUOTES); ?>" <?= ($rIsEdit && (int) $rPackage['force_server_id'] === (int) $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
-                            <?php endforeach; ?>
+                                <?php foreach ($rServers as $rServer): ?>
+                                    <option value="<?= htmlspecialchars((string) $rServer['id'], ENT_QUOTES); ?>" <?= ($rIsEdit && (int) $rPackage['force_server_id'] === (int) $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-6">
@@ -274,10 +274,14 @@ renderUnifiedLayoutFooter('admin');
             isOfficial = document.getElementById('is_official');
         if (isTrial && isOfficial) {
             isTrial.addEventListener('change', function() {
-                if (this.checked) { isOfficial.checked = false; }
+                if (this.checked) {
+                    isOfficial.checked = false;
+                }
             });
             isOfficial.addEventListener('change', function() {
-                if (this.checked) { isTrial.checked = false; }
+                if (this.checked) {
+                    isTrial.checked = false;
+                }
             });
         }
 

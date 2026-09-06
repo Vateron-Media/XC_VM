@@ -313,11 +313,24 @@ renderUnifiedLayoutFooter('admin');
                 width: '100%',
                 dropdownParent: $('#member_id').closest('.tab-pane'),
                 ajax: {
-                    url: './api', dataType: 'json', cache: true,
-                    data: function(params) { return { search: params.term || '', action: 'reguserlist', page: params.page }; },
+                    url: './api',
+                    dataType: 'json',
+                    cache: true,
+                    data: function(params) {
+                        return {
+                            search: params.term || '',
+                            action: 'reguserlist',
+                            page: params.page
+                        };
+                    },
                     processResults: function(data, params) {
                         params.page = params.page || 1;
-                        return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };
+                        return {
+                            results: data.items,
+                            pagination: {
+                                more: (params.page * 100) < data.total_count
+                            }
+                        };
                     }
                 }
             });
@@ -327,18 +340,33 @@ renderUnifiedLayoutFooter('admin');
                 placeholder: <?= json_encode($language::get('search_user')); ?>,
                 dropdownParent: $('#pair_id').closest('.tab-pane'),
                 ajax: {
-                    url: './api', dataType: 'json', cache: true,
-                    data: function(params) { return { search: params.term, action: 'userlist', page: params.page }; },
+                    url: './api',
+                    dataType: 'json',
+                    cache: true,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            action: 'userlist',
+                            page: params.page
+                        };
+                    },
                     processResults: function(data, params) {
                         params.page = params.page || 1;
-                        return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };
+                        return {
+                            results: data.items,
+                            pagination: {
+                                more: (params.page * 100) < data.total_count
+                            }
+                        };
                     }
                 }
             });
         }
 
         var pairEl = document.getElementById('pair_id');
-        var isPaired = function() { return !!(pairEl && pairEl.value); };
+        var isPaired = function() {
+            return !!(pairEl && pairEl.value);
+        };
 
         // Pairing a user takes over the owner/expiry/advanced/bouquet inputs, so hide
         // and disable them while paired (legacy evaluatePair()).
@@ -352,7 +380,9 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('bouquet_warning').classList.toggle('d-none', !paired);
             pairedFields.forEach(function(id) {
                 var el = document.getElementById(id);
-                if (el) { el.disabled = paired; }
+                if (el) {
+                    el.disabled = paired;
+                }
             });
         };
         if ($ && pairEl) {
@@ -363,10 +393,19 @@ renderUnifiedLayoutFooter('admin');
 
         // Unpair / clear-owner / clear-isp buttons.
         document.getElementById('unpair-user').addEventListener('click', function() {
-            if ($) { $('#pair_id').val(null).trigger('change'); } else { pairEl.value = ''; applyPair(); }
+            if ($) {
+                $('#pair_id').val(null).trigger('change');
+            } else {
+                pairEl.value = '';
+                applyPair();
+            }
         });
         document.getElementById('clear-owner').addEventListener('click', function() {
-            if ($) { $('#member_id').val('').trigger('change'); } else { document.getElementById('member_id').value = ''; }
+            if ($) {
+                $('#member_id').val('').trigger('change');
+            } else {
+                document.getElementById('member_id').value = '';
+            }
         });
         document.getElementById('clear-isp').addEventListener('click', function() {
             document.getElementById('isp_clear').value = '';
@@ -378,7 +417,9 @@ renderUnifiedLayoutFooter('admin');
             macEl.addEventListener('input', function(e) {
                 var re = /([a-f0-9]{2})([a-f0-9]{2})/i,
                     s = e.target.value.replace(/[^a-f0-9]/ig, '');
-                while (re.test(s)) { s = s.replace(re, '$1:$2'); }
+                while (re.test(s)) {
+                    s = s.replace(re, '$1:$2');
+                }
                 e.target.value = s.slice(0, 17).toUpperCase();
             });
         }
@@ -387,7 +428,9 @@ renderUnifiedLayoutFooter('admin');
         var clearDev = document.getElementById('clear-device');
         if (clearDev) {
             clearDev.addEventListener('click', function() {
-                document.querySelectorAll('#tab-device input:not(.sticky)').forEach(function(i) { i.value = ''; });
+                document.querySelectorAll('#tab-device input:not(.sticky)').forEach(function(i) {
+                    i.value = '';
+                });
             });
         }
 
@@ -395,7 +438,9 @@ renderUnifiedLayoutFooter('admin');
         var noExpire = document.getElementById('no_expire'),
             expDate = document.getElementById('exp_date');
         var applyExpire = function() {
-            if (!isPaired()) { expDate.disabled = noExpire.checked; }
+            if (!isPaired()) {
+                expDate.disabled = noExpire.checked;
+            }
         };
         noExpire.addEventListener('change', applyExpire);
 
@@ -406,27 +451,46 @@ renderUnifiedLayoutFooter('admin');
         var ipSel = document.getElementById('allowed_ips'),
             ipField = document.getElementById('ip_field');
         document.getElementById('add_ip').addEventListener('click', function() {
-            if (isPaired()) { return; }
+            if (isPaired()) {
+                return;
+            }
             var v = ipField.value.trim();
-            if (!v || !validIP(v)) { alert('Please enter a valid IP address.'); return; }
-            var exists = Array.prototype.some.call(ipSel.options, function(o) { return o.value === v; });
-            if (!exists) { ipSel.add(new Option(v, v)); }
+            if (!v || !validIP(v)) {
+                alert('Please enter a valid IP address.');
+                return;
+            }
+            var exists = Array.prototype.some.call(ipSel.options, function(o) {
+                return o.value === v;
+            });
+            if (!exists) {
+                ipSel.add(new Option(v, v));
+            }
             ipField.value = '';
         });
         document.getElementById('remove_ip').addEventListener('click', function() {
-            if (isPaired()) { return; }
-            Array.prototype.slice.call(ipSel.selectedOptions).forEach(function(o) { o.remove(); });
+            if (isPaired()) {
+                return;
+            }
+            Array.prototype.slice.call(ipSel.selectedOptions).forEach(function(o) {
+                o.remove();
+            });
         });
 
         // Bouquet toggle-all + collect.
         document.getElementById('bqt-toggle').addEventListener('click', function() {
             var boxes = document.querySelectorAll('.mag-bouquet-cb');
-            var allOn = Array.prototype.every.call(boxes, function(c) { return c.checked; });
-            boxes.forEach(function(c) { c.checked = !allOn; });
+            var allOn = Array.prototype.every.call(boxes, function(c) {
+                return c.checked;
+            });
+            boxes.forEach(function(c) {
+                c.checked = !allOn;
+            });
         });
         var collect = function(cls) {
             var ids = [];
-            document.querySelectorAll('.' + cls + ':checked').forEach(function(c) { ids.push(c.value); });
+            document.querySelectorAll('.' + cls + ':checked').forEach(function(c) {
+                ids.push(c.value);
+            });
             return JSON.stringify(ids);
         };
 
@@ -437,24 +501,41 @@ renderUnifiedLayoutFooter('admin');
         // values still post, select every allowed-IP option, serialise bouquets.
         document.getElementById('mag-form').addEventListener('submit', function(e) {
             e.preventDefault();
-            if (!macEl.value) { alert('Please enter a valid MAC address.'); return; }
+            if (!macEl.value) {
+                alert('Please enter a valid MAC address.');
+                return;
+            }
             document.getElementById('bouquets_selected').value = collect('mag-bouquet-cb');
-            Array.prototype.forEach.call(ipSel.options, function(o) { o.selected = true; });
+            Array.prototype.forEach.call(ipSel.options, function(o) {
+                o.selected = true;
+            });
             pairedFields.forEach(function(id) {
                 var el = document.getElementById(id);
-                if (el) { el.disabled = false; }
+                if (el) {
+                    el.disabled = false;
+                }
             });
             var btn = document.getElementById('mag-submit');
             btn.disabled = true;
             fetch('post.php?action=mag', {
                     method: 'POST',
                     body: new FormData(e.target),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 })
-                .then(function(r) { return r.text(); })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
                     var dt;
-                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     if (dt && dt.result !== false) {
                         if (window.parent !== window) {
                             window.parent.postMessage('xcModalSaved', '*');

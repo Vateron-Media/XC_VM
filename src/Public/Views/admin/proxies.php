@@ -197,28 +197,48 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var canEdit = <?= $rCanEdit ? 'true' : 'false'; ?>;
         var toast = window.xcToast || function() {};
 
         function confirmSwal(text) {
-            if (window.xcConfirm) { return window.xcConfirm(text); }
+            if (window.xcConfirm) {
+                return window.xcConfirm(text);
+            }
             return Promise.resolve(window.confirm(text));
         }
 
         function getJSON(url) {
-            return fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } }).then(function(r) { return r.json(); });
+            return fetch(url, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function(r) {
+                return r.json();
+            });
         }
 
         var table = $('#proxies-table').DataTable({
-            order: [[canEdit ? 1 : 0, 'asc']],
-            columnDefs: [{ orderable: false, targets: canEdit ? [0, 11] : [10] }],
-            layout: { topStart: 'pageLength', topEnd: 'search' },
+            order: [
+                [canEdit ? 1 : 0, 'asc']
+            ],
+            columnDefs: [{
+                orderable: false,
+                targets: canEdit ? [0, 11] : [10]
+            }],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            },
             drawCallback: function() {
                 if (window.bootstrap) {
                     document.querySelectorAll('#proxies-table [data-bs-toggle="tooltip"]').forEach(function(el) {
-                        if (!el._tt) { el._tt = new bootstrap.Tooltip(el); }
+                        if (!el._tt) {
+                            el._tt = new bootstrap.Tooltip(el);
+                        }
                     });
                 }
             }
@@ -234,24 +254,39 @@ renderUnifiedLayoutFooter('admin');
 
         function runApi(id, sub) {
             getJSON('./api?action=proxy&sub=' + encodeURIComponent(sub) + '&server_id=' + encodeURIComponent(id)).then(function(d) {
-                if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                if (!d || d.result !== true) {
+                    toast(errText, 'error');
+                    return;
+                }
                 if (sub === 'delete') {
                     table.row($('#server-' + id)).remove().draw(false);
                     toast('Proxy deleted.');
                 } else if (sub === 'enable' || sub === 'disable') {
-                    setTimeout(function() { location.reload(); }, 600);
+                    setTimeout(function() {
+                        location.reload();
+                    }, 600);
                     toast('Done.');
                 } else {
                     toast('Done.');
                 }
-            }).catch(function() { toast(errText, 'error'); });
+            }).catch(function() {
+                toast(errText, 'error');
+            });
         }
 
         $('#proxies-table tbody').on('click', '.js-api', function() {
-            var id = this.getAttribute('data-id'), sub = this.getAttribute('data-sub');
+            var id = this.getAttribute('data-id'),
+                sub = this.getAttribute('data-sub');
             var msg = confirmMsgs.hasOwnProperty(sub) ? confirmMsgs[sub] : null;
-            if (!msg) { runApi(id, sub); return; }
-            confirmSwal(msg).then(function(ok) { if (ok) { runApi(id, sub); } });
+            if (!msg) {
+                runApi(id, sub);
+                return;
+            }
+            confirmSwal(msg).then(function(ok) {
+                if (ok) {
+                    runApi(id, sub);
+                }
+            });
         });
 
         // --- proxy tools modal ----------------------------------------------------
@@ -260,44 +295,78 @@ renderUnifiedLayoutFooter('admin');
             var toolsId = null;
             $('#proxies-table tbody').on('click', '.js-tools', function() {
                 toolsId = this.getAttribute('data-id');
-                if (toolsModal) { toolsModal.show(); }
+                if (toolsModal) {
+                    toolsModal.show();
+                }
             });
             $('#proxyToolsModal').on('click', '.js-tool', function() {
                 var tool = this.getAttribute('data-tool');
-                if (toolsModal) { toolsModal.hide(); }
-                if (!toolsId) { return; }
-                if (tool === 'reinstall') { window.location.href = './server_install?id=' + toolsId + '&proxy=1'; return; }
+                if (toolsModal) {
+                    toolsModal.hide();
+                }
+                if (!toolsId) {
+                    return;
+                }
+                if (tool === 'reinstall') {
+                    window.location.href = './server_install?id=' + toolsId + '&proxy=1';
+                    return;
+                }
                 var url = tool === 'restart_services' ? './api?action=restart_services&server_id=' + toolsId : './api?action=reboot_server&server_id=' + toolsId;
-                getJSON(url).then(function(d) { toast(d && d.result === true ? 'Task started…' : errText, d && d.result === true ? 'success' : 'error'); });
+                getJSON(url).then(function(d) {
+                    toast(d && d.result === true ? 'Task started…' : errText, d && d.result === true ? 'success' : 'error');
+                });
             });
 
             // --- multi-select bulk actions ---------------------------------------
             function selectedIds() {
-                return $('.row-check:checked').map(function() { return parseInt(this.getAttribute('data-id'), 10); }).get();
+                return $('.row-check:checked').map(function() {
+                    return parseInt(this.getAttribute('data-id'), 10);
+                }).get();
             }
+
             function syncBar() {
                 var ids = selectedIds();
                 $('#bulk-count').text(ids.length + ' selected');
                 $('#bulk-bar').toggleClass('d-none', ids.length === 0).toggleClass('d-flex', ids.length > 0);
             }
-            $('#check-all').on('change', function() { $('.row-check').prop('checked', this.checked); syncBar(); });
+            $('#check-all').on('change', function() {
+                $('.row-check').prop('checked', this.checked);
+                syncBar();
+            });
             $('#proxies-table tbody').on('change', '.row-check', syncBar);
-            $('#bulk-clear').on('click', function() { $('.row-check, #check-all').prop('checked', false); syncBar(); });
+            $('#bulk-clear').on('click', function() {
+                $('.row-check, #check-all').prop('checked', false);
+                syncBar();
+            });
 
             var bulkConfirm = {
-                'delete': 'Delete the selected proxies?', 'purge': 'Kill all connections on the selected proxies?',
-                'enable': 'Enable the selected proxies?', 'disable': 'Disable the selected proxies?'
+                'delete': 'Delete the selected proxies?',
+                'purge': 'Kill all connections on the selected proxies?',
+                'enable': 'Enable the selected proxies?',
+                'disable': 'Disable the selected proxies?'
             };
             $('#bulk-bar').on('click', '[data-bulk]', function() {
-                var sub = this.getAttribute('data-bulk'), ids = selectedIds();
-                if (!ids.length) { return; }
+                var sub = this.getAttribute('data-bulk'),
+                    ids = selectedIds();
+                if (!ids.length) {
+                    return;
+                }
                 confirmSwal((bulkConfirm[sub] || sub) + ' (' + ids.length + ')').then(function(ok) {
-                    if (!ok) { return; }
+                    if (!ok) {
+                        return;
+                    }
                     getJSON('./api?action=multi&type=proxy&sub=' + encodeURIComponent(sub) + '&ids=' + encodeURIComponent(JSON.stringify(ids))).then(function(d) {
-                        if (!d || d.result !== true) { toast(errText, 'error'); return; }
+                        if (!d || d.result !== true) {
+                            toast(errText, 'error');
+                            return;
+                        }
                         toast('Done.');
-                        setTimeout(function() { location.reload(); }, 600);
-                    }).catch(function() { toast(errText, 'error'); });
+                        setTimeout(function() {
+                            location.reload();
+                        }, 600);
+                    }).catch(function() {
+                        toast(errText, 'error');
+                    });
                 });
             });
         }

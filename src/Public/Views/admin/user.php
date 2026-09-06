@@ -172,11 +172,24 @@ renderUnifiedLayoutFooter('admin');
                 width: '100%',
                 dropdownParent: $('#owner_id').closest('.tab-pane'),
                 ajax: {
-                    url: './api', dataType: 'json', cache: true,
-                    data: function(params) { return { search: params.term || '', action: 'reguserlist', page: params.page }; },
+                    url: './api',
+                    dataType: 'json',
+                    cache: true,
+                    data: function(params) {
+                        return {
+                            search: params.term || '',
+                            action: 'reguserlist',
+                            page: params.page
+                        };
+                    },
                     processResults: function(data, params) {
                         params.page = params.page || 1;
-                        return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };
+                        return {
+                            results: data.items,
+                            pagination: {
+                                more: (params.page * 100) < data.total_count
+                            }
+                        };
                     }
                 }
             });
@@ -184,12 +197,18 @@ renderUnifiedLayoutFooter('admin');
 
         // Numeric-only guard for the credits/override fields.
         document.querySelectorAll('#credits, input[name^="override_"]').forEach(function(el) {
-            el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
+            el.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
         });
 
         // Clear owner → back to 0 (no owner); trigger change so select2 repaints.
         document.getElementById('clear-owner').addEventListener('click', function() {
-            if ($) { $('#owner_id').val('0').trigger('change'); } else { document.getElementById('owner_id').value = '0'; }
+            if ($) {
+                $('#owner_id').val('0').trigger('change');
+            } else {
+                document.getElementById('owner_id').value = '0';
+            }
         });
 
         document.getElementById('user-form').addEventListener('submit', function(e) {
@@ -199,12 +218,22 @@ renderUnifiedLayoutFooter('admin');
             fetch('post.php?action=user', {
                     method: 'POST',
                     body: new FormData(e.target),
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
                 })
-                .then(function(r) { return r.text(); })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
                     var dt;
-                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    try {
+                        dt = JSON.parse(txt);
+                    } catch (err) {
+                        dt = {
+                            result: false
+                        };
+                    }
                     if (dt && dt.result !== false) {
                         if (window.parent !== window) {
                             window.parent.postMessage('xcModalSaved', '*');

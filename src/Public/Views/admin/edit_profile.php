@@ -95,35 +95,73 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var $ = window.jQuery;
-        if (!$) { return; }
+        if (!$) {
+            return;
+        }
         var toast = window.xcToast || function() {};
-        if ($.fn.select2) { $('#timezone, #theme, #hue, #lang').select2({ width: '100%' }); }
+        if ($.fn.select2) {
+            $('#timezone, #theme, #hue, #lang').select2({
+                width: '100%'
+            });
+        }
 
         var gen = document.getElementById('generate-code');
         if (gen) {
             gen.addEventListener('click', function() {
-                var chars = 'ABCDEF0123456789', out = '';
-                for (var i = 0; i < 32; i++) { out += chars.charAt(Math.floor(Math.random() * chars.length)); }
+                var chars = 'ABCDEF0123456789',
+                    out = '';
+                for (var i = 0; i < 32; i++) {
+                    out += chars.charAt(Math.floor(Math.random() * chars.length));
+                }
                 document.getElementById('api_key').value = out;
             });
-            document.getElementById('clear-code').addEventListener('click', function() { document.getElementById('api_key').value = ''; });
+            document.getElementById('clear-code').addEventListener('click', function() {
+                document.getElementById('api_key').value = '';
+            });
         }
 
         document.getElementById('profile-form').addEventListener('submit', function(e) {
             e.preventDefault();
             var btn = this.querySelector('button[type="submit"]');
-            if (btn) { btn.disabled = true; }
+            if (btn) {
+                btn.disabled = true;
+            }
             var fd = new FormData(this);
             fd.append('submit_profile', '1');
-            fetch('post.php?action=edit_profile', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-                .then(function(r) { return r.text(); })
+            fetch('post.php?action=edit_profile', {
+                    method: 'POST',
+                    body: fd,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.text();
+                })
                 .then(function(txt) {
-                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
-                    if (d && d.result !== false) { window.location.reload(); return; }
-                    if (btn) { btn.disabled = false; }
+                    var d;
+                    try {
+                        d = JSON.parse(txt);
+                    } catch (err) {
+                        d = {
+                            result: false
+                        };
+                    }
+                    if (d && d.result !== false) {
+                        window.location.reload();
+                        return;
+                    }
+                    if (btn) {
+                        btn.disabled = false;
+                    }
                     toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
                 })
-                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')); ?>, 'error'); });
+                .catch(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                    }
+                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+                });
         });
     })();
 </script>
