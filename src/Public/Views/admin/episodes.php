@@ -134,6 +134,19 @@ $rFilters = [1 => 'encoded', 2 => 'encoding', 3 => 'down', 4 => 'ready', 5 => 'd
     </div>
 <?php endif; ?>
 
+<!-- Player modal -->
+<div class="modal fade" id="playerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('player'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0"><iframe id="player-frame" src="about:blank" style="width:100%;height:60vh;border:0"></iframe></div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
@@ -322,10 +335,13 @@ renderUnifiedLayoutFooter('admin');
         });
 
         // Player.
+        var playerModal = document.getElementById('playerModal');
         $('#episodes-table tbody').on('click', '.js-play', function() {
-            var id = this.getAttribute('data-id'), container = this.getAttribute('data-container');
-            if (window.player) { window.player(id, container); } else { window.open('stream_view?id=' + encodeURIComponent(id)); }
+            var id = this.getAttribute('data-id'), container = this.getAttribute('data-container') || '';
+            document.getElementById('player-frame').src = './player?type=series&id=' + encodeURIComponent(id) + '&container=' + encodeURIComponent(container);
+            if (window.bootstrap) { bootstrap.Modal.getOrCreateInstance(playerModal).show(); }
         });
+        playerModal.addEventListener('hidden.bs.modal', function() { document.getElementById('player-frame').src = 'about:blank'; });
 
         // Bulk.
         $('#episodes-table tbody').on('change', '.row-check', function() {
