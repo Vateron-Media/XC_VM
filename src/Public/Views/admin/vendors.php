@@ -5,7 +5,7 @@
  *
  * Maps a logical bundle name to the Bootstrap 5 plugin CSS/JS that a
  * page needs, and emits the <link>/<script> tags. Only bundles whose libraries
- * are vendored under assets/new/vendor/libs/ are listed; add more here as the
+ * are vendored under assets/vendor/libs/ are listed; add more here as the
  * matching lib is copied in.
  *
  * Usage:
@@ -20,7 +20,7 @@
 
 if (!function_exists('xc_newui_vendor_manifest')) {
     function xc_newui_vendor_manifest(): array {
-        $b = 'assets/new/vendor/libs/';
+        $b = 'assets/vendor/libs/';
         return [
             // datatables-bootstrap5.js is a combined bundle that already includes the
             // Responsive extension; only its CSS needs to load alongside. Buttons/HTML5

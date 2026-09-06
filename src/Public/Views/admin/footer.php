@@ -61,15 +61,15 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
 <?php endif; /* modal vs full-layout close */ ?>
 
 <!-- Core scripts -->
-<script src="assets/new/vendor/libs/jquery/jquery.js"></script>
-<script src="assets/new/vendor/libs/popper/popper.js"></script>
-<script src="assets/new/vendor/js/bootstrap.js"></script>
-<script src="assets/new/vendor/libs/node-waves/node-waves.js"></script>
-<script src="assets/new/vendor/libs/pickr/pickr.js"></script>
-<script src="assets/new/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
-<script src="assets/new/vendor/libs/hammer/hammer.js"></script>
+<script src="assets/vendor/libs/jquery/jquery.js"></script>
+<script src="assets/vendor/libs/popper/popper.js"></script>
+<script src="assets/vendor/js/bootstrap.js"></script>
+<script src="assets/vendor/libs/node-waves/node-waves.js"></script>
+<script src="assets/vendor/libs/pickr/pickr.js"></script>
+<script src="assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.js"></script>
+<script src="assets/vendor/libs/hammer/hammer.js"></script>
 <?php if (!$xmBare): ?>
-    <script src="assets/new/vendor/js/menu.js"></script>
+    <script src="assets/vendor/js/menu.js"></script>
 <?php endif; ?>
 
 <!-- Page vendor scripts — after jQuery, before page init -->
@@ -78,7 +78,7 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
 
 <?php if (!$xmBare): ?>
     <!-- Main (menu init, theme switcher wiring, waves, scrollbars) -->
-    <script src="assets/new/js/main.js"></script>
+    <script src="assets/js/main.js"></script>
 <?php endif; ?>
 
 <script>

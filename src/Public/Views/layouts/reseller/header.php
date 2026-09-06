@@ -190,7 +190,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
     dir="ltr"
     data-skin="default"
     data-bs-theme="<?= $xmBsTheme ?>"
-    data-assets-path="assets/new/"
+    data-assets-path="assets/"
     data-template="vertical-menu-template">
 
 <head>
@@ -199,7 +199,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="robots" content="noindex,nofollow">
     <title><?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?><?= isset($_TITLE) ? ' | ' . htmlspecialchars($_TITLE) : ''; ?></title>
-    <link rel="icon" type="image/x-icon" href="assets/new/img/favicon/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="assets/img/favicon/favicon.ico">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -207,30 +207,30 @@ if (!function_exists('_xc_reseller_menu_node')) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
 
     <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
-    <link rel="stylesheet" href="assets/new/vendor/fonts/iconify-icons.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css">
 
     <!-- Core theme (single file serves both light & dark via data-bs-theme) -->
-    <link rel="stylesheet" href="assets/new/vendor/libs/node-waves/node-waves.css">
-    <link rel="stylesheet" href="assets/new/vendor/libs/pickr/pickr-themes.css">
-    <link rel="stylesheet" href="assets/new/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
-    <link rel="stylesheet" href="assets/new/vendor/css/core.css">
-    <link rel="stylesheet" href="assets/new/css/demo.css">
+    <link rel="stylesheet" href="assets/vendor/libs/node-waves/node-waves.css">
+    <link rel="stylesheet" href="assets/vendor/libs/pickr/pickr-themes.css">
+    <link rel="stylesheet" href="assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+    <link rel="stylesheet" href="assets/vendor/css/core.css">
+    <link rel="stylesheet" href="assets/css/demo.css">
 
     <!-- Page vendor styles (shared admin registry) + XC_VM overrides -->
     <?php require_once dirname(__DIR__, 2) . '/admin/vendors.php'; ?>
     <?php xc_newui_vendor_css(xc_newui_vendors_wanted()); ?>
-    <link rel="stylesheet" href="assets/new/xcvm/custom.css">
+    <link rel="stylesheet" href="assets/xcvm/custom.css">
 
     <!-- Helpers + template customizer must precede config.js -->
-    <script src="assets/new/vendor/js/helpers.js"></script>
-    <script src="assets/new/vendor/js/template-customizer.js"></script>
+    <script src="assets/vendor/js/helpers.js"></script>
+    <script src="assets/vendor/js/template-customizer.js"></script>
     <!-- Per-user customizer state (theme persists in localStorage via the
          customizer; the reseller api exposes no save_ui_prefs endpoint yet). -->
     <script>
         window.XC_VM = window.XC_VM || {};
         window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
     </script>
-    <script src="assets/new/js/config.js"></script>
+    <script src="assets/js/config.js"></script>
 </head>
 
 <?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
