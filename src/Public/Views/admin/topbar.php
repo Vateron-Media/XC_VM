@@ -11,15 +11,24 @@
  * btn-export-json, btn-clear-logs) and wired generically in footer.php.
  */
 
+use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\Topbar;
 
 $xmTopbarPage = AdminHelpers::getPageName();
-$xmTopbarItems = Topbar::items($xmTopbarPage, ['rMobile' => $rMobile ?? false]);
+$xmTopbarItems = Topbar::items($xmTopbarPage, [
+    'rMobile' => $rMobile ?? false,
+    'rID' => RequestManager::get('id'),
+    'rSID' => RequestManager::get('sid'),
+]);
 
 if (!empty($xmTopbarItems)):
     // Table/list pages also get clear-filters + refresh (mirrors legacy topbar).
-    $xmTopbarTablePages = ['streams', 'created_channels', 'movies', 'series', 'users', 'mags', 'client_logs', 'line_activity', 'live_connections', 'lines', 'radios', 'enigmas', 'ondemand', 'episodes'];
+    $xmTopbarTablePages = [
+        'streams', 'created_channels', 'movies', 'series', 'users', 'mags', 'lines', 'radios', 'enigmas', 'ondemand', 'episodes',
+        // Log / list tables: give them the same instant refresh + clear-filters.
+        'client_logs', 'credit_logs', 'user_logs', 'line_activity', 'live_connections', 'stream_errors', 'login_logs', 'mysql_syslog', 'mag_events', 'panel_logs', 'asns', 'backups',
+    ];
     $xmTopbarTools = in_array($xmTopbarPage, $xmTopbarTablePages, true);
 
     // Render one item as a <button>/<a>. $tag = 'primary' | 'drop'.

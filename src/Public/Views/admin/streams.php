@@ -115,10 +115,10 @@ $rStatusFilters = [
                     <th><?= $language::get('server'); ?></th>
                     <th><?= $language::get('connections'); ?></th>
                     <th><?= $language::get('status'); ?></th>
-                    <th><?= $language::get('actions'); ?></th>
                     <th><?= $language::get('player'); ?></th>
                     <th>EPG</th>
                     <th><?= $language::get('stream_info'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -241,6 +241,15 @@ renderUnifiedLayoutFooter('admin');
             return Promise.resolve(window.confirm(text));
         };
 
+        // Preselect the status filter from a ?filter= query param. The dashboard
+        // tiles link here as streams?filter=1 (Online) / filter=2 (Down); apply it
+        // before the table is built so the very first load is already filtered.
+        (function() {
+            var f = new URLSearchParams(window.location.search).get('filter');
+            var sel = document.getElementById('filter-status');
+            if (f && sel && sel.querySelector('option[value="' + f + '"]')) { sel.value = f; }
+        })();
+
         var table = jQuery('#streams-table').DataTable({
             processing: true,
             serverSide: true,
@@ -311,32 +320,6 @@ renderUnifiedLayoutFooter('admin');
                     searchable: false,
                     className: 'text-center',
                     render: function(d, t, row) {
-                        var items = '';
-                        if (canEdit) {
-                            if (running(row)) {
-                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="stop" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.stop) + '</a>';
-                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="restart" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.restart) + '</a>';
-                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="purge" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.kill) + '</a>';
-                            } else {
-                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="start" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.start) + '</a>';
-                            }
-                        }
-                        if (canFinger && row.clients > 0) { items += '<a class="dropdown-item js-finger" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.fingerprint) + '</a>'; }
-                        if (canEdit) {
-                            items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-type="' + esc(row.type) + '">' + esc(lang.edit) + '</a>';
-                            items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-sub="delete" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.del) + '</a>';
-                        }
-                        if (row.notes) { items = '<h6 class="dropdown-header text-wrap" style="max-width:18rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items; }
-                        if (!items) { return ''; }
-                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
-                    }
-                },
-                {
-                    data: null,
-                    orderable: false,
-                    searchable: false,
-                    className: 'text-center',
-                    render: function(d, t, row) {
                         var playable = (row.status === 1 || row.status === 4);
                         if (!canPlayer || !playable || !row.player_ok) { return '<button class="btn btn-sm btn-icon btn-label-secondary" disabled><i class="icon-base ti tabler-player-play"></i></button>'; }
                         return '<button class="btn btn-sm btn-icon btn-label-info js-play" data-id="' + esc(row.id) + '"><i class="icon-base ti tabler-player-play"></i></button>';
@@ -364,6 +347,32 @@ renderUnifiedLayoutFooter('admin');
                             '<span class="badge bg-label-success">' + esc(d.audio) + '</span>' +
                             '<span class="badge bg-label-secondary">' + esc(d.speed) + '</span>' +
                             '<span class="badge bg-label-secondary">' + esc(d.fps) + '</span></div>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        var items = '';
+                        if (canEdit) {
+                            if (running(row)) {
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="stop" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.stop) + '</a>';
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="restart" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.restart) + '</a>';
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="purge" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.kill) + '</a>';
+                            } else {
+                                items += '<a class="dropdown-item js-act" href="javascript:void(0);" data-sub="start" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.start) + '</a>';
+                            }
+                        }
+                        if (canFinger && row.clients > 0) { items += '<a class="dropdown-item js-finger" href="javascript:void(0);" data-id="' + esc(row.id) + '">' + esc(lang.fingerprint) + '</a>'; }
+                        if (canEdit) {
+                            items += '<a class="dropdown-item js-edit" href="javascript:void(0);" data-id="' + esc(row.id) + '" data-type="' + esc(row.type) + '">' + esc(lang.edit) + '</a>';
+                            items += '<a class="dropdown-item text-danger js-act" href="javascript:void(0);" data-sub="delete" data-id="' + esc(row.id) + '" data-server="' + esc(row.server_col_id) + '">' + esc(lang.del) + '</a>';
+                        }
+                        if (row.notes) { items = '<h6 class="dropdown-header text-wrap" style="max-width:18rem" title="' + esc(row.notes) + '">' + esc(row.notes) + '</h6><div class="dropdown-divider"></div>' + items; }
+                        if (!items) { return ''; }
+                        return '<div class="dropdown"><button class="btn btn-sm btn-icon btn-label-secondary" data-bs-toggle="dropdown" aria-expanded="false"><i class="icon-base ti tabler-dots-vertical"></i></button><div class="dropdown-menu dropdown-menu-end">' + items + '</div></div>';
                     }
                 }
             ],

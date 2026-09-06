@@ -113,8 +113,8 @@ use XcVm\Domain\Stream\StreamService;
                                 <th><?= $language::get('server') ?></th>
                                 <th><?= $language::get('clients') ?></th>
                                 <th><?= $rStream['type'] == 2 ? $language::get('status') : $language::get('uptime') ?></th>
-                                <th><?= $language::get('actions') ?></th>
                                 <th><?= $language::get('stream_info') ?></th>
+                                <th><?= $language::get('actions') ?></th>
                             </tr>
                         </thead>
                         <tbody></tbody>
@@ -733,8 +733,8 @@ renderUnifiedLayoutFooter('admin');
                 { data: 'server_name', render: serverCell },
                 { data: 'clients', className: 'text-center', render: clientsCell },
                 { data: 'status', className: 'text-center text-nowrap', render: statusCell },
-                { data: null, className: 'text-center', render: actionsCell },
-                { data: 'info', render: infoCell }
+                { data: 'info', render: infoCell },
+                { data: null, className: 'text-center', render: actionsCell }
             ],
             language: { emptyTable: 'Loading information...' }
         });
