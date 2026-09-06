@@ -1,402 +1,303 @@
-<?php 
+<?php
+
+/**
+ * Bootstrap 5 admin header — Vertical Menu Template (v10.11.1).
+ *
+ * Rebuilt from the stock Bootstrap 5 vertical-menu shell and wired to the current
+ * XC_VM backend. Rendered by renderUnifiedLayoutHeader('admin') only for pages
+ * opted in through xc_admin_use_newui() (see layouts/admin.php); every other
+ * admin page keeps the legacy header.php shell.
+ *
+ * Theme is server-authoritative: data-bs-theme is emitted from the user's
+ * stored theme via the Theme enum. The live per-user customizer
+ * (template-customizer.js + DB persistence) is wired in a later phase.
+ */
+
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Module\CoreNavbarProvider;
+use XcVm\Core\Enum\Theme;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\NavbarRegistry;
-use XcVm\Core\Enum\Theme;
-use XcVm\Core\Reference\UiReference;
 
-$rHues = UiReference::hues();
+if (count(get_included_files()) == 1) {
+    exit();
+}
 
-if (count(get_included_files()) != 1 || TRUE):
-    $rModal = RequestManager::has('modal');
-    $rUpdate = (json_decode((string) SettingsManager::get('update_data'), true) ?: array());
+$rUpdate  = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: []);
+$xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
 
+// Per-user Bootstrap 5 customizer state (see config.js + StatsAjaxController::saveUiPrefs).
+// The stored theme wins for the initial data-bs-theme paint; 'system'/unset falls
+// back to the legacy per-user theme column so there is no flash.
+$xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
+$xmThemePref = $xmUiPrefs['theme'] ?? null;
+$xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
+
+/**
+ * Shared navbar helpers (identical contract to legacy header.php). Guarded so a
+ * single request only ever defines them once regardless of which header ran.
+ */
+if (!function_exists('_xc_nav_visible')) {
+    function _xc_nav_visible(NavbarItem $item, bool $mobile, array $settings): bool {
+        if ($item->desktopOnly && $mobile) return false;
+        if ($item->settingDisabled !== '' && !empty($settings[$item->settingDisabled])) return false;
+        if ($item->divider) return true;
+        if (!empty($item->permissions)) {
+            foreach ($item->permissions as $_p) {
+                if (Authorization::check('adv', $_p)) return true;
+            }
+            return false;
+        }
+        if ($item->url === '#') {
+            foreach (NavbarRegistry::getChildren($item->key) as $_child) {
+                if (_xc_nav_visible($_child, $mobile, $settings)) return true;
+            }
+            return false;
+        }
+        return true;
+    }
+}
+
+if (!function_exists('_xc_nav_label')) {
+    function _xc_nav_label(NavbarItem $item, string $language): string {
+        return $item->translationKey
+            ? $language::get($item->translationKey)
+            : htmlspecialchars($item->fallbackTitle, ENT_QUOTES);
+    }
+}
 ?>
+<!doctype html>
+<html
+    lang="en"
+    class="layout-navbar-fixed layout-menu-fixed layout-compact"
+    dir="ltr"
+    data-skin="default"
+    data-bs-theme="<?= $xmBsTheme ?>"
+    data-assets-path="assets/new/"
+    data-template="vertical-menu-template">
 
-    <!DOCTYPE html>
-    <html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex,nofollow">
+    <title><?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?><?= isset($_TITLE) ? ' | ' . htmlspecialchars($_TITLE) : ''; ?></title>
+    <link rel="icon" type="image/x-icon" href="assets/new/img/favicon/favicon.ico">
 
-    <head>
-        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-        <title><?= $rSettings['server_name'] ?: 'XC_VM'; ?> <?= isset($_TITLE) ? ' | ' . $_TITLE : ''; ?></title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-        <meta name="robots" content="noindex,nofollow">
-        <link rel="shortcut icon" href="assets/old/images/favicon.ico">
-        <link href="assets/old/libs/jquery-nice-select/nice-select.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/switchery/switchery.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/datatables/dataTables.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/datatables/responsive.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/datatables/buttons.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/datatables/select.bootstrap4.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/jquery-toast/jquery.toast.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/treeview/style.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/clockpicker/bootstrap-clockpicker.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/nestable2/jquery.nestable.min.css" rel="stylesheet" />
-        <link href="assets/old/libs/magnific-popup/magnific-popup.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/quill/quill.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/jbox/jBox.all.min.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/css/icons.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />
-        <link href="assets/old/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />
-        <?php if (!empty($_SETUP) || !Theme::fromId($rUserInfo['theme'] ?? 0)->isDark()): ?>
-            <link href="assets/old/css/bootstrap.css" rel="stylesheet" type="text/css" />
-            <link href="assets/old/css/app.css" rel="stylesheet" type="text/css" />
-            <link href="assets/old/css/listings.css" rel="stylesheet" type="text/css" />
-            <link href="assets/old/css/custom.css" rel="stylesheet" type="text/css" />
-        <?php else: ?>
-            <link href="assets/old/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />
-            <link href="assets/old/css/app.dark.css" rel="stylesheet" type="text/css" />
-            <link href="assets/old/css/listings.dark.css" rel="stylesheet" type="text/css" />
-            <link href="assets/old/css/custom.dark.css" rel="stylesheet" type="text/css" />
-        <?php endif; ?>
-        <link href="assets/old/css/extra.css" rel="stylesheet" type="text/css" />
-        <?php if (!isset($rModal) || !$rModal): ?>
-            <!-- No modal specific CSS needed -->
-        <?php else: ?>
-            <link href="assets/old/css/modal.css" rel="stylesheet" type="text/css" />
-        <?php endif; ?>
-    </head>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
 
+    <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
+    <link rel="stylesheet" href="assets/new/vendor/fonts/iconify-icons.css">
 
-    <body>
-        <?php if (!isset($rModal) || !$rModal): ?>
-            <!-- Header and other content -->
-            <header id="topnav">
-                <div
-                    class="navbar-overlay bg-animate<?= (!empty($rUserInfo['hue']) && isset($rHues[$rUserInfo['hue']])) ? '-' . $rUserInfo['hue'] : '' ?>">
-                </div>
-                <div class="navbar-custom">
-                    <div class="container-fluid">
-                        <div class="logo-box">
-                            <a href="index" class="logo text-center">
-                                <span class="logo-lg<?= (isset($rUserInfo['hue']) && strlen($rUserInfo['hue']) > 0) ? ' whiteout' : ''; ?>">
-                                    <img src="assets/old/images/logo-topbar.png" alt="" height="60">
-                                </span>
-                                <span class="logo-sm<?= (isset($rUserInfo['hue']) && strlen($rUserInfo['hue']) > 0) ? ' whiteout' : ''; ?>">
-                                    <img src="assets/old/images/logo-topbar.png" alt="" height="50">
-                                </span>
-                            </a>
-                        </div>
+    <!-- Core theme (single file serves both light & dark via data-bs-theme) -->
+    <link rel="stylesheet" href="assets/new/vendor/libs/node-waves/node-waves.css">
+    <link rel="stylesheet" href="assets/new/vendor/libs/pickr/pickr-themes.css">
+    <link rel="stylesheet" href="assets/new/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+    <link rel="stylesheet" href="assets/new/vendor/css/core.css">
+    <link rel="stylesheet" href="assets/new/css/demo.css">
 
-                        <?php if (!isset($_SETUP)): ?>
-                            <?php
-                            /**
-                             * Shared navbar helpers, defined once before both the profile
-                             * dropdown (below) and the main navigation (further down) consume
-                             * them. All nav items — core and module — are registered via
-                             * NavbarRegistry::add(NavbarItem) in CoreNavbarProvider and modules'
-                             * registerNavbar().
-                             */
-                            if (!function_exists('_xc_nav_visible')) {
-                                function _xc_nav_visible(NavbarItem $item, bool $mobile, array $settings): bool {
-                                    if ($item->desktopOnly && $mobile) return false;
-                                    if ($item->settingDisabled !== '' && !empty($settings[$item->settingDisabled])) return false;
-                                    if ($item->divider) return true;
-                                    if (!empty($item->permissions)) {
-                                        foreach ($item->permissions as $_p) {
-                                            if (Authorization::check('adv', $_p)) return true;
-                                        }
-                                        return false;
-                                    }
-                                    if ($item->url === '#') {
-                                        foreach (NavbarRegistry::getChildren($item->key) as $_child) {
-                                            if (_xc_nav_visible($_child, $mobile, $settings)) return true;
-                                        }
-                                        return false;
-                                    }
-                                    return true;
-                                }
-                            }
+    <!-- Page vendor styles (bundle bridge) + XC_VM overrides -->
+    <?php require_once __DIR__ . '/vendors.php'; ?>
+    <?php xc_newui_vendor_css(xc_newui_vendors_wanted()); ?>
+    <link rel="stylesheet" href="assets/new/xcvm/custom.css">
 
-                            if (!function_exists('_xc_nav_label')) {
-                                function _xc_nav_label(NavbarItem $item, string $language): string {
-                                    return $item->translationKey
-                                        ? $language::get($item->translationKey)
-                                        : htmlspecialchars($item->fallbackTitle, ENT_QUOTES);
-                                }
-                            }
-                            ?>
-                            <?php if (!$rMobile && $rSettings['header_stats']): ?>
-                                <ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%" id="header_stats">
-                                    <li class="dropdown notification-list">
-                                        <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./live_connections" role="button" aria-haspopup="false" aria-expanded="false">
-                                            <span class="pro-user-name text-white ml-1">
-                                                <i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate<?= $rUserInfo['hue'] ? '-' . $rUserInfo['hue'] : ''; ?> btn-xs waves-effect waves-light no-border"><span id="header_connections">0</span></button>
-                                            </span>
-                                        </a>
-                                    </li>
-                                    <li class="dropdown notification-list">
-                                        <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./live_connections" role="button" aria-haspopup="false" aria-expanded="false">
-                                            <span class="pro-user-name text-white ml-1">
-                                                <i class="fe-users text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate<?= $rUserInfo['hue'] ? '-' . $rUserInfo['hue'] : ''; ?> btn-xs waves-effect waves-light no-border"><span id="header_users">0</span></button>
-                                            </span>
-                                        </a>
-                                    </li>
-                                    <li class="dropdown notification-list">
-                                        <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./streams" role="button" aria-haspopup="false" aria-expanded="false">
-                                            <span class="pro-user-name text-white ml-1">
-                                                <i class="fe-play text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate<?= $rUserInfo['hue'] ? '-' . $rUserInfo['hue'] : ''; ?> btn-xs waves-effect waves-light no-border"><span id="header_streams_up">0</span> <i class="mdi mdi-arrow-up-thick"></i> &nbsp; <span id="header_streams_down">0</span> <i class="mdi mdi-arrow-down-thick"></i></button>
-                                            </span>
-                                        </a>
-                                    </li>
-                                    <li class="dropdown notification-list">
-                                        <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./dashboard" role="button" aria-haspopup="false" aria-expanded="false">
-                                            <span class="pro-user-name text-white ml-1">
-                                                <i class="fe-trending-up text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate<?= $rUserInfo['hue'] ? '-' . $rUserInfo['hue'] : ''; ?> btn-xs waves-effect waves-light no-border"><span id="header_network_up">0</span> <small>Mbps</small> <i class="mdi mdi-arrow-up-thick"></i> &nbsp; <span id="header_network_down">0</span> <small>Mbps</small> <i class="mdi mdi-arrow-down-thick"></i></button>
-                                            </span>
-                                        </a>
-                                    </li>
-                                </ul>
+    <!-- Helpers + template customizer must precede config.js -->
+    <script src="assets/new/vendor/js/helpers.js"></script>
+    <script src="assets/new/vendor/js/template-customizer.js"></script>
+    <!-- Per-user customizer state (server-authoritative) consumed by config.js -->
+    <script>
+        window.XC_VM = window.XC_VM || {};
+        window.XC_VM.uiPrefsUrl = './api?action=save_ui_prefs';
+        window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
+    </script>
+    <script src="assets/new/js/config.js"></script>
+</head>
 
-                            <?php endif; ?>
-                            <!-- Streams, Channels, Movies, Episodes & Radio Stations -->
-                            <!-- Include similar structure for multiselect_streams, multiselect_series, etc. -->
-                            <ul class="list-unstyled topnav-menu float-right mb-0 topnav-custom">
-                                <li class="dropdown notification-list">
-                                    <a class="navbar-toggle nav-link">
-                                        <div class="lines text-white">
-                                            <span></span>
-                                            <span></span>
-                                            <span></span>
-                                        </div>
-                                    </a>
-                                </li>
-                                <?php if (SettingsManager::get('enable_search')): ?>
-                                    <li class="dropdown notification-list" id="search-mobile">
-                                        <a href="javascript:void(0);"
-                                            class="search-toggle pad-15 nav-link right-bar-toggle waves-effect text-white">
-                                            <i class="mdi mdi-magnify noti-icon"></i>
-                                        </a>
-                                    </li>
-                                    <li class="d-none d-sm-block" id="topnav-search">
-                                        <div class="app-search"
-                                            data-theme="bg-animate<?= (0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues))) ? '-' . $rUserInfo['hue'] : ''; ?>">
-                                            <div class="app-search-box">
-                                                <select placeholder="<?= $language::get('search_placeholder') ?>"
-                                                    class="quick_search form-control bg-animate<?= (0 < strlen($rUserInfo['hue']) && in_array($rUserInfo['hue'], array_keys($rHues))) ? '-' . $rUserInfo['hue'] : ''; ?>"
-                                                    data-toggle="select2"></select>
-                                            </div>
-                                        </div>
-                                    </li>
-                                <?php endif; ?>
-                                <li class="dropdown notification-list">
-                                    <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                                        <span class="pro-user-name text-white ml-1">
-                                            <?= htmlspecialchars($rUserInfo['username']) ?> <i class="mdi mdi-chevron-down"></i>
-                                        </span>
-                                        <span class="pro-user-name-mob nav-link text-white waves-effect">
-                                            <i class="fe-user noti-icon"></i>
-                                        </span>
-                                    </a>
-                                    <div class="dropdown-menu dropdown-menu-right profile-dropdown">
-                                        <?php
-                                        /**
-                                         * Profile dropdown is registry-driven. Core items live in
-                                         * CoreNavbarProvider::_profile() under the 'profile' parent;
-                                         * modules add their own links (plex/watch settings, etc.) via
-                                         * NavbarRegistry::add((new NavbarItem('profile.x'))->parent('profile')...).
-                                         * Permission/setting gating reuses the same _xc_nav_visible() as
-                                         * the main navigation.
-                                         */
-                                        $_profileItems = [];
-                                        foreach (NavbarRegistry::getChildren('profile') as $_pi) {
-                                            if (_xc_nav_visible($_pi, $rMobile, $rSettings)) $_profileItems[] = $_pi;
-                                        }
-                                        // Drop orphan dividers left behind by permission-hidden items.
-                                        $_profileClean = NavbarRegistry::collapseDividers($_profileItems);
-                                        foreach ($_profileClean as $_pi):
-                                            if ($_pi->divider): ?>
-                                                <div class="dropdown-divider"></div>
-                                            <?php else: ?>
-                                                <a href="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>" class="dropdown-item notify-item">
-                                                    <span><?= _xc_nav_label($_pi, $language); ?></span>
-                                                </a>
-                                            <?php endif;
-                                        endforeach; ?>
-                                    </div>
-                                </li>
+<?php if (!empty($GLOBALS['_SETUP'])): /* setup wizard — branded bare shell: no sidebar / navbar / menu, and never touches $rUserInfo */ ?>
 
-                                <!-- User Profile, General Settings, etc. -->
-                                <?php if ($rServerError && Authorization::check('adv', 'servers')): ?>
-                                    <li class="notification-list">
-                                        <a href="servers" class="nav-link right-bar-toggle waves-effect <?php echo $rUserInfo['theme'] == 1 ? 'text-white' : 'text-warning'; ?>">
-                                            <i class="mdi mdi-wifi-strength-off noti-icon"></i>
-                                        </a>
-                                    </li>
-                                <?php elseif ($allServersHealthy && Authorization::check('adv', 'servers')): ?>
-                                    <li class="notification-list">
-                                        <a href="proxies" class="nav-link right-bar-toggle waves-effect <?php echo $rUserInfo['theme'] == 1 ? 'text-white' : 'text-warning'; ?>">
-                                            <i class="mdi mdi-wifi-strength-off noti-icon"></i>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-
-                                <?php if (!$rMobile && isset($rUpdate) && is_array($rUpdate) && isset($rUpdate['version']) && (version_compare($rUpdate['version'], XC_VM_VERSION) >= 0)): ?>
-                                    <li class="notification-list">
-                                        <a href="settings" class="nav-link right-bar-toggle waves-effect <?php echo $rUserInfo['theme'] == 1 ? 'text-white' : 'text-warning'; ?>" title="Official Release v<?php echo $rUpdate['version']; ?> is available to download.">
-                                            <i class="mdi mdi-update noti-icon"></i>
-                                        </a>
-                                    </li>
-                                <?php endif; ?>
-
-                                <?php if ($rSettings['show_tickets']): ?>
-                                    <?php
-                                    $rTickets = array();
-                                    $rIDs = array();
-                                    $unreadTicketCount = 0;
-                                    // Assuming $db is your database connection variable
-                                    $db->query('SELECT `id` FROM `users` WHERE `owner_id` = ?;', $rUserInfo['id']);
-
-                                    foreach ($db->get_rows() as $rRow) {
-                                        $rIDs[] = $rRow['id'];
-                                    }
-
-                                    if (count($rIDs) > 0) {
-                                        $db->query('SELECT `tickets`.`id`, `tickets`.`title`, MAX(`tickets_replies`.`date`) AS `date`, `users`.`username` FROM `tickets` LEFT JOIN `tickets_replies` ON `tickets_replies`.`ticket_id` = `tickets`.`id` LEFT JOIN `users` ON `users`.`id` = `tickets`.`member_id` WHERE `tickets`.`status` <> 0 AND `admin_read` = 0 AND `user_read` = 1 AND `member_id` <> ? AND `member_id` IN (?) GROUP BY `tickets_replies`.`ticket_id` ORDER BY `tickets_replies`.`date` DESC LIMIT 50;', $rUserInfo['id'], implode(',', $rIDs));
-                                        $unreadTicketCount = $db->num_rows();
-
-                                        foreach ($db->get_rows() as $rRow) {
-                                            $rTickets[] = $rRow;
-                                        }
-                                    }
-                                    ?>
-                                    <li class="dropdown notification-list">
-                                        <a class="nav-link dropdown-toggle waves-effect text-white" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
-                                            <i class="fe-mail noti-icon"></i>
-                                            <?php if ($unreadTicketCount > 0): ?>
-                                                <span class="badge badge-info rounded-circle noti-icon-badge"><?php echo $unreadTicketCount < 100 ? $unreadTicketCount : '99+'; ?></span>
-                                            <?php endif; ?>
-                                        </a>
-                                        <div class="dropdown-menu dropdown-menu-right dropdown-lg">
-                                            <div class="dropdown-item noti-title">
-                                                <h5 class="m-0"><?= $language::get('tickets') ?></h5>
-                                            </div>
-                                            <div class="slimscroll noti-scroll">
-                                                <?php foreach ($rTickets as $rTicket): ?>
-                                                    <?php $timeAgo = time() - intval($rTicket['date']);
-                                                    if ($timeAgo < 60) {
-                                                        $timeAgo = $timeAgo . ' seconds ago';
-                                                    } elseif ($timeAgo < 3600) {
-                                                        $timeAgo = ceil($timeAgo / 60) . ' minutes ago';
-                                                    } else if ($timeAgo < 86400) {
-                                                        $timeAgo = ceil($timeAgo / 3600) . ' hours ago';
-                                                    } else {
-                                                        $timeAgo = ceil($timeAgo / 86400) . ' days ago';
-                                                    }
-                                                    ?>
-                                                    <a href="ticket_view?id=<?php echo $rTicket['id']; ?>" class="dropdown-item notify-item">
-                                                        <div class="notify-icon bg-info"><i class="mdi mdi-comment"></i></div>
-                                                        <p class="notify-details"><?php echo htmlspecialchars($rTicket['title']); ?><small class="text-muted"><?php echo $timeAgo; ?></small></p>
-                                                    </a>
-                                                <?php endforeach; ?>
-                                            </div>
-                                            <a href="tickets" class="dropdown-item text-center text-primary notify-item notify-all">View Tickets<i class="fi-arrow-right"></i></a>
-                                        </div>
-                                    </li>
-                                <?php endif; ?>
-                            </ul>
-                        <?php endif; ?>
-
-                        <div class="clearfix"></div>
-                    </div>
-                </div>
-
-                <?php if (!isset($_SETUP)): ?>
-                    <div class="topbar-menu">
-                        <div class="container-fluid">
-                            <div id="navigation">
-                                <?php
-                                /**
-                                 * Main navigation rendering.
-                                 * All nav items are registered in CoreNavbarProvider (and modules'
-                                 * registerNavbar()) via NavbarRegistry::add(NavbarItem). The
-                                 * _xc_nav_visible()/_xc_nav_label() helpers are defined once near
-                                 * the top of the header (shared with the profile dropdown).
-                                 *
-                                 * To inject a button anywhere, add a NavbarItem with the desired
-                                 * parent key and order, e.g.:
-                                 *   NavbarRegistry::add((new NavbarItem('management.service_setup.watch'))
-                                 *       ->parent('management.service_setup')
-                                 *       ->url('watch')->label('folder_watch')
-                                 *       ->permissions(['folder_watch'])->order(60));
-                                 */
-                                if (!function_exists('_xc_nav_children')) {
-                                    function _xc_nav_children(NavbarItem $parent, bool $mobile, array $settings, string $language): void {
-                                        $visible = [];
-                                        foreach (NavbarRegistry::getChildren($parent->key) as $_c) {
-                                            if (_xc_nav_visible($_c, $mobile, $settings)) $visible[] = $_c;
-                                        }
-                                        if (empty($visible)) return;
-
-                                        $cls = 'submenu' . ($parent->submenuClass !== '' ? ' ' . $parent->submenuClass : '');
-                                        echo '<ul class="' . $cls . '">';
-
-                                        if ($parent->submenuClass === 'megamenu') {
-                                            $total = count($visible);
-                                            $split = $total > 8 ? (int)ceil($total / 2) : null;
-                                            echo '<li><ul>';
-                                            foreach ($visible as $_i => $_c) {
-                                                if ($_c->divider) continue;
-                                                if ($split !== null && $_i === $split) echo '</ul></li><li><ul>';
-                                                echo '<li><a href="' . htmlspecialchars($_c->url, ENT_QUOTES) . '">'
-                                                    . _xc_nav_label($_c, $language) . '</a></li>';
-                                            }
-                                            echo '</ul></li>';
-                                        } else {
-                                            foreach ($visible as $_c) {
-                                                if ($_c->divider) {
-                                                    echo '<div class="dropdown-divider"></div>';
-                                                    continue;
-                                                }
-                                                $_hasKids = NavbarRegistry::hasChildren($_c->key) && !($_c->noMobileSubmenu && $mobile);
-                                                echo '<li' . ($_hasKids ? ' class="has-submenu"' : '') . '>';
-                                                echo '<a href="' . htmlspecialchars($_c->url, ENT_QUOTES) . '">'
-                                                    . _xc_nav_label($_c, $language);
-                                                if ($_hasKids) echo ' <div class="arrow-down"></div>';
-                                                echo '</a>';
-                                                if ($_hasKids) _xc_nav_children($_c, $mobile, $settings, $language);
-                                                echo '</li>';
-                                            }
-                                        }
-                                        echo '</ul>';
-                                    }
-                                }
-                                ?>
-                                <ul class="navigation-menu">
-                                    <?php foreach (NavbarRegistry::getTopLevel() as $_navTop): ?>
-                                        <?php
-                                        if (!_xc_nav_visible($_navTop, $rMobile, $rSettings)) continue;
-                                        $_topKids = NavbarRegistry::hasChildren($_navTop->key) && !($_navTop->noMobileSubmenu && $rMobile);
-                                        ?>
-                                        <li<?= $_topKids ? ' class="has-submenu"' : ''; ?>>
-                                            <a href="<?= htmlspecialchars($_navTop->url, ENT_QUOTES); ?>">
-                                                <?php if ($_navTop->icon): ?><i class="<?= htmlspecialchars($_navTop->icon, ENT_QUOTES); ?>"></i><?php endif; ?>
-                                                <?= _xc_nav_label($_navTop, $language); ?>
-                                                <?php if ($_topKids && !$rMobile): ?><div class="arrow-down"></div><?php endif; ?>
-                                            </a>
-                                            <?php if ($_topKids): _xc_nav_children($_navTop, $rMobile, $rSettings, $language);
-                                            endif; ?>
-                                            </li>
-                                        <?php endforeach; ?>
-                                </ul>
-                                <div class="clearfix"></div>
-                            </div>
-                        </div>
-                    </div>
-                <?php endif; ?>
-            </header>
-        <?php endif; ?>
-
-        <div id="status">
-            <div class="spinner"></div>
+<body>
+    <!-- Setup top bar: brand only (no sidebar / navbar / user menu / header stats) -->
+    <nav class="layout-navbar navbar navbar-expand-xl align-items-center bg-navbar-theme mb-4">
+        <div class="container-xxl">
+            <span class="app-brand-link d-flex align-items-center">
+                <span class="app-brand-logo demo">
+                    <img src="assets/old/images/logo-topbar.png" alt="<?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?>" height="24">
+                </span>
+                <span class="app-brand-text fw-bold ms-3"><?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?></span>
+            </span>
         </div>
+    </nav>
+    <div class="container-xxl py-4" style="max-width:900px;margin:auto;">
+<?php elseif (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
 
-    <?php else: exit();
-endif; ?>
+<body class="xm-modal-body">
+    <div class="container-fluid p-4">
+<?php else: ?>
+
+<body>
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+
+            <?php require __DIR__ . '/menu.php'; ?>
+
+            <!-- Layout page -->
+            <div class="layout-page">
+
+                <!-- Navbar -->
+                <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
+                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+                        <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
+                            <i class="icon-base ti tabler-menu-2 icon-md"></i>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
+
+                        <!-- Left: live header stats (polled by the inline poller in footer.newui.php) -->
+                        <div class="navbar-nav align-items-center">
+                            <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
+                                <div class="d-none d-xl-flex align-items-center" id="header_stats">
+                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('connections') ?: 'Connections'); ?>">
+                                        <i class="icon-base ti tabler-plug-connected icon-22px me-1"></i>
+                                        <span class="fw-medium" id="header_connections">0</span>
+                                    </a>
+                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('users') ?: 'Users'); ?>">
+                                        <i class="icon-base ti tabler-users icon-22px me-1"></i>
+                                        <span class="fw-medium" id="header_users">0</span>
+                                    </a>
+                                    <a href="streams" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('shell_streams_online_offline'), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-player-play icon-22px me-1"></i>
+                                        <span class="fw-medium text-success" id="header_streams_up">0</span>
+                                        <span class="mx-1 text-body-secondary">/</span>
+                                        <span class="fw-medium text-danger" id="header_streams_down">0</span>
+                                    </a>
+                                    <span class="d-inline-flex align-items-center text-heading" title="<?= htmlspecialchars($language::get('shell_network_throughput'), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-arrows-up-down icon-22px me-1"></i>
+                                        <span class="fw-medium" id="header_network_up">0</span>
+                                        <span class="mx-1 text-body-secondary">/</span>
+                                        <span class="fw-medium" id="header_network_down">0</span>
+                                        <small class="ms-1 text-body-secondary">Mbps</small>
+                                    </span>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+                            <!-- Global quick search -->
+                            <?php if (!empty($rSettings['enable_search'])): ?>
+                                <li class="nav-item me-3 d-none d-lg-block" style="position:relative; width:300px;">
+                                    <i class="icon-base ti tabler-search position-absolute text-body-secondary" style="left:0.85rem; top:50%; transform:translateY(-50%); pointer-events:none; z-index:4;"></i>
+                                    <input type="text" id="xc-quick-search" class="form-control form-control-sm rounded-pill" style="padding-left:2.4rem;" autocomplete="off" placeholder="<?= htmlspecialchars($language::get('search_placeholder'), ENT_QUOTES); ?>">
+                                    <div id="xc-search-results" class="dropdown-menu w-100 mt-2 p-0 shadow border-0" style="max-height:70vh; overflow-y:auto; min-width:340px;"></div>
+                                </li>
+                            <?php endif; ?>
+
+                            <!-- Server status indicator -->
+                            <?php if (($rServerError ?? false) && Authorization::check('adv', 'servers')): ?>
+                                <li class="nav-item">
+                                    <a class="nav-link btn btn-icon btn-text-secondary rounded-pill text-danger" href="servers" title="<?= htmlspecialchars($language::get('shell_server_issue'), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-wifi-off icon-22px"></i>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+
+                            <!-- NOTE: the tickets dropdown (legacy header ran raw $db queries inline here)
+                                 is intentionally deferred; it will return fed by a controller/provider,
+                                 not inline DB access in the shell. -->
+
+                            <!-- Theme switcher (light / dark / system) -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
+                                    id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <i class="icon-base ti tabler-sun icon-22px theme-icon-active text-heading"></i>
+                                    <span class="d-none ms-2" id="nav-theme-text"><?= $language::get('shell_toggle_theme'); ?></span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
+                                    <li>
+                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="light">
+                                            <span><i class="icon-base ti tabler-sun icon-22px me-3" data-icon="sun"></i><?= $language::get('shell_theme_light'); ?></span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark">
+                                            <span><i class="icon-base ti tabler-moon-stars icon-22px me-3" data-icon="moon-stars"></i><?= $language::get('shell_theme_dark'); ?></span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system">
+                                            <span><i class="icon-base ti tabler-device-desktop-analytics icon-22px me-3" data-icon="device-desktop-analytics"></i><?= $language::get('shell_theme_system'); ?></span>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- Update badge -->
+                            <?php if (!$rMobile && isset($rUpdate['version']) && (version_compare($rUpdate['version'], XC_VM_VERSION) >= 0)): ?>
+                                <li class="nav-item">
+                                    <a class="nav-link btn btn-icon btn-text-secondary rounded-pill text-warning" href="settings"
+                                        title="<?= htmlspecialchars($language::get('shell_update_available', ['{version}' => $rUpdate['version']]), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-arrow-big-up-lines icon-22px"></i>
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+
+                            <!-- User dropdown — registry-driven (CoreNavbarProvider 'profile' + module links) -->
+                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                        </span>
+                                    </div>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <div class="dropdown-item mt-0 d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-2">
+                                                <div class="avatar avatar-online">
+                                                    <span class="avatar-initial rounded-circle bg-label-primary">
+                                                        <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
+                                                <small class="text-body-secondary"><?= $language::get('shell_role_admin'); ?></small>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li><div class="dropdown-divider my-1 mx-n2"></div></li>
+                                    <?php
+                                    $_profileItems = [];
+                                    foreach (NavbarRegistry::getChildren('profile') as $_pi) {
+                                        if (_xc_nav_visible($_pi, $rMobile, $rSettings)) $_profileItems[] = $_pi;
+                                    }
+                                    foreach (NavbarRegistry::collapseDividers($_profileItems) as $_pi):
+                                        if ($_pi->divider): ?>
+                                            <li><div class="dropdown-divider my-1 mx-n2"></div></li>
+                                        <?php else: ?>
+                                            <li>
+                                                <a class="dropdown-item" href="<?= htmlspecialchars($_pi->url, ENT_QUOTES); ?>">
+                                                    <i class="icon-base ti tabler-chevron-right me-3 icon-md"></i>
+                                                    <span class="align-middle"><?= _xc_nav_label($_pi, $language); ?></span>
+                                                </a>
+                                            </li>
+                                    <?php endif;
+                                    endforeach; ?>
+                                </ul>
+                            </li>
+                            <!--/ User dropdown -->
+                        </ul>
+                    </div>
+                </nav>
+                <!-- / Navbar -->
+
+                <!-- Content wrapper (closed in footer.newui.php) -->
+                <div class="content-wrapper">
+                    <div class="container-xxl flex-grow-1 container-p-y">
+                        <?php require __DIR__ . '/topbar.php'; ?>
+<?php endif; /* modal vs full-layout body */ ?>

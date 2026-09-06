@@ -15,38 +15,31 @@
  *   renderUnifiedLayoutHeader('admin', ['_TITLE' => 'Dashboard']);
  */
 
-if (!function_exists('xc_admin_use_newui')) {
+if (!function_exists('xc_reseller_use_newui')) {
     /**
-     * Per-page opt-in to the admin shell.
+     * Per-page opt-in to the reseller Bootstrap 5 shell.
      *
-     * The redesign migrates admin pages one at a time, so the shell must stay
-     * legacy for every page that has NOT been rebuilt yet. Only pages listed in
-     * XC_NEWUI_PAGES render inside header.newui.php/footer.newui.php.
+     * Mirrors xc_admin_use_newui(): the reseller redesign migrates pages one at a
+     * time, so the shell stays legacy for every reseller page not yet rebuilt.
+     * Only pages listed in the $migratedReseller allowlist render inside
+     * reseller/header.newui.php / reseller/footer.newui.php.
      *
-     * Forced back to the legacy shell when:
-     *  - XC_ADMIN_LEGACY_UI is defined (global kill-switch), or
-     *  - the request is a modal (?modal=) or the setup wizard ($_SETUP) — both
-     *    keep the legacy chrome this migration pass.
+     * Forced back to the legacy shell when XC_ADMIN_LEGACY_UI is defined (global
+     * kill-switch) or the request is a modal (no reseller modal is migrated yet).
      */
-    function xc_admin_use_newui(): bool {
+    function xc_reseller_use_newui(): bool {
         if (defined('XC_ADMIN_LEGACY_UI')) {
             return false;
         }
-        $page = \XcVm\Core\Util\AdminHelpers::getPageName();
-        // Modal (iframe) edit forms: only pages rebuilt for the Bootstrap 5 modal shell
-        // opt in; the setup wizard always stays legacy.
+        // No reseller modal (iframe) edit form has been migrated to the new shell
+        // yet — keep the legacy chrome for every modal request.
         if (isset($_GET['modal'])) {
-            if (!empty($GLOBALS['_SETUP'])) {
-                return false;
-            }
-            static $migratedModals = ['line', 'enigma', 'mag', 'user', 'radio', 'movie', 'stream', 'serie', 'created_channel', 'fingerprint'];
-            return in_array($page, $migratedModals, true);
-        }
-        if (!empty($GLOBALS['_SETUP'])) {
             return false;
         }
-        static $migrated = ['dashboard', 'panel_logs', 'login_logs', 'client_logs', 'credit_logs', 'stream_errors', 'restream_logs', 'mag_events', 'mysql_syslog', 'queue', 'user_logs', 'line_activity', 'live_connections', 'ondemand', 'theft_detection', 'stream_rank', 'ips', 'isps', 'useragents', 'hmacs', 'rtmp_ips', 'asns', 'groups', 'packages', 'codes', 'epgs', 'providers', 'users', 'series', 'mags', 'enigmas', 'movies', 'radios', 'backups', 'lines', 'streams', 'epg', 'code', 'ip', 'isp', 'useragent', 'rtmp_ip', 'hmac', 'provider', 'package', 'group', 'line', 'enigma', 'mag', 'user', 'radio', 'movie', 'stream', 'serie', 'created_channels', 'created_channel', 'tickets', 'ticket_view', 'ticket', 'profiles', 'servers', 'proxies', 'stream_categories', 'episodes', 'bouquets', 'line_ips', 'process_monitor', 'rtmp_monitor', 'server_order', 'bouquet_order', 'channel_order', 'bouquet_sort', 'archive', 'stream_tools', 'modules', 'cache', 'record', 'quick_tools', 'stream_category', 'edit_profile', 'settings', 'user_mass', 'movie_mass', 'radio_mass', 'series_mass', 'line_mass', 'mag_mass', 'enigma_mass', 'stream_mass', 'created_channel_mass', 'episodes_mass', 'stream_view', 'proxy', 'bouquet', 'server', 'profile', 'server_view', 'stream_review', 'episode', 'server_install', 'mass_delete', 'review', 'magscan_settings', 'epg_view'];
-        return in_array($page, $migrated, true);
+        $page = \XcVm\Core\Util\AdminHelpers::getPageName();
+        // Pilot allowlist — seed with the reseller dashboard only.
+        static $migratedReseller = ['dashboard'];
+        return in_array($page, $migratedReseller, true);
     }
 }
 
@@ -98,15 +91,26 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         }
 
         if ($scope === 'reseller') {
-            require __DIR__ . '/reseller/header.php';
+            if (xc_reseller_use_newui()) {
+                require __DIR__ . '/reseller/header.newui.php';
+            } else {
+                require __DIR__ . '/reseller/header.php';
+            }
+            // header may set $rGenTrials/$rModal in local scope; propagate to
+            // $GLOBALS so the footer/renderer can read it later.
+            if (isset($rGenTrials)) {
+                $GLOBALS['rGenTrials'] = $rGenTrials;
+            }
+            if (isset($rModal)) {
+                $GLOBALS['rModal'] = $rModal;
+            }
             return;
         }
 
-        if (xc_admin_use_newui()) {
-            require dirname(__DIR__) . '/admin/header.newui.php';
-        } else {
-            require dirname(__DIR__) . '/admin/header.php';
-        }
+        // Every admin page is migrated to the Bootstrap 5 shell (setup + modals
+        // included via header.php's own $_SETUP / ?modal branches), so the admin
+        // scope always renders the new-UI header.
+        require dirname(__DIR__) . '/admin/header.php';
 
         // header.php sets $rModal in local scope; propagate to $GLOBALS
         // so that renderUnifiedLayoutFooter() can read it later.

@@ -56,14 +56,16 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         }
 
         if ($scope === 'reseller') {
-            require __DIR__ . '/reseller/footer.php';
+            if (function_exists('xc_reseller_use_newui') && xc_reseller_use_newui()) {
+                require __DIR__ . '/reseller/footer.newui.php';
+            } else {
+                require __DIR__ . '/reseller/footer.php';
+            }
             return;
         }
 
-        if (function_exists('xc_admin_use_newui') && xc_admin_use_newui()) {
-            require dirname(__DIR__) . '/admin/footer.newui.php';
-        } else {
-            require dirname(__DIR__) . '/admin/footer.php';
-        }
+        // Admin is fully on the Bootstrap 5 shell (setup + modals handled inside
+        // admin/footer.php), so the admin scope always renders the new-UI footer.
+        require dirname(__DIR__) . '/admin/footer.php';
     }
 }
