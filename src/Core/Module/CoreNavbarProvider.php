@@ -62,10 +62,6 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('dashboard.home'))
             ->parent('dashboard')->url('dashboard')
             ->label('home')->order(1));
-
-        NavbarRegistry::add((new NavbarItem('dashboard.live_connections'))
-            ->parent('dashboard')->url('live_connections')
-            ->label('live_connections')->permissions(['live_connections'])->order(10));
     }
 
     // ── Servers ───────────────────────────────────────────────────
@@ -126,13 +122,13 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->label('user_lines')->permissions(['add_user', 'users'])->order(10));
         NavbarRegistry::add((new NavbarItem('users.lines.add'))
             ->parent('users.lines')->url('line')
-            ->label('add_users')->permissions(['add_user'])->order(10));
+            ->label('add_line')->permissions(['add_user'])->order(10));
         NavbarRegistry::add((new NavbarItem('users.lines.manage'))
             ->parent('users.lines')->url('lines')
-            ->label('manage_users')->permissions(['users'])->order(20));
+            ->label('manage_lines')->permissions(['users'])->order(20));
         NavbarRegistry::add((new NavbarItem('users.lines.mass'))
             ->parent('users.lines')->url('line_mass')
-            ->label('mass_edit_users')->permissions(['mass_edit_lines'])->order(30));
+            ->label('mass_edit_lines')->permissions(['mass_edit_lines'])->order(30));
 
         // MAG
         NavbarRegistry::add((new NavbarItem('users.mag'))
