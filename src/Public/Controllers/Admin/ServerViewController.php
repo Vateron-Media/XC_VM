@@ -33,7 +33,13 @@ class ServerViewController extends BaseAdminController {
             exit();
         }
 
-        if (isset($allServers[$id])) {
+        // Read the server fresh (bypass the 10s file cache) so this detail page always
+        // reflects the true current status — otherwise a just-started install (status 3)
+        // or a failure (status 4) can be hidden behind a stale cached status.
+        $rFreshServers = \XcVm\Domain\Server\ServerRepository::getAll(true);
+        if (isset($rFreshServers[$id])) {
+            $rServer = $rFreshServers[$id];
+        } elseif (isset($allServers[$id])) {
             $rServer = $allServers[$id];
         } elseif (isset($rProxyServers[$id])) {
             $rServer = $rProxyServers[$id];

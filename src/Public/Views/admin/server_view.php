@@ -28,7 +28,8 @@ use XcVm\Core\Util\AdminHelpers;
 
 $rServerId    = intval(RequestManager::get('id'));
 $rIsMain      = ($rServer['server_type'] == 0);
-$rInstalling  = in_array($rServer['status'], array(3, 4), true);
+$rInstalling  = in_array((int) $rServer['status'], array(3, 4), true);
+$rInstallFailed = ((int) $rServer['status'] === 4);
 $rDiskLabel   = (1099511627776 < ($rWatchdog['total_disk_space'] ?? 0))
     ? number_format(($rWatchdog['total_disk_space'] ?? 0) / 1024 / 1024 / 1024 / 1024, 0) . ' TB'
     : number_format(($rWatchdog['total_disk_space'] ?? 0) / 1024 / 1024 / 1024, 0) . ' GB';
@@ -91,9 +92,14 @@ $rDiskLabel   = (1099511627776 < ($rWatchdog['total_disk_space'] ?? 0))
     <div class="card-body">
         <?php if ($rInstalling): ?>
             <div class="text-center py-3">
-                <i class="icon-base ti tabler-sparkles icon-32px text-info"></i>
-                <h5 class="text-info mt-2"><?= $language::get('installing') ?></h5>
-                <textarea readonly id="server_install" class="form-control mt-3 bg-dark text-white" style="height:150px;font-family:monospace;"></textarea>
+                <?php if ($rInstallFailed): ?>
+                    <i class="icon-base ti tabler-alert-triangle icon-32px text-danger"></i>
+                    <h5 class="text-danger mt-2"><?= $language::get('installation_failed') ?></h5>
+                <?php else: ?>
+                    <i class="icon-base ti tabler-sparkles icon-32px text-info"></i>
+                    <h5 class="text-info mt-2"><?= $language::get('installing') ?></h5>
+                <?php endif; ?>
+                <textarea readonly id="server_install" class="form-control mt-3 bg-dark text-white text-start" style="height:320px;font-family:monospace;"></textarea>
             </div>
         <?php elseif ($rServer['server_online']): ?>
             <h6 class="mb-1"><?= $language::get('server_view_cpu_usage') ?><small class="text-body-secondary ms-2"><?= $language::get('server_view_of', array(':value' => ($rWatchdog['cpu_cores'] ?? 0) . ' ' . $language::get('server_view_cores'))) ?></small></h6>
@@ -406,11 +412,11 @@ renderUnifiedLayoutFooter('admin');
                 .then(function(r) { return r.json(); })
                 .then(function(data) {
                     if (data && data.result === true) {
-                        box.innerHTML = data.data;
+                        box.value = data.data;
                         if (data.status == 3) { setTimeout(getInstallStatus, 1000); }
                         else if (data.status == 1) { setTimeout(function() { window.location.href = './server_view?id=' + serverId; }, 3000); }
                     } else {
-                        box.innerHTML = lang.noStatus;
+                        box.value = lang.noStatus;
                     }
                     box.scrollTop = box.scrollHeight;
                 })
