@@ -56,11 +56,8 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         }
 
         if ($scope === 'reseller') {
-            if (function_exists('xc_reseller_use_newui') && xc_reseller_use_newui()) {
-                require __DIR__ . '/reseller/footer.newui.php';
-            } else {
-                require __DIR__ . '/reseller/footer.php';
-            }
+            // Every reseller page is migrated to the Bootstrap 5 shell.
+            require __DIR__ . '/reseller/footer.php';
             return;
         }
 

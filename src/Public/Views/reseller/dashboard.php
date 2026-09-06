@@ -2,7 +2,7 @@
 
 /**
  * Reseller Dashboard (Bootstrap 5). Content-only markup rendered inside the
- * reseller new-UI shell (reseller/header.newui.php + footer.newui.php).
+ * reseller new-UI shell (reseller/header.php + footer.php).
  *
  * Live tiles keep the legacy data contract: ./api?action=dashboard (1s) feeds
  * the .active-connections / .online-users / .active-accounts / .credits tiles

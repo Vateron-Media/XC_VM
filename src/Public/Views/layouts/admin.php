@@ -15,34 +15,6 @@
  *   renderUnifiedLayoutHeader('admin', ['_TITLE' => 'Dashboard']);
  */
 
-if (!function_exists('xc_reseller_use_newui')) {
-    /**
-     * Per-page opt-in to the reseller Bootstrap 5 shell.
-     *
-     * Mirrors xc_admin_use_newui(): the reseller redesign migrates pages one at a
-     * time, so the shell stays legacy for every reseller page not yet rebuilt.
-     * Only pages listed in the $migratedReseller allowlist render inside
-     * reseller/header.newui.php / reseller/footer.newui.php.
-     *
-     * Forced back to the legacy shell when XC_ADMIN_LEGACY_UI is defined (global
-     * kill-switch) or the request is a modal (no reseller modal is migrated yet).
-     */
-    function xc_reseller_use_newui(): bool {
-        if (defined('XC_ADMIN_LEGACY_UI')) {
-            return false;
-        }
-        // No reseller modal (iframe) edit form has been migrated to the new shell
-        // yet — keep the legacy chrome for every modal request.
-        if (isset($_GET['modal'])) {
-            return false;
-        }
-        $page = \XcVm\Core\Util\AdminHelpers::getPageName();
-        // Pilot allowlist — seed with the reseller dashboard only.
-        static $migratedReseller = ['dashboard', 'lines', 'streams', 'movies', 'radios', 'users', 'mags', 'enigmas', 'live_connections', 'line_activity', 'user_logs', 'episodes', 'created_channels', 'epg_view', 'tickets', 'ticket', 'ticket_view', 'edit_profile', 'line', 'user', 'mag', 'enigma'];
-        return in_array($page, $migratedReseller, true);
-    }
-}
-
 if (!function_exists('renderUnifiedLayoutHeader')) {
     function renderUnifiedLayoutHeader($scope = 'admin', array $vars = []) {
         foreach ($vars as $key => $value) {
@@ -91,11 +63,8 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         }
 
         if ($scope === 'reseller') {
-            if (xc_reseller_use_newui()) {
-                require __DIR__ . '/reseller/header.newui.php';
-            } else {
-                require __DIR__ . '/reseller/header.php';
-            }
+            // Every reseller page is migrated to the Bootstrap 5 shell.
+            require __DIR__ . '/reseller/header.php';
             // header may set $rGenTrials/$rModal in local scope; propagate to
             // $GLOBALS so the footer/renderer can read it later.
             if (isset($rGenTrials)) {

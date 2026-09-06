@@ -1,283 +1,400 @@
 <?php
 
-use XcVm\Domain\Line\LineService;
+/**
+ * Bootstrap 5 reseller header — Vertical Menu Template.
+ *
+ * Mirrors admin/header.php but for the reseller surface: the reseller has
+ * NO server / admin-only chrome. The sidebar is built from a hardcoded reseller
+ * menu array (the legacy reseller navigation is hardcoded too, so there is no
+ * NavbarRegistry tree to walk here), gated by the same $rPermissions the legacy
+ * reseller header uses. The navbar carries the live header stats, the owner
+ * credits pill, a tickets link and the profile dropdown.
+ *
+ * Rendered by renderUnifiedLayoutHeader('reseller') for every reseller page
+ * (all migrated to the Bootstrap 5 shell).
+ */
+
 use XcVm\Core\Enum\Theme;
-use XcVm\Core\Reference\UiReference;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Line\LineService;
 
-if (count(get_included_files()) != 1) {
-	$rGenTrials = LineService::canGenerateTrials($rUserInfo['id']);
-	$GLOBALS['rGenTrials'] = $rGenTrials;
-	$rHues = UiReference::hues();
-	echo '<!DOCTYPE html>' . "\r\n" . '<html lang="en">' . "\r\n" . '    <head>' . "\r\n" . '        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">' . "\r\n" . '        <title>';
-	echo ($rSettings['server_name'] ?: 'XC_VM');
-	echo ' ';
-
-	if (!isset($_TITLE)) {
-	} else {
-		echo ' | ' . $_TITLE;
-	}
-
-	echo '</title>' . "\r\n" . '        <meta name="viewport" content="width=device-width, initial-scale=1.0">' . "\r\n" . '        <meta http-equiv="X-UA-Compatible" content="IE=edge" />' . "\r\n" . '        <meta name="robots" content="noindex,nofollow">' . "\r\n" . '        <link rel="shortcut icon" href="assets/old/images/favicon.ico">' . "\r\n" . '        <link href="assets/old/libs/jquery-nice-select/nice-select.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/switchery/switchery.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/select2/select2.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/datatables/dataTables.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/datatables/responsive.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/datatables/buttons.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/datatables/select.bootstrap4.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/jquery-toast/jquery.toast.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/bootstrap-touchspin/jquery.bootstrap-touchspin.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/treeview/style.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/clockpicker/bootstrap-clockpicker.min.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/daterangepicker/daterangepicker.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/nestable2/jquery.nestable.min.css" rel="stylesheet" />' . "\r\n" . '        <link href="assets/old/libs/magnific-popup/magnific-popup.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/jbox/jBox.all.min.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t" . '<link href="assets/old/css/icons.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/jquery-vectormap/jquery-jvectormap-1.2.2.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/libs/bootstrap-colorpicker/bootstrap-colorpicker.min.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t";
-
-	if (!Theme::fromId($rUserInfo['theme'])->isDark()) {
-		echo '        <link href="assets/old/css/bootstrap.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/css/app.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/css/listings.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t" . '<link href="assets/old/css/custom.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t";
-	} else {
-		echo "\t\t" . '<link href="assets/old/css/bootstrap.dark.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/css/app.dark.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        <link href="assets/old/css/listings.dark.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t" . '<link href="assets/old/css/custom.dark.css" rel="stylesheet" type="text/css" />' . "\r\n\t\t";
-	}
-
-	echo '        <link href="assets/old/css/extra.css" rel="stylesheet" type="text/css" />' . "\r\n" . '        ';
-
-	echo '        <style>' . "\r\n" . '        html, body {' . "\r\n" . '          overflow-x: hidden;' . "\r\n" . '        }' . "\r\n" . '        ';
-
-	if (!$rMobile) {
-	} else {
-		echo '        .dataTables_wrapper {' . "\r\n" . '            overflow-x: auto !important;' . "\r\n" . '        }' . "\r\n" . '        ';
-	}
-
-	echo '        </style>' . "\r\n" . '        ';
-
-	if (isset($customScript)) {
-		echo $customScript;
-	}
-
-	echo '    </head>' . "\r\n" . '    <body>' . "\r\n" . '        <header id="topnav">' . "\r\n" . '            <div class="navbar-overlay bg-animate';
-
-	if (0 >= strlen($rUserInfo['hue'] ?? '')) {
-	} else {
-		echo '-' . $rUserInfo['hue'];
-	}
-
-	echo '"></div>' . "\r\n" . '            <div class="navbar-custom" id="topnav-custom">' . "\r\n" . '                <div class="container-fluid">' . "\r\n" . '                    <ul class="list-unstyled topnav-menu float-right mb-0">' . "\r\n" . '                        <li class="dropdown notification-list">' . "\r\n" . '                            <a class="navbar-toggle nav-link">' . "\r\n" . '                                <div class="lines text-white">' . "\r\n" . '                                    <span></span>' . "\r\n" . '                                    <span></span>' . "\r\n" . '                                    <span></span>' . "\r\n" . '                                </div>' . "\r\n" . '                            </a>' . "\r\n" . '                        </li>' . "\r\n" . '                        <li class="dropdown notification-list">' . "\r\n" . '                            <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect text-white" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">' . "\r\n" . '                                <i class="mdi mdi-coin noti-icon"></i>&nbsp;' . "\r\n" . '                                <span id="owner_credits">';
-	echo number_format($rUserInfo['credits'], 0);
-	echo '</span><i class="mdi mdi-chevron-down"></i>' . "\r\n" . '                            </a>' . "\r\n" . '                            <div class="dropdown-menu dropdown-menu-right profile-dropdown ">' . "\r\n" . '                                <div class="dropdown-item noti-title">' . "\r\n" . '                                    <h5 class="m-0">';
-	echo $rUserInfo['username'];
-	echo '</h5>' . "\r\n" . '                                </div>' . "\r\n" . '                                <a href="edit_profile" class="dropdown-item notify-item">' . "\r\n" . '                                    <span>User Profile</span>' . "\r\n" . '                                </a>' . "\r\n" . '                                <a href="user_logs?user_id=';
-	echo intval($rUserInfo['id']);
-	echo '" class="dropdown-item notify-item">' . "\r\n" . '                                    <span>Credit Spend</span>' . "\r\n" . '                                </a>' . "\r\n" . '                                <a href="logout" class="dropdown-item notify-item">' . "\r\n" . '                                    <span>Logout</span>' . "\r\n" . '                                </a>' . "\r\n" . '                            </div>' . "\r\n" . '                        </li>' . "\r\n" . '                        ';
-	$rTickets = array();
-	$rIDs = array();
-	$db->query('SELECT `id` FROM `users` WHERE `id` = ? OR `owner_id` = ?;', $rUserInfo['id'], $rUserInfo['id']);
-
-	foreach ($db->get_rows() as $rRow) {
-		$rIDs[] = $rRow['id'];
-	}
-
-	if (0 >= count($rIDs)) {
-	} else {
-		$db->query('SELECT `tickets`.`id`, `tickets`.`title`, MAX(`tickets_replies`.`date`) AS `date`, `users`.`username` FROM `tickets` LEFT JOIN `tickets_replies` ON `tickets_replies`.`ticket_id` = `tickets`.`id` LEFT JOIN `users` ON `users`.`id` = `tickets`.`member_id` WHERE `tickets`.`status` <> 0 AND `admin_read` = 0 AND `user_read` = 1 AND `member_id` <> ? AND `member_id` IN (SELECT `id` FROM `users` WHERE `owner_id` = ?) GROUP BY `tickets_replies`.`ticket_id` ORDER BY `tickets_replies`.`date` DESC LIMIT 50;', $rUserInfo['id'], $rUserInfo['id']);
-		$unreadTicketCount = $db->num_rows();
-
-		foreach ($db->get_rows() as $rRow) {
-			$rTickets[] = $rRow;
-		}
-		$db->query('SELECT `tickets`.`id`, `tickets`.`title`, MAX(`tickets_replies`.`date`) AS `date`, `users`.`username` FROM `tickets` LEFT JOIN `tickets_replies` ON `tickets_replies`.`ticket_id` = `tickets`.`id` LEFT JOIN `users` ON `users`.`id` = `tickets`.`member_id` WHERE `tickets`.`status` <> 0 AND `user_read` = 0 AND `admin_read` = 1 AND `member_id` = ? GROUP BY `tickets_replies`.`ticket_id` ORDER BY `tickets_replies`.`date` DESC LIMIT 50;', $rUserInfo['id']);
-		$unreadTicketCount += $db->num_rows();
-
-		foreach ($db->get_rows() as $rRow) {
-			$rTickets[] = $rRow;
-		}
-	}
-
-	echo '                        <li class="dropdown notification-list">' . "\r\n" . '                            ';
-
-	if (0 < $unreadTicketCount) {
-		echo '                            <a class="nav-link dropdown-toggle waves-effect text-white" data-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">' . "\r\n" . '                            ';
-	} else {
-		echo '                            <a class="nav-link waves-effect text-white" href="tickets" role="button">' . "\r\n" . '                            ';
-	}
-
-	echo '                                <i class="fe-mail noti-icon"></i>' . "\r\n" . '                                ';
-
-	if (0 >= $unreadTicketCount) {
-	} else {
-		echo '                                <span class="badge badge-info rounded-circle noti-icon-badge" style="min-width:20px;">';
-		echo ($unreadTicketCount < 100 ? $unreadTicketCount : '99+');
-		echo '</span>' . "\r\n" . '                                ';
-	}
-
-	echo '                            </a>' . "\r\n" . '                            <div class="dropdown-menu dropdown-menu-right dropdown-lg">' . "\r\n" . '                                <div class="dropdown-item noti-title">' . "\r\n" . '                                    <h5 class="m-0">' . "\r\n" . '                                        Tickets' . "\r\n" . '                                    </h5>' . "\r\n" . '                                </div>' . "\r\n" . '                                <div class="slimscroll noti-scroll">' . "\r\n" . '                                    ';
-
-	foreach ($rTickets as $rTicket) {
-		$timeAgo = time() - intval($rTicket['date']);
-
-		if ($timeAgo < 60) {
-			$timeAgo = $timeAgo . ' seconds ago';
-		} else {
-			if ($timeAgo < 3600) {
-				$timeAgo = ceil($timeAgo / 60) . ' minutes ago';
-			} else {
-				if ($timeAgo < 86400) {
-					$timeAgo = ceil($timeAgo / 3600) . ' hours ago';
-				} else {
-					$timeAgo = ceil($timeAgo / 86400) . ' days ago';
-				}
-			}
-		}
-
-		echo '                                    <a href="ticket_view?id=';
-		echo $rTicket['id'];
-		echo '" class="dropdown-item notify-item">' . "\r\n" . '                                        <div class="notify-icon bg-info">' . "\r\n" . '                                            <i class="mdi mdi-comment"></i>' . "\r\n" . '                                        </div>' . "\r\n" . '                                        <p class="notify-details">';
-		echo htmlspecialchars($rTicket['title']);
-		echo '                                            <small class="text-muted">';
-		echo $timeAgo;
-		echo '</small>' . "\r\n" . '                                        </p>' . "\r\n" . '                                    </a>' . "\r\n" . '                                    ';
-	}
-	echo '                                </div>' . "\r\n" . '                                <a href="tickets" class="dropdown-item text-center text-primary notify-item notify-all">' . "\r\n" . '                                    View Tickets' . "\r\n" . '                                    <i class="fi-arrow-right"></i>' . "\r\n" . '                                </a>' . "\r\n" . '                            </div>' . "\r\n" . '                        </li>' . "\r\n" . '                    </ul>' . "\r\n" . '                    <div class="logo-box">' . "\r\n" . '                        <a href="dashboard" class="logo text-center">' . "\r\n" . '                            <span class="logo-lg';
-
-	if (0 >= strlen($rUserInfo['hue'] ?? '')) {
-	} else {
-		echo ' whiteout';
-	}
-
-	echo '">' . "\r\n" . '                                <img src="assets/old/images/logo-topbar.png" alt="" height="50">' . "\r\n" . '                            </span>' . "\r\n" . '                            <span class="logo-sm';
-
-	if (0 >= strlen($rUserInfo['hue'] ?? '')) {
-	} else {
-		echo ' whiteout';
-	}
-
-	echo '">' . "\r\n" . '                                <img src="assets/old/images/logo-topbar.png" alt="" height="28">' . "\r\n" . '                            </span>' . "\r\n" . '                        </a>' . "\r\n" . '                    </div>' . "\r\n" . '                    ';
-
-	if ($rMobile) {
-	} else {
-		echo '                    <ul class="list-unstyled topnav-menu topnav-menu-left m-0" style="opacity: 80%" id="header_stats">' . "\r\n" . '                        <li class="dropdown notification-list">' . "\r\n" . '                            <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./live_connections" role="button" aria-haspopup="false" aria-expanded="false">' . "\r\n" . '                                <span class="pro-user-name text-white ml-1">' . "\r\n" . '                                    <i class="fe-zap text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate';
-
-		if (!(0 < strlen($rUserInfo['hue'] ?? '') && in_array($rUserInfo['hue'], array_keys($rHues)))) {
-		} else {
-			echo '-' . $rUserInfo['hue'];
-		}
-
-		echo ' btn-xs waves-effect waves-light no-border"><span id="header_connections">0</span></button>' . "\r\n" . '                                </span>' . "\r\n" . '                            </a>' . "\r\n" . '                        </li>' . "\r\n" . '                        <li class="dropdown notification-list">' . "\r\n" . '                            <a class="nav-link dropdown-toggle nav-user mr-0 waves-effect pd-left pd-right" data-toggle="dropdown" href="./live_connections" role="button" aria-haspopup="false" aria-expanded="false">' . "\r\n" . '                                <span class="pro-user-name text-white ml-1">' . "\r\n" . '                                    <i class="fe-users text-white"></i> &nbsp; <button type="button" class="btn btn-dark bg-animate';
-
-		if (!(0 < strlen($rUserInfo['hue'] ?? '') && in_array($rUserInfo['hue'], array_keys($rHues)))) {
-		} else {
-			echo '-' . $rUserInfo['hue'];
-		}
-
-		echo ' btn-xs waves-effect waves-light no-border"><span id="header_users">0</span></button>' . "\r\n" . '                                </span>' . "\r\n" . '                            </a>' . "\r\n" . '                        </li>' . "\r\n" . '                    </ul>' . "\r\n" . '                    ';
-	}
-
-	echo '                    <div class="clearfix"></div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '            <div class="topbar-menu">' . "\r\n" . '                <div class="container-fluid">' . "\r\n" . '                    <div id="navigation">' . "\r\n" . '                        <ul class="navigation-menu">' . "\r\n" . '                            <li class="has-submenu">' . "\r\n" . '                                <a href="dashboard"><i class="fe-activity"></i>';
-	echo $language::get('dashboard');
-	echo '</a>' . "\r\n" . '                            </li>' . "\r\n" . '                            ';
-
-	if (!$rPermissions['create_sub_resellers']) {
-	} else {
-		echo '                            <li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-users"></i>';
-		echo $language::get('users');
-		echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    <li><a href="user">';
-		echo $language::get('add_user');
-		echo '</a></li>' . "\r\n" . '                                    <li><a href="users">';
-		echo $language::get('manage_users');
-		echo '</a></li>' . "\r\n" . '                                </ul>' . "\r\n" . '                            </li>' . "\r\n" . '                            ';
-	}
-
-	if (!($rPermissions['create_line'] || $rPermissions['create_mag'] || $rPermissions['create_enigma'])) {
-	} else {
-		echo "\t\t\t\t\t\t\t" . '<li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-desktop"></i>';
-		echo $language::get('lines');
-		echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    ';
-
-		if (!$rPermissions['create_line']) {
-		} else {
-			echo '                                    <li class="has-submenu">' . "\r\n" . '                                        <a href="#">';
-			echo $language::get('user_lines');
-			echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                        <ul class="submenu">' . "\r\n" . '                                            <li><a href="line">';
-			echo $language::get('add_line');
-			echo '</a></li>' . "\r\n" . '                                            ';
-
-			if (!$rGenTrials) {
-			} else {
-				echo '                                            <li><a href="line?trial=1">Generate Trial Line</a></li>' . "\r\n" . '                                            ';
-			}
-
-			echo '                                            <li><a href="lines">';
-			echo $language::get('manage_lines');
-			echo '</a></li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </li>' . "\r\n" . '                                    ';
-		}
-
-		if (!$rPermissions['create_mag']) {
-		} else {
-			echo '                                    <li class="has-submenu">' . "\r\n" . '                                        <a href="#">';
-			echo $language::get('mag_devices');
-			echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                        <ul class="submenu">' . "\r\n" . '                                            <li><a href="mag">';
-			echo $language::get('add_mag');
-			echo '</a></li>' . "\r\n" . '                                            ';
-
-			if (!$rGenTrials) {
-			} else {
-				echo '                                            <li><a href="mag?trial=1">Generate Trial Device</a></li>' . "\r\n" . '                                            ';
-			}
-
-			echo '                                            <li><a href="mags">';
-			echo $language::get('manage_mag_devices');
-			echo '</a></li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </li>' . "\r\n" . '                                    ';
-		}
-
-		if (!$rPermissions['create_enigma']) {
-		} else {
-			echo '                                    <li class="has-submenu">' . "\r\n" . '                                        <a href="#">';
-			echo $language::get('enigma_devices');
-			echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                        <ul class="submenu">' . "\r\n" . '                                            <li><a href="enigma">';
-			echo $language::get('add_enigma');
-			echo '</a></li>' . "\r\n" . '                                            ';
-
-			if (!$rGenTrials) {
-			} else {
-				echo '                                            <li><a href="enigma?trial=1">Generate Trial Device</a></li>' . "\r\n" . '                                            ';
-			}
-
-			echo '                                            <li><a href="enigmas">';
-			echo $language::get('manage_enigma_devices');
-			echo '</a></li>' . "\r\n" . '                                        </ul>' . "\r\n" . '                                    </li>' . "\r\n" . '                                    ';
-		}
-
-		echo '                                </ul>' . "\r\n" . '                            </li>' . "\r\n" . '                            ';
-	}
-
-	if (!$rPermissions['can_view_vod']) {
-	} else {
-		echo '                            <li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-play"></i>';
-		echo $language::get('content');
-		echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    <li><a href="streams">';
-		echo $language::get('streams');
-		echo '</a></li>' . "\r\n" . '                                    <li><a href="created_channels">';
-		echo $language::get('created_channels');
-		echo '</a></li>' . "\r\n" . '                                    <li><a href="movies">';
-		echo $language::get('movies');
-		echo '</a></li>' . "\r\n" . '                                    <li><a href="episodes">';
-		echo $language::get('episodes');
-		echo '</a></li>' . "\r\n" . '                                    <li><a href="radios">';
-		echo $language::get('stations');
-		echo '</a></li>' . "\r\n\t\t\t\t\t\t\t\t\t";
-
-		if ($rMobile) {
-		} else {
-			echo "\t\t\t\t\t\t\t\t\t" . '<li><a href="epg_view">TV Guide</a></li>' . "\r\n\t\t\t\t\t\t\t\t\t";
-		}
-
-		echo '                                </ul>' . "\r\n" . '                            </li>' . "\r\n" . '                            ';
-	}
-
-	echo '                            <li class="has-submenu">' . "\r\n" . '                                <a href="#"> <i class="fas fa-wrench"></i>';
-	echo $language::get('logs');
-	echo ' <div class="arrow-down"></div></a>' . "\r\n" . '                                <ul class="submenu">' . "\r\n" . '                                    ';
-
-	if (!$rPermissions['reseller_client_connection_logs']) {
-	} else {
-		echo '                                    <li><a href="live_connections">';
-		echo $language::get('live_connections');
-		echo '</a></li>' . "\r\n" . '                                    <li><a href="line_activity">';
-		echo $language::get('activity_logs');
-		echo '</a></li>' . "\r\n" . '                                    ';
-	}
-
-	echo '                                    <li><a href="user_logs">User Logs</a></li>' . "\r\n" . '                                </ul>' . "\r\n" . '                            </li>' . "\r\n" . '                        </ul>' . "\r\n" . '                        <div class="clearfix"></div>' . "\r\n" . '                    </div>' . "\r\n" . '                </div>' . "\r\n" . '            </div>' . "\r\n" . '        </header>' . "\r\n" . '        ';
-
-	if (!$rSettings['js_navigate']) {
-	} else {
-		echo '        <div id="status">' . "\r\n" . '            <div class="spinner"></div>' . "\r\n" . '        </div>' . "\r\n" . '        ';
-	}
-} else {
-	exit();
+if (count(get_included_files()) == 1) {
+    exit();
 }
+
+// Trial generation gate — legacy reseller header computes and publishes this so
+// the "Generate Trial" menu entries and downstream views can read it.
+$rGenTrials = LineService::canGenerateTrials($rUserInfo['id']);
+$GLOBALS['rGenTrials'] = $rGenTrials;
+
+$xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
+
+// Per-user Bootstrap 5 customizer state (shared config.js contract). The stored
+// theme wins for the initial data-bs-theme paint; 'system'/unset falls back to
+// the legacy per-user theme column so there is no flash.
+$xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
+$xmThemePref = $xmUiPrefs['theme'] ?? null;
+$xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
+
+$xmPage        = AdminHelpers::getPageName();
+$xmPermissions = $rPermissions ?? [];
+
+/**
+ * Reseller sidebar menu (hardcoded, permission-gated). Each node is:
+ *   ['label' => i18n key, 'icon' => tabler class, 'url' => string,
+ *    'show' => bool, 'children' => node[]].
+ * Only top-level nodes carry an icon (matches the admin vertical-menu markup).
+ */
+$xmMenu = [
+    [
+        'label' => 'dashboard',
+        'icon'  => 'ti tabler-smart-home',
+        'url'   => 'dashboard',
+        'show'  => true,
+    ],
+    [
+        'label' => 'sub_resellers',
+        'icon'  => 'ti tabler-users',
+        'url'   => '#',
+        'show'  => !empty($xmPermissions['create_sub_resellers']),
+        'children' => [
+            ['label' => 'add_user',     'url' => 'user',  'show' => true],
+            ['label' => 'manage_users', 'url' => 'users', 'show' => true],
+        ],
+    ],
+    [
+        'label' => 'devices',
+        'icon'  => 'ti tabler-device-desktop',
+        'url'   => '#',
+        'show'  => !empty($xmPermissions['create_line']) || !empty($xmPermissions['create_mag']) || !empty($xmPermissions['create_enigma']),
+        'children' => [
+            [
+                'label' => 'user_lines',
+                'url'   => '#',
+                'show'  => !empty($xmPermissions['create_line']),
+                'children' => [
+                    ['label' => 'add_line',      'url' => 'line',         'show' => true],
+                    ['label' => 'generate_trial', 'url' => 'line?trial=1', 'show' => $rGenTrials],
+                    ['label' => 'manage_lines',  'url' => 'lines',        'show' => true],
+                ],
+            ],
+            [
+                'label' => 'mag_devices',
+                'url'   => '#',
+                'show'  => !empty($xmPermissions['create_mag']),
+                'children' => [
+                    ['label' => 'add_mag',            'url' => 'mag',         'show' => true],
+                    ['label' => 'generate_trial',     'url' => 'mag?trial=1', 'show' => $rGenTrials],
+                    ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => true],
+                ],
+            ],
+            [
+                'label' => 'enigma_devices',
+                'url'   => '#',
+                'show'  => !empty($xmPermissions['create_enigma']),
+                'children' => [
+                    ['label' => 'add_enigma',            'url' => 'enigma',         'show' => true],
+                    ['label' => 'generate_trial',        'url' => 'enigma?trial=1', 'show' => $rGenTrials],
+                    ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => true],
+                ],
+            ],
+        ],
+    ],
+    [
+        'label' => 'content',
+        'icon'  => 'ti tabler-player-play',
+        'url'   => '#',
+        'show'  => !empty($xmPermissions['can_view_vod']),
+        'children' => [
+            ['label' => 'streams',          'url' => 'streams',          'show' => true],
+            ['label' => 'created_channels',  'url' => 'created_channels', 'show' => true],
+            ['label' => 'movies',           'url' => 'movies',           'show' => true],
+            ['label' => 'episodes',         'url' => 'episodes',         'show' => true],
+            ['label' => 'radios',           'url' => 'radios',           'show' => true],
+            ['label' => 'tv_guide',         'url' => 'epg_view',         'show' => !$rMobile],
+        ],
+    ],
+    [
+        'label' => 'tickets',
+        'icon'  => 'ti tabler-ticket',
+        'url'   => 'tickets',
+        'show'  => true,
+    ],
+    [
+        'label' => 'logs',
+        'icon'  => 'ti tabler-clipboard-list',
+        'url'   => '#',
+        'show'  => true,
+        'children' => [
+            ['label' => 'live_connections', 'url' => 'live_connections', 'show' => !empty($xmPermissions['reseller_client_connection_logs'])],
+            ['label' => 'activity_logs',    'url' => 'line_activity',    'show' => !empty($xmPermissions['reseller_client_connection_logs'])],
+            ['label' => 'user_logs',        'url' => 'user_logs',        'show' => true],
+        ],
+    ],
+];
+
+/**
+ * Render the reseller sidebar tree.
+ *
+ * Returns [html, isActive] so the active leaf and its ancestors are resolved in
+ * one traversal (ancestors gain `open active`). Only depth-0 nodes carry an icon.
+ */
+if (!function_exists('_xc_reseller_menu_node')) {
+    function _xc_reseller_menu_node(array $item, int $depth, string $page, string $language): array {
+        if (empty($item['show'])) {
+            return ['', false];
+        }
+        $children = array_filter($item['children'] ?? [], static fn($c) => !empty($c['show']));
+
+        $childHtml = '';
+        $childActive = false;
+        if ($children) {
+            $sub = '';
+            foreach ($children as $child) {
+                [$node, $active] = _xc_reseller_menu_node($child, $depth + 1, $page, $language);
+                $sub .= $node;
+                $childActive = $childActive || $active;
+            }
+            if ($sub !== '') {
+                $childHtml = '<ul class="menu-sub">' . $sub . '</ul>';
+            }
+        }
+        $hasKids = $childHtml !== '';
+
+        $url  = (string) ($item['url'] ?? '#');
+        // Match the current page by the item's URL basename (strip any query).
+        $urlBase    = $url !== '#' && $url !== '' ? basename(explode('?', $url)[0]) : '';
+        $selfActive = $urlBase !== '' && $urlBase === $page;
+        $active     = $selfActive || ($hasKids && $childActive);
+
+        $liClass = 'menu-item' . ($active ? ' active' : '') . ($hasKids && $active ? ' open' : '');
+        $href    = htmlspecialchars($hasKids ? 'javascript:void(0);' : $url, ENT_QUOTES);
+        $icon    = $depth === 0
+            ? '<i class="menu-icon icon-base ' . htmlspecialchars((string) ($item['icon'] ?? 'ti tabler-circle'), ENT_QUOTES) . '"></i>'
+            : '';
+        $label   = htmlspecialchars($language::get($item['label']), ENT_QUOTES);
+
+        $html  = '<li class="' . $liClass . '">';
+        $html .= '<a href="' . $href . '" class="menu-link' . ($hasKids ? ' menu-toggle' : '') . '">';
+        $html .= $icon . '<div>' . $label . '</div>';
+        $html .= '</a>' . $childHtml . '</li>';
+
+        return [$html, $active];
+    }
+}
+?>
+<!doctype html>
+<html
+    lang="en"
+    class="layout-navbar-fixed layout-menu-fixed layout-compact"
+    dir="ltr"
+    data-skin="default"
+    data-bs-theme="<?= $xmBsTheme ?>"
+    data-assets-path="assets/new/"
+    data-template="vertical-menu-template">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="robots" content="noindex,nofollow">
+    <title><?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?><?= isset($_TITLE) ? ' | ' . htmlspecialchars($_TITLE) : ''; ?></title>
+    <link rel="icon" type="image/x-icon" href="assets/new/img/favicon/favicon.ico">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
+
+    <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
+    <link rel="stylesheet" href="assets/new/vendor/fonts/iconify-icons.css">
+
+    <!-- Core theme (single file serves both light & dark via data-bs-theme) -->
+    <link rel="stylesheet" href="assets/new/vendor/libs/node-waves/node-waves.css">
+    <link rel="stylesheet" href="assets/new/vendor/libs/pickr/pickr-themes.css">
+    <link rel="stylesheet" href="assets/new/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
+    <link rel="stylesheet" href="assets/new/vendor/css/core.css">
+    <link rel="stylesheet" href="assets/new/css/demo.css">
+
+    <!-- Page vendor styles (shared admin registry) + XC_VM overrides -->
+    <?php require_once dirname(__DIR__, 2) . '/admin/vendors.php'; ?>
+    <?php xc_newui_vendor_css(xc_newui_vendors_wanted()); ?>
+    <link rel="stylesheet" href="assets/new/xcvm/custom.css">
+
+    <!-- Helpers + template customizer must precede config.js -->
+    <script src="assets/new/vendor/js/helpers.js"></script>
+    <script src="assets/new/vendor/js/template-customizer.js"></script>
+    <!-- Per-user customizer state (theme persists in localStorage via the
+         customizer; the reseller api exposes no save_ui_prefs endpoint yet). -->
+    <script>
+        window.XC_VM = window.XC_VM || {};
+        window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
+    </script>
+    <script src="assets/new/js/config.js"></script>
+</head>
+
+<?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
+
+<body class="xm-modal-body">
+    <div class="container-fluid p-4">
+<?php else: ?>
+
+<body>
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+
+            <!-- Vertical menu -->
+            <aside id="layout-menu" class="layout-menu menu-vertical menu">
+                <div class="app-brand demo">
+                    <a href="dashboard" class="app-brand-link">
+                        <span class="app-brand-logo demo">
+                            <img src="assets/old/images/logo-topbar.png" alt="<?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?>" height="24">
+                        </span>
+                        <span class="app-brand-text demo menu-text fw-bold ms-3"><?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?></span>
+                    </a>
+                    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+                        <i class="icon-base ti menu-toggle-icon d-none d-xl-block"></i>
+                        <i class="icon-base ti tabler-x d-block d-xl-none"></i>
+                    </a>
+                </div>
+
+                <div class="menu-inner-shadow"></div>
+
+                <ul class="menu-inner py-1">
+                    <?php foreach ($xmMenu as $xmItem): ?>
+                        <?php [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language); ?>
+                        <?= $xmNodeHtml; ?>
+                    <?php endforeach; ?>
+                </ul>
+            </aside>
+            <!-- / Vertical menu -->
+
+            <!-- Layout page -->
+            <div class="layout-page">
+
+                <!-- Navbar -->
+                <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
+                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+                        <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
+                            <i class="icon-base ti tabler-menu-2 icon-md"></i>
+                        </a>
+                    </div>
+
+                    <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
+
+                        <!-- Left: live header stats (polled by footer.php) -->
+                        <div class="navbar-nav align-items-center">
+                            <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
+                                <div class="d-none d-xl-flex align-items-center" id="header_stats">
+                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('connections'), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-plug-connected icon-22px me-1"></i>
+                                        <span class="fw-medium" id="header_connections">0</span>
+                                    </a>
+                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('users'), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-users icon-22px me-1"></i>
+                                        <span class="fw-medium" id="header_users">0</span>
+                                    </a>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+
+                        <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+                            <!-- Owner credits pill (refreshed via ?action=stats) -->
+                            <li class="nav-item me-2">
+                                <span class="badge bg-label-primary rounded-pill d-inline-flex align-items-center" title="<?= htmlspecialchars($language::get('credits'), ENT_QUOTES); ?>">
+                                    <i class="icon-base ti tabler-coin icon-18px me-1"></i>
+                                    <span id="owner_credits"><?= number_format((float) ($rUserInfo['credits'] ?? 0), 0); ?></span>
+                                </span>
+                            </li>
+
+                            <!-- Tickets -->
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-icon btn-text-secondary rounded-pill" href="tickets" title="<?= htmlspecialchars($language::get('tickets'), ENT_QUOTES); ?>">
+                                    <i class="icon-base ti tabler-ticket icon-22px"></i>
+                                </a>
+                            </li>
+
+                            <!-- Theme switcher (light / dark / system) -->
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
+                                    id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <i class="icon-base ti tabler-sun icon-22px theme-icon-active text-heading"></i>
+                                    <span class="d-none ms-2" id="nav-theme-text"><?= $language::get('shell_toggle_theme'); ?></span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
+                                    <li>
+                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="light">
+                                            <span><i class="icon-base ti tabler-sun icon-22px me-3" data-icon="sun"></i><?= $language::get('shell_theme_light'); ?></span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark">
+                                            <span><i class="icon-base ti tabler-moon-stars icon-22px me-3" data-icon="moon-stars"></i><?= $language::get('shell_theme_dark'); ?></span>
+                                        </button>
+                                    </li>
+                                    <li>
+                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system">
+                                            <span><i class="icon-base ti tabler-device-desktop-analytics icon-22px me-3" data-icon="device-desktop-analytics"></i><?= $language::get('shell_theme_system'); ?></span>
+                                        </button>
+                                    </li>
+                                </ul>
+                            </li>
+
+                            <!-- User dropdown -->
+                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                    <div class="avatar avatar-online">
+                                        <span class="avatar-initial rounded-circle bg-label-primary">
+                                            <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                        </span>
+                                    </div>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <div class="dropdown-item mt-0 d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-2">
+                                                <div class="avatar avatar-online">
+                                                    <span class="avatar-initial rounded-circle bg-label-primary">
+                                                        <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div class="flex-grow-1">
+                                                <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
+                                                <small class="text-body-secondary"><?= $language::get('shell_role_reseller'); ?></small>
+                                            </div>
+                                        </div>
+                                    </li>
+                                    <li><div class="dropdown-divider my-1 mx-n2"></div></li>
+                                    <li>
+                                        <a class="dropdown-item" href="edit_profile">
+                                            <i class="icon-base ti tabler-user me-3 icon-md"></i>
+                                            <span class="align-middle"><?= $language::get('edit_profile'); ?></span>
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="user_logs?user_id=<?= intval($rUserInfo['id']); ?>">
+                                            <i class="icon-base ti tabler-coin me-3 icon-md"></i>
+                                            <span class="align-middle"><?= $language::get('credit_spend'); ?></span>
+                                        </a>
+                                    </li>
+                                    <li><div class="dropdown-divider my-1 mx-n2"></div></li>
+                                    <li>
+                                        <a class="dropdown-item" href="logout">
+                                            <i class="icon-base ti tabler-logout me-3 icon-md"></i>
+                                            <span class="align-middle"><?= $language::get('logout'); ?></span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <!--/ User dropdown -->
+                        </ul>
+                    </div>
+                </nav>
+                <!-- / Navbar -->
+
+                <!-- Content wrapper (closed in footer.php) -->
+                <div class="content-wrapper">
+                    <div class="container-xxl flex-grow-1 container-p-y">
+<?php endif; /* modal vs full-layout body */ ?>
