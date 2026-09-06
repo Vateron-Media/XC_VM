@@ -456,17 +456,15 @@ class CoreNavbarProvider implements NavbarProviderInterface {
      * @return void
      */
     private static function _management(): void {
-        // Label is "System"; the registry KEY stays 'management' so the
-        // reserved child slots (management.service_setup 60+, etc.) and the
-        // $_menuSections mapping keep working.
-        NavbarRegistry::add((new NavbarItem('management'))
-            ->url('#')->label('', 'System')
-            ->icon('fas fa-wrench')->order(600));
+        // The former "System" group is flattened: its sections (Service Setup,
+        // Access Codes, Security, Tools, Tickets) are now self-standing top-level
+        // items. The registry KEYS stay 'management.*' so the reserved child slots
+        // (management.service_setup 60+, etc.) and every child ->parent() keep working.
 
         // Service setup
         NavbarRegistry::add((new NavbarItem('management.service_setup'))
-            ->parent('management')->url('#')
-            ->label('service_setup')->permissions(['mng_packages', 'categories', 'mng_groups', 'epg', 'tprofiles', 'folder_watch'])->order(10));
+            ->url('#')->icon('fas fa-cog')
+            ->label('service_setup')->permissions(['mng_packages', 'categories', 'mng_groups', 'epg', 'tprofiles', 'folder_watch'])->order(600));
         NavbarRegistry::add((new NavbarItem('management.service_setup.packages'))
             ->parent('management.service_setup')->url('packages')
             ->label('packages')->permissions(['mng_packages'])->order(10));
@@ -486,8 +484,8 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 
         // Access codes
         NavbarRegistry::add((new NavbarItem('management.access_codes'))
-            ->parent('management')->url('#')
-            ->label('', 'Access Codes')->permissions(['add_code'])->order(20));
+            ->url('#')->icon('fas fa-key')
+            ->label('', 'Access Codes')->permissions(['add_code'])->order(610));
         NavbarRegistry::add((new NavbarItem('management.access_codes.add'))
             ->parent('management.access_codes')->url('code')
             ->label('add_access_codes')->permissions(['add_code'])->order(10));
@@ -497,8 +495,8 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 
         // Security
         NavbarRegistry::add((new NavbarItem('management.security'))
-            ->parent('management')->url('#')
-            ->label('', 'Security')->permissions(['block_asns', 'block_ips', 'block_isps', 'block_uas', 'add_hmac', 'rtmp'])->order(30));
+            ->url('#')->icon('fas fa-shield-alt')
+            ->label('', 'Security')->permissions(['block_asns', 'block_ips', 'block_isps', 'block_uas', 'add_hmac', 'rtmp', 'manage_mag'])->order(620));
         NavbarRegistry::add((new NavbarItem('management.security.asns'))
             ->parent('management.security')->url('asns')
             ->label('blocked_asns')->permissions(['block_asns'])->order(10));
@@ -517,10 +515,13 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('management.security.rtmp'))
             ->parent('management.security')->url('rtmp_ips')
             ->label('rtmp_ips')->permissions(['rtmp'])->order(60));
+        NavbarRegistry::add((new NavbarItem('management.security.magscan'))
+            ->parent('management.security')->url('magscan_settings')
+            ->label('magscan_settings')->permissions(['manage_mag'])->order(70));
 
         NavbarRegistry::add((new NavbarItem('management.tools'))
-            ->parent('management')->url('#')
-            ->label('tools')->permissions(['channel_order', 'fingerprint', 'mass_delete', 'quick_tools', 'rtmp', 'stream_tools'])->order(40));
+            ->url('#')->icon('fas fa-wrench')
+            ->label('tools')->permissions(['channel_order', 'fingerprint', 'mass_delete', 'quick_tools', 'rtmp', 'stream_tools'])->order(630));
         NavbarRegistry::add((new NavbarItem('management.tools.channel_order'))
             ->parent('management.tools')->url('channel_order')
             ->label('channel_order')->permissions(['channel_order'])->desktopOnly()->order(10));
@@ -543,9 +544,9 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         // Logs moved to its own top-level tab — see _logs().
 
         NavbarRegistry::add((new NavbarItem('management.tickets'))
-            ->parent('management')->url('tickets')
+            ->url('tickets')->icon('fas fa-ticket-alt')
             ->label('tickets')->permissions(['manage_tickets'])
-            ->settingDisabled('show_tickets')->order(50));
+            ->settingDisabled('show_tickets')->order(640));
     }
 
     // ── Profile dropdown ──────────────────────────────────────────

@@ -45,6 +45,10 @@ if (!function_exists('_xc_newui_icon')) {
             'fas fa-wrench'  => 'ti tabler-tool',
             'fas fa-users'   => 'ti tabler-users',
             'fas fa-clipboard-list' => 'ti tabler-clipboard-list',
+            'fas fa-cog'     => 'ti tabler-settings',
+            'fas fa-key'     => 'ti tabler-key',
+            'fas fa-shield-alt' => 'ti tabler-shield-lock',
+            'fas fa-ticket-alt' => 'ti tabler-ticket',
         ];
         if (isset($map[$icon])) return $map[$icon];
 
@@ -224,7 +228,7 @@ $_menu = new XcNewuiMenuBuilder($rMobile, $rSettings, (string) $language, AdminH
 $_menuSections = [
     ['title' => '',               'keys' => ['dashboard']],
     ['title' => 'Catalog',        'keys' => ['users', 'content', 'vod', 'distribution']],
-    ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management']],
+    ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management.service_setup', 'management.access_codes', 'management.security', 'management.tools', 'management.tickets']],
 ];
 ?>
 <!-- Vertical menu -->
