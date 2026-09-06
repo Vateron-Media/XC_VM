@@ -158,7 +158,7 @@ renderUnifiedLayoutFooter('reseller');
                 })
                 .catch(function () { /* keep last values */ })
                 .finally(function () {
-                    var wait = Math.max(0, 1000 - (Date.now() - start));
+                    var wait = Math.max(0, 5000 - (Date.now() - start));
                     setTimeout(poll, wait);
                 });
         }

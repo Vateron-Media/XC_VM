@@ -252,7 +252,7 @@ if (count(get_included_files()) == 1) {
                         set('header_users', d.total_users || 0);
                     })
                     .catch(function() { /* keep last values */ })
-                    .finally(function() { setTimeout(pollStats, 1000); });
+                    .finally(function() { setTimeout(pollStats, 5000); });
             }
 
             function pollCredits() {

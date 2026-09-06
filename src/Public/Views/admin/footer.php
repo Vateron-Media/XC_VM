@@ -476,7 +476,7 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                         /* keep last values */
                     })
                     .finally(function() {
-                        setTimeout(poll, 1000);
+                        setTimeout(poll, 5000);
                     });
             }
             poll();
