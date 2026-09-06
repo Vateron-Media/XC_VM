@@ -73,349 +73,179 @@ if (!isset($_SESSION['hash'])) {
             exit();
         }
     }
+
+    // Bootstrap 5 (new-UI) login — XC_VM "Core Access" HUD: a full-bleed sci-fi
+    // backdrop with a single angular, red-accented sign-in console in the centre.
+    // Deliberately single-look (dark + red), so it does not follow the theme/hue
+    // cookies the rest of the panel uses.
+    $rBrand  = $rSettings['server_name'] ?: 'XC_VM';
+    $rStatusMessages = [
+        STATUS_FAILURE         => 'login_message_1',
+        STATUS_INVALID_CODE    => 'login_message_2',
+        STATUS_NOT_ADMIN       => 'login_message_3',
+        STATUS_DISABLED        => 'login_message_4',
+        STATUS_INVALID_CAPTCHA => 'login_message_5',
+    ];
+    $rYears = (date('Y') === '2025') ? '2025' : '2025–' . date('Y');
+    $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
 ?>
     <!DOCTYPE html>
     <html lang="en">
 
     <head>
-        <meta charset="utf-8">
-        <title data-id="login">XC_VM | <?= $language::get('login') ?></title>
+        <meta charset="UTF-8">
+        <title data-id="login"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?> | <?= $language::get('login') ?></title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <link rel="shortcut icon" href="assets/old/images/favicon.ico">
-        <link href="assets/old/css/icons.css" rel="stylesheet">
-        <?php if (isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1): ?>
-            <link href="assets/old/css/bootstrap.dark.css" rel="stylesheet">
-            <link href="assets/old/css/app.dark.css" rel="stylesheet">
-        <?php else: ?>
-            <link href="assets/old/css/bootstrap.css" rel="stylesheet">
-            <link href="assets/old/css/app.css" rel="stylesheet">
-        <?php endif; ?>
+        <meta name="robots" content="noindex,nofollow">
+        <link rel="icon" type="image/x-icon" href="assets/old/images/favicon.ico">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
 
-        <link href="assets/old/css/extra.css" rel="stylesheet">
-
-        <style>
-            * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-            }
-
-            body,
-            html {
-                height: 100%;
-                overflow: hidden;
-            }
-
-            .login-container {
-                display: flex;
-                height: 100vh;
-                width: 100vw;
-            }
-
-            .video-section {
-                width: 63%;
-                height: 100%;
-                position: relative;
-                overflow: hidden;
-            }
-
-            .background-video {
-                position: absolute;
-                top: 45%;
-                left: 50%;
-                min-width: 100%;
-                min-height: 100%;
-                width: auto;
-                height: auto;
-                z-index: 1;
-                transform: translateX(-50%) translateY(-50%);
-                background-size: cover;
-            }
-
-            .video-overlay {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: linear-gradient(135deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.6) 100%);
-                z-index: 0;
-            }
-
-            .login-section {
-                width: 37%;
-                height: 100%;
-                display: flex;
-                flex-direction: column;
-                position: relative;
-            }
-
-            .login-content {
-                flex: 1;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 40px;
-                background: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#1a1d29' : '#ffffff' ?>;
-            }
-
-            .login-form-wrapper {
-                width: 100%;
-                max-width: 565px;
-            }
-
-            .logo-section {
-                text-align: center;
-                margin-bottom: 40px;
-            }
-
-            .logo-section img {
-                height: 80px;
-                margin-bottom: 20px;
-            }
-
-            .login-title {
-                font-size: 28px;
-                font-weight: 600;
-                margin-bottom: 10px;
-                color: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#ffffff' : '#2c3e50' ?>;
-            }
-
-            .login-subtitle {
-                color: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#8b93a7' : '#7c8db0' ?>;
-                margin-bottom: 30px;
-            }
-
-            .login-form .card {
-                border: none;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-                border-radius: 15px;
-                overflow: hidden;
-            }
-
-            .login-form .card-body {
-                padding: 40px;
-                background: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#252a3d' : '#ffffff' ?>;
-            }
-
-            .login-form .form-control {
-                border-radius: 10px;
-                padding: 15px 20px;
-                font-size: 14px;
-                border: 2px solid <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#3a4157' : '#e8ecf4' ?>;
-                background: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#1e2139' : '#f8f9fa' ?>;
-                transition: all 0.3s ease;
-            }
-
-            .login-form .form-control:focus {
-                border-color: <?= isset($_COOKIE['hue']) && !empty($_COOKIE['hue']) && isset($rHues[$_COOKIE['hue']]) ? $rHues[$_COOKIE['hue']] : '#4fc3f7' ?>;
-                box-shadow: 0 0 0 0.2rem <?= isset($_COOKIE['hue']) && !empty($_COOKIE['hue']) && isset($rHues[$_COOKIE['hue']]) ? $rHues[$_COOKIE['hue']] . '40' : '#4fc3f740' ?>;
-            }
-
-            .login-form label {
-                font-weight: 600;
-                margin-bottom: 8px;
-                color: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#ffffff' : '#2c3e50' ?>;
-            }
-
-            .login-btn {
-                border-radius: 10px;
-                padding: 15px;
-                font-size: 16px;
-                font-weight: 600;
-                border: none;
-                width: 100%;
-                transition: all 0.3s ease;
-                background: linear-gradient(135deg, <?= isset($_COOKIE['hue']) && !empty($_COOKIE['hue']) && isset($rHues[$_COOKIE['hue']]) ? $rHues[$_COOKIE['hue']] . ', ' . $rHues[$_COOKIE['hue']] . 'cc' : '#4fc3f7, #4fc3f7cc' ?>);
-            }
-
-            .login-btn:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-            }
-
-            .alert {
-                border-radius: 10px;
-                border: none;
-                padding: 15px 20px;
-                margin-bottom: 25px;
-            }
-
-            .g-recaptcha {
-                display: flex;
-                justify-content: center;
-                margin: 20px 0;
-            }
-
-            .login-footer {
-                background: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#252a3d' : '#f8f9fa' ?>;
-                padding: 20px 40px;
-                border-top: 1px solid <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#3a4157' : '#e8ecf4' ?>;
-                text-align: center;
-                color: <?= isset($_COOKIE['theme']) && $_COOKIE['theme'] == 1 ? '#8b93a7' : '#7c8db0' ?>;
-                font-size: 14px;
-            }
-
-            @media (max-width: 992px) {
-                .login-container {
-                    flex-direction: column;
-                }
-
-                .video-section {
-                    display: none;
-                }
-
-                .login-section {
-                    width: 100%;
-                }
-
-                .login-content {
-                    padding: 20px;
-                }
-
-                .login-form .card-body {
-                    padding: 30px;
-                }
-            }
-
-            @media (max-width: 576px) {
-                .login-content {
-                    padding: 15px;
-                }
-
-                .login-form .card-body {
-                    padding: 20px;
-                }
-
-                .login-footer {
-                    padding: 15px 20px;
-                }
-            }
-        </style>
+        <link rel="stylesheet" href="assets/new/xcvm/login.css">
     </head>
 
     <body>
-        <div class="login-container">
-            <div class="video-section">
-                <video class="background-video" autoplay muted loop>
-                    <source src="assets/old/videos/login-bg.mp4" type="video/mp4">
-                    <source src="assets/old/videos/login-bg.webm" type="video/webm">
-                </video>
-                <div class="video-overlay"></div>
-            </div>
-            <div class="login-section">
-                <div class="login-content">
-                    <div class="login-form-wrapper">
-                        <div class="logo-section">
-                            <img src="assets/old/images/logo.png" alt="XC_VM Logo">
-                            <div class="login-title">Welcome Back</div>
-                            <div class="login-subtitle">Sign in to your account</div>
-                        </div>
-                        <?php if (isset($_STATUS)): ?>
-                            <?php switch ($_STATUS):
-                                case STATUS_FAILURE: ?>
-                                    <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        <?= $language::get('login_message_1') ?>
-                                    </div>
-                                    <?php break; ?>
-                                <?php
-                                case STATUS_INVALID_CODE: ?>
-                                    <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        <?= $language::get('login_message_2') ?>
-                                    </div>
-                                    <?php break; ?>
-                                <?php
-                                case STATUS_NOT_ADMIN: ?>
-                                    <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        <?= $language::get('login_message_3') ?>
-                                    </div>
-                                    <?php break; ?>
-                                <?php
-                                case STATUS_DISABLED: ?>
-                                    <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        <?= $language::get('login_message_4') ?>
-                                    </div>
-                                    <?php break; ?>
-                                <?php
-                                case STATUS_INVALID_CAPTCHA: ?>
-                                    <div class="alert alert-danger alert-dismissible bg-danger text-white border-0 fade show" role="alert">
-                                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
-                                            <span aria-hidden="true">&times;</span>
-                                        </button>
-                                        <?= $language::get('login_message_5') ?>
-                                    </div>
-                            <?php endswitch; ?>
-                        <?php endif; ?>
-                        <form action="./login" method="POST" data-parsley-validate class="login-form">
-                            <div class="card">
-                                <div class="card-body">
-                                    <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::get('referrer') ?? '') ?>">
+        <div class="background"></div>
+        <div class="grid"></div>
 
-                                    <div class="form-group mb-3" id="username_group">
-                                        <label for="username"><?= $language::get('username') ?></label>
-                                        <input class="form-control" autocomplete="off" type="text" id="username" name="username" required
-                                            data-parsley-trigger="change" placeholder="<?= $language::get('enter_your_username') ?>">
-                                    </div>
+        <div class="page">
+            <div class="stage">
+                <section class="login-panel">
+                    <span class="panel-frame" aria-hidden="true"></span>
 
-                                    <div class="form-group mb-3">
-                                        <label for="password"><?= $language::get('password') ?></label>
-                                        <input class="form-control" autocomplete="off" type="password" required
-                                            data-parsley-trigger="change" id="password" name="password"
-                                            placeholder="<?= $language::get('enter_your_password') ?>">
-                                    </div>
-
-                                    <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
-                                        <div class="text-center">
-                                            <div class="g-recaptcha" data-callback="recaptchaCallback"
-                                                data-expired-callback="recaptchaExpired"
-                                                id="verification" data-sitekey="<?= $rSettings['recaptcha_v2_site_key'] ?>"></div>
-                                        </div>
-                                    <?php endif; ?>
-
-                                    <div class="form-group mb-0 mt-4">
-                                        <button class="login-btn" type="submit" id="login_button" name="login"
-                                            <?= ($rSettings['recaptcha_enable'] ?? false) ? 'disabled' : '' ?>>
-                                            <?= $language::get('login') ?>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
+                    <div class="panel-logo">
+                        <div class="panel-logo-main"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?></div>
+                        <div class="panel-title"><?= $language::get('admin_access') ?></div>
                     </div>
-                </div>
-                <div class="login-footer">
-                    <?php $rYears = (date('Y') === '2025') ? '2025' : '2025–' . date('Y'); ?>
-                    <div>&copy; <?= $rYears ?> <a href="https://github.com/Vateron-Media/XC_VM" target="_blank" rel="noopener noreferrer">Vateron Media</a> &middot; <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">AGPL-3.0</a></div>
+
+                    <?php if (isset($_STATUS) && isset($rStatusMessages[$_STATUS])): ?>
+                        <div class="panel-alert" role="alert">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="9" />
+                                <path d="M12 8v5M12 16h.01" />
+                            </svg>
+                            <span><?= $language::get($rStatusMessages[$_STATUS]) ?></span>
+                        </div>
+                    <?php endif; ?>
+
+                    <form id="loginForm" method="POST" action="./login">
+                        <input type="hidden" name="referrer" value="<?= htmlspecialchars(RequestManager::get('referrer') ?? '', ENT_QUOTES) ?>">
+
+                        <div class="form-group">
+                            <div class="input-wrapper">
+                                <span class="input-icon user" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="8" r="4" />
+                                        <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                                    </svg>
+                                </span>
+                                <input type="text" name="username" id="username" autocomplete="username" required autofocus
+                                    placeholder="<?= htmlspecialchars($language::get('username'), ENT_QUOTES) ?>">
+                            </div>
+
+                            <div class="input-wrapper">
+                                <span class="input-icon password" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <rect x="5" y="11" width="14" height="9" rx="2" />
+                                        <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+                                    </svg>
+                                </span>
+                                <input type="password" name="password" id="password" autocomplete="current-password" required
+                                    placeholder="<?= htmlspecialchars($language::get('password'), ENT_QUOTES) ?>">
+
+                                <button type="button" class="show-password" id="showPassword" aria-label="Show password">
+                                    <svg class="eye-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z" />
+                                        <circle cx="12" cy="12" r="3" />
+                                    </svg>
+                                    <svg class="eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M3 3l18 18" />
+                                        <path d="M10.6 10.6a3 3 0 0 0 4.2 4.2" />
+                                        <path d="M9.4 5.2A10 10 0 0 1 12 5c6.5 0 10 6 10 6a17 17 0 0 1-3.3 3.9M6.1 6.1A17 17 0 0 0 2 12s3.5 6 10 6a10 10 0 0 0 3.3-.5" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <?php if ($rRecaptcha): ?>
+                            <div class="recaptcha-wrap">
+                                <div class="g-recaptcha" id="verification" data-callback="recaptchaCallback" data-expired-callback="recaptchaExpired" data-sitekey="<?= htmlspecialchars($rSettings['recaptcha_v2_site_key'], ENT_QUOTES) ?>"></div>
+                            </div>
+                        <?php endif; ?>
+
+                        <button class="login-button" type="submit" id="login_button" name="login" <?= $rRecaptcha ? 'disabled' : '' ?>>
+                            <?= $language::get('login') ?>
+                            <span class="arrow">→</span>
+                        </button>
+                    </form>
+
+                    <span class="panel-divider" aria-hidden="true"></span>
+
+                    <div class="panel-foot">
+                        &copy; <?= $rYears ?>
+                        <a href="https://github.com/Vateron-Media/XC_VM" target="_blank" rel="noopener noreferrer">Vateron Media</a>
+                        &middot;
+                        <a href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">AGPL-3.0</a>
+                    </div>
+                </section>
+
+                <div class="panel-glow" aria-hidden="true">
+                    <span class="g-left"></span>
+                    <span class="g-top"></span>
+                    <span class="g-bl"></span>
+                    <span class="g-blh"></span>
+                    <span class="g-br"></span>
+                    <span class="g-brh"></span>
+                    <span class="g-ticks"><i></i><i></i><i></i><i></i></span>
+                    <span class="g-plus p1"></span>
+                    <span class="g-plus p2"></span>
+
+                    <span class="g-tl"></span>
+                    <span class="g-tr"></span>
+                    <span class="e e-topl"></span>
+                    <span class="e e-topr"></span>
+                    <span class="e e-lv1"></span>
+                    <span class="e e-rv1"></span>
+                    <span class="e e-rv2"></span>
+                    <span class="e e-botl"></span>
                 </div>
             </div>
         </div>
-        <script src="assets/old/js/vendor.min.js"></script>
-        <script src="assets/old/libs/parsleyjs/parsley.min.js"></script>
-        <script src="assets/old/js/app.min.js"></script>
 
-        <?php if ($rSettings['recaptcha_enable'] ?? false): ?>
+        <script>
+            (function() {
+                "use strict";
+
+                var password = document.getElementById("password");
+                var showPassword = document.getElementById("showPassword");
+
+                if (password && showPassword) {
+                    showPassword.addEventListener("click", function() {
+                        var reveal = password.type === "password";
+                        password.type = reveal ? "text" : "password";
+                        showPassword.classList.toggle("revealed", reveal);
+                        showPassword.setAttribute("aria-label", reveal ? "Hide password" : "Show password");
+                    });
+                }
+            })();
+        </script>
+
+        <?php if ($rRecaptcha): ?>
             <script src="https://www.google.com/recaptcha/api.js" async defer></script>
             <script>
                 function recaptchaCallback() {
                     var b = document.getElementById('login_button');
-                    if (b) b.disabled = false;
+                    if (b) {
+                        b.disabled = false;
+                    }
                 }
+
                 function recaptchaExpired() {
                     var b = document.getElementById('login_button');
-                    if (b) b.disabled = true;
+                    if (b) {
+                        b.disabled = true;
+                    }
                 }
             </script>
         <?php endif; ?>
@@ -428,4 +258,3 @@ if (!isset($_SESSION['hash'])) {
 
     exit();
 }
-?>
