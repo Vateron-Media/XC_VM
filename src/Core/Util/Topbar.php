@@ -39,8 +39,16 @@ class Topbar {
      * intentionally hidden.
      */
     private const EXPORT_PAGES = [
-        'panel_logs', 'login_logs', 'mysql_syslog', 'client_logs', 'credit_logs',
-        'user_logs', 'stream_errors', 'line_activity', 'mag_events', 'watch_output',
+        'panel_logs',
+        'login_logs',
+        'mysql_syslog',
+        'client_logs',
+        'credit_logs',
+        'user_logs',
+        'stream_errors',
+        'line_activity',
+        'mag_events',
+        'watch_output',
         'live_connections',
     ];
 
@@ -66,6 +74,7 @@ class Topbar {
         $rSID = $ctx['rSID'] ?? null;
         $rMobile = (bool) ($ctx['rMobile'] ?? false);
         $rImport = (bool) ($ctx['rImport'] ?? false);
+        $rMulti = (bool) ($ctx['rMulti'] ?? false);
 
         $rDropdown = array(
             'ondemand' => array('Manage Streams' => array('streams', 'streams'), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('stream_mass', 'mass_edit_streams'), 'Stream Tools' => array('stream_tools', 'stream_tools'), 'Stream Error Logs' => array('stream_errors', 'stream_errors'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
@@ -76,7 +85,7 @@ class Topbar {
             'panel_logs' => array('Download log' => array(null, null, 'id="btn-download-log"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"')),
             'movies' => array('Add Movie' => array('movie', 'add_movie'), 'Import & Review' => ($rMobile ? array() : array('review?type=2', 'import_movies')), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('movie_mass', 'mass_sedits_vod'), 'Watch Folder' => array('watch', 'folder_watch'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'series' => array('Add Series' => array('serie', 'add_series'), 'Episodes' => array('episodes', 'episodes'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('series_mass', 'mass_sedits'), 'Watch Folder' => array('watch', 'folder_watch'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
-            'episodes' => array('Add Episode' => array(null, 'add_episode'), 'TV Series' => array('series', 'series'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('episodes_mass', 'mass_sedits'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
+            'episodes' => array('Add Episode' => array(null, 'add_episode', 'id="add-episode-btn"'), 'TV Series' => array('series', 'series'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('episodes_mass', 'mass_sedits'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'radios' => array('Add Station' => array('radio', 'add_radio'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('radio_mass', 'mass_edit_radio'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'lines' => array('Add Line' => array('line', 'add_user'), "Blocked ASN's" => array('asns', 'block_isps'), "Blocked IP's" => array('ips', 'block_ips'), "Blocked ISP's" => array('isps', 'block_isps'), 'Blocked User-Agents' => array('useragents', 'block_uas'), 'Live Connections' => array('live_connections', 'live_connections'), 'Activity Logs' => array('line_activity', 'connection_logs'), "IP's per Line" => array('line_ips', 'connection_logs'), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('line_mass', 'mass_edit_users'), 'Quick Tools' => array('quick_tools', 'quick_tools'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'live_connections' => array('Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"'), 'Activity Logs' => array('line_activity', 'connection_logs'), "IP's per Line" => array('line_ips', 'connection_logs')),
@@ -109,7 +118,10 @@ class Topbar {
             'hmac' => array('HMAC Keys' => array('hmacs', 'add_hmac')),
             'stream' => array('View Stream' => array('stream_view?id=' . $rID, 'streams'), 'Import' => array('stream?import', 'import_streams'), 'Add Single' => array('stream', 'add_stream'), 'Manage Streams' => array('streams', 'streams'), 'Import & Review' => ($rMobile ? array() : array('review?type=1', 'import_streams'))),
             'movie' => array('View Movie' => array('stream_view?id=' . $rID, 'movies'), 'Import' => array('movie?import', 'import_movies'), 'Add Single' => array('movie', 'add_movie'), 'Manage Movies' => array('movies', 'movies'), 'Import & Review' => ($rMobile ? array() : array('review?type=2', 'import_movies'))),
-            'episode' => array('Add Multiple' => array('episode?sid=' . $rSID . '&multi', 'add_episode'), 'Add Single' => array('episode?sid=' . $rSID, 'add_episode'), 'View Episodes' => array('episodes?series=' . $rSID, 'episodes'), 'Manage Series' => array('series', 'series')),
+            // Primary offers the OPPOSITE mode to the one currently open.
+            'episode' => ($rMulti
+                ? array('Add Single' => array('episode?sid=' . $rSID, 'add_episode'), 'Add Multiple' => array('episode?sid=' . $rSID . '&multi', 'add_episode'), 'View Episodes' => array('episodes?series=' . $rSID, 'episodes'), 'Manage Series' => array('series', 'series'))
+                : array('Add Multiple' => array('episode?sid=' . $rSID . '&multi', 'add_episode'), 'Add Single' => array('episode?sid=' . $rSID, 'add_episode'), 'View Episodes' => array('episodes?series=' . $rSID, 'episodes'), 'Manage Series' => array('series', 'series'))),
             'serie' => array('Import' => array('serie?import', 'import_streams'), 'Add Single' => array('serie', 'add_series'), 'Manage Series' => array('series', 'series'), 'View Episodes' => array('episodes?series=' . $rID, 'episodes')),
             'created_channel' => array('View Channel' => array('stream_view?id=' . $rID, 'streams'), 'Manage Channels' => array('created_channels', 'streams')),
             'epg' => array("Manage EPG's" => array('epgs', 'epg')),

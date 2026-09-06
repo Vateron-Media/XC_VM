@@ -20,6 +20,7 @@ $xmTopbarItems = Topbar::items($xmTopbarPage, [
     'rMobile' => $rMobile ?? false,
     'rID' => RequestManager::get('id'),
     'rSID' => RequestManager::get('sid'),
+    'rMulti' => RequestManager::has('multi'),
 ]);
 
 if (!empty($xmTopbarItems)):

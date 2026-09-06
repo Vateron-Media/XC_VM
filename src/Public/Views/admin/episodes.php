@@ -47,7 +47,6 @@ $rFilters = [1 => 'encoded', 2 => 'encoding', 3 => 'down', 4 => 'ready', 5 => 'd
                         <button type="button" class="btn btn-label-danger" data-bulk="delete"><?= $language::get('delete'); ?></button>
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-primary" id="add-episode-btn"><i class="icon-base ti tabler-plus me-1"></i>Add Episode</button>
             <?php endif; ?>
         </div>
     </div>
@@ -176,8 +175,8 @@ renderUnifiedLayoutFooter('admin');
         var qs = new URLSearchParams(location.search);
         var urlStreamId = qs.get('stream_id') || '', urlSourceId = qs.get('source_id') || '';
 
-        var seriesSelect2 = function(sel, placeholder) {
-            $(sel).select2({
+        var seriesSelect2 = function(sel, placeholder, parent) {
+            var opts = {
                 width: '100%',
                 placeholder: placeholder,
                 allowClear: true,
@@ -187,7 +186,11 @@ renderUnifiedLayoutFooter('admin');
                     processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; },
                     cache: true
                 }
-            });
+            };
+            // Inside a modal the dropdown must render within it, else it opens
+            // beneath the modal (select2 appends to <body> by default).
+            if (parent) { opts.dropdownParent = $(parent); }
+            $(sel).select2(opts);
         };
         seriesSelect2('#filter-series', 'All Series');
 
@@ -373,7 +376,7 @@ renderUnifiedLayoutFooter('admin');
 
         // Add Episode modal.
         if (canEdit) {
-            seriesSelect2('#add-series', 'Search for a series...');
+            seriesSelect2('#add-series', 'Search for a series...', '#addEpisodeModal');
             var addModal = document.getElementById('addEpisodeModal');
             document.getElementById('add-episode-btn').addEventListener('click', function() {
                 var cur = document.getElementById('filter-series').value;
