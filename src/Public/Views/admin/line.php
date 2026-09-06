@@ -67,16 +67,18 @@ $rOwnerID        = $rIsEdit ? (int) $rLine['member_id'] : (int) ($rUserInfo['id'
 
                     <div class="mb-6">
                         <label class="form-label" for="member_id"><?= $language::get('owner'); ?></label>
-                        <div class="input-group">
-                            <select name="member_id" id="member_id" class="form-select">
-                                <option value=""></option>
-                                <?php foreach ($rRegisteredUsers as $rRegUser): ?>
-                                    <?php if (empty($rRegUser['id'])): continue;
-                                    endif; ?>
-                                    <option value="<?= (int) $rRegUser['id']; ?>" <?= ((int) $rRegUser['id'] === $rOwnerID) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rRegUser['username'], ENT_QUOTES); ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                            <button type="button" class="btn btn-label-warning" id="clear-owner"><?= $language::get('clear'); ?></button>
+                        <div class="d-flex align-items-start gap-2">
+                            <div class="flex-grow-1">
+                                <select name="member_id" id="member_id" class="form-select">
+                                    <option value=""></option>
+                                    <?php foreach ($rRegisteredUsers as $rRegUser): ?>
+                                        <?php if (empty($rRegUser['id'])): continue;
+                                        endif; ?>
+                                        <option value="<?= (int) $rRegUser['id']; ?>" <?= ((int) $rRegUser['id'] === $rOwnerID) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rRegUser['username'], ENT_QUOTES); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-label-warning flex-shrink-0" id="clear-owner"><?= $language::get('clear'); ?></button>
                         </div>
                     </div>
 
@@ -280,6 +282,22 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var $ = window.jQuery;
+
+        // Searchable owner picker (registered users are pre-rendered as options)
+        // plus the long forced-country list; both dropdowns get select2 search.
+        if ($ && $.fn.select2) {
+            $('#member_id').select2({
+                width: '100%',
+                allowClear: true,
+                placeholder: <?= json_encode($language::get('owner')); ?>,
+                dropdownParent: $('#member_id').closest('.tab-pane')
+            });
+            $('#forced_country').select2({
+                width: '100%',
+                dropdownParent: $('#forced_country').closest('.tab-pane')
+            });
+        }
 
         // Numeric-only guard mirroring the legacy inputFilter (/^\d*$/).
         var mc = document.getElementById('max_connections');
@@ -289,9 +307,9 @@ renderUnifiedLayoutFooter('admin');
             });
         }
 
-        // Owner clear (legacy clearOwner()).
+        // Owner clear (legacy clearOwner()); trigger change so select2 repaints.
         document.getElementById('clear-owner').addEventListener('click', function() {
-            document.getElementById('member_id').value = '';
+            if ($) { $('#member_id').val('').trigger('change'); } else { document.getElementById('member_id').value = ''; }
         });
 
         // Access-token generate / clear (legacy generateToken() / clearToken()).

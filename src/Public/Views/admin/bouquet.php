@@ -1,14 +1,14 @@
 <?php
 
 /**
- * Add / edit Bouquet (Bootstrap 5). A details tab (bouquet name) plus, when editing or
- * duplicating an existing bouquet, Streams / Movies / Series / Radios picker tabs (each a
- * serverSide DataTable hitting ./table) and a client-side Review tab pre-populated with the
- * already-selected items. Selected ids are collected into #bouquet_data (JSON) on submit and
- * posted to post.php?action=bouquet. Reached full-page in the new-UI shell.
+ * Add / edit Bouquet (Bootstrap 5). A details tab (bouquet name) plus Streams / Movies /
+ * Series / Radios picker tabs (each a serverSide DataTable hitting ./table) and a client-side
+ * Review tab pre-populated with the already-selected items. The picker tabs are shown for BOTH
+ * add and edit — the save handler (BouquetService::process) accepts bouquet_data on create too,
+ * so a new bouquet can be populated in one pass. Selected ids are collected into #bouquet_data
+ * (JSON) on submit and posted to post.php?action=bouquet. Reached full-page in the new-UI shell.
  */
 
-$rShowTabs = isset($rBouquetArr);
 $rIsEdit = isset($rBouquetArr['id']);
 $rPageLen = (int) ($rSettings['default_entries'] ?? 10) ?: 10;
 ?>
@@ -27,13 +27,11 @@ $rPageLen = (int) ($rSettings['default_entries'] ?? 10) ?: 10;
 
             <ul class="nav nav-tabs flex-wrap mb-4" role="tablist">
                 <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
-                <?php if ($rShowTabs): ?>
-                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-streams" role="tab"><i class="icon-base ti tabler-player-play me-1"></i><?= $language::get('streams'); ?></button></li>
-                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-movies" role="tab"><i class="icon-base ti tabler-movie me-1"></i><?= $language::get('movies'); ?></button></li>
-                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-series" role="tab"><i class="icon-base ti tabler-device-tv me-1"></i><?= $language::get('series'); ?></button></li>
-                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-radios" role="tab"><i class="icon-base ti tabler-radio me-1"></i><?= $language::get('radio'); ?></button></li>
-                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-review" role="tab"><i class="icon-base ti tabler-list-check me-1"></i><?= $language::get('review'); ?></button></li>
-                <?php endif; ?>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-streams" role="tab"><i class="icon-base ti tabler-player-play me-1"></i><?= $language::get('streams'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-movies" role="tab"><i class="icon-base ti tabler-movie me-1"></i><?= $language::get('movies'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-series" role="tab"><i class="icon-base ti tabler-device-tv me-1"></i><?= $language::get('series'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-radios" role="tab"><i class="icon-base ti tabler-radio me-1"></i><?= $language::get('radio'); ?></button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-review" role="tab"><i class="icon-base ti tabler-list-check me-1"></i><?= $language::get('review'); ?></button></li>
             </ul>
 
             <div class="tab-content p-0">
@@ -41,16 +39,12 @@ $rPageLen = (int) ($rSettings['default_entries'] ?? 10) ?: 10;
                 <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
                     <div class="row mb-3">
                         <label class="col-md-3 col-form-label" for="bouquet_name"><?= $language::get('bouquet_name'); ?></label>
-                        <div class="col-md-9"><input type="text" class="form-control" id="bouquet_name" name="bouquet_name" value="<?= $rShowTabs ? htmlspecialchars((string) $rBouquetArr['bouquet_name'], ENT_QUOTES) : ''; ?>" required></div>
+                        <div class="col-md-9"><input type="text" class="form-control" id="bouquet_name" name="bouquet_name" value="<?= isset($rBouquetArr['bouquet_name']) ? htmlspecialchars((string) $rBouquetArr['bouquet_name'], ENT_QUOTES) : ''; ?>" required></div>
                     </div>
-                    <?php if (!$rShowTabs): ?>
-                        <div class="text-end"><button type="submit" name="submit_bouquet" class="btn btn-primary"><?= $language::get('add'); ?></button></div>
-                    <?php endif; ?>
                 </div>
 
-                <?php if ($rShowTabs): ?>
-                    <!-- Streams -->
-                    <div class="tab-pane fade" id="tab-streams" role="tabpanel">
+                <!-- Streams -->
+                <div class="tab-pane fade" id="tab-streams" role="tabpanel">
                         <div class="row mb-3">
                             <label class="col-md-3 col-form-label" for="category_id"><?= $language::get('category_name'); ?></label>
                             <div class="col-md-9">
@@ -230,15 +224,12 @@ $rPageLen = (int) ($rSettings['default_entries'] ?? 10) ?: 10;
                             </table>
                         </div>
                     </div>
-                <?php endif; ?>
             </div>
 
-            <?php if ($rShowTabs): ?>
-                <div class="d-flex justify-content-end gap-2 mt-4">
-                    <button type="button" id="bouquet-next" class="btn btn-label-secondary"><?= $language::get('next'); ?><i class="icon-base ti tabler-chevron-right ms-1"></i></button>
-                    <button type="submit" name="submit_bouquet" class="btn btn-primary"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
-                </div>
-            <?php endif; ?>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <button type="button" id="bouquet-next" class="btn btn-label-secondary"><?= $language::get('next'); ?><i class="icon-base ti tabler-chevron-right ms-1"></i></button>
+                <button type="submit" name="submit_bouquet" class="btn btn-primary"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+            </div>
         </form>
     </div>
 </div>
@@ -327,8 +318,7 @@ renderUnifiedLayoutFooter('admin');
         $.fn.dataTable.ext.errMode = 'none';
 
         $(function() {
-            <?php if ($rShowTabs): ?>
-                // Picker-table factory: serverSide rows are positional arrays
+            // Picker-table factory: serverSide rows are positional arrays
                 // [id, name, category, buttonsHtml]; createdRow flips add/remove per rBouquet.
                 function buildPicker(rTableId, rTypeKey, rDataId, rCategorySel) {
                     return $('#' + rTableId).DataTable({
@@ -403,7 +393,6 @@ renderUnifiedLayoutFooter('admin');
                 });
                 $('#bouquet_form .nav-link').on('shown.bs.tab', syncNext);
                 syncNext();
-            <?php endif; ?>
 
             $('#bouquet_form').on('submit', function(e) {
                 e.preventDefault();

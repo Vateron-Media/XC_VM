@@ -314,7 +314,7 @@ renderUnifiedLayoutFooter('admin');
                 dropdownParent: $('#member_id').closest('.tab-pane'),
                 ajax: {
                     url: './api', dataType: 'json', cache: true,
-                    data: function(params) { return { search: params.term, action: 'reguserlist', page: params.page }; },
+                    data: function(params) { return { search: params.term || '', action: 'reguserlist', page: params.page }; },
                     processResults: function(data, params) {
                         params.page = params.page || 1;
                         return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };

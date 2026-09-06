@@ -162,7 +162,7 @@ $rPackageOutputs = ($rIsEdit && !empty($rPackage['output_formats'])) ? (json_dec
                         <label class="form-label d-block"><?= $language::get('access_output'); ?></label>
                         <?php foreach (LineRepository::getOutputFormats() as $rOutput): ?>
                             <div class="form-check form-check-inline">
-                                <input class="form-check-input" type="checkbox" id="output_formats_<?= (int) $rOutput['access_output_id']; ?>" name="output_formats[]" value="<?= (int) $rOutput['access_output_id']; ?>" <?= in_array($rOutput['access_output_id'], $rPackageOutputs) ? 'checked' : ''; ?>>
+                                <input class="form-check-input" type="checkbox" id="output_formats_<?= (int) $rOutput['access_output_id']; ?>" name="output_formats[]" value="<?= (int) $rOutput['access_output_id']; ?>" <?= (!$rIsEdit || in_array($rOutput['access_output_id'], $rPackageOutputs)) ? 'checked' : ''; ?>>
                                 <label class="form-check-label" for="output_formats_<?= (int) $rOutput['access_output_id']; ?>"><?= htmlspecialchars((string) $rOutput['output_name'], ENT_QUOTES); ?></label>
                             </div>
                         <?php endforeach; ?>
@@ -268,6 +268,18 @@ renderUnifiedLayoutFooter('admin');
                 });
             }
         });
+
+        // Trial and Official are mutually exclusive — enabling one clears the other.
+        var isTrial = document.getElementById('is_trial'),
+            isOfficial = document.getElementById('is_official');
+        if (isTrial && isOfficial) {
+            isTrial.addEventListener('change', function() {
+                if (this.checked) { isOfficial.checked = false; }
+            });
+            isOfficial.addEventListener('change', function() {
+                if (this.checked) { isTrial.checked = false; }
+            });
+        }
 
         // Select-all / deselect-all button pairs for each checkbox table.
         var bindToggle = function(allId, noneId, cls) {

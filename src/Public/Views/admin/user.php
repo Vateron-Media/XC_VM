@@ -13,6 +13,7 @@
 
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserRepository;
 
 $rIsEdit    = (bool) ($rUser ?? null);
 $rOverrides = ($rIsEdit && !empty($rUser['override_packages'])) ? (json_decode((string) $rUser['override_packages'], true) ?: []) : [];
@@ -72,10 +73,20 @@ $rMinPwLen  = max(10, (int) ($rPermissions['minimum_password_length'] ?? 10));
                     </div>
 
                     <div class="mb-6">
-                        <label class="form-label" for="owner_id"><?= $language::get('owner'); ?> ID</label>
-                        <div class="input-group">
-                            <input type="text" inputmode="numeric" class="form-control" id="owner_id" name="owner_id" value="<?= $rIsEdit ? htmlspecialchars((string) $rUser['owner_id'], ENT_QUOTES) : '0'; ?>">
-                            <button type="button" class="btn btn-label-warning" id="clear-owner"><?= $language::get('clear'); ?></button>
+                        <label class="form-label" for="owner_id"><?= $language::get('owner'); ?></label>
+                        <div class="d-flex align-items-start gap-2">
+                            <div class="flex-grow-1">
+                                <select name="owner_id" id="owner_id" class="form-select">
+                                    <option value="0"></option>
+                                    <?php if ($rIsEdit && (int) $rUser['owner_id'] > 0):
+                                        $rOwnerRow = UserRepository::getRegisteredUserById((int) $rUser['owner_id']); ?>
+                                        <?php if ($rOwnerRow): ?>
+                                            <option value="<?= (int) $rOwnerRow['id']; ?>" selected><?= htmlspecialchars((string) $rOwnerRow['username'], ENT_QUOTES); ?></option>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                </select>
+                            </div>
+                            <button type="button" class="btn btn-label-warning flex-shrink-0" id="clear-owner"><?= $language::get('clear'); ?></button>
                         </div>
                     </div>
 
@@ -153,14 +164,32 @@ renderUnifiedLayoutFooter('admin');
 <script>
     (function() {
         var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var $ = window.jQuery;
 
-        // Numeric-only guard for the id/credits/override fields.
-        document.querySelectorAll('#owner_id, #credits, input[name^="override_"]').forEach(function(el) {
+        // Searchable owner picker (registered users, remote search); 0 = no owner.
+        if ($ && $.fn.select2) {
+            $('#owner_id').select2({
+                width: '100%',
+                dropdownParent: $('#owner_id').closest('.tab-pane'),
+                ajax: {
+                    url: './api', dataType: 'json', cache: true,
+                    data: function(params) { return { search: params.term || '', action: 'reguserlist', page: params.page }; },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } };
+                    }
+                }
+            });
+        }
+
+        // Numeric-only guard for the credits/override fields.
+        document.querySelectorAll('#credits, input[name^="override_"]').forEach(function(el) {
             el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); });
         });
 
+        // Clear owner → back to 0 (no owner); trigger change so select2 repaints.
         document.getElementById('clear-owner').addEventListener('click', function() {
-            document.getElementById('owner_id').value = '0';
+            if ($) { $('#owner_id').val('0').trigger('change'); } else { document.getElementById('owner_id').value = '0'; }
         });
 
         document.getElementById('user-form').addEventListener('submit', function(e) {

@@ -82,12 +82,40 @@ if (!function_exists('_xc_newui_icon')) {
  */
 if (!class_exists('XcNewuiMenuBuilder')) {
     final class XcNewuiMenuBuilder {
+        /**
+         * Edit / detail pages that have no menu entry of their own map to the
+         * list page whose menu item should stay highlighted while they are open.
+         * (Most singular add/edit pages — line, mag, stream, … — ARE their own
+         * menu url, so they are absent here.)
+         */
+        private const PAGE_ALIASES = [
+            'group'           => 'groups',
+            'server'          => 'servers',
+            'server_view'     => 'servers',
+            'stream_view'     => 'streams',
+            'stream_review'   => 'streams',
+            'stream_category' => 'stream_categories',
+            'episode'         => 'episodes',
+            'bouquet_sort'    => 'bouquets',
+            'package'         => 'packages',
+            'profile'         => 'profiles',
+            'ip'              => 'ips',
+            'isp'             => 'isps',
+            'rtmp_ip'         => 'rtmp_ips',
+            'useragent'       => 'useragents',
+            'ticket'          => 'tickets',
+            'ticket_view'     => 'tickets',
+        ];
+
         public function __construct(
             private bool $mobile,
             private array $settings,
             private string $language,
             private string $page,
         ) {
+            // Resolve an edit/detail page to its list page so the sidebar keeps
+            // the correct item highlighted (and its group expanded).
+            $this->page = self::PAGE_ALIASES[$this->page] ?? $this->page;
         }
 
         /**
