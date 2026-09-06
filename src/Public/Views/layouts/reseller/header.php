@@ -207,7 +207,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
 
     <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
-    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.min.css">
 
     <!-- Core theme (single file serves both light & dark via data-bs-theme) -->
     <link rel="stylesheet" href="assets/vendor/libs/node-waves/node-waves.css">
