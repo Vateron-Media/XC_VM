@@ -124,7 +124,7 @@ if (!function_exists('_xc_nav_label')) {
         <div class="container-xxl">
             <span class="app-brand-link d-flex align-items-center">
                 <span class="app-brand-logo demo">
-                    <img src="assets/old/images/logo-topbar.png" alt="<?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?>" height="24">
+                    <img src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?>" height="24">
                 </span>
                 <span class="app-brand-text fw-bold ms-3"><?= htmlspecialchars(($rSettings['server_name'] ?? '') ?: 'XC_VM'); ?></span>
             </span>

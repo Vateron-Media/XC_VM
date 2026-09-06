@@ -97,7 +97,7 @@ if (!isset($_SESSION['hash'])) {
         <title data-id="login"><?= htmlspecialchars($rBrand, ENT_QUOTES) ?> | <?= $language::get('login') ?></title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="robots" content="noindex,nofollow">
-        <link rel="icon" type="image/x-icon" href="assets/old/images/favicon.ico">
+        <link rel="icon" type="image/x-icon" href="assets/img/favicon.ico">
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">

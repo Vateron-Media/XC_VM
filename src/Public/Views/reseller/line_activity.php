@@ -221,7 +221,7 @@ renderUnifiedLayoutFooter('reseller');
                     data: 'user_ip',
                     className: 'text-nowrap',
                     render: function(d, t, row) {
-                        var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : '';
+                        var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/img/countries/' + esc(row.country) + '.png" alt="">' : '';
                         if (isLocal(d)) {
                             return flag + '<span class="text-body-secondary">' + esc(d || '') + '</span>';
                         }

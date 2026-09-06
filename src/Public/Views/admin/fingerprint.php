@@ -186,7 +186,7 @@ renderUnifiedLayoutFooter('admin');
                 { data: 'user_label', render: function(d, t, row) { if (!d) { return ''; } return row.user_url ? '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
                 { data: 'stream_name', render: function(d, t, row) { if (!d) { return ''; } return row.stream_url ? '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d); } },
                 { data: 'user_ip', className: 'text-center text-nowrap', render: function(d, t, row) {
-                    var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : '';
+                    var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/img/countries/' + esc(row.country) + '.png" alt="">' : '';
                     return flag + esc(d || '');
                 } },
                 { data: 'date_start', className: 'text-center', render: function(d, t, row) { return fmtDuration(d, row.is_restreamer); } },

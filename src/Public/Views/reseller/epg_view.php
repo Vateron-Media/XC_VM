@@ -3,10 +3,10 @@
 /**
  * Reseller TV Guide / EPG grid (Bootstrap 5). Full-parity port of admin/epg_view.php
  * adapted to the reseller contract. The grid, day/time navigation and settings are
- * rendered by the legacy client-side engine in assets/old/js/listings.js
+ * rendered by the legacy client-side engine in assets/js/listings.js
  * (window.XC_VM.Listings.Grid / .Nav / .Settings) — that engine is NOT
  * reimplemented, so its exact DOM (the .listings-grid-container tree with its
- * js-listings-* hooks) and its assets/old/css/listings.css stylesheet are kept
+ * js-listings-* hooks) and its assets/css/listings.css stylesheet are kept
  * verbatim. Only the surrounding chrome (title row, filter card, programme modal,
  * feedback) is rebuilt for the new-UI shell. The GET filter form's field name=/id=
  * are preserved because they drive both the query and the grid.
@@ -29,7 +29,7 @@ use XcVm\Core\Http\RequestManager;
 <!-- The listings grid engine (kept below) ships its own stylesheet; the new-UI
      shell does not load it, so pull it in on this page only (fonts/icons are
      embedded as data-URIs inside the file). -->
-<link href="assets/old/css/listings.css" rel="stylesheet" type="text/css" />
+<link href="assets/css/listings.css" rel="stylesheet" type="text/css" />
 
 <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
     <h4 class="mb-0"><?= $language::get('tv_guide') ?></h4>
@@ -90,7 +90,7 @@ use XcVm\Core\Http\RequestManager;
 <?php if (0 < count($rStreamIDs)) { ?>
     <div class="card mb-3">
         <div class="card-body">
-            <!-- Grid DOM required by XC_VM.Listings.Grid/Nav/Settings (assets/old/js/listings.js) — kept verbatim. -->
+            <!-- Grid DOM required by XC_VM.Listings.Grid/Nav/Settings (assets/js/listings.js) — kept verbatim. -->
             <div class="listings-grid-container">
                 <a href="#" class="listings-direction-link left day-nav-arrow js-day-nav-arrow" data-direction="prev"><span class="isvg isvg-left-dir"></span></a>
                 <a href="#" class="listings-direction-link right day-nav-arrow js-day-nav-arrow" data-direction="next"><span class="isvg isvg-right-dir"></span></a>
@@ -216,7 +216,7 @@ renderUnifiedLayoutFooter('reseller');
         <?php endif; ?>
     });
 </script>
-<script src="assets/old/js/listings.js"></script>
+<script src="assets/js/listings.js"></script>
 </body>
 
 </html>

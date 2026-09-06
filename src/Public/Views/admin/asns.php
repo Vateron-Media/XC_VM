@@ -106,7 +106,7 @@ renderUnifiedLayoutFooter('admin');
                     data: 'country',
                     className: 'text-center',
                     render: function(d) {
-                        return d ? '<img loading="lazy" src="assets/old/images/countries/' + esc(d) + '.png" alt="' + esc(d) + '">' : '';
+                        return d ? '<img loading="lazy" src="assets/img/countries/' + esc(d) + '.png" alt="' + esc(d) + '">' : '';
                     }
                 },
                 { data: 'num_ips', className: 'text-center', render: function(d) { return (d == null ? '' : Number(d).toLocaleString()); } },

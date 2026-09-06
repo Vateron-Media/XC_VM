@@ -532,7 +532,7 @@ renderUnifiedLayoutFooter('admin');
                 { data: 'player' },
                 { data: 'isp' },
                 { data: 'user_ip', className: 'text-nowrap', render: function(d, t, row) {
-                    var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : '';
+                    var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/img/countries/' + esc(row.country) + '.png" alt="">' : '';
                     return flag + esc(d || '');
                 } },
                 { data: 'date_start', className: 'text-center', render: function(d, t, row) { return connDuration(d, row.is_restreamer); } },

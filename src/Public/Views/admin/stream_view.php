@@ -862,7 +862,7 @@ renderUnifiedLayoutFooter('admin');
                     { data: 'server_name', render: function(d, t, row) { var html = row.server_url ? '<a href="' + esc(row.server_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d || ''); if (row.proxy_via) { html += '<br><small class="text-body-secondary">(via ' + esc(row.proxy_via) + ')</small>'; } return html; } },
                     { data: 'player' },
                     { data: 'isp' },
-                    { data: 'user_ip', className: 'text-center text-nowrap', render: function(d, t, row) { var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : ''; return flag + esc(d || ''); } },
+                    { data: 'user_ip', className: 'text-center text-nowrap', render: function(d, t, row) { var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/img/countries/' + esc(row.country) + '.png" alt="">' : ''; return flag + esc(d || ''); } },
                     { data: 'date_start', className: 'text-center', render: function(d) { return '<span class="badge bg-label-secondary">' + esc(fmtUptime(Math.floor(Date.now() / 1000) - (d || 0))) + '</span>'; } },
                     { data: 'container', className: 'text-center' },
                     { data: 'is_restreamer', className: 'text-center', orderable: false, render: function(d) { return '<i class="icon-base ti tabler-square-filled ' + (d ? 'text-info' : 'text-body-secondary') + '"></i>'; } },

@@ -248,7 +248,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
                 <div class="app-brand demo">
                     <a href="dashboard" class="app-brand-link">
                         <span class="app-brand-logo demo">
-                            <img src="assets/old/images/logo-topbar.png" alt="<?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?>" height="24">
+                            <img src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?>" height="24">
                         </span>
                         <span class="app-brand-text demo menu-text fw-bold ms-3"><?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?></span>
                     </a>

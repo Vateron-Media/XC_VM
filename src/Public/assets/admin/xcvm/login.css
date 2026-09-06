@@ -40,7 +40,7 @@ body {
 	z-index: 0;
 	background:
 		linear-gradient(180deg, rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.32)),
-		url("../old/images/xcvm-login-bg.png") center center / cover no-repeat;
+		url("../img/xcvm-login-bg.png") center center / cover no-repeat;
 }
 
 .background::after {
