@@ -156,7 +156,7 @@ if (!function_exists('_xc_nav_label')) {
 
                     <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
 
-                        <!-- Left: live header stats (polled by the inline poller in footer.newui.php) -->
+                        <!-- Left: live header stats (polled by the inline poller in footer.php) -->
                         <div class="navbar-nav align-items-center">
                             <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
                                 <div class="d-none d-xl-flex align-items-center" id="header_stats">
@@ -296,7 +296,7 @@ if (!function_exists('_xc_nav_label')) {
                 </nav>
                 <!-- / Navbar -->
 
-                <!-- Content wrapper (closed in footer.newui.php) -->
+                <!-- Content wrapper (closed in footer.php) -->
                 <div class="content-wrapper">
                     <div class="container-xxl flex-grow-1 container-p-y">
                         <?php require __DIR__ . '/topbar.php'; ?>

@@ -2,7 +2,7 @@
 
 /**
  * Bootstrap 5 admin footer — closes the Vertical Menu shell opened in
- * header.newui.php and loads the core Bootstrap 5 script set.
+ * header.php and loads the core Bootstrap 5 script set.
  *
  * Reached only for pages opted in via xc_admin_use_newui() (modal/setup pages
  * are routed to the legacy footer.php upstream). Views call
@@ -11,7 +11,7 @@
  *
  * Only the layout-critical vendors load here (jQuery, Popper, Bootstrap, Waves,
  * PerfectScrollbar, Hammer, menu.js, main.js) plus the per-page vendor bundles
- * from vendors.newui.php. Pages initialise their own plugins.
+ * from vendors.php. Pages initialise their own plugins.
  */
 
 use XcVm\Core\Util\AdminHelpers;
@@ -20,7 +20,7 @@ if (count(get_included_files()) == 1) {
     exit();
 }
 
-// Setup wizard renders under a branded bare shell (see header.newui.php): it has
+// Setup wizard renders under a branded bare shell (see header.php): it has
 // no sidebar / navbar / topbar, so menu.js/main.js and the header-stats poller
 // are skipped, but the core scripts + dynamic vendor loader still load.
 $xmSetup = !empty($GLOBALS['_SETUP']);

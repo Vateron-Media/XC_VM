@@ -12,7 +12,7 @@
  *   - A default common bundle (tables + selects + pickers + alerts) loads on
  *     every Bootstrap 5 page. A controller can request extras BEFORE render():
  *         $GLOBALS['xmNewuiVendors'] = ['apexcharts'];
- *   - header.newui.php calls xc_newui_vendor_css(); footer.newui.php calls
+ *   - header.php calls xc_newui_vendor_css(); footer.php calls
  *     xc_newui_vendor_js(), both via xc_newui_vendors_wanted().
  *
  * Init code is intentionally NOT wired here — pages initialise their own plugins.

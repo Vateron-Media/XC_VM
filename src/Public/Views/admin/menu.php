@@ -3,7 +3,7 @@
 /**
  * Bootstrap 5 vertical sidebar menu, driven by NavbarRegistry.
  *
- * Included by header.newui.php (which defines the shared _xc_nav_visible() /
+ * Included by header.php (which defines the shared _xc_nav_visible() /
  * _xc_nav_label() helpers). Renders the same registry tree the legacy top
  * navigation uses, so core + module nav entries appear automatically.
  *
