@@ -1,377 +1,204 @@
 <?php
 
+/**
+ * Install / Reinstall / Update Server or Proxy (Bootstrap 5). A wizard reached full-page
+ * from the servers/proxies tables: Details tab (SSH + ports) plus, for a proxy (type 1), a
+ * Server Coverage tab picking which main servers it fronts. Saves via
+ * post.php?action=server_install.
+ */
+
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
 
-echo '<div class="wrapper boxed-layout"';
+$rIsProxy = ($rType == 1);
+$rIsEdit = isset($rServerArr);
+$rIsUpdate = $rIsEdit && RequestManager::has('update');
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
+if ($rIsProxy) {
+    $rTitle = $rIsEdit ? ($rIsUpdate ? $language::get('update_proxy') : $language::get('reinstall_proxy')) : $language::get('proxy_installation');
 } else {
-    echo ' style="display: none;"';
+    $rTitle = $rIsEdit ? ($rIsUpdate ? $language::get('update_server') : $language::get('reinstall_server')) : $language::get('server_installation');
 }
+$rCoverage = $rIsEdit ? (ServerRepository::getAll()[$rServerArr['id']]['parent_id'] ?? []) : [];
+?>
 
-echo '>' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\n" . '                    ';
+<div class="d-flex align-items-center mb-4">
+    <h4 class="mb-0"><?= htmlspecialchars((string) $rTitle, ENT_QUOTES); ?></h4>
+</div>
 
-if ($rType == 1) {
-    echo "\t\t\t\t\t" . '<h4 class="page-title">';
+<?php if ($rIsEdit && $rServerArr['is_main'] == 1): ?>
+    <div class="alert alert-danger" role="alert"><?= $language::get('server_install_main_error'); ?></div>
+<?php else: ?>
+    <div class="card">
+        <div class="card-body">
+            <form id="install-form">
+                <?php if ($rIsEdit): ?><input type="hidden" name="edit" value="<?= (int) $rServerArr['id']; ?>"><?php endif; ?>
+                <input type="hidden" id="parent_id" name="parent_id" value="">
+                <input type="hidden" name="type" value="<?= (int) $rType; ?>">
 
-    if (isset($rServerArr)) {
-        if (RequestManager::has('update')) {
-            echo 'Update Proxy';
-        } else {
-            echo 'Reinstall Proxy';
-        }
-    } else {
-        echo 'Proxy Installation';
-    }
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details"><i class="icon-base ti tabler-settings me-1"></i><?= $language::get('details'); ?></button></li>
+                    <?php if ($rIsProxy): ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-coverage"><i class="icon-base ti tabler-server me-1"></i><?= $language::get('server_coverage'); ?></button></li>
+                    <?php endif; ?>
+                </ul>
 
-    echo '</h4>' . "\n" . '                    ';
-} else {
-    echo '                    <h4 class="page-title">';
+                <div class="tab-content p-4 border border-top-0 rounded-bottom">
+                    <!-- Details -->
+                    <div class="tab-pane fade show active" id="tab-details">
+                        <div class="row mb-3">
+                            <label class="col-md-3 col-form-label" for="server_name"><?= $language::get('server_name'); ?></label>
+                            <div class="col-md-9"><input type="text" class="form-control" id="server_name" name="server_name" <?= $rIsEdit ? 'readonly' : ''; ?> value="<?= $rIsEdit ? htmlspecialchars((string) $rServerArr['server_name'], ENT_QUOTES) : ''; ?>" required></div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-3 col-form-label" for="server_ip"><?= $language::get('server_ip'); ?></label>
+                            <div class="col-md-3"><input type="text" class="form-control" id="server_ip" name="server_ip" <?= $rIsEdit ? 'readonly' : ''; ?> value="<?= $rIsEdit ? htmlspecialchars((string) $rServerArr['server_ip'], ENT_QUOTES) : ''; ?>" required></div>
+                            <label class="col-md-3 col-form-label" for="ssh_port"><?= $language::get('ssh_port'); ?></label>
+                            <div class="col-md-3"><input type="text" class="form-control text-center" id="ssh_port" name="ssh_port" value="22" required></div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-3 col-form-label" for="root_username"><?= $language::get('ssh_username'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('this_needs_to_be_either_tooltip'), ENT_QUOTES); ?>"></i></label>
+                            <div class="col-md-3"><input type="text" class="form-control" id="root_username" name="root_username" value="root" required></div>
+                            <label class="col-md-3 col-form-label" for="root_password"><?= $language::get('ssh_password'); ?></label>
+                            <div class="col-md-3"><input type="text" class="form-control" id="root_password" name="root_password" value="" required></div>
+                        </div>
+                        <?php if ($rIsProxy): ?>
+                            <div class="row mb-3">
+                                <label class="col-md-3 col-form-label" for="http_broadcast_port"><?= $language::get('http_port'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('install_port_tooltip'), ENT_QUOTES); ?>"></i></label>
+                                <div class="col-md-3"><input type="text" class="form-control text-center" id="http_broadcast_port" name="http_broadcast_port" value="80" required></div>
+                                <label class="col-md-3 col-form-label" for="https_broadcast_port"><?= $language::get('https_port'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('install_port_tooltip'), ENT_QUOTES); ?>"></i></label>
+                                <div class="col-md-3"><input type="text" class="form-control text-center" id="https_broadcast_port" name="https_broadcast_port" value="443" required></div>
+                            </div>
+                        <?php endif; ?>
+                        <div class="row mb-3">
+                            <label class="col-md-3 col-form-label" for="update_sysctl"><?= $language::get('update_sysctl_conf'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('update_sysctl_tooltip'), ENT_QUOTES); ?>"></i></label>
+                            <div class="col-md-9">
+                                <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" role="switch" id="update_sysctl" name="update_sysctl" value="1" checked></div>
+                            </div>
+                        </div>
+                        <?php if ($rIsProxy): ?>
+                            <div class="row mb-3">
+                                <label class="col-md-3 col-form-label" for="use_private_ip"><?= $language::get('use_private_ip'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('use_private_ip_tooltip'), ENT_QUOTES); ?>"></i></label>
+                                <div class="col-md-9">
+                                    <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" role="switch" id="use_private_ip" name="use_private_ip" value="1"></div>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                        <?php if ($rIsUpdate): ?>
+                            <div class="alert alert-info" role="alert"><?= $language::get('server_install_update_notice', [':from' => htmlspecialchars((string) $rServerArr['xc_vm_version'], ENT_QUOTES), ':to' => htmlspecialchars((string) ($allServers[SERVER_ID]['xc_vm_version'] ?? ''), ENT_QUOTES)]); ?></div>
+                        <?php else: ?>
+                            <div class="alert alert-warning" role="alert">
+                                <?= $rIsProxy ? $language::get('server_install_proxy_notice') : $language::get('server_install_server_notice'); ?>
+                                <br><br><?= $rIsEdit ? $language::get('server_install_reinstall_notice') : $language::get('server_install_new_notice'); ?>
+                            </div>
+                        <?php endif; ?>
+                        <?php if (!$rIsProxy): ?>
+                            <div class="text-end"><button type="submit" name="submit_server" class="btn btn-primary"><?= $language::get('install_server'); ?></button></div>
+                        <?php endif; ?>
+                    </div>
 
-    if (isset($rServerArr)) {
-        if (RequestManager::has('update')) {
-            echo 'Update Server';
-        } else {
-            echo 'Reinstall Server';
-        }
-    } else {
-        echo 'Server Installation';
-    }
+                    <?php if ($rIsProxy): ?>
+                        <!-- Server Coverage -->
+                        <div class="tab-pane fade" id="tab-coverage">
+                            <div class="table-responsive mb-3">
+                                <table id="coverage-table" class="table" style="width:100%">
+                                    <thead>
+                                        <tr>
+                                            <th class="text-center"><?= $language::get('id'); ?></th>
+                                            <th><?= $language::get('server_name'); ?></th>
+                                            <th class="text-center"><?= $language::get('server_ip'); ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach (ServerRepository::getAll() as $rServer): ?>
+                                            <?php if ($rServer['server_type'] != 0) { continue; } ?>
+                                            <tr class="<?= in_array($rServer['id'], (array) $rCoverage) ? 'selected table-active' : ''; ?>" style="cursor:pointer">
+                                                <td class="text-center"><?= (int) $rServer['id']; ?></td>
+                                                <td><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></td>
+                                                <td class="text-center"><?= htmlspecialchars((string) $rServer['server_ip'], ENT_QUOTES); ?></td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-end"><button type="submit" name="submit_server" class="btn btn-primary"><?= $language::get('install_server'); ?></button></div>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
+<?php endif; ?>
 
-    echo '</h4>' . "\n" . '                    ';
-}
-
-echo "\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-xl-12">' . "\n\t\t\t\t" . '<div class="card">' . "\n\t\t\t\t\t" . '<div class="card-body">' . "\n" . '                        ';
-
-if (isset($rServerArr) && $rServerArr['is_main'] == 1) {
-    echo '                        <div class="alert alert-danger" role="alert">' . "\n" . '                            This is your main server, you cannot reinstall it from the XC_VM panel. To reinstall this server, please use the installation instructions on the billing panel.' . "\n" . '                        </div>' . "\n" . '                        ';
-} else {
-    echo "\t\t\t\t\t\t" . '<form action="#" method="POST" data-parsley-validate="">' . "\n" . '                            ';
-
-    if (!isset($rServerArr)) {
-    } else {
-        echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="edit" value="';
-        echo $rServerArr['id'];
-        echo '" />' . "\n" . '                            ';
-    }
-
-    echo '                            <input type="hidden" id="parent_id" name="parent_id" value="" />' . "\n" . '                            <input type="hidden" name="type" value="';
-    echo $rType;
-    echo '" />' . "\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\n\t\t\t\t\t\t\t\t" . '<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#server-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-creation mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-    echo $language::get('details');
-    echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    ';
-
-    if ($rType != 1) {
-    } else {
-        echo '                                    <li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#server-coverage" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-server mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">' . $language::get('server_coverage') . '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                    ';
-    }
-
-    echo "\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t" . '<div class="tab-content b-0 mb-0 pt-0">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="server-details">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="server_name">';
-    echo $language::get('server_name');
-    echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-9">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="server_name" name="server_name" ';
-
-    if (!isset($rServerArr)) {
-    } else {
-        echo 'readonly ';
-    }
-
-    echo 'value="';
-
-    if (!isset($rServerArr)) {
-    } else {
-        echo htmlspecialchars($rServerArr['server_name']);
-    }
-
-    echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="server_ip">' . $language::get('server_ip') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="server_ip" name="server_ip" ';
-
-    if (!isset($rServerArr)) {
-    } else {
-        echo 'readonly ';
-    }
-
-    echo 'value="';
-
-    if (!isset($rServerArr)) {
-    } else {
-        echo htmlspecialchars($rServerArr['server_ip']);
-    }
-
-    echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                    <label class="col-md-3 col-form-label" for="server_ip">' . $language::get('ssh_port') . '</label>' . "\n" . '                                                    <div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="ssh_port" name="ssh_port" value="22" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-3 col-form-label" for="root_username">SSH Username <i title="' . $language::get('this_needs_to_be_either_tooltip') . '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n" . '                                                    <div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="root_username" name="root_username" value="root" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                    <label class="col-md-3 col-form-label" for="root_username">' . $language::get('ssh_password') . '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="root_password" name="root_password" value="" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                ';
-
-    if ($rType == 1) {
-        echo '                                                <div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . "<label class=\"col-md-3 col-form-label\" for=\"http_broadcast_port\">HTTP Port <i title=\"Enter a port number between 1024 and 65535. As XC_VM doesn't run as root, it cannot run on a port lower than 1024. This cannot be changed later.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="http_broadcast_port" name="http_broadcast_port" value="80" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . "                                                    <label class=\"col-md-3 col-form-label\" for=\"https_broadcast_port\">HTTPS Port <i title=\"Enter a port number between 1024 and 65535. As XC_VM doesn't run as root, it cannot run on a port lower than 1024. This cannot be changed later.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n" . '                                                    <div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="https_broadcast_port" name="https_broadcast_port" value="443" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                ';
-    }
-
-    echo '                                                <div class="form-group row mb-4">' . "\n" . "                                                    <label class=\"col-md-3 col-form-label\" for=\"update_sysctl\">Update sysctl.conf <i title=\"Use the XC_VM sysctl.conf file. If you have your own custom sysctl.conf, then disable this or it will be overwritten. If you don't know what a sysctl configuration is, use this as it will correctly set your TCP settings and open file limits.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="update_sysctl" id="update_sysctl" type="checkbox" data-plugin="switchery" class="js-switch" checked data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n" . '                                                ';
-
-    if ($rType != 1) {
-    } else {
-        echo '                                                <div class="form-group row mb-4">' . "\n" . "                                                    <label class=\"col-md-3 col-form-label\" for=\"use_private_ip\">Use Private IP <i title=\"Use the private IP of the load balancer you've selected to route traffic internally.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="use_private_ip" id="use_private_ip" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n" . '                                                ';
-    }
-
-    if (isset($rServerArr) && RequestManager::has('update')) {
-        echo '                                                <div class="alert alert-info" role="alert">' . "\n" . '                                                    In order to update your XC_VM core from v';
-        echo $rServerArr['xc_vm_version'];
-        echo ' to v';
-        echo $allServers[SERVER_ID]['xc_vm_version'];
-        echo ", you will need to enter root SSH details.<br/>This will reinstall your server with the most up to date software, it shouldn't take too long, however your server will be offline to customers during the update process." . "\n" . '                                                </div>' . "\n" . '                                                ';
-    } else {
-        echo '                                                <div class="alert alert-warning mb-4" role="alert">' . "\n" . '                                                    ';
-
-        if ($rType == 1) {
-            echo '                                                    You will not be able to change the port or any other settings through the XC_VM Admin Panel after installation, you will be required to reinstall the proxy server entirely.<br/><br/>Installation will begin immediately, you will be alerted of progress on the Server View page.' . "\n" . '                                                    ';
-        } else {
-            echo '                                                    Installation will begin immediately, you will be alerted of progress on the Server View page. After installation is complete you can amend the ports and other server settings.' . "\n" . '                                                    ';
-        }
-
-        if (isset($rServerArr)) {
-            echo '                                                    <br/><br/>As you are reinstalling the server, it will go offline until the installation is complete.' . "\n" . '                                                    ';
-        } else {
-            echo '                                                    <br/><br/>With new installations, the file limit is set in the system. A reboot is required for this, but you can do it at your own pace.' . "\n" . '                                                    ';
-        }
-
-        echo '                                                </div>' . "\n" . '                                                ';
-    }
-
-    echo '                                            </div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n" . '                                            ';
-
-    if ($rType == 1) {
-        echo "\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('next') . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                            ';
-    } else {
-        echo '                                            <li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_server" type="submit" class="btn btn-primary" value="';
-        echo $language::get('install_server');
-        echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n" . '                                            ';
-    }
-
-    echo "\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                    ';
-
-    if ($rType == 1) {
-        echo '                                    <div class="tab-pane" id="server-coverage">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable" class="table table-borderless mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<thead class="bg-light">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('id') . '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>' . $language::get('server_name') . '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th class="text-center">' . $language::get('server_ip') . '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-        foreach (ServerRepository::getAll() as $d58b4f8653a391d8 => $A08adcff1f387f4c) {
-            if ($A08adcff1f387f4c['server_type'] == 0) {
-                echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr';
-
-                if (!(isset($rServerArr) && in_array($A08adcff1f387f4c['id'], ServerRepository::getAll()[$rServerArr['id']]['parent_id']))) {
-                } else {
-                    echo " class='selected selectedfilter ui-selected'";
-                }
-
-                echo '>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-                echo $A08adcff1f387f4c['id'];
-                echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td>';
-                echo $A08adcff1f387f4c['server_name'];
-                echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<td class="text-center">';
-                echo $A08adcff1f387f4c['server_ip'];
-                echo '</td>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-            }
-        }
-        echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</tbody>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n" . '                                            <li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">' . $language::get('prev') . '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_server" type="submit" class="btn btn-primary" value="';
-        echo $language::get('install_server');
-        echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                    ';
-    }
-
-    echo "\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n" . '                        ';
-}
-
-echo "\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
+<?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('admin'); ?>
-<script id="scripts">
-    var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-    $(document).ready(function() {
-        resizeObserver.observe(document.body)
-        $("form").attr('autocomplete', 'off');
-        $(document).keypress(function(event) {
-            if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-        });
-        $.fn.dataTable.ext.errMode = 'none';
-        var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-        elems.forEach(function(html) {
-            var switchery = new Switchery(html, {
-                'color': '#414d5f'
-            });
-            window.rSwitches[$(html).attr("id")] = switchery;
-        });
-        setTimeout(pingSession, 30000);
-        <?php if (!$rMobile && $rSettings['header_stats']): ?>
-            headerStats();
-        <?php endif; ?>
-        bindHref();
-        refreshTooltips();
-        $(window).scroll(function() {
-            if ($(this).scrollTop() > 200) {
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeOut();
-                }
-                $('#scrollToTop').fadeIn();
-            } else {
-                $('#scrollToTop').fadeOut();
-                if ($(document).height() > $(window).height()) {
-                    $('#scrollToBottom').fadeIn();
-                } else {
-                    $('#scrollToBottom').hide();
-                }
-            }
-        });
-        $("#scrollToTop").unbind("click");
-        $('#scrollToTop').click(function() {
-            $('html, body').animate({
-                scrollTop: 0
-            }, 800);
-            return false;
-        });
-        $("#scrollToBottom").unbind("click");
-        $('#scrollToBottom').click(function() {
-            $('html, body').animate({
-                scrollTop: $(document).height()
-            }, 800);
-            return false;
-        });
-        $(window).scroll();
-        $(".nextb").unbind("click");
-        $(".nextb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $(".nav .nav-item").each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        $(".prevb").unbind("click");
-        $(".prevb").click(function() {
-            var rPos = 0;
-            var rActive = null;
-            $($(".nav .nav-item").get().reverse()).each(function() {
-                if ($(this).find(".nav-link").hasClass("active")) {
-                    rActive = rPos;
-                }
-                if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-                    $(this).find(".nav-link").trigger("click");
-                    return false;
-                }
-                rPos += 1;
-            });
-        });
-        (function($) {
-            $.fn.inputFilter = function(inputFilter) {
-                return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-                    if (inputFilter(this.value)) {
-                        this.oldValue = this.value;
-                        this.oldSelectionStart = this.selectionStart;
-                        this.oldSelectionEnd = this.selectionEnd;
-                    } else if (this.hasOwnProperty("oldValue")) {
-                        this.value = this.oldValue;
-                        this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-                    }
-                });
-            };
-        }(jQuery));
-        <?php if ($rSettings['js_navigate']): ?>
-            $(".navigation-menu li").mouseenter(function() {
-                $(this).find(".submenu").show();
-            });
-            delParam("status");
-            $(window).on("popstate", function() {
-                if (window.rRealURL) {
-                    if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-                        navigate(window.location.href.split("/").reverse()[0]);
-                    }
-                }
-            });
-        <?php endif; ?>
-        $(document).keydown(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = true;
-            }
-        });
-        $(document).keyup(function(e) {
-            if (e.keyCode == 16) {
-                window.rShiftHeld = false;
-            }
-        });
-        document.onselectstart = function() {
-            if (window.rShiftHeld) {
-                return false;
-            }
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var toast = window.xcToast || function() {};
+        var form = document.getElementById('install-form');
+        if (!form) { return; }
+
+        if (window.bootstrap) {
+            document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function(el) { new bootstrap.Tooltip(el); });
         }
-    });
-    $(document).ready(function() {
-        $('select').select2({
-            width: '100%'
-        });
-        $("#ssh_port").inputFilter(function(value) {
-            return /^\d*$/.test(value);
-        });
-        $("#rtmp_port").inputFilter(function(value) {
-            return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 65535);
-        });
-        $("#http_broadcast_port").inputFilter(function(value) {
-            return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 65535);
-        });
-        $("#https_broadcast_port").inputFilter(function(value) {
-            return /^\d*$/.test(value) && (value === "" || parseInt(value) <= 65535);
-        });
-        $("form").submit(function(e) {
+
+        var numericOnly = function(id, max) {
+            var el = document.getElementById(id);
+            if (!el) { return; }
+            el.addEventListener('input', function() {
+                var v = this.value.replace(/[^\d]/g, '');
+                if (max && v !== '' && parseInt(v, 10) > max) { v = String(max); }
+                this.value = v;
+            });
+        };
+        numericOnly('ssh_port', 65535);
+        numericOnly('http_broadcast_port', 65535);
+        numericOnly('https_broadcast_port', 65535);
+
+        var isProxy = <?= $rIsProxy ? 'true' : 'false'; ?>;
+        if (isProxy) {
+            // Click a coverage row to toggle whether this proxy fronts that server.
+            $('#coverage-table tbody').on('click', 'tr', function() {
+                $(this).toggleClass('selected table-active');
+            });
+        }
+
+        form.addEventListener('submit', function(e) {
             e.preventDefault();
-            <?php if ($rType == 1): ?>
+            if (isProxy) {
                 var rServers = [];
-                $("#datatable tr.selected").each(function() {
-                    rServers.push($(this).find("td:eq(0)").text());
+                $('#coverage-table tbody tr.selected').each(function() {
+                    rServers.push($(this).find('td:eq(0)').text());
                 });
-                if (rServers.length == 0) {
-                    $.toast("Please select at least one server to apply the proxy to.");
+                if (rServers.length === 0) {
+                    toast(<?= json_encode($language::get('select_at_least_one_server')) ?>, 'error');
                     return;
                 }
-                $("#parent_id").val("[" + rServers.join(",") + "]");
-            <?php endif; ?>
-            $(':input[type="submit"]').prop('disabled', true);
-            submitForm(window.rCurrentPage, new FormData($("form")[0]));
+                document.getElementById('parent_id').value = '[' + rServers.join(',') + ']';
+            }
+            var btn = form.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; }
+            fetch('post.php?action=server_install&referer=', { method: 'POST', body: new FormData(form), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var d; try { d = JSON.parse(txt); } catch (err) { d = { result: false }; }
+                    if (d && d.location) { window.location = d.location; return; }
+                    if (btn) { btn.disabled = false; }
+                    toast(<?= json_encode($language::get('error_occured')) ?>, 'error');
+                })
+                .catch(function() { if (btn) { btn.disabled = false; } toast(<?= json_encode($language::get('error_occured')) ?>, 'error'); });
         });
-        <?php if ($rType == 1): ?>
-            $("#datatable").DataTable({
-                columnDefs: [{
-                    "className": "dt-center",
-                    "targets": [0, 2]
-                }],
-                drawCallback: function() {
-                    bindHref();
-                    refreshTooltips();
-                },
-                paging: false,
-                bInfo: false,
-                searching: false
-            });
-            $("#datatable").selectable({
-                filter: 'tr',
-                selected: function(event, ui) {
-                    if ($(ui.selected).hasClass('selectedfilter')) {
-                        $(ui.selected).removeClass('selectedfilter').removeClass('ui-selected').removeClass("selected");
-                    } else {
-                        $(ui.selected).addClass('selectedfilter').addClass('ui-selected').addClass("selected");
-                    }
-                }
-            });
-        <?php endif; ?>
-    });
 
-    <?php if (SettingsManager::get('enable_search')): ?>
-        $(document).ready(function() {
-            initSearch();
-        });
-    <?php endif; ?>
+        <?php if (SettingsManager::get('enable_search')): ?>
+        if (typeof initSearch === 'function') { initSearch(); }
+        <?php endif; ?>
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
