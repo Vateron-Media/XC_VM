@@ -26,6 +26,12 @@ class ReviewController extends BaseAdminController {
         $rCategorySet = [];
         $rLogoSet = [];
 
+        // The import server tree on this page is driven by jstree.
+        $GLOBALS['xmNewuiVendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmNewuiVendors'] ?? []),
+            ['jstree']
+        )));
+
         $this->setTitle('Review');
         $this->render('review', compact('rType', 'rCategorySet', 'rLogoSet'));
     }
