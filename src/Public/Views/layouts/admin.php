@@ -38,7 +38,7 @@ if (!function_exists('xc_reseller_use_newui')) {
         }
         $page = \XcVm\Core\Util\AdminHelpers::getPageName();
         // Pilot allowlist — seed with the reseller dashboard only.
-        static $migratedReseller = ['dashboard'];
+        static $migratedReseller = ['dashboard', 'lines', 'streams', 'movies', 'radios', 'users', 'mags', 'enigmas', 'live_connections', 'line_activity', 'user_logs', 'episodes', 'created_channels', 'epg_view', 'tickets', 'ticket', 'ticket_view', 'edit_profile', 'line', 'user', 'mag', 'enigma'];
         return in_array($page, $migratedReseller, true);
     }
 }

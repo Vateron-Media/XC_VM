@@ -4,7 +4,6 @@ namespace XcVm\Infrastructure;
 
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Util\TimeUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\PackageService;
@@ -111,7 +110,14 @@ class ResellerTableRenderer {
 			exit();
 		}
 		$rOrderBy = '';
-		$rOrder = array('`lines`.`id`', '`lines`.`username`', '`lines`.`password`', '`users`.`username`', '`lines`.`enabled` - `lines`.`admin_enabled`', '`active_connections` > 0', '`lines`.`is_trial`', '`active_connections`', '`lines`.`max_connections`', '`lines`.`exp_date`', '`last_activity`', false);
+		// Order direction is resolved up front because the "last connection" column
+		// orders by a composite expression that embeds the direction.
+		$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir'] ?? '') === 'desc' ? 'desc' : 'asc');
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller lines view: leading Responsive-control column,
+		// then id, username, password, owner, status, online, trial, restreamer,
+		// active connections, max connections, expiration, last connection, actions.
+		$rOrder = array(false, '`lines`.`id`', '`lines`.`username`', '`lines`.`password`', '`users`.`username`', '`lines`.`enabled` - `lines`.`admin_enabled`', '`active_connections` > 0', '`lines`.`is_trial`', '`lines`.`is_restreamer`', '`active_connections`', '`lines`.`max_connections`', '`lines`.`exp_date`', '`active_connections` ' . $rOrderDirection . ', `last_activity`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -258,109 +264,50 @@ class ResellerTableRenderer {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
 					}
 					if (!$rIsAPI) {
+						// Clean, keyed row payload (Bootstrap 5 view renders every
+						// status dot / badge / action item client-side). Mirrors the
+						// admin lines handler; adds reseller-only fields (is_isplock,
+						// reseller notes and the direct/indirect owner marker).
+						$rStatus = 'active';
 						if (!$rRow['admin_enabled']) {
-							$rStatus = '<i class="text-danger fas fa-square tooltip" title="Banned"></i>';
-						} else {
-							if (!$rRow['enabled']) {
-								$rStatus = '<i class="text-secondary fas fa-square tooltip" title="Disabled"></i>';
-							} else {
-								if ($rRow['exp_date'] && $rRow['exp_date'] < time()) {
-									$rStatus = '<i class="text-warning far fa-square tooltip" title="Expired"></i>';
-								} else {
-									$rStatus = '<i class="text-success fas fa-square tooltip" title="Active"></i>';
-								}
-							}
+							$rStatus = 'banned';
+						} elseif (!$rRow['enabled']) {
+							$rStatus = 'disabled';
+						} elseif ($rRow['exp_date'] && $rRow['exp_date'] < time()) {
+							$rStatus = 'expired';
 						}
-						if (0 < $rRow['active_connections']) {
-							$rActive = '<i class="text-success fas fa-square"></i>';
-						} else {
-							$rActive = '<i class="text-secondary far fa-square"></i>';
-						}
-						if ($rRow['is_trial']) {
-							$rTrial = '<i class="text-warning fas fa-square"></i>';
-						} else {
-							$rTrial = '<i class="text-secondary far fa-square"></i>';
-						}
-						if ($rRow['exp_date']) {
-							if ($rRow['exp_date'] < time()) {
-								$rExpDate = '<span class="expired">' . date($rSettings['date_format'], $rRow['exp_date']) . '<br/><small>' . date('H:i:s', $rRow['exp_date']) . '</small></span>';
-							} else {
-								$rExpDate = date($rSettings['date_format'], $rRow['exp_date']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['exp_date']) . '</small>';
-							}
-						} else {
-							$rExpDate = '&infin;';
-						}
-						if (0 < $rRow['active_connections']) {
-							if ($rPermissions['reseller_client_connection_logs']) {
-								$rActiveConnections = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['active_connections'] . '</button></a>';
-							} else {
-								$rActiveConnections = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['active_connections'] . '</button>';
-							}
-						} else {
-							$rActiveConnections = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-						}
-						if ($rRow['max_connections'] == 0) {
-							$rMaxConnections = "<button type='button' class='btn btn-dark text-white btn-xs waves-effect waves-light'>&infin;</button>";
-						} else {
-							$rMaxConnections = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>" . $rRow['max_connections'] . '</button>';
-						}
-						$rButtons = '<div class="btn-group">';
-						$rNotes = '';
-						if (0 >= strlen($rRow['reseller_notes'])) {
-						} else {
-							if (strlen($rNotes) == 0) {
-							} else {
-								$rNotes .= "\n";
-							}
-							$rNotes .= $rRow['reseller_notes'];
-						}
-						if (0 < strlen($rNotes)) {
-							$rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rNotes . '"><i class="mdi mdi-note"></i></button>';
-						} else {
-							$rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
-						}
-						$rButtons .= '<a href="line?id=' . $rRow['id'] . '"><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>';
-						if (!$rPermissions['allow_download']) {
-						} else {
-							$rButtons .= "<button type=\"button\" title=\"Download Playlist\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"download('" . $rRow['username'] . "', '" . $rRow['password'] . "');\"><i class=\"mdi mdi-download\"></i></button>";
-						}
-						$rWhatsAppContact = !empty($rRow['contact']) ? addslashes($rRow['contact']) : '';
-						$rWhatsAppExp = $rRow['exp_date'] ? $rRow['exp_date'] : 'null';
-						$rButtons .= "<button type=\"button\" title=\"WhatsApp Renewal\" class=\"btn btn-success waves-effect waves-light btn-xs tooltip\" onClick=\"openWhatsApp('" . addslashes($rRow['username']) . "', '" . $rWhatsAppContact . "', " . $rWhatsAppExp . ");\"><i class=\"mdi mdi-whatsapp\"></i></button>";
-						if (!$rPermissions['reseller_client_connection_logs']) {
-						} else {
-							if (0 < $rRow['active_connections']) {
-								$rButtons .= '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'kill_line');\"><i class=\"fas fa-hammer\"></i></button>";
-							} else {
-								$rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="fas fa-hammer"></i></button>';
-							}
-						}
-						if (!$rRow['is_isplock']) {
-						} else {
-							$rButtons .= '<button title="Reset ISP Lock" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'reset_isp');\"><i class=\"mdi mdi-lock-reset\"></i></button>";
-						}
-						if ($rRow['enabled']) {
-							$rButtons .= '<button title="Disable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						} else {
-							$rButtons .= '<button title="Enable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						}
-						$rButtons .= '<button title="Delete" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-						$rButtons .= '</div>';
-						if ($rRow['active_connections'] && $rRow['last_active']) {
-							$rLastActive = "<a href='stream_view?id=" . $rRow['stream_id'] . "'>" . $rRow['stream_display_name'] . "</a><br/><small class='text-secondary'>Online: " . TimeUtils::secondsToTime(time() - $rRow['last_active']) . '</small>';
-						} else {
-							if ($rRow['last_active']) {
-								$rLastActive = date($rSettings['date_format'], $rRow['last_active']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['last_active']) . '</small>';
-							} else {
-								$rLastActive = 'Never';
-							}
-						}
-						if (in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])))) {
-							$rOwner = "<a href='user?id=" . intval($rRow['member_id']) . "'>" . $rRow['owner_name'] . '</a>';
-						} else {
-							$rOwner = "<a href='user?id=" . intval($rRow['member_id']) . "'>" . $rRow['owner_name'] . "<br/><small class='text-pink'>(indirect)</small></a>";
-						}
-						$rReturn['data'][] = array("<a href='line?id=" . $rRow['id'] . "'>" . $rRow['id'] . '</a>', "<a href='line?id=" . $rRow['id'] . "'>" . $rRow['username'] . '</a>', $rRow['password'], $rOwner, $rStatus, $rActive, $rTrial, $rActiveConnections, $rMaxConnections, $rExpDate, $rLastActive, $rButtons);
+						$rExpUnix = $rRow['exp_date'] ? (int) $rRow['exp_date'] : 0;
+						$rExpStr = $rExpUnix ? date($rSettings['date_format'], $rExpUnix) . ' ' . date('H:i:s', $rExpUnix) : '';
+						$rLastUnix = !empty($rRow['last_active']) ? (int) $rRow['last_active'] : 0;
+						$rLastStr = $rLastUnix ? date($rSettings['date_format'], $rLastUnix) . ' ' . date('H:i:s', $rLastUnix) : '';
+						// Direct reports (and the reseller itself) are "owned" lines;
+						// anything deeper in the tree is an indirect report.
+						$rIndirect = !in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
+						$rReturn['data'][] = array(
+							'id' => (int) $rRow['id'],
+							'username' => $rRow['username'],
+							'password' => $rRow['password'],
+							'owner_name' => $rRow['owner_name'],
+							'member_id' => (int) $rRow['member_id'],
+							'indirect' => $rIndirect,
+							'status' => $rStatus,
+							'active_connections' => (int) $rRow['active_connections'],
+							'trial' => (bool) $rRow['is_trial'],
+							'restreamer' => (bool) $rRow['is_restreamer'],
+							'max_connections' => (int) $rRow['max_connections'],
+							'exp_unix' => $rExpUnix,
+							'exp_str' => $rExpStr,
+							'exp_expired' => (bool) ($rExpUnix && $rExpUnix < time()),
+							'last_active' => $rLastUnix,
+							'last_str' => $rLastStr,
+							'stream_id' => isset($rRow['stream_id']) ? (int) $rRow['stream_id'] : 0,
+							'stream_display_name' => $rRow['stream_display_name'] ?? null,
+							'admin_enabled' => (bool) $rRow['admin_enabled'],
+							'enabled' => (bool) $rRow['enabled'],
+							'is_isplock' => (bool) $rRow['is_isplock'],
+							'notes' => (string) $rRow['reseller_notes'],
+							'contact' => $rRow['contact'],
+						);
 					} else {
 						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
@@ -390,7 +337,10 @@ class ResellerTableRenderer {
 			exit();
 		}
 		$rOrderBy = '';
-		$rOrder = array('`lines`.`id`', '`lines`.`username`', '`mag_devices`.`mac`', '`mag_devices`.`stb_type`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller mags view: leading Responsive-control column,
+		// then id, username, mac, stb type, owner, status, online, trial, expiration, actions.
+		$rOrder = array(false, '`lines`.`id`', '`lines`.`username`', '`mag_devices`.`mac`', '`mag_devices`.`stb_type`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -479,84 +429,26 @@ class ResellerTableRenderer {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
 					}
 					if (!$rIsAPI) {
-						if (!$rRow['admin_enabled']) {
-							$rStatus = '<i class="text-danger fas fa-square"></i>';
-						} else {
-							if (!$rRow['enabled']) {
-								$rStatus = '<i class="text-secondary fas fa-square"></i>';
-							} else {
-								if ($rRow['exp_date'] && $rRow['exp_date'] < time()) {
-									$rStatus = '<i class="text-warning far fa-square"></i>';
-								} else {
-									$rStatus = '<i class="text-success fas fa-square"></i>';
-								}
-							}
-						}
-						if (0 < $rRow['active_connections']) {
-							$rActive = '<i class="text-success fas fa-square"></i>';
-						} else {
-							$rActive = '<i class="text-warning far fa-square"></i>';
-						}
-						if ($rRow['is_trial']) {
-							$rTrial = '<i class="text-warning fas fa-square"></i>';
-						} else {
-							$rTrial = '<i class="text-secondary far fa-square"></i>';
-						}
-						if ($rRow['exp_date']) {
-							if ($rRow['exp_date'] < time()) {
-								$rExpDate = '<span class="expired">' . date($rSettings['date_format'], $rRow['exp_date']) . '<br/><small>' . date('H:i:s', $rRow['exp_date']) . '</small></span>';
-							} else {
-								$rExpDate = date($rSettings['date_format'], $rRow['exp_date']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['exp_date']) . '</small>';
-							}
-						} else {
-							$rExpDate = '&infin;';
-						}
-						$rButtons = '<div class="btn-group">';
-						$rNotes = '';
-						if (0 >= strlen($rRow['reseller_notes'])) {
-						} else {
-							if (strlen($rNotes) == 0) {
-							} else {
-								$rNotes .= "\n";
-							}
-							$rNotes .= $rRow['reseller_notes'];
-						}
-						if (0 < strlen($rNotes)) {
-							$rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rNotes . '"><i class="mdi mdi-note"></i></button>';
-						} else {
-							$rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
-						}
-						$rButtons .= '<button title="MAG Event" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="message(' . $rRow['mag_id'] . ", '" . $rRow['mac'] . "');\"><i class=\"mdi mdi-message-alert\"></i></button>";
-						$rButtons .= '<a href="mag?id=' . $rRow['mag_id'] . '"><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>';
-						if (!$rRow['is_isplock']) {
-						} else {
-							$rButtons .= '<button title="Reset ISP Lock" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'reset_isp');\"><i class=\"mdi mdi-lock-reset\"></i></button>";
-						}
-						if (!$rPermissions['create_line']) {
-						} else {
-							$rButtons .= '<button title="Convert to User Line" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'convert');\"><i class=\"fas fa-retweet\"></i></button>";
-						}
-						if (!$rPermissions['reseller_client_connection_logs']) {
-						} else {
-							if (0 < $rRow['active_connections']) {
-								$rButtons .= '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'kill_line');\"><i class=\"fas fa-hammer\"></i></button>";
-							} else {
-								$rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="fas fa-hammer"></i></button>';
-							}
-						}
-						if ($rRow['enabled'] == 1) {
-							$rButtons .= '<button title="Disable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						} else {
-							$rButtons .= '<button title="Enable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						}
-						$rButtons .= '<button title="Delete" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['mag_id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-						$rButtons .= '</div>';
-						if (in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])))) {
-							$rOwner = "<a href='user?id=" . intval($rRow['member_id']) . "'>" . $rRow['owner_name'] . '</a>';
-						} else {
-							$rOwner = "<a href='user?id=" . intval($rRow['member_id']) . "'>" . $rRow['owner_name'] . "<br/><small class='text-pink'>(indirect)</small></a>";
-						}
-						$rReturn['data'][] = array("<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['mag_id'] . '</a>', $rRow['username'], "<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['mac'] . '</a>', $rRow['stb_type'], $rOwner, $rStatus, $rActive, $rTrial, $rExpDate, $rButtons);
+						// Clean, keyed row payload; the Bootstrap 5 reseller mags view renders
+						// every status icon, badge and action item client-side. Direct reports
+						// (and the reseller itself) are "owned"; deeper rows are indirect reports.
+						$rIndirect = !in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
+						$rReturn['data'][] = array(
+							'mag_id' => (int) $rRow['mag_id'],
+							'username' => $rRow['username'],
+							'mac' => $rRow['mac'],
+							'stb_type' => $rRow['stb_type'],
+							'member_id' => (int) $rRow['member_id'],
+							'owner_name' => $rRow['owner_name'],
+							'indirect' => $rIndirect,
+							'admin_enabled' => (bool) $rRow['admin_enabled'],
+							'enabled' => (bool) $rRow['enabled'],
+							'exp_date' => $rRow['exp_date'] ? (int) $rRow['exp_date'] : 0,
+							'active_connections' => (int) $rRow['active_connections'],
+							'is_trial' => (bool) $rRow['is_trial'],
+							'is_isplock' => (bool) $rRow['is_isplock'],
+							'notes' => (string) $rRow['reseller_notes'],
+						);
 					} else {
 						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
@@ -586,7 +478,10 @@ class ResellerTableRenderer {
 			exit();
 		}
 		$rOrderBy = '';
-		$rOrder = array('`lines`.`id`', '`lines`.`username`', '`enigma2_devices`.`mac`', '`enigma2_devices`.`public_ip`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller enigmas view: leading Responsive-control column,
+		// then id, username, mac, public ip, owner, status, online, trial, expiration, actions.
+		$rOrder = array(false, '`lines`.`id`', '`lines`.`username`', '`enigma2_devices`.`mac`', '`enigma2_devices`.`public_ip`', '`users`.`username`', '`lines`.`enabled`', '`active_connections`', '`lines`.`is_trial`', '`lines`.`exp_date`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -675,83 +570,26 @@ class ResellerTableRenderer {
 						$rRow['active_connections'] = (isset($rConnectionCount[$rRow['id']]) ? $rConnectionCount[$rRow['id']] : 0);
 					}
 					if (!$rIsAPI) {
-						if (!$rRow['admin_enabled']) {
-							$rStatus = '<i class="text-danger fas fa-square"></i>';
-						} else {
-							if (!$rRow['enabled']) {
-								$rStatus = '<i class="text-secondary fas fa-square"></i>';
-							} else {
-								if ($rRow['exp_date'] && $rRow['exp_date'] < time()) {
-									$rStatus = '<i class="text-warning far fa-square"></i>';
-								} else {
-									$rStatus = '<i class="text-success fas fa-square"></i>';
-								}
-							}
-						}
-						if (0 < $rRow['active_connections']) {
-							$rActive = '<i class="text-success fas fa-square"></i>';
-						} else {
-							$rActive = '<i class="text-warning far fa-square"></i>';
-						}
-						if ($rRow['is_trial']) {
-							$rTrial = '<i class="text-warning fas fa-square"></i>';
-						} else {
-							$rTrial = '<i class="text-secondary far fa-square"></i>';
-						}
-						if ($rRow['exp_date']) {
-							if ($rRow['exp_date'] < time()) {
-								$rExpDate = '<span class="expired">' . date($rSettings['date_format'], $rRow['exp_date']) . '<br/><small>' . date('H:i:s', $rRow['exp_date']) . '</small></span>';
-							} else {
-								$rExpDate = date($rSettings['date_format'], $rRow['exp_date']) . "<br/><small class='text-secondary'>" . date('H:i:s', $rRow['exp_date']) . '</small>';
-							}
-						} else {
-							$rExpDate = '&infin;';
-						}
-						$rButtons = '<div class="btn-group">';
-						$rNotes = '';
-						if (0 >= strlen($rRow['reseller_notes'])) {
-						} else {
-							if (strlen($rNotes) == 0) {
-							} else {
-								$rNotes .= "\n";
-							}
-							$rNotes .= $rRow['reseller_notes'];
-						}
-						if (0 < strlen($rNotes)) {
-							$rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rNotes . '"><i class="mdi mdi-note"></i></button>';
-						} else {
-							$rButtons .= '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
-						}
-						$rButtons .= '<a href="enigma?id=' . $rRow['device_id'] . '"><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>';
-						if (!$rRow['is_isplock']) {
-						} else {
-							$rButtons .= '<button title="Reset ISP Lock" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'reset_isp');\"><i class=\"mdi mdi-lock-reset\"></i></button>";
-						}
-						if (!$rPermissions['create_line']) {
-						} else {
-							$rButtons .= '<button title="Convert to User Line" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'convert');\"><i class=\"fas fa-retweet\"></i></button>";
-						}
-						if (!$rPermissions['reseller_client_connection_logs']) {
-						} else {
-							if (0 < $rRow['active_connections']) {
-								$rButtons .= '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'kill_line');\"><i class=\"fas fa-hammer\"></i></button>";
-							} else {
-								$rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="fas fa-hammer"></i></button>';
-							}
-						}
-						if ($rRow['enabled'] == 1) {
-							$rButtons .= '<button title="Disable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						} else {
-							$rButtons .= '<button title="Enable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						}
-						$rButtons .= '<button title="Delete" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['device_id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-						$rButtons .= '</div>';
-						if (in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])))) {
-							$rOwner = "<a href='user?id=" . intval($rRow['member_id']) . "'>" . $rRow['owner_name'] . '</a>';
-						} else {
-							$rOwner = "<a href='user?id=" . intval($rRow['member_id']) . "'>" . $rRow['owner_name'] . "<br/><small class='text-pink'>(indirect)</small></a>";
-						}
-						$rReturn['data'][] = array("<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['device_id'] . '</a>', $rRow['username'], "<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['mac'] . '</a>', "<a onClick=\"whois('" . $rRow['public_ip'] . "');\" href='javascript: void(0);'>" . $rRow['public_ip'] . '</a>', $rOwner, $rStatus, $rActive, $rTrial, $rExpDate, $rButtons);
+						// Clean, keyed row payload; the Bootstrap 5 reseller enigmas view renders
+						// every status icon, badge and action item client-side. Direct reports
+						// (and the reseller itself) are "owned"; deeper rows are indirect reports.
+						$rIndirect = !in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
+						$rReturn['data'][] = array(
+							'device_id' => (int) $rRow['device_id'],
+							'username' => $rRow['username'],
+							'mac' => $rRow['mac'],
+							'public_ip' => (string) $rRow['public_ip'],
+							'member_id' => (int) $rRow['member_id'],
+							'owner_name' => $rRow['owner_name'],
+							'indirect' => $rIndirect,
+							'admin_enabled' => (bool) $rRow['admin_enabled'],
+							'enabled' => (bool) $rRow['enabled'],
+							'exp_date' => $rRow['exp_date'] ? (int) $rRow['exp_date'] : 0,
+							'active_connections' => (int) $rRow['active_connections'],
+							'is_trial' => (bool) $rRow['is_trial'],
+							'is_isplock' => (bool) $rRow['is_isplock'],
+							'notes' => (string) $rRow['reseller_notes'],
+						);
 					} else {
 						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
@@ -782,7 +620,10 @@ class ResellerTableRenderer {
 		}
 		$rCategories = CategoryService::getAllByType('live');
 		$rOrderBy = '';
-		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller streams view: leading Responsive-control
+		// column, then id, icon, title, category, connections, actions.
+		$rOrder = array(false, '`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -854,38 +695,26 @@ class ResellerTableRenderer {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
 						if (!$rIsAPI) {
+							// Clean, keyed row payload. The Bootstrap 5 reseller streams
+							// view renders the icon, category, connections badge and the
+							// (kill-only) action dropdown client-side.
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
 							if (0 < strlen(RequestManager::get('category'))) {
 								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
-							if (1 >= count($rCategoryIDs)) {
-							} else {
+							if (1 < count($rCategoryIDs)) {
 								$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 							}
-							if (!(0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id'])) {
-							} else {
-								$rRow['stream_display_name'] .= " <i class='text-danger mdi mdi-record'></i>";
-							}
-							if (0 < $rRow['clients']) {
-								if ($rPermissions['reseller_client_connection_logs']) {
-									$rButtons = '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'purge');\"><i class=\"mdi mdi-hammer\"></i></button>";
-									$rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button></a>';
-								} else {
-									$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-									$rClients = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button>';
-								}
-							} else {
-								$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-								$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-							}
-							if (0 < strlen($rRow['stream_icon'])) {
-								$rIcon = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rRow['stream_icon'] . "'><img loading='lazy' src='resize?maxw=96&maxh=32&url=" . $rRow['stream_icon'] . "' /></a>";
-							} else {
-								$rIcon = '';
-							}
-							$rReturn['data'][] = array($rRow['id'], $rIcon, $rRow['stream_display_name'], $rCategory, $rClients, $rButtons);
+							$rReturn['data'][] = array(
+								'id' => (int) $rRow['id'],
+								'icon' => (string) $rRow['stream_icon'],
+								'title' => (string) $rRow['stream_display_name'],
+								'archive' => (bool) (0 < $rRow['tv_archive_duration'] && 0 < $rRow['tv_archive_server_id']),
+								'category' => $rCategory,
+								'clients' => (int) $rRow['clients'],
+							);
 						} else {
 							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
@@ -919,7 +748,10 @@ class ResellerTableRenderer {
 		}
 		$rCategories = CategoryService::getAllByType('radio');
 		$rOrderBy = '';
-		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller radios view: leading Responsive-control
+		// column, then id, icon, title, category, connections, actions.
+		$rOrder = array(false, '`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -989,34 +821,25 @@ class ResellerTableRenderer {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
 						if (!$rIsAPI) {
+							// Clean, keyed row payload. The Bootstrap 5 reseller radios
+							// view renders the icon, category, connections badge and the
+							// (kill-only) action dropdown client-side.
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
 							if (0 < strlen(RequestManager::get('category'))) {
 								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
-							if (1 >= count($rCategoryIDs)) {
-							} else {
+							if (1 < count($rCategoryIDs)) {
 								$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 							}
-							if (0 < $rRow['clients']) {
-								if ($rPermissions['reseller_client_connection_logs']) {
-									$rButtons = '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'purge');\"><i class=\"mdi mdi-hammer\"></i></button>";
-									$rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button></a>';
-								} else {
-									$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-									$rClients = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button>';
-								}
-							} else {
-								$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-								$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-							}
-							if (0 < strlen($rRow['stream_icon'])) {
-								$rIcon = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rRow['stream_icon'] . "'><img loading='lazy' src='resize?maxw=96&maxh=32&url=" . $rRow['stream_icon'] . "' /></a>";
-							} else {
-								$rIcon = '';
-							}
-							$rReturn['data'][] = array($rRow['id'], $rIcon, $rRow['stream_display_name'], $rCategory, $rClients, $rButtons);
+							$rReturn['data'][] = array(
+								'id' => (int) $rRow['id'],
+								'icon' => (string) $rRow['stream_icon'],
+								'title' => (string) $rRow['stream_display_name'],
+								'category' => $rCategory,
+								'clients' => (int) $rRow['clients'],
+							);
 						} else {
 							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
@@ -1050,7 +873,10 @@ class ResellerTableRenderer {
 		}
 		$rCategories = CategoryService::getAllByType('movie');
 		$rOrderBy = '';
-		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller movies view: leading Responsive-control
+		// column, then id, cover, title, category, connections, actions.
+		$rOrder = array(false, '`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -1120,35 +946,26 @@ class ResellerTableRenderer {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
 						if (!$rIsAPI) {
+							// Clean, keyed row payload. The Bootstrap 5 reseller movies
+							// view renders the cover, category, connections badge and the
+							// (kill-only) action dropdown client-side.
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
 							if (0 < strlen(RequestManager::get('category'))) {
 								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
-							if (1 >= count($rCategoryIDs)) {
-							} else {
+							if (1 < count($rCategoryIDs)) {
 								$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 							}
-							if (0 < $rRow['clients']) {
-								if ($rPermissions['reseller_client_connection_logs']) {
-									$rButtons = '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'purge');\"><i class=\"mdi mdi-hammer\"></i></button>";
-									$rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button></a>';
-								} else {
-									$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-									$rClients = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button>';
-								}
-							} else {
-								$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-								$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-							}
 							$rProperties = json_decode($rRow['movie_properties'], true);
-							if (0 < strlen($rProperties['movie_image'])) {
-								$rImage = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties['movie_image'] . "'><img loading='lazy' src='resize?maxh=58&maxw=32&url=" . $rProperties['movie_image'] . "' /></a>";
-							} else {
-								$rImage = '';
-							}
-							$rReturn['data'][] = array($rRow['id'], $rImage, $rRow['stream_display_name'], $rCategory, $rClients, $rButtons);
+							$rReturn['data'][] = array(
+								'id' => (int) $rRow['id'],
+								'image' => (string) ($rProperties['movie_image'] ?? ''),
+								'title' => (string) $rRow['stream_display_name'],
+								'category' => $rCategory,
+								'clients' => (int) $rRow['clients'],
+							);
 						} else {
 							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
@@ -1182,7 +999,12 @@ class ResellerTableRenderer {
 		}
 		$rCategories = CategoryService::getAllByType('series');
 		$rOrderBy = '';
-		$rOrder = array('`id`', false, '`stream_display_name`', '`category_id`', '`clients`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller episodes view: leading Responsive-control
+		// column, then id, image, title, category, connections, actions. The category
+		// column is qualified (`streams_series`) because `streams` also has a
+		// `category_id`, which would make an unqualified ORDER BY ambiguous.
+		$rOrder = array(false, '`streams`.`id`', false, '`stream_display_name`', '`streams_series`.`category_id`', '`clients`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -1210,8 +1032,9 @@ class ResellerTableRenderer {
 				$rWhere[] = '`streams_series`.`id` = ?';
 				$rWhereV[] = RequestManager::get('series');
 			}
-			if (!$rOrder[$rOrderRow]) {
-			} else {
+			// Guard with !empty (not isset): index 0 is `false` (the Responsive-control
+			// column), and `isset` would emit "ORDER BY false" -> SQL error.
+			if (!empty($rOrder[$rOrderRow])) {
 				$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 				$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 			}
@@ -1257,37 +1080,29 @@ class ResellerTableRenderer {
 							$rRow['clients'] = ($rConnectionCount[$rRow['id']] ?: 0);
 						}
 						if (!$rIsAPI) {
-							$rSeriesName = $rRow['title'] . ' - Season ' . $rRow['season_num'];
-							$rStreamName = '<b>' . $rRow['stream_display_name'] . "</b><br><span style='font-size:11px;'>" . $rSeriesName . '</span>';
+							// Clean, keyed row payload. The Bootstrap 5 reseller episodes
+							// view renders the image, name (+ series/season subtitle),
+							// category, connections badge and the (kill-only) action
+							// dropdown client-side.
 							$rCategoryIDs = json_decode($rRow['category_id'], true);
 							if (0 < strlen(RequestManager::get('category'))) {
 								$rCategory = ($rCategories[intval(RequestManager::get('category'))]['category_name'] ?: 'No Category');
 							} else {
 								$rCategory = ($rCategories[$rCategoryIDs[0]]['category_name'] ?: 'No Category');
 							}
-							if (1 >= count($rCategoryIDs)) {
-							} else {
+							if (1 < count($rCategoryIDs)) {
 								$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 							}
-							if (0 < $rRow['clients']) {
-								if ($rPermissions['reseller_client_connection_logs']) {
-									$rButtons = '<button title="Kill Connections" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'purge');\"><i class=\"mdi mdi-hammer\"></i></button>";
-									$rClients = "<a href='javascript: void(0);' onClick='viewLiveConnections(" . intval($rRow['id']) . ");'><button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button></a>';
-								} else {
-									$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-									$rClients = "<button type='button' class='btn btn-info btn-xs waves-effect waves-light'>" . $rRow['clients'] . '</button>';
-								}
-							} else {
-								$rButtons = '<button type="button" disabled class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-hammer"></i></button>';
-								$rClients = "<button type='button' class='btn btn-secondary btn-xs waves-effect waves-light'>0</button>";
-							}
 							$rProperties = json_decode($rRow['movie_properties'], true);
-							if (0 < strlen($rProperties['movie_image'])) {
-								$rImage = "<a href='javascript: void(0);' onClick='openImage(this);' data-src='resize?maxw=512&maxh=512&url=" . $rProperties['movie_image'] . "'><img loading='lazy' src='resize?maxh=58&maxw=32&url=" . $rProperties['movie_image'] . "' /></a>";
-							} else {
-								$rImage = '';
-							}
-							$rReturn['data'][] = array($rRow['id'], $rImage, $rStreamName, $rCategory, $rClients, $rButtons);
+							$rReturn['data'][] = array(
+								'id' => (int) $rRow['id'],
+								'image' => (string) ($rProperties['movie_image'] ?? ''),
+								'title' => (string) $rRow['stream_display_name'],
+								'series' => (string) $rRow['title'],
+								'season' => ($rRow['season_num'] !== null ? (int) $rRow['season_num'] : null),
+								'category' => $rCategory,
+								'clients' => (int) $rRow['clients'],
+							);
 						} else {
 							$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 						}
@@ -1319,7 +1134,11 @@ class ResellerTableRenderer {
 			exit();
 		}
 		$rOrderBy = '';
-		$rOrder = array('`username`', '`streams`.`stream_display_name`', '`lines_activity`.`user_agent`', '`lines_activity`.`isp`', '`lines_activity`.`user_ip`', '`lines_activity`.`date_start`', '`lines_activity`.`date_end`', '`lines_activity`.`date_end` - `lines_activity`.`date_start`', '`lines_activity`.`container`');
+		// Column index -> SQL order expression. Leading false = the Bootstrap 5
+		// Responsive control column (client index 0); the remaining entries mirror the
+		// keyed reseller line_activity columns: username, stream, player, isp, ip,
+		// start, stop, duration, container, restreamer.
+		$rOrder = array(false, '`username`', '`streams`.`stream_display_name`', '`lines_activity`.`user_agent`', '`lines_activity`.`isp`', '`lines_activity`.`user_ip`', '`lines_activity`.`date_start`', '`lines_activity`.`date_end`', '`lines_activity`.`date_end` - `lines_activity`.`date_start`', '`lines_activity`.`container`', '`lines`.`is_restreamer`');
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -1373,7 +1192,7 @@ class ResellerTableRenderer {
 		} else {
 			$rWhereString = '';
 		}
-		if (isset($rOrder[$rOrderRow])) {
+		if (!empty($rOrder[$rOrderRow])) {
 			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
@@ -1393,59 +1212,35 @@ class ResellerTableRenderer {
 			} else {
 				foreach ($db->get_rows() as $rRow) {
 					if (!$rIsAPI) {
-						if ($rRow['is_mag']) {
-							$rUsername = "<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['username'] . '</a>';
+						// Clean, keyed row payload; the Bootstrap 5 reseller line_activity
+						// view renders the user/stream links, country flag, duration badge
+						// and IP whois client-side. Device rows link to the MAG/Enigma editor,
+						// everything else to the line editor (mirrors the legacy reseller view).
+						if (!empty($rRow['is_mag'])) {
+							$rUserUrl = 'mag?id=' . (int) $rRow['mag_id'];
+						} elseif (!empty($rRow['is_e2'])) {
+							$rUserUrl = 'enigma?id=' . (int) $rRow['device_id'];
 						} else {
-							if ($rRow['is_e2']) {
-								$rUsername = "<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['username'] . '</a>';
-							} else {
-								$rUsername = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['username'] . '</a>';
-							}
+							$rUserUrl = 'line?id=' . (int) $rRow['user_id'];
 						}
-						$rChannel = $rRow['stream_display_name'];
-						if (0 < strlen($rRow['geoip_country_code'])) {
-							$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow['geoip_country_code']) . ".png'></img> &nbsp;";
-						} else {
-							$rGeoCountry = '';
-						}
-						if ($rRow['user_ip']) {
-							$rIP = $rGeoCountry . "<a onClick=\"whois('" . $rRow['user_ip'] . "');\" href='javascript: void(0);'>" . $rRow['user_ip'] . '</a>';
-						} else {
-							$rIP = '';
-						}
-						if ($rRow['date_start']) {
-							$rStart = date($rSettings['datetime_format'], $rRow['date_start']);
-						} else {
-							$rStart = '';
-						}
-						if ($rRow['date_end']) {
-							$rStop = date($rSettings['datetime_format'], $rRow['date_end']);
-						} else {
-							$rStop = '';
-						}
-						$rPlayer = trim(explode('(', $rRow['user_agent'])[0]);
-						$rDuration = $rRow['date_end'] - $rRow['date_start'];
-						$rColour = 'success';
-						if (86400 <= $rDuration) {
-							$rDuration = sprintf('%02dd %02dh', $rDuration / 86400, ($rDuration / 3600) % 24);
-							$rColour = 'danger';
-						} else {
-							if (3600 <= $rDuration) {
-								if (14400 < $rDuration) {
-									$rColour = 'warning';
-								} else {
-									if (43200 >= $rDuration) {
-									} else {
-										$rColour = 'danger';
-									}
-								}
-								$rDuration = sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60);
-							} else {
-								$rDuration = sprintf('%02dm %02ds', ($rDuration / 60) % 60, $rDuration % 60);
-							}
-						}
-						$rDuration = "<button type='button' class='btn btn-" . $rColour . " btn-xs waves-effect waves-light btn-fixed'>" . $rDuration . '</button>';
-						$rReturn['data'][] = array($rUsername, $rChannel, $rPlayer, $rRow['isp'], $rIP, $rStart, $rStop, $rDuration, strtoupper($rRow['container']));
+						// Reseller stream links only when the reseller may view VOD/streams.
+						$rStreamUrl = ($rPermissions['can_view_vod'] && 0 < (int) $rRow['stream_id']) ? 'stream_view?id=' . (int) $rRow['stream_id'] : null;
+						$rReturn['data'][] = array(
+							'user_label'    => $rRow['username'],
+							'user_sub'      => null,
+							'user_url'      => $rUserUrl,
+							'stream_name'   => $rRow['stream_display_name'],
+							'stream_url'    => $rStreamUrl,
+							'player'        => trim(explode('(', (string) $rRow['user_agent'])[0]),
+							'isp'           => $rRow['isp'],
+							'user_ip'       => $rRow['user_ip'],
+							'country'       => (0 < strlen((string) $rRow['geoip_country_code'])) ? strtolower($rRow['geoip_country_code']) : null,
+							'date_start'    => (int) $rRow['date_start'],
+							'date_end'      => (int) $rRow['date_end'],
+							'duration'      => (int) $rRow['date_end'] - (int) $rRow['date_start'],
+							'container'     => strtoupper((string) $rRow['container']),
+							'is_restreamer' => (1 == (int) $rRow['is_restreamer']),
+						);
 					} else {
 						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}
@@ -1515,7 +1310,11 @@ class ResellerTableRenderer {
 					$rKeyCount--;
 				}
 			}
-			$rOrder = array('uuid', 'divergence', 'identifier', 'stream_display_name', 'user_agent', 'isp', 'user_ip', 'active_time', 'container', null);
+			// array_column keys for the Redis path. Leading false = the Bootstrap 5
+			// Responsive control column (client index 0); mirrors the keyed reseller
+			// live_connections columns: uuid, divergence, line, stream, player, isp,
+			// ip, duration, container, restreamer, actions.
+			$rOrder = array(false, 'uuid', 'divergence', 'identifier', 'stream_display_name', 'user_agent', 'isp', 'user_ip', 'active_time', 'container', null, null);
 			if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 				$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 			} else {
@@ -1584,7 +1383,10 @@ class ResellerTableRenderer {
 			$rReturn['recordsFiltered'] = ($rIsAPI ? ($rReturn['recordsTotal'] < $rLimit ? $rReturn['recordsTotal'] : $rLimit) : $rReturn['recordsTotal']);
 		} else {
 			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
-			$rOrder = array('`lines_live`.`activity_id`', '`lines_live`.`divergence`', '`username`', '`streams`.`stream_display_name`', '`lines_live`.`user_agent`', '`lines_live`.`isp`', '`lines_live`.`user_ip`', 'UNIX_TIMESTAMP() - `lines_live`.`date_start`', '`lines_live`.`container`', false);
+			// Column index -> SQL order expression. Leading false = the Bootstrap 5
+			// Responsive control column (client index 0); mirrors the keyed reseller
+			// live_connections columns (see the Redis path above).
+			$rOrder = array(false, '`lines_live`.`activity_id`', '`lines_live`.`divergence`', '`username`', '`streams`.`stream_display_name`', '`lines_live`.`user_agent`', '`lines_live`.`isp`', '`lines_live`.`user_ip`', 'UNIX_TIMESTAMP() - `lines_live`.`date_start`', '`lines_live`.`container`', '`lines`.`is_restreamer`', false);
 			if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 				$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 			} else {
@@ -1642,54 +1444,35 @@ class ResellerTableRenderer {
 		} else {
 			foreach ($rRows as $rRow) {
 				if (!$rIsAPI) {
-					if ($rRow['divergence'] <= 50) {
-						$rDivergence = '<i class="text-success fas fa-square tooltip" title="' . intval(100 - $rRow['divergence']) . '%"></i>';
+					// Clean, keyed row payload; the Bootstrap 5 reseller live_connections
+					// view renders the divergence square, user/stream links, country flag,
+					// live-duration badge, IP whois and the kill button client-side.
+					if (!empty($rRow['is_mag'])) {
+						$rUserUrl = 'mag?id=' . (int) $rRow['mag_id'];
+					} elseif (!empty($rRow['is_e2'])) {
+						$rUserUrl = 'enigma?id=' . (int) $rRow['device_id'];
 					} else {
-						if ($rRow['divergence'] <= 80) {
-							$rDivergence = '<i class="text-warning fas fa-square tooltip" title="' . intval(100 - $rRow['divergence']) . '%"></i>';
-						} else {
-							$rDivergence = '<i class="text-danger fas fa-square tooltip" title="' . intval(100 - $rRow['divergence']) . '%"></i>';
-						}
+						$rUserUrl = 'line?id=' . (int) $rRow['user_id'];
 					}
-					if ($rRow['is_mag']) {
-						$rUsername = "<a href='mag?id=" . $rRow['mag_id'] . "'>" . $rRow['username'] . '</a>';
-					} else {
-						if ($rRow['is_e2']) {
-							$rUsername = "<a href='enigma?id=" . $rRow['device_id'] . "'>" . $rRow['username'] . '</a>';
-						} else {
-							$rUsername = "<a href='line?id=" . $rRow['user_id'] . "'>" . $rRow['username'] . '</a>';
-						}
-					}
-					$rChannel = $rRow['stream_display_name'];
-					if (0 < strlen($rRow['geoip_country_code'])) {
-						$rGeoCountry = "<img loading='lazy' src='assets/old/images/countries/" . strtolower($rRow['geoip_country_code']) . ".png'></img> &nbsp;";
-					} else {
-						$rGeoCountry = '';
-					}
-					if ($rRow['user_ip']) {
-						$rIP = $rGeoCountry . "<a onClick=\"whois('" . $rRow['user_ip'] . "');\" href='javascript: void(0);'>" . $rRow['user_ip'] . '</a>';
-					} else {
-						$rIP = '';
-					}
-					$rPlayer = trim(explode('(', $rRow['user_agent'])[0]);
-					$rDuration = intval(time()) - intval($rRow['date_start']);
-					$rColour = 'success';
-					if (86400 <= $rDuration) {
-						$rDuration = sprintf('%02dd %02dh', $rDuration / 86400, ($rDuration / 3600) % 24);
-						$rColour = 'danger';
-					} else {
-						if (3600 <= $rDuration) {
-							if (14400 < $rDuration) {
-								$rColour = 'warning';
-							}
-							$rDuration = sprintf('%02dh %02dm', $rDuration / 3600, ($rDuration / 60) % 60);
-						} else {
-							$rDuration = sprintf('%02dm %02ds', ($rDuration / 60) % 60, $rDuration % 60);
-						}
-					}
-					$rDuration = "<button type='button' class='btn btn-" . $rColour . " btn-xs waves-effect waves-light btn-fixed'>" . $rDuration . '</button>';
-					$rButtons = "<button title=\"Kill Connection\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api('" . $rRow['uuid'] . "', 'kill');\"><i class=\"fas fa-hammer\"></i></button>";
-					$rReturn['data'][] = array($rRow['activity_id'], $rDivergence, $rUsername, $rChannel, $rPlayer, $rRow['isp'], $rIP, $rDuration, strtoupper($rRow['container']), $rButtons);
+					// Reseller stream links only when the reseller may view VOD/streams.
+					$rStreamUrl = ($rPermissions['can_view_vod'] && 0 < (int) $rRow['stream_id']) ? 'stream_view?id=' . (int) $rRow['stream_id'] : null;
+					$rReturn['data'][] = array(
+						'activity_id'   => $rRow['activity_id'],
+						'uuid'          => $rRow['uuid'] ?? null,
+						'user_id'       => (int) $rRow['user_id'],
+						'divergence'    => (int) $rRow['divergence'],
+						'user_label'    => $rRow['username'] ?? '',
+						'user_url'      => $rUserUrl,
+						'stream_name'   => $rRow['stream_display_name'],
+						'stream_url'    => $rStreamUrl,
+						'player'        => trim(explode('(', (string) $rRow['user_agent'])[0]),
+						'isp'           => $rRow['isp'],
+						'user_ip'       => $rRow['user_ip'],
+						'country'       => (0 < strlen((string) $rRow['geoip_country_code'])) ? strtolower($rRow['geoip_country_code']) : null,
+						'date_start'    => (int) $rRow['date_start'],
+						'container'     => strtoupper((string) $rRow['container']),
+						'is_restreamer' => (1 == (int) $rRow['is_restreamer']),
+					);
 				} else {
 					$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 				}
@@ -1714,7 +1497,10 @@ class ResellerTableRenderer {
 	 */
 	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderBy = '';
-		$rOrder = array('`users_logs`.`id`', '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`');
+		// Column index -> SQL order expression. Leading false = the Bootstrap 5
+		// Responsive control column (client index 0); mirrors the keyed reseller
+		// user_logs columns: owner, target, action text, cost, credits after, date.
+		$rOrder = array(false, '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`');
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -1758,7 +1544,7 @@ class ResellerTableRenderer {
 		} else {
 			$rWhereString = '';
 		}
-		if (isset($rOrder[$rOrderRow])) {
+		if (!empty($rOrder[$rOrderRow])) {
 			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
@@ -1779,27 +1565,20 @@ class ResellerTableRenderer {
 			} else {
 				foreach ($db->get_rows() as $rRow) {
 					if (!$rIsAPI) {
-						if (in_array($rRow['owner'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])))) {
-							$rOwner = "<a href='user?id=" . intval($rRow['owner']) . "'>" . $rRow['username'] . '</a>';
-						} else {
-							$rOwner = "<a href='user?id=" . intval($rRow['owner']) . "'>" . $rRow['username'] . "<br/><small class='text-pink'>(indirect)</small></a>";
-						}
-						$rDevice = array('line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller')[$rRow['type']];
+						// Clean, keyed row payload; the Bootstrap 5 reseller user_logs view
+						// renders the owner link (with an indirect marker), the resolved
+						// target line/user/device link and the numeric badges client-side.
+						// Direct reports (and the reseller itself) are "owned" rows; anything
+						// deeper in the tree is an indirect report.
+						$rOwnerIndirect = !in_array($rRow['owner'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
+						$rDevice = array('line' => 'User Line', 'mag' => 'MAG Device', 'enigma' => 'Enigma2 Device', 'user' => 'Reseller')[$rRow['type']] ?? (string) $rRow['type'];
 						$rText = '';
 						switch ($rRow['action']) {
 							case 'new':
-								if ($rRow['package_id']) {
-									$rText = 'Created New ' . $rDevice . ' with Package: ' . $rPackages[$rRow['package_id']]['package_name'];
-								} else {
-									$rText = 'Created New ' . $rDevice;
-								}
+								$rText = $rRow['package_id'] ? 'Created New ' . $rDevice . ' with Package: ' . ($rPackages[$rRow['package_id']]['package_name'] ?? '') : 'Created New ' . $rDevice;
 								break;
 							case 'extend':
-								if ($rRow['package_id']) {
-									$rText = 'Extended ' . $rDevice . ' with Package: ' . $rPackages[$rRow['package_id']]['package_name'];
-								} else {
-									$rText = 'Extended ' . $rDevice;
-								}
+								$rText = $rRow['package_id'] ? 'Extended ' . $rDevice . ' with Package: ' . ($rPackages[$rRow['package_id']]['package_name'] ?? '') : 'Extended ' . $rDevice;
 								break;
 							case 'edit':
 								$rText = 'Edited ' . $rDevice;
@@ -1819,52 +1598,57 @@ class ResellerTableRenderer {
 							case 'adjust_credits':
 								$rText = 'Adjusted Credits by ' . $rRow['cost'];
 								break;
+							default:
+								$rText = (string) $rRow['action'];
 						}
-						$rLineInfo = null;
+						$rLineLabel = null;
+						$rLineUrl = null;
 						switch ($rRow['type']) {
 							case 'line':
-								$rLine = UserRepository::getLineById($rRow['log_id']);
-								if (!$rLine) {
-								} else {
-									$rLineInfo = "<a href='line?id=" . $rRow['log_id'] . "'>" . $rLine['username'] . '</a>';
+								$rEntity = UserRepository::getLineById($rRow['log_id']);
+								if ($rEntity) {
+									$rLineLabel = $rEntity['username'];
+									$rLineUrl = 'line?id=' . (int) $rRow['log_id'];
 								}
 								break;
 							case 'user':
-								$rLine = UserRepository::getRegisteredUserById($rRow['log_id']);
-								if (!$rLine) {
-								} else {
-									$rLineInfo = "<a href='user?id=" . $rRow['log_id'] . "'>" . $rLine['username'] . '</a>';
+								$rEntity = UserRepository::getRegisteredUserById($rRow['log_id']);
+								if ($rEntity) {
+									$rLineLabel = $rEntity['username'];
+									$rLineUrl = 'user?id=' . (int) $rRow['log_id'];
 								}
 								break;
 							case 'mag':
-								$rLine = MagService::getById($rRow['log_id']);
-								if (!$rLine) {
-								} else {
-									$rLineInfo = "<a href='mag?id=" . $rRow['log_id'] . "'>" . $rLine['mac'] . '</a>';
+								$rEntity = MagService::getById($rRow['log_id']);
+								if ($rEntity) {
+									$rLineLabel = $rEntity['mac'];
+									$rLineUrl = 'mag?id=' . (int) $rRow['log_id'];
 								}
 								break;
 							case 'enigma':
-								$rLine = EnigmaService::getById($rRow['log_id']);
-								if (!$rLine) {
-								} else {
-									$rLineInfo = "<a href='enigma?id=" . $rRow['log_id'] . "'>" . $rLine['mac'] . '</a>';
+								$rEntity = EnigmaService::getById($rRow['log_id']);
+								if ($rEntity) {
+									$rLineLabel = $rEntity['mac'];
+									$rLineUrl = 'enigma?id=' . (int) $rRow['log_id'];
 								}
 								break;
 						}
-						if ($rLineInfo) {
-						} else {
+						if ($rLineLabel === null) {
 							$rDeletedInfo = json_decode($rRow['deleted_info'], true);
-							if (is_array($rDeletedInfo)) {
-								if (isset($rDeletedInfo['mac'])) {
-									$rLineInfo = "<span class='text-secondary'>" . $rDeletedInfo['mac'] . '</span>';
-								} else {
-									$rLineInfo = "<span class='text-secondary'>" . $rDeletedInfo['username'] . '</span>';
-								}
-							} else {
-								$rLineInfo = "<span class='text-secondary'>DELETED</span>";
-							}
+							$rLineLabel = is_array($rDeletedInfo) ? ($rDeletedInfo['mac'] ?? $rDeletedInfo['username'] ?? 'DELETED') : 'DELETED';
 						}
-						$rReturn['data'][] = array($rRow['id'], $rOwner, $rLineInfo, $rText, number_format($rRow['cost'], 0), number_format($rRow['credits_after'], 0), date($rSettings['datetime_format'], $rRow['date']));
+						$rReturn['data'][] = array(
+							'id'             => (int) $rRow['id'],
+							'owner'          => $rRow['username'],
+							'owner_url'      => 'user?id=' . (int) $rRow['owner'],
+							'owner_indirect' => $rOwnerIndirect,
+							'line_label'     => $rLineLabel,
+							'line_url'       => $rLineUrl,
+							'text'           => $rText,
+							'cost'           => (int) $rRow['cost'],
+							'credits_after'  => (int) $rRow['credits_after'],
+							'date'           => (int) $rRow['date'],
+						);
 					} else {
 						unset($rRow['deleted_info']);
 						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
@@ -1894,7 +1678,10 @@ class ResellerTableRenderer {
 			exit();
 		}
 		$rOrderBy = '';
-		$rOrder = array('`users`.`id`', '`users`.`username`', '`r`.`username`', '`users`.`ip`', '`users`.`status`', '`users`.`credits`', '`user_count`', '`users`.`last_login`', false);
+		// Column index -> SQL order expression. Mirrors the keyed Bootstrap 5 column
+		// order emitted by the reseller users view: leading Responsive-control column,
+		// then id, username, owner, ip, status, credits, lines, last login, actions.
+		$rOrder = array(false, '`users`.`id`', '`users`.`username`', '`r`.`username`', '`users`.`ip`', '`users`.`status`', '`users`.`credits`', '`user_count`', '`users`.`last_login`', false);
 		if (RequestManager::has('order') && 0 < strlen(RequestManager::get('order')[0]['column'])) {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
@@ -1951,60 +1738,27 @@ class ResellerTableRenderer {
 			} else {
 				foreach ($db->get_rows() as $rRow) {
 					if (!$rIsAPI) {
-						if ($rRow['status'] == 1) {
-							$rStatus = '<i class="text-success fas fa-square"></i>';
-						} else {
-							$rStatus = '<i class="text-secondary fas fa-square"></i>';
-						}
-						if ($rRow['last_login']) {
-						} else {
-							$rRow['last_login'] = 'NEVER';
-						}
-						$rButtons = '<div class="btn-group">';
-						if (0 < strlen($rRow['notes'])) {
-							$rButtons .= '<button type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" title="' . $rRow['notes'] . '"><i class="mdi mdi-note"></i></button>';
-						} else {
-							$rButtons .= '<button disabled type="button" class="btn btn-light waves-effect waves-light btn-xs"><i class="mdi mdi-note"></i></button>';
-						}
-						if (in_array($rRow['id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])))) {
-							$rButtons .= '<button title="Adjust Credits" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="addCredits(' . $rRow['id'] . ", '" . addslashes($rRow['username']) . "', " . intval($rRow['credits']) . ');"><i class="mdi mdi-coin"></i></button>';
-							$rUsername = "<a href='user?id=" . intval($rRow['id']) . "'>" . $rRow['username'] . '</a>';
-						} else {
-							$rButtons .= '<button title="Adjust Credits" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="addCredits(' . $rRow['id'] . ", '" . addslashes($rRow['username']) . "', " . intval($rRow['credits']) . ', true);"><i class="mdi mdi-coin"></i></button>';
-							$rUsername = "<a href='user?id=" . intval($rRow['id']) . "'>" . $rRow['username'] . "<br/><small class='text-pink'>(indirect)</small></a>";
-						}
-						$rButtons .= '<a href="user?id=' . $rRow['id'] . '"><button title="Edit" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip"><i class="mdi mdi-pencil-outline"></i></button></a>';
-						if ($rRow['status'] == 1) {
-							$rButtons .= '<button title="Disable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'disable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						} else {
-							$rButtons .= '<button title="Enable" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'enable');\"><i class=\"mdi mdi-lock\"></i></button>";
-						}
-						if (!$rPermissions['delete_users']) {
-						} else {
-							$rButtons .= '<button title="Delete" type="button" class="btn btn-light waves-effect waves-light btn-xs tooltip" onClick="api(' . $rRow['id'] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-						}
-						$rButtons .= '</div>';
-						if (0 < strlen($rRow['ip'])) {
-							$rIP = "<a onClick=\"whois('" . $rRow['ip'] . "');\" href='javascript: void(0);'>" . $rRow['ip'] . '</a>';
-						} else {
-							$rIP = '';
-						}
-						if ($rRow['is_reseller']) {
-							$rCredits = '<button type="button" class="btn btn-info btn-xs waves-effect waves-light">' . number_format($rRow['credits'], 0) . '</button>';
-						} else {
-							$rCredits = '<button type="button" class="btn btn-secondary btn-xs waves-effect waves-light">-</button>';
-						}
-						if (0 < $rRow['user_count']) {
-							$rUserCount = '<button type="button" class="btn btn-info btn-xs waves-effect waves-light">' . number_format($rRow['user_count'], 0) . '</button>';
-						} else {
-							$rUserCount = '<button type="button" class="btn btn-secondary btn-xs waves-effect waves-light">0</button>';
-						}
-						if (in_array($rRow['owner_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])))) {
-							$rOwner = "<a href='user?id=" . intval($rRow['owner_id']) . "'>" . $rRow['owner_username'] . '</a>';
-						} else {
-							$rOwner = "<a href='user?id=" . intval($rRow['owner_id']) . "'>" . $rRow['owner_username'] . "<br/><small class='text-pink'>(indirect)</small></a>";
-						}
-						$rReturn['data'][] = array("<a href='user?id=" . intval($rRow['id']) . "'>" . $rRow['id'] . '</a>', $rUsername, $rOwner, $rIP, $rStatus, $rCredits, $rUserCount, $rRow['last_login'], $rButtons);
+						// Clean, keyed row payload (the Bootstrap 5 reseller users view renders
+						// the status icon, credit / line-count badges, IP whois link and action
+						// dropdown client-side). Direct reports (and the reseller itself) are
+						// "owned" rows; anything deeper in the tree is an indirect report.
+						$rIndirect = !in_array($rRow['id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
+						$rOwnerIndirect = !in_array($rRow['owner_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
+						$rReturn['data'][] = array(
+							'id' => (int) $rRow['id'],
+							'username' => $rRow['username'],
+							'owner_id' => (int) $rRow['owner_id'],
+							'owner_username' => $rRow['owner_username'],
+							'owner_indirect' => $rOwnerIndirect,
+							'indirect' => $rIndirect,
+							'ip' => (string) $rRow['ip'],
+							'status' => (int) $rRow['status'],
+							'is_reseller' => (bool) $rRow['is_reseller'],
+							'credits' => (int) $rRow['credits'],
+							'user_count' => (int) $rRow['user_count'],
+							'last_login' => $rRow['last_login'] ?: '',
+							'notes' => (string) $rRow['notes'],
+						);
 					} else {
 						$rReturn['data'][] = self::filterRow($rRow, RequestManager::get('show_columns'), RequestManager::get('hide_columns'));
 					}

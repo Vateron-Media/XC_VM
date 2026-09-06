@@ -1,135 +1,422 @@
-<div class="wrapper">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include __DIR__ . '/topbar.php'; ?>
-                    </div>
-                    <h4 class="page-title"><?= $language::get('live_connections') ?></h4>
-                </div>
+<?php
+
+/**
+ * Reseller Live connections (Bootstrap 5). Full-parity port of admin/live_connections.php
+ * adapted to the reseller contract: clean-JSON keyed serverSide DataTable
+ * (ResellerTableRenderer::handleLiveConnections emits data-only rows) with the
+ * divergence square, live-duration badge, country flag, IP whois and the kill
+ * button rendered client-side. Periodically reloads for a live view.
+ *
+ * Reseller differences vs admin: gated by $rPermissions (not Authorization::check);
+ * no server column / server filter (resellers have no server-view access), no
+ * connection-type filter, no fingerprint. Line + stream filters are select2-ajax
+ * (reseller api userlist / streamlist); the owner filter is a static select2 built
+ * from the reseller's report tree. Kill wires to the reseller api
+ * (action=line_activity&sub=kill&uuid=…). Whois unwraps the reseller api's
+ * {result,data} envelope.
+ */
+
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+
+if (empty($rPermissions['reseller_client_connection_logs'])):
+?>
+    <div class="alert alert-danger text-center" role="alert"><?= $language::get('dashboard_no_permissions'); ?></div>
+<?php
+    require_once __DIR__ . '/../layouts/footer.php';
+    renderUnifiedLayoutFooter('reseller');
+    echo '</body></html>';
+    return;
+endif;
+
+$rCanVod = !empty($rPermissions['can_view_vod']);
+
+// Deep-link filters. ?line=ID pre-selects a specific line; ?user=ID / ?stream=ID too.
+$rSelectedLine = RequestManager::has('line') ? (int) RequestManager::get('line') : 0;
+$rSelectedStream = RequestManager::has('stream') ? (int) RequestManager::get('stream') : 0;
+$rSelectedOwner = RequestManager::has('user') ? (string) RequestManager::get('user') : '';
+
+$rDirectReports = (array) ($rPermissions['direct_reports'] ?? []);
+$rAllReports = (array) ($rPermissions['all_reports'] ?? []);
+$rReportUsers = (array) ($rPermissions['users'] ?? []);
+?>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0"><?= $language::get('live_connections'); ?></h5>
+    </div>
+    <!-- Filters (Bootstrap 5 advanced-search layout: labelled fields in a grid). -->
+    <div class="card-body border-bottom">
+        <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-line"><?= $language::get('line'); ?></label>
+                <select id="filter-line" class="form-select"></select>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body" style="overflow-x:auto;">
-                        <div id="collapse_filters" class="<?= $rMobile ? 'collapse' : '' ?> form-group row mb-4">
-                            <?php if ($redisEnabled): ?>
-                            <div class="col-md-4">
-                                <select id="live_stream" class="form-control" data-toggle="select2">
-                                    <?php if (isset($rSearchStream)): ?>
-                                    <option value="<?= intval($rSearchStream['id']) ?>" selected="selected"><?= $rSearchStream['stream_display_name'] ?></option>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <select id="live_line" class="form-control" data-toggle="select2">
-                                    <?php if (isset($rSearchLine)): ?>
-                                    <option value="<?= intval($rSearchLine['id']) ?>" selected="selected"><?= $rSearchLine['username'] ?></option>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-3">
-                                <select id="live_user" class="form-control" data-toggle="select2">
-                                    <optgroup label="Global">
-                                        <option value=""<?= !isset($rRequest['user']) ? ' selected' : '' ?>>All Users</option>
-                                        <option value="<?= $rUserInfo['id'] ?>"<?= (isset($rRequest['user']) && $rRequest['user'] == $rUserInfo['id']) ? ' selected' : '' ?>>My Lines</option>
-                                    </optgroup>
-                                    <?php if (count($rPermissions['direct_reports']) > 0): ?>
-                                    <optgroup label="Direct Reports">
-                                        <?php foreach ($rPermissions['direct_reports'] as $rUserID): ?>
-                                        <option value="<?= $rUserID ?>"<?= (isset($rRequest['user']) && $rRequest['user'] == $rUserID) ? ' selected' : '' ?>><?= $rPermissions['users'][$rUserID]['username'] ?></option>
-                                        <?php endforeach; ?>
-                                    </optgroup>
-                                    <?php endif; ?>
-                                    <?php if (count($rPermissions['all_reports']) > count($rPermissions['direct_reports'])): ?>
-                                    <optgroup label="Indirect Reports">
-                                        <?php foreach ($rPermissions['all_reports'] as $rUserID): ?>
-                                            <?php if (!in_array($rUserID, $rPermissions['direct_reports'])): ?>
-                                            <option value="<?= $rUserID ?>"<?= (isset($rRequest['user']) && $rRequest['user'] == $rUserID) ? ' selected' : '' ?>><?= $rPermissions['users'][$rUserID]['username'] ?></option>
-                                            <?php endif; ?>
-                                        <?php endforeach; ?>
-                                    </optgroup>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <?php else: ?>
-                            <div class="col-md-3">
-                                <input type="text" class="form-control" id="live_search" value="<?= isset($rRequest['search']) ? htmlspecialchars($rRequest['search']) : '' ?>" placeholder="<?= $language::get('search_logs') ?>...">
-                            </div>
-                            <div class="col-md-3">
-                                <select id="live_stream" class="form-control" data-toggle="select2">
-                                    <?php if (isset($rSearchStream)): ?>
-                                    <option value="<?= intval($rSearchStream['id']) ?>" selected="selected"><?= $rSearchStream['stream_display_name'] ?></option>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <select id="live_line" class="form-control" data-toggle="select2">
-                                    <?php if (isset($rSearchLine)): ?>
-                                    <option value="<?= intval($rSearchLine['id']) ?>" selected="selected"><?= $rSearchLine['username'] ?></option>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-2">
-                                <select id="live_user" class="form-control" data-toggle="select2">
-                                    <optgroup label="Global">
-                                        <option value=""<?= !isset($rRequest['user']) ? ' selected' : '' ?>>All Users</option>
-                                        <option value="<?= $rUserInfo['id'] ?>"<?= (isset($rRequest['user']) && $rRequest['user'] == $rUserInfo['id']) ? ' selected' : '' ?>>My Lines</option>
-                                    </optgroup>
-                                    <?php if (count($rPermissions['direct_reports']) > 0): ?>
-                                    <optgroup label="Direct Reports">
-                                        <?php foreach ($rPermissions['direct_reports'] as $rUserID): ?>
-                                        <option value="<?= $rUserID ?>"<?= (isset($rRequest['user']) && $rRequest['user'] == $rUserID) ? ' selected' : '' ?>><?= $rPermissions['users'][$rUserID]['username'] ?></option>
-                                        <?php endforeach; ?>
-                                    </optgroup>
-                                    <?php endif; ?>
-                                    <?php if (count($rPermissions['all_reports']) > count($rPermissions['direct_reports'])): ?>
-                                    <optgroup label="Indirect Reports">
-                                        <?php foreach ($rPermissions['all_reports'] as $rUserID): ?>
-                                            <?php if (!in_array($rUserID, $rPermissions['direct_reports'])): ?>
-                                            <option value="<?= $rUserID ?>"<?= (isset($rRequest['user']) && $rRequest['user'] == $rUserID) ? ' selected' : '' ?>><?= $rPermissions['users'][$rUserID]['username'] ?></option>
-                                            <?php endif; ?>
-                                        <?php endforeach; ?>
-                                    </optgroup>
-                                    <?php endif; ?>
-                                </select>
-                            </div>
-                            <?php endif; ?>
-                            <label class="col-md-1 col-form-label text-center" for="live_show_entries"><?= $language::get('show') ?></label>
-                            <div class="col-md-1">
-                                <select id="live_show_entries" class="form-control" data-toggle="select2">
-                                    <?php foreach ([10, 25, 50, 250, 500, 1000] as $rShow): ?>
-                                    <option<?= ($rSettings['default_entries'] == $rShow) ? ' selected' : '' ?> value="<?= $rShow ?>"><?= $rShow ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                        </div>
-                        <table id="datatable-activity" class="table table-striped table-borderless dt-responsive nowrap">
-                            <thead>
-                                <tr>
-                                    <th class="text-center">ID</th>
-                                    <th class="text-center">Quality</th>
-                                    <th>Line</th>
-                                    <th>Stream</th>
-                                    <th>Player</th>
-                                    <th>ISP</th>
-                                    <th class="text-center">IP</th>
-                                    <th class="text-center">Duration</th>
-                                    <th class="text-center">Output</th>
-                                    <th class="text-center"><?= $language::get('actions') ?></th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-stream"><?= $language::get('stream'); ?></label>
+                <select id="filter-stream" class="form-select"></select>
+            </div>
+            <div class="col-12 col-sm-6 col-lg-4">
+                <label class="form-label" for="filter-owner"><?= $language::get('owner'); ?></label>
+                <select id="filter-owner" class="form-select">
+                    <optgroup label="Global">
+                        <option value=""<?= $rSelectedOwner === '' ? ' selected' : ''; ?>><?= $language::get('all'); ?></option>
+                        <option value="<?= (int) $rUserInfo['id']; ?>"<?= ($rSelectedOwner !== '' && $rSelectedOwner == $rUserInfo['id']) ? ' selected' : ''; ?>>My Lines</option>
+                    </optgroup>
+                    <?php if (count($rDirectReports) > 0): ?>
+                        <optgroup label="Direct Reports">
+                            <?php foreach ($rDirectReports as $rUserID): ?>
+                                <option value="<?= (int) $rUserID; ?>"<?= ($rSelectedOwner !== '' && $rSelectedOwner == $rUserID) ? ' selected' : ''; ?>><?= htmlspecialchars((string) ($rReportUsers[$rUserID]['username'] ?? $rUserID), ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
+                    <?php if (count($rAllReports) > count($rDirectReports)): ?>
+                        <optgroup label="Indirect Reports">
+                            <?php foreach ($rAllReports as $rUserID): ?>
+                                <?php if (!in_array($rUserID, $rDirectReports)): ?>
+                                    <option value="<?= (int) $rUserID; ?>"<?= ($rSelectedOwner !== '' && $rSelectedOwner == $rUserID) ? ' selected' : ''; ?>><?= htmlspecialchars((string) ($rReportUsers[$rUserID]['username'] ?? $rUserID), ENT_QUOTES); ?></option>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </optgroup>
+                    <?php endif; ?>
+                </select>
             </div>
         </div>
     </div>
+    <div class="card-datatable table-responsive">
+        <table id="live-table" class="table" style="width:100%">
+            <thead>
+                <tr>
+                    <th></th><!-- responsive control (+/-) -->
+                    <th><?= $language::get('id'); ?></th>
+                    <th><?= $language::get('divergence'); ?></th>
+                    <th><?= $language::get('username'); ?></th>
+                    <th><?= $language::get('stream'); ?></th>
+                    <th><?= $language::get('player'); ?></th>
+                    <th><?= $language::get('isp'); ?></th>
+                    <th><?= $language::get('ip'); ?></th>
+                    <th><?= $language::get('duration'); ?></th>
+                    <th><?= $language::get('container'); ?></th>
+                    <th><?= $language::get('restreamer'); ?></th>
+                    <th><?= $language::get('actions'); ?></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
 </div>
+
+<!-- Whois lookup -->
+<div class="modal fade" id="whoisModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('login_logs_whois'); ?> — <span id="whois-ip"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="whois-body"></div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('reseller');
 ?>
+<script>
+    (function() {
+        var esc = function(s) {
+            var d = document.createElement('div');
+            d.textContent = (s == null ? '' : String(s));
+            return d.innerHTML;
+        };
+        var isLocal = function(ip) {
+            return !ip || ip === '127.0.0.1' || ip === '::1';
+        };
+        var pad = function(n) {
+            return (n < 10 ? '0' : '') + n;
+        };
+        var canVod = <?= $rCanVod ? 'true' : 'false'; ?>;
+        var fmtDuration = function(startTs, isRestreamer) {
+            var sec = Math.max(0, Math.floor(Date.now() / 1000) - (startTs || 0));
+            var colour = 'success',
+                txt;
+            if (sec >= 86400) {
+                txt = pad(Math.floor(sec / 86400)) + 'd ' + pad(Math.floor(sec / 3600) % 24) + 'h';
+                colour = 'danger';
+            } else if (sec >= 3600) {
+                txt = pad(Math.floor(sec / 3600)) + 'h ' + pad(Math.floor(sec / 60) % 60) + 'm';
+                if (sec > 14400) {
+                    colour = 'warning';
+                }
+            } else {
+                txt = pad(Math.floor(sec / 60) % 60) + 'm ' + pad(sec % 60) + 's';
+            }
+            if (isRestreamer) {
+                colour = 'success';
+            }
+            return '<span class="badge bg-label-' + colour + '">' + esc(txt) + '</span>';
+        };
+        var lang = {
+            kill: <?= json_encode($language::get('kill')); ?>,
+            error: <?= json_encode($language::get('error_occured')); ?>
+        };
+
+        var table = jQuery('#live-table').DataTable({
+            processing: true,
+            serverSide: true,
+            responsive: {
+                details: {
+                    type: 'column',
+                    target: 0
+                }
+            },
+            order: [
+                [8, 'desc']
+            ],
+            lengthMenu: [10, 25, 50, 250, 500, 1000],
+            pageLength: <?= (int) ($rSettings['default_entries'] ?: 25); ?>,
+            ajax: {
+                url: './table',
+                data: function(d) {
+                    d.id = 'live_connections';
+                    // Redis path reads `user`/`stream_id`; MySQL path reads `user`/`stream`/`line`.
+                    // Send every alias so both backends filter correctly.
+                    d.line = jQuery('#filter-line').val() || '';
+                    d.stream = jQuery('#filter-stream').val() || '';
+                    d.stream_id = jQuery('#filter-stream').val() || '';
+                    d.user = jQuery('#filter-owner').val() || '';
+                }
+            },
+            columnDefs: [{
+                orderable: false,
+                targets: [0, 10, 11]
+            }],
+            columns: [{
+                    data: null,
+                    defaultContent: '',
+                    orderable: false,
+                    searchable: false,
+                    className: 'control',
+                    responsivePriority: 2
+                },
+                {
+                    data: 'activity_id',
+                    visible: false
+                },
+                {
+                    data: 'divergence',
+                    className: 'text-center',
+                    render: function(d) {
+                        var pct = 100 - (d || 0);
+                        var cls = d <= 50 ? 'text-success' : (d <= 80 ? 'text-warning' : 'text-danger');
+                        return '<i class="icon-base ti tabler-square-filled ' + cls + '" title="' + pct + '%"></i>';
+                    }
+                },
+                {
+                    data: 'user_label',
+                    responsivePriority: 1,
+                    render: function(d, t, row) {
+                        if (!d) {
+                            return '';
+                        }
+                        return row.user_url ? '<a href="' + esc(row.user_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                    }
+                },
+                {
+                    data: 'stream_name',
+                    responsivePriority: 3,
+                    render: function(d, t, row) {
+                        if (!d) {
+                            return '';
+                        }
+                        return row.stream_url ? '<a href="' + esc(row.stream_url) + '" class="text-body">' + esc(d) + '</a>' : esc(d);
+                    }
+                },
+                {
+                    data: 'player'
+                },
+                {
+                    data: 'isp'
+                },
+                {
+                    data: 'user_ip',
+                    className: 'text-nowrap',
+                    render: function(d, t, row) {
+                        var flag = row.country ? '<img loading="lazy" class="me-1" src="assets/old/images/countries/' + esc(row.country) + '.png" alt="">' : '';
+                        if (isLocal(d)) {
+                            return flag + '<span class="text-body-secondary">' + esc(d || '') + '</span>';
+                        }
+                        return flag + '<a href="javascript:void(0);" class="text-body js-whois" data-ip="' + esc(d) + '">' + esc(d) + '</a>';
+                    }
+                },
+                {
+                    data: 'date_start',
+                    className: 'text-center',
+                    render: function(d, t, row) {
+                        return fmtDuration(d, row.is_restreamer);
+                    }
+                },
+                {
+                    data: 'container',
+                    className: 'text-center'
+                },
+                {
+                    data: 'is_restreamer',
+                    className: 'text-center',
+                    render: function(d) {
+                        return d ? '<i class="icon-base ti tabler-square-filled text-info"></i>' :
+                            '<i class="icon-base ti tabler-square-filled text-body-secondary"></i>';
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-center text-nowrap',
+                    render: function(d, t, row) {
+                        if (!row.uuid) {
+                            return '';
+                        }
+                        return '<button type="button" class="btn btn-sm btn-icon btn-label-danger js-kill" title="' + esc(lang.kill) + '" data-uuid="' + esc(row.uuid) + '"><i class="icon-base ti tabler-hammer"></i></button>';
+                    }
+                }
+            ],
+            layout: {
+                topStart: 'pageLength',
+                topEnd: 'search'
+            }
+        });
+
+        // select2 ajax filters (line + stream) via the reseller api.
+        function select2ajax(sel, action, placeholder) {
+            if (!jQuery.fn.select2) {
+                return;
+            }
+            jQuery(sel).select2({
+                width: '100%',
+                allowClear: true,
+                placeholder: placeholder,
+                ajax: {
+                    url: './api',
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            search: params.term,
+                            action: action,
+                            page: params.page
+                        };
+                    },
+                    processResults: function(data, params) {
+                        params.page = params.page || 1;
+                        return {
+                            results: data.items,
+                            pagination: {
+                                more: (params.page * 100) < data.total_count
+                            }
+                        };
+                    },
+                    cache: true
+                }
+            }).on('change', function() {
+                table.ajax.reload();
+            });
+        }
+        select2ajax('#filter-line', 'userlist', <?= json_encode($language::get('line')); ?>);
+        select2ajax('#filter-stream', 'streamlist', <?= json_encode($language::get('stream')); ?>);
+        // Owner filter is a static select2 (report tree), not an ajax search.
+        if (jQuery.fn.select2) {
+            jQuery('#filter-owner').select2({
+                allowClear: false,
+                width: '100%'
+            });
+        }
+        jQuery('#filter-owner').on('change', function() {
+            table.ajax.reload();
+        });
+
+        <?php if ($rSelectedLine): ?>
+        jQuery('#filter-line').append(new Option('#<?= $rSelectedLine; ?>', '<?= $rSelectedLine; ?>', true, true)).trigger('change');
+        <?php endif; ?>
+        <?php if ($rSelectedStream): ?>
+        jQuery('#filter-stream').append(new Option('#<?= $rSelectedStream; ?>', '<?= $rSelectedStream; ?>', true, true)).trigger('change');
+        <?php endif; ?>
+
+        // Kill a connection (reseller api: action=line_activity&sub=kill&uuid=…).
+        jQuery('#live-table tbody').on('click', '.js-kill', function() {
+            var uuid = this.getAttribute('data-uuid');
+            if (!uuid) {
+                return;
+            }
+            fetch('./api?action=line_activity&sub=kill&uuid=' + encodeURIComponent(uuid), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(data) {
+                    if (!data || data.result !== true) {
+                        throw new Error('fail');
+                    }
+                    table.ajax.reload(null, false);
+                })
+                .catch(function() {
+                    if (window.xcToast) {
+                        xcToast(lang.error, 'error');
+                    } else {
+                        alert(lang.error);
+                    }
+                });
+        });
+
+        // Live refresh every 5s (pause while a modal is open).
+        setInterval(function() {
+            if (!document.querySelector('.modal.show')) {
+                table.ajax.reload(null, false);
+            }
+        }, 5000);
+
+        // Whois lookup (GeoIP / ISP / ASN) in a modal. The reseller api wraps the
+        // response in a {result, data} envelope, so read from `.data`.
+        jQuery('#live-table tbody').on('click', '.js-whois', function() {
+            var ip = this.getAttribute('data-ip');
+            var body = document.getElementById('whois-body');
+            document.getElementById('whois-ip').textContent = ip;
+            body.innerHTML = '<div class="text-center py-3"><span class="spinner-border" role="status"></span></div>';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('whoisModal')).show();
+            fetch('./api?action=ip_whois&isp=1&ip=' + encodeURIComponent(ip), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(function(r) {
+                    return r.json();
+                })
+                .then(function(resp) {
+                    var w = (resp && resp.data) ? resp.data : resp;
+                    var rows = [];
+                    var add = function(label, val) {
+                        if (val) {
+                            rows.push('<dt class="col-4 text-body-secondary">' + esc(label) + '</dt><dd class="col-8">' + esc(val) + '</dd>');
+                        }
+                    };
+                    add(<?= json_encode($language::get('country')); ?>, w && w.country && w.country.names && w.country.names.en);
+                    add(<?= json_encode($language::get('city')); ?>, w && w.city && w.city.names && w.city.names.en);
+                    add(<?= json_encode($language::get('isp')); ?>, w && w.isp && (w.isp.isp || w.isp.organization));
+                    add('ASN', w && w.isp && w.isp.autonomous_system_number);
+                    add(<?= json_encode($language::get('type')); ?>, w && w.type);
+                    body.innerHTML = rows.length ? '<dl class="row mb-0">' + rows.join('') + '</dl>' :
+                        '<div class="text-center text-body-secondary py-2">—</div>';
+                })
+                .catch(function() {
+                    body.innerHTML = '<div class="alert alert-danger mb-0">' + esc(lang.error) + '</div>';
+                });
+        });
+    })();
+</script>
+</body>
+
+</html>
