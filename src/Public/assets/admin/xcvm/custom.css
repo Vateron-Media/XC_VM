@@ -5,32 +5,97 @@
 
 /* Brand logo in the sidebar keeps aspect ratio at the compact menu height. */
 .app-brand-logo.demo img {
-  width: auto;
-  max-height: 28px;
+	width: auto;
+	max-height: 28px;
 }
 
 /* ---- Dashboard ---- */
 .dashboard-server-select {
-  min-width: 240px;
+	min-width: 240px;
 }
 .dashboard-status-scroll {
-  max-height: 320px;
-  overflow-y: auto;
+	max-height: 320px;
+	overflow-y: auto;
 }
 .dashboard-tile-progress,
 .dashboard-loc-progress {
-  height: 6px;
+	height: 6px;
 }
 .dashboard-metric-progress {
-  height: 8px;
+	height: 8px;
+	border-radius: 1rem;
+}
+.dashboard-metric-progress .progress-bar {
+	border-radius: 1rem;
+	transition: width 0.4s ease;
 }
 .dashboard-spark {
-  min-height: 50px;
+	min-height: 50px;
 }
 
 /* Dashboard connections world map (jsvectormap). */
 .dashboard-map {
-  height: 400px;
+	height: 400px;
+}
+
+/* ---- Dashboard per-server cards ---- */
+/* Subtle lift on hover so each server card reads as an interactive tile. */
+.dashboard-card-hover {
+	transition:
+		box-shadow 0.2s ease,
+		transform 0.2s ease;
+}
+.dashboard-card-hover:hover {
+	transform: translateY(-2px);
+	box-shadow: 0 0.5rem 1.25rem -0.4rem rgba(0, 0, 0, 0.18);
+}
+
+/* Stat cell: tinted icon chip + label/value stack. */
+.dashboard-server-stats {
+	margin-top: 0.5rem;
+}
+.dashboard-server-stats .dashboard-stat {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+.dashboard-server-stats .stat-ico {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.1rem;
+	height: 2.1rem;
+	border-radius: 0.5rem;
+	font-size: 1.05rem;
+}
+.dashboard-server-stats .stat-label {
+	font-size: 0.7rem;
+	text-transform: uppercase;
+	letter-spacing: 0.3px;
+	margin-bottom: 0.15rem;
+}
+.dashboard-server-stats .stat-value {
+	font-weight: 600;
+	font-size: 0.95rem;
+}
+
+/* Metric rows (CPU / MEM / IO / DISK): label + percentage over a slim bar. */
+.dashboard-metric {
+	margin-bottom: 0.85rem;
+}
+.dashboard-metric:last-of-type {
+	margin-bottom: 0.25rem;
+}
+.dashboard-metric-label {
+	display: inline-flex;
+	align-items: center;
+	font-size: 0.8rem;
+	font-weight: 500;
+}
+.dashboard-metric-val {
+	font-size: 0.8rem;
+	font-weight: 600;
 }
 
 /*
@@ -40,45 +105,45 @@
  * Bootstrap 5 table (panel_logs, login_logs, ...).
  */
 ul.dtr-details {
-  display: block;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+	display: block;
+	width: 100%;
+	margin: 0;
+	padding: 0;
+	list-style: none;
 }
 ul.dtr-details > li {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
-  /* Neutralise column utility classes (e.g. text-center) carried onto the
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 0.75rem;
+	padding: 0.4rem 0;
+	border-bottom: 1px solid var(--bs-border-color, rgba(0, 0, 0, 0.08));
+	/* Neutralise column utility classes (e.g. text-center) carried onto the
      child-row <li>, so every label/value starts flush-left and aligns. */
-  text-align: left !important;
+	text-align: left !important;
 }
 ul.dtr-details > li:last-child {
-  border-bottom: 0;
+	border-bottom: 0;
 }
 ul.dtr-details > li .dtr-title {
-  flex: 0 0 auto;
-  min-width: 140px;
-  font-weight: 600;
-  padding-right: 0.5rem;
+	flex: 0 0 auto;
+	min-width: 140px;
+	font-weight: 600;
+	padding-right: 0.5rem;
 }
 
 /* Row-action dropdowns inside a DataTable escape the `.table-responsive`
    overflow clip via Popper strategy:fixed (see footer.newui.php). Lift them
    above the vertical menu (z-index 1080) so they never render underneath it. */
 .card-datatable .dropdown-menu {
-  z-index: 1085;
+	z-index: 1085;
 }
 
 /* Bootstrap 5 iframe modal shell (edit forms opened in a modal). No sidebar/navbar —
    just the form on the theme background. */
 .xm-modal-body {
-  background: var(--bs-body-bg);
-  min-height: 100vh;
+	background: var(--bs-body-bg);
+	min-height: 100vh;
 }
 
 /*
@@ -90,39 +155,39 @@ ul.dtr-details > li .dtr-title {
  * give the tree a little breathing room.
  */
 #server_tree .jstree-anchor > .jstree-themeicon.ti {
-  background-color: currentColor !important;
-  background-image: none !important;
-  vertical-align: middle;
-  width: 1.15rem;
-  height: 1.15rem;
+	background-color: currentColor !important;
+	background-image: none !important;
+	vertical-align: middle;
+	width: 1.15rem;
+	height: 1.15rem;
 }
 #server_tree .jstree-anchor {
-  height: auto;
-  line-height: 1.7rem;
+	height: auto;
+	line-height: 1.7rem;
 }
 #server_tree .jstree-node,
 #server_tree .jstree-children {
-  min-height: 1.7rem;
+	min-height: 1.7rem;
 }
 /* Expand/collapse arrows: the jstree sprite (32px.png) is not shipped, so draw
    them with the same Iconify mask trick (Tabler chevrons). */
 #server_tree .jstree-closed > .jstree-ocl,
 #server_tree .jstree-open > .jstree-ocl {
-  background-color: currentColor;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-position: center;
-  mask-position: center;
-  -webkit-mask-size: 1rem 1rem;
-  mask-size: 1rem 1rem;
+	background-color: currentColor;
+	-webkit-mask-repeat: no-repeat;
+	mask-repeat: no-repeat;
+	-webkit-mask-position: center;
+	mask-position: center;
+	-webkit-mask-size: 1rem 1rem;
+	mask-size: 1rem 1rem;
 }
 #server_tree .jstree-closed > .jstree-ocl {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m9 6 6 6-6 6'/%3E%3C/svg%3E");
 }
 #server_tree .jstree-open > .jstree-ocl {
-  -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	-webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 }
 
 /* ---- Toggle switches ----
@@ -133,12 +198,88 @@ ul.dtr-details > li .dtr-title {
  * the switch. The label text is reset so only the toggle grows, not the caption.
  */
 .form-switch {
-  font-size: 1.3rem;
+	font-size: 1.3rem;
 }
 .form-switch .form-check-input {
-  cursor: pointer;
+	cursor: pointer;
 }
 .form-switch .form-check-label {
-  font-size: 1rem;
-  cursor: pointer;
+	font-size: 1rem;
+	cursor: pointer;
+}
+
+/* ── Responsive "expand" (control) column — make it obvious ──────────────
+   The details-toggle column (DataTables responsive, dtr-column mode) defaulted
+   to a faint grey triangle with a blank header, which users did not recognise.
+   Turn the per-row toggle into a bold round +/- button and label the header
+   with a matching outlined "+", so the column clearly reads as an expander.
+   Global (all admin/reseller tables, both themes); no per-view / reindex change. */
+table.dataTable.dtr-column > tbody > tr > td.control,
+table.dataTable.dtr-column > tbody > tr > td.dtr-control {
+	cursor: pointer;
+}
+table.dataTable.dtr-column > tbody > tr > td.control::before,
+table.dataTable.dtr-column > tbody > tr > td.dtr-control::before {
+	content: "+";
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.375rem;
+	height: 1.375rem;
+	border: 0;
+	border-radius: 50%;
+	background: var(--bs-primary);
+	color: #fff;
+	font-size: 1rem;
+	font-weight: 700;
+	line-height: 1;
+	box-shadow: 0 2px 6px -1px rgba(var(--bs-primary-rgb), 0.5);
+	transition: background 0.15s ease;
+}
+table.dataTable.dtr-column > tbody > tr.dtr-expanded > td.control::before,
+table.dataTable.dtr-column > tbody > tr.dtr-expanded > td.dtr-control::before {
+	content: "\2212"; /* minus */
+	border: 0;
+	background: var(--bs-secondary);
+	box-shadow: none;
+}
+/* Header hint: a small outlined "+" so the blank control column is labelled. */
+table.dataTable.dtr-column > thead > tr > th.control,
+table.dataTable.dtr-column > thead > tr > th.dtr-control {
+	text-align: center;
+}
+table.dataTable.dtr-column > thead > tr > th.control::before,
+table.dataTable.dtr-column > thead > tr > th.dtr-control::before {
+	content: "Details";
+	font-size: 0.7rem;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.4px;
+	color: var(--bs-secondary-color);
+	white-space: nowrap;
+}
+
+/* ── Modal close (×) — red danger variant ────────────────────────────────
+   The theme draws the modal × NOT as a background-image (that is set to
+   `none`) but as a masked ::before glyph on a paper-bg disc. So DO NOT add a
+   background-image here — that paints a second × over the mask (overlap bug).
+   Instead recolor the disc red and the ::before glyph white. Applies to every
+   Bootstrap 5 modal header close button (loaded after core.css → wins). */
+.modal .modal-header .btn-close {
+	background-color: var(--bs-danger);
+	background-image: none;
+	opacity: 1;
+	box-shadow: 0 2px 6px -1px rgba(var(--bs-danger-rgb), 0.5);
+	transition:
+		background-color 0.15s ease,
+		box-shadow 0.15s ease;
+}
+.modal .modal-header .btn-close::before {
+	background-color: #fff;
+}
+.modal .modal-header .btn-close:hover {
+	background-color: #b02a37;
+}
+.modal .modal-header .btn-close:focus {
+	box-shadow: 0 0 0 0.25rem rgba(var(--bs-danger-rgb), 0.4);
 }
