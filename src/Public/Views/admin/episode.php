@@ -1,1021 +1,617 @@
 <?php
+
+/**
+ * Episode add / edit / import (Bootstrap 5). Reached full-page from the episodes
+ * table: "Add" → episode?sid=X, "Edit" → episode?id=X&sid=X, bulk import →
+ * episode?sid=X&multi, inside the new-UI shell. In single mode the tabs are
+ * Details (season/episode number, TMDb episode search, name, source path + file
+ * browser, notes), Information (TMDb metadata), Advanced (encode/symlink/subtitle
+ * /transcode options) and Server (the jstree load-balancer tree). In multi mode
+ * there is no Information tab: Details becomes a season-folder picker that
+ * enumerates the folder's video files into an episode list (get_episode_ids),
+ * and Advanced drops the per-file target container / subtitle / custom SID
+ * fields. Categories/bouquets are not used here. The TMDb box (keyed by the
+ * series TMDb id + season number) auto-fills the Information tab; the file
+ * browser is a Bootstrap modal (magnificPopup is not part of the new-UI). Posts
+ * to post.php?action=episode via fetch and returns to the list on success.
+ * Requires jstree (must be declared by the controller).
+ */
+
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamConfigRepository;
 use XcVm\Domain\Stream\StreamRepository;
-?>
-<?php
-echo '<div class="wrapper boxed-layout"';
 
-if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-} else {
-	echo ' style="display: none;"';
-}
+$rIsEdit     = isset($rEpisode);
+$rMulti      = !empty($rMulti);
+$rHasTmdb    = strlen((string) SettingsManager::get('tmdb_api_key')) > 0;
+$rTmdbLang   = !empty($rSeriesArr['tmdb_language']) ? $rSeriesArr['tmdb_language'] : ($rSettings['tmdb_language'] ?? 'en');
+$rContainers = ['mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts'];
 
-echo '>' . "\n" . '    <div class="container-fluid">' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t" . '<div class="page-title-box">' . "\n\t\t\t\t\t" . '<div class="page-title-right">' . "\n" . '                        ';
-include 'topbar.php';
-echo "\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '<h4 class="page-title">';
-
-if (isset($rEpisode)) {
-	echo $rEpisode['stream_display_name'];
-} else {
-	if (isset($rMulti) && $rMulti) {
-		echo $language::get('add_multiple');
-	} else {
-		echo $language::get('add_single');
-	}
-}
-
-echo '</h4>' . "\n\t\t\t\t" . '</div>' . "\n\t\t\t" . '</div>' . "\n\t\t" . '</div>     ' . "\n\t\t" . '<div class="row">' . "\n\t\t\t" . '<div class="col-xl-12">' . "\n\t\t\t\t";
-
-if (!isset($rEpisode)) {
-} else {
-	echo "\t\t\t\t";
-	$rEncodeErrors = StreamRepository::getEncodeErrors($rEpisode['id']);
-
-	foreach ($rEncodeErrors as $rServerID => $rEncodeError) {
-		echo "\t\t\t\t" . '<div class="alert alert-warning alert-dismissible fade show" role="alert">' . "\n\t\t\t\t\t" . '<button type="button" class="close" data-dismiss="alert" aria-label="Close">' . "\n\t\t\t\t\t\t" . '<span aria-hidden="true">&times;</span>' . "\n\t\t\t\t\t" . '</button>' . "\n\t\t\t\t\t" . '<strong>';
-		echo $language::get('error_on_server');
-		echo ' - ';
-		echo $rServers[$rServerID]['server_name'];
-		echo '</strong><br/>' . "\n\t\t\t\t\t";
-		echo str_replace("\n", '<br/>', $rEncodeError);
-		echo "\t\t\t\t" . '</div>' . "\n\t\t\t\t";
-	}
-}
-
-echo "\t\t\t\t" . '<div class="card">' . "\n\t\t\t\t\t" . '<div class="card-body">' . "\n\t\t\t\t\t\t" . '<form action="#" method="POST" data-parsley-validate="">' . "\n\t\t\t\t\t\t\t";
-
-if (!isset($rEpisode)) {
-} else {
-	echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="edit" value="';
-	echo $rEpisode['id'];
-	echo '" />' . "\n\t\t\t\t\t\t\t";
-}
-
-if (empty($rMulti)) {
-	echo "\t\t\t\t\t\t\t" . '<input type="hidden" id="tmdb_id" name="tmdb_id" value="';
-
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rEpisode['properties']['tmdb_id']);
-	}
-
-	echo '" />' . "\n\t\t\t\t\t\t\t";
-} else {
-	echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="multi" id="multi" value="" />' . "\n\t\t\t\t\t\t\t" . '<input type="hidden" name="server" id="server" value="" />' . "\n\t\t\t\t\t\t\t" . '<input type="hidden" id="tmdb_id" name="tmdb_id" value="';
-	echo htmlspecialchars($rSeriesArr['tmdb_id']);
-	echo '" />' . "\n\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t" . '<input type="hidden" name="series" value="';
-echo $rSeriesArr['id'];
-echo '" />' . "\n\t\t\t\t\t\t\t" . '<input type="hidden" name="server_tree_data" id="server_tree_data" value="" />' . "\n" . '                            <input type="hidden" id="tmdb_language" value="';
-echo $rSeriesArr['tmdb_language'];
-echo '" />' . "\n\t\t\t\t\t\t\t" . '<div id="basicwizard">' . "\n\t\t\t\t\t\t\t\t" . '<ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#stream-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2"> ' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-account-card-details-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-echo $language::get('details');
-echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t";
-
-if (!empty($rMulti)) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#episode-information" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-movie-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-	echo $language::get('information');
-	echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#advanced-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-folder-alert-outline mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-echo $language::get('advanced');
-echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t" . '<li class="nav-item">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<a href="#load-balancing" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<i class="mdi mdi-server-network mr-1"></i>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<span class="d-none d-sm-inline">';
-echo $language::get('servers');
-echo '</span>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</a>' . "\n\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t" . '<div class="tab-content b-0 mb-0 pt-0">' . "\n\t\t\t\t\t\t\t\t\t";
-
-if (empty($rMulti)) {
-	echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="stream-details">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="series_name">';
-	echo $language::get('series_name');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="series_name" name="series_name" value="';
-	echo $rSeriesArr['title'];
-	echo '" readonly>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="season_num">';
-	echo $language::get('season_number');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="season_num" name="season_num" placeholder="" value="';
-
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rEpisode['season']);
-	}
-
-	echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="episode">';
-	echo $language::get('episode_number');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="episode" name="episode" placeholder="" value="';
-
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rEpisode['episode']);
-	}
-
-	echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-
-	if (0 >= strlen(SettingsManager::get('tmdb_api_key'))) {
-	} else {
-		echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="tmdb_search">';
-		echo $language::get('tmdb_results');
-		echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select id="tmdb_search" class="form-control" data-toggle="select2"></select>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-	}
-
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="stream_display_name">';
-	echo $language::get('episode_name');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="stream_display_name" name="stream_display_name" value="';
-
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rEpisode['stream_display_name']);
-	}
-
-	echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-
-	if (isset($rEpisode)) {
-		list($rEpisodeSource) = json_decode($rEpisode['stream_source'], true);
-	} else {
-		$rEpisodeSource = '';
-	}
-
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4 stream-url">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="stream_source">';
-	echo $language::get('episode_path');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" id="stream_source" name="stream_source" class="form-control" value="';
-	echo $rEpisodeSource;
-	echo '" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="notes">';
-	echo $language::get('notes');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<textarea id="notes" name="notes" class="form-control" rows="3" placeholder="">';
-
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rEpisode['notes']);
-	}
-
-	echo '</textarea>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-	echo $language::get('next');
-	echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t";
-} else {
-	echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="stream-details">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="series_name">';
-	echo $language::get('series_name');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-6">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="series_name" name="series_name" value="';
-	echo $rSeriesArr['title'];
-	echo '" readonly>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="season_num" name="season_num" placeholder="' . $language::get('season') . '" value="" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4 stream-url">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="season_folder">';
-	echo $language::get('season_folder');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" id="season_folder" name="season_folder" readonly class="form-control" value="" required data-parsley-trigger="change">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="#file-browser" id="filebrowser" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div id="episode_add"></div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-6">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="custom-control custom-checkbox">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="checkbox" class="custom-control-input" id="addName1" name="addName1" checked>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="custom-control-label" for="addName1">';
-	echo $language::get('add_series_name');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-6">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="custom-control custom-checkbox">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="checkbox" class="custom-control-input" id="addName2" name="addName2" checked>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="custom-control-label" for="addName2">';
-	echo $language::get('add_episode_number');
-	echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-	echo $language::get('next');
-	echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t";
-}
-
-echo "\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="episode-information">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="movie_image">';
-echo $language::get('image_url');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="movie_image" name="movie_image" value="';
-
-if (!isset($rEpisode)) {
-} else {
-	echo htmlspecialchars($rEpisode['properties']['movie_image']);
-}
-
-echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript:void(0)" onClick="openImage(this)" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-eye"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="plot">';
-echo $language::get('plot');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<textarea rows="6" class="form-control" id="plot" name="plot">';
-
-if (!isset($rEpisode)) {
-} else {
-	echo htmlspecialchars($rEpisode['properties']['plot']);
-}
-
-echo '</textarea>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="release_date">';
-echo $language::get('release_date');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="release_date" name="release_date" value="';
-
-if (!isset($rEpisode)) {
-} else {
-	echo htmlspecialchars($rEpisode['properties']['release_date']);
-}
-
-echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-2 col-form-label" for="episode_run_time">';
-echo $language::get('runtime');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="';
-
-if (!isset($rEpisode)) {
-} else {
-	echo intval($rEpisode['properties']['duration_secs'] / 60);
-}
-
-echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="rating">';
-echo $language::get('rating');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-3">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control text-center" id="rating" name="rating" value="';
-
-if (!isset($rEpisode)) {
-} else {
-	echo htmlspecialchars($rEpisode['properties']['rating']);
-}
-
-echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('next');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="advanced-details">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="direct_source">';
-echo $language::get('direct_source');
-echo ' <i title="';
-echo $language::get('episode_tooltip_1');
-echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="direct_source" id="direct_source" type="checkbox" ';
-
-if (!isset($rEpisode)) {
-} else {
-	if ($rEpisode['direct_source'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . "                                                    <label class=\"col-md-4 col-form-label\" for=\"direct_proxy\">Direct Stream <i title=\"When using direct source, hide the original URL by proxying the movie through your servers. This will consume bandwidth but won't require the movie to be saved to your servers permanently. Make sure to set the correct target container.\" class=\"tooltip text-secondary far fa-circle\"></i></label>" . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="direct_proxy" id="direct_proxy" type="checkbox" ';
-
-if (!isset($rEpisode)) {
-} else {
-	if ($rEpisode['direct_proxy'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="read_native">';
-echo $language::get('native_frames');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="read_native" id="read_native" type="checkbox" ';
-
-if (!isset($rEpisode)) {
-} else {
-	if ($rEpisode['read_native'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="movie_symlink">';
-echo $language::get('create_symlink');
-echo ' <i title="';
-echo $language::get('episode_tooltip_2');
-echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="movie_symlink" id="movie_symlink" type="checkbox" ';
-
-if (!isset($rEpisode)) {
-} else {
-	if ($rEpisode['movie_symlink'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                <div class="form-group row mb-4">' . "\n" . '                                                    <label class="col-md-4 col-form-label" for="remove_subtitles">';
-echo $language::get('remove_existing_subtitles');
-echo ' <i title="';
-echo $language::get('episode_tooltip_3');
-echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="remove_subtitles" id="remove_subtitles" type="checkbox" ';
-
-if (!isset($rEpisode)) {
-} else {
-	if ($rEpisode['remove_subtitles'] != 1) {
-	} else {
-		echo 'checked ';
-	}
-}
-
-echo 'data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n" . '                                                </div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-
-if (!empty($rMulti)) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="target_container">';
-	echo $language::get('target_container');
-	echo ' <i title="';
-	echo $language::get('episode_tooltip_4');
-	echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select name="target_container" id="target_container" class="form-control" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-
-	foreach (array('mp4', 'mkv', 'avi', 'mpg', 'flv', '3gp', 'm4v', 'wmv', 'mov', 'ts') as $rContainer) {
-		echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
-
-		if (!isset($rEpisode)) {
-		} else {
-			if ($rEpisode['target_container'] != $rContainer) {
-			} else {
-				echo 'selected ';
-			}
-		}
-
-		echo 'value="';
-		echo $rContainer;
-		echo '">';
-		echo $rContainer;
-		echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-	}
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="custom_sid">';
-	echo $language::get('custom_channel_sid');
-	echo ' <i title="';
-	echo $language::get('episode_tooltip_5');
-	echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" class="form-control" id="custom_sid" name="custom_sid" value="';
-
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rEpisode['custom_sid']);
-	}
-
-	echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
+$rEpisodeSource = '';
+if ($rIsEdit) {
+    $rDecodedSource = json_decode((string) $rEpisode['stream_source'], true);
+    $rEpisodeSource = is_array($rDecodedSource) ? (string) ($rDecodedSource[0] ?? '') : '';
 }
 
 $rSubFile = '';
-
-if (!isset($rEpisode)) {
-} else {
-	$rSubData = json_decode($rEpisode['movie_subtitles'], true);
-
-	if (!isset($rSubData['location'])) {
-	} else {
-		$rSubFile = 's:' . $rSubData['location'] . ':' . $rSubData['files'][0];
-	}
+if ($rIsEdit) {
+    $rSubData = json_decode((string) $rEpisode['movie_subtitles'], true);
+    if (isset($rSubData['location'])) {
+        $rSubFile = 's:' . $rSubData['location'] . ':' . ($rSubData['files'][0] ?? '');
+    }
 }
 
-echo "\t\t\t\t\t\t\t\t\t\t\t\t";
+$rProps = $rIsEdit ? ($rEpisode['properties'] ?? []) : [];
+$rTitle = $rIsEdit ? $rEpisode['stream_display_name'] : ($rMulti ? $language::get('add_multiple') : $language::get('add_single'));
+?>
 
-if (!empty($rMulti)) {
-} else {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="movie_subtitles">';
-	echo $language::get('subtitle_location');
-	echo ' <i title="';
-	echo $language::get('episode_tooltip_6');
-	echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input type="text" id="movie_subtitles" name="movie_subtitles" class="form-control" value="';
+<div class="d-flex align-items-center mb-4">
+    <a href="episodes?series=<?= (int) $rSeriesArr['id']; ?>" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+    <h4 class="mb-0"><?= htmlspecialchars((string) $rTitle, ENT_QUOTES); ?></h4>
+</div>
 
-	if (!isset($rEpisode)) {
-	} else {
-		echo htmlspecialchars($rSubFile);
-	}
+<?php if ($rIsEdit): ?>
+    <?php foreach (StreamRepository::getEncodeErrors($rEpisode['id']) as $rServerID => $rEncodeError): ?>
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <strong><?= $language::get('error_on_server'); ?> - <?= htmlspecialchars((string) ($rServers[$rServerID]['server_name'] ?? ''), ENT_QUOTES); ?></strong><br>
+            <?= str_replace("\n", '<br>', htmlspecialchars((string) $rEncodeError, ENT_QUOTES)); ?>
+        </div>
+    <?php endforeach; ?>
+<?php endif; ?>
 
-	echo '">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="#file-browser" id="filebrowser-sub" class="btn btn-primary waves-effect waves-light"><i class="mdi mdi-folder-open-outline"></i></a>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t";
-}
+<form id="episode-form" autocomplete="off">
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rEpisode['id']; ?>">
+    <?php endif; ?>
+    <?php if ($rMulti): ?>
+        <input type="hidden" name="multi" id="multi" value="">
+        <input type="hidden" name="server" id="server" value="">
+        <input type="hidden" id="tmdb_id" name="tmdb_id" value="<?= htmlspecialchars((string) ($rSeriesArr['tmdb_id'] ?? ''), ENT_QUOTES); ?>">
+    <?php else: ?>
+        <input type="hidden" id="tmdb_id" name="tmdb_id" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['tmdb_id'] ?? ''), ENT_QUOTES) : ''; ?>">
+    <?php endif; ?>
+    <input type="hidden" name="series" value="<?= (int) $rSeriesArr['id']; ?>">
+    <input type="hidden" name="server_tree_data" id="server_tree_data" value="">
+    <input type="hidden" id="tmdb_language" value="<?= htmlspecialchars((string) $rTmdbLang, ENT_QUOTES); ?>">
 
-echo "\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="transcode_profile_id">';
-echo $language::get('transcoding_profile');
-echo ' <i title="';
-echo $language::get('episode_tooltip_7');
-echo '" class="tooltip text-secondary far fa-circle"></i></label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<select name="transcode_profile_id" id="transcode_profile_id" class="form-control" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
+    <div class="card mb-6">
+        <div class="card-header px-0 pt-2">
+            <div class="nav-align-top">
+                <ul class="nav nav-tabs" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-details" role="tab"><i class="icon-base ti tabler-list-details me-1"></i><?= $language::get('details'); ?></button></li>
+                    <?php if (!$rMulti): ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-info" role="tab"><i class="icon-base ti tabler-movie me-1"></i><?= $language::get('information'); ?></button></li>
+                    <?php endif; ?>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced" role="tab"><i class="icon-base ti tabler-adjustments me-1"></i><?= $language::get('advanced'); ?></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-server" role="tab"><i class="icon-base ti tabler-server me-1"></i><?= $language::get('servers'); ?></button></li>
+                </ul>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="tab-content p-0">
+                <div class="tab-pane fade show active" id="tab-details" role="tabpanel">
+                    <?php if (!$rMulti): ?>
+                        <div class="mb-6">
+                            <label class="form-label" for="series_name"><?= $language::get('series_name'); ?></label>
+                            <input type="text" class="form-control" id="series_name" name="series_name" value="<?= htmlspecialchars((string) $rSeriesArr['title'], ENT_QUOTES); ?>" readonly>
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-6">
+                                <label class="form-label" for="season_num"><?= $language::get('season_number'); ?></label>
+                                <input type="text" inputmode="numeric" class="form-control text-center" id="season_num" name="season_num" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEpisode['season'], ENT_QUOTES) : ''; ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label" for="episode"><?= $language::get('episode_number'); ?></label>
+                                <input type="text" inputmode="numeric" class="form-control text-center" id="episode" name="episode" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEpisode['episode'], ENT_QUOTES) : ''; ?>">
+                            </div>
+                        </div>
+                        <?php if ($rHasTmdb): ?>
+                            <div class="mb-6">
+                                <label class="form-label" for="tmdb_search"><?= $language::get('tmdb_results'); ?></label>
+                                <select id="tmdb_search" class="form-select"></select>
+                            </div>
+                        <?php endif; ?>
+                        <div class="mb-6">
+                            <label class="form-label" for="stream_display_name"><?= $language::get('episode_name'); ?></label>
+                            <input type="text" class="form-control" id="stream_display_name" name="stream_display_name" required value="<?= $rIsEdit ? htmlspecialchars((string) $rEpisode['stream_display_name'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="stream_source"><?= $language::get('episode_path'); ?></label>
+                            <div class="input-group">
+                                <input type="text" id="stream_source" name="stream_source" class="form-control" required value="<?= htmlspecialchars((string) $rEpisodeSource, ENT_QUOTES); ?>">
+                                <button type="button" class="btn btn-label-primary" id="filebrowser" data-target="stream_source"><i class="icon-base ti tabler-folder"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" for="notes"><?= $language::get('notes'); ?></label>
+                            <textarea id="notes" name="notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) $rEpisode['notes'], ENT_QUOTES) : ''; ?></textarea>
+                        </div>
+                    <?php else: ?>
+                        <div class="row mb-6">
+                            <div class="col-md-9">
+                                <label class="form-label" for="series_name"><?= $language::get('series_name'); ?></label>
+                                <input type="text" class="form-control" id="series_name" name="series_name" value="<?= htmlspecialchars((string) $rSeriesArr['title'], ENT_QUOTES); ?>" readonly>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="season_num"><?= $language::get('season'); ?></label>
+                                <input type="text" inputmode="numeric" class="form-control text-center" id="season_num" name="season_num" required value="">
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="season_folder"><?= $language::get('season_folder'); ?></label>
+                            <div class="input-group">
+                                <input type="text" id="season_folder" name="season_folder" readonly required class="form-control" value="">
+                                <button type="button" class="btn btn-label-primary" id="filebrowser" data-target="season_folder"><i class="icon-base ti tabler-folder"></i></button>
+                            </div>
+                        </div>
+                        <div id="episode_add" class="mb-6"></div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="addName1" name="addName1" value="1" checked>
+                                    <label class="form-check-label" for="addName1"><?= $language::get('add_series_name'); ?></label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="addName2" name="addName2" value="1" checked>
+                                    <label class="form-check-label" for="addName2"><?= $language::get('add_episode_number'); ?></label>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                </div>
 
-if (!isset($rEpisode)) {
-} else {
-	if (intval($rEpisode['transcode_profile_id']) != 0) {
-	} else {
-		echo 'selected ';
-	}
-}
+                <?php if (!$rMulti): ?>
+                    <div class="tab-pane fade" id="tab-info" role="tabpanel">
+                        <div class="mb-6">
+                            <label class="form-label" for="movie_image"><?= $language::get('image_url'); ?></label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="movie_image" name="movie_image" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['movie_image'] ?? ''), ENT_QUOTES) : ''; ?>">
+                                <button type="button" class="btn btn-label-secondary js-img-preview" data-target="movie_image"><i class="icon-base ti tabler-eye"></i></button>
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="plot"><?= $language::get('plot'); ?></label>
+                            <textarea rows="6" class="form-control" id="plot" name="plot"><?= $rIsEdit ? htmlspecialchars((string) ($rProps['plot'] ?? ''), ENT_QUOTES) : ''; ?></textarea>
+                        </div>
+                        <div class="row mb-6">
+                            <div class="col-md-8">
+                                <label class="form-label" for="release_date"><?= $language::get('release_date'); ?></label>
+                                <input type="text" class="form-control text-center" id="release_date" name="release_date" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['release_date'] ?? ''), ENT_QUOTES) : ''; ?>">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="episode_run_time"><?= $language::get('runtime'); ?></label>
+                                <input type="text" inputmode="numeric" class="form-control text-center" id="episode_run_time" name="episode_run_time" value="<?= $rIsEdit ? (int) (($rProps['duration_secs'] ?? 0) / 60) : ''; ?>">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label" for="rating"><?= $language::get('rating'); ?></label>
+                            <input type="text" class="form-control text-center" id="rating" name="rating" value="<?= $rIsEdit ? htmlspecialchars((string) ($rProps['rating'] ?? ''), ENT_QUOTES) : ''; ?>">
+                        </div>
+                    </div>
+                <?php endif; ?>
 
-echo 'value="0">';
-echo $language::get('transcoding_disabled');
-echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+                <div class="tab-pane fade" id="tab-advanced" role="tabpanel">
+                    <div class="row g-3 mb-6">
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="direct_source" name="direct_source" value="1" <?= ($rIsEdit && $rEpisode['direct_source'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="direct_source"><?= $language::get('direct_source'); ?></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="direct_proxy" name="direct_proxy" value="1" <?= ($rIsEdit && $rEpisode['direct_proxy'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="direct_proxy">Direct Stream</label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="read_native" name="read_native" value="1" <?= ($rIsEdit && $rEpisode['read_native'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="read_native"><?= $language::get('native_frames'); ?></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="movie_symlink" name="movie_symlink" value="1" <?= ($rIsEdit && $rEpisode['movie_symlink'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="movie_symlink"><?= $language::get('create_symlink'); ?></label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="remove_subtitles" name="remove_subtitles" value="1" <?= ($rIsEdit && $rEpisode['remove_subtitles'] == 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="remove_subtitles"><?= $language::get('remove_existing_subtitles'); ?></label>
+                            </div>
+                        </div>
+                    </div>
+                    <?php if (!$rMulti): ?>
+                        <div class="row mb-6">
+                            <div class="col-md-8">
+                                <label class="form-label" for="target_container"><?= $language::get('target_container'); ?></label>
+                                <select name="target_container" id="target_container" class="form-select">
+                                    <?php foreach ($rContainers as $rContainer): ?>
+                                        <option value="<?= $rContainer; ?>" <?= ($rIsEdit && $rEpisode['target_container'] === $rContainer) ? 'selected' : ''; ?>><?= $rContainer; ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label" for="custom_sid"><?= $language::get('custom_channel_sid'); ?></label>
+                                <input type="text" class="form-control" id="custom_sid" name="custom_sid" value="<?= $rIsEdit ? htmlspecialchars((string) $rEpisode['custom_sid'], ENT_QUOTES) : ''; ?>">
+                            </div>
+                        </div>
+                        <div class="mb-6">
+                            <label class="form-label" for="movie_subtitles"><?= $language::get('subtitle_location'); ?></label>
+                            <div class="input-group">
+                                <input type="text" id="movie_subtitles" name="movie_subtitles" class="form-control" value="<?= htmlspecialchars((string) $rSubFile, ENT_QUOTES); ?>">
+                                <button type="button" class="btn btn-label-primary" id="filebrowser-sub" data-target="movie_subtitles"><i class="icon-base ti tabler-folder"></i></button>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <div>
+                        <label class="form-label" for="transcode_profile_id"><?= $language::get('transcoding_profile'); ?></label>
+                        <select name="transcode_profile_id" id="transcode_profile_id" class="form-select">
+                            <option value="0" <?= ($rIsEdit && (int) $rEpisode['transcode_profile_id'] === 0) ? 'selected' : ''; ?>><?= $language::get('transcoding_disabled'); ?></option>
+                            <?php foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile): ?>
+                                <option value="<?= (int) $rProfile['profile_id']; ?>" <?= ($rIsEdit && (int) $rEpisode['transcode_profile_id'] === (int) $rProfile['profile_id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rProfile['profile_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
 
-foreach (StreamConfigRepository::getTranscodeProfiles() as $rProfile) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<option ';
+                <div class="tab-pane fade" id="tab-server" role="tabpanel">
+                    <div class="mb-6">
+                        <label class="form-label"><?= $language::get('server_tree'); ?></label>
+                        <div id="server_tree" class="border rounded p-2"></div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="restart_on_edit" name="restart_on_edit" value="1">
+                        <label class="form-check-label" for="restart_on_edit"><?= $rIsEdit ? $language::get('reprocess_on_edit') : $language::get('process_now'); ?></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-	if (!isset($rEpisode)) {
-	} else {
-		if (intval($rEpisode['transcode_profile_id']) != intval($rProfile['profile_id'])) {
-		} else {
-			echo 'selected ';
-		}
-	}
+    <div class="d-flex justify-content-end mb-6">
+        <button type="submit" name="submit_episode" class="btn btn-primary" id="episode-submit"><?= $rIsEdit ? $language::get('edit') : $language::get('add'); ?></button>
+    </div>
+</form>
 
-	echo 'value="';
-	echo $rProfile['profile_id'];
-	echo '">';
-	echo $rProfile['profile_name'];
-	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="nextb list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('next');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="tab-pane" id="load-balancing">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="row">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="servers">';
-echo $language::get('server_tree');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div id="server_tree"></div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="restart_on_edit">';
+<!-- File browser modal -->
+<div class="modal fade" id="fileBrowserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title mb-0"><?= $language::get('file_browser'); ?></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" for="fb_server"><?= $language::get('server_name'); ?></label>
+                        <select id="fb_server" class="form-select">
+                            <?php foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer): ?>
+                                <option value="<?= (int) $rServer['id']; ?>" <?= (RequestManager::has('server') && RequestManager::get('server') == $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" for="fb_path"><?= $language::get('current_path'); ?></label>
+                        <div class="input-group">
+                            <input type="text" id="fb_path" name="current_path" class="form-control" value="/">
+                            <button class="btn btn-label-primary" type="button" id="fb_go"><i class="icon-base ti tabler-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="input-group">
+                        <input type="text" id="fb_search" name="search" class="form-control" placeholder="<?= htmlspecialchars((string) $language::get('filter_directory'), ENT_QUOTES); ?>">
+                        <button class="btn btn-label-secondary" type="button" id="fb_clear"><i class="icon-base ti tabler-x"></i></button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="fw-medium mb-1"><?= $language::get('directory'); ?></div>
+                        <ul class="list-group" id="fb_dirs" style="max-height:280px;overflow:auto"></ul>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="fw-medium mb-1"><?= $language::get('filename'); ?></div>
+                        <ul class="list-group" id="fb_files" style="max-height:280px;overflow:auto"></ul>
+                    </div>
+                </div>
+                <?php if ($rMulti): ?>
+                    <div class="d-flex justify-content-end mt-3"><button type="button" class="btn btn-primary" id="fb_select_folder"><?= $language::get('add_this_directory'); ?></button></div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
 
-if (isset($rEpisode)) {
-	echo $language::get('reprocess_on_edit');
-} else {
-	echo $language::get('process_now');
-}
+<!-- Image preview modal -->
+<div class="modal fade" id="imgPreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-body text-center p-2"><img id="imgPreviewImg" src="" alt="" style="max-width:100%"></div></div></div>
+</div>
 
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<div class="col-md-2">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="restart_on_edit" id="restart_on_edit" type="checkbox" data-plugin="switchery" class="js-switch" data-color="#039cfd"/>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t\t\t\t" . '<ul class="list-inline wizard mb-0">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="prevb list-inline-item">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<a href="javascript: void(0);" class="btn btn-secondary">';
-echo $language::get('prev');
-echo '</a>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<li class="list-inline-item float-right">' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<input name="submit_episode" type="submit" class="btn btn-primary" value="';
-
-if (isset($rEpisode)) {
-	echo $language::get('edit');
-} else {
-	echo $language::get('add');
-}
-
-echo '" />' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</li>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</ul>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</form>' . "\n\t\t\t\t\t\t" . '<div id="file-browser" class="mfp-hide white-popup-block">' . "\n\t\t\t\t\t\t\t" . '<div class="col-12">' . "\n\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="server_id">';
-echo $language::get('server_name');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<select id="server_id" class="form-control" data-toggle="select2">' . "\n\t\t\t\t\t\t\t\t\t\t\t";
-
-foreach (ServerRepository::getStreamingSimple($rPermissions) as $rServer) {
-	echo "\t\t\t\t\t\t\t\t\t\t\t" . '<option value="';
-	echo $rServer['id'];
-	echo '"';
-
-	if (!(RequestManager::has('server') && RequestManager::get('server') == $rServer['id'])) {
-	} else {
-		echo ' selected';
-	}
-
-	echo '>';
-	echo htmlspecialchars($rServer['server_name']);
-	echo '</option>' . "\n\t\t\t\t\t\t\t\t\t\t\t";
-}
-echo "\t\t\t\t\t\t\t\t\t\t" . '</select>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="current_path">';
-echo $language::get('current_path');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<input type="text" id="current_path" name="current_path" class="form-control" value="/">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button class="btn btn-primary waves-effect waves-light" type="button" id="changeDir"><i class="mdi mdi-chevron-right"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4"';
-
-if (!empty($rMulti)) {
-	echo "style='display:none;'";
-}
-
-echo '>' . "\n\t\t\t\t\t\t\t\t\t" . '<label class="col-md-4 col-form-label" for="search">';
-echo $language::get('search_directory');
-echo '</label>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-8 input-group">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<input type="text" id="search" name="search" class="form-control" placeholder="';
-echo $language::get('filter_directory');
-echo '">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<div class="input-group-append">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button class="btn btn-warning waves-effect waves-light" type="button" onClick="clearSearch()"><i class="mdi mdi-close"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<button class="btn btn-primary waves-effect waves-light" type="button" id="doSearch"><i class="mdi mdi-magnify"></i></button>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '<div class="form-group row mb-4">' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-6">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable" class="table">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th width="20px"></th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $language::get('directory');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t\t" . '<div class="col-md-6">' . "\n\t\t\t\t\t\t\t\t\t\t" . '<table id="datatable-files" class="table">' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '<tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th width="20px"></th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t\t" . '<th>';
-echo $language::get('filename');
-echo '</th>' . "\n\t\t\t\t\t\t\t\t\t\t\t\t" . '</tr>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '</thead>' . "\n\t\t\t\t\t\t\t\t\t\t\t" . '<tbody></tbody>' . "\n\t\t\t\t\t\t\t\t\t\t" . '</table>' . "\n\t\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t";
-
-if (!empty($rMulti)) {
-	echo "\t\t\t\t\t\t\t\t" . '<div class="float-right">' . "\n\t\t\t\t\t\t\t\t\t" . '<input id="select_folder" type="button" class="btn btn-info" value="';
-	echo $language::get('add_this_directory');
-	echo '" />' . "\n\t\t\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t\t\t\t";
-}
-
-
-
-echo "\t\t\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t\t\t" . '</div>' . "\n\t\t\t\t\t" . '</div> ' . "\n\t\t\t\t" . '</div> ' . "\n\t\t\t" . '</div> ' . "\n\t\t" . '</div>' . "\n\t" . '</div>' . "\n" . '</div>' . "\n";
+<?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('admin'); ?>
-<script id="scripts">
-	var resizeObserver = new ResizeObserver(entries => $(window).scroll());
-	$(document).ready(function() {
-		resizeObserver.observe(document.body)
-		$("form").attr('autocomplete', 'off');
-		$(document).keypress(function(event) {
-			if (event.which == 13 && event.target.nodeName != "TEXTAREA") return false;
-		});
-		$.fn.dataTable.ext.errMode = 'none';
-		var elems = Array.prototype.slice.call(document.querySelectorAll('.js-switch'));
-		elems.forEach(function(html) {
-			var switchery = new Switchery(html, {
-				'color': '#414d5f'
-			});
-			window.rSwitches[$(html).attr("id")] = switchery;
-		});
-		setTimeout(pingSession, 30000);
-		<?php if (!$rMobile && $rSettings['header_stats']): ?>
-			headerStats();
-		<?php endif; ?>
-		bindHref();
-		refreshTooltips();
-		$(window).scroll(function() {
-			if ($(this).scrollTop() > 200) {
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeOut();
-				}
-				$('#scrollToTop').fadeIn();
-			} else {
-				$('#scrollToTop').fadeOut();
-				if ($(document).height() > $(window).height()) {
-					$('#scrollToBottom').fadeIn();
-				} else {
-					$('#scrollToBottom').hide();
-				}
-			}
-		});
-		$("#scrollToTop").unbind("click");
-		$('#scrollToTop').click(function() {
-			$('html, body').animate({
-				scrollTop: 0
-			}, 800);
-			return false;
-		});
-		$("#scrollToBottom").unbind("click");
-		$('#scrollToBottom').click(function() {
-			$('html, body').animate({
-				scrollTop: $(document).height()
-			}, 800);
-			return false;
-		});
-		$(window).scroll();
-		$(".nextb").unbind("click");
-		$(".nextb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$(".nav .nav-item").each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		$(".prevb").unbind("click");
-		$(".prevb").click(function() {
-			var rPos = 0;
-			var rActive = null;
-			$($(".nav .nav-item").get().reverse()).each(function() {
-				if ($(this).find(".nav-link").hasClass("active")) {
-					rActive = rPos;
-				}
-				if (rActive !== null && rPos > rActive && !$(this).find("a").hasClass("disabled") && $(this).is(":visible")) {
-					$(this).find(".nav-link").trigger("click");
-					return false;
-				}
-				rPos += 1;
-			});
-		});
-		(function($) {
-			$.fn.inputFilter = function(inputFilter) {
-				return this.on("input keydown keyup mousedown mouseup select contextmenu drop", function() {
-					if (inputFilter(this.value)) {
-						this.oldValue = this.value;
-						this.oldSelectionStart = this.selectionStart;
-						this.oldSelectionEnd = this.selectionEnd;
-					} else if (this.hasOwnProperty("oldValue")) {
-						this.value = this.oldValue;
-						this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
-					}
-				});
-			};
-		}(jQuery));
-		<?php if ($rSettings['js_navigate']): ?>
-			$(".navigation-menu li").mouseenter(function() {
-				$(this).find(".submenu").show();
-			});
-			delParam("status");
-			$(window).on("popstate", function() {
-				if (window.rRealURL) {
-					if (window.rRealURL.split("/").reverse()[0].split("?")[0].split(".")[0] != window.location.href.split("/").reverse()[0].split("?")[0].split(".")[0]) {
-						navigate(window.location.href.split("/").reverse()[0]);
-					}
-				}
-			});
-		<?php endif; ?>
-		$(document).keydown(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = true;
-			}
-		});
-		$(document).keyup(function(e) {
-			if (e.keyCode == 16) {
-				window.rShiftHeld = false;
-			}
-		});
-		document.onselectstart = function() {
-			if (window.rShiftHeld) {
-				return false;
-			}
-		}
-	});
+renderUnifiedLayoutFooter('admin');
+?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        if (!$) { return; }
+        var lang = {
+            errText: <?= json_encode($language::get('error_occured')); ?>,
+            noName: <?= json_encode($language::get('enter_an_episode_name')); ?>,
+            noSource: <?= json_encode($language::get('enter_an_episode_source')); ?>,
+            symlink: <?= json_encode($language::get('subtitle_location')); ?>,
+            parent: <?= json_encode($language::get('parent_directory')); ?>,
+            loading: <?= json_encode($language::get('loading')); ?>,
+            foundEp: <?= json_encode($language::get('found_episodes')); ?>,
+            noneEp: <?= json_encode($language::get('no_episodes_found')); ?>,
+            none: <?= json_encode($language::get('no_results_found')); ?>,
+            epLabel: <?= json_encode($language::get('episode')); ?>,
+            epToAdd: <?= json_encode($language::get('episode_to_add')); ?>
+        };
+        var isMulti = <?= $rMulti ? 'true' : 'false'; ?>;
+        var seriesTmdbId = <?= json_encode((string) ($rSeriesArr['tmdb_id'] ?? '')); ?>;
+        var seriesEpRun = <?= json_encode((string) ($rSeriesArr['episode_run_time'] ?? '')); ?>;
+        var changeTitle = false;
+        var rEpisodes = {};
+        var fbFilesList = [];
+        var videoExt = ['mp4', 'mkv', 'mov', 'avi', 'mpg', 'mpeg', 'flv', 'wmv', 'm4v'];
 
-	var changeTitle = false;
-	var rEpisodes = {};
+        function esc(s) { return $('<div>').text(s == null ? '' : s).html(); }
+        function pad(n) { return n < 10 ? ('0' + n) : n; }
+        function numFilter(el) { if (el) { el.addEventListener('input', function() { this.value = this.value.replace(/[^0-9]/g, ''); }); } }
 
-	function pad(n) {
-		if (n < 10)
-			return "0" + n;
-		return n;
-	}
+        // ---- select2 ----
+        $('#tmdb_search, #target_container, #transcode_profile_id').select2({ width: '100%', dropdownParent: $('#episode-form') });
+        $('#fb_server').select2({ width: '100%', dropdownParent: $('#fileBrowserModal') });
 
-	function selectDirectory(elem) {
-		window.currentDirectory += elem + "/";
-		$("#current_path").val(window.currentDirectory);
-		$("#changeDir").click();
-	}
+        // ---- jstree server tree ----
+        $('#server_tree')
+            .on('select_node.jstree', function(e, data) {
+                if (data.node.id === 'source' || data.node.id === 'offline') { return; }
+                var to = (data.node.parent === 'offline') ? 'source' : 'offline';
+                $('#server_tree').jstree('move_node', data.node.id, to, to === 'source' ? 'last' : 'first');
+            })
+            .jstree({
+                core: {
+                    check_callback: function(op, node, parent) {
+                        if (op === 'move_node') {
+                            if (node.id === 'offline' || node.id === 'source') { return false; }
+                            if (parent.id !== 'offline' && parent.id !== 'source') { return false; }
+                            if (parent.id === '#') { return false; }
+                            if (parent.id > 0 && $('#direct_proxy').is(':checked')) { return false; }
+                            return true;
+                        }
+                        return true;
+                    },
+                    data: <?= json_encode($rServerTree ?: []); ?>
+                },
+                plugins: ['dnd']
+            });
 
-	function selectParent() {
-		$("#current_path").val(window.currentDirectory.split("/").slice(0, -2).join("/") + "/");
-		$("#changeDir").click();
-	}
+        // ---- image preview ----
+        document.querySelectorAll('.js-img-preview').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                var v = document.getElementById(btn.dataset.target).value.trim();
+                if (!v) { return; }
+                document.getElementById('imgPreviewImg').src = 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(v);
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('imgPreviewModal')).show();
+            });
+        });
 
-	function selectFile(rFile) {
-		if ($('li.nav-item .active').attr('href') == "#stream-details") {
-			$("#stream_source").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);
-			var rExtension = rFile.substr((rFile.lastIndexOf('.') + 1));
-			if ($("#target_container option[value='" + rExtension + "']").length > 0) {
-				$("#target_container").val(rExtension).trigger('change');
-			}
-		} else {
-			$("#movie_subtitles").val("s:" + $("#server_id").val() + ":" + window.currentDirectory + rFile);
-		}
-		$.magnificPopup.close();
-	}
+        // ---- file browser ----
+        var fbTarget = 'stream_source', fbDir = '/';
+        var fbModal = document.getElementById('fileBrowserModal');
+        function fbList() {
+            var server = $('#fb_server').val();
+            fbDir = $('#fb_path').val();
+            if (fbDir.slice(-1) !== '/') { fbDir += '/'; }
+            $('#fb_path').val(fbDir);
+            $('#fb_search').val('');
+            var filter = (fbTarget === 'movie_subtitles') ? 'subs' : 'video';
+            fbFilesList = [];
+            $('#fb_dirs, #fb_files').html('<li class="list-group-item text-muted">' + lang.loading + '...</li>');
+            $.getJSON('./api?action=listdir&dir=' + encodeURIComponent(fbDir) + '&server=' + encodeURIComponent(server) + '&filter=' + filter, function(data) {
+                var dirs = '', files = '';
+                if (fbDir !== '/') { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name=".."><i class="icon-base ti tabler-arrow-back-up me-1"></i>' + lang.parent + '</li>'; }
+                if (data && data.result === true) {
+                    $(data.data.dirs).each(function(i, d) { dirs += '<li class="list-group-item list-group-item-action fb-dir" data-name="' + esc(d) + '"><i class="icon-base ti tabler-folder me-1"></i>' + esc(d) + '</li>'; });
+                    $(data.data.files).each(function(i, f) { fbFilesList.push(f); files += '<li class="list-group-item list-group-item-action fb-file" data-name="' + esc(f) + '"><i class="icon-base ti tabler-file me-1"></i>' + esc(f) + '</li>'; });
+                }
+                $('#fb_dirs').html(dirs || '<li class="list-group-item text-muted">-</li>');
+                $('#fb_files').html(files || '<li class="list-group-item text-muted">-</li>');
+            });
+        }
+        document.querySelectorAll('#filebrowser, #filebrowser-sub').forEach(function(b) {
+            b.addEventListener('click', function() {
+                fbTarget = b.dataset.target;
+                $('#fb_path').val('/'); fbList();
+                bootstrap.Modal.getOrCreateInstance(fbModal).show();
+            });
+        });
+        document.getElementById('fb_go').addEventListener('click', fbList);
+        $('#fb_server').on('change', function() { $('#fb_path').val('/'); fbList(); });
+        document.getElementById('fb_clear').addEventListener('click', function() { $('#fb_search').val(''); $('#fb_files .fb-file').show(); });
+        $('#fb_search').on('input', function() {
+            var q = this.value.toLowerCase();
+            $('#fb_files .fb-file').each(function() { $(this).toggle($(this).data('name').toLowerCase().indexOf(q) !== -1); });
+        });
+        $('#fb_dirs').on('click', '.fb-dir', function() {
+            var name = $(this).data('name');
+            if (name === '..') { fbDir = fbDir.split('/').slice(0, -2).join('/') + '/'; }
+            else { fbDir += name + '/'; }
+            $('#fb_path').val(fbDir); fbList();
+        });
+        $('#fb_files').on('click', '.fb-file', function() {
+            if (isMulti) { return; }
+            var name = $(this).data('name'), val = 's:' + $('#fb_server').val() + ':' + fbDir + name;
+            document.getElementById(fbTarget).value = val;
+            if (fbTarget === 'stream_source') {
+                var ext = name.substr(name.lastIndexOf('.') + 1);
+                if ($('#target_container option[value="' + ext + '"]').length) { $('#target_container').val(ext).trigger('change'); }
+                $('#stream_source').trigger('change');
+            }
+            bootstrap.Modal.getInstance(fbModal).hide();
+        });
 
-	function openImage(elem) {
-		rPath = $(elem).parent().parent().find("input").val();
-		if (rPath) {
-			$.magnificPopup.open({
-				items: {
-					src: 'resize?maxw=512&maxh=512&url=' + encodeURIComponent(rPath),
-					type: 'image'
-				}
-			});
-		}
-	}
+        // ---- multi: pick season folder and enumerate episodes ----
+        var fbSelFolder = document.getElementById('fb_select_folder');
+        if (fbSelFolder) {
+            fbSelFolder.addEventListener('click', function() {
+                document.getElementById('season_folder').value = fbDir;
+                document.getElementById('server').value = $('#fb_server').val();
+                var rID = 1, rNames = {};
+                $('#episode_add').html('');
+                fbFilesList.forEach(function(fileName) {
+                    var ext = fileName.split('.').pop().toLowerCase();
+                    if (videoExt.indexOf(ext) !== -1) {
+                        $('#episode_add').append(
+                            '<div class="row mb-4"><div class="col-md-9"><input type="text" class="form-control" id="episode_' + rID + '_name" name="episode_' + rID + '_name" value="' + esc(fileName) + '" readonly></div>' +
+                            '<div class="col-md-3"><input type="text" inputmode="numeric" class="form-control text-center" id="episode_' + rID + '_num" name="episode_' + rID + '_num" placeholder="' + esc(lang.epLabel) + '" value=""></div></div>'
+                        );
+                        numFilter(document.getElementById('episode_' + rID + '_num'));
+                        rNames[rID] = fileName;
+                        rID++;
+                    }
+                });
+                $.post('./api?action=get_episode_ids', { data: JSON.stringify(rNames) }, function(data) {
+                    $(data.data).each(function(id, item) { $('#episode_' + item[0] + '_num').val(item[1]); });
+                    var nextEpisode = 1;
+                    $('[id^=episode_][id$=_num]').each(function() {
+                        if (!$(this).val()) { $(this).val(nextEpisode); }
+                        nextEpisode++;
+                    });
+                }, 'json');
+                bootstrap.Modal.getInstance(fbModal).hide();
+            });
+        }
 
-	function clearSearch() {
-		$("#search").val("");
-		$("#doSearch").click();
-	}
-	$(document).ready(function() {
-		$('select').select2({
-			width: '100%'
-		});
-		$("#datatable").DataTable({
-			responsive: false,
-			paging: false,
-			bInfo: false,
-			searching: false,
-			scrollY: "250px",
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0]
-			}, ],
-			"language": {
-				"emptyTable": ""
-			}
-		});
-		$("#datatable-files").DataTable({
-			responsive: false,
-			paging: false,
-			bInfo: false,
-			searching: true,
-			scrollY: "250px",
-			drawCallback: function() {
-				bindHref();
-				refreshTooltips();
-			},
-			columnDefs: [{
-				"className": "dt-center",
-				"targets": [0]
-			}, ],
-			"language": {
-				"emptyTable": "<?= $language::get('no_compatible_file') ?>"
-			}
-		});
-		$("#doSearch").click(function() {
-			$('#datatable-files').DataTable().search($("#search").val()).draw();
-		})
-		$("#direct_source").change(function() {
-			evaluateDirectSource();
-		});
-		$("#direct_proxy").change(function() {
-			evaluateDirectSource();
-		});
-		$("#movie_symlink").change(function() {
-			evaluateSymlink();
-		});
-		$("#stream_source").change(function() {
-			checkSymlink();
-		});
+        // ---- direct source / symlink enable-disable ----
+        function setDisabled(id, off) {
+            var el = document.getElementById(id);
+            if (!el) { return; }
+            el.disabled = off;
+            if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', off).trigger('change.select2'); }
+        }
+        function toggle(ids, off) { ids.forEach(function(id) { setDisabled(id, off); }); }
+        var dsFields = ['movie_symlink', 'read_native', 'transcode_profile_id', 'remove_subtitles', 'movie_subtitles'];
+        var slFields = ['direct_source', 'read_native', 'remove_subtitles', 'target_container', 'transcode_profile_id', 'movie_subtitles'];
+        function evaluateDirectSource() {
+            var ds = document.getElementById('direct_source').checked;
+            toggle(dsFields, ds);
+            document.getElementById('direct_proxy').disabled = !ds;
+        }
+        function checkSymlink() {
+            var src = document.getElementById('stream_source');
+            if (!src) { return; }
+            var s = src.value;
+            if (document.getElementById('movie_symlink').checked && s && s.indexOf('s:') !== 0 && s.indexOf('/') !== 0) {
+                document.getElementById('movie_symlink').checked = false;
+                window.xcToast(lang.symlink, 'error');
+            }
+        }
+        function evaluateSymlink() {
+            if (document.getElementById('direct_source').checked) { return; }
+            checkSymlink();
+            toggle(slFields, document.getElementById('movie_symlink').checked);
+        }
+        document.getElementById('direct_source').addEventListener('change', function() { evaluateDirectSource(); evaluateSymlink(); });
+        document.getElementById('direct_proxy').addEventListener('change', evaluateDirectSource);
+        document.getElementById('movie_symlink').addEventListener('change', evaluateSymlink);
+        var srcEl = document.getElementById('stream_source');
+        if (srcEl) { srcEl.addEventListener('change', checkSymlink); }
+        evaluateDirectSource();
+        evaluateSymlink();
 
-		function evaluateDirectSource() {
-			$(["movie_symlink", "read_native", "transcode_profile_id", "remove_subtitles", "movie_subtitles"]).each(function(rID, rElement) {
-				if ($(rElement)) {
-					if ($("#direct_source").is(":checked")) {
-						if (window.rSwitches[rElement]) {
-							setSwitch(window.rSwitches[rElement], false);
-							window.rSwitches[rElement].disable();
-						} else {
-							$("#" + rElement).prop("disabled", true);
-						}
-					} else {
-						if (window.rSwitches[rElement]) {
-							window.rSwitches[rElement].enable();
-						} else {
-							$("#" + rElement).prop("disabled", false);
-						}
-					}
-				}
-			});
-			$(["direct_proxy"]).each(function(rID, rElement) {
-				if ($(rElement)) {
-					if (!$("#direct_source").is(":checked")) {
-						if (window.rSwitches[rElement]) {
-							setSwitch(window.rSwitches[rElement], false);
-							window.rSwitches[rElement].disable();
-						} else {
-							$("#" + rElement).prop("disabled", true);
-						}
-					} else {
-						if (window.rSwitches[rElement]) {
-							window.rSwitches[rElement].enable();
-						} else {
-							$("#" + rElement).prop("disabled", false);
-						}
-					}
-				}
-			});
-		}
+        // ---- numeric filters ----
+        numFilter(document.getElementById('season_num'));
+        numFilter(document.getElementById('episode'));
+        numFilter(document.getElementById('episode_run_time'));
 
-		function checkSymlink() {
-			if (($("#movie_symlink").is(":checked")) && (!$("#stream_source").val().startsWith("s:")) && (!$("#stream_source").val().startsWith("/"))) {
-				$.toast("Please ensure the source is a local file before symlinking.");
-				setSwitch(window.rSwitches["movie_symlink"], false);
-			}
-		}
+        // ---- TMDb episode search + auto-fill (single mode only) ----
+        var tmdbSearch = document.getElementById('tmdb_search');
+        if (tmdbSearch && !isMulti) {
+            $('#season_num').on('change', function() {
+                if (changeTitle) { changeTitle = false; return; }
+                $('#tmdb_search').empty().trigger('change');
+                if (!$('#season_num').val()) { return; }
+                rEpisodes = {};
+                $.getJSON('./api?action=tmdb_search&type=episode&term=' + encodeURIComponent(seriesTmdbId) + '&season=' + encodeURIComponent($('#season_num').val()) + '&language=' + encodeURIComponent($('#tmdb_language').val()), function(data) {
+                    if (!data || data.result !== true) { $('#tmdb_search').append(new Option(lang.none, -1, true, true)); $('#tmdb_search').val(-1).trigger('change'); return; }
+                    var eps = (data.data && data.data.episodes) || [];
+                    var head = eps.length > 0 ? lang.foundEp.replace('{num}', eps.length) : lang.noneEp;
+                    $('#tmdb_search').append(new Option(head, -1, true, true)).trigger('change');
+                    $(eps).each(function(i, item) {
+                        rEpisodes[item.id] = item;
+                        $('#tmdb_search').append(new Option(lang.epLabel + ' ' + item.episode_number + ' - ' + item.name, item.id, true, true));
+                    });
+                    $('#tmdb_search').val(-1).trigger('change');
+                });
+            });
+            $('#tmdb_search').on('change', function() {
+                var id = $('#tmdb_search').val();
+                if (!id || id <= -1) { return; }
+                var ep = rEpisodes[id];
+                if (!ep) { return; }
+                var rFormat = 'S' + pad(ep.season_number) + 'E' + pad(ep.episode_number);
+                $('#stream_display_name').val($('#series_name').val() + ' - ' + rFormat + ' - ' + ep.name);
+                $('#movie_image').val(ep.still_path ? ('https://image.tmdb.org/t/p/w1280' + ep.still_path) : '');
+                $('#release_date').val(ep.air_date || '');
+                $('#episode_run_time').val(seriesEpRun);
+                $('#plot').val(ep.overview || '');
+                $('#rating').val(ep.vote_average || '');
+                $('#tmdb_id').val(ep.id || '');
+                $('#episode').val(ep.episode_number || '');
+            });
+            <?php if ($rIsEdit): ?>
+            $('#season_num').trigger('change');
+            <?php endif; ?>
+        }
 
-		function evaluateSymlink() {
-			if ($("#direct_source").is(":checked")) {
-				return;
-			}
-			checkSymlink();
-			$(["direct_source", "read_native", "remove_subtitles", "target_container", "transcode_profile_id", "movie_subtitles"]).each(function(rID, rElement) {
-				if ($(rElement)) {
-					if ($("#movie_symlink").is(":checked")) {
-						if (window.rSwitches[rElement]) {
-							setSwitch(window.rSwitches[rElement], false);
-							window.rSwitches[rElement].disable();
-						} else {
-							$("#" + rElement).prop("disabled", true);
-						}
-					} else {
-						if (window.rSwitches[rElement]) {
-							window.rSwitches[rElement].enable();
-						} else {
-							$("#" + rElement).prop("disabled", false);
-						}
-					}
-				}
-			});
-		}
-		$("#select_folder").click(function() {
-			$("#season_folder").val(window.currentDirectory);
-			$("#server").val($("#server_id").val());
-			rID = 1;
-			rNames = {};
-			$("#episode_add").html("");
-			$("#datatable-files").DataTable().rows().every(function(rowIdx, tableLoop, rowLoop) {
-				var data = this.data();
-				rExt = data[1].split('.').pop().toLowerCase();
-				if (["mp4", "mkv", "mov", "avi", "mpg", "mpeg", "flv", "wmv", "m4v"].includes(rExt)) {
-					$("#episode_add").append('<div class="form-group row mb-4"><label class="col-md-4 col-form-label" for="episode_' + rID + '_name"><?= $language::get('episode_to_add') ?></label><div class="col-md-6"><input type="text" class="form-control" id="episode_' + rID + '_name" name="episode_' + rID + '_name" value="' + data[1].replace("'", "\'") + '" readonly></div><div class="col-md-2"><input type="text" class="form-control text-center" id="episode_' + rID + '_num" name="episode_' + rID + '_num" placeholder="<?= $language::get('episode') ?>" value=""></div></div>');
-					$("#episode_" + rID + "_num").inputFilter(function(value) {
-						return /^\d*$/.test(value);
-					});
-					rNames[rID] = data[1];
-				}
-				rID++;
-			});
-			$.post("./api?action=get_episode_ids", {
-					"data": JSON.stringify(rNames)
-				},
-				function(data) {
-					$(data.data).each(function(id, item) {
-						$("#episode_" + item[0] + "_num").val(item[1]);
-					});
-
-					var nextEpisode = 1;
-					$("[id^=episode_][id$=_num]").each(function() {
-						if (!$(this).val()) { //If empty episode value
-							$(this).val(nextEpisode);
-						}
-						nextEpisode++;
-					});
-				},
-				"json"
-			);
-			$.magnificPopup.close();
-		});
-		$("#changeDir").click(function() {
-			$("#search").val("");
-			window.currentDirectory = $("#current_path").val();
-			if (window.currentDirectory.substr(-1) != "/") {
-				window.currentDirectory += "/";
-			}
-			$("#current_path").val(window.currentDirectory);
-			$("#datatable").DataTable().clear();
-			$("#datatable").DataTable().row.add(["", "<?= $language::get('loading') ?>..."]);
-			$("#datatable").DataTable().draw(true);
-			$("#datatable-files").DataTable().clear();
-			$("#datatable-files").DataTable().row.add(["", "<?= $language::get('please_wait') ?>..."]);
-			$("#datatable-files").DataTable().draw(true);
-			if ($('li.nav-item .active').attr('href') == "#stream-details") {
-				rFilter = "video";
-			} else {
-				rFilter = "subs";
-			}
-			$.getJSON("./api?action=listdir&dir=" + window.currentDirectory + "&server=" + $("#server_id").val() + "&filter=" + rFilter, function(data) {
-				$("#datatable").DataTable().clear();
-				$("#datatable-files").DataTable().clear();
-				if (window.currentDirectory != "/") {
-					$("#datatable").DataTable().row.add(["<i class='mdi mdi-subdirectory-arrow-left'></i>", "<?= $language::get('parent_directory') ?>"]);
-				}
-				if (data.result == true) {
-					$(data.data.dirs).each(function(id, dir) {
-						$("#datatable").DataTable().row.add(["<i class='mdi mdi-folder-open-outline'></i>", dir]);
-					});
-					$("#datatable").DataTable().draw(true);
-					$(data.data.files).each(function(id, dir) {
-						$("#datatable-files").DataTable().row.add(["<i class='mdi mdi-file-video'></i>", dir]);
-					});
-					$("#datatable-files").DataTable().draw(true);
-				}
-			});
-		});
-		$('#datatable').on('click', 'tbody > tr', function() {
-			if ($(this).find("td").eq(1).html() == "<?= $language::get('parent_directory') ?>") {
-				selectParent();
-			} else if ($(this).find("td").eq(1).html() != "<?= $language::get('loading') ?>...") {
-				selectDirectory($(this).find("td").eq(1).html());
-			}
-		});
-		<?php if (empty($rMulti)): ?>
-			$('#datatable-files').on('click', 'tbody > tr', function() {
-				selectFile($(this).find("td").eq(1).html());
-			});
-		<?php endif; ?>
-		$('#server_tree').on('select_node.jstree', function(e, data) {
-			if (data.node.parent == "offline") {
-				$('#server_tree').jstree("move_node", data.node.id, "#source", "last");
-			} else {
-				$('#server_tree').jstree("move_node", data.node.id, "#offline", "first");
-			}
-		}).jstree({
-			'core': {
-				'check_callback': function(op, node, parent, position, more) {
-					switch (op) {
-						case 'move_node':
-							if ((node.id == "offline") || (node.id == "source")) {
-								return false;
-							}
-							if (parent.id != "offline" && parent.id != "source") {
-								return false;
-							}
-							if (parent.id == "#") {
-								return false;
-							}
-							if (parent.id > 0 && $("#direct_proxy").is(":checked")) {
-								return false;
-							}
-							return true;
-					}
-				},
-				'data': <?= json_encode(($rServerTree ?: array())) ?>
-			},
-			"plugins": ["dnd"]
-		});
-		$("#filebrowser").magnificPopup({
-			type: 'inline',
-			preloader: false,
-			focus: '#server_id',
-			callbacks: {
-				beforeOpen: function() {
-					if ($(window).width() < 830) {
-						this.st.focus = false;
-					} else {
-						this.st.focus = '#server_id';
-					}
-				}
-			}
-		});
-		$("#filebrowser-sub").magnificPopup({
-			type: 'inline',
-			preloader: false,
-			focus: '#server_id',
-			callbacks: {
-				beforeOpen: function() {
-					if ($(window).width() < 830) {
-						this.st.focus = false;
-					} else {
-						this.st.focus = '#server_id';
-					}
-				}
-			}
-		});
-		$("#filebrowser").on("mfpOpen", function() {
-			clearSearch();
-			$("#changeDir").click();
-			$($.fn.dataTable.tables(true)).css('width', '100%');
-			$($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw();
-		});
-		$("#filebrowser-sub").on("mfpOpen", function() {
-			clearSearch();
-			$("#changeDir").click();
-			$($.fn.dataTable.tables(true)).css('width', '100%');
-			$($.fn.dataTable.tables(true)).DataTable().columns.adjust().draw();
-		});
-		$("#server_id").change(function() {
-			$("#current_path").val("/");
-			$("#changeDir").click();
-		});
-		<?php if (empty($rMulti)): ?>
-			$("#season_num").change(function() {
-				if (!window.changeTitle) {
-					$("#tmdb_search").empty().trigger('change');
-					if ($("#season_num").val()) {
-						window.rEpisodes = {};
-						$.getJSON("./api?action=tmdb_search&type=episode&term=<?= $rSeriesArr['tmdb_id'] ?>&season=" + $("#season_num").val() + "&language=" + encodeURIComponent($("#tmdb_language").val()), function(data) {
-							if (data.result == true) {
-								if ((data.data.episodes) && (data.data.episodes.length > 0)) {
-									newOption = new Option("<?= $language::get('found_episodes') ?>".replace("{num}", data.data.episodes.length), -1, true, true);
-								} else {
-									newOption = new Option("<?= $language::get('no_episodes_found') ?>", -1, true, true);
-								}
-								$("#tmdb_search").append(newOption).trigger('change');
-								if ($(data.data.episodes)) {
-									$(data.data.episodes).each(function(id, item) {
-										window.rEpisodes[item.id] = item;
-										rTitle = "<?= $language::get('episode') ?> " + item.episode_number + " - " + item.name;
-										newOption = new Option(rTitle, item.id, true, true);
-										$("#tmdb_search").append(newOption);
-									});
-								}
-							} else {
-								newOption = new Option("<?= $language::get('no_results_found') ?>", -1, true, true);
-							}
-							$("#tmdb_search").val(-1).trigger('change');
-						});
-					}
-				} else {
-					window.changeTitle = false;
-				}
-			});
-			$("#tmdb_search").change(function() {
-				if (($("#tmdb_search").val()) && ($("#tmdb_search").val() > -1)) {
-					var rEpisode = window.rEpisodes[$("#tmdb_search").val()];
-					var rFormat = "S" + pad(rEpisode.season_number) + "E" + pad(rEpisode.episode_number);
-					$("#stream_display_name").val($("#series_name").val() + " - " + rFormat + " - " + rEpisode.name);
-					$("#movie_image").val("");
-					if (rEpisode.still_path) {
-						$("#movie_image").val("https://image.tmdb.org/t/p/w1280" + rEpisode.still_path);
-					}
-					$("#release_date").val(rEpisode.air_date);
-					$("#episode_run_time").val('<?= $rSeriesArr['episode_run_time'] ?>');
-					$("#plot").val(rEpisode.overview);
-					$("#rating").val(rEpisode.vote_average);
-					$("#tmdb_id").val(rEpisode.id);
-					$("#episode").val(rEpisode.episode_number);
-				}
-			});
-		<?php endif; ?>
-		<?php if (isset($rEpisode)): ?>
-			$("#season_num").trigger('change');
-		<?php endif; ?>
-		$("#runtime").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#season_num").inputFilter(function(value) {
-			return /^\d*$/.test(value);
-		});
-		$("#changeDir").click();
-		evaluateDirectSource();
-		evaluateSymlink();
-		$("form").submit(function(e) {
-			e.preventDefault();
-			rSubmit = true;
-			<?php if (empty($rMulti)): ?>
-				if (!$("#stream_display_name").val()) {
-					$.toast("<?= $language::get('enter_an_episode_name') ?>");
-					rSubmit = false;
-				}
-				if ($("#stream_source").val().length == 0) {
-					$.toast("<?= $language::get('enter_an_episode_source') ?>");
-					rSubmit = false;
-				}
-			<?php endif; ?>
-			$("#server_tree_data").val(JSON.stringify($('#server_tree').jstree(true).get_json('source', {
-				flat: true
-			})));
-			if (rSubmit) {
-				$(':input[type="submit"]').prop('disabled', true);
-				submitForm(window.rCurrentPage, new FormData($("form")[0]), window.rReferer);
-			}
-		});
-	});
-
-
-
-	<?php if (SettingsManager::get('enable_search')): ?>
-		$(document).ready(function() {
-			initSearch();
-		});
-	<?php endif; ?>
+        // ---- submit ----
+        document.getElementById('episode-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var ok = true;
+            if (!isMulti) {
+                if (!document.getElementById('stream_display_name').value.trim()) { window.xcToast(lang.noName, 'error'); ok = false; }
+                if (!document.getElementById('stream_source').value.trim()) { window.xcToast(lang.noSource, 'error'); ok = false; }
+            }
+            if (!ok) { return; }
+            document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
+            // Re-enable disabled fields so their values still post.
+            document.querySelectorAll('#episode-form :disabled').forEach(function(el) { el.disabled = false; });
+            var btn = document.getElementById('episode-submit');
+            btn.disabled = true;
+            fetch('post.php?action=episode&referer=', { method: 'POST', body: new FormData(e.target), headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt; try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) {
+                        if (dt.location) { window.location = dt.location; }
+                        return;
+                    }
+                    btn.disabled = false;
+                    evaluateDirectSource();
+                    evaluateSymlink();
+                    window.xcToast(lang.errText, 'error');
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    evaluateDirectSource();
+                    evaluateSymlink();
+                    window.xcToast(lang.errText, 'error');
+                });
+        });
+    })();
 </script>
-<script src="assets/old/js/listings.js"></script>
 </body>
 
 </html>
