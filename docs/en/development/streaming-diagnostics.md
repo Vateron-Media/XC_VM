@@ -4,14 +4,22 @@ A standalone tool verifies that a stream delivers correctly — that segments ar
 
 ---
 
-## `tools/stream-check/stream_queue_check.py` (Python, stdlib only)
+## `tools/stream-check/stream_check.py` (Python, stdlib only)
 
-Standalone monitor for **segment/packet queue integrity** with an optional **live buffer dashboard**. Auto-detects HLS vs MPEG-TS.
+A single dependency-free tool that both **verifies** stream delivery and **renders** the result as SVG. Auto-detects HLS vs MPEG-TS. Three subcommands:
+
+| Subcommand | Purpose |
+| --- | --- |
+| `check <url>` | verify one stream (or watch it live with `--live`) |
+| `playlist <path\|url>` | test every stream in an `.m3u` channel list → aggregate JSON (+ per-stream files) |
+| `graph <inputs…>` | render the JSON from `check`/`playlist` as static SVG charts |
 
 ```bash
-python3 tools/stream-check/stream_queue_check.py "<url>" --duration 30        # batch check
-python3 tools/stream-check/stream_queue_check.py "<url>" --json               # cron / monitoring
-python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
+python3 tools/stream-check/stream_check.py check "<url>" --duration 30        # batch check
+python3 tools/stream-check/stream_check.py check "<url>" --json               # cron / monitoring
+python3 tools/stream-check/stream_check.py check "<url>" --live --duration 0  # live dashboard
+python3 tools/stream-check/stream_check.py playlist list.m3u --out-dir logs/  # batch a whole playlist
+python3 tools/stream-check/stream_check.py graph logs/ --combined            # JSON → SVG charts
 ```
 
 What "queue intact" means per stream type:
@@ -21,7 +29,7 @@ What "queue intact" means per stream type:
 | HLS (`.m3u8`) | `EXT-X-MEDIA-SEQUENCE` monotonic and contiguous (no dropped or rewound segments), no `EXT-X-DISCONTINUITY`, every newly appearing segment downloadable. Master playlists are resolved to their first variant. |
 | MPEG-TS (`.ts`, `/play/<token>/ts`) | per-PID `continuity_counter` (lost / duplicated / reordered packets = queue break), sync-byte loss, transport-error indicator, and delivery stalls. |
 
-Key options:
+Key `check` options:
 
 | Flag | Purpose |
 | --- | --- |
@@ -51,7 +59,7 @@ Models a virtual player: the playhead advances at wall-clock rate while content 
 The buffer graph and gauge are colored green (healthy) / yellow (low) / red (starving). For HLS a row of blocks shows the segments still in cache ahead of the playhead.
 
 > **Note — delivery pacing.** Live client delivery is now handled by the
-> `xc_fanout` daemon (see [Streaming Subsystem → Daemon delivery](streaming-subsystem.md#daemon-delivery-xc_fanout)), which pulls each source once and fans it out over a unix socket. `stream_queue_check.py --live` visualises the buffer behaviour a real player would see against the delivered stream.
+> `xc_fanout` daemon (see [Streaming Subsystem → Daemon delivery](streaming-subsystem.md#daemon-delivery-xc_fanout)), which pulls each source once and fans it out over a unix socket. `stream_check.py check --live` visualises the buffer behaviour a real player would see against the delivered stream.
 
 ---
 
@@ -59,4 +67,4 @@ The buffer graph and gauge are colored green (healthy) / yellow (low) / red (sta
 
 | File | Purpose |
 | --- | --- |
-| `tools/stream-check/stream_queue_check.py` | queue-integrity monitor + live buffer dashboard |
+| `tools/stream-check/stream_check.py` | queue-integrity checker (`check`), playlist batch (`playlist`), live buffer dashboard (`check --live`), and SVG grapher (`graph`) |

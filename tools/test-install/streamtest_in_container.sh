@@ -9,7 +9,7 @@
 #   1. rebuilds the file caches the streaming path reads (cron:cache, cron:cache_engine)
 #   2. launches tools/test-stream-generator as the upstream source (bundled ffmpeg)
 #   3. fetches the panel's OUTPUT m3u for the configured test line
-#   4. runs stream_queue_check.py --playlist against the panel output
+#   4. runs stream_check.py playlist against the panel output
 #
 # JSON report → STDOUT (captured by the host wrapper); progress → STDERR.
 # Exit code = the checker's (0 = all healthy, 2 = a stream failed, 3 = setup error).
@@ -132,7 +132,7 @@ log "panel playlist:"; sed 's/^/[streamtest]   /' "$PL" >&2
 #    per-stream JSON logs → $OUT_DIR, which the host copies out) ──
 rm -rf "$OUT_DIR" 2>/dev/null; mkdir -p "$OUT_DIR"
 log "checker: testing each stream for ${DURATION}s (tolerance=${TOLERANCE}, stall-timeout=${STALL_TIMEOUT}s); per-stream logs → $OUT_DIR"
-python3 "$TOOLS/stream-check/stream_queue_check.py" --playlist "$PL" \
+python3 "$TOOLS/stream-check/stream_check.py" playlist "$PL" \
     --duration "$DURATION" --tolerance "$TOLERANCE" \
     --stall-timeout "$STALL_TIMEOUT" --out-dir "$OUT_DIR"
 rc=$?

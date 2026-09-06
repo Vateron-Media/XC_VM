@@ -400,7 +400,7 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 
 ## Diagnostics & Tooling
 
-The standalone stream-integrity tool (`tools/stream-check/stream_queue_check.py`) now lives on its own page — see [Streaming Diagnostics & Tooling](streaming-diagnostics.md).
+The standalone stream-integrity tool (`tools/stream-check/stream_check.py`) now lives on its own page — see [Streaming Diagnostics & Tooling](streaming-diagnostics.md).
 
 ---
 
@@ -432,4 +432,4 @@ not part of the published site):
 | `src/Streaming/Lifecycle/ShutdownHandler.php` | connection cleanup on exit |
 | `src/Domain/Stream/ConnectionTracker.php` | connection state in Redis/MySQL |
 | `src/Core/Init/LegacyInitializer.php` | global variable setup for streaming |
-| `tools/stream-check/stream_queue_check.py` | queue-integrity monitor + live buffer dashboard |
+| `tools/stream-check/stream_check.py` | queue-integrity checker + playlist batch + live buffer dashboard + SVG grapher |

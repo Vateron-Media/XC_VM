@@ -1,7 +1,7 @@
 # Стрим-тест панели (e2e)
 
 Сквозная проверка стриминга: локальный **генератор** отдаёт видеопоток →
-**панель** его рестримит → `stream_queue_check.py` проверяет **выход панели**
+**панель** его рестримит → `stream_check.py` проверяет **выход панели**
 (каждый канал ~2 минуты) и пишет JSON-лог по каждому потоку.
 
 Панель настраивается **один раз вручную** через админку, конфигурация
@@ -10,7 +10,7 @@ checker — повторяемо. Прямых SQL-запросов к БД не
 восстанавливает бэкап (`mysqldump` / импорт).
 
 ```text
-генератор (127.0.0.1:8088)  ──►  панель (рестрим/LLOD)  ──►  get.php m3u  ──►  stream_queue_check.py
+генератор (127.0.0.1:8088)  ──►  панель (рестрим/LLOD)  ──►  get.php m3u  ──►  stream_check.py
    stream_server.py                 xc_fanout / monitor        выход панели         JSON-график
 ```
 
@@ -23,8 +23,8 @@ checker — повторяемо. Прямых SQL-запросов к БД не
 | `streamtest-backup` | снять дамп настроенной БД в `fixtures/streamtest-db.sql.gz` |
 | `streamtest` | восстановить дамп → прогреть кэш → генератор → забрать m3u линии → прогнать checker (e2e) |
 
-Плюс отдельные инструменты: `tools/stream-check/stream_queue_check.py` (checker) и
-`tools/stream-check/stream_graph.py` (SVG-графики).
+Плюс отдельный инструмент `tools/stream-check/stream_check.py` с подкомандами
+`check` (checker), `playlist` (пакетный прогон) и `graph` (SVG-графики).
 
 ## Требования
 
@@ -122,7 +122,7 @@ docker exec xcvm-test-install /home/xc_vm/bin/php/bin/php /home/xc_vm/console.ph
 
 Что делает: восстанавливает дамп БД → пересобирает кэши (`cron:cache`,
 `cron:cache_engine`) → поднимает генератор → забирает m3u линии с выхода панели →
-запускает `stream_queue_check.py --playlist` (по умолчанию 120 c на канал).
+запускает `stream_check.py playlist` (по умолчанию 120 c на канал).
 
 Результат:
 
@@ -184,7 +184,7 @@ docker exec xcvm-test-install /home/xc_vm/bin/php/bin/php /home/xc_vm/console.ph
 }
 ```
 
-`samples` — это «график» живого дашборда (`stream_queue_check.py --live`),
+`samples` — это «график» живого дашборда (`stream_check.py check --live`),
 сериализованный по секундам: пропускная способность, буфер, накопленные секунды
 и счётчики разрывов очереди (CC/sync для TS, gaps/disc для HLS).
 
@@ -196,7 +196,7 @@ docker exec xcvm-test-install /home/xc_vm/bin/php/bin/php /home/xc_vm/console.ph
 
 ## Графики (SVG) для сравнения
 
-`tools/stream-check/stream_graph.py` рисует из JSON статические **SVG-графики** (чистый
+`stream_check.py graph` рисует из JSON статические **SVG-графики** (чистый
 stdlib, без зависимостей) — их удобно сравнивать как картинки и вставлять в
 PR/доки.
 
@@ -221,16 +221,16 @@ PR/доки.
 
 ```bash
 # вся папка per-stream логов + сводный comparison.svg
-python3 tools/stream-check/stream_graph.py tools/test-install/out/streamtest-<ts>/ --combined --out-dir graphs/
+python3 tools/stream-check/stream_check.py graph tools/test-install/out/streamtest-<ts>/ --combined --out-dir graphs/
 
 # сводный отчёт одного прогона
-python3 tools/stream-check/stream_graph.py tools/test-install/out/streamtest-<ts>.json
+python3 tools/stream-check/stream_check.py graph tools/test-install/out/streamtest-<ts>.json
 
 # отдельные файлы / glob
-python3 tools/stream-check/stream_graph.py logs/01-MPEG-TS.json logs/02-*.json
+python3 tools/stream-check/stream_check.py graph logs/01-MPEG-TS.json logs/02-*.json
 
 # смесь: папка + отдельный файл (без дублей)
-python3 tools/stream-check/stream_graph.py logs/ other-run/07-HLS.json --combined
+python3 tools/stream-check/stream_check.py graph logs/ other-run/07-HLS.json --combined
 ```
 
 ### Опции
@@ -277,30 +277,30 @@ python3 tools/stream-check/stream_graph.py logs/ other-run/07-HLS.json --combine
 
 ## Одиночная проверка (без панели)
 
-`stream_queue_check.py` работает и как одиночный чекер:
+`stream_check.py` работает и как одиночный чекер:
 
 ```bash
-python3 tools/stream-check/stream_queue_check.py 'http://host/stream.ts' --duration 30 --json
-python3 tools/stream-check/stream_queue_check.py 'http://host/stream.m3u8' --live      # ANSI-дашборд
-python3 tools/stream-check/stream_queue_check.py --playlist 'path/or/url.m3u'          # batch → сводный JSON в stdout
-python3 tools/stream-check/stream_queue_check.py --playlist 'path/or/url.m3u' --out-dir logs/  # + отдельный файл на каждый стрим
+python3 tools/stream-check/stream_check.py check 'http://host/stream.ts' --duration 30 --json
+python3 tools/stream-check/stream_check.py check 'http://host/stream.m3u8' --live         # ANSI-дашборд
+python3 tools/stream-check/stream_check.py playlist 'path/or/url.m3u'                      # batch → сводный JSON в stdout
+python3 tools/stream-check/stream_check.py playlist 'path/or/url.m3u' --out-dir logs/      # + отдельный файл на каждый стрим
 ```
 
-`--out-dir DIR` (только с `--playlist`) дополнительно пишет по одному файлу
+`--out-dir DIR` (только для `playlist`) дополнительно пишет по одному файлу
 `<NN>-<имя>.json` на каждый поток — по мере его прохождения.
 
 Сводный вывод зависит от того, куда идёт stdout: в **интерактивном терминале** —
 короткая сводка (без простыни JSON), при **перенаправлении/пайпе** (в файл, в
-`streamtest`) — полный сводный JSON. То есть `… --playlist url` в терминале не
-засоряет консоль, а `… --playlist url > all.json` даёт машинный JSON.
+`streamtest`) — полный сводный JSON. То есть `… playlist url` в терминале не
+засоряет консоль, а `… playlist url > all.json` даёт машинный JSON.
 
 > **Берите URL в кавычки.** Если в ссылке есть `&` (напр.
 > `.../playlist/TestLine/TestLine/m3u?output=hls&key=live`), без кавычек bash
 > посчитает `&` концом команды и уведёт её в фон, а `key=live` выполнит отдельно.
-> Одинарные кавычки экранируют `&`, `?`, `=` — весь URL уйдёт в `--playlist`:
+> Одинарные кавычки экранируют `&`, `?`, `=` — весь URL уйдёт в `playlist`:
 >
 > ```bash
-> python3 tools/stream-check/stream_queue_check.py --playlist 'http://172.18.0.2:80/playlist/TestLine/TestLine/m3u?output=hls&key=live'
+> python3 tools/stream-check/stream_check.py playlist 'http://172.18.0.2:80/playlist/TestLine/TestLine/m3u?output=hls&key=live'
 > ```
 >
 > Через `test_release.sh streamtest` это не нужно — там URL уже передаётся в кавычках.

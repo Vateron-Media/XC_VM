@@ -36,7 +36,7 @@ Written to test the running panel end-to-end; run by hand as needed.
 | Tool | Purpose |
 |------|---------|
 | `test_player_api.sh` | HTTP smoke-test of every `PlayerApiController` endpoint — checks status, `Content-Type` and JSON shape. `./tools/test_player_api.sh <base_url> <username> <password>`. (Note: the password is passed as an argv arg, so it is visible in `ps`/shell history — use on a local/trusted shell.) |
-| `stream-check/` | Dependency-free stream **checker** (`stream_queue_check.py` — MPEG-TS `/ts` and HLS queue integrity, single URL or whole `.m3u` playlist → JSON) plus an SVG **grapher** (`stream_graph.py`) for its output. See its `README.md` and `docs/*/development/streaming-subsystem.md`. |
+| `stream-check/` | Dependency-free stream tool (`stream_check.py`) — **checks** MPEG-TS `/ts` and HLS queue integrity (single URL or whole `.m3u` playlist → JSON) and **renders** the JSON as SVG charts. Subcommands: `check`, `playlist`, `graph`. See its `README.md` and `docs/*/development/streaming-subsystem.md`. |
 | `test-stream-generator/` | Turns a single `sample.mp4` into a looping, HTTP-served "live" stream you can paste into the panel as a source — end-to-end streaming-pipeline testing, incl. **LLOD** (`src/Cli/Commands/LlodCommand.php`). See its `README.md`. |
 | `dts-audio-test/` | Investigates the legacy DTS/AC3 audio path (XUI's `-fix_dts` flag vs stock ffmpeg's `-copyts`) when moving off the bundled ffmpeg `4.0` binary. See its `README.md`. |
 | `test-install/` | Docker-based end-to-end install test of the built release archive — unpacks `XC_VM.zip`, runs the installer with scripted answers, and checks the key installed files. See its `README.md`. Referenced from `docs/*/builds/updates_checklist.md`. |
