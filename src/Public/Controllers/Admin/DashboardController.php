@@ -84,7 +84,12 @@ class DashboardController extends BaseAdminController {
             $db->query('SELECT * FROM `servers_stats` WHERE `time` >= ? ORDER BY `time` ASC;', $rNearestRange);
             if (0 < $db->num_rows()) {
                 foreach ($db->get_rows() as $rRow) {
-                    $rServerStats[intval($rRow['server_id'])][] = $rRow['cpu'];
+                    // {x: epoch-ms, y: cpu%} so the sparkline tooltip shows the
+                    // real sample time instead of a bare point index.
+                    $rServerStats[intval($rRow['server_id'])][] = [
+                        'x' => intval($rRow['time']) * 1000,
+                        'y' => floatval($rRow['cpu']),
+                    ];
                 }
             }
         }

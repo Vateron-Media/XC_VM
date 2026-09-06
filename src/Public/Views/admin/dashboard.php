@@ -43,7 +43,8 @@ $xmTiles = [
 // CPU-history seed for the per-server sparklines (id => number[]).
 $xmSparklines = [];
 foreach ($rServerStats as $rSid => $rHistory) {
-    $xmSparklines[(int) $rSid] = array_values(array_map('floatval', (array) $rHistory));
+    // Each entry is already a {x: epoch-ms, y: cpu%} pair from DashboardController.
+    $xmSparklines[(int) $rSid] = array_values((array) $rHistory);
 }
 
 // World-map region fills for jsvectormap: ISO2 country code => colour hex, the
@@ -218,7 +219,7 @@ if ($rSettings['save_closed_connection'] && $rSettings['dashboard_map']) {
             $rIsMain = ($rServer['server_type'] == 0);
             ?>
             <div class="col-xl-4 col-md-6">
-                <div class="card h-100">
+                <div class="card h-100 dashboard-card-hover">
                     <div class="card-header d-flex justify-content-between align-items-center border-bottom">
                         <div>
                             <h6 class="mb-0"><a href="server_view?id=<?= $rId; ?>" class="text-body"><?= htmlspecialchars($rServer['server_name']); ?></a></h6>
@@ -242,29 +243,54 @@ if ($rSettings['save_closed_connection'] && $rSettings['dashboard_map']) {
                         </div>
                     <?php else: ?>
                         <div class="card-body">
-                            <div class="row text-center g-3 mb-3">
-                                <div class="col-4"><small class="text-body-secondary d-block"><?= $language::get('conns'); ?></small><span class="fw-medium" id="s_<?= $rId; ?>_conns">0</span></div>
-                                <div class="col-4"><small class="text-body-secondary d-block"><?= $language::get('users'); ?></small><span class="fw-medium" id="s_<?= $rId; ?>_users">0</span></div>
-                                <div class="col-4"><small class="text-body-secondary d-block"><?= $language::get('online'); ?></small><span class="fw-medium" id="s_<?= $rId; ?>_online">0</span></div>
-                                <div class="col-4"><small class="text-body-secondary d-block"><?= $language::get('input'); ?></small><span class="fw-medium"><span id="s_<?= $rId; ?>_input">0</span> <small>Mbps</small></span></div>
-                                <div class="col-4"><small class="text-body-secondary d-block"><?= $language::get('output'); ?></small><span class="fw-medium"><span id="s_<?= $rId; ?>_output">0</span> <small>Mbps</small></span></div>
-                                <div class="col-4"><small class="text-body-secondary d-block"><?= $language::get('uptime'); ?></small><span class="fw-medium" id="s_<?= $rId; ?>_uptime">0d 0h</span></div>
+                            <div class="row g-2 mb-4 dashboard-server-stats">
+                                <?php
+                                $rStatCells = [
+                                    ['conns',  $language::get('conns'),  'tabler-plug-connected',  'primary',   ''],
+                                    ['users',  $language::get('users'),  'tabler-users',           'success',   ''],
+                                    ['online', $language::get('online'), 'tabler-player-play',     'info',      ''],
+                                    ['input',  $language::get('input'),  'tabler-arrow-down-left', 'warning',   'Mbps'],
+                                    ['output', $language::get('output'), 'tabler-arrow-up-right',  'primary',   'Mbps'],
+                                    ['uptime', $language::get('uptime'), 'tabler-clock',           'secondary', 'text'],
+                                ];
+                                foreach ($rStatCells as [$rSk, $rSlabel, $rSicon, $rSacc, $rSunit]): ?>
+                                    <div class="col-4">
+                                        <div class="dashboard-stat">
+                                            <span class="stat-ico bg-label-<?= $rSacc; ?>"><i class="icon-base ti <?= $rSicon; ?>"></i></span>
+                                            <div class="lh-1">
+                                                <span class="stat-label text-body-secondary d-block"><?= htmlspecialchars($rSlabel); ?></span>
+                                                <?php if ($rSunit === 'text'): ?>
+                                                    <span class="stat-value tabular-nums" id="s_<?= $rId; ?>_<?= $rSk; ?>">0d 0h</span>
+                                                <?php elseif ($rSunit !== ''): ?>
+                                                    <span class="stat-value tabular-nums"><span id="s_<?= $rId; ?>_<?= $rSk; ?>">0</span> <small class="text-body-secondary fw-normal"><?= $rSunit; ?></small></span>
+                                                <?php else: ?>
+                                                    <span class="stat-value tabular-nums" id="s_<?= $rId; ?>_<?= $rSk; ?>">0</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                    </div>
+                                <?php endforeach; ?>
                             </div>
 
                             <?php
-                            $rMetrics = [['cpu', 'CPU'], ['mem', 'MEM']];
+                            $rMetrics = [['cpu', 'CPU', 'tabler-cpu'], ['mem', 'MEM', 'tabler-device-sd-card']];
                             if ($rIsMain) {
-                                $rMetrics[] = ['io', 'IO'];
-                                $rMetrics[] = ['fs', 'DISK'];
+                                $rMetrics[] = ['io', 'IO', 'tabler-arrows-exchange'];
+                                $rMetrics[] = ['fs', 'DISK', 'tabler-database'];
                             }
-                            foreach ($rMetrics as [$rMk, $rMl]): ?>
-                                <div class="d-flex justify-content-between mb-1"><small class="fw-medium"><?= $rMl; ?></small></div>
-                                <div class="progress mb-2 dashboard-metric-progress">
-                                    <div class="progress-bar bg-success" role="progressbar" id="s_<?= $rId; ?>_<?= $rMk; ?>" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                            foreach ($rMetrics as [$rMk, $rMl, $rMi]): ?>
+                                <div class="dashboard-metric">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <span class="dashboard-metric-label"><i class="icon-base ti <?= $rMi; ?> me-1"></i><?= $rMl; ?></span>
+                                        <span class="dashboard-metric-val tabular-nums text-success" id="s_<?= $rId; ?>_<?= $rMk; ?>_val">0%</span>
+                                    </div>
+                                    <div class="progress dashboard-metric-progress">
+                                        <div class="progress-bar bg-success" role="progressbar" id="s_<?= $rId; ?>_<?= $rMk; ?>" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
                                 </div>
                             <?php endforeach; ?>
                             <span class="d-none" id="s_<?= $rId; ?>_requests">0</span>
-                            <div class="dashboard-spark mt-2" id="s_<?= $rId; ?>_spark" data-accent="<?= $rAccent; ?>"></div>
+                            <div class="dashboard-spark mt-3" id="s_<?= $rId; ?>_spark" data-accent="<?= $rAccent; ?>"></div>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -300,12 +326,15 @@ renderUnifiedLayoutFooter('admin');
             if (bar && pct !== null) { bar.style.width = pct + '%'; bar.setAttribute('aria-valuenow', pct); }
         }
         function barClass(v) { return v > 75 ? 'bg-danger' : (v > 50 ? 'bg-warning' : 'bg-success'); }
+        function barTone(v) { return v > 75 ? 'text-danger' : (v > 50 ? 'text-warning' : 'text-success'); }
         function setServerBar(id, key, v) {
             var el = document.getElementById('s_' + id + '_' + key);
             if (!el) return;
             el.className = 'progress-bar ' + barClass(v);
             el.style.width = v + '%';
             el.setAttribute('aria-valuenow', v);
+            var val = document.getElementById('s_' + id + '_' + key + '_val');
+            if (val) { val.textContent = v + '%'; val.className = 'dashboard-metric-val tabular-nums ' + barTone(v); }
         }
         function setText(id, txt) { var el = document.getElementById(id); if (el) el.textContent = txt; }
 
@@ -340,7 +369,7 @@ renderUnifiedLayoutFooter('admin');
                 })
                 .catch(function () { /* keep last values */ })
                 .finally(function () {
-                    if (auto) { var wait = Math.max(0, 1000 - (Date.now() - start)); setTimeout(function () { pollStats(true); }, wait); }
+                    if (auto) { var wait = Math.max(0, 5000 - (Date.now() - start)); setTimeout(function () { pollStats(true); }, wait); }
                 });
         }
 
@@ -398,8 +427,9 @@ renderUnifiedLayoutFooter('admin');
                     chart: { type: 'area', height: 50, sparkline: { enabled: true }, animations: { enabled: false } },
                     stroke: { width: 2, curve: 'smooth' },
                     fill: { type: 'gradient', gradient: { opacityFrom: 0.4, opacityTo: 0.1 } },
-                    series: [{ data: data }],
-                    tooltip: { y: { formatter: function (v) { return v + '%'; } } }
+                    series: [{ name: 'CPU', data: data }],
+                    xaxis: { type: 'datetime' },
+                    tooltip: { x: { format: 'dd MMM HH:mm' }, y: { formatter: function (v) { return v + '%'; } } }
                 }).render();
             });
         }
