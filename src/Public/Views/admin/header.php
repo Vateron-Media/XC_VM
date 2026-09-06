@@ -159,23 +159,26 @@ if (!function_exists('_xc_nav_label')) {
                         <!-- Left: live header stats (polled by the inline poller in footer.php) -->
                         <div class="navbar-nav align-items-center">
                             <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
-                                <div class="d-none d-xl-flex align-items-center" id="header_stats">
-                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('connections') ?: 'Connections'); ?>">
-                                        <i class="icon-base ti tabler-plug-connected icon-22px me-1"></i>
+                                <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1 rounded-pill bg-body-tertiary" id="header_stats">
+                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('connections') ?: 'Connections'); ?>">
+                                        <i class="icon-base ti tabler-plug-connected icon-22px me-1 text-primary"></i>
                                         <span class="fw-medium" id="header_connections">0</span>
                                     </a>
-                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('users') ?: 'Users'); ?>">
-                                        <i class="icon-base ti tabler-users icon-22px me-1"></i>
+                                    <div class="vr opacity-25 my-1"></div>
+                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('users') ?: 'Users'); ?>">
+                                        <i class="icon-base ti tabler-users icon-22px me-1 text-info"></i>
                                         <span class="fw-medium" id="header_users">0</span>
                                     </a>
-                                    <a href="streams" class="d-inline-flex align-items-center text-heading text-decoration-none me-4" title="<?= htmlspecialchars($language::get('shell_streams_online_offline'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-player-play icon-22px me-1"></i>
+                                    <div class="vr opacity-25 my-1"></div>
+                                    <a href="streams" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('shell_streams_online_offline'), ENT_QUOTES); ?>">
+                                        <i class="icon-base ti tabler-player-play icon-22px me-1 text-body-secondary"></i>
                                         <span class="fw-medium text-success" id="header_streams_up">0</span>
                                         <span class="mx-1 text-body-secondary">/</span>
                                         <span class="fw-medium text-danger" id="header_streams_down">0</span>
                                     </a>
+                                    <div class="vr opacity-25 my-1"></div>
                                     <span class="d-inline-flex align-items-center text-heading" title="<?= htmlspecialchars($language::get('shell_network_throughput'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-arrows-up-down icon-22px me-1"></i>
+                                        <i class="icon-base ti tabler-arrows-up-down icon-22px me-1 text-body-secondary"></i>
                                         <span class="fw-medium" id="header_network_up">0</span>
                                         <span class="mx-1 text-body-secondary">/</span>
                                         <span class="fw-medium" id="header_network_down">0</span>
