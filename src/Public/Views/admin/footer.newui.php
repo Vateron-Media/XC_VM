@@ -476,6 +476,64 @@ if (count(get_included_files()) == 1) {
     </script>
 <?php endif; ?>
 
+<?php if (!empty($rSettings['enable_search'])): ?>
+    <script>
+        // Global quick search: debounced fetch of ?action=search, rendered as a
+        // lightweight dropdown (no select2 dependency, so it works on every page).
+        (function() {
+            var input = document.getElementById('xc-quick-search');
+            var box = document.getElementById('xc-search-results');
+            if (!input || !box) { return; }
+            var esc = function(s) { var d = document.createElement('div'); d.textContent = (s == null ? '' : String(s)); return d.innerHTML; };
+            // Legacy search variants -> new-UI bg-label-* palette.
+            var variant = function(v) {
+                var map = { purple: 'primary', pink: 'danger', success: 'success', danger: 'danger', info: 'info', warning: 'warning', primary: 'primary', secondary: 'secondary', dark: 'dark' };
+                return map[v] || 'secondary';
+            };
+            var noRes = <?= json_encode($language::get('no_results') ?: 'No results') ?>;
+            var timer, lastTerm = '';
+
+            var empty = function(text) {
+                return '<div class="text-center text-body-secondary py-4"><small>' + esc(text) + '</small></div>';
+            };
+            var render = function(items) {
+                if (!items || !items.length || (items[0] && items[0].entity === 'no_results')) {
+                    box.innerHTML = empty(noRes);
+                    box.classList.add('show');
+                    return;
+                }
+                box.innerHTML = items.map(function(it) {
+                    var d = it.data || {};
+                    var badge = d.badge ? '<span class="badge bg-label-' + variant(d.badge.variant) + ' me-2">' + esc(d.badge.text) + '</span>' : '';
+                    var sub = d.category ? '<small class="text-body-secondary d-block text-truncate">' + esc(d.category) + '</small>' : '';
+                    var href = it.url ? esc(it.url) : 'javascript:void(0)';
+                    return '<a class="dropdown-item d-flex flex-column py-2 border-bottom" href="' + href + '">'
+                        + '<span class="text-truncate">' + badge + '<span class="fw-medium">' + esc(d.title || it.text || '') + '</span></span>'
+                        + sub + '</a>';
+                }).join('');
+                box.classList.add('show');
+            };
+
+            input.addEventListener('input', function() {
+                var term = this.value.trim();
+                clearTimeout(timer);
+                if (term.length < 3) { box.classList.remove('show'); box.innerHTML = ''; return; }
+                box.innerHTML = '<div class="text-center text-body-secondary py-4"><span class="spinner-border spinner-border-sm"></span></div>';
+                box.classList.add('show');
+                timer = setTimeout(function() {
+                    lastTerm = term;
+                    fetch('./api?action=search&search=' + encodeURIComponent(term), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(data) { if (input.value.trim() === lastTerm) { render((data && data.items) || []); } })
+                        .catch(function() { box.classList.remove('show'); });
+                }, 300);
+            });
+            input.addEventListener('focus', function() { if (box.innerHTML && this.value.trim().length >= 3) { box.classList.add('show'); } });
+            document.addEventListener('click', function(e) { if (!input.contains(e.target) && !box.contains(e.target)) { box.classList.remove('show'); } });
+        })();
+    </script>
+<?php endif; ?>
+
 <?php // NOTE: </body></html> are intentionally NOT emitted here. Views call
 // renderUnifiedLayoutFooter() and then append their own page scripts
 // before closing </body></html> themselves (the legacy convention). 

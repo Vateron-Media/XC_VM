@@ -172,6 +172,15 @@ if (!function_exists('_xc_nav_label')) {
 
                         <ul class="navbar-nav flex-row align-items-center ms-auto">
 
+                            <!-- Global quick search -->
+                            <?php if (!empty($rSettings['enable_search'])): ?>
+                                <li class="nav-item me-3 d-none d-lg-block" style="position:relative; width:300px;">
+                                    <i class="icon-base ti tabler-search position-absolute text-body-secondary" style="left:0.85rem; top:50%; transform:translateY(-50%); pointer-events:none; z-index:4;"></i>
+                                    <input type="text" id="xc-quick-search" class="form-control form-control-sm rounded-pill" style="padding-left:2.4rem;" autocomplete="off" placeholder="<?= htmlspecialchars($language::get('search_placeholder'), ENT_QUOTES); ?>">
+                                    <div id="xc-search-results" class="dropdown-menu w-100 mt-2 p-0 shadow border-0" style="max-height:70vh; overflow-y:auto; min-width:340px;"></div>
+                                </li>
+                            <?php endif; ?>
+
                             <!-- Server status indicator -->
                             <?php if (($rServerError ?? false) && Authorization::check('adv', 'servers')): ?>
                                 <li class="nav-item">
