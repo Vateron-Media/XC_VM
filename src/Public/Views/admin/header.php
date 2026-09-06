@@ -96,7 +96,8 @@ if (!function_exists('_xc_nav_label')) {
     <link rel="stylesheet" href="assets/vendor/libs/node-waves/node-waves.css">
     <link rel="stylesheet" href="assets/vendor/libs/pickr/pickr-themes.css">
     <link rel="stylesheet" href="assets/vendor/libs/perfect-scrollbar/perfect-scrollbar.css">
-    <link rel="stylesheet" href="assets/vendor/css/core.css">
+    <link rel="stylesheet" href="assets/vendor/css/bootstrap.css">
+    <link rel="stylesheet" href="assets/vendor/css/custom.css">
     <link rel="stylesheet" href="assets/css/demo.css">
 
     <!-- Page vendor styles (bundle bridge) + XC_VM overrides -->
