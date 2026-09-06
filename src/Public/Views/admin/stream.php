@@ -71,16 +71,6 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
     <input type="hidden" name="external_push" id="external_push" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['external_push'], ENT_QUOTES) : ''; ?>">
     <input type="hidden" name="bouquet_create_list" id="bouquet_create_list" value="">
     <input type="hidden" name="category_create_list" id="category_create_list" value="">
-    <?php if (!$rIsImport): ?>
-        <?php /* Deferred tabs (EPG / Map / RTMP / capture) — preserve saved values on edit. */ ?>
-        <input type="hidden" name="epg_id" value="<?= $rIsEdit ? (int) $rStream['epg_id'] : 0; ?>">
-        <input type="hidden" name="channel_id" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['channel_id'], ENT_QUOTES) : ''; ?>">
-        <input type="hidden" name="epg_lang" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['epg_lang'], ENT_QUOTES) : ''; ?>">
-        <input type="hidden" name="epg_offset" value="<?= $rIsEdit ? (int) $rStream['epg_offset'] : 0; ?>">
-        <input type="hidden" name="custom_map" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_map'], ENT_QUOTES) : ''; ?>">
-        <input type="hidden" name="rtmp_output" value="<?= $rIsEdit ? (int) $rStream['rtmp_output'] : 0; ?>">
-        <input type="hidden" name="capture_server_id" value="<?= $rIsEdit ? (int) ($rStream['capture_server_id'] ?? 0) : 0; ?>">
-    <?php endif; ?>
 
     <div class="card mb-6">
         <div class="card-header px-0 pt-2">
@@ -91,6 +81,14 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                         <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-sources" role="tab"><i class="icon-base ti tabler-arrows-up-down me-1"></i><?= $language::get('sources'); ?></button></li>
                     <?php endif; ?>
                     <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-advanced" role="tab"><i class="icon-base ti tabler-adjustments me-1"></i><?= $language::get('advanced'); ?></button></li>
+                    <?php if (!$rIsImport): ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-epg" role="tab"><i class="icon-base ti tabler-device-tv me-1"></i><?= $language::get('epg'); ?></button></li>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-map" role="tab"><i class="icon-base ti tabler-map me-1"></i><?= $language::get('map'); ?></button></li>
+                        <?php if (empty($rMobile)): ?>
+                            <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-rtmp" role="tab"><i class="icon-base ti tabler-cloud-upload me-1"></i><?= $language::get('rtmp_push'); ?></button></li>
+                        <?php endif; ?>
+                        <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-capture" role="tab"><i class="icon-base ti tabler-device-cctv me-1"></i><?= $language::get('capture_server'); ?></button></li>
+                    <?php endif; ?>
                     <li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-server" role="tab"><i class="icon-base ti tabler-server me-1"></i><?= $language::get('servers'); ?></button></li>
                 </ul>
             </div>
@@ -232,6 +230,120 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
                     </div>
                 </div>
 
+                <?php if (!$rIsImport): ?>
+                    <?php
+                    $rSelEpgId   = $rIsEdit ? (int) $rStream['epg_id'] : 0;
+                    $rSelChannel = $rIsEdit ? (string) $rStream['channel_id'] : '';
+                    $rSelLang    = $rIsEdit ? (string) $rStream['epg_lang'] : '';
+                    $rEpgData    = ($rSelEpgId && isset($rEPGSources[$rSelEpgId])) ? (json_decode((string) $rEPGSources[$rSelEpgId]['data'], true) ?: []) : [];
+                    ?>
+                    <div class="tab-pane fade" id="tab-epg" role="tabpanel">
+                        <ul class="nav nav-pills mb-4" role="tablist">
+                            <li class="nav-item"><button type="button" class="nav-link <?= $rIsEdit ? '' : 'active'; ?>" data-bs-toggle="tab" data-bs-target="#epg-quick" role="tab"><?= $language::get('search_epg'); ?></button></li>
+                            <li class="nav-item"><button type="button" class="nav-link <?= $rIsEdit ? 'active' : ''; ?>" data-bs-toggle="tab" data-bs-target="#epg-xmltv" role="tab"><?= $language::get('xmltv_epg'); ?></button></li>
+                        </ul>
+                        <div class="tab-content p-0">
+                            <div class="tab-pane fade <?= $rIsEdit ? '' : 'show active'; ?>" id="epg-quick" role="tabpanel">
+                                <div>
+                                    <label class="form-label" for="quick_search"><?= $language::get('search_epg'); ?></label>
+                                    <select id="quick_search" class="form-select"></select>
+                                </div>
+                            </div>
+                            <div class="tab-pane fade <?= $rIsEdit ? 'show active' : ''; ?>" id="epg-xmltv" role="tabpanel">
+                                <div class="mb-6">
+                                    <label class="form-label" for="epg_id"><?= $language::get('epg_source'); ?></label>
+                                    <select name="epg_id" id="epg_id" class="form-select">
+                                        <option value="0" <?= $rSelEpgId === 0 ? 'selected' : ''; ?>><?= $language::get('no_epg'); ?></option>
+                                        <?php foreach ($rEPGSources as $rEPG): ?>
+                                            <option value="<?= (int) $rEPG['id']; ?>" <?= $rSelEpgId === (int) $rEPG['id'] ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rEPG['epg_name'], ENT_QUOTES); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="mb-6">
+                                    <label class="form-label" for="channel_id"><?= $language::get('epg_channel_id'); ?></label>
+                                    <select name="channel_id" id="channel_id" class="form-select">
+                                        <?php foreach ($rEpgData as $rChId => $rEpgChannel): ?>
+                                            <option value="<?= htmlspecialchars((string) $rChId, ENT_QUOTES); ?>" <?= ((string) $rChId === $rSelChannel) ? 'selected' : ''; ?>><?= htmlspecialchars((string) ($rEpgChannel['display_name'] ?? $rChId), ENT_QUOTES); ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="row mb-6">
+                                    <div class="col-md-8">
+                                        <label class="form-label" for="epg_lang"><?= $language::get('epg_language'); ?></label>
+                                        <select name="epg_lang" id="epg_lang" class="form-select">
+                                            <?php foreach ((array) ($rEpgData[$rSelChannel]['langs'] ?? []) as $rLang): ?>
+                                                <option value="<?= htmlspecialchars((string) $rLang, ENT_QUOTES); ?>" <?= ((string) $rLang === $rSelLang) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rLang, ENT_QUOTES); ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label" for="epg_offset"><?= $language::get('minute_offset'); ?></label>
+                                        <input type="text" inputmode="numeric" class="form-control" id="epg_offset" name="epg_offset" value="<?= $rIsEdit ? (int) $rStream['epg_offset'] : 0; ?>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tab-pane fade" id="tab-map" role="tabpanel">
+                        <div class="alert alert-info" role="alert"><?= $language::get('custom_map_info'); ?></div>
+                        <div>
+                            <label class="form-label" for="custom_map"><?= $language::get('custom_map'); ?></label>
+                            <input type="text" class="form-control" id="custom_map" name="custom_map" value="<?= $rIsEdit ? htmlspecialchars((string) $rStream['custom_map'], ENT_QUOTES) : ''; ?>">
+                        </div>
+                    </div>
+
+                    <?php if (empty($rMobile)): ?>
+                        <div class="tab-pane fade" id="tab-rtmp" role="tabpanel">
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="rtmp_output" name="rtmp_output" value="1" <?= ($rIsEdit && (int) $rStream['rtmp_output'] === 1) ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="rtmp_output"><?= $language::get('output_rtmp'); ?></label>
+                            </div>
+                            <div class="alert alert-info" role="alert"><?= $language::get('rtmp_push_info'); ?></div>
+                            <div class="card-datatable table-responsive mb-3">
+                                <table id="datatable-rtmp" class="table">
+                                    <thead><tr><th><?= $language::get('push_from'); ?></th><th><?= $language::get('rtmp_url'); ?></th><th class="text-center"><?= $language::get('actions'); ?></th></tr></thead>
+                                    <tbody>
+                                        <?php
+                                        $rRTMPPush = $rIsEdit ? (json_decode((string) $rStream['external_push'], true) ?: []) : [];
+                                        if (!$rRTMPPush) {
+                                            $rRTMPPush = ['' => ['']];
+                                        }
+                                        foreach ($rRTMPPush as $rPushServerID => $rPushSources):
+                                            foreach ((array) $rPushSources as $rPushSource): ?>
+                                                <tr class="rtmp-row">
+                                                    <td class="rtmp-server">
+                                                        <select class="form-select rtmp-server-select">
+                                                            <?php foreach ($rServers as $rServer): ?>
+                                                                <option value="<?= (int) $rServer['id']; ?>" <?= ((string) $rPushServerID === (string) $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </td>
+                                                    <td><input type="text" class="form-control rtmp-url-input" value="<?= htmlspecialchars((string) $rPushSource, ENT_QUOTES); ?>"></td>
+                                                    <td class="text-center"><button type="button" class="btn btn-label-danger btn-rtmp-remove"><i class="icon-base ti tabler-x"></i></button></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endforeach; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <button type="button" class="btn btn-label-info" id="add-rtmp"><i class="icon-base ti tabler-plus me-1"></i><?= $language::get('add_rtmp_url'); ?></button>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="tab-pane fade" id="tab-capture" role="tabpanel">
+                        <div>
+                            <label class="form-label" for="capture_server_id"><?= $language::get('capture_server'); ?></label>
+                            <select name="capture_server_id" id="capture_server_id" class="form-select">
+                                <option value="0" <?= (!$rIsEdit || (int) ($rStream['capture_server_id'] ?? 0) === 0) ? 'selected' : ''; ?>><?= $language::get('disabled'); ?></option>
+                                <?php foreach ($rServers as $rServer): ?>
+                                    <option value="<?= (int) $rServer['id']; ?>" <?= ($rIsEdit && (int) ($rStream['capture_server_id'] ?? 0) === (int) $rServer['id']) ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
                 <div class="tab-pane fade" id="tab-server" role="tabpanel">
                     <div class="mb-6">
                         <label class="form-label"><?= $language::get('server_tree'); ?></label>
@@ -302,6 +414,23 @@ $rTitle = $rIsEdit ? $rStream['stream_display_name'] : ($rIsImport ? 'Import Str
     </div>
 </div>
 
+<!-- EPG picon prompt modal -->
+<div class="modal fade" id="epgPicon" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title mb-0"><?= $language::get('use_icon'); ?></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body text-center">
+                <p><?= $language::get('epg_picon_prompt'); ?></p>
+                <img id="epg-picon" src="" alt="" style="max-height:96px">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?= $language::get('cancel'); ?></button>
+                <button type="button" class="btn btn-primary" id="epg_picon_save"><?= $language::get('use_icon'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('admin');
@@ -356,6 +485,111 @@ renderUnifiedLayoutFooter('admin');
         select2Ajax('#adaptive_link', 'adaptivelist', 'Search for a stream...');
         select2Ajax('#title_sync', 'titlesync', 'Search for a stream...');
         document.getElementById('clear-title').addEventListener('click', function() { $('#title_sync').val('').trigger('change'); });
+
+        // ---- EPG tab: source → channel → language cascade ----
+        var rEPG = <?= json_encode($rEPGJS); ?>;
+        if (document.getElementById('epg_id')) {
+            $('#epg_id, #channel_id, #epg_lang').select2({ width: '100%', dropdownParent: $('#epg-xmltv') });
+
+            function selectEPGSource() {
+                var epgId = $('#epg_id').val(), ch = $('#channel_id').empty();
+                $('#epg_lang').empty();
+                if (rEPG[epgId]) {
+                    $.each(rEPG[epgId], function(key, data) { ch.append(new Option(data.display_name, key, false, false)); });
+                }
+                ch.trigger('change');
+            }
+            function selectEPGID() {
+                var epgId = $('#epg_id').val(), chId = $('#channel_id').val(), lang = $('#epg_lang').empty();
+                if (rEPG[epgId] && rEPG[epgId][chId]) {
+                    $.each(rEPG[epgId][chId].langs, function(i, data) { lang.append(new Option(data, data, false, false)); });
+                }
+                lang.trigger('change');
+            }
+            $('#epg_id').on('change', selectEPGSource);
+            $('#channel_id').on('change', selectEPGID);
+
+            // Quick Search — ajax select2 over ./api?action=epglist, auto-fills the XMLTV fields.
+            $('#quick_search').select2({
+                width: '100%', placeholder: <?= json_encode($language::get('search_epg')); ?>, allowClear: true, dropdownParent: $('#epg-quick'),
+                ajax: {
+                    url: './api', dataType: 'json', cache: true,
+                    data: function(params) { return { search: params.term, action: 'epglist', page: params.page }; },
+                    processResults: function(data, params) { params.page = params.page || 1; return { results: data.items, pagination: { more: (params.page * 100) < data.total_count } }; }
+                }
+            });
+            $('#quick_search').on('change', function() {
+                if (!$(this).val()) { return; }
+                var d = ($('#quick_search').select2('data') || [])[0];
+                if (d && d.type == 0) {
+                    $('#epg_id').val(d.epg_id).trigger('change');
+                    $('#channel_id').val(d.id).trigger('change');
+                    $('#epg_lang').val(d.lang).trigger('change');
+                    var xmltvBtn = document.querySelector('[data-bs-target="#epg-xmltv"]');
+                    if (xmltvBtn && window.bootstrap) { bootstrap.Tab.getOrCreateInstance(xmltvBtn).show(); }
+                    var nm = document.getElementById('stream_display_name');
+                    if (nm && nm.value.length === 0 && d.text) { nm.value = d.text; }
+                    if (d.icon) { window.offerEpgPicon(d.icon); }
+                }
+                $('#quick_search').val('').trigger('change');
+            });
+        }
+
+        // ---- EPG picon prompt: offer to use the EPG channel icon as the stream logo ----
+        window.offerEpgPicon = function(url) {
+            var iconField = document.getElementById('stream_icon'), modalEl = document.getElementById('epgPicon');
+            if (!iconField || !modalEl || !url || !window.bootstrap) { return; }
+            var img = document.getElementById('epg-picon');
+            if (img) { img.src = url; }
+            bootstrap.Modal.getOrCreateInstance(modalEl).show();
+        };
+        var epgPiconSave = document.getElementById('epg_picon_save');
+        if (epgPiconSave) {
+            epgPiconSave.addEventListener('click', function() {
+                var img = document.getElementById('epg-picon'), iconField = document.getElementById('stream_icon');
+                if (img && iconField) { iconField.value = img.getAttribute('src') || ''; }
+                var m = bootstrap.Modal.getInstance(document.getElementById('epgPicon'));
+                if (m) { m.hide(); }
+            });
+        }
+
+        // ---- Capture tab ----
+        $('#capture_server_id').select2({ width: '100%', dropdownParent: $('#tab-capture') });
+
+        // ---- RTMP push tab: add/remove target rows, collected into #external_push on submit ----
+        if (document.getElementById('datatable-rtmp')) {
+            var rServerOptions = <?= json_encode(array_map(static fn (array $rSrv): array => ['id' => (int) $rSrv['id'], 'name' => (string) $rSrv['server_name']], $rServers)); ?>;
+            var rtmpBody = document.querySelector('#datatable-rtmp tbody');
+            function rtmpServerSelectHtml() {
+                var h = '<select class="form-select rtmp-server-select">';
+                rServerOptions.forEach(function(s) { h += '<option value="' + s.id + '">' + esc(s.name) + '</option>'; });
+                return h + '</select>';
+            }
+            $('#datatable-rtmp .rtmp-server-select').select2({ width: '100%', dropdownParent: $('#tab-rtmp') });
+            var addRtmpBtn = document.getElementById('add-rtmp');
+            if (addRtmpBtn) {
+                addRtmpBtn.addEventListener('click', function() {
+                    var tr = document.createElement('tr');
+                    tr.className = 'rtmp-row';
+                    tr.innerHTML = '<td class="rtmp-server">' + rtmpServerSelectHtml() + '</td>' +
+                        '<td><input type="text" class="form-control rtmp-url-input" value=""></td>' +
+                        '<td class="text-center"><button type="button" class="btn btn-label-danger btn-rtmp-remove"><i class="icon-base ti tabler-x"></i></button></td>';
+                    rtmpBody.appendChild(tr);
+                    $(tr).find('.rtmp-server-select').select2({ width: '100%', dropdownParent: $('#tab-rtmp') });
+                });
+            }
+            if (rtmpBody) {
+                rtmpBody.addEventListener('click', function(e) {
+                    var btn = e.target.closest('.btn-rtmp-remove'); if (!btn) { return; }
+                    var row = btn.closest('.rtmp-row');
+                    if (rtmpBody.querySelectorAll('.rtmp-row').length > 1) { row.remove(); }
+                    else {
+                        $(row).find('.rtmp-server-select').val(rServerOptions.length ? rServerOptions[0].id : '').trigger('change');
+                        row.querySelector('.rtmp-url-input').value = '';
+                    }
+                });
+            }
+        }
 
         if (window.flatpickr) { flatpickr('#time_to_restart', { enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }); }
 
@@ -471,7 +705,7 @@ renderUnifiedLayoutFooter('admin');
             });
 
         // ---- direct source / proxy enable-disable ----
-        var dsFields = ['llod', 'fps_restart', 'fps_threshold', 'adaptive_link', 'custom_sid', 'read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'delay_minutes', 'probesize_ondemand', 'transcode_profile_id', 'days_to_restart', 'time_to_restart', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'];
+        var dsFields = ['llod', 'fps_restart', 'fps_threshold', 'adaptive_link', 'custom_sid', 'read_native', 'gen_timestamps', 'stream_all', 'allow_record', 'rtmp_output', 'delay_minutes', 'custom_map', 'probesize_ondemand', 'transcode_profile_id', 'days_to_restart', 'time_to_restart', 'on_demand', 'tv_archive_duration', 'tv_archive_server_id', 'vframes_server_id', 'restart_on_edit'];
         function setDis(id, off) { var el = document.getElementById(id); if (el) { el.disabled = off; if ($(el).hasClass('select2-hidden-accessible')) { $(el).prop('disabled', off).trigger('change.select2'); } } }
         function evaluateDirectSource() {
             var ds = document.getElementById('direct_source').checked, dp = document.getElementById('direct_proxy').checked;
@@ -491,6 +725,20 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', { flat: true }));
             document.getElementById('category_create_list').value = collectNew('#category_id');
             document.getElementById('bouquet_create_list').value = collectNew('#bouquets');
+            var epExt = document.getElementById('external_push');
+            if (epExt && document.getElementById('datatable-rtmp')) {
+                var rtmpPush = {};
+                document.querySelectorAll('#datatable-rtmp tbody .rtmp-row').forEach(function(row) {
+                    var selEl = row.querySelector('.rtmp-server-select');
+                    var sid = selEl ? $(selEl).val() : '';
+                    var url = row.querySelector('.rtmp-url-input').value;
+                    if (sid > 0 && url.length > 0) {
+                        if (!rtmpPush[sid]) { rtmpPush[sid] = []; }
+                        rtmpPush[sid].push(url);
+                    }
+                });
+                epExt.value = JSON.stringify(rtmpPush);
+            }
             document.querySelectorAll('#stream-form :disabled').forEach(function(el) { el.disabled = false; });
             var btn = document.getElementById('stream-submit');
             btn.disabled = true;
