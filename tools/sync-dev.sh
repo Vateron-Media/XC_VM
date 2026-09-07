@@ -112,7 +112,7 @@
 # =============================================================================
 set -euo pipefail
 
-SERVER="${DEV_SERVER:-89.163.212.59}"
+SERVER="${DEV_SERVER}"
 SSH_USER="${DEV_SSH_USER:-root}"
 REMOTE_ROOT="${REMOTE_ROOT:-/home/xc_vm}"
 STATE_FILE=".dev-sync-state"
