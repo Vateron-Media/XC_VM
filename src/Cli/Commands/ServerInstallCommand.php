@@ -118,7 +118,7 @@ class ServerInstallCommand implements CommandInterface {
 		$rResult = @ssh2_auth_password($rConn, $rUsername, $rPassword);
 		if (!$rResult) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-			echo "Failed to authenticate using config.ini. Exiting\n";
+			echo "Failed to authenticate over SSH — check the root username and password. Exiting\n";
 			return 1;
 		}
 

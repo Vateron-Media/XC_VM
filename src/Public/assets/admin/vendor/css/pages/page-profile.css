@@ -1,0 +1,27 @@
+/* Help center
+******************************************************************************* */
+/* (C) */
+.user-profile-header-banner img {
+  block-size: 250px;
+  inline-size: 100%;
+  object-fit: cover;
+}
+
+.user-profile-header {
+  margin-block-start: -2rem;
+}
+.user-profile-header .user-profile-img {
+  border: 5px solid;
+  border-color: var(--bs-paper-bg);
+  inline-size: 120px;
+}
+
+/* Responsive style */
+@media (max-width: 767.98px) {
+  .user-profile-header-banner img {
+    block-size: 150px;
+  }
+  .user-profile-header .user-profile-img {
+    inline-size: 100px;
+  }
+}

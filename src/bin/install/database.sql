@@ -1747,6 +1747,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   `override_packages` text COLLATE utf8_unicode_ci,
   `hue` varchar(50) COLLATE utf8_unicode_ci DEFAULT NULL,
   `theme` int(1) DEFAULT '0',
+  `ui_prefs` text COLLATE utf8_unicode_ci DEFAULT NULL,
   `timezone` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
   `api_key` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
   `lang` varchar(50) COLLATE utf8_unicode_ci DEFAULT 'en',

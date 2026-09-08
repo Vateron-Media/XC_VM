@@ -9,7 +9,8 @@ use XcVm\Core\Module\Contract\NavbarProviderInterface;
  *
  * Called once at the start of ModuleLoader::bootAll() before any module
  * registers its own items. Modules inject additional items via the same
- * NavbarRegistry::add() API at reserved order slots (60+, 170+, etc.).
+ * NavbarRegistry::add() API at reserved order slots (management.service_setup
+ * 60+, logs 500+, profile 100+, etc.).
  *
  * @package XC_VM_Core_Module
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -37,9 +38,10 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         self::_servers();
         self::_users();
         self::_content();
-        self::_bouquets();
+        self::_vod();
+        self::_distribution();
+        self::_logs();
         self::_management();
-        self::_suppliers();
         self::_profile();
     }
 
@@ -57,9 +59,9 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->url('index')->label('dashboard')
             ->icon('fe-activity')->noMobileSubmenu()->order(100));
 
-        NavbarRegistry::add((new NavbarItem('dashboard.live_connections'))
-            ->parent('dashboard')->url('live_connections')
-            ->label('live_connections')->permissions(['live_connections'])->order(10));
+        NavbarRegistry::add((new NavbarItem('dashboard.home'))
+            ->parent('dashboard')->url('dashboard')
+            ->label('home')->order(1));
     }
 
     // ── Servers ───────────────────────────────────────────────────
@@ -120,13 +122,13 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->label('user_lines')->permissions(['add_user', 'users'])->order(10));
         NavbarRegistry::add((new NavbarItem('users.lines.add'))
             ->parent('users.lines')->url('line')
-            ->label('add_users')->permissions(['add_user'])->order(10));
+            ->label('add_line')->permissions(['add_user'])->order(10));
         NavbarRegistry::add((new NavbarItem('users.lines.manage'))
             ->parent('users.lines')->url('lines')
-            ->label('manage_users')->permissions(['users'])->order(20));
+            ->label('manage_lines')->permissions(['users'])->order(20));
         NavbarRegistry::add((new NavbarItem('users.lines.mass'))
             ->parent('users.lines')->url('line_mass')
-            ->label('mass_edit_users')->permissions(['mass_edit_lines'])->order(30));
+            ->label('mass_edit_lines')->permissions(['mass_edit_lines'])->order(30));
 
         // MAG
         NavbarRegistry::add((new NavbarItem('users.mag'))
@@ -174,16 +176,17 @@ class CoreNavbarProvider implements NavbarProviderInterface {
     // ── Content ───────────────────────────────────────────────────
 
     /**
-     * Register Content navigation items.
-     * 
-     * Adds content management structure including Streams, Created Channels,
-     * Movies, Series, Radio Stations, Recordings, and TV Guide.
+     * Register Content (Streaming) navigation items.
+     *
+     * Live-streaming content: Streams, Created Channels and Radio Stations.
+     * VOD (Movies/Series) moved to _vod(); Bouquets/Suppliers/Recordings/TV Guide
+     * moved to _distribution(). Labelled "Streaming"; the key stays 'content'.
      *
      * @return void
      */
     private static function _content(): void {
         NavbarRegistry::add((new NavbarItem('content'))
-            ->url('#')->label('content')
+            ->url('#')->label('', 'Streaming')
             ->icon('fas fa-play')->order(400));
 
         // Streams
@@ -220,50 +223,10 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->parent('content.channels')->url('created_channel_mass')
             ->label('mass_edit_created_channels')->permissions(['streams'])->order(30));
 
-        // Movies
-        NavbarRegistry::add((new NavbarItem('content.movies'))
-            ->parent('content')->url('#')
-            ->label('movies')->permissions(['add_movie', 'import_movies', 'movies'])->order(30));
-        NavbarRegistry::add((new NavbarItem('content.movies.add'))
-            ->parent('content.movies')->url('movie')
-            ->label('add_movie')->permissions(['add_movie'])->order(10));
-        NavbarRegistry::add((new NavbarItem('content.movies.import'))
-            ->parent('content.movies')->url('movie?import=1')
-            ->label('import_multiple_movies')->permissions(['import_movies'])->order(20));
-        NavbarRegistry::add((new NavbarItem('content.movies.import_review'))
-            ->parent('content.movies')->url('review?type=2')
-            ->label('import_review_movies')->permissions(['import_movies'])->order(30));
-        NavbarRegistry::add((new NavbarItem('content.movies.manage'))
-            ->parent('content.movies')->url('movies')
-            ->label('manage_movies')->permissions(['movies'])->order(40));
-        NavbarRegistry::add((new NavbarItem('content.movies.mass'))
-            ->parent('content.movies')->url('movie_mass')
-            ->label('mass_edit_movies')->permissions(['mass_sedits_vod'])->order(50));
-
-        // Series
-        NavbarRegistry::add((new NavbarItem('content.series'))
-            ->parent('content')->url('#')
-            ->label('series')->permissions(['add_series', 'series', 'episodes'])->order(40));
-        NavbarRegistry::add((new NavbarItem('content.series.add'))
-            ->parent('content.series')->url('serie')
-            ->label('add_series')->permissions(['add_series'])->order(10));
-        NavbarRegistry::add((new NavbarItem('content.series.manage'))
-            ->parent('content.series')->url('series')
-            ->label('manage_series')->permissions(['series'])->order(20));
-        NavbarRegistry::add((new NavbarItem('content.series.episodes'))
-            ->parent('content.series')->url('episodes')
-            ->label('manage_episodes')->permissions(['episodes'])->order(30));
-        NavbarRegistry::add((new NavbarItem('content.series.mass'))
-            ->parent('content.series')->url('series_mass')
-            ->label('', 'Mass Edit Series')->permissions(['mass_sedits'])->order(40));
-        NavbarRegistry::add((new NavbarItem('content.series.episodes_mass'))
-            ->parent('content.series')->url('episodes_mass')
-            ->label('', 'Mass Edit Episodes')->permissions(['mass_sedits'])->order(50));
-
         // Radio stations
         NavbarRegistry::add((new NavbarItem('content.stations'))
             ->parent('content')->url('#')
-            ->label('stations')->permissions(['add_radio', 'radio'])->order(50));
+            ->label('stations')->permissions(['add_radio', 'radio'])->order(30));
         NavbarRegistry::add((new NavbarItem('content.stations.add'))
             ->parent('content.stations')->url('radio')
             ->label('add_station')->permissions(['add_radio'])->order(10));
@@ -273,64 +236,231 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('content.stations.mass'))
             ->parent('content.stations')->url('radio_mass')
             ->label('mass_edit_stations')->permissions(['mass_edit_radio'])->order(30));
-
-        NavbarRegistry::add((new NavbarItem('content.recordings'))
-            ->parent('content')->url('archive')
-            ->label('recordings')->permissions(['movies'])->order(60));
-
-        NavbarRegistry::add((new NavbarItem('content.tv_guide'))
-            ->parent('content')->url('epg_view')
-            ->label('tv_guide')->permissions(['streams'])
-            ->desktopOnly()->order(70));
     }
 
-    // ── Bouquets ──────────────────────────────────────────────────
+    // ── VOD (Movies / Series) ─────────────────────────────────────
 
     /**
-     * Register Bouquets navigation items.
-     * 
-     * Adds bouquet management items for adding, managing, and ordering channel bouquets.
+     * Register VOD navigation items (top-level tab, order 410).
+     *
+     * On-demand catalogue split out of Content: Movies and Series with their
+     * add/import/manage/mass operations. Each leaf keeps its original
+     * url/permissions/label; only the parent key changed (content.* → vod.*).
      *
      * @return void
      */
-    private static function _bouquets(): void {
-        NavbarRegistry::add((new NavbarItem('bouquets'))
-            ->url('#')->label('bouquets')
-            ->icon('fas fa-spa')->order(500));
+    private static function _vod(): void {
+        NavbarRegistry::add((new NavbarItem('vod'))
+            ->url('#')->label('', 'VOD')
+            ->icon('fas fa-film')->order(410));
 
-        NavbarRegistry::add((new NavbarItem('bouquets.add'))
-            ->parent('bouquets')->url('bouquet')
+        // Movies
+        NavbarRegistry::add((new NavbarItem('vod.movies'))
+            ->parent('vod')->url('#')
+            ->label('movies')->permissions(['add_movie', 'import_movies', 'movies'])->order(10));
+        NavbarRegistry::add((new NavbarItem('vod.movies.add'))
+            ->parent('vod.movies')->url('movie')
+            ->label('add_movie')->permissions(['add_movie'])->order(10));
+        NavbarRegistry::add((new NavbarItem('vod.movies.import'))
+            ->parent('vod.movies')->url('movie?import=1')
+            ->label('import_multiple_movies')->permissions(['import_movies'])->order(20));
+        NavbarRegistry::add((new NavbarItem('vod.movies.import_review'))
+            ->parent('vod.movies')->url('review?type=2')
+            ->label('import_review_movies')->permissions(['import_movies'])->order(30));
+        NavbarRegistry::add((new NavbarItem('vod.movies.manage'))
+            ->parent('vod.movies')->url('movies')
+            ->label('manage_movies')->permissions(['movies'])->order(40));
+        NavbarRegistry::add((new NavbarItem('vod.movies.mass'))
+            ->parent('vod.movies')->url('movie_mass')
+            ->label('mass_edit_movies')->permissions(['mass_sedits_vod'])->order(50));
+
+        // Series
+        NavbarRegistry::add((new NavbarItem('vod.series'))
+            ->parent('vod')->url('#')
+            ->label('series')->permissions(['add_series', 'series', 'episodes'])->order(20));
+        NavbarRegistry::add((new NavbarItem('vod.series.add'))
+            ->parent('vod.series')->url('serie')
+            ->label('add_series')->permissions(['add_series'])->order(10));
+        NavbarRegistry::add((new NavbarItem('vod.series.manage'))
+            ->parent('vod.series')->url('series')
+            ->label('manage_series')->permissions(['series'])->order(20));
+        NavbarRegistry::add((new NavbarItem('vod.series.episodes'))
+            ->parent('vod.series')->url('episodes')
+            ->label('manage_episodes')->permissions(['episodes'])->order(30));
+        NavbarRegistry::add((new NavbarItem('vod.series.mass'))
+            ->parent('vod.series')->url('series_mass')
+            ->label('', 'Mass Edit Series')->permissions(['mass_sedits'])->order(40));
+        NavbarRegistry::add((new NavbarItem('vod.series.episodes_mass'))
+            ->parent('vod.series')->url('episodes_mass')
+            ->label('', 'Mass Edit Episodes')->permissions(['mass_sedits'])->order(50));
+    }
+
+    // ── Distribution (Bouquets / Suppliers / Recordings / Guide) ──
+
+    /**
+     * Register Distribution navigation items (top-level tab, order 420).
+     *
+     * Content organisation & delivery split out of Content: Bouquets, Suppliers,
+     * Recordings and TV Guide. Each leaf keeps its original url/permissions/label;
+     * only the parent key changed (content.* → distribution.*).
+     *
+     * @return void
+     */
+    private static function _distribution(): void {
+        NavbarRegistry::add((new NavbarItem('distribution'))
+            ->url('#')->label('', 'Distribution')
+            ->icon('fas fa-sitemap')->order(420));
+
+        // Bouquets
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets'))
+            ->parent('distribution')->url('#')
+            ->label('bouquets')->permissions(['add_bouquet', 'bouquets', 'bouquet_order'])->order(10));
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets.add'))
+            ->parent('distribution.bouquets')->url('bouquet')
             ->label('add_bouquet')->permissions(['add_bouquet'])->order(10));
-
-        NavbarRegistry::add((new NavbarItem('bouquets.manage'))
-            ->parent('bouquets')->url('bouquets')
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets.manage'))
+            ->parent('distribution.bouquets')->url('bouquets')
             ->label('manage_bouquets')->permissions(['bouquets'])->order(20));
-
-        NavbarRegistry::add((new NavbarItem('bouquets.order'))
-            ->parent('bouquets')->url('bouquet_order')
+        NavbarRegistry::add((new NavbarItem('distribution.bouquets.order'))
+            ->parent('distribution.bouquets')->url('bouquet_order')
             ->label('bouquet_order')->permissions(['bouquet_order'])
             ->desktopOnly()->order(30));
+
+        // Suppliers
+        NavbarRegistry::add((new NavbarItem('distribution.suppliers'))
+            ->parent('distribution')->url('#')
+            ->label('suppliers')->permissions(['streams'])->order(20));
+        NavbarRegistry::add((new NavbarItem('distribution.suppliers.add'))
+            ->parent('distribution.suppliers')->url('provider')
+            ->label('add_providers')->permissions(['streams'])->order(10));
+        NavbarRegistry::add((new NavbarItem('distribution.suppliers.manage'))
+            ->parent('distribution.suppliers')->url('providers')
+            ->label('stream_providers')->permissions(['streams'])->order(20));
+
+        // Recordings
+        NavbarRegistry::add((new NavbarItem('distribution.recordings'))
+            ->parent('distribution')->url('archive')
+            ->label('recordings')->permissions(['movies'])->order(30));
+
+        // TV Guide
+        NavbarRegistry::add((new NavbarItem('distribution.tv_guide'))
+            ->parent('distribution')->url('epg_view')
+            ->label('tv_guide')->permissions(['streams'])
+            ->desktopOnly()->order(40));
+    }
+
+    // ── Logs ──────────────────────────────────────────────────────
+
+    /**
+     * Register Logs navigation items.
+     *
+     * Promoted to its own top-level tab (formerly the 'management.logs'
+     * megamenu). The ~16 log screens are grouped into four submenus —
+     * Connections, Streams, System, Users — for scannability. Each leaf keeps
+     * its original url/permissions/label; only the parent key changed.
+     *
+     * Modules inject extra log screens under 'logs' (or one of its subgroups)
+     * at order 500+.
+     *
+     * @return void
+     */
+    private static function _logs(): void {
+        NavbarRegistry::add((new NavbarItem('logs'))
+            ->url('#')->label('logs')
+            ->icon('fas fa-clipboard-list')
+            ->permissions(['movies', 'streams', 'connection_logs', 'client_request_log', 'login_logs', 'panel_logs', 'credits_log', 'live_connections', 'manage_events', 'reg_userlog', 'stream_errors', 'restream_logs', 'episodes', 'series'])
+            ->order(500));
+
+        // Connections
+        NavbarRegistry::add((new NavbarItem('logs.connections'))
+            ->parent('logs')->url('#')
+            ->label('logs_group_connections')->permissions(['connection_logs', 'live_connections', 'client_request_log'])->order(10));
+        NavbarRegistry::add((new NavbarItem('logs.connections.activity'))
+            ->parent('logs.connections')->url('line_activity')
+            ->label('activity_logs')->permissions(['connection_logs'])->order(10));
+        NavbarRegistry::add((new NavbarItem('logs.connections.live'))
+            ->parent('logs.connections')->url('live_connections')
+            ->label('live_connections')->permissions(['live_connections'])->order(20));
+        NavbarRegistry::add((new NavbarItem('logs.connections.line_ips'))
+            ->parent('logs.connections')->url('line_ips')
+            ->label('ips_per_line')->permissions(['connection_logs'])->order(30));
+        NavbarRegistry::add((new NavbarItem('logs.connections.client'))
+            ->parent('logs.connections')->url('client_logs')
+            ->label('client_logs')->permissions(['client_request_log'])->order(40));
+
+        // Streams
+        NavbarRegistry::add((new NavbarItem('logs.streams'))
+            ->parent('logs')->url('#')
+            ->label('logs_group_streams')->permissions(['stream_errors', 'streams', 'restream_logs'])->order(20));
+        NavbarRegistry::add((new NavbarItem('logs.streams.errors'))
+            ->parent('logs.streams')->url('stream_errors')
+            ->label('stream_errors')->permissions(['stream_errors'])->order(10));
+        NavbarRegistry::add((new NavbarItem('logs.streams.rank'))
+            ->parent('logs.streams')->url('stream_rank')
+            ->label('', 'Stream Rank')->permissions(['streams'])->order(20));
+        NavbarRegistry::add((new NavbarItem('logs.streams.ondemand'))
+            ->parent('logs.streams')->url('ondemand')
+            ->label('', 'On-Demand Scanner')->permissions(['streams'])->order(30));
+        NavbarRegistry::add((new NavbarItem('logs.streams.restream'))
+            ->parent('logs.streams')->url('restream_logs')
+            ->label('', 'Restream Detection')->permissions(['restream_logs'])->order(40));
+
+        // System
+        NavbarRegistry::add((new NavbarItem('logs.system'))
+            ->parent('logs')->url('#')
+            ->label('logs_group_system')->permissions(['panel_logs', 'login_logs', 'streams', 'episodes', 'series'])->order(30));
+        NavbarRegistry::add((new NavbarItem('logs.system.panel'))
+            ->parent('logs.system')->url('panel_logs')
+            ->label('', 'Panel Errors')->permissions(['panel_logs'])->order(10));
+        NavbarRegistry::add((new NavbarItem('logs.system.syslog'))
+            ->parent('logs.system')->url('mysql_syslog')
+            ->label('', 'System Logs')->permissions(['panel_logs'])->order(20));
+        NavbarRegistry::add((new NavbarItem('logs.system.login'))
+            ->parent('logs.system')->url('login_logs')
+            ->label('', 'Login Logs')->permissions(['login_logs'])->order(30));
+        NavbarRegistry::add((new NavbarItem('logs.system.queue'))
+            ->parent('logs.system')->url('queue')
+            ->label('', 'Encoding Queue')->permissions(['streams', 'episodes', 'series'])->order(40));
+
+        // Users
+        NavbarRegistry::add((new NavbarItem('logs.users'))
+            ->parent('logs')->url('#')
+            ->label('logs_group_users')->permissions(['reg_userlog', 'credits_log', 'manage_events', 'movies'])->order(40));
+        NavbarRegistry::add((new NavbarItem('logs.users.reseller'))
+            ->parent('logs.users')->url('user_logs')
+            ->label('reseller_logs')->permissions(['reg_userlog'])->order(10));
+        NavbarRegistry::add((new NavbarItem('logs.users.credit'))
+            ->parent('logs.users')->url('credit_logs')
+            ->label('credit_logs')->permissions(['credits_log'])->order(20));
+        NavbarRegistry::add((new NavbarItem('logs.users.mag_events'))
+            ->parent('logs.users')->url('mag_events')
+            ->label('mag_event_logs')->permissions(['manage_events'])->order(30));
+        NavbarRegistry::add((new NavbarItem('logs.users.vod_theft'))
+            ->parent('logs.users')->url('theft_detection')
+            ->label('', 'VOD Theft Detection')->permissions(['movies'])->order(40));
     }
 
     // ── Management ────────────────────────────────────────────────
 
     /**
-     * Register Management navigation items.
-     * 
+     * Register Management navigation items (labelled "System").
+     *
      * Adds system management structure including Service Setup, Access Codes,
-     * Security, Tools, Logs (with megamenu), and Tickets.
+     * Security, Tools, and Tickets. Logs live in their own top-level tab now
+     * (see _logs()).
      *
      * @return void
      */
     private static function _management(): void {
-        NavbarRegistry::add((new NavbarItem('management'))
-            ->url('#')->label('management')
-            ->icon('fas fa-wrench')->order(600));
+        // The former "System" group is flattened: its sections (Service Setup,
+        // Access Codes, Security, Tools, Tickets) are now self-standing top-level
+        // items. The registry KEYS stay 'management.*' so the reserved child slots
+        // (management.service_setup 60+, etc.) and every child ->parent() keep working.
 
         // Service setup
         NavbarRegistry::add((new NavbarItem('management.service_setup'))
-            ->parent('management')->url('#')
-            ->label('service_setup')->permissions(['mng_packages', 'categories', 'mng_groups', 'epg', 'tprofiles', 'folder_watch'])->order(10));
+            ->url('#')->icon('fas fa-cog')
+            ->label('service_setup')->permissions(['mng_packages', 'categories', 'mng_groups', 'epg', 'tprofiles', 'folder_watch'])->order(600));
         NavbarRegistry::add((new NavbarItem('management.service_setup.packages'))
             ->parent('management.service_setup')->url('packages')
             ->label('packages')->permissions(['mng_packages'])->order(10));
@@ -350,8 +480,8 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 
         // Access codes
         NavbarRegistry::add((new NavbarItem('management.access_codes'))
-            ->parent('management')->url('#')
-            ->label('', 'Access Codes')->permissions(['add_code'])->order(20));
+            ->url('#')->icon('fas fa-key')
+            ->label('', 'Access Codes')->permissions(['add_code'])->order(610));
         NavbarRegistry::add((new NavbarItem('management.access_codes.add'))
             ->parent('management.access_codes')->url('code')
             ->label('add_access_codes')->permissions(['add_code'])->order(10));
@@ -361,8 +491,8 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 
         // Security
         NavbarRegistry::add((new NavbarItem('management.security'))
-            ->parent('management')->url('#')
-            ->label('', 'Security')->permissions(['block_asns', 'block_ips', 'block_isps', 'block_uas', 'add_hmac', 'rtmp'])->order(30));
+            ->url('#')->icon('fas fa-shield-alt')
+            ->label('', 'Security')->permissions(['block_asns', 'block_ips', 'block_isps', 'block_uas', 'add_hmac', 'rtmp', 'manage_mag'])->order(620));
         NavbarRegistry::add((new NavbarItem('management.security.asns'))
             ->parent('management.security')->url('asns')
             ->label('blocked_asns')->permissions(['block_asns'])->order(10));
@@ -381,10 +511,13 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('management.security.rtmp'))
             ->parent('management.security')->url('rtmp_ips')
             ->label('rtmp_ips')->permissions(['rtmp'])->order(60));
+        NavbarRegistry::add((new NavbarItem('management.security.magscan'))
+            ->parent('management.security')->url('magscan_settings')
+            ->label('magscan_settings')->permissions(['manage_mag'])->order(70));
 
         NavbarRegistry::add((new NavbarItem('management.tools'))
-            ->parent('management')->url('#')
-            ->label('tools')->permissions(['channel_order', 'fingerprint', 'mass_delete', 'quick_tools', 'rtmp', 'stream_tools'])->order(40));
+            ->url('#')->icon('fas fa-wrench')
+            ->label('tools')->permissions(['channel_order', 'fingerprint', 'mass_delete', 'quick_tools', 'rtmp', 'stream_tools'])->order(630));
         NavbarRegistry::add((new NavbarItem('management.tools.channel_order'))
             ->parent('management.tools')->url('channel_order')
             ->label('channel_order')->permissions(['channel_order'])->desktopOnly()->order(10));
@@ -404,87 +537,12 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->parent('management.tools')->url('stream_tools')
             ->label('stream_tools')->permissions(['stream_tools'])->order(60));
 
-        // Logs (megamenu)
-        NavbarRegistry::add((new NavbarItem('management.logs'))
-            ->parent('management')->url('#')
-            ->label('logs')->permissions(['movies', 'streams', 'connection_logs', 'client_request_log', 'login_logs', 'panel_logs', 'credits_log', 'live_connections', 'manage_events', 'reg_userlog', 'stream_errors'])->submenuClass('megamenu')->order(50));
-        NavbarRegistry::add((new NavbarItem('management.logs.activity'))
-            ->parent('management.logs')->url('line_activity')
-            ->label('activity_logs')->permissions(['connection_logs'])->order(10));
-        NavbarRegistry::add((new NavbarItem('management.logs.client'))
-            ->parent('management.logs')->url('client_logs')
-            ->label('client_logs')->permissions(['client_request_log'])->order(20));
-        NavbarRegistry::add((new NavbarItem('management.logs.credit'))
-            ->parent('management.logs')->url('credit_logs')
-            ->label('credit_logs')->permissions(['credits_log'])->order(30));
-        NavbarRegistry::add((new NavbarItem('management.logs.queue'))
-            ->parent('management.logs')->url('queue')
-            ->label('', 'Encoding Queue')->permissions(['streams', 'episodes', 'series'])->order(40));
-        NavbarRegistry::add((new NavbarItem('management.logs.line_ips'))
-            ->parent('management.logs')->url('line_ips')
-            ->label('ips_per_line')->permissions(['connection_logs'])->order(50));
-        NavbarRegistry::add((new NavbarItem('management.logs.live_connections'))
-            ->parent('management.logs')->url('live_connections')
-            ->label('live_connections')->permissions(['live_connections'])->order(60));
-        NavbarRegistry::add((new NavbarItem('management.logs.login'))
-            ->parent('management.logs')->url('login_logs')
-            ->label('', 'Login Logs')->permissions(['login_logs'])->order(70));
-        NavbarRegistry::add((new NavbarItem('management.logs.mag_events'))
-            ->parent('management.logs')->url('mag_events')
-            ->label('mag_event_logs')->permissions(['manage_events'])->order(80));
-        NavbarRegistry::add((new NavbarItem('management.logs.ondemand'))
-            ->parent('management.logs')->url('ondemand')
-            ->label('', 'On-Demand Scanner')->permissions(['streams'])->order(90));
-        NavbarRegistry::add((new NavbarItem('management.logs.panel_logs'))
-            ->parent('management.logs')->url('panel_logs')
-            ->label('', 'Panel Errors')->permissions(['panel_logs'])->order(100));
-        NavbarRegistry::add((new NavbarItem('management.logs.user_logs'))
-            ->parent('management.logs')->url('user_logs')
-            ->label('reseller_logs')->permissions(['reg_userlog'])->order(110));
-        NavbarRegistry::add((new NavbarItem('management.logs.restream'))
-            ->parent('management.logs')->url('restream_logs')
-            ->label('', 'Restream Detection')->permissions(['restream_logs'])->order(120));
-        NavbarRegistry::add((new NavbarItem('management.logs.stream_errors'))
-            ->parent('management.logs')->url('stream_errors')
-            ->label('stream_errors')->permissions(['stream_errors'])->order(130));
-        NavbarRegistry::add((new NavbarItem('management.logs.stream_rank'))
-            ->parent('management.logs')->url('stream_rank')
-            ->label('', 'Stream Rank')->permissions(['streams'])->order(140));
-        NavbarRegistry::add((new NavbarItem('management.logs.system'))
-            ->parent('management.logs')->url('mysql_syslog')
-            ->label('', 'System Logs')->permissions(['panel_logs'])->order(150));
-        NavbarRegistry::add((new NavbarItem('management.logs.vod_theft'))
-            ->parent('management.logs')->url('theft_detection')
-            ->label('', 'VOD Theft Detection')->permissions(['movies'])->order(160));
-        // Modules inject at order 170+
+        // Logs moved to its own top-level tab — see _logs().
 
         NavbarRegistry::add((new NavbarItem('management.tickets'))
-            ->parent('management')->url('tickets')
+            ->url('tickets')->icon('fas fa-ticket-alt')
             ->label('tickets')->permissions(['manage_tickets'])
-            ->settingDisabled('show_tickets')->order(60));
-    }
-
-    // ── Suppliers ─────────────────────────────────────────────────
-
-    /**
-     * Register Suppliers navigation items.
-     * 
-     * Adds stream provider/supplier management items.
-     *
-     * @return void
-     */
-    private static function _suppliers(): void {
-        NavbarRegistry::add((new NavbarItem('suppliers'))
-            ->url('#')->label('supplirs')
-            ->icon('fas fa-users')->order(700));
-
-        NavbarRegistry::add((new NavbarItem('suppliers.add'))
-            ->parent('suppliers')->url('provider')
-            ->label('add_providers')->permissions(['streams'])->order(10));
-
-        NavbarRegistry::add((new NavbarItem('suppliers.manage'))
-            ->parent('suppliers')->url('providers')
-            ->label('stream_providers')->permissions(['streams'])->order(20));
+            ->settingDisabled('show_tickets')->order(640));
     }
 
     // ── Profile dropdown ──────────────────────────────────────────

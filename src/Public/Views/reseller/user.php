@@ -1,214 +1,207 @@
 <?php
 
-use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Util\AdminHelpers;
-use XcVm\Domain\User\UserRepository;/**
- * User (sub-reseller) — clean view template.
+/**
+ * Sub-reseller add / edit (Bootstrap 5, reseller). Full-page create/edit form for
+ * a sub-user reached from the reseller users table (user?id=X) or "Add User"
+ * (no id = create). Rebuilt from the legacy wizard reseller/user.php onto the
+ * Bootstrap 5 shell; the POST field contract is preserved byte-for-byte.
+ *
+ * Posts to post.php?action=user (ResellerPostController -> ResellerAPI::processUser).
+ * ResellerAPI::processData('user') keeps ONLY: edit, username, password, owner_id,
+ * email, reseller_dns, notes, member_group_id — so this form emits exactly those
+ * (the legacy credits / credits_reason inputs are dropped: they are not in the
+ * reseller POST contract and were stripped server-side, i.e. non-functional).
+ *
  * Variables from controller: $rUser, $rGroups
  * ViewGlobals: $rUserInfo, $rPermissions, $rSettings, $language, $rRequest
  */
 
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\User\UserRepository;
+
+$rIsEdit  = isset($rUser);
+$rCost    = intval($rPermissions['create_sub_resellers_price']);
+$rNoFunds = !$rIsEdit && ($rUserInfo['credits'] - $rCost < 0);
+
+// Numeric status -> user message map (mirrors the legacy callbackForm 'user' switch).
+$rStatusMessages = [
+    STATUS_INVALID_PASSWORD     => 'Password is too short! It must be at least ' . intval($rPermissions['minimum_password_length']) . ' characters long.',
+    STATUS_INVALID_USERNAME     => 'Username is too short! It must be at least ' . intval($rPermissions['minimum_username_length']) . ' characters long.',
+    STATUS_INSUFFICIENT_CREDITS => 'You do not have enough credits to make this purchase.',
+    STATUS_INVALID_SUBRESELLER  => 'You are not set up to create subresellers. Please open a ticket.',
+    STATUS_EXISTS_USERNAME      => 'The username you selected already exists. Please use another.',
+];
 ?>
-<div class="wrapper boxed-layout">
-    <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <?php include __DIR__ . '/topbar.php'; ?>
-                    </div>
-                    <h4 class="page-title"><?= isset($rUser) ? 'Edit' : 'Add' ?> User</h4>
+
+<div class="d-flex align-items-center mb-4">
+    <a href="users" class="btn btn-icon btn-label-secondary me-3"><i class="icon-base ti tabler-arrow-left"></i></a>
+    <h4 class="mb-0"><?= $rIsEdit ? 'Edit' : 'Add'; ?> User</h4>
+</div>
+
+<?php if ($rIsEdit && !in_array($rUser['id'], $rPermissions['direct_reports'])): ?>
+    <?php $rOwner = UserRepository::getRegisteredUserById($rUser['owner_id']); ?>
+    <div class="alert alert-info" role="alert">
+        This user does not directly report to you, although you have the right to edit this user you should notify the user's parent <strong><a href="user?id=<?= (int) $rOwner['id']; ?>"><?= htmlspecialchars((string) $rOwner['username'], ENT_QUOTES); ?></a></strong> when doing so.
+    </div>
+<?php endif; ?>
+
+<form id="user-form" autocomplete="off">
+    <?php if ($rIsEdit): ?>
+        <input type="hidden" name="edit" value="<?= (int) $rUser['id']; ?>">
+    <?php endif; ?>
+
+    <div class="card mb-6">
+        <div class="card-body">
+            <div class="mb-6">
+                <label class="form-label" for="username">Username</label>
+                <input <?= (!$rPermissions['allow_change_username'] && $rIsEdit) ? 'disabled ' : ''; ?>type="text" class="form-control" id="username" name="username" value="<?= $rIsEdit ? htmlspecialchars((string) $rUser['username'], ENT_QUOTES) : ($rPermissions['allow_change_username'] ? htmlspecialchars(AdminHelpers::generateString(10), ENT_QUOTES) : ''); ?>" required>
+            </div>
+
+            <?php if ($rPermissions['allow_change_password'] || !$rIsEdit): ?>
+                <div class="mb-6">
+                    <label class="form-label" for="password"><?= $rIsEdit ? 'Change ' : ''; ?>Password</label>
+                    <input type="text" class="form-control" id="password" name="password"<?= $rIsEdit ? ' placeholder="Enter a new password here to change it"' : ''; ?> value="<?= $rIsEdit ? '' : ($rPermissions['allow_change_username'] ? htmlspecialchars(AdminHelpers::generateString(max(10, (int) SettingsManager::get('pass_length'))), ENT_QUOTES) : ''); ?>">
+                </div>
+            <?php endif; ?>
+
+            <?php if (count($rPermissions['all_reports']) > 0): ?>
+                <div class="mb-6">
+                    <label class="form-label" for="owner_id">Owner</label>
+                    <select name="owner_id" id="owner_id" class="form-select select2">
+                        <optgroup label="Myself">
+                            <option value="<?= (int) $rUserInfo['id']; ?>"<?= isset($rUser['owner_id']) && $rUser['owner_id'] == $rUserInfo['id'] ? ' selected' : ''; ?>><?= htmlspecialchars((string) $rUserInfo['username'], ENT_QUOTES); ?></option>
+                        </optgroup>
+                        <?php if (count($rPermissions['direct_reports']) > 0): ?>
+                            <optgroup label="Direct Reports">
+                                <?php foreach ($rPermissions['direct_reports'] as $rUserID): ?>
+                                    <?php $rRegisteredUser = $rPermissions['users'][$rUserID]; ?>
+                                    <option value="<?= (int) $rUserID; ?>"<?= isset($rUser['owner_id']) && $rUser['owner_id'] == $rUserID ? ' selected' : ''; ?>><?= htmlspecialchars((string) $rRegisteredUser['username'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endif; ?>
+                        <?php if (count($rPermissions['direct_reports']) < count($rPermissions['all_reports'])): ?>
+                            <optgroup label="Indirect Reports">
+                                <?php foreach ($rPermissions['all_reports'] as $rUserID): ?>
+                                    <?php if (!in_array($rUserID, $rPermissions['direct_reports'])): ?>
+                                        <?php $rRegisteredUser = $rPermissions['users'][$rUserID]; ?>
+                                        <option value="<?= (int) $rUserID; ?>"<?= isset($rUser['owner_id']) && $rUser['owner_id'] == $rUserID ? ' selected' : ''; ?>><?= htmlspecialchars((string) $rRegisteredUser['username'], ENT_QUOTES); ?></option>
+                                    <?php endif; ?>
+                                <?php endforeach; ?>
+                            </optgroup>
+                        <?php endif; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <?php if (count($rPermissions['subresellers']) > 1): ?>
+                <div class="mb-6">
+                    <label class="form-label" for="member_group_id">Member Group</label>
+                    <select name="member_group_id" id="member_group_id" class="form-select select2">
+                        <?php foreach ($rGroups as $rGroup): ?>
+                            <?php if (in_array($rGroup['group_id'], $rPermissions['subresellers'])): ?>
+                                <option <?= $rIsEdit && (int) $rUser['member_group_id'] === (int) $rGroup['group_id'] ? 'selected ' : ''; ?>value="<?= (int) $rGroup['group_id']; ?>"><?= htmlspecialchars((string) $rGroup['group_name'], ENT_QUOTES); ?></option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+            <?php endif; ?>
+
+            <div class="row mb-6">
+                <div class="col-md-6">
+                    <label class="form-label" for="email">Email Address</label>
+                    <input type="email" id="email" class="form-control" name="email" value="<?= $rIsEdit ? htmlspecialchars((string) $rUser['email'], ENT_QUOTES) : ''; ?>">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="reseller_dns">Reseller DNS</label>
+                    <input type="text" class="form-control" id="reseller_dns" name="reseller_dns" value="<?= $rIsEdit ? htmlspecialchars((string) $rUser['reseller_dns'], ENT_QUOTES) : ''; ?>">
                 </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-xl-12">
-                <?php if (isset($rUser) && !in_array($rUser['id'], $rPermissions['direct_reports'])): ?>
-                <?php $rOwner = UserRepository::getRegisteredUserById($rUser['owner_id']); ?>
-                <div class="alert alert-info" role="alert">
-                    This user does not directly report to you, although you have the right to edit this user you should notify the user's parent <strong><a href="user?id=<?= $rOwner['id'] ?>"><?= htmlspecialchars($rOwner['username']) ?></a></strong> when doing so.
-                </div>
-                <?php endif; ?>
-                <div class="card">
-                    <div class="card-body">
-                        <form action="#" method="POST" data-parsley-validate="">
-                            <?php if (isset($rUser)): ?>
-                            <input type="hidden" name="edit" value="<?= intval($rUser['id']) ?>" />
-                            <?php endif; ?>
-                            <div id="basicwizard">
-                                <ul class="nav nav-pills bg-light nav-justified form-wizard-header mb-4">
-                                    <li class="nav-item">
-                                        <a href="#user-details" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-account-card-details-outline mr-1"></i>
-                                            <span class="d-none d-sm-inline">Details</span>
-                                        </a>
-                                    </li>
-                                    <?php if (!isset($rUser)): ?>
-                                    <li class="nav-item">
-                                        <a href="#review-purchase" data-toggle="tab" class="nav-link rounded-0 pt-2 pb-2">
-                                            <i class="mdi mdi-book-open-variant mr-1"></i>
-                                            <span class="d-none d-sm-inline">Review Purchase</span>
-                                        </a>
-                                    </li>
-                                    <?php endif; ?>
-                                </ul>
-                                <div class="tab-content b-0 mb-0 pt-0">
-                                    <div class="tab-pane" id="user-details">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="username">Username</label>
-                                                    <div class="col-md-8">
-                                                        <input <?php if (!$rPermissions['allow_change_username'] && isset($rUser)) echo 'disabled '; ?>type="text" class="form-control" id="username" name="username" value="<?php if (isset($rUser)) { echo htmlspecialchars($rUser['username']); } else { echo ($rPermissions['allow_change_username'] ? AdminHelpers::generateString(10) : ''); } ?>" required data-parsley-trigger="change">
-                                                    </div>
-                                                </div>
-                                                <?php if ($rPermissions['allow_change_password'] || !isset($rUser)): ?>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="password"><?php if (isset($rUser)) echo 'Change '; ?>Password</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="password" name="password"<?php if (isset($rUser)) echo ' placeholder="Enter a new password here to change it"'; ?> value="<?= isset($rUser) ? '' : ($rPermissions['allow_change_username'] ? AdminHelpers::generateString(max(10, SettingsManager::get('pass_length'))) : '') ?>" data-indicator="pwindicator">
-                                                        <div id="pwindicator">
-                                                            <div class="bar"></div>
-                                                            <div class="label"></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <?php endif; ?>
-                                                <?php if (count($rPermissions['all_reports']) > 0): ?>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="owner_id">Owner</label>
-                                                    <div class="col-md-8">
-                                                        <select name="owner_id" id="owner_id" class="form-control select2" data-toggle="select2">
-                                                            <optgroup label="Myself">
-                                                                <option value="<?= $rUserInfo['id'] ?>"<?= isset($rUser['owner_id']) && $rUser['owner_id'] == $rUserInfo['id'] ? ' selected' : '' ?>><?= htmlspecialchars($rUserInfo['username']) ?></option>
-                                                            </optgroup>
-                                                            <?php if (count($rPermissions['direct_reports']) > 0): ?>
-                                                            <optgroup label="Direct Reports">
-                                                                <?php foreach ($rPermissions['direct_reports'] as $rUserID): ?>
-                                                                <?php $rRegisteredUser = $rPermissions['users'][$rUserID]; ?>
-                                                                <option value="<?= $rUserID ?>"<?= isset($rUser['owner_id']) && $rUser['owner_id'] == $rUserID ? ' selected' : '' ?>><?= htmlspecialchars($rRegisteredUser['username']) ?></option>
-                                                                <?php endforeach; ?>
-                                                            </optgroup>
-                                                            <?php endif; ?>
-                                                            <?php if (count($rPermissions['direct_reports']) < count($rPermissions['all_reports'])): ?>
-                                                            <optgroup label="Indirect Reports">
-                                                                <?php foreach ($rPermissions['all_reports'] as $rUserID): ?>
-                                                                <?php if (!in_array($rUserID, $rPermissions['direct_reports'])): ?>
-                                                                <?php $rRegisteredUser = $rPermissions['users'][$rUserID]; ?>
-                                                                <option value="<?= $rUserID ?>"<?= isset($rUser['owner_id']) && $rUser['owner_id'] == $rUserID ? ' selected' : '' ?>><?= htmlspecialchars($rRegisteredUser['username']) ?></option>
-                                                                <?php endif; ?>
-                                                                <?php endforeach; ?>
-                                                            </optgroup>
-                                                            <?php endif; ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <?php endif; ?>
-                                                <?php if (count($rPermissions['subresellers']) > 1): ?>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="member_group_id">Member Group</label>
-                                                    <div class="col-md-8">
-                                                        <select name="member_group_id" id="member_group_id" class="form-control select2" data-toggle="select2">
-                                                            <?php foreach ($rGroups as $rGroup): ?>
-                                                            <?php if (in_array($rGroup['group_id'], $rPermissions['subresellers'])): ?>
-                                                            <option <?= isset($rUser) && intval($rUser['member_group_id']) == intval($rGroup['group_id']) ? 'selected ' : '' ?>value="<?= intval($rGroup['group_id']) ?>"><?= htmlspecialchars($rGroup['group_name']) ?></option>
-                                                            <?php endif; ?>
-                                                            <?php endforeach; ?>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <?php endif; ?>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="email">Email Address</label>
-                                                    <div class="col-md-8">
-                                                        <input type="email" id="email" class="form-control" name="email" value="<?= isset($rUser) ? htmlspecialchars($rUser['email']) : '' ?>">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="reseller_dns">Reseller DNS</label>
-                                                    <div class="col-md-8">
-                                                        <input type="text" class="form-control" id="reseller_dns" name="reseller_dns" value="<?= isset($rUser) ? htmlspecialchars($rUser['reseller_dns']) : '' ?>">
-                                                    </div>
-                                                </div>
 
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="credits">Credits</label>
-                                                    <div class="col-md-2">
-                                                        <input type="text" class="form-control" id="credits" name="credits" value="<?= isset($rUser) ? htmlspecialchars($rUser['credits']) : '0' ?>">
-                                                    </div>
-                                                    <div class="col-md-6">
-                                                        <input type="text" class="form-control" id="credits_reason" name="credits_reason" placeholder="Reason for Adjustment" value="">
-                                                    </div>
-                                                </div>
-                                                <div class="form-group row mb-4">
-                                                    <label class="col-md-4 col-form-label" for="notes">Notes</label>
-                                                    <div class="col-md-8">
-                                                        <textarea id="notes" name="notes" class="form-control" rows="3"><?= isset($rUser) ? $rUser['notes'] : '' ?></textarea>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <?php if (isset($rUser)): ?>
-                                            <li class="list-inline-item float-right">
-                                                <input name="submit_user" type="submit" class="btn btn-primary purchase" value="Edit" />
-                                            </li>
-                                            <?php else: ?>
-                                            <li class="nextb list-inline-item float-right">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Next</a>
-                                            </li>
-                                            <?php endif; ?>
-                                        </ul>
-                                    </div>
-                                    <?php if (!isset($rUser)): ?>
-                                    <div class="tab-pane" id="review-purchase">
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <?php if ($rUserInfo['credits'] - $rPermissions['create_sub_resellers_price'] < 0): ?>
-                                                <div class="alert alert-danger" role="alert" id="no-credits">
-                                                    <i class="mdi mdi-block-helper mr-2"></i> You do not have enough credits to complete this transaction!
-                                                </div>
-                                                <?php endif; ?>
-                                                <div class="form-group row mb-4">
-                                                    <table class="table table-striped table-borderless" id="credits-cost">
-                                                        <thead>
-                                                            <tr>
-                                                                <th class="text-center">Total Credits</th>
-                                                                <th class="text-center">Purchase Cost</th>
-                                                                <th class="text-center">Remaining Credits</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            <tr>
-                                                                <td class="text-center"><?= number_format($rUserInfo['credits'], 0) ?></td>
-                                                                <td class="text-center" id="cost_credits"><?= number_format($rPermissions['create_sub_resellers_price'], 0) ?></td>
-                                                                <td class="text-center" id="remaining_credits"><?= number_format($rUserInfo['credits'] - $rPermissions['create_sub_resellers_price'], 0) ?></td>
-                                                            </tr>
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <ul class="list-inline wizard mb-0">
-                                            <li class="prevb list-inline-item">
-                                                <a href="javascript: void(0);" class="btn btn-secondary">Previous</a>
-                                            </li>
-                                            <li class="list-inline-item float-right">
-                                                <input <?= $rUserInfo['credits'] - $rPermissions['create_sub_resellers_price'] < 0 ? 'disabled ' : '' ?>name="submit_user" type="submit" class="btn btn-primary purchase" value="Purchase" />
-                                            </li>
-                                        </ul>
-                                    </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+            <div class="mb-2">
+                <label class="form-label" for="notes">Notes</label>
+                <textarea id="notes" name="notes" class="form-control" rows="3"><?= $rIsEdit ? htmlspecialchars((string) $rUser['notes'], ENT_QUOTES) : ''; ?></textarea>
             </div>
         </div>
     </div>
-</div>
+
+    <?php if (!$rIsEdit): ?>
+        <div class="card mb-6">
+            <div class="card-body">
+                <?php if ($rNoFunds): ?>
+                    <div class="alert alert-danger d-flex align-items-center" role="alert" id="no-credits">
+                        <i class="icon-base ti tabler-ban me-2"></i> You do not have enough credits to complete this transaction!
+                    </div>
+                <?php endif; ?>
+                <div class="table-responsive">
+                    <table class="table table-borderless mb-0" id="credits-cost">
+                        <thead>
+                            <tr>
+                                <th class="text-center">Total Credits</th>
+                                <th class="text-center">Purchase Cost</th>
+                                <th class="text-center">Remaining Credits</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="text-center"><?= number_format($rUserInfo['credits'], 0); ?></td>
+                                <td class="text-center" id="cost_credits"><?= number_format($rCost, 0); ?></td>
+                                <td class="text-center" id="remaining_credits"><?= number_format($rUserInfo['credits'] - $rCost, 0); ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <div class="d-flex justify-content-end mb-6">
+        <button <?= $rNoFunds ? 'disabled ' : ''; ?>type="submit" class="btn btn-primary" id="user-submit"><?= $rIsEdit ? 'Edit' : 'Purchase'; ?></button>
+    </div>
+</form>
+
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('reseller');
 ?>
+<script>
+    (function() {
+        var $ = window.jQuery;
+        var toast = window.xcToast || function(m) { alert(m); };
+        var errText = <?= json_encode($language::get('error_occured')); ?>;
+        var statusMessages = <?= json_encode($rStatusMessages); ?>;
+
+        if ($ && $.fn.select2) {
+            $('#owner_id, #member_group_id').select2({ width: '100%' });
+        }
+
+        document.getElementById('user-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            var btn = document.getElementById('user-submit');
+            btn.disabled = true;
+            fetch('post.php?action=user', {
+                    method: 'POST',
+                    body: new FormData(e.target),
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(function(r) { return r.text(); })
+                .then(function(txt) {
+                    var dt;
+                    try { dt = JSON.parse(txt); } catch (err) { dt = { result: false }; }
+                    if (dt && dt.result !== false) {
+                        window.location.href = dt.location || 'users';
+                        return;
+                    }
+                    btn.disabled = false;
+                    toast(statusMessages[dt.status] || errText, 'error');
+                })
+                .catch(function() {
+                    btn.disabled = false;
+                    toast(errText, 'error');
+                });
+        });
+    })();
+</script>
+</body>
+
+</html>

@@ -8,9 +8,13 @@ use XcVm\Core\Http\Router;
 use XcVm\Core\Module\Contract\CommandProviderInterface;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 use XcVm\Core\Module\Contract\NavbarProviderInterface;
+use XcVm\Core\Module\Contract\PermissionProviderInterface;
+use XcVm\Core\Module\Contract\QuickToolsProviderInterface;
 use XcVm\Core\Module\Contract\RouteProviderInterface;
 use XcVm\Core\Module\Contract\ServiceProviderInterface;
 use XcVm\Core\Module\Contract\StreamMiddlewareProviderInterface;
+use XcVm\Core\Module\Contract\TableProviderInterface;
+use XcVm\Core\Module\Contract\TopbarProviderInterface;
 
 /**
  * ModuleLoader — automatic system module loader and dependency resolver.
@@ -218,6 +222,25 @@ class ModuleLoader {
         $navbarRegistry = new NavbarRegistry();
         (new CoreNavbarProvider())->registerNavbar($navbarRegistry);
 
+        // Module topbar contributions are merged on top of Topbar's core literal
+        // (see XcVm\Core\Util\Topbar::config). Reset so a re-boot in the same
+        // process (tests/CLI) does not accumulate stale entries.
+        $topbarRegistry = new TopbarRegistry();
+        TopbarRegistry::reset();
+
+        // Module serverSide table handlers (TableController looks them up for
+        // non-core ids). Reset so a re-boot does not accumulate stale handlers.
+        $tableRegistry = new TableRegistry();
+        TableRegistry::reset();
+
+        // Module reseller-permission keys (merged into the group editor catalogue).
+        $permissionRegistry = new PermissionRegistry();
+        PermissionRegistry::reset();
+
+        // Module one-shot Quick Tools actions (button + handler).
+        $quickToolsRegistry = new QuickToolsRegistry();
+        QuickToolsRegistry::reset();
+
         foreach ($this->modules as $module) {
             if ($module instanceof ServiceProviderInterface) {
                 $module->boot($container);
@@ -234,6 +257,22 @@ class ModuleLoader {
 
             if ($module instanceof NavbarProviderInterface) {
                 $module->registerNavbar($navbarRegistry);
+            }
+
+            if ($module instanceof TopbarProviderInterface) {
+                $module->registerTopbar($topbarRegistry);
+            }
+
+            if ($module instanceof TableProviderInterface) {
+                $module->registerTables($tableRegistry);
+            }
+
+            if ($module instanceof PermissionProviderInterface) {
+                $module->registerPermissions($permissionRegistry);
+            }
+
+            if ($module instanceof QuickToolsProviderInterface) {
+                $module->registerQuickTools($quickToolsRegistry);
             }
         }
     }

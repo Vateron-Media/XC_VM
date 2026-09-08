@@ -53,8 +53,8 @@ class StreamController extends BaseAdminController {
         }
 
         $rServerTree = [
-            ['id' => 'source', 'parent' => '#', 'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Online</strong>", 'icon' => 'mdi mdi-play', 'state' => ['opened' => true]],
-            ['id' => 'offline', 'parent' => '#', 'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>", 'icon' => 'mdi mdi-stop', 'state' => ['opened' => true]],
+            ['id' => 'source', 'parent' => '#', 'text' => "<span class='badge bg-success'>Online</span>", 'icon' => 'icon-base ti tabler-player-play', 'state' => ['opened' => true]],
+            ['id' => 'offline', 'parent' => '#', 'text' => "<span class='badge bg-secondary'>Offline</span>", 'icon' => 'icon-base ti tabler-player-stop', 'state' => ['opened' => true]],
         ];
 
         $rAudioDevices = $rVideoDevices = [];
@@ -79,17 +79,23 @@ class StreamController extends BaseAdminController {
                 } else {
                     $rParent = 'offline';
                 }
-                $rServerTree[] = ['id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
+                $rServerTree[] = ['id' => $rServer['id'], 'parent' => $rParent, 'text' => $rServer['server_name'], 'icon' => 'icon-base ti tabler-server', 'state' => ['opened' => true]];
             }
         } else {
             if (Authorization::check('adv', 'add_stream')) {
                 foreach ($rServers as $rServer) {
-                    $rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'mdi mdi-server-network', 'state' => ['opened' => true]];
+                    $rServerTree[] = ['id' => $rServer['id'], 'parent' => 'offline', 'text' => $rServer['server_name'], 'icon' => 'icon-base ti tabler-server', 'state' => ['opened' => true]];
                 }
             } else {
                 exit();
             }
         }
+
+        // The load-balancer server tree on this form is driven by jstree.
+        $GLOBALS['xmNewuiVendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmNewuiVendors'] ?? []),
+            ['jstree']
+        )));
 
         $this->setTitle('Stream');
         $this->render('stream', compact(

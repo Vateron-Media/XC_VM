@@ -75,16 +75,6 @@ class BackupAjaxController extends BaseAjaxController {
             } else {
                 $db->query('TRUNCATE ' . $rTable . ';');
             }
-        } elseif (RequestManager::get('type') == 'watch_logs') {
-            if ($rStartTime && $rEndTime) {
-                $db->query('DELETE FROM `watch_logs` WHERE UNIX_TIMESTAMP(`dateadded`) >= ? AND UNIX_TIMESTAMP(`dateadded`) <= ?;', $rStartTime, $rEndTime);
-            } elseif ($rStartTime) {
-                $db->query('DELETE FROM `watch_logs` WHERE UNIX_TIMESTAMP(`dateadded`) >= ?;', $rStartTime);
-            } elseif ($rEndTime) {
-                $db->query('DELETE FROM `watch_logs` WHERE UNIX_TIMESTAMP(`dateadded`) <= ?;', $rEndTime);
-            } else {
-                $db->query('TRUNCATE `watch_logs`;');
-            }
         }
 
         $this->ok();

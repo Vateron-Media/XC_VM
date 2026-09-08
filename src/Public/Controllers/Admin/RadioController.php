@@ -41,15 +41,15 @@ class RadioController extends BaseAdminController {
             array(
                 'id' => 'source',
                 'parent' => '#',
-                'text' => "<strong class='btn btn-success waves-effect waves-light btn-xs'>Online</strong>",
-                'icon' => 'mdi mdi-play',
+                'text' => "<span class='badge bg-success'>Online</span>",
+                'icon' => 'icon-base ti tabler-player-play',
                 'state' => array('opened' => true)
             ),
             array(
                 'id' => 'offline',
                 'parent' => '#',
-                'text' => "<strong class='btn btn-secondary waves-effect waves-light btn-xs'>Offline</strong>",
-                'icon' => 'mdi mdi-stop',
+                'text' => "<span class='badge bg-secondary'>Offline</span>",
+                'icon' => 'icon-base ti tabler-player-stop',
                 'state' => array('opened' => true)
             )
         );
@@ -72,7 +72,7 @@ class RadioController extends BaseAdminController {
                     'id' => $rServer['id'],
                     'parent' => $rParent,
                     'text' => $rServer['server_name'],
-                    'icon' => 'mdi mdi-server-network',
+                    'icon' => 'icon-base ti tabler-server',
                     'state' => array('opened' => true)
                 );
             }
@@ -82,11 +82,17 @@ class RadioController extends BaseAdminController {
                     'id' => $rServer['id'],
                     'parent' => 'offline',
                     'text' => $rServer['server_name'],
-                    'icon' => 'mdi mdi-server-network',
+                    'icon' => 'icon-base ti tabler-server',
                     'state' => array('opened' => true)
                 );
             }
         }
+
+        // The load-balancer server tree on this form is driven by jstree.
+        $GLOBALS['xmNewuiVendors'] = array_values(array_unique(array_merge(
+            (array) ($GLOBALS['xmNewuiVendors'] ?? []),
+            ['jstree']
+        )));
 
         $this->setTitle('Radio Stations');
         $this->render('radio', compact(

@@ -1,0 +1,42 @@
+/* Logistics Overview
+******************************************************************************* */
+/* (C) */
+/* Vehicles overview progress labels */
+.vehicles-progress-labels .vehicles-progress-label {
+  position: relative;
+  padding-block-end: 15px;
+}
+.vehicles-progress-labels .vehicles-progress-label::after {
+  position: absolute;
+  display: inline-block;
+  background-color: var(--bs-border-color);
+  block-size: 10px;
+  content: "";
+  inline-size: 2px;
+  inset-block-end: 0;
+  inset-inline-start: 0;
+}
+
+/* Vehicles overview progress */
+.vehicles-overview-progress {
+  --bs-snackbar-bg: #22303e;
+}
+.vehicles-overview-progress .snackbar {
+  background-color: var(--bs-snackbar-bg);
+}
+
+/* Shipment statistics chart legend */
+#shipmentStatisticsChart .apexcharts-legend-series,
+#carrierPerformance .apexcharts-legend-series {
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  block-size: 70%;
+  padding-block: 4px;
+  padding-inline: 12px;
+  padding-inline-start: 17px;
+}
+
+/* Dark theme */
+[data-bs-theme=dark] .vehicles-overview-progress {
+  --bs-snackbar-bg: #e6e6f1;
+}

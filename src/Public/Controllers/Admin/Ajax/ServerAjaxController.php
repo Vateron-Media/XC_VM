@@ -75,8 +75,12 @@ class ServerAjaxController extends BaseAjaxController {
         $rSub = RequestManager::get('sub');
 
         if ($rSub == 'delete') {
-            if (isset($rServers[RequestManager::get('server_id')]) && $rServers[RequestManager::get('server_id')]['is_main'] == 0) {
-                ServerRepository::deleteById(RequestManager::get('server_id'));
+            // Look the server up in the full list (getAll), not the online-filtered
+            // $rServers global — otherwise an offline/failed server can never be deleted.
+            $rAllServers = ServerRepository::getAll();
+            $rDeleteId = RequestManager::get('server_id');
+            if (isset($rAllServers[$rDeleteId]) && $rAllServers[$rDeleteId]['is_main'] == 0) {
+                ServerRepository::deleteById($rDeleteId);
                 $this->ok();
             }
 

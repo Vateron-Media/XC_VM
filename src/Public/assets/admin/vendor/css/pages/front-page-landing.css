@@ -1,0 +1,262 @@
+/* Landing
+******************************************************************************* */
+/* (C) */
+.section-py {
+  padding-block: 6.25rem;
+  padding-inline: 0;
+}
+@media (max-width: 1199.98px) {
+  .section-py {
+    padding-block: 5rem;
+    padding-inline: 0;
+  }
+}
+@media (max-width: 767.98px) {
+  .section-py {
+    padding-block: 3rem;
+    padding-inline: 0;
+  }
+}
+
+/* Hero */
+.landing-hero {
+  --bs-hero-bg: linear-gradient(138.18deg, #eae8fd 0%, #fce5e6 94.44%);
+  border-radius: 0 0 3.5rem 3.5rem;
+  background: var(--bs-hero-bg);
+  padding-block-start: 10.2rem;
+}
+.landing-hero::after {
+  position: absolute;
+  z-index: -1;
+  background-color: var(--bs-paper-bg);
+  block-size: 100%;
+  content: "";
+  inline-size: 100%;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+@media (min-width: 992px) {
+  .landing-hero .hero-text-box {
+    margin-block: 0;
+    margin-inline: auto;
+    max-inline-size: 34.375rem;
+  }
+}
+.landing-hero .hero-title {
+  animation: shine 2s ease-in-out infinite alternate;
+  background: linear-gradient(to right, #28c76f 0%, #5a4aff 47.92%, #ff3739 100%);
+  background-clip: text;
+  background-size: 200% auto;
+  color: var(--bs-heading-color);
+  font-size: calc(1.3875rem + 1.65vw);
+  line-height: 1.2;
+  -webkit-text-fill-color: transparent;
+}
+@media (min-width: 1200px) {
+  .landing-hero .hero-title {
+    font-size: 2.625rem;
+  }
+}
+.landing-hero .landing-hero-btn .hero-btn-item {
+  inset-block-start: 65%;
+  inset-inline-start: -94%;
+}
+.landing-hero .hero-animation-img {
+  margin-block-end: -32rem;
+}
+@media (max-width: 1199.98px) {
+  .landing-hero .hero-animation-img {
+    margin-block-end: -20rem;
+  }
+}
+@media (max-width: 575.98px) {
+  .landing-hero .hero-animation-img {
+    margin-block-end: -10rem;
+  }
+}
+.landing-hero .hero-animation-img .hero-dashboard-img {
+  inline-size: 80%;
+  margin-block: 0;
+  margin-inline: auto;
+  transform-style: preserve-3d;
+  transition: all 0.1s;
+  will-change: transform;
+}
+.landing-hero .hero-animation-img .hero-dashboard-img img {
+  inline-size: 100%;
+}
+
+.landing-hero-blank {
+  padding-block-start: 26rem;
+}
+@media (max-width: 1199.98px) {
+  .landing-hero-blank {
+    padding-block-start: 15rem;
+  }
+}
+@media (max-width: 575.98px) {
+  .landing-hero-blank {
+    padding-block-start: 7rem;
+  }
+}
+
+@keyframes shine {
+  0% {
+    background-position: 0% 50%;
+  }
+  80% {
+    background-position: 50% 90%;
+  }
+  100% {
+    background-position: 91% 100%;
+  }
+}
+/* Useful features */
+.landing-features .features-icon-wrapper .features-icon-box .features-icon-description {
+  margin-block: 0;
+  margin-inline: auto;
+  max-inline-size: 19.25rem;
+}
+
+/* Real customers reviews */
+.landing-reviews {
+  border-top-left-radius: 3.75rem;
+  border-top-right-radius: 3.75rem;
+}
+.landing-reviews .swiper-reviews-carousel .swiper-button-prev,
+.landing-reviews .swiper-reviews-carousel .swiper-button-next {
+  display: none;
+}
+.landing-reviews .swiper-reviews-carousel .swiper-slide {
+  padding: 0.8125rem;
+  block-size: auto;
+}
+.landing-reviews .swiper-reviews-carousel .client-logo {
+  block-size: 1.375rem;
+  object-fit: contain;
+}
+.landing-reviews .swiper-logo-carousel {
+  padding-block-end: 6.25rem;
+}
+.landing-reviews .swiper-logo-carousel .swiper {
+  max-inline-size: 45rem;
+}
+.landing-reviews .swiper-logo-carousel .swiper .swiper-slide {
+  display: flex;
+  justify-content: center;
+}
+.landing-reviews .swiper-logo-carousel .swiper .client-logo {
+  max-block-size: 2.5rem;
+  max-inline-size: 95%;
+  object-fit: contain;
+}
+
+/* our great team */
+.landing-team .card,
+.landing-team .card .team-image-box {
+  border-start-end-radius: 1.25rem;
+  border-start-start-radius: 5.625rem;
+}
+.landing-team .card .card-body {
+  border-bottom-right-radius: 0.375rem;
+  border-bottom-left-radius: 0.375rem;
+}
+.landing-team .team-image-box {
+  block-size: 11.5625rem;
+}
+.landing-team .team-image-box .card-img-position {
+  block-size: 15rem;
+  max-inline-size: 100%;
+  object-fit: cover;
+  transform: translateX(-50%);
+}
+:dir(rtl) .landing-team .team-image-box .card-img-position {
+  transform: translateX(50%) !important;
+}
+@media (max-width: 991.98px) {
+  .landing-team .team-image-box .card-img-position {
+    block-size: 13rem;
+  }
+}
+@media (max-width: 575.98px) {
+  .landing-team .team-image-box {
+    block-size: 11rem;
+  }
+}
+
+/* Pricing plans */
+.landing-pricing {
+  border-radius: 3.75rem;
+}
+.landing-pricing .pricing-plans-item {
+  inset-block-end: -0.5rem;
+  inset-inline-end: -56%;
+}
+@media (max-width: 767.98px) {
+  .landing-pricing .pricing-plans-item {
+    inset-block-end: 1rem;
+    inset-inline-end: 0;
+  }
+}
+.landing-pricing .pricing-list .badge.badge-center {
+  block-size: 1rem;
+  inline-size: 1rem;
+}
+.landing-pricing .price-yearly-toggle {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+}
+.landing-pricing .card .card-header,
+.landing-pricing .card .card-body {
+  padding: 2rem;
+}
+.landing-pricing .card .card-header {
+  padding-block-start: 3rem;
+}
+.landing-pricing .card .card-body {
+  padding-block-start: 0;
+}
+
+/* FAQs */
+.landing-faq {
+  border-top-left-radius: 3.75rem;
+  border-top-right-radius: 3.75rem;
+}
+.landing-faq .faq-image {
+  inline-size: 80%;
+  max-inline-size: 20rem;
+}
+
+.landing-cta .cta-title {
+  font-size: 2.125rem;
+}
+@media (max-width: 767.98px) {
+  .landing-cta .cta-title {
+    font-size: 1.8rem;
+  }
+}
+
+/* Contact US */
+.landing-contact .text-heading {
+  overflow-wrap: anywhere;
+}
+.landing-contact .contact-img-box {
+  border-radius: 3.75rem var(--bs-border-radius) var(--bs-border-radius);
+}
+:dir(rtl) .landing-contact .contact-img-box {
+  border-radius: var(--bs-border-radius) 3.75rem var(--bs-border-radius) var(--bs-border-radius);
+}
+.landing-contact .contact-img-box .contact-img {
+  border-radius: 3.75rem var(--bs-border-radius) var(--bs-border-radius);
+}
+.landing-contact .contact-img-box .contact-border-img {
+  inset-block-start: -2.5rem;
+  inset-inline-start: -2.8125rem;
+}
+
+/* Dark style */
+[data-bs-theme=dark] .landing-hero {
+  --bs-hero-bg: #1e2130;
+}

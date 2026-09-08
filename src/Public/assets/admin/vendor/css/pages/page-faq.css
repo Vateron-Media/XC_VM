@@ -1,0 +1,31 @@
+/* FAQ
+******************************************************************************* */
+/* (C) */
+.faq-header .input-wrapper {
+  position: relative;
+  inline-size: 100%;
+  max-inline-size: 55%;
+}
+.faq-header .input-wrapper .input-group-text,
+.faq-header .input-wrapper .form-control {
+  background-color: var(--bs-paper-bg);
+}
+@media (max-width: 575.98px) {
+  .faq-header .input-wrapper {
+    max-inline-size: 70%;
+  }
+}
+
+.faq-banner-img {
+  position: absolute;
+  block-size: 100%;
+  inline-size: 100%;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  object-fit: cover;
+  object-position: left;
+}
+
+.bg-faq-section {
+  background-color: rgba(var(--bs-base-color-rgb), 0.06);
+}

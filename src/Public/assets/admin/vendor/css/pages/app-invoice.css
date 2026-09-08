@@ -1,0 +1,33 @@
+/* Invoice
+******************************************************************************* */
+/* (C) */
+/* Invoice Edit & Add */
+@media (max-width: 575.98px) {
+  .invoice-edit .invoice-preview-card .invoice-calculations,
+  .invoice-add .invoice-preview-card .invoice-calculations {
+    inline-size: 100%;
+  }
+}
+@media (min-width: 768px) {
+  .invoice-edit .repeater-title,
+  .invoice-add .repeater-title {
+    position: absolute;
+    inset-block-start: -2.4rem;
+  }
+}
+.invoice-edit .invoice-preview-card .repeater-wrapper:not(:last-child),
+.invoice-add .invoice-preview-card .repeater-wrapper:not(:last-child) {
+  margin-block-end: 1.5rem;
+}
+@media print {
+  .invoice-edit hr,
+  .invoice-add hr {
+    margin-block: 1rem !important;
+  }
+}
+
+.invoice-preview .invoice-preview-header,
+.invoice-edit .invoice-preview-header,
+.invoice-add .invoice-preview-header {
+  background-color: var(--bs-gray-50);
+}

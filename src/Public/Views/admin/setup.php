@@ -145,169 +145,110 @@ if (!RequestManager::has('update')):
     require_once __DIR__ . '/../layouts/admin.php';
     renderUnifiedLayoutHeader('admin', ['_SETUP' => true]);
 ?>
-    <div class="wrapper boxed-layout" <?php if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest') {
-                                        } else {
-                                        ?> style="display: none;" <?php
-                                                                } ?>>
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-12">
-                    <div class="page-title-box">
-                        <h4 class="page-title"><?= $language::get('database_migration') ?></h4>
+    <h4 class="py-3 mb-4"><?= $language::get('database_migration') ?></h4>
+    <div class="card">
+        <div class="card-body">
+            <?php if ($rMigrating) { ?>
+                <!-- State (a): migration in progress -->
+                <div class="text-center">
+                    <i class="icon-base ti tabler-database-export text-info" style="font-size:2.5rem;"></i>
+                    <h5 class="text-info mt-2 mb-3"><?= $language::get('setup_migrating') ?></h5>
+                    <textarea readonly id="migration_progress"
+                        class="form-control bg-dark text-white font-monospace mb-3"
+                        style="height:360px; resize:none;"></textarea>
+                    <div class="text-end">
+                        <button disabled onClick="migrateServer();" class="btn btn-info" id="migrate_button">
+                            <i class="icon-base ti tabler-refresh me-1"></i><?= $language::get('try_again') ?>
+                        </button>
                     </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-xl-12">
-                    <div class="card-box">
-                        <?php if ($rMigrating) { ?>
-                            <div class="col-md-12 align-self-center">
-                                <div class="text-center" style="padding-top: 15px;">
-                                    <i class="mdi mdi-creation avatar-title font-24 text-info"></i><br />
-                                    <h4 class="header-title text-info">Migrating...</h4>
-                                    <textarea readonly
-                                        style="padding: 15px; margin-top: 20px; background: #56c2d6; color: #fff; border: 0; width: 100%; height: 300px; scroll-y: auto;"
-                                        id="migration_progress"></textarea>
-                                    <ul class="list-inline wizard mb-4">
-                                        <li class="float-right">
-                                            <button disabled onClick="migrateServer();" class="btn btn-info"
-                                                id="migrate_button"><?= $language::get('try_again') ?></button>
-                                        </li>
-                                    </ul>
-                                </div>
+                <?php } else {
+                if (RequestManager::has('new') && $rFirstRun) { ?>
+                    <!-- State (b): first-run admin account creation -->
+                    <form action="./setup" method="POST" data-parsley-validate="">
+                        <?php if (isset($_STATUS) && $_STATUS == STATUS_FAILURE) { ?>
+                            <div class="alert alert-danger" role="alert"><?= $language::get('setup_password_length_error') ?></div>
+                        <?php } else { ?>
+                            <div class="alert alert-info" role="alert"><?= $language::get('setup_create_admin_intro') ?></div>
+                        <?php } ?>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="username"><?= $language::get('admin_username') ?></label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="username" name="username" value=""
+                                    required data-parsley-trigger="change">
                             </div>
-                            <?php } else {
-                            if (RequestManager::has('new') && $rFirstRun) { ?>
-                                <form action="./setup" method="POST" data-parsley-validate="">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <?php
-                                            if (isset($_STATUS) && $_STATUS == STATUS_FAILURE) { ?>
-                                                <div class="alert alert-danger mb-4" role="alert">
-                                                    Please ensure your username and password are at least 8 characters long.
-                                                </div>
-                                            <?php } else { ?>
-                                                <div class="alert alert-info mb-4" role="alert">
-                                                    As you've decided not to migrate a previous database, you need to create an admin
-                                                    account below.<br />Choose a strong username and password or you may be susceptible
-                                                    to attacks.
-                                                </div>
-                                            <?php } ?>
-                                            <div class="form-group row mb-4">
-                                                <label class="col-md-4 col-form-label" for="username"><?= $language::get('admin_username') ?></label>
-                                                <div class="col-md-8">
-                                                    <input type="text" class="form-control" id="username" name="username" value=""
-                                                        required data-parsley-trigger="change">
-                                                </div>
-                                            </div>
-                                            <div class="form-group row mb-4">
-                                                <label class="col-md-4 col-form-label" for="password"><?= $language::get('admin_password') ?></label>
-                                                <div class="col-md-8">
-                                                    <input type="password" class="form-control" id="password" name="password"
-                                                        value="" required data-parsley-trigger="change">
-                                                </div>
-                                            </div>
-                                            <div class="form-group row mb-4">
-                                                <label class="col-md-4 col-form-label" for="email"><?= $language::get('email_address') ?></label>
-                                                <div class="col-md-8">
-                                                    <input type="text" class="form-control" id="email" name="email" value="">
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <ul class="list-inline wizard mb-4">
-                                        <li class="list-inline-item float-right">
-                                            <input name="new_user" type="submit" class="btn btn-primary" value="Create" />
-                                        </li>
-                                    </ul>
-                                </form>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="password"><?= $language::get('admin_password') ?></label>
+                            <div class="col-md-8">
+                                <input type="password" class="form-control" id="password" name="password"
+                                    value="" required data-parsley-trigger="change">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <label class="col-md-4 col-form-label" for="email"><?= $language::get('email_address') ?></label>
+                            <div class="col-md-8">
+                                <input type="text" class="form-control" id="email" name="email" value="">
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <input name="new_user" type="submit" class="btn btn-primary" value="<?= htmlspecialchars($language::get('create'), ENT_QUOTES) ?>" />
+                        </div>
+                    </form>
+                <?php } else { ?>
+                    <!-- State (c): migration table + Migrate / Don't-Migrate actions -->
+                    <form action="./setup" method="POST" data-parsley-validate="">
+                        <div class="alert alert-secondary" role="alert"><?= $language::get('setup_migration_instructions') ?></div>
+                        <?php if (!$rMigrateConnection): ?>
+                            <div class="alert alert-danger" role="alert"><?= $language::get('setup_migrate_connection_error') ?></div>
+                        <?php endif; ?>
+                        <?php if ($rMigrateConnection && $rTotalCount > 0): ?>
+                            <div class="alert alert-secondary" role="alert"><?= $language::get('setup_migration_records_intro') ?></div>
+                            <div class="table-responsive mb-4">
+                                <table class="table table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th><?= $language::get('description') ?></th>
+                                            <th><?= $language::get('table_name') ?></th>
+                                            <th class="text-center"><?= $language::get('records') ?></th>
+                                            <th class="text-center"><?= $language::get('migrate') ?></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php foreach ($rCount as $rTable => $rItem) {
+                                            if ($rItem[1] != 0) { ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($rItem[0]); ?></td>
+                                                    <td><?php echo htmlspecialchars($rTable); ?></td>
+                                                    <td class="text-center"><span class="badge bg-label-<?php echo (0 < $rItem[1] ? 'info' : 'secondary'); ?>"><?php echo $rItem[1]; ?></span></td>
+                                                    <td class="text-center">
+                                                        <div class="form-check d-inline-block">
+                                                            <input name="migrate#<?php echo htmlspecialchars($rTable); ?>"
+                                                                <?php echo (0 < $rItem[1] ? 'checked' : 'disabled'); ?>
+                                                                type="checkbox" class="form-check-input activate">
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                        <?php }
+                                        } ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <?php endif; ?>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <?php if ($rFirstRun) { ?>
+                                <a href="./setup?new"><button name="dont_migrate" class="btn btn-danger"
+                                        type="button"><?= $language::get('dont_migrate') ?></button></a>
                             <?php } else { ?>
-                                <form action="./setup" method="POST" data-parsley-validate="">
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <div class="alert alert-secondary mb-4" role="alert">
-                                                In order to migrate your database from a previous installation of Xtream UI, XUI, ZapX
-                                                (original and NXT), StreamCreed or generic Xtream Codes v2 installation, you will
-                                                need to restore your migration database to the <strong>xc_vm_migrate</strong> database
-                                                as XC_VM will have access to it.<br /><br />The script will then loop through all of
-                                                your previously existing data and alter it to work with XC_VM. No logs will be
-                                                migrated and some clean up may need to be done post-migration but this tool should
-                                                help significantly in carrying over your data to your new panel.<br /><br /><br />Once you're done, refresh the page.
-                                            </div>
-                                            <?php if (!$rMigrateConnection): ?>
-                                                <div class="alert alert-danger mb-4" role="alert">
-                                                    A connection to the xc_vm_migrate database could not be made. Please ensure the
-                                                    database exists, if it does not, create it.
-                                                </div>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <?php
-                                    if ($rMigrateConnection && $rTotalCount > 0): ?>
-                                        <div class="row">
-                                            <div class="col-12">
-                                                <div class="alert alert-secondary mb-4" role="alert">
-                                                    Below is a list of records found in the migration database. Please check this over
-                                                    and click Migrate when you're ready to begin. You can also uncheck tables you don't
-                                                    want to migrate.
-                                                </div>
-                                                <table class="table table-striped table-borderless mb-4">
-                                                    <thead>
-                                                        <tr>
-                                                            <th><?= $language::get('description') ?></th>
-                                                            <th><?= $language::get('table_name') ?></th>
-                                                            <th class="text-center"><?= $language::get('records') ?></th>
-                                                            <th class="text-center"><?= $language::get('migrate') ?></th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody>
-                                                        <?php foreach ($rCount as $rTable => $rItem) {
-                                                            if ($rItem[1] != 0) { ?>
-                                                                <tr>
-                                                                    <td><?php echo htmlspecialchars($rItem[0]); ?></td>
-                                                                    <td><?php echo htmlspecialchars($rTable); ?></td>
-                                                                    <td class="text-center"><button type="button"
-                                                                            class="btn btn-<?php echo (0 < $rItem[1] ? 'info' : 'secondary'); ?> btn-xs waves-effect waves-light"><?php echo $rItem[1]; ?></button>
-                                                                    </td>
-                                                                    <td class="text-center">
-                                                                        <div class="checkbox checkbox-single checkbox-info">
-                                                                            <input name="migrate#<?php echo htmlspecialchars($rTable); ?>"
-                                                                                <?php echo (0 < $rItem[1] ? 'checked' : 'disabled'); ?>
-                                                                                type="checkbox" class="activate">
-                                                                            <label></label>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                        <?php }
-                                                        } ?>
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        </div>
-                                    <?php endif; ?>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <ul class="list-inline wizard">
-                                                <?php if ($rFirstRun) { ?>
-                                                    <li class="list-inline-item">
-                                                        <a href="./setup?new"><button name="dont_migrate" class="btn btn-danger"
-                                                                type="button"><?= $language::get('dont_migrate') ?></button></a>
-                                                    </li>
-                                                <?php }
-                                                if ($rMigrateConnection && $rTotalCount > 0) { ?>
-                                                    <li class="list-inline-item float-right">
-                                                        <input name="migrate" type="submit" class="btn btn-primary" value="Migrate" />
-                                                    </li>
-                                                <?php } ?>
-                                            </ul>
-                                        </div>
-                                    </div>
-                                </form>
-                        <?php }
-                        } ?>
-                    </div>
-                </div>
-            </div>
+                                <span></span>
+                            <?php }
+                            if ($rMigrateConnection && $rTotalCount > 0) { ?>
+                                <input name="migrate" type="submit" class="btn btn-primary" value="<?= htmlspecialchars($language::get('migrate'), ENT_QUOTES) ?>" />
+                            <?php } ?>
+                        </div>
+                    </form>
+            <?php }
+            } ?>
         </div>
     </div>
     <?php
@@ -318,8 +259,11 @@ if (!RequestManager::has('update')):
         <script>
             function getMigrationStatus() {
                 $.getJSON("./setup?update=1", function(data) {
+                    // Use the raw <textarea> .value (not jQuery .html()) so log text
+                    // is set reliably as plain content, never parsed as markup.
+                    var box = document.getElementById('migration_progress');
                     if (data.result === true) {
-                        $("#migration_progress").html(data.data);
+                        if (box) box.value = data.data;
                         if (data.status == 1) {
                             setTimeout(getMigrationStatus, 1000);
                         } else if (data.status == 2) {
@@ -328,11 +272,11 @@ if (!RequestManager::has('update')):
                             $("#migrate_button").prop("disabled", false);
                         }
                     } else {
-                        $("#migration_progress").html("No progress available...");
+                        if (box) box.value = <?= json_encode($language::get('setup_no_progress')) ?>;
                         setTimeout(getMigrationStatus, 1000);
                     }
-                    if ($("#migration_progress").length) {
-                        $("#migration_progress").scrollTop($("#migration_progress")[0].scrollHeight - $("#migration_progress").height());
+                    if (box) {
+                        box.scrollTop = box.scrollHeight;
                     }
                 });
             }

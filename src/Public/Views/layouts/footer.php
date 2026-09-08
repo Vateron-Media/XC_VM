@@ -56,10 +56,13 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         }
 
         if ($scope === 'reseller') {
+            // Every reseller page is migrated to the Bootstrap 5 shell.
             require __DIR__ . '/reseller/footer.php';
             return;
         }
 
+        // Admin is fully on the Bootstrap 5 shell (setup + modals handled inside
+        // admin/footer.php), so the admin scope always renders the new-UI footer.
         require dirname(__DIR__) . '/admin/footer.php';
     }
 }

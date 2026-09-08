@@ -378,6 +378,7 @@ $router->api('get_package_trial',  [PackageAjaxController::class, 'getPackageTri
 $router->api('graph_stats',  [StatsAjaxController::class, 'graphStats']);
 $router->api('stats',        [StatsAjaxController::class, 'stats']);
 $router->api('header_stats',  [StatsAjaxController::class, 'headerStats']);
+$router->api('save_ui_prefs', [StatsAjaxController::class, 'saveUiPrefs']);
 
 // ─── Backups, Logs & Reports ───────────────────────
 $router->api('clear_logs',           [BackupAjaxController::class, 'clearLogs']);
@@ -398,7 +399,6 @@ $router->api('multi', [MultiAjaxController::class, 'multi']);
 // ─── Misc ──────────────────────────────────────────
 $router->api('process',          [MiscAjaxController::class, 'process']);
 $router->api('profile',          [MiscAjaxController::class, 'profile']);
-$router->api('watch_output',     [MiscAjaxController::class, 'watchOutput']);
 $router->api('reguserlist',      [MiscAjaxController::class, 'reguserlist']);
 $router->api('userlist',         [MiscAjaxController::class, 'userlist']);
 $router->api('listdir',          [MiscAjaxController::class, 'listdir']);

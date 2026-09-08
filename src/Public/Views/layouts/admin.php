@@ -25,12 +25,27 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
 
         // Legacy header.php expects these variables in file scope.
         // Since we require it from inside a function, pull them from $GLOBALS.
-        foreach ([
-            'rUserInfo', 'rSettings', 'rThemes', 'rMobile', 'rHues',
-            'db', 'allServersHealthy', 'rServerError',
-            'rServers', 'allServers', 'rUpdate', '_TITLE', 'rModal',
-            'rProxyServers', 'rPermissions', '_PAGE', '_SETUP',
-        ] as $_g) {
+        foreach (
+            [
+                'rUserInfo',
+                'rSettings',
+                'rThemes',
+                'rMobile',
+                'rHues',
+                'db',
+                'allServersHealthy',
+                'rServerError',
+                'rServers',
+                'allServers',
+                'rUpdate',
+                '_TITLE',
+                'rModal',
+                'rProxyServers',
+                'rPermissions',
+                '_PAGE',
+                '_SETUP',
+            ] as $_g
+        ) {
             if (array_key_exists($_g, $GLOBALS)) {
                 $$_g = $GLOBALS[$_g];
             }
@@ -48,10 +63,22 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         }
 
         if ($scope === 'reseller') {
+            // Every reseller page is migrated to the Bootstrap 5 shell.
             require __DIR__ . '/reseller/header.php';
+            // header may set $rGenTrials/$rModal in local scope; propagate to
+            // $GLOBALS so the footer/renderer can read it later.
+            if (isset($rGenTrials)) {
+                $GLOBALS['rGenTrials'] = $rGenTrials;
+            }
+            if (isset($rModal)) {
+                $GLOBALS['rModal'] = $rModal;
+            }
             return;
         }
 
+        // Every admin page is migrated to the Bootstrap 5 shell (setup + modals
+        // included via header.php's own $_SETUP / ?modal branches), so the admin
+        // scope always renders the new-UI header.
         require dirname(__DIR__) . '/admin/header.php';
 
         // header.php sets $rModal in local scope; propagate to $GLOBALS

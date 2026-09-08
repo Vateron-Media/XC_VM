@@ -423,7 +423,9 @@ class MovieService {
 							$rPath = $rSplit[2];
 						}
 
-						$db->query('UPDATE `watch_logs` SET `status` = 1, `stream_id` = ? WHERE `filename` = ? AND `type` = 1;', $rInsertID, $rPath);
+						// Notify modules (e.g. watch) that a VOD item was imported from this path,
+						// instead of core touching the module-owned watch_logs table directly.
+						\XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Vod\VodImportedEvent((int) $rInsertID, (string) $rPath, 1));
 						$rStreamsAdded = array();
 						$rServerTree = json_decode($rData['server_tree_data'], true);
 

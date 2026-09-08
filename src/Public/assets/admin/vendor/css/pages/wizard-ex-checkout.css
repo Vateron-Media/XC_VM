@@ -1,0 +1,15 @@
+/* Wizard checkout
+******************************************************************************* */
+/* (C) */
+#wizard-checkout .bs-stepper-header {
+  max-inline-size: 800px;
+}
+#wizard-checkout .raty img {
+  block-size: 1.5rem;
+  font-size: 1.5rem;
+  inline-size: 1.5rem;
+}
+#wizard-checkout .alert .btn-pinned {
+  inset-block-start: 0.45rem;
+  inset-inline-end: 0.31rem;
+}

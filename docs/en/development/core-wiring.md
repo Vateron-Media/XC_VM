@@ -101,6 +101,16 @@ Per-module order inside `bootAll(ServiceContainer $container, ?Router $router, ?
 3. `StreamMiddlewareProviderInterface` → `registerStreamMiddleware($pipeline)` — **only if a `$pipeline` was passed**.
 4. `RouteProviderInterface` → `registerRoutes($router)` — **only if a `$router` was passed** (`$router !== null`).
 5. `NavbarProviderInterface` → `registerNavbar(...)`.
+6. `TopbarProviderInterface` → `registerTopbar(...)` — per-page action buttons (merged into `Topbar::config`).
+7. `TableProviderInterface` → `registerTables(...)` — serverSide table handlers (looked up by `TableController`).
+8. `PermissionProviderInterface` → `registerPermissions(...)` — sub-permission keys (merged into `PermissionReference`).
+9. `QuickToolsProviderInterface` → `registerQuickTools(...)` — Quick Tools button + handler.
+
+Steps 6–9 are the module-owned admin surface: their registries (`TopbarRegistry`,
+`TableRegistry`, `PermissionRegistry`, `QuickToolsRegistry`) are `reset()` at the
+start of `bootAll` and consulted later by the topbar/table/permission/quick-tools
+code. They run regardless of `$router` (registries only, no routes), so a module's
+table is reachable even on the REST API path, which boots modules without a router.
 
 Two contributions are **separate passes, not part of `bootAll`**:
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace XcVm\Core\Reference;
 
 use XcVm\Core\Localization\Translator;
+use XcVm\Core\Module\PermissionRegistry;
 
 /**
  * Reseller sub-permission catalogue for the group editor.
@@ -51,7 +52,6 @@ final class PermissionReference {
         'edit_e2',
         'epg_edit',
         'edit_episode',
-        'folder_watch_settings',
         'settings',
         'edit_group',
         'edit_mag',
@@ -90,8 +90,6 @@ final class PermissionReference {
         'index',
         'manage_e2',
         'epg',
-        'folder_watch',
-        'folder_watch_output',
         'mng_groups',
         'live_connections',
         'login_logs',
@@ -115,7 +113,6 @@ final class PermissionReference {
         'users',
         'episodes',
         'edit_tprofile',
-        'folder_watch_add',
         'add_code',
         'add_hmac',
         'block_asns',
@@ -133,7 +130,9 @@ final class PermissionReference {
      * @return array<int, string>
      */
     public static function keys(): array {
-        return self::KEYS;
+        // Core keys plus any a module contributed (PermissionProviderInterface),
+        // so a module owns the permissions it gates on instead of them living here.
+        return array_values(array_unique(array_merge(self::KEYS, PermissionRegistry::keys())));
     }
 
     /**
@@ -148,7 +147,7 @@ final class PermissionReference {
         }
 
         $rows = [];
-        foreach (self::KEYS as $key) {
+        foreach (self::keys() as $key) {
             $rows[] = array(
                 $key,
                 Translator::get('permission_' . $key),

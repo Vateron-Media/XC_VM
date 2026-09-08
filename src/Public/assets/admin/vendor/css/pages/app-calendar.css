@@ -1,0 +1,90 @@
+/* App Calendar
+******************************************************************************* */
+/* (C) */
+/* App Calendar specific */
+.app-calendar-wrapper {
+  position: relative;
+  /* Set border 0 to app calender page only */
+}
+.app-calendar-wrapper .app-calendar-sidebar {
+  position: absolute;
+  z-index: 4;
+  overflow: hidden;
+  flex-basis: 18.75rem;
+  flex-grow: 0;
+  background-color: var(--bs-paper-bg);
+  block-size: 100%;
+  inline-size: 18.75rem;
+  inset-inline-start: calc(-18.75rem - 1.2rem);
+  transition: all 0.2s;
+}
+.app-calendar-wrapper .app-calendar-sidebar.show {
+  inset-inline-start: 0;
+}
+.app-calendar-wrapper .app-calendar-sidebar .flatpickr-calendar {
+  box-shadow: none;
+}
+.app-calendar-wrapper .app-calendar-sidebar .flatpickr-calendar .flatpickr-month,
+.app-calendar-wrapper .app-calendar-sidebar .flatpickr-calendar .flatpickr-weekday,
+.app-calendar-wrapper .app-calendar-sidebar .flatpickr-calendar .flatpickr-weekdays {
+  background: transparent;
+}
+.app-calendar-wrapper .app-calendar-sidebar .flatpickr-calendar .flatpickr-days {
+  border: 0;
+}
+.app-calendar-wrapper .app-calendar-sidebar .flatpickr-calendar:focus {
+  outline: 0;
+}
+.app-calendar-wrapper .app-calendar-content {
+  position: relative;
+}
+.app-calendar-wrapper .fc-toolbar h2 {
+  font-size: 1.5rem;
+  line-height: 2.375rem;
+}
+@media (max-width: 767.98px) {
+  .app-calendar-wrapper .fc-toolbar h2 {
+    font-size: 1rem;
+  }
+}
+.app-calendar-wrapper .fc-toolbar-chunk {
+  overflow: auto;
+}
+.app-calendar-wrapper table.fc-scrollgrid {
+  border-inline-end: 0;
+  border-inline-start: 0;
+}
+.app-calendar-wrapper table.fc-scrollgrid th,
+.app-calendar-wrapper table.fc-scrollgrid td {
+  border-inline-end: 0;
+}
+.app-calendar-wrapper .fc-timeGridDay-view table.fc-scrollgrid tbody tr:not(.fc-scrollgrid-section:first-of-type) td,
+.app-calendar-wrapper .fc-timeGridWeek-view table.fc-scrollgrid tbody tr:not(.fc-scrollgrid-section:first-of-type) td {
+  border-block-end: 0;
+}
+.app-calendar-wrapper .fc-dayGridMonth-view table.fc-scrollgrid td {
+  border-block-end: 0;
+}
+.app-calendar-wrapper .fc-header-toolbar {
+  margin-block-end: 1.5rem !important;
+}
+.app-calendar-wrapper .fc-view-container {
+  margin-block: 0;
+  margin-inline: -1.6rem;
+}
+.app-calendar-wrapper .event-sidebar .ql-editor {
+  min-block-size: 5rem;
+}
+.app-calendar-wrapper .event-sidebar .select2 .select2-selection__choice .avatar {
+  display: none;
+}
+@media (min-width: 992px) {
+  .app-calendar-wrapper .app-calendar-sidebar {
+    position: static;
+    background-color: transparent;
+    block-size: auto;
+  }
+  .app-calendar-wrapper .app-calendar-sidebar .flatpickr-days {
+    background-color: transparent;
+  }
+}

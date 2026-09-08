@@ -4,6 +4,10 @@ namespace XcVm\Core\Module;
 
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\Contract\CronProviderInterface;
+use XcVm\Core\Module\Contract\PermissionProviderInterface;
+use XcVm\Core\Module\Contract\QuickToolsProviderInterface;
+use XcVm\Core\Module\Contract\TableProviderInterface;
+use XcVm\Core\Module\Contract\TopbarProviderInterface;
 
 /**
  * BaseModule — abstract base class for module implementations.
@@ -20,7 +24,7 @@ use XcVm\Core\Module\Contract\CronProviderInterface;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-abstract class BaseModule implements ModuleInterface, MigratableInterface, CronProviderInterface {
+abstract class BaseModule implements ModuleInterface, MigratableInterface, CronProviderInterface, TopbarProviderInterface, TableProviderInterface, PermissionProviderInterface, QuickToolsProviderInterface {
 
     /**
      * Unique module identifier.
@@ -76,6 +80,38 @@ abstract class BaseModule implements ModuleInterface, MigratableInterface, CronP
      * @return void
      */
     public function registerNavbar(NavbarRegistry $registry): void {}
+
+    /**
+     * No-op default — override to contribute per-page topbar buttons.
+     *
+     * @param TopbarRegistry $registry
+     * @return void
+     */
+    public function registerTopbar(TopbarRegistry $registry): void {}
+
+    /**
+     * No-op default — override to register serverSide DataTable handlers.
+     *
+     * @param TableRegistry $registry
+     * @return void
+     */
+    public function registerTables(TableRegistry $registry): void {}
+
+    /**
+     * No-op default — override to register reseller sub-permission keys.
+     *
+     * @param PermissionRegistry $registry
+     * @return void
+     */
+    public function registerPermissions(PermissionRegistry $registry): void {}
+
+    /**
+     * No-op default — override to register one-shot Quick Tools actions.
+     *
+     * @param QuickToolsRegistry $registry
+     * @return void
+     */
+    public function registerQuickTools(QuickToolsRegistry $registry): void {}
 
     /**
      * Installation hook, run when the module is installed. No-op by default.
