@@ -3,6 +3,7 @@
 namespace XcVm\Core\Util;
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Module\TopbarRegistry;
 
 /**
  * Topbar — single source of truth for the per-page action bar.
@@ -48,7 +49,6 @@ class Topbar {
         'stream_errors',
         'line_activity',
         'mag_events',
-        'watch_output',
         'live_connections',
     ];
 
@@ -58,7 +58,6 @@ class Topbar {
         'user_logs'     => 'users_logs',
         'stream_errors' => 'streams_errors',
         'line_activity' => 'lines_activity',
-        'watch_output'  => 'watch_logs',
         'panel_logs'    => 'panel_logs',
     ];
 
@@ -83,8 +82,8 @@ class Topbar {
             'stream_view' => array('Edit Stream' => array('stream?id=' . $rID, 'edit_stream'), 'Manage Streams' => array('streams', 'streams')),
             'stream_review' => array(($rImport ? 'Save Changes' : 'Review Streams') => array(null, null, 'id="btn-submit"')),
             'panel_logs' => array('Download log' => array(null, null, 'id="btn-download-log"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"')),
-            'movies' => array('Add Movie' => array('movie', 'add_movie'), 'Import & Review' => ($rMobile ? array() : array('review?type=2', 'import_movies')), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('movie_mass', 'mass_sedits_vod'), 'Watch Folder' => array('watch', 'folder_watch'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
-            'series' => array('Add Series' => array('serie', 'add_series'), 'Episodes' => array('episodes', 'episodes'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('series_mass', 'mass_sedits'), 'Watch Folder' => array('watch', 'folder_watch'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
+            'movies' => array('Add Movie' => array('movie', 'add_movie'), 'Import & Review' => ($rMobile ? array() : array('review?type=2', 'import_movies')), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('movie_mass', 'mass_sedits_vod'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
+            'series' => array('Add Series' => array('serie', 'add_series'), 'Episodes' => array('episodes', 'episodes'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('series_mass', 'mass_sedits'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'episodes' => array('Add Episode' => array(null, 'add_episode', 'id="add-episode-btn"'), 'TV Series' => array('series', 'series'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('episodes_mass', 'mass_sedits'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'radios' => array('Add Station' => array('radio', 'add_radio'), 'Categories' => array('stream_categories', 'categories'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('radio_mass', 'mass_edit_radio'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
             'lines' => array('Add Line' => array('line', 'add_user'), "Blocked ASN's" => array('asns', 'block_isps'), "Blocked IP's" => array('ips', 'block_ips'), "Blocked ISP's" => array('isps', 'block_isps'), 'Blocked User-Agents' => array('useragents', 'block_uas'), 'Live Connections' => array('live_connections', 'live_connections'), 'Activity Logs' => array('line_activity', 'connection_logs'), "IP's per Line" => array('line_ips', 'connection_logs'), 'Mass Delete' => array('mass_delete', 'mass_delete'), 'Mass Edit' => array('line_mass', 'mass_edit_users'), 'Quick Tools' => array('quick_tools', 'quick_tools'), 'Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"')),
@@ -97,12 +96,10 @@ class Topbar {
             'bouquet_order' => array('Manage Bouquets' => array('bouquets', 'bouquets'), 'Add Bouquet' => array('bouquet', 'add_bouquet')),
             'archive' => array('View Stream' => array('stream_view?id=' . $rID, 'streams'), 'Edit Stream' => array('stream?id=' . $rID, 'edit_stream'), 'Create Recording' => array('record', 'add_movie'), 'Manage Streams' => array('streams', 'streams')),
             'asns' => array('Quick Tools' => array('quick_tools', 'quick_tools')),
-            'backups' => array('General Settings' => array('settings', 'settings'), 'Watch Settings' => array('settings_watch', 'folder_watch_settings'), 'Plex Settings' => array('settings_plex', 'folder_watch_settings'), 'Cache Settings' => array('cache', 'backups'), 'Modules' => array('modules', 'settings')),
-            'cache' => array('General Settings' => array('settings', 'settings'), 'Watch Settings' => array('settings_watch', 'folder_watch_settings'), 'Plex Settings' => array('settings_plex', 'folder_watch_settings'), 'Backup Settings' => array('backups', 'database'), 'Modules' => array('modules', 'settings')),
-            'settings' => array('Backup Settings' => array('backups', 'database'), 'Watch Settings' => array('settings_watch', 'folder_watch_settings'), 'Plex Settings' => array('settings_plex', 'folder_watch_settings'), 'Cache Settings' => array('cache', 'backups'), 'Modules' => array('modules', 'settings')),
+            'backups' => array('General Settings' => array('settings', 'settings'), 'Cache Settings' => array('cache', 'backups'), 'Modules' => array('modules', 'settings')),
+            'cache' => array('General Settings' => array('settings', 'settings'), 'Backup Settings' => array('backups', 'database'), 'Modules' => array('modules', 'settings')),
+            'settings' => array('Backup Settings' => array('backups', 'database'), 'Cache Settings' => array('cache', 'backups'), 'Modules' => array('modules', 'settings')),
             'modules' => array('General Settings' => array('settings', 'settings'), 'Backup Settings' => array('backups', 'database'), 'Cache Settings' => array('cache', 'backups')),
-            'settings_watch' => array('Folders' => array('watch', 'folder_watch'), 'General Settings' => array('settings', 'settings'), 'Backup Settings' => array('backups', 'database'), 'Plex Settings' => array('settings_plex', 'folder_watch_settings'), 'Watch Folder Logs' => array('watch_output', 'folder_watch_output')),
-            'settings_plex' => array('Libraries' => array('plex', 'folder_watch'), 'General Settings' => array('settings', 'settings'), 'Backup Settings' => array('backups', 'database'), 'Watch Settings' => array('settings_watch', 'folder_watch_settings'), 'Watch Folder Logs' => array('watch_output', 'folder_watch_output')),
             'channel_order' => array('Categories' => array('stream_categories', 'categories'), 'Bouquets' => array('bouquets', 'bouquets')),
             'bouquets' => array('Add Bouquet' => array('bouquet', 'add_bouquet'), 'Order Bouquets' => ($rMobile ? array() : array('bouquet_order', 'edit_bouquet')), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Categories' => array('stream_categories', 'categories')),
             'stream_categories' => array('Add Category' => array('stream_category', 'add_cat'), 'Channel Order' => ($rMobile ? array() : array('channel_order', 'channel_order')), 'Bouquets' => array('bouquets', 'bouquets')),
@@ -111,7 +108,6 @@ class Topbar {
             'user_logs' => array('Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"')),
             'stream_errors' => array('Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"')),
             'line_activity' => array('Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"')),
-            'watch_output' => array('Export as CSV' => array(null, null, 'id="btn-export-csv"'), 'Export as JSON' => array(null, null, 'id="btn-export-json"'), 'Clear Logs' => array(null, null, 'id="btn-clear-logs"'), 'Watch Folder' => array('watch', 'folder_watch')),
             'code' => array('Access Codes' => array('codes', 'add_code')),
             'codes' => array('Add Code' => array('code', 'add_code')),
             'hmacs' => array('Add HMAC' => array('hmac', 'add_hmac')),
@@ -173,13 +169,19 @@ class Topbar {
             'ticket_view' => array('Add Response' => array('ticket?id=' . $rID, 'ticket'), 'View Tickets' => array('tickets', 'manage_tickets')),
             'useragent' => array('Blocked User-Agents' => array('useragents', 'block_uas')),
             'useragents' => array('Block User-Agent' => array('useragent', 'block_uas')),
-            'watch' => array('Add Folder' => array('watch_add', 'folder_watch_add'), 'Settings' => array('settings_watch', 'folder_watch_settings'), 'Watch Output Logs' => array('watch_output', 'folder_watch_output'), 'Kill Running' => array(null, 'folder_watch_settings', 'onClick="killWatchFolder();"'), 'Enable All' => array(null, 'folder_watch_settings', 'onClick="enableAll();"'), 'Disable All' => array(null, 'folder_watch_settings', 'onClick="disableAll();"')),
-            'watch_add' => array('Manage Folders' => array('watch', 'folder_watch')),
-            'plex' => array('Add Library' => array('plex_add', 'folder_watch_add'), 'Settings' => array('settings_plex', 'folder_watch_settings'), 'Watch Folder Logs' => array('watch_output', 'folder_watch_output'), 'Kill Running' => array(null, 'folder_watch_settings', 'onClick="killPlexSync();"'), 'Enable All' => array(null, 'folder_watch_settings', 'onClick="enableAll();"'), 'Disable All' => array(null, 'folder_watch_settings', 'onClick="disableAll();"')),
-            'plex_add' => array('Manage Libraries' => array('plex', 'folder_watch'))
         );
 
         $rDropdown['servers'] = array('Proxies' => array('proxies', 'servers'), 'Process Monitor' => array('process_monitor', 'process_monitor'));
+
+        // Merge module-contributed buttons (TopbarProviderInterface). Modules can
+        // both inject entries into an existing core page (e.g. 'movies') — appended
+        // after the core entries — and register a brand-new page of their own
+        // (e.g. 'watch'). Populated by ModuleLoader::bootAll before any render.
+        foreach (TopbarRegistry::pages() as $rPage) {
+            foreach (TopbarRegistry::forPage($rPage) as $rLabel => $rSpec) {
+                $rDropdown[$rPage][$rLabel] = $rSpec;
+            }
+        }
 
         return $rDropdown;
     }
@@ -202,9 +204,11 @@ class Topbar {
             if (!is_string($rLabel) || $rLabel === '' || !is_array($rData)) {
                 continue;
             }
-            // Export actions: only on log/report pages, and only with backups perm.
+            // Export actions: only on log/report pages (core list OR a page a
+            // module marked via TopbarRegistry), and only with backups perm.
             if (in_array($rLabel, ['Export as CSV', 'Export as JSON'], true)) {
-                if (!in_array($page, self::EXPORT_PAGES, true) || !Authorization::check('adv', 'backups')) {
+                $rIsExportPage = in_array($page, self::EXPORT_PAGES, true) || TopbarRegistry::isExportPage($page);
+                if (!$rIsExportPage || !Authorization::check('adv', 'backups')) {
                     continue;
                 }
             }
@@ -224,7 +228,7 @@ class Topbar {
                 'url'     => (!empty($rData[0]) ? (string) $rData[0] : null),
                 'attr'    => $rAttr,
                 'id'      => $rId,
-                'logType' => ($rId === 'btn-clear-logs' ? (self::LOG_TYPES[$page] ?? null) : null),
+                'logType' => ($rId === 'btn-clear-logs' ? (self::LOG_TYPES[$page] ?? TopbarRegistry::logType($page)) : null),
                 'primary' => $rFirst,
             ];
             $rFirst = false;

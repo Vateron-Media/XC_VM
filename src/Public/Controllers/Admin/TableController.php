@@ -8,6 +8,7 @@ use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\ClientFilter;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Module\TableRegistry;
 use XcVm\Core\Reference\StatusBadge;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
@@ -169,9 +170,6 @@ class TableController extends BaseAdminController {
 			case "backups":
 				$this->handleBackups($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
-			case "watch_output":
-				$this->handleWatchOutput($rReturn, $rStart, $rLimit, $rIsAPI);
-				return;
 			case "mysql_syslog":
 				$this->handleMysqlSyslog($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
@@ -234,6 +232,13 @@ class TableController extends BaseAdminController {
 				return;
 			case "ondemand":
 				$this->handleOndemand($rReturn, $rStart, $rLimit, $rIsAPI);
+				return;
+			default:
+				if (TableRegistry::has((string) $rType)) {
+					$rHandler = TableRegistry::get((string) $rType);
+					$rReturn = $rHandler($rReturn, $rStart, $rLimit, $rIsAPI);
+					echo json_encode($rReturn);
+				}
 				return;
 		}
 	}
@@ -3770,87 +3775,6 @@ class TableController extends BaseAdminController {
 		exit;
 	}
 
-	private function handleWatchOutput($rReturn, $rStart, $rLimit, $rIsAPI) {
-		global $db;
-		if (!Authorization::check("adv", "folder_watch_output")) {
-			exit;
-		}
-		$rOrder = ["`watch_logs`.`id`", "`watch_logs`.`type`", "`watch_logs`.`server_id`", "`watch_logs`.`filename`", "`watch_logs`.`status`", "`watch_logs`.`dateadded`", false];
-		$rOrderColumn = RequestManager::get("order")[0]["column"] ?? '';
-		$rOrderRow = (0 < strlen((string) $rOrderColumn)) ? (int) $rOrderColumn : 0;
-		$rWhere = $rWhereV = [];
-		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
-			foreach (range(1, 3) as $rInt) {
-				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
-			}
-			$rWhere[] = "(`watch_logs`.`id` LIKE ? OR `watch_logs`.`filename` LIKE ? OR `watch_logs`.`dateadded` LIKE ?)";
-		}
-		if (0 < (int)(RequestManager::get("server") ?? 0)) {
-			$rWhere[] = "`watch_logs`.`server_id` = ?";
-			$rWhereV[] = (int)(RequestManager::get("server") ?? 0);
-		}
-		if (0 < strlen(RequestManager::get("type") ?? '')) {
-			$rWhere[] = "`watch_logs`.`type` = ?";
-			$rWhereV[] = RequestManager::get("type");
-		}
-		if (0 < strlen(RequestManager::get("status") ?? '')) {
-			$rWhere[] = "`watch_logs`.`status` = ?";
-			$rWhereV[] = RequestManager::get("status");
-		}
-		$rOrderBy = "";
-		if (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow]) {
-			$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? "") === "desc" ? "desc" : "asc";
-			$rOrderBy = "ORDER BY " . $rOrder[$rOrderRow] . " " . $rOrderDirection;
-		}
-		if (0 < count($rWhere)) {
-			$rWhereString = "WHERE " . implode(" AND ", $rWhere);
-		} else {
-			$rWhereString = "";
-		}
-		$rCountQuery = "SELECT COUNT(*) AS `count` FROM `watch_logs` LEFT JOIN `servers` ON `servers`.`id` = `watch_logs`.`server_id` " . $rWhereString . ";";
-		$db->query($rCountQuery, ...$rWhereV);
-		if ($db->num_rows() == 1) {
-			$rReturn["recordsTotal"] = $db->get_row()["count"];
-		} else {
-			$rReturn["recordsTotal"] = 0;
-		}
-		$rReturn["recordsFiltered"] = ($rIsAPI ? ($rReturn["recordsTotal"] < $rLimit ? $rReturn["recordsTotal"] : $rLimit) : $rReturn["recordsTotal"]);
-		if (0 < $rReturn["recordsTotal"]) {
-			$rQuery = "SELECT `watch_logs`.`id`, `watch_logs`.`type`, `watch_logs`.`server_id`, `servers`.`server_name`, `watch_logs`.`filename`, `watch_logs`.`status`, `watch_logs`.`stream_id`, `watch_logs`.`dateadded` FROM `watch_logs` LEFT JOIN `servers` ON `servers`.`id` = `watch_logs`.`server_id` " . $rWhereString . " " . $rOrderBy . " LIMIT " . $rStart . ", " . $rLimit . ";";
-			$db->query($rQuery, ...$rWhereV);
-			if (0 < $db->num_rows()) {
-				foreach ($db->get_rows() as $rRow) {
-					if ($rIsAPI) {
-						$rReturn["data"][] = self::filterRow($rRow, RequestManager::get("show_columns") ?? '', RequestManager::get("hide_columns") ?? '');
-					} else {
-						$rButtons = "<div class=\"btn-group\">";
-						if (0 < $rRow["stream_id"]) {
-							if ($rRow["type"] == 1) {
-								if (Authorization::check("adv", "edit_movie")) {
-									$rButtons = "<a href=\"stream_view?id=" . $rRow["stream_id"] . "\"><button title=\"View Movie\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-eye\"></i></button></a>";
-								}
-							} elseif (Authorization::check("adv", "edit_episode")) {
-								$rButtons = "<a href=\"stream_view?id=" . $rRow["stream_id"] . "\"><button title=\"View Episode\" type=\"button\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-eye\"></i></button></a>";
-							}
-						}
-						if (1 < $rRow["status"] && $rRow["type"] == 1) {
-							$rButtons .= "<a href=\"movie?path=" . urlencode("s:" . $rRow["server_id"] . ":" . $rRow["filename"]) . "\"><button type=\"button\" title=\"Manual Match\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\"><i class=\"mdi mdi-plus\"></i></button></a>";
-						}
-						$rButtons .= "<button type=\"button\" title=\"Delete\" class=\"btn btn-light waves-effect waves-light btn-xs tooltip\" onClick=\"api(" . $rRow["id"] . ", 'delete');\"><i class=\"mdi mdi-close\"></i></button>";
-						$rButtons .= "</div>";
-						if (Authorization::check("adv", "servers")) {
-							$rServer = "<a href='server_view?id=" . $rRow["server_id"] . "'>" . $rRow["server_name"] . "</a>";
-						} else {
-							$rServer = $rRow["server_name"];
-						}
-						$rReturn["data"][] = [$rRow["id"], ["1" => "Movies", "2" => "Series"][$rRow["type"]], $rServer, $rRow["filename"], StatusBadge::watch((int) $rRow["status"]), $rRow["dateadded"], $rButtons];
-					}
-				}
-			}
-		}
-		echo json_encode($rReturn);
-		exit;
-	}
 
 	private function handleMysqlSyslog($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rPermissions;
@@ -5132,7 +5056,7 @@ class TableController extends BaseAdminController {
 		return (string) (RequestManager::get("search")["value"] ?? '');
 	}
 
-	private static function filterRow($rRow, $rShow, $rHide) {
+	public static function filterRow($rRow, $rShow, $rHide) {
 		if (!$rShow && !$rHide) {
 			return $rRow;
 		}

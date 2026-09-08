@@ -399,7 +399,6 @@ $router->api('multi', [MultiAjaxController::class, 'multi']);
 // ─── Misc ──────────────────────────────────────────
 $router->api('process',          [MiscAjaxController::class, 'process']);
 $router->api('profile',          [MiscAjaxController::class, 'profile']);
-$router->api('watch_output',     [MiscAjaxController::class, 'watchOutput']);
 $router->api('reguserlist',      [MiscAjaxController::class, 'reguserlist']);
 $router->api('userlist',         [MiscAjaxController::class, 'userlist']);
 $router->api('listdir',          [MiscAjaxController::class, 'listdir']);

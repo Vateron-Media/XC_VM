@@ -68,7 +68,6 @@ $rTabs = [
         ['clear_stream_errors', 'clear_stream_errors'],
         ['clear_stream_logs', 'clear_stream_logs'],
         ['clear_user_logs', 'clear_user_logs'],
-        ['clear_watch_logs', 'clear_watch_logs'],
     ]],
     'general' => ['tabler-tool', 'general', [
         ['block_trial_lines', 'block_trial_lines'],
@@ -96,6 +95,17 @@ $rTabs = [
         ['flush_blocked_asns', 'flush_blocked_asns'],
     ]],
 ];
+
+// Module-contributed Quick Tools (QuickToolsProviderInterface): append each
+// module tool to its group (creating the group with a generic icon if new).
+foreach (\XcVm\Core\Module\QuickToolsRegistry::groups() as $rQtGroup) {
+    if (!isset($rTabs[$rQtGroup])) {
+        $rTabs[$rQtGroup] = ['tabler-tool', $rQtGroup, []];
+    }
+    foreach (\XcVm\Core\Module\QuickToolsRegistry::forGroup($rQtGroup) as $rQtTool) {
+        $rTabs[$rQtGroup][2][] = $rQtTool;
+    }
+}
 ?>
 
 <div class="d-flex align-items-center mb-4">

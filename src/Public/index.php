@@ -102,6 +102,13 @@ if ($pageName === '') {
 if (isset($rawScope) && in_array($rawScope, ['includes/api/admin', 'includes/api/reseller'], true)) {
     require_once MAIN_HOME . 'bootstrap.php';
     XC_Bootstrap::boot(XC_Bootstrap::CONTEXT_ADMIN);
+    // Boot modules (no router → registries only, no route side-effects) so a
+    // module-owned serverSide table (TableRegistry) is reachable over the REST API.
+    if (class_exists(ModuleLoader::class)) {
+        $rApiModuleLoader = new ModuleLoader();
+        $rApiModuleLoader->loadAll();
+        $rApiModuleLoader->bootAll(XC_Bootstrap::getContainer());
+    }
     if ($rawScope === 'includes/api/admin') {
         $controller = new AdminApiController();
     } else {

@@ -103,9 +103,6 @@ if (!empty($rData['api_key']) && AdminAPIWrapper::createSession()) {
         case 'stream_errors':
             echo json_encode(AdminAPIWrapper::TableAPI('stream_errors', $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
             break;
-        case 'watch_output':
-            echo json_encode(AdminAPIWrapper::TableAPI('watch_output', $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
-            break;
         case 'system_logs':
             echo json_encode(AdminAPIWrapper::TableAPI('mysql_syslog', $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
             break;
@@ -626,6 +623,12 @@ if (!empty($rData['api_key']) && AdminAPIWrapper::createSession()) {
             echo json_encode(AdminAPIWrapper::reloadCache());
             break;
         default:
+            // Module-owned serverSide tables (TableRegistry) are exposed generically
+            // by their id, so a module table needs no hard-coded case here.
+            if (class_exists(\XcVm\Core\Module\TableRegistry::class) && \XcVm\Core\Module\TableRegistry::has($rAction)) {
+                echo json_encode(AdminAPIWrapper::TableAPI($rAction, $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
+                break;
+            }
             echo json_encode(array('status' => 'STATUS_FAILURE', 'error' => 'Invalid action.'));
             break;
     }

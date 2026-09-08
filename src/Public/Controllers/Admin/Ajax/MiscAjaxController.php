@@ -10,7 +10,7 @@ use XcVm\Module\Watch\WatchService;
 
 /**
  * Admin-ajax controller for the small admin actions that do not belong to a
- * larger domain group: process, profile, watch_output, reguserlist, userlist,
+ * larger domain group: process, profile, reguserlist, userlist,
  * listdir, queue, delete_recording, clear_failures.
  *
  * @package XC_VM_Public_Controllers_Admin
@@ -38,21 +38,6 @@ class MiscAjaxController extends BaseAjaxController {
 
         if (RequestManager::get('sub') == 'delete') {
             StreamConfigRepository::deleteProfile(RequestManager::get('profile_id'));
-            $this->ok();
-        }
-
-        $this->fail();
-    }
-
-    /** action=watch_output — delete a folder-watch log row. */
-    public function watchOutput(): never {
-        $this->requireXhr();
-        $this->gate('adv', 'folder_watch_output');
-
-        global $db;
-
-        if (RequestManager::get('sub') == 'delete') {
-            $db->query('DELETE FROM `watch_logs` WHERE `id` = ?;', RequestManager::get('result_id'));
             $this->ok();
         }
 

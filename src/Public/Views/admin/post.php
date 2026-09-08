@@ -642,12 +642,6 @@ if (1 < $rICount) { ?>
 					exit();
 				}
 
-				if (isset($rData['clear_watch_logs'])) {
-					$db->query('TRUNCATE `watch_logs`;');
-					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
-					exit();
-				}
-
 				if (isset($rData['block_trial_lines'])) {
 					$db->query('UPDATE `lines` SET `admin_enabled` = 0 WHERE `is_trial` = 1;');
 					echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
@@ -1173,6 +1167,15 @@ if (1 < $rICount) { ?>
 						if ($rRow['tmdb_id'] != $rTMDBID) {
 							$db->query('UPDATE `streams` SET `tmdb_id` = ? WHERE `id` = ?;', $rTMDBID, $rRow['id']);
 						}
+					}
+				}
+
+				// Module-contributed Quick Tools (QuickToolsProviderInterface).
+				foreach (\XcVm\Core\Module\QuickToolsRegistry::keys() as $rQtKey) {
+					if (isset($rData[$rQtKey])) {
+						(\XcVm\Core\Module\QuickToolsRegistry::handler($rQtKey))();
+						echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
+						exit();
 					}
 				}
 
