@@ -110,11 +110,40 @@ class VodCronJob implements CommandInterface {
                     } else {
                         $rMoviePath = VOD_PATH . intval($rRow['stream_id']) . '.' . escapeshellcmd($rRow['target_container']);
                         if ($rFFProbee = FFprobeRunner::probeStream($rMoviePath)) {
+                            if (!isset($rFFProbee['codecs']['video']) || !is_array($rFFProbee['codecs']['video'])) {
+                                // ffprobe opened the file but found no usable video stream
+                                // (e.g. a truncated/placeholder upload): parseFFProbe returns
+                                // '' for the missing codec, and the VALID branch below treats
+                                // it as an array ($rFFProbee['codecs']['video']['codec_name']),
+                                // which is a TypeError on PHP 8 that aborts the whole analyzer
+                                // run and leaves every remaining movie stuck in `to_analyze = 1`
+                                // (yellow) forever. Treat such a file as broken instead.
+                                $db->query('UPDATE `streams_servers` SET `to_analyze` = 0,`stream_status` = 1 WHERE `server_stream_id` = ?', $rRow['server_stream_id']);
+                                echo 'BROKEN (no video stream)' . "\n";
+                                StreamProcess::updateStream($rRow['stream_id']);
+                                continue;
+                            }
+                            // ffprobe (especially over network/rclone mounts) can still
+                            // return a partial result for an odd file — e.g. a video stream
+                            // but no audio, where parseFFProbe stores '' (a string) instead
+                            // of an array. The VALID branch dereferences these as arrays
+                            // ($rFFProbee['codecs']['audio']['codec_name']), a TypeError on
+                            // PHP 8 that aborts the whole run. Normalise to arrays.
+                            foreach (array('video', 'audio') as $rCodecKind) {
+                                if (!is_array($rFFProbee['codecs'][$rCodecKind] ?? null)) {
+                                    $rFFProbee['codecs'][$rCodecKind] = array();
+                                }
+                            }
                             $rDuration = (isset($rFFProbee['duration']) ? $rFFProbee['duration'] : 0);
                             sscanf($rDuration, '%d:%d:%d', $rHours, $rMinutes, $rSeconds);
                             $rSeconds = (isset($rSeconds) ? $rHours * 3600 + $rMinutes * 60 + $rSeconds : $rHours * 60 + $rMinutes);
                             $rSize = filesize($rMoviePath);
-                            $rBitrate = round(($rSize * 0.008) / $rSeconds);
+                            // Guard against a zero/unknown duration (ffprobe reports
+                            // 'N/A' for truncated or duration-less files): dividing by
+                            // it throws DivisionByZeroError on PHP 8, which aborts the
+                            // whole analyzer run and leaves every remaining movie stuck
+                            // in `to_analyze = 1` (yellow) forever.
+                            $rBitrate = ($rSeconds > 0 ? round(($rSize * 0.008) / $rSeconds) : 0);
                             $rMovieProperties = json_decode($rRow['movie_properties'], true);
                             if (!is_array($rMovieProperties)) {
                                 $rMovieProperties = array();
