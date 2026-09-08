@@ -167,8 +167,23 @@ ModuleInterface
 └── NavbarProviderInterface    → registerNavbar()
 ```
 
-`StreamMiddlewareProviderInterface` is **optional** — it is NOT part of `ModuleInterface`.
-Implement it only if the module needs to inject itself into the stream pipeline.
+Several more providers are **optional** — NOT part of `ModuleInterface`. `BaseModule`
+implements them as no-ops (so override only what you need) and `ModuleLoader` detects
+each via `instanceof`. See [Module Extension Points](module-extension-points.md):
+
+```text
+(optional, not in ModuleInterface)
+├── StreamMiddlewareProviderInterface → registerStreamMiddleware(StreamPipeline)
+├── CronProviderInterface             → getCronEntries()
+├── TopbarProviderInterface           → registerTopbar(TopbarRegistry)      · per-page action buttons
+├── TableProviderInterface            → registerTables(TableRegistry)       · serverSide DataTable builders
+├── PermissionProviderInterface       → registerPermissions(PermissionRegistry) · reseller sub-permissions
+└── QuickToolsProviderInterface       → registerQuickTools(QuickToolsRegistry)  · one-shot maintenance actions
+```
+
+Topbar / Table / Permission / QuickTools let a module own its whole admin
+footprint — buttons, log/report tables, grantable permissions and maintenance
+tools — instead of those living hard-coded in core.
 
 ```php
 // Optional — not in ModuleInterface
@@ -252,6 +267,11 @@ class MyModuleModule extends BaseModule {
 | `registerRoutes(Router)` | `RouteProviderInterface` | Register HTTP and API routes |
 | `registerCommands(CommandRegistry)` | `CommandProviderInterface` | Register CLI commands and cron tasks |
 | `registerNavbar(NavbarRegistry $registry)` | `NavbarProviderInterface` | Register navbar items |
+| `registerTopbar(TopbarRegistry $registry)` | `TopbarProviderInterface` *(optional)* | Per-page topbar buttons (own pages + inject into core pages) |
+| `registerTables(TableRegistry $registry)` | `TableProviderInterface` *(optional)* | serverSide DataTable builders for the module's table ids |
+| `registerPermissions(PermissionRegistry $registry)` | `PermissionProviderInterface` *(optional)* | Reseller sub-permission keys for the group editor |
+| `registerQuickTools(QuickToolsRegistry $registry)` | `QuickToolsProviderInterface` *(optional)* | One-shot Quick Tools actions (button + handler) |
+| `getCronEntries(): array` | `CronProviderInterface` *(optional)* | Crontab lines gathered by startup/status |
 | `install(): void` | `ModuleInterface` | Run on module install (migrations, seed) |
 | `uninstall(): void` | `ModuleInterface` | Run on module remove (cleanup) |
 

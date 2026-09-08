@@ -70,12 +70,18 @@ When `XC_SCOPE` is `includes/api/admin` or `includes/api/reseller`:
 ```text
 nginx -> Public/index.php
   -> XC_Bootstrap::boot(BootContext::Admin)
+  -> ModuleLoader::loadAll() + bootAll($container)   // registries only, NO router
   -> new AdminApiController() or new ResellerRestApiController()
   -> $controller->index()
   -> exit
 ```
 
-This path bypasses the Router entirely.
+This path bypasses the Router entirely. Modules are still booted (without a
+router, so no route side-effects) so their registries are populated — a
+module-owned serverSide table is therefore reachable over REST. `AdminApiController`
+has no hard-coded case per module table: its `default` branch serves any id in
+the `TableRegistry` via `AdminAPIWrapper::TableAPI($action, …)`, which dispatches
+`TableController` in-process.
 
 ---
 
