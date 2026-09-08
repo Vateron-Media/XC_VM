@@ -90,7 +90,7 @@ if (!function_exists('_xc_nav_label')) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
 
     <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
-    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.min.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css">
 
     <!-- Core theme (single file serves both light & dark via data-bs-theme) -->
     <link rel="stylesheet" href="assets/vendor/libs/node-waves/node-waves.css">
@@ -160,7 +160,7 @@ if (!function_exists('_xc_nav_label')) {
                                             <!-- Left: live header stats (polled by the inline poller in footer.php) -->
                                             <div class="navbar-nav align-items-center">
                                                 <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
-                                                    <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1 rounded-pill bg-body-tertiary" id="header_stats">
+                                                    <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1" id="header_stats">
                                                         <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('connections') ?: 'Connections'); ?>">
                                                             <i class="icon-base ti tabler-plug-connected icon-22px me-1 text-primary"></i>
                                                             <span class="fw-medium" id="header_connections">0</span>

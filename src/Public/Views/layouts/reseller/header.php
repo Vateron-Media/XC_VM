@@ -207,7 +207,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
 
     <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
-    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.min.css">
+    <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css">
 
     <!-- Core theme (single file serves both light & dark via data-bs-theme) -->
     <link rel="stylesheet" href="assets/vendor/libs/node-waves/node-waves.css">
@@ -236,167 +236,171 @@ if (!function_exists('_xc_reseller_menu_node')) {
 
 <?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
 
-<body class="xm-modal-body">
-    <div class="container-fluid p-4">
-<?php else: ?>
+    <body class="xm-modal-body">
+        <div class="container-fluid p-4">
+        <?php else: ?>
 
-<body>
-    <div class="layout-wrapper layout-content-navbar">
-        <div class="layout-container">
+            <body>
+                <div class="layout-wrapper layout-content-navbar">
+                    <div class="layout-container">
 
-            <!-- Vertical menu -->
-            <aside id="layout-menu" class="layout-menu menu-vertical menu">
-                <div class="app-brand demo">
-                    <a href="dashboard" class="app-brand-link">
-                        <span class="app-brand-logo demo">
-                            <img src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?>" height="24">
-                        </span>
-                        <span class="app-brand-text demo menu-text fw-bold ms-3"><?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?></span>
-                    </a>
-                    <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
-                        <i class="icon-base ti menu-toggle-icon d-none d-xl-block"></i>
-                        <i class="icon-base ti tabler-x d-block d-xl-none"></i>
-                    </a>
-                </div>
+                        <!-- Vertical menu -->
+                        <aside id="layout-menu" class="layout-menu menu-vertical menu">
+                            <div class="app-brand demo">
+                                <a href="dashboard" class="app-brand-link">
+                                    <span class="app-brand-logo demo">
+                                        <img src="assets/img/logo-topbar.png" alt="<?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?>" height="24">
+                                    </span>
+                                    <span class="app-brand-text demo menu-text fw-bold ms-3"><?= htmlspecialchars($rSettings['server_name'] ?: 'XC_VM'); ?></span>
+                                </a>
+                                <a href="javascript:void(0);" class="layout-menu-toggle menu-link text-large ms-auto">
+                                    <i class="icon-base ti menu-toggle-icon d-none d-xl-block"></i>
+                                    <i class="icon-base ti tabler-x d-block d-xl-none"></i>
+                                </a>
+                            </div>
 
-                <div class="menu-inner-shadow"></div>
+                            <div class="menu-inner-shadow"></div>
 
-                <ul class="menu-inner py-1">
-                    <?php foreach ($xmMenu as $xmItem): ?>
-                        <?php [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language); ?>
-                        <?= $xmNodeHtml; ?>
-                    <?php endforeach; ?>
-                </ul>
-            </aside>
-            <!-- / Vertical menu -->
+                            <ul class="menu-inner py-1">
+                                <?php foreach ($xmMenu as $xmItem): ?>
+                                    <?php [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language); ?>
+                                    <?= $xmNodeHtml; ?>
+                                <?php endforeach; ?>
+                            </ul>
+                        </aside>
+                        <!-- / Vertical menu -->
 
-            <!-- Layout page -->
-            <div class="layout-page">
+                        <!-- Layout page -->
+                        <div class="layout-page">
 
-                <!-- Navbar -->
-                <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
-                    <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
-                        <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
-                            <i class="icon-base ti tabler-menu-2 icon-md"></i>
-                        </a>
-                    </div>
-
-                    <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
-
-                        <!-- Left: live header stats (polled by footer.php) -->
-                        <div class="navbar-nav align-items-center">
-                            <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
-                                <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1 rounded-pill bg-body-tertiary" id="header_stats">
-                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('connections'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-plug-connected icon-22px me-1 text-primary"></i>
-                                        <span class="fw-medium" id="header_connections">0</span>
-                                    </a>
-                                    <div class="vr opacity-25 my-1"></div>
-                                    <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('users'), ENT_QUOTES); ?>">
-                                        <i class="icon-base ti tabler-users icon-22px me-1 text-info"></i>
-                                        <span class="fw-medium" id="header_users">0</span>
+                            <!-- Navbar -->
+                            <nav class="layout-navbar container-xxl navbar-detached navbar navbar-expand-xl align-items-center bg-navbar-theme" id="layout-navbar">
+                                <div class="layout-menu-toggle navbar-nav align-items-xl-center me-3 me-xl-0 d-xl-none">
+                                    <a class="nav-item nav-link px-0 me-xl-6" href="javascript:void(0)">
+                                        <i class="icon-base ti tabler-menu-2 icon-md"></i>
                                     </a>
                                 </div>
-                            <?php endif; ?>
-                        </div>
 
-                        <ul class="navbar-nav flex-row align-items-center ms-auto">
+                                <div class="navbar-nav-right d-flex align-items-center justify-content-between w-100" id="navbar-collapse">
 
-                            <!-- Owner credits pill (refreshed via ?action=stats) -->
-                            <li class="nav-item me-2">
-                                <span class="badge bg-label-primary rounded-pill d-inline-flex align-items-center" title="<?= htmlspecialchars($language::get('credits'), ENT_QUOTES); ?>">
-                                    <i class="icon-base ti tabler-coin icon-18px me-1"></i>
-                                    <span id="owner_credits"><?= number_format((float) ($rUserInfo['credits'] ?? 0), 0); ?></span>
-                                </span>
-                            </li>
-
-                            <!-- Tickets -->
-                            <li class="nav-item">
-                                <a class="nav-link btn btn-icon btn-text-secondary rounded-pill" href="tickets" title="<?= htmlspecialchars($language::get('tickets'), ENT_QUOTES); ?>">
-                                    <i class="icon-base ti tabler-ticket icon-22px"></i>
-                                </a>
-                            </li>
-
-                            <!-- Theme switcher (light / dark / system) -->
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
-                                    id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
-                                    <i class="icon-base ti tabler-sun icon-22px theme-icon-active text-heading"></i>
-                                    <span class="d-none ms-2" id="nav-theme-text"><?= $language::get('shell_toggle_theme'); ?></span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
-                                    <li>
-                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="light">
-                                            <span><i class="icon-base ti tabler-sun icon-22px me-3" data-icon="sun"></i><?= $language::get('shell_theme_light'); ?></span>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark">
-                                            <span><i class="icon-base ti tabler-moon-stars icon-22px me-3" data-icon="moon-stars"></i><?= $language::get('shell_theme_dark'); ?></span>
-                                        </button>
-                                    </li>
-                                    <li>
-                                        <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system">
-                                            <span><i class="icon-base ti tabler-device-desktop-analytics icon-22px me-3" data-icon="device-desktop-analytics"></i><?= $language::get('shell_theme_system'); ?></span>
-                                        </button>
-                                    </li>
-                                </ul>
-                            </li>
-
-                            <!-- User dropdown -->
-                            <li class="nav-item navbar-dropdown dropdown-user dropdown">
-                                <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
-                                    <div class="avatar avatar-online">
-                                        <span class="avatar-initial rounded-circle bg-label-primary">
-                                            <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
-                                        </span>
+                                    <!-- Left: live header stats (polled by footer.php) -->
+                                    <div class="navbar-nav align-items-center">
+                                        <?php if (!$rMobile && !empty($rSettings['header_stats'])): ?>
+                                            <div class="d-none d-xl-flex align-items-center gap-3 px-3 py-1" id="header_stats">
+                                                <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('connections'), ENT_QUOTES); ?>">
+                                                    <i class="icon-base ti tabler-plug-connected icon-22px me-1 text-primary"></i>
+                                                    <span class="fw-medium" id="header_connections">0</span>
+                                                </a>
+                                                <div class="vr opacity-25 my-1"></div>
+                                                <a href="live_connections" class="d-inline-flex align-items-center text-heading text-decoration-none" title="<?= htmlspecialchars($language::get('users'), ENT_QUOTES); ?>">
+                                                    <i class="icon-base ti tabler-users icon-22px me-1 text-info"></i>
+                                                    <span class="fw-medium" id="header_users">0</span>
+                                                </a>
+                                            </div>
+                                        <?php endif; ?>
                                     </div>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <div class="dropdown-item mt-0 d-flex align-items-center">
-                                            <div class="flex-shrink-0 me-2">
+
+                                    <ul class="navbar-nav flex-row align-items-center ms-auto">
+
+                                        <!-- Owner credits pill (refreshed via ?action=stats) -->
+                                        <li class="nav-item me-2">
+                                            <span class="badge bg-label-primary rounded-pill d-inline-flex align-items-center" title="<?= htmlspecialchars($language::get('credits'), ENT_QUOTES); ?>">
+                                                <i class="icon-base ti tabler-coin icon-18px me-1"></i>
+                                                <span id="owner_credits"><?= number_format((float) ($rUserInfo['credits'] ?? 0), 0); ?></span>
+                                            </span>
+                                        </li>
+
+                                        <!-- Tickets -->
+                                        <li class="nav-item">
+                                            <a class="nav-link btn btn-icon btn-text-secondary rounded-pill" href="tickets" title="<?= htmlspecialchars($language::get('tickets'), ENT_QUOTES); ?>">
+                                                <i class="icon-base ti tabler-ticket icon-22px"></i>
+                                            </a>
+                                        </li>
+
+                                        <!-- Theme switcher (light / dark / system) -->
+                                        <li class="nav-item dropdown">
+                                            <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
+                                                id="nav-theme" href="javascript:void(0);" data-bs-toggle="dropdown">
+                                                <i class="icon-base ti tabler-sun icon-22px theme-icon-active text-heading"></i>
+                                                <span class="d-none ms-2" id="nav-theme-text"><?= $language::get('shell_toggle_theme'); ?></span>
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="nav-theme-text">
+                                                <li>
+                                                    <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="light">
+                                                        <span><i class="icon-base ti tabler-sun icon-22px me-3" data-icon="sun"></i><?= $language::get('shell_theme_light'); ?></span>
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="dark">
+                                                        <span><i class="icon-base ti tabler-moon-stars icon-22px me-3" data-icon="moon-stars"></i><?= $language::get('shell_theme_dark'); ?></span>
+                                                    </button>
+                                                </li>
+                                                <li>
+                                                    <button type="button" class="dropdown-item align-items-center" data-bs-theme-value="system">
+                                                        <span><i class="icon-base ti tabler-device-desktop-analytics icon-22px me-3" data-icon="device-desktop-analytics"></i><?= $language::get('shell_theme_system'); ?></span>
+                                                    </button>
+                                                </li>
+                                            </ul>
+                                        </li>
+
+                                        <!-- User dropdown -->
+                                        <li class="nav-item navbar-dropdown dropdown-user dropdown">
+                                            <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
                                                 <div class="avatar avatar-online">
                                                     <span class="avatar-initial rounded-circle bg-label-primary">
                                                         <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
                                                     </span>
                                                 </div>
-                                            </div>
-                                            <div class="flex-grow-1">
-                                                <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
-                                                <small class="text-body-secondary"><?= $language::get('shell_role_reseller'); ?></small>
-                                            </div>
-                                        </div>
-                                    </li>
-                                    <li><div class="dropdown-divider my-1 mx-n2"></div></li>
-                                    <li>
-                                        <a class="dropdown-item" href="edit_profile">
-                                            <i class="icon-base ti tabler-user me-3 icon-md"></i>
-                                            <span class="align-middle"><?= $language::get('edit_profile'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="user_logs?user_id=<?= intval($rUserInfo['id']); ?>">
-                                            <i class="icon-base ti tabler-coin me-3 icon-md"></i>
-                                            <span class="align-middle"><?= $language::get('credit_spend'); ?></span>
-                                        </a>
-                                    </li>
-                                    <li><div class="dropdown-divider my-1 mx-n2"></div></li>
-                                    <li>
-                                        <a class="dropdown-item" href="logout">
-                                            <i class="icon-base ti tabler-logout me-3 icon-md"></i>
-                                            <span class="align-middle"><?= $language::get('logout'); ?></span>
-                                        </a>
-                                    </li>
-                                </ul>
-                            </li>
-                            <!--/ User dropdown -->
-                        </ul>
-                    </div>
-                </nav>
-                <!-- / Navbar -->
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li>
+                                                    <div class="dropdown-item mt-0 d-flex align-items-center">
+                                                        <div class="flex-shrink-0 me-2">
+                                                            <div class="avatar avatar-online">
+                                                                <span class="avatar-initial rounded-circle bg-label-primary">
+                                                                    <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div class="flex-grow-1">
+                                                            <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
+                                                            <small class="text-body-secondary"><?= $language::get('shell_role_reseller'); ?></small>
+                                                        </div>
+                                                    </div>
+                                                </li>
+                                                <li>
+                                                    <div class="dropdown-divider my-1 mx-n2"></div>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="edit_profile">
+                                                        <i class="icon-base ti tabler-user me-3 icon-md"></i>
+                                                        <span class="align-middle"><?= $language::get('edit_profile'); ?></span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="user_logs?user_id=<?= intval($rUserInfo['id']); ?>">
+                                                        <i class="icon-base ti tabler-coin me-3 icon-md"></i>
+                                                        <span class="align-middle"><?= $language::get('credit_spend'); ?></span>
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <div class="dropdown-divider my-1 mx-n2"></div>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item" href="logout">
+                                                        <i class="icon-base ti tabler-logout me-3 icon-md"></i>
+                                                        <span class="align-middle"><?= $language::get('logout'); ?></span>
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </li>
+                                        <!--/ User dropdown -->
+                                    </ul>
+                                </div>
+                            </nav>
+                            <!-- / Navbar -->
 
-                <!-- Content wrapper (closed in footer.php) -->
-                <div class="content-wrapper">
-                    <div class="container-xxl flex-grow-1 container-p-y">
-<?php endif; /* modal vs full-layout body */ ?>
+                            <!-- Content wrapper (closed in footer.php) -->
+                            <div class="content-wrapper">
+                                <div class="container-xxl flex-grow-1 container-p-y">
+                                <?php endif; /* modal vs full-layout body */ ?>
