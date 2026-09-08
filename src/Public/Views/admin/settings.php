@@ -1189,7 +1189,7 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
-								<div class="col-md-12 text-muted"><small><i class="mdi mdi-information-outline mr-1"></i>When MaxMind credentials are configured, <code>binaries</code> and <code>cron:maxmind</code> (every Tuesday) download selected databases from the MaxMind API. If credentials are empty, XC_VM falls back to GitHub GeoLite2 files. GeoLite2 editions are free with a MaxMind account; GeoIP2 editions require an active paid subscription.</small></div>
+								<div class="col-md-12 text-muted"><small><i class="icon-base ti tabler-info-circle me-1"></i>When MaxMind credentials are configured, <code>binaries</code> and <code>cron:maxmind</code> (every Tuesday) download selected databases from the MaxMind API. If credentials are empty, XC_VM falls back to GitHub GeoLite2 files. GeoLite2 editions are free with a MaxMind account; GeoIP2 editions require an active paid subscription.</small></div>
 							</div>
 
 							<h5 class="card-title mb-4"><?= $language::get('encryption') ?></h5>
@@ -1205,7 +1205,7 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
-								<div class="col-md-12 text-muted"><small><i class="mdi mdi-information-outline mr-1"></i>Server-wide secret used to encrypt stream access tokens (HLS / RTMP / portal) and stored HMAC API keys. This is not a password and is unrelated to Ministra. Changing it invalidates every existing encrypted token and stored API key.</small></div>
+								<div class="col-md-12 text-muted"><small><i class="icon-base ti tabler-info-circle me-1"></i>Server-wide secret used to encrypt stream access tokens (HLS / RTMP / portal) and stored HMAC API keys. This is not a password and is unrelated to Ministra. Changing it invalidates every existing encrypted token and stored API key.</small></div>
 							</div>
 
 						</div>
