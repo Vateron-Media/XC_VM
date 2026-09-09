@@ -559,11 +559,11 @@ renderUnifiedLayoutFooter('admin');
             e.preventDefault();
             if (!isImport) {
                 if (!document.getElementById('title').value.trim()) {
-                    alert(errText);
+                    xcToast(errText, 'error');
                     return;
                 }
             } else if (!document.getElementById('m3u_file').value && !document.getElementById('import_folder').value) {
-                alert(errText);
+                xcToast(errText, 'error');
                 return;
             }
             if (isImport) {
@@ -606,11 +606,11 @@ renderUnifiedLayoutFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

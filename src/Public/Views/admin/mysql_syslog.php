@@ -197,7 +197,7 @@ renderUnifiedLayoutFooter('admin');
                     table.ajax.reload(null, false);
                 })
                 .catch(function() {
-                    alert(lang.error);
+                    xcToast(lang.error, 'error');
                 });
         });
 

@@ -353,7 +353,7 @@ renderUnifiedLayoutFooter('admin');
             document.getElementById(addId).addEventListener('click', function() {
                 var v = field.value.trim();
                 if (!v || (validate && !validate(v))) {
-                    alert('Please enter a valid value.');
+                    xcToast('Please enter a valid value.', 'warning');
                     return;
                 }
                 var exists = Array.prototype.some.call(sel.options, function(o) {
@@ -436,11 +436,11 @@ renderUnifiedLayoutFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

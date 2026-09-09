@@ -444,7 +444,7 @@ renderUnifiedLayoutFooter('admin');
             }
             var v = ipField.value.trim();
             if (!v || !validIP(v)) {
-                alert('Please enter a valid IP address.');
+                xcToast('Please enter a valid IP address.', 'warning');
                 return;
             }
             var exists = Array.prototype.some.call(ipSel.options, function(o) {
@@ -490,7 +490,7 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('enigma-form').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!macEl.value) {
-                alert('Please enter a valid MAC address.');
+                xcToast('Please enter a valid MAC address.', 'warning');
                 return;
             }
             document.getElementById('bouquets_selected').value = collect('enigma-bouquet-cb');
@@ -534,12 +534,12 @@ renderUnifiedLayoutFooter('admin');
                     }
                     btn.disabled = false;
                     applyPair();
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
                     applyPair();
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

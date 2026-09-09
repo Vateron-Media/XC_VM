@@ -349,11 +349,11 @@ renderUnifiedLayoutFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

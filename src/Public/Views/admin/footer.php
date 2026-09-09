@@ -276,7 +276,7 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                     btn.disabled = false;
                     bootstrap.Modal.getInstance(document.getElementById('xcClearLogsModal')).hide();
                     if (!d || d.result === false) {
-                        alert(errText);
+                        xcToast(errText, 'error');
                         return;
                     }
                     var t = pickTable();
@@ -286,7 +286,7 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
 

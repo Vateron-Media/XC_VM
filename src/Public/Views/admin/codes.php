@@ -120,7 +120,7 @@ renderUnifiedLayoutFooter('admin');
                         table.row(row).remove().draw(false);
                     })
                     .catch(function() {
-                        alert(errMsg);
+                        xcToast(errMsg, 'error');
                     });
             });
         });

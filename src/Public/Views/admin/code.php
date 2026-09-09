@@ -155,7 +155,7 @@ renderUnifiedLayoutFooter('admin');
             var f = document.getElementById('ip_field'),
                 v = f.value.trim();
             if (!v || !validIP(v)) {
-                alert('Please enter a valid IP address.');
+                xcToast('Please enter a valid IP address.', 'warning');
                 return;
             }
             var exists = Array.prototype.some.call(wl.options, function(o) {
@@ -205,11 +205,11 @@ renderUnifiedLayoutFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

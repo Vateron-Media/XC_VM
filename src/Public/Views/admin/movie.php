@@ -789,15 +789,15 @@ renderUnifiedLayoutFooter('admin');
             var ok = true;
             if (!isImport) {
                 if (!document.getElementById('stream_display_name').value.trim()) {
-                    alert(lang.noName);
+                    xcToast(lang.noName, 'warning');
                     ok = false;
                 }
                 if (!document.getElementById('stream_source').value.trim()) {
-                    alert(lang.noSource);
+                    xcToast(lang.noSource, 'warning');
                     ok = false;
                 }
             } else if (!document.getElementById('m3u_file').value && !document.getElementById('import_folder').value) {
-                alert(lang.noM3u);
+                xcToast(lang.noM3u, 'warning');
                 ok = false;
             }
             if (!ok) {
@@ -846,7 +846,7 @@ renderUnifiedLayoutFooter('admin');
                         evaluateDirectSource();
                         evaluateSymlink();
                     }
-                    alert(lang.errText);
+                    xcToast(lang.errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
@@ -854,7 +854,7 @@ renderUnifiedLayoutFooter('admin');
                         evaluateDirectSource();
                         evaluateSymlink();
                     }
-                    alert(lang.errText);
+                    xcToast(lang.errText, 'error');
                 });
         });
     })();

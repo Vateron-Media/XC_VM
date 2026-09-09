@@ -223,7 +223,7 @@ renderUnifiedLayoutFooter('admin');
                     }
                     table.ajax.reload(null, false);
                 }).catch(function() {
-                    alert(lang.error);
+                    xcToast(lang.error, 'error');
                 });
             });
         });
@@ -239,7 +239,7 @@ renderUnifiedLayoutFooter('admin');
                     }
                     table.ajax.reload(null, false);
                 }).catch(function() {
-                    alert(lang.error);
+                    xcToast(lang.error, 'error');
                 });
             });
         });
@@ -251,14 +251,14 @@ renderUnifiedLayoutFooter('admin');
                 if (!dt || dt.result !== true) {
                     throw new Error('fail');
                 }
-                alert(lang.creating);
+                xcToast(lang.creating, 'info');
                 setTimeout(function() {
                     btn.disabled = false;
                     table.ajax.reload(null, false);
                 }, 2000);
             }).catch(function() {
                 btn.disabled = false;
-                alert(lang.error);
+                xcToast(lang.error, 'error');
             });
         });
 
@@ -287,11 +287,11 @@ renderUnifiedLayoutFooter('admin');
                         };
                     }
                     btn.disabled = false;
-                    alert(dt && dt.result !== false ? lang.saved : lang.error);
+                    xcToast(dt && dt.result !== false ? lang.saved : lang.error, dt && dt.result !== false ? 'success' : 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(lang.error);
+                    xcToast(lang.error, 'error');
                 });
         });
     })();

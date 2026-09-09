@@ -948,7 +948,7 @@ renderUnifiedLayoutFooter('admin');
                             if (window.xcToast) {
                                 window.xcToast(lang.selectPlaylist, 'error');
                             } else {
-                                alert(lang.selectPlaylist);
+                                xcToast(lang.selectPlaylist, 'warning');
                             }
                             e.preventDefault();
                         }

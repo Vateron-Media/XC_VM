@@ -951,11 +951,11 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('stream-form').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!isImport && !document.getElementById('stream_display_name').value.trim()) {
-                alert(errText);
+                xcToast(errText, 'error');
                 return;
             }
             if (isImport && !document.getElementById('m3u_file').value) {
-                alert(errText);
+                xcToast(errText, 'error');
                 return;
             }
             document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
@@ -1013,12 +1013,12 @@ renderUnifiedLayoutFooter('admin');
                     }
                     btn.disabled = false;
                     evaluateDirectSource();
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
                     evaluateDirectSource();
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

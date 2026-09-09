@@ -177,11 +177,11 @@ renderUnifiedLayoutFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
 
@@ -305,12 +305,12 @@ renderUnifiedLayoutFooter('admin');
                                 epgBtn.innerHTML = '<i class="icon-base ti tabler-check me-1"></i>EPG Imported';
                                 epgBtn.classList.replace('btn-label-info', 'btn-label-success');
                             } else {
-                                alert(d && d.status === 2 ? 'EPG source already exists.' : ('Error: ' + ((d && d.data) || 'Could not import EPG source.')));
+                                xcToast(d && d.status === 2 ? 'EPG source already exists.' : ('Error: ' + ((d && d.data) || 'Could not import EPG source.')), d && d.status === 2 ? 'warning' : 'error');
                                 epgBtn.disabled = false;
                             }
                         })
                         .catch(function() {
-                            alert(errText);
+                            xcToast(errText, 'error');
                             epgBtn.disabled = false;
                         });
                 });

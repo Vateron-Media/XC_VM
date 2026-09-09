@@ -647,12 +647,12 @@ renderUnifiedLayoutFooter('admin');
                 ok = true;
             if (t === '0') {
                 if ($('#series_no').val() == 0) {
-                    alert('Please select a series to map.');
+                    xcToast('Please select a series to map.', 'warning');
                     ok = false;
                 }
             } else if (t === '1') {
                 if ($('#videos_sort option').length === 0) {
-                    alert('Please add at least one video.');
+                    xcToast('Please add at least one video.', 'warning');
                     ok = false;
                 }
                 $('#videos_sort option').each(function() {
@@ -660,7 +660,7 @@ renderUnifiedLayoutFooter('admin');
                 });
             } else if (t === '2') {
                 if ($('#review_sort option').length === 0) {
-                    alert('Please add at least one video.');
+                    xcToast('Please add at least one video.', 'warning');
                     ok = false;
                 }
                 $('#review_sort option').each(function() {
@@ -668,7 +668,7 @@ renderUnifiedLayoutFooter('admin');
                 });
             }
             if (!$('#transcode_profile_id').val()) {
-                alert('Please select a transcoding profile.');
+                xcToast('Please select a transcoding profile.', 'warning');
                 ok = false;
             }
             if (!document.getElementById('stream_display_name').value.trim()) {
@@ -722,11 +722,11 @@ renderUnifiedLayoutFooter('admin');
                         return;
                     }
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();

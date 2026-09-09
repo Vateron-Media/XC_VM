@@ -315,7 +315,7 @@ renderUnifiedLayoutFooter('admin');
         document.getElementById('radio-form').addEventListener('submit', function(e) {
             e.preventDefault();
             if (!document.getElementById('stream_display_name').value.trim()) {
-                alert(nameErr);
+                xcToast(nameErr, 'error');
                 return;
             }
             document.getElementById('server_tree_data').value = JSON.stringify($('#server_tree').jstree(true).get_json('source', {
@@ -358,12 +358,12 @@ renderUnifiedLayoutFooter('admin');
                     }
                     btn.disabled = false;
                     applyDirect();
-                    alert(errText);
+                    xcToast(errText, 'error');
                 })
                 .catch(function() {
                     btn.disabled = false;
                     applyDirect();
-                    alert(errText);
+                    xcToast(errText, 'error');
                 });
         });
     })();
