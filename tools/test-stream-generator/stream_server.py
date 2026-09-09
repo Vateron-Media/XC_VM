@@ -2,8 +2,9 @@
 """
 XC_VM test stream generator.
 
-Turns a single MP4 file into looping, HTTP-served streams that can be pasted
-straight into the panel as a live stream source:
+Generates a synthetic, ever-changing test pattern (NO input file required) and
+serves it as looping, HTTP-served streams that can be pasted straight into the
+panel as a live stream source:
 
     /stream.ts      Continuous MPEG-TS (Content-Type: video/mp2t).
                     This is the endpoint for testing LLOD (the panel's
@@ -14,14 +15,22 @@ straight into the panel as a live stream source:
     /playlist.m3u   M3U channel list referencing the URLs above, for bulk import.
     /               Human-readable index listing every URL.
 
-The MP4 is looped forever and paced in real time (-re), so the panel sees a
+The picture is generated live by ffmpeg from `testsrc2` (a moving colour test
+pattern) with overlays: a large running STOPWATCH (elapsed), the real WALL-CLOCK
+time (handy for measuring end-to-end latency — compare the on-screen time to your
+own clock), a frame counter, and two boxes sweeping across the frame. Audio is a
+low 1 kHz tone. Everything is paced in real time (-re), so the panel sees a
 never-ending "live" channel. Only the Python 3 standard library + ffmpeg are
-required (no pip packages).
+required (no pip packages, no media files).
+
+If no usable TrueType font is found, it falls back to `testsrc` (v1), whose
+built-in timestamp still gives a running timer plus the moving boxes.
 
 Examples:
-    ./stream_server.py -i sample.mp4
-    ./stream_server.py -i sample.mp4 --host 0.0.0.0 --port 8088
-    ./stream_server.py -i sample.mp4 --encode h264   # re-encode for odd codecs
+    ./stream_server.py
+    ./stream_server.py --host 0.0.0.0 --port 8088
+    ./stream_server.py --size 1920x1080 --fps 30
+    ./stream_server.py --font /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
 
 Stop with Ctrl+C.
 """
@@ -29,8 +38,10 @@ Stop with Ctrl+C.
 import argparse
 import atexit
 import os
+import re
 import shutil
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -42,48 +53,115 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 TS_PACKET = 188
 TS_CHUNK = TS_PACKET * 64  # ~12 KiB
 
+# Long-run safety: cap concurrent /stream.ts pulls (each spawns an ffmpeg) and
+# bound socket writes so a stalled/half-open client cannot pin an ffmpeg + FDs
+# indefinitely. Both are overridable from the CLI.
+DEFAULT_MAX_TS_CLIENTS = 32
+TS_WRITE_TIMEOUT = 30  # seconds a write may stall before the client is dropped
+
 # Sliding-window HLS so the playlist never grows unbounded.
 HLS_SEGMENT_TIME = 4
 HLS_LIST_SIZE = 6
+
+# 1 kHz test tone (like SMPTE bars), kept quiet.
+AUDIO_SRC = "sine=frequency=1000:sample_rate=48000"
+AUDIO_VOLUME = "0.2"
+
+# Common TrueType font locations (Linux distros + macOS) probed when the user
+# does not pass --font. First match wins.
+FONT_CANDIDATES = [
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf",
+    "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+    "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/liberation/LiberationSans-Regular.ttf",
+    "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
+    "/Library/Fonts/Arial.ttf",
+    "/System/Library/Fonts/Supplemental/Arial.ttf",
+]
 
 CONFIG = {}  # populated in main()
 
 
 # --------------------------------------------------------------------------- #
-# ffmpeg command builders
+# ffmpeg command builders (synthetic source)
 # --------------------------------------------------------------------------- #
-def _codec_args(for_hls):
-    """Return the encode/copy arguments shared by the TS and HLS pipelines."""
-    if CONFIG["encode"] == "h264":
-        args = [
-            "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
-            "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
-        ]
-        if for_hls:
-            # Keyframe every segment so HLS can cut cleanly.
-            args += ["-g", str(HLS_SEGMENT_TIME * 25), "-force_key_frames",
-                     "expr:gte(t,n_forced*%d)" % HLS_SEGMENT_TIME]
-        return args
-    # Default: stream copy (lightest). genpts smooths the loop boundary.
-    return ["-c", "copy"]
+def _base_video():
+    """lavfi video source spec. testsrc2 (rich moving pattern) when a font is
+    available for overlays; testsrc (v1, which draws its own timestamp) as the
+    font-less fallback so there is always a visible running timer."""
+    src = "testsrc2" if CONFIG.get("font") else "testsrc"
+    return "%s=size=%s:rate=%d" % (src, CONFIG["size"], CONFIG["fps"])
 
 
-def build_ts_cmd(seek=0.0):
-    """Per-client continuous MPEG-TS to stdout (pipe:1).
+def _vf(label):
+    """Build the -vf overlay chain. The moving boxes need no font; the clocks do.
 
-    ``seek`` (seconds) starts the client at the current LIVE position of the
-    looping file instead of t=0, so opening the channel does not rewind the clip
-    to the beginning. ``-ss`` before ``-i`` is input seeking (fast, lands on the
-    nearest preceding keyframe → immediate decodable frame). On loop the input
-    restarts from 0 and continues, so the stream never ends.
+    Single quotes around any value that contains ``:`` or ``,`` keep ffmpeg from
+    treating them as option/filter separators — the command is exec'd directly
+    (no shell), so only ffmpeg-level escaping is required.
     """
-    pre = [CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error", "-re"]
-    if seek and seek > 0:
-        pre += ["-ss", "%.3f" % seek]
-    return pre + [
-        "-stream_loop", "-1", "-i", CONFIG["input"],
-        "-fflags", "+genpts",
-        *_codec_args(for_hls=False),
+    # Two boxes sweeping across the frame — pure motion, font-independent.
+    boxes = [
+        "drawbox=x='mod(t*260,iw)':y=ih-70:w=120:h=36:color=red@0.9:thickness=fill",
+        "drawbox=y='mod(t*150,ih)':x=24:w=36:h=120:color=cyan@0.9:thickness=fill",
+    ]
+    if not CONFIG.get("font"):
+        # testsrc (v1) already renders a timestamp + frame number.
+        return ",".join(boxes)
+
+    tf = "fontfile=" + CONFIG["font"] + ":"
+    meta = CONFIG["size"] + " @ " + str(CONFIG["fps"]) + "fps"
+    texts = [
+        "drawtext=" + tf + "text='XC_VM TEST - " + label + "'"
+        ":x=(w-text_w)/2:y=36:fontsize=44:fontcolor=white"
+        ":box=1:boxcolor=black@0.55:boxborderw=12",
+        # Real wall-clock time — compare to your own clock to gauge latency.
+        "drawtext=" + tf + "text='%{localtime}'"
+        ":x=(w-text_w)/2:y=104:fontsize=34:fontcolor=0xFFD400"
+        ":box=1:boxcolor=black@0.55:boxborderw=8",
+        # Big stopwatch: elapsed time since this ffmpeg (stream) started.
+        "drawtext=" + tf + "text='ELAPSED %{pts:hms}'"
+        ":x=(w-text_w)/2:y=(h-text_h)/2:fontsize=72:fontcolor=0x00FF66"
+        ":box=1:boxcolor=black@0.6:boxborderw=16",
+        "drawtext=" + tf + "text='frame %{n}   " + meta + "'"
+        ":x=(w-text_w)/2:y=h-150:fontsize=26:fontcolor=white"
+        ":box=1:boxcolor=black@0.55:boxborderw=6",
+    ]
+    return ",".join(texts + boxes)
+
+
+def _encode(for_hls):
+    """Encode args (the synthetic source is raw, so it is always re-encoded)."""
+    args = [
+        "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
+        "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
+    ]
+    if for_hls:
+        # Keyframe every segment so HLS can cut cleanly.
+        args += ["-g", str(HLS_SEGMENT_TIME * CONFIG["fps"]),
+                 "-force_key_frames", "expr:gte(t,n_forced*%d)" % HLS_SEGMENT_TIME]
+    return args
+
+
+def _source_inputs():
+    return [
+        "-f", "lavfi", "-i", _base_video(),
+        "-f", "lavfi", "-i", AUDIO_SRC,
+    ]
+
+
+def build_ts_cmd(label="TS - LLOD"):
+    """Per-client continuous MPEG-TS to stdout (pipe:1). The source is generated
+    live, so each client simply starts "now"; there is no file to seek or loop."""
+    return [
+        CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error", "-re",
+        *_source_inputs(),
+        "-vf", _vf(label),
+        "-af", "volume=" + AUDIO_VOLUME,
+        *_encode(for_hls=False),
         "-mpegts_flags", "+initial_discontinuity",
         "-pat_period", "2",
         "-f", "mpegts", "pipe:1",
@@ -93,10 +171,11 @@ def build_ts_cmd(seek=0.0):
 def build_hls_cmd(hls_dir):
     """Background HLS writer: live sliding-window playlist + segments."""
     return [
-        CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error",
-        "-re", "-stream_loop", "-1", "-i", CONFIG["input"],
-        "-fflags", "+genpts",
-        *_codec_args(for_hls=True),
+        CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error", "-re",
+        *_source_inputs(),
+        "-vf", _vf("HLS"),
+        "-af", "volume=" + AUDIO_VOLUME,
+        *_encode(for_hls=True),
         "-f", "hls",
         "-hls_time", str(HLS_SEGMENT_TIME),
         "-hls_list_size", str(HLS_LIST_SIZE),
@@ -153,7 +232,7 @@ class HlsWriter:
 # --------------------------------------------------------------------------- #
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
-    server_version = "XC_VM-TestStream/1.0"
+    server_version = "XC_VM-TestStream/2.0"
 
     # ---- helpers ---------------------------------------------------------- #
     def _base_url(self):
@@ -207,47 +286,76 @@ class Handler(BaseHTTPRequestHandler):
 
     def _stream_ts(self):
         """Continuous MPEG-TS — the LLOD-compatible endpoint. A per-client ffmpeg
-        (which the panel LLOD probe/pull expects), but seeked to the CURRENT live
-        position of the looping file instead of t=0 — so opening the channel does
-        not rewind to the beginning. Clients connecting at the same wall-clock get
-        the same offset (in sync); a later client joins further along (live)."""
-        self.send_response(200)
-        self.send_header("Content-Type", "video/mp2t")
-        self.send_header("Cache-Control", "no-cache")
-        self.send_header("Connection", "close")
-        self.end_headers()
-        if self.command == "HEAD":
+        (which the panel LLOD probe/pull expects) generating the synthetic source
+        live, so opening the channel starts a fresh 'now'.
+
+        Long-run hardening: a bounded number of concurrent pulls (each is an
+        ffmpeg), a socket write timeout + TCP keepalive so a stalled/half-open
+        client is dropped instead of pinning the ffmpeg forever, and a hard kill
+        if terminate() does not reap it."""
+        slots = CONFIG["ts_slots"]
+        if not slots.acquire(blocking=False):
+            sys.stderr.write("[ts] refused %s: at client cap (%d)\n"
+                             % (self.address_string(), CONFIG["max_clients"]))
+            self._send_text("Too many concurrent streams, try later.\n", status=503)
             return
-        dur = CONFIG.get("duration") or 0.0
-        seek = ((time.time() - CONFIG["start_time"]) % dur) if dur > 0 else 0.0
-        proc = subprocess.Popen(
-            build_ts_cmd(seek), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
-        )
+
+        proc = None
         try:
+            self.send_response(200)
+            self.send_header("Content-Type", "video/mp2t")
+            self.send_header("Cache-Control", "no-cache")
+            self.send_header("Connection", "close")
+            self.end_headers()
+            if self.command == "HEAD":
+                return
+
+            # Drop a stalled/half-open client instead of blocking forever on a
+            # write: keepalive surfaces dead peers, settimeout bounds each send.
+            try:
+                self.connection.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
+            except OSError:
+                pass
+            self.connection.settimeout(TS_WRITE_TIMEOUT)
+
+            sys.stderr.write("[ts] start %s\n" % self.address_string())
+            proc = subprocess.Popen(
+                build_ts_cmd(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            )
             while True:
                 chunk = proc.stdout.read(TS_CHUNK)
                 if not chunk:
                     break
                 self.wfile.write(chunk)
-        except (BrokenPipeError, ConnectionResetError):
-            pass  # client (panel) disconnected — expected
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError,
+                socket.timeout, TimeoutError, OSError):
+            pass  # client disconnected or stalled past the write timeout — expected
         finally:
-            if proc.poll() is None:
+            if proc is not None and proc.poll() is None:
                 proc.terminate()
                 try:
                     proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:
                     proc.kill()
+                    try:
+                        proc.wait(timeout=2)
+                    except subprocess.TimeoutExpired:
+                        pass
+            slots.release()
+            sys.stderr.write("[ts] end   %s\n" % self.address_string())
 
     def _index(self):
         base = self._base_url()
+        font = CONFIG.get("font") or "(none — testsrc fallback)"
         html = """<!doctype html>
 <html><head><meta charset="utf-8"><title>XC_VM test stream generator</title>
 <style>body{{font-family:system-ui,sans-serif;max-width:760px;margin:40px auto;padding:0 16px}}
 code{{background:#f3f3f3;padding:2px 6px;border-radius:4px}}
 li{{margin:8px 0}}</style></head><body>
 <h1>XC_VM test stream generator</h1>
-<p>Source file: <code>{input}</code> &mdash; encode mode: <code>{encode}</code></p>
+<p>Source: <b>generated</b> ({size} @ {fps}fps) &mdash; moving test pattern with a
+live stopwatch, wall-clock and sweeping boxes. No input file.</p>
+<p>Font: <code>{font}</code></p>
 <h2>Stream URLs</h2>
 <ul>
 <li><b>MPEG-TS (for LLOD)</b>: <a href="{base}/stream.ts"><code>{base}/stream.ts</code></a><br>
@@ -260,7 +368,7 @@ li{{margin:8px 0}}</style></head><body>
 <p>Add the URL in the admin panel under the stream's
 <code>stream_source[]</code> field (Streams &rarr; Add/Edit).</p>
 </body></html>
-""".format(base=base, input=CONFIG["input"], encode=CONFIG["encode"])
+""".format(base=base, size=CONFIG["size"], fps=CONFIG["fps"], font=font)
         self._send_text(html, content_type="text/html; charset=utf-8")
 
     # ---- routing ---------------------------------------------------------- #
@@ -286,7 +394,12 @@ li{{margin:8px 0}}</style></head><body>
         self._route()
 
     def log_message(self, fmt, *args):
-        sys.stderr.write("[http] %s - %s\n" % (self.address_string(), fmt % args))
+        # Per-request access logging is off by default: an HLS player polls the
+        # playlist + segments every few seconds, so over days this floods the
+        # log (and any file it is redirected to). Meaningful events (stream
+        # start/stop, refusals, hls restarts) are logged explicitly elsewhere.
+        if CONFIG.get("verbose"):
+            sys.stderr.write("[http] %s - %s\n" % (self.address_string(), fmt % args))
 
 
 # --------------------------------------------------------------------------- #
@@ -294,39 +407,53 @@ li{{margin:8px 0}}</style></head><body>
 # --------------------------------------------------------------------------- #
 def parse_args():
     p = argparse.ArgumentParser(
-        description="Serve a looping MP4 as TS/HLS/M3U streams for XC_VM testing."
+        description="Serve a generated moving test pattern as TS/HLS/M3U streams for XC_VM testing."
     )
-    p.add_argument("-i", "--input", required=True, help="path to the source .mp4 file")
     p.add_argument("--host", default="0.0.0.0", help="bind address (default 0.0.0.0)")
     p.add_argument("--port", type=int, default=8088, help="bind port (default 8088)")
     p.add_argument(
         "--advertise-host", default=None,
         help="host/IP to print in URLs (default: autodetected LAN IP)",
     )
+    p.add_argument("--size", default="1280x720", help="frame size WxH (default 1280x720)")
+    p.add_argument("--fps", type=int, default=25, help="frame rate (default 25)")
     p.add_argument(
-        "--encode", choices=["copy", "h264"], default="copy",
-        help="copy = remux (fast, needs H.264/AAC mp4); h264 = re-encode (any codec)",
+        "--font", default=None,
+        help="path to a .ttf for the on-screen clock/labels "
+             "(default: autodetect; falls back to testsrc's built-in timer)",
     )
     p.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg binary (default: ffmpeg in PATH)")
+    p.add_argument(
+        "--max-clients", type=int, default=DEFAULT_MAX_TS_CLIENTS,
+        help="max concurrent /stream.ts pulls, each is an ffmpeg (default %d)" % DEFAULT_MAX_TS_CLIENTS,
+    )
+    p.add_argument(
+        "--verbose", action="store_true",
+        help="log every HTTP request (off by default to keep long runs quiet)",
+    )
     return p.parse_args()
 
 
-def probe_duration(path, ffmpeg):
-    """Source duration in seconds (0 if it can't be determined). Used to seek
-    /stream.ts clients to the current live position of the loop."""
-    cand = os.path.join(os.path.dirname(os.path.abspath(ffmpeg)), "ffprobe")
-    ffprobe = cand if os.path.isfile(cand) else "ffprobe"
+def detect_font(explicit):
+    """Return a usable .ttf path, or None. Prefers --font; then common paths;
+    then anything fontconfig can point at (fc-match)."""
+    if explicit:
+        return explicit if os.path.isfile(explicit) else None
+    for cand in FONT_CANDIDATES:
+        if os.path.isfile(cand):
+            return cand
     try:
         out = subprocess.check_output(
-            [ffprobe, "-v", "error", "-show_entries", "format=duration",
-             "-of", "default=nk=1:nw=1", path], stderr=subprocess.DEVNULL)
-        return float(out.decode("utf-8", "replace").strip() or 0)
+            ["fc-match", "-f", "%{file}", "sans"], stderr=subprocess.DEVNULL
+        ).decode("utf-8", "replace").strip()
+        if out and os.path.isfile(out):
+            return out
     except Exception:
-        return 0.0
+        pass
+    return None
 
 
 def detect_lan_ip():
-    import socket
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
@@ -358,27 +485,35 @@ class QuietThreadingHTTPServer(ThreadingHTTPServer):
 def main():
     args = parse_args()
 
-    if not os.path.isfile(args.input):
-        sys.exit("error: input file not found: %s" % args.input)
     if shutil.which(args.ffmpeg) is None and not os.path.isfile(args.ffmpeg):
         sys.exit("error: ffmpeg not found (looked for %r). Install it or pass --ffmpeg." % args.ffmpeg)
+    if not re.fullmatch(r"\d+x\d+", args.size):
+        sys.exit("error: --size must be WxH (e.g. 1280x720), got %r" % args.size)
+    if args.fps <= 0:
+        sys.exit("error: --fps must be positive")
+    if args.max_clients < 1:
+        sys.exit("error: --max-clients must be >= 1")
+
+    if args.font and not os.path.isfile(args.font):
+        sys.stderr.write("warning: --font %r not found; falling back.\n" % args.font)
+    font = detect_font(args.font)
 
     hls_dir = tempfile.mkdtemp(prefix="xcvm-teststream-")
     atexit.register(lambda: shutil.rmtree(hls_dir, ignore_errors=True))
 
     CONFIG.update({
-        "input": os.path.abspath(args.input),
         "host": args.host,
         "port": args.port,
         "advertise_host": args.advertise_host or detect_lan_ip(),
-        "encode": args.encode,
+        "size": args.size,
+        "fps": args.fps,
+        "font": font,
         "ffmpeg": args.ffmpeg,
         "hls_dir": hls_dir,
+        "verbose": args.verbose,
+        "max_clients": args.max_clients,
+        "ts_slots": threading.BoundedSemaphore(args.max_clients),
     })
-
-    # For the live-position seek on /stream.ts (start viewers "now", not at t=0).
-    CONFIG["duration"] = probe_duration(CONFIG["input"], CONFIG["ffmpeg"])
-    CONFIG["start_time"] = time.time()
 
     writer = HlsWriter(hls_dir)
     writer.start()
@@ -387,9 +522,9 @@ def main():
 
     base = "http://%s:%d" % (CONFIG["advertise_host"], args.port)
     print("XC_VM test stream generator")
-    print("  input : %s" % CONFIG["input"])
-    print("  encode: %s" % CONFIG["encode"])
-    print("  bind  : %s:%d" % (args.host, args.port))
+    print("  source: generated %s @ %dfps (moving pattern + stopwatch + wall-clock)" % (args.size, args.fps))
+    print("  font  : %s" % (font or "(none — testsrc built-in timer)"))
+    print("  bind  : %s:%d  (max %d TS clients)" % (args.host, args.port, args.max_clients))
     print("")
     print("Paste one of these into the panel's stream source field:")
     print("  TS (LLOD): %s/stream.ts" % base)

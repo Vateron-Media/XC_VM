@@ -1,23 +1,30 @@
 # Test stream generator
 
-Turns a single `.mp4` file into looping, HTTP-served streams you can paste into
-the panel as a live stream source — for end-to-end testing of the panel's
-streaming pipeline, including **LLOD** (the Low-Latency On-Demand processor in
-`src/Cli/Commands/LlodCommand.php`).
+Generates a synthetic, ever-changing test pattern (**no input file**) and serves
+it as looping, HTTP-served streams you can paste into the panel as a live stream
+source — for end-to-end testing of the panel's streaming pipeline, including
+**LLOD** (the Low-Latency On-Demand processor in `src/Cli/Commands/LlodCommand.php`).
 
-The MP4 is looped forever and paced in real time, so the panel sees a
-never-ending "live" channel.
+The picture is drawn live by ffmpeg from `testsrc2` (a moving colour test
+pattern) with overlays: a large running **stopwatch** (elapsed), the real
+**wall-clock** time (compare it to your own clock to eyeball end-to-end latency),
+a frame counter, and two boxes sweeping across the frame. Audio is a low 1 kHz
+tone. Everything is paced in real time, so the panel sees a never-ending "live"
+channel.
 
 ## Requirements
 
 - Python 3.7+ (standard library only — no `pip install`)
 - `ffmpeg` available in `PATH` (or pass `--ffmpeg /path/to/ffmpeg`)
+- A TrueType font for the on-screen clock/labels — autodetected (DejaVu /
+  Liberation / `fc-match`). If none is found it falls back to `testsrc` (v1),
+  whose built-in timestamp still gives a running timer plus the moving boxes.
 
 ## Usage
 
 ```bash
 cd tools/test-stream-generator
-./stream_server.py -i sample.mp4
+./stream_server.py
 ```
 
 On start it prints the URLs to paste into the panel, e.g.:
@@ -35,15 +42,20 @@ Stop with `Ctrl+C`.
 
 | Flag                | Default     | Description                                                        |
 | ------------------- | ----------- | ------------------------------------------------------------------ |
-| `-i, --input`       | (required)  | Source `.mp4` file.                                                |
 | `--host`            | `0.0.0.0`   | Bind address.                                                      |
 | `--port`            | `8088`      | Bind port.                                                         |
 | `--advertise-host`  | autodetect  | Host/IP printed in the URLs (set this if the panel is on another host). |
-| `--encode`          | `copy`      | `copy` = remux (fast, needs an H.264/AAC mp4). `h264` = re-encode any codec. |
+| `--size`            | `1280x720`  | Frame size `WxH`.                                                  |
+| `--fps`             | `25`        | Frame rate.                                                        |
+| `--font`            | autodetect  | Path to a `.ttf` for the on-screen clock/labels.                  |
+| `--max-clients`     | `32`        | Max concurrent `/stream.ts` pulls (each is an ffmpeg). Extra connections get `503`. |
+| `--verbose`         | off         | Log every HTTP request (off by default to keep long runs quiet).  |
 | `--ffmpeg`          | `ffmpeg`    | ffmpeg binary to use.                                              |
 
-If playback is broken with the default `copy` mode (e.g. the mp4 is HEVC/AC3),
-re-run with `--encode h264`.
+```bash
+./stream_server.py --size 1920x1080 --fps 30
+./stream_server.py --font /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+```
 
 ## Endpoints
 
@@ -76,8 +88,15 @@ TS and HLS test channels at once.
 
 ## Notes
 
-- Each `/stream.ts` client gets its own ffmpeg process; the HLS output is shared
-  by a single background ffmpeg that auto-restarts if it dies.
-- HLS segments live in a temp directory that is removed on exit.
+- Each `/stream.ts` client gets its own ffmpeg; the HLS output is shared by a
+  single background ffmpeg that auto-restarts if it dies.
+- HLS segments live in a temp directory (bounded by `delete_segments`) that is
+  removed on exit.
+- **Long-run safety** (fine to leave running for days): concurrent `/stream.ts`
+  pulls are capped (`--max-clients`), each client socket has a write timeout +
+  TCP keepalive so a stalled/half-open peer is dropped instead of pinning an
+  ffmpeg, and per-request access logging is off unless `--verbose`. The only
+  cosmetic quirk over multi-day runs is the MPEG-TS 33-bit timestamp wrap
+  (~26.5 h), which ffmpeg handles.
 - This is a **development/testing** tool. Do not expose it to the public
   internet.
