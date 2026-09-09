@@ -3,9 +3,10 @@
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\NetworkUtils;
+use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\AdminStreamToken;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
@@ -30,23 +31,21 @@ if (SettingsManager::get('use_buffer') == 0) {
 
 
 if (!empty($rRequestData['uitoken'])) {
-	$rTokenData = json_decode(Encryption::decrypt($rRequestData['uitoken'], SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
-	RequestManager::update('stream', $rTokenData['stream_id']);
+	$rToken = AdminStreamToken::decode($rRequestData['uitoken'], SettingsManager::get('live_streaming_pass'));
+
+	if ($rToken === null || !$rToken->isValid((bool) SettingsManager::get('ip_subnet_match'), $rIP)) {
+		generate404();
+	}
+
+	RequestManager::update('stream', $rToken->streamId);
 	RequestManager::update('extension', 'm3u8');
 
-	if (isset($rTokenData['start'])) {
-		RequestManager::update('start', $rTokenData['start']);
+	if ($rToken->start !== null) {
+		RequestManager::update('start', $rToken->start);
 	}
 
-	if (isset($rTokenData['duration'])) {
-		RequestManager::update('duration', $rTokenData['duration']);
-	}
-
-	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
-
-	if ($rTokenData['expires'] >= time() && $rIPMatch) {
-	} else {
-		generate404();
+	if ($rToken->duration !== null) {
+		RequestManager::update('duration', $rToken->duration);
 	}
 } elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 	generate404();
@@ -64,24 +63,7 @@ if (empty($rRequestData['segment'])) {
 	$rStartDate = $rRequestData['start'];
 	$rDuration = $rRequestData['duration'];
 
-	if (!is_numeric($rStartDate)) {
-		if (substr_count($rStartDate, '-') == 1) {
-			list($rDate, $rTime) = explode('-', $rStartDate);
-			$rYear = substr($rDate, 0, 4);
-			$rMonth = substr($rDate, 4, 2);
-			$rDay = substr($rDate, 6, 2);
-			$rMinutes = 0;
-			$rHour = $rTime;
-		} else {
-			list($rDate, $rTime) = explode(':', $rStartDate);
-			list($rYear, $rMonth, $rDay) = explode('-', $rDate);
-			list($rHour, $rMinutes) = explode('-', $rTime);
-		}
-
-		$rTimestamp = mktime($rHour, $rMinutes, 0, $rMonth, $rDay, $rYear);
-	} else {
-		$rTimestamp = $rStartDate;
-	}
+	$rTimestamp = StreamUtils::timeshiftStartTimestamp($rStartDate);
 }
 
 $db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.server_id = ? WHERE t1.`id` = ?', SERVER_ID, $rStreamID);
@@ -146,7 +128,7 @@ if (0 < $db->num_rows()) {
 
 				exit();
 			} else {
-				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . str_replace(array('\\', '/'), '', urldecode($rRequestData['segment']));
+				$rSegment = ARCHIVE_PATH . $rStreamID . '/' . StreamUtils::sanitizeSegmentName($rRequestData['segment']);
 
 				if (file_exists($rSegment)) {
 					$rBytes = filesize($rSegment);
@@ -206,8 +188,7 @@ if (0 < $db->num_rows()) {
 			header('Content-Length: ' . $rLength);
 			$rStartFrom = 0;
 
-			if (0 >= $rStart) {
-			} else {
+			if (0 < $rStart) {
 				$rStartFrom = floor($rStart / ($rSize / count($rQueue)));
 			}
 
@@ -219,10 +200,8 @@ if (0 < $db->num_rows()) {
 			foreach ($rQueue as $rKey => $rItem) {
 				$rSizeToDate += $rItem['filesize'];
 
-				if ($rFirstFile || 0 >= $rStartFrom) {
-				} else {
-					if ($rKey < $rStartFrom) {
-					} else {
+				if (!($rFirstFile || 0 >= $rStartFrom)) {
+					if ($rKey >= $rStartFrom) {
 						$rFirstFile = true;
 						$rSeekTo = $rStart - $rSizeToDate;
 					}

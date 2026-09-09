@@ -3,9 +3,10 @@
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\NetworkUtils;
+use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\AdminStreamToken;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
@@ -24,30 +25,20 @@ set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 
 if (!empty(RequestManager::get('uitoken'))) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
-	RequestManager::update('stream', $rTokenData['stream_id'] . '.' . $rTokenData['container']);
-	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
+	$rToken = AdminStreamToken::decode(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'));
 
-	if ($rTokenData['expires'] >= time() && $rIPMatch) {
-	} else {
+	if ($rToken === null || !$rToken->isValid((bool) SettingsManager::get('ip_subnet_match'), $rIP)) {
 		generate404();
 	}
-} else {
-	if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
-		generate404();
-	} else {
-		if (!(empty(RequestManager::get('password')) || SettingsManager::get('live_streaming_pass') != RequestManager::get('password'))) {
-		} else {
 
-
-
-			generate404();
-		}
-	}
+	RequestManager::update('stream', $rToken->streamId . '.' . $rToken->container);
+} elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
+	generate404();
+} elseif (empty(RequestManager::get('password')) || SettingsManager::get('live_streaming_pass') != RequestManager::get('password')) {
+	generate404();
 }
 
-if (!empty(RequestManager::get('stream'))) {
-} else {
+if (empty(RequestManager::get('stream'))) {
 	generate404();
 }
 
@@ -58,63 +49,17 @@ $rStreamID = intval($rStream['filename']);
 $rExtension = $rStream['extension'];
 $db->query("SELECT t1.* FROM `streams` t1 INNER JOIN `streams_servers` t2 ON t2.stream_id = t1.id AND t2.pid IS NOT NULL AND t2.server_id = ? INNER JOIN `streams_types` t3 ON t3.type_id = t1.type AND t3.type_key IN ('movie', 'series') WHERE t1.`id` = ?", SERVER_ID, $rStreamID);
 
-if (SettingsManager::get('use_buffer') != 0) {
-} else {
+if (SettingsManager::get('use_buffer') == 0) {
 	header('X-Accel-Buffering: no');
 }
 
-if (0 >= $db->num_rows()) {
-} else {
+if (0 < $db->num_rows()) {
 	$rInfo = $db->get_row();
 	$db->close_mysql();
 	$rRequest = VOD_PATH . $rStreamID . '.' . $rExtension;
 
-	if (!file_exists($rRequest)) {
-	} else {
-		switch ($rInfo['target_container']) {
-			case 'mp4':
-				header('Content-type: video/mp4');
-
-				break;
-
-			case 'mkv':
-				header('Content-type: video/x-matroska');
-
-				break;
-
-			case 'avi':
-				header('Content-type: video/x-msvideo');
-
-				break;
-
-			case '3gp':
-				header('Content-type: video/3gpp');
-
-				break;
-
-			case 'flv':
-				header('Content-type: video/x-flv');
-
-				break;
-
-			case 'wmv':
-				header('Content-type: video/x-ms-wmv');
-
-				break;
-
-			case 'mov':
-				header('Content-type: video/quicktime');
-
-				break;
-
-			case 'ts':
-				header('Content-type: video/mp2t');
-
-				break;
-
-			default:
-				header('Content-Type: application/octet-stream');
-		}
+	if (file_exists($rRequest)) {
+		header('Content-Type: ' . StreamUtils::containerMimeType($rInfo['target_container']));
 		$rFile = @fopen($rRequest, 'rb');
 		$rSize = filesize($rRequest);
 		$rLength = $rSize;
@@ -122,8 +67,7 @@ if (0 >= $db->num_rows()) {
 		$rEnd = $rSize - 1;
 		header('Accept-Ranges: 0-' . $rLength);
 
-		if (!isset($_SERVER['HTTP_RANGE'])) {
-		} else {
+		if (isset($_SERVER['HTTP_RANGE'])) {
 			$rRangeStart = $rStart;
 			$rRangeEnd = $rEnd;
 			list(, $range) = explode('=', $_SERVER['HTTP_RANGE'], 2);
@@ -176,8 +120,7 @@ if (0 >= $db->num_rows()) {
 function shutdown() {
 	global $db;
 
-	if (!is_object($db)) {
-	} else {
+	if (is_object($db)) {
 		$db->close_mysql();
 	}
 }

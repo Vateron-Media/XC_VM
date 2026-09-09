@@ -23,13 +23,11 @@ register_shutdown_function('shutdown');
 set_time_limit(0);
 $rIP = NetworkUtils::getUserIP();
 
-if (in_array($rIP, ServerRepository::getAllowedIPs()) || in_array($rIP, SettingsManager::get('api_ips'))) {
-} else {
+if (!(in_array($rIP, ServerRepository::getAllowedIPs()) || in_array($rIP, SettingsManager::get('api_ips')))) {
 	generate404();
 }
 
-if (empty(SettingsManager::get('api_pass')) || RequestManager::get('api_pass') == SettingsManager::get('api_pass')) {
-} else {
+if (!(empty(SettingsManager::get('api_pass')) || RequestManager::get('api_pass') == SettingsManager::get('api_pass'))) {
 	generate404();
 }
 
@@ -198,8 +196,7 @@ switch ($rAction) {
 function shutdown() {
 	global $db;
 
-	if (!is_object($db)) {
-	} else {
+	if (is_object($db)) {
 		$db->close_mysql();
 	}
 }

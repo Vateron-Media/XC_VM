@@ -4,10 +4,10 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Process\ProcessManager;
-use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\AdminStreamToken;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -29,38 +29,30 @@ $rIP = NetworkUtils::getUserIP();
 $rPID = getmypid();
 $rSegmentSettings = array('seg_time' => intval(SettingsManager::get('seg_time')), 'seg_list_size' => intval(SettingsManager::get('seg_list_size')), 'seg_delete_threshold' => intval(SettingsManager::get('seg_delete_threshold')));
 
-if (SettingsManager::get('use_buffer') != 0) {
-} else {
+if (SettingsManager::get('use_buffer') == 0) {
 	header('X-Accel-Buffering: no');
 }
 
 if (!empty(RequestManager::get('uitoken'))) {
-	$rTokenData = json_decode(Encryption::decrypt(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA), true);
-	RequestManager::update('stream', $rTokenData['stream_id']);
-	RequestManager::update('extension', 'm3u8');
-	$rIPMatch = (SettingsManager::get('ip_subnet_match') ? implode('.', array_slice(explode('.', $rTokenData['ip']), 0, -1)) == implode('.', array_slice(explode('.', NetworkUtils::getUserIP()), 0, -1)) : $rTokenData['ip'] == NetworkUtils::getUserIP());
+	$rToken = AdminStreamToken::decode(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'));
 
-	if ($rTokenData['expires'] >= time() && $rIPMatch) {
-	} else {
+	if ($rToken === null || !$rToken->isValid((bool) SettingsManager::get('ip_subnet_match'), $rIP)) {
 		generate404();
 	}
 
+	RequestManager::update('stream', $rToken->streamId);
+	RequestManager::update('extension', 'm3u8');
 	$rPrebuffer = $rSegmentSettings['seg_time'];
+} elseif (empty(RequestManager::get('password')) || SettingsManager::get('live_streaming_pass') != RequestManager::get('password')) {
+	generate404();
+} elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
+	generate404();
 } else {
-	if (empty(RequestManager::get('password')) || SettingsManager::get('live_streaming_pass') != RequestManager::get('password')) {
-		generate404();
-	} else {
-		if (!in_array($rIP, ServerRepository::getAllowedIPs())) {
-			generate404();
-		} else {
-			$rPrebuffer = (RequestManager::has('prebuffer') ? $rSegmentSettings['seg_time'] : 0);
+	$rPrebuffer = (RequestManager::has('prebuffer') ? $rSegmentSettings['seg_time'] : 0);
 
-			foreach (getallheaders() as $rKey => $rValue) {
-				if (strtoupper($rKey) != 'X-XC_VM-PREBUFFER') {
-				} else {
-					$rPrebuffer = $rSegmentSettings['seg_time'];
-				}
-			}
+	foreach (getallheaders() as $rKey => $rValue) {
+		if (strtoupper($rKey) == 'X-XC_VM-PREBUFFER') {
+			$rPrebuffer = $rSegmentSettings['seg_time'];
 		}
 	}
 }
@@ -78,28 +70,23 @@ if (0 < $db->num_rows()) {
 	$rChannelInfo = $db->get_row();
 	$db->close_mysql();
 
-	if (!file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
-	} else {
+	if (file_exists(STREAMS_PATH . $rStreamID . '_.pid')) {
 		$rChannelInfo['pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 	}
 
-	if (!file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
-	} else {
+	if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
 		$rChannelInfo['monitor_pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 	}
 
-	if (!(SettingsManager::get('on_demand_instant_off') && $rChannelInfo['on_demand'] == 1)) {
-	} else {
+	if ((SettingsManager::get('on_demand_instant_off') && $rChannelInfo['on_demand'] == 1)) {
 		ConnectionTracker::addToQueue($rStreamID, $rPID);
 	}
 
-	if (ProcessManager::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
-	} else {
+	if (!ProcessManager::isStreamRunning($rChannelInfo['pid'], $rStreamID)) {
 		$rChannelInfo['pid'] = null;
 
 		if ($rChannelInfo['on_demand'] == 1) {
-			if (ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
-			} else {
+			if (!ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
 				StreamProcess::startMonitor($rStreamID);
 
 				for ($rRetries = 0; !file_exists(STREAMS_PATH . intval($rStreamID) . '_.monitor') && $rRetries < 300; $rRetries++) {
@@ -116,14 +103,12 @@ if (0 < $db->num_rows()) {
 	$rPlaylist = STREAMS_PATH . $rStreamID . '_.m3u8';
 
 	if ($rExtension == 'ts') {
-		if (file_exists($rPlaylist)) {
-		} else {
+		if (!file_exists($rPlaylist)) {
 			$rFirstTS = STREAMS_PATH . $rStreamID . '_0.ts';
 			$rFP = null;
 
 			while ($rRetries < intval($rWaitTime) * 100) {
-				if (!file_exists($rFirstTS) || $rFP) {
-				} else {
+				if (file_exists($rFirstTS) && !$rFP) {
 					$rFP = fopen($rFirstTS, 'r');
 				}
 
@@ -135,8 +120,7 @@ if (0 < $db->num_rows()) {
 				}
 			}
 
-			if (!$rFP) {
-			} else {
+			if ($rFP) {
 				fclose($rFP);
 			}
 		}
@@ -158,26 +142,22 @@ if (0 < $db->num_rows()) {
 
 		generate404();
 	} else {
-		if (!RequestManager::has('odstart')) {
-		} else {
+		if (RequestManager::has('odstart')) {
 			echo '1';
 
 			exit();
 		}
 	}
 
-	if ($rChannelInfo['pid']) {
-	} else {
+	if (!$rChannelInfo['pid']) {
 		$rChannelInfo['pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 	}
 
 	switch ($rExtension) {
 		case 'm3u8':
-			if (!StreamUtils::isValidStream($rPlaylist, $rChannelInfo['pid'])) {
-			} else {
+			if (StreamUtils::isValidStream($rPlaylist, $rChannelInfo['pid'])) {
 				if (empty(RequestManager::get('segment'))) {
-					if (!($rSource = StreamUtils::generateAdminHLS($rPlaylist, $rPassword, $rStreamID, RequestManager::get('uitoken')))) {
-					} else {
+					if (($rSource = StreamUtils::generateAdminHLS($rPlaylist, $rPassword, $rStreamID, RequestManager::get('uitoken')))) {
 						header('Content-Type: application/vnd.apple.mpegurl');
 						header('Content-Length: ' . strlen($rSource));
 						ob_end_flush();
@@ -186,10 +166,9 @@ if (0 < $db->num_rows()) {
 						exit();
 					}
 				} else {
-					$rSegment = STREAMS_PATH . str_replace(array('\\', '/'), '', urldecode(RequestManager::get('segment')));
+					$rSegment = STREAMS_PATH . StreamUtils::sanitizeSegmentName(RequestManager::get('segment'));
 
-					if (!file_exists($rSegment)) {
-					} else {
+					if (file_exists($rSegment)) {
 						$rBytes = filesize($rSegment);
 						header('Content-Length: ' . $rBytes);
 						header('Content-Type: video/mp2t');
@@ -206,12 +185,10 @@ if (0 < $db->num_rows()) {
 			header('Content-Type: video/mp2t');
 
 			if (file_exists($rPlaylist)) {
-				if (!file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
-				} else {
+				if (file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
 					$rDuration = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.dur'));
 
-					if ($rSegmentSettings['seg_time'] >= $rDuration) {
-					} else {
+					if ($rSegmentSettings['seg_time'] < $rDuration) {
 						$rSegmentSettings['seg_time'] = $rDuration;
 					}
 				}
@@ -249,12 +226,7 @@ if (0 < $db->num_rows()) {
 			}
 
 			$rFails = 0;
-			$rTotalFails = $rSegmentSettings['seg_time'] * 2;
-
-			if (!(($rTotalFails < intval(SettingsManager::get('segment_wait_time')) ?: 20))) {
-			} else {
-				$rTotalFails = (intval(SettingsManager::get('segment_wait_time')) ?: 20);
-			}
+			$rTotalFails = StreamUtils::segmentRetryBudget($rSegmentSettings['seg_time'], intval(SettingsManager::get('segment_wait_time')));
 
 			while (true) {
 				$rSegmentFile = sprintf('%d_%d.ts', $rStreamID, $rCurrent + 1);
@@ -270,8 +242,7 @@ if (0 < $db->num_rows()) {
 					exit();
 				}
 
-				if (!(empty($rChannelInfo['pid']) && file_exists(STREAMS_PATH . $rStreamID . '_.pid'))) {
-				} else {
+				if ((empty($rChannelInfo['pid']) && file_exists(STREAMS_PATH . $rStreamID . '_.pid'))) {
 					$rChannelInfo['pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 				}
 
@@ -342,13 +313,11 @@ function shutdown() {
 	global $rPID;
 	global $rStreamID;
 
-	if (!is_object($db)) {
-	} else {
+	if (is_object($db)) {
 		$db->close_mysql();
 	}
 
-	if (!(SettingsManager::get('on_demand_instant_off') && $rChannelInfo['on_demand'] == 1)) {
-	} else {
+	if ((SettingsManager::get('on_demand_instant_off') && $rChannelInfo['on_demand'] == 1)) {
 		ConnectionTracker::removeFromQueue($rStreamID, $rPID);
 	}
 }

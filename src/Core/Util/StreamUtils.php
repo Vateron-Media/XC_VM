@@ -362,4 +362,75 @@ class StreamUtils {
 		return false;
 	}
 
+	/**
+	 * Strip path separators from a URL-encoded, user-supplied segment filename
+	 * so it cannot traverse out of its directory. URL-decodes first, then
+	 * removes every `/` and `\`.
+	 *
+	 * @param string $rRawSegment Raw (URL-encoded) segment from the request.
+	 * @return string
+	 */
+	public static function sanitizeSegmentName($rRawSegment) {
+		return str_replace(array('\\', '/'), '', urldecode((string) $rRawSegment));
+	}
+
+	/**
+	 * MIME type for a VOD container extension, or `application/octet-stream`
+	 * when unknown.
+	 *
+	 * @param string $rContainer Container extension (e.g. "mp4").
+	 * @return string
+	 */
+	public static function containerMimeType($rContainer) {
+		$rMap = array(
+			'mp4' => 'video/mp4',
+			'mkv' => 'video/x-matroska',
+			'avi' => 'video/x-msvideo',
+			'3gp' => 'video/3gpp',
+			'flv' => 'video/x-flv',
+			'wmv' => 'video/x-ms-wmv',
+			'mov' => 'video/quicktime',
+			'ts'  => 'video/mp2t',
+		);
+
+		return $rMap[(string) $rContainer] ?? 'application/octet-stream';
+	}
+
+	/**
+	 * Parse the timeshift `start` parameter into a unix timestamp. Accepts a raw
+	 * timestamp, `YYYYMMDD-H`, or `Y-m-d:H-i`.
+	 *
+	 * @param string|int $rStartDate
+	 * @return int
+	 */
+	public static function timeshiftStartTimestamp($rStartDate) {
+		if (is_numeric($rStartDate)) {
+			return (int) $rStartDate;
+		}
+
+		if (substr_count((string) $rStartDate, '-') == 1) {
+			list($rDate, $rHour) = explode('-', (string) $rStartDate);
+
+			return (int) mktime((int) $rHour, 0, 0, (int) substr($rDate, 4, 2), (int) substr($rDate, 6, 2), (int) substr($rDate, 0, 4));
+		}
+
+		list($rDate, $rTime) = explode(':', (string) $rStartDate);
+		list($rYear, $rMonth, $rDay) = explode('-', $rDate);
+		list($rHour, $rMinutes) = explode('-', $rTime);
+
+		return (int) mktime((int) $rHour, (int) $rMinutes, 0, (int) $rMonth, (int) $rDay, (int) $rYear);
+	}
+
+	/**
+	 * Retry budget (seconds) the live loopback waits for the next HLS segment:
+	 * the larger of twice the segment duration or the configured wait (0 → 20).
+	 *
+	 * @param int $rSegTimeSeconds        Segment duration in seconds.
+	 * @param int $rConfiguredWaitSeconds Configured `segment_wait_time`.
+	 * @return int
+	 */
+	public static function segmentRetryBudget($rSegTimeSeconds, $rConfiguredWaitSeconds) {
+		return max((int) $rSegTimeSeconds * 2, (int) $rConfiguredWaitSeconds ?: 20);
+	}
+
 }

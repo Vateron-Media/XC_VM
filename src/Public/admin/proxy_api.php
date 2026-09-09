@@ -27,10 +27,11 @@ if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
 	$rStats = $_POST['stats'];
 	$db->query('SELECT `bytes_sent_total`, `bytes_received_total`, `time` FROM `servers_stats` WHERE `server_id` = ? ORDER BY `id` DESC LIMIT 1;', $rServerIDRequest);
 
-	if ($db->num_rows() != 1) {
-	} else {
+	if ($db->num_rows() == 1) {
 		$rRow = $db->get_row();
-		$rTimeSince = time() - $rRow['time'];
+		// Clamp to >= 1s: two samples in the same second (or a backward clock) would
+		// otherwise divide by zero / a negative interval.
+		$rTimeSince = max(1, time() - $rRow['time']);
 		$rStats['bytes_sent'] = ($rStats['bytes_sent_total'] - $rRow['bytes_sent_total']) / $rTimeSince;
 		$rStats['bytes_received'] = ($rStats['bytes_received_total'] - $rRow['bytes_received_total']) / $rTimeSince;
 	}
@@ -39,8 +40,7 @@ if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
 	$rHardware = array('total_ram' => $rStats['total_mem'], 'total_used' => $rStats['total_mem_used'], 'cores' => $rStats['cpu_cores'], 'threads' => $rStats['cpu_cores'], 'kernel' => $rStats['kernel'], 'total_running_streams' => $rStats['total_running_streams'], 'cpu_name' => $rStats['cpu_name'], 'cpu_usage' => $rStats['cpu'], 'network_speed' => $rStats['network_speed'], 'bytes_sent' => $rStats['bytes_sent'], 'bytes_received' => $rStats['bytes_received']);
 	$rPing = (pingserver($rServers[$rServerIDRequest]['server_ip'], $rServers[$rServerIDRequest]['http_broadcast_port']) ?: 0);
 
-	if ($rPing >= 0) {
-	} else {
+	if ($rPing < 0) {
 		$rPing = 0;
 	}
 
@@ -50,8 +50,7 @@ if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
 		$rAllUsers = 0;
 
 		foreach (array_keys($rServers) as $rServer) {
-			if (!$rServers[$rServer]['server_online']) {
-			} else {
+			if ($rServers[$rServer]['server_online']) {
 				$rAllUsers += $rServers[$rServer]['users'];
 			}
 		}
@@ -70,8 +69,7 @@ if (BlocklistService::isProxy($_SERVER['REMOTE_ADDR'])) {
 	if ($db->query("SELECT `signal_id`, `custom_data` FROM `signals` WHERE `server_id` = ? AND `custom_data` <> '' ORDER BY signal_id ASC;", $rServerIDRequest)) {
 
 
-		if (0 >= $db->num_rows()) {
-		} else {
+		if (0 < $db->num_rows()) {
 			foreach ($db->get_rows() as $rRow) {
 				$rData = json_decode($rRow['custom_data'], true);
 				$db->query('DELETE FROM `signals` WHERE `signal_id` = ?;', $rRow['signal_id']);
