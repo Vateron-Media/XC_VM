@@ -38,6 +38,7 @@ class BackupAjaxController extends BaseAjaxController {
             array('adv', 'stream_errors'),
             array('adv', 'credits_log'),
             array('adv', 'folder_watch_settings'),
+            array('adv', 'panel_logs'),
         ));
 
         global $db;
