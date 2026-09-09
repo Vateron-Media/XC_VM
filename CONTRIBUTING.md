@@ -229,9 +229,8 @@ see `tools/README.md` for the full list:
 | `sync-dev.sh`                            | Incremental code deploy to a live box (see the dev loop above).                                                           |
 | `test_player_api.sh <url> <user> <pass>` | HTTP smoke-test of every Player API endpoint (status / content-type / JSON shape).                                        |
 | `stream-check/`                          | Dependency-free MPEG-TS + HLS stream integrity checker (`stream_queue_check.py`) with an SVG grapher (`stream_graph.py`). |
-| `test-stream-generator/`                 | Turns `sample.mp4` into a looping HTTP "live" source for end-to-end pipeline testing.                                     |
+| `test-stream-generator/`                 | Generates a synthetic moving test pattern (stopwatch + wall-clock) as an HTTP "live" source; no input file.               |
 | `test-install/`                          | Docker end-to-end install test of the built release archive.                                                              |
-| `dts-audio-test/`                        | Investigates the legacy DTS/AC3 audio path vs stock ffmpeg.                                                               |
 
 ## 📦 Building a Release (maintainers)
 

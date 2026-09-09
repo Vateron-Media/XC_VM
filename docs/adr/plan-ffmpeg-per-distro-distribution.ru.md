@@ -19,13 +19,13 @@ forward-compat. FFmpeg 8.x требует glibc ≥ 2.34 → на Debian 11 / Ub
 
 **Репозиторий сборщика — `XC_VM_FFMPEG` (СДЕЛАНО, запушен):**
 
-| Что | Файл | Примечание |
-|---|---|---|
-| Сборщик (перенесён 1:1 из `XC_VM_Binaries`) | `build_ffmpeg.sh` | все кодеки статически, динамически только glibc; `verify_static` падает, если остался не-glibc .so. Env: `V_FFMPEG`, `FF_LABEL`, `FF_DISTRO`, `OUT_DIR` |
-| Matrix-драйвер (единый источник матрицы) | `build_ffmpeg_all.sh` | `(версия × дистро)`, per-distro image + прогон по версиям; `--print-matrix` для CI; `hashes` для md5 |
-| Dockerfile под дистро | `docker/Dockerfile` | `ARG BASE_IMAGE` |
-| CI | `.github/workflows/build-release.yml` | `workflow_dispatch` → параллельная матрица → draft-релиз + `hashes.md5` |
-| Прочее | `Makefile`, `versions.json`, `README.md`, `RELEASE.md`, `.gitignore` | |
+| Что                                         | Файл                                                                 | Примечание                                                                                                                                              |
+| ------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Сборщик (перенесён 1:1 из `XC_VM_Binaries`) | `build_ffmpeg.sh`                                                    | все кодеки статически, динамически только glibc; `verify_static` падает, если остался не-glibc .so. Env: `V_FFMPEG`, `FF_LABEL`, `FF_DISTRO`, `OUT_DIR` |
+| Matrix-драйвер (единый источник матрицы)    | `build_ffmpeg_all.sh`                                                | `(версия × дистро)`, per-distro image + прогон по версиям; `--print-matrix` для CI; `hashes` для md5                                                    |
+| Dockerfile под дистро                       | `docker/Dockerfile`                                                  | `ARG BASE_IMAGE`                                                                                                                                        |
+| CI                                          | `.github/workflows/build-release.yml`                                | `workflow_dispatch` → параллельная матрица → draft-релиз + `hashes.md5`                                                                                 |
+| Прочее                                      | `Makefile`, `versions.json`, `README.md`, `RELEASE.md`, `.gitignore` |                                                                                                                                                         |
 
 **Матрица:** `4.0/7.1/8.1` × `debian_11/12/13, ubuntu_20/22/24` = **18 ассетов**
 вида `ffmpeg_<label>_<distro>.tar.gz` + `hashes.md5`. Rocky_9 — TODO.
@@ -64,6 +64,7 @@ DTS-декод. nv-codec-headers пинятся per-version (`4.0→n11.1.5.3`,
 ## 0a. Что выяснили про сборки (провенанс + кодеки + DTS)
 
 **Три задеплоенных бинаря — три разных сборки** (из `ffmpeg -version`):
+
 - `4.0` = master-снапшот **XUI.one 2018** (`XUI10FFMPEG`, gcc 6.5/Ubuntu 14.04) —
   древний glibc, работает везде; несёт кастомный флаг `-fix_dts`.
 - `7.1` = личная сборка **mardock2009** (`compiled-by-Mardock2009`, Ubuntu 20.04) —
@@ -72,6 +73,7 @@ DTS-декод. nv-codec-headers пинятся per-version (`4.0→n11.1.5.3`,
 
 **Целевой набор кодеков** выбран из того, что реально вызывает код
 (`StreamProcess`/`ProfileService`), а не объединения трёх сборок:
+
 - **must:** x264, x265, **nvenc/cuvid/ffnvcodec** (GPU: `*_cuvid`, `hevc_nvenc`,
   `-hwaccel cuvid`), нативный aac + `aac_adtstoasc`, mp3lame, нативный DTS-декод
   (`dca`), libass/freetype/fontconfig, openssl, hls/segment/mpegts/flv-муксеры.
@@ -98,14 +100,14 @@ DTS-декод. nv-codec-headers пинятся per-version (`4.0→n11.1.5.3`,
 - [x] **Stage 0 — репозиторий `XC_VM_FFMPEG`** (сборщик, матрица, CI, docs). Запушен.
 - [ ] **Stage 1 — первый релиз** матрицы (собрать 18 ассетов, выпустить `1.0.0`).
 - [ ] **Stage 2 — фетч на панели**: `update_binaries.sh`/новый шаг тянет
-  `ffmpeg_<label>_<distro>` под дистро ноды, проверяет `hashes.md5`, кладёт в
-  `ffmpeg_bin/<label>/`.
+      `ffmpeg_<label>_<distro>` под дистро ноды, проверяет `hashes.md5`, кладёт в
+      `ffmpeg_bin/<label>/`.
 - [ ] **Stage 3 — индекс + крон** (`version.json` + `cron:ffmpeg` по образцу maxmind).
 - [ ] **Stage 4 — привести панель к лейблу `8.1`** (`FfmpegPaths`/`Binaries`/dropdown).
 - [ ] **Stage 5 — вынос `ffmpeg_bin/*` из Git LFS.**
 - [ ] **Stage 6 — Rocky_9** (dnf-порт `install_build_tools`).
 - [ ] **Stage 7 — валидация `4.0`**: реальная сборка `4.4.5` (линковка современных
-  кодеков) + DTS-звук через `tools/dts-audio-test/` (замена `-nofix_dts`).
+      кодеков) + DTS-звук через `tools/dts-audio-test/` (замена `-nofix_dts`).
 
 ---
 
@@ -150,6 +152,7 @@ DTS-декод. nv-codec-headers пинятся per-version (`4.0→n11.1.5.3`,
 ## 4. Stage 4 — привести панель к лейблу 8.1
 
 Решено обновляться до `8.1`, поэтому панель приводится к нему (вариант B):
+
 1. `Binaries.php`: `FFMPEG_BIN_80` → `ffmpeg_bin/8.1/ffmpeg` (или добавить `_81`).
 2. `FfmpegPaths::resolve()`: маппинг `8.1`.
 3. `settings.php`: значение в dropdown `8.0`→`8.1`.
@@ -182,7 +185,7 @@ DTS-декод. nv-codec-headers пинятся per-version (`4.0→n11.1.5.3`,
 - Канал релиза (`stable`/`unstable`).
 - Ставить все версии на ноду или только выбранную + `4.0` (§3).
 - Частота `cron:ffmpeg` (у maxmind/proxy свой интервал в `crontab`).
-- Замена `-nofix_dts`: `-copyts` vs убрать — по итогам `tools/dts-audio-test/`.
+- Замена `-nofix_dts`: `-copytsё`
 
 ## 8. Риски
 
