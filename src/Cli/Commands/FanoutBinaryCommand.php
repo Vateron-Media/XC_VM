@@ -3,8 +3,8 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 
 /**
  * FanoutBinaryCommand — install/update the xc_fanout daemon binary (ADR 0003).
@@ -12,11 +12,17 @@ use XcVm\Core\Updates\GitHubReleases;
  * The daemon lives in its own repo (GIT_REPO_FANOUT) and ships its per-arch
  * static binaries as GitHub **release assets** (not committed to the tree). This
  * command is the panel-side installer/updater, modelled on the binaries/maxmind
- * updaters: it reads the installed version straight from the binary
- * (`xc_fanout -version`), compares it to the latest release, and when they
- * differ downloads the arch-matched asset, verifies its SHA-256, installs it
- * atomically, and restarts the daemon (the `service` keepalive respawns it with
- * the new binary).
+ * updaters. The installed version is tracked in a sidecar file
+ * (`xc_fanout.version`) rather than derived from the binary, so a locally-built
+ * or custom-signed test build is not force-overwritten just because its
+ * self-reported version differs from the latest GitHub release — pin it by
+ * writing the file. Independently, the binary is probed with `xc_fanout
+ * -version`: a binary that does not answer is treated as missing/corrupt and
+ * reinstalled regardless of the recorded version. When an update is due it
+ * downloads the arch-matched asset, verifies its SHA-256, installs it
+ * atomically, records the version file, and restarts the daemon (the `service`
+ * keepalive respawns it with the new binary). The release channel is the
+ * per-repository FANOUT channel ({@see UpdateChannels}).
  *
  * Usage: `console.php fanout_binary` (add `force` to reinstall the same version).
  *
@@ -39,6 +45,9 @@ class FanoutBinaryCommand implements CommandInterface {
 		'i386'    => '386',
 		'i686'    => '386',
 	];
+
+	/** Sidecar file (next to the binary) recording the installed version. */
+	private const VERSION_FILE = 'xc_fanout.version';
 
 	public function getName(): string {
 		return 'fanout_binary';
@@ -64,13 +73,26 @@ class FanoutBinaryCommand implements CommandInterface {
 
 		$rDir = BIN_PATH . 'xc_fanout/';
 		$rBinary = $rDir . 'xc_fanout';
-		$rInstalled = $this->installedVersion($rBinary);
+		$rVerFile = $rDir . self::VERSION_FILE;
 
-		$rChannel = 'stable';
-		$rSettings = SettingsManager::getAll();
-		if (!empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], ['stable', 'beta', 'unstable'], true)) {
-			$rChannel = $rSettings['update_channel'];
+		// Integrity probe: the binary must answer `-version`. A binary that does
+		// not respond is missing or corrupted ("bit-rotted") and must be
+		// reinstalled regardless of the recorded version.
+		$rReported = $this->binaryVersion($rBinary);
+		$rHealthy = $rReported !== null;
+
+		// Installed version is tracked in a sidecar file, not derived from the
+		// binary, so a locally-built/signed test build is not force-overwritten
+		// just because its self-reported version differs from the latest release.
+		// Seed the file from the running binary on first run after upgrade
+		// (migration) so an already up-to-date host is not needlessly reinstalled.
+		$rInstalled = $this->readVersionFile($rVerFile);
+		if ($rInstalled === null && $rHealthy) {
+			$this->writeVersionFile($rVerFile, $rReported);
+			$rInstalled = $rReported;
 		}
+
+		$rChannel = UpdateChannels::fanout();
 
 		try {
 			$rGit = new GitHubReleases(GIT_OWNER, GIT_REPO_FANOUT, $rChannel);
@@ -93,11 +115,14 @@ class FanoutBinaryCommand implements CommandInterface {
 		$rTag = trim($rReleases[0]);
 		$rLatest = ltrim($rTag, 'vV');
 
-		if (!$rForce && $rInstalled !== null && $rInstalled === $rLatest) {
+		if (!$rForce && $rHealthy && $rInstalled !== null && $rInstalled === $rLatest) {
 			echo "xc_fanout is up to date ({$rInstalled}).\n";
 			return 0;
 		}
-		echo 'xc_fanout: installed=' . ($rInstalled ?? 'none') . ', latest=' . $rLatest . " → updating\n";
+		$rReason = !$rHealthy
+			? 'binary not responding (missing/corrupt)'
+			: 'installed=' . ($rInstalled ?? 'none') . ', latest=' . $rLatest;
+		echo 'xc_fanout: ' . $rReason . " → updating\n";
 
 		$rBase = 'https://github.com/' . GIT_OWNER . '/' . GIT_REPO_FANOUT . '/releases/download/' . rawurlencode($rTag) . '/';
 		$rAsset = 'xc_fanout-linux-' . $rArch;
@@ -142,6 +167,10 @@ class FanoutBinaryCommand implements CommandInterface {
 		@chown($rBinary, 'xc_vm');
 		@chgrp($rBinary, 'xc_vm');
 
+		// Record the installed version in the sidecar file so subsequent runs
+		// compare this file against GitHub (not the binary's self-report).
+		$this->writeVersionFile($rVerFile, $rLatest);
+
 		// Restart: kill ONLY the daemon process (match the exact process NAME, not
 		// the cmdline) so the service keepalive loop — whose bash cmdline contains
 		// the same binary path — survives and respawns it with the new binary.
@@ -152,13 +181,33 @@ class FanoutBinaryCommand implements CommandInterface {
 		return 0;
 	}
 
-	/** Installed version straight from the binary, or null if absent/unrunnable. */
-	private function installedVersion(string $rBinary): ?string {
+	/**
+	 * Version the binary reports via `-version`, or null when it is absent or
+	 * does not respond (missing/corrupt). Doubles as the integrity probe.
+	 */
+	private function binaryVersion(string $rBinary): ?string {
 		if (!is_file($rBinary) || !is_executable($rBinary)) {
 			return null;
 		}
 		$rOut = trim((string) shell_exec(escapeshellarg($rBinary) . ' -version 2>/dev/null'));
 		return $rOut !== '' ? ltrim($rOut, 'vV') : null;
+	}
+
+	/** Recorded installed version from the sidecar file, or null if absent/empty. */
+	private function readVersionFile(string $rFile): ?string {
+		if (!is_file($rFile)) {
+			return null;
+		}
+		$rVal = trim((string) @file_get_contents($rFile));
+		return $rVal !== '' ? ltrim($rVal, 'vV') : null;
+	}
+
+	/** Persist the installed version to the sidecar file (best-effort). */
+	private function writeVersionFile(string $rFile, string $rVersion): void {
+		if (@file_put_contents($rFile, ltrim($rVersion, 'vV') . "\n") !== false) {
+			@chown($rFile, 'xc_vm');
+			@chgrp($rFile, 'xc_vm');
+		}
 	}
 
 	/** Download a URL to a file (following redirects). */
