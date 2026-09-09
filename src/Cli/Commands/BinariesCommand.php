@@ -3,8 +3,8 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 
 /**
  * BinariesCommand — binaries command
@@ -57,11 +57,7 @@ class BinariesCommand implements CommandInterface {
 		$rVersionFile = BIN_PATH . 'bin_version.json';
 		$rCurrentVersion = $this->getInstalledBinaryVersion($rVersionFile);
 
-		$rChannel = 'stable';
-		$rSettings = SettingsManager::getAll();
-		if (!empty($rSettings['update_channel']) && in_array($rSettings['update_channel'], array('stable', 'beta', 'unstable'))) {
-			$rChannel = $rSettings['update_channel'];
-		}
+		$rChannel = UpdateChannels::bin();
 
 		try {
 			$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_BIN, $rChannel);

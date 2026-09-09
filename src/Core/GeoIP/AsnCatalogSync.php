@@ -2,8 +2,8 @@
 
 namespace XcVm\Core\GeoIP;
 
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 
 /**
  * AsnCatalogSync — keeps the `blocked_asns` reference catalog current from the
@@ -56,7 +56,7 @@ class AsnCatalogSync {
 	 * credentials. Returns true when a new file was written.
 	 */
 	private static function download(bool $force): bool {
-		$rRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, SettingsManager::get('update_channel'));
+		$rRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, UpdateChannels::forRepo(GIT_REPO_UPDATE));
 		$rMeta = $rRepo->getAsnCatalog();
 		if (!is_array($rMeta) || empty($rMeta['fileurl'])) {
 			return false;

@@ -7,6 +7,7 @@ use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 
 /**
  * ProxyArchiveCronJob — keep the local proxy.tar.gz fresh from XC_VM_Proxy releases.
@@ -52,7 +53,7 @@ class ProxyArchiveCronJob implements CommandInterface {
 		$rForceLocal = !empty($rSettings['proxy_force_local']);
 		$rForce      = in_array('--force', $rArgs, true);
 
-		$rRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_PROXY, $rSettings['update_channel']);
+		$rRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_PROXY, UpdateChannels::forRepo(GIT_REPO_PROXY));
 		if ($rForce) {
 			// Drop the 30-min releases cache so a just-published release is seen now.
 			$rRepo->clearCache();

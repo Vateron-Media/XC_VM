@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\AsnCatalogSync;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
@@ -85,7 +86,7 @@ class MaxMindCronJob implements CommandInterface {
 			}
 		} else {
 			echo "MaxMind credentials not configured — using GitHub GeoLite2 fallback.\n";
-			$repo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, $rSettings['update_channel']);
+			$repo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, UpdateChannels::forRepo(GIT_REPO_UPDATE));
 			$datageolite = $repo->getGeolite();
 			if (is_array($datageolite)) {
 				foreach ($datageolite['files'] as $rFile) {
@@ -150,7 +151,7 @@ class MaxMindCronJob implements CommandInterface {
 		// locally); records geoisp_version in version.json.
 		$rEditions = json_decode((string) ($rSettings['maxmind_editions'] ?? '[]'), true) ?: [];
 		if (!($updater !== null && in_array('GeoIP2-ISP', $rEditions, true))) {
-			$rIsp = (new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, $rSettings['update_channel']))->getIspDatabase();
+			$rIsp = (new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, UpdateChannels::forRepo(GIT_REPO_UPDATE)))->getIspDatabase();
 			if (is_array($rIsp) && !empty($rIsp['fileurl'])) {
 				if ($this->fetchReleaseFile($rIsp, $force)) {
 					$data = json_decode(@file_get_contents($geolitejsonFile), true) ?: [];

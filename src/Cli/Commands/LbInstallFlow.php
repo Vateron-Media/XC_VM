@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 
 class LbInstallFlow {
 
@@ -261,8 +262,25 @@ class LbInstallFlow {
 			return false;
 		}
 
-		$rTagCmd = 'curl -s https://api.github.com/repos/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/latest';
-		$rTag = trim(call_user_func($rRunSSH, $rConn, $rTagCmd . ' | grep ' . "'\"tag_name\"'" . ' | sed -E ' . "'s/.*\"([^\"]+)\".*/\\1/'")['output']);
+		// Resolve the release tag on MAIN, honouring the per-repository BIN channel,
+		// so a BIN channel of `beta` provisions LB nodes with the newest pre-release
+		// binaries (GitHub's `/releases/latest` only ever returns stable). Fall back
+		// to the node-side `releases/latest` lookup if the API yields nothing.
+		$rTag = '';
+		try {
+			$rBinRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_BIN, UpdateChannels::bin());
+			$rBinRepo->setTimeout(20);
+			$rBinReleases = $rBinRepo->getReleases();
+			if (!empty($rBinReleases[0])) {
+				$rTag = trim($rBinReleases[0]);
+			}
+		} catch (\Throwable) {
+			$rTag = '';
+		}
+		if ($rTag === '') {
+			$rTagCmd = 'curl -s https://api.github.com/repos/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/latest';
+			$rTag = trim(call_user_func($rRunSSH, $rConn, $rTagCmd . ' | grep ' . "'\"tag_name\"'" . ' | sed -E ' . "'s/.*\"([^\"]+)\".*/\\1/'")['output']);
+		}
 		if (empty($rTag)) {
 			echo "Failed to get latest binaries release tag\n";
 			return false;

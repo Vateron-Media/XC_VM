@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Logging\UpdateLogger;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
@@ -45,7 +46,7 @@ class UpdateCommand implements CommandInterface {
 		});
 
 		global $db;
-		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::get('update_channel'));
+		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, UpdateChannels::main());
 		$gitRelease->setTimeout(30);
 
 		$rCommand = $rArgs[0];

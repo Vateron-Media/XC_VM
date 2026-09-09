@@ -3,6 +3,7 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Updates\UpdateChannels;
 
 /**
  * XcvmCoreCommand — install/update the `xcvm_core` PHP extension.
@@ -59,10 +60,20 @@ class XcvmCoreCommand implements CommandInterface {
 		}
 		$rForce = in_array('force', $rArgs, true);
 
-		$rBase = 'https://raw.githubusercontent.com/' . GIT_OWNER . '/' . GIT_REPO_BIN
-			. '/' . self::BIN_BRANCH . '/' . self::EXT_SUBPATH . '/';
+		// The extension tree is committed per branch of the binaries repo, so the
+		// per-repository BIN channel maps to a branch: stable → the default branch,
+		// beta → the `beta` branch. The beta branch may not exist, so fall back to
+		// the stable branch rather than failing the update outright.
+		$rBranch = UpdateChannels::bin() === 'beta' ? 'beta' : self::BIN_BRANCH;
+		$rBase = $this->rawBase($rBranch);
 
 		$rLatest = $this->fetchLatestVersion($rBase . 'version.json');
+		if ($rLatest === null && $rBranch !== self::BIN_BRANCH) {
+			echo "xcvm_core: '{$rBranch}' branch unavailable — falling back to '" . self::BIN_BRANCH . "'.\n";
+			$rBranch = self::BIN_BRANCH;
+			$rBase = $this->rawBase($rBranch);
+			$rLatest = $this->fetchLatestVersion($rBase . 'version.json');
+		}
 		if ($rLatest === null) {
 			echo "Failed to resolve the latest xcvm_core version.\n";
 			return 1;
@@ -213,6 +224,12 @@ class XcvmCoreCommand implements CommandInterface {
 		$rCheck = 'echo (extension_loaded("xcvm_core") && method_exists("XC_VM","config_set_redis")) ? "OK" : "NO";';
 		$rOut = trim((string) shell_exec('sudo -u xc_vm ' . escapeshellarg($rBin) . ' -r ' . escapeshellarg($rCheck) . ' 2>/dev/null'));
 		return $rOut === 'OK';
+	}
+
+	/** Raw-content base URL for the extension tree on a given binaries-repo branch. */
+	private function rawBase(string $rBranch): string {
+		return 'https://raw.githubusercontent.com/' . GIT_OWNER . '/' . GIT_REPO_BIN
+			. '/' . $rBranch . '/' . self::EXT_SUBPATH . '/';
 	}
 
 	private function fetchLatestVersion(string $rUrl): ?string {

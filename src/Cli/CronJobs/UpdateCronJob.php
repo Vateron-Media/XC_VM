@@ -5,9 +5,9 @@ namespace XcVm\Cli\CronJobs;
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Config\ConfigReader;
-use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 
 /**
  * UpdateCronJob — update cron job
@@ -43,7 +43,7 @@ class UpdateCronJob implements CommandInterface {
 
         if (!$gitRelease) {
             if (defined('GIT_OWNER') && defined('GIT_REPO_MAIN')) {
-                $gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::get('update_channel'));
+                $gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, UpdateChannels::main());
             }
         }
 

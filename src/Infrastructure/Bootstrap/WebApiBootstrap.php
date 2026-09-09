@@ -6,6 +6,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Init\LegacyInitializer;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
@@ -69,6 +70,6 @@ class WebApiBootstrap {
 		}
 
 		// ── 6. GithubReleases ────────────────────────────────────
-		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, SettingsManager::getString('update_channel'));
+		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, UpdateChannels::main());
 	}
 }

@@ -301,22 +301,27 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 								</div>
 							</div>
 
-							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="update_channel">
-									<?= $language::get('update_channel') ?>
-								</label>
+							<h5 class="card-title mb-4"><?= $language::get('updates') ?></h5>
 
-								<div class="col-md-2">
-									<select name="update_channel" id="update_channel" class="form-control" data-toggle="select2">
-										<?php $rCurrentChannel = (($rSettings["update_channel"] ?? 'stable') === 'unstable') ? 'beta' : ($rSettings["update_channel"] ?? 'stable'); ?>
-										<?php foreach (["stable" => "Stable", "beta" => "Beta"] as $rKey => $rValue): ?>
-											<option value="<?= $rKey ?>" <?= $rCurrentChannel == $rKey ? ' selected' : '' ?>>
-												<?= $rValue ?>
-											</option>
-										<?php endforeach; ?>
-									</select>
+							<?php foreach (["update_channel_main", "update_channel_bin", "update_channel_fanout"] as $rChannelKey): ?>
+								<div class="form-group row mb-4">
+									<label class="col-md-4 col-form-label" for="<?= $rChannelKey ?>">
+										<?= $language::get($rChannelKey) ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('update_channels_help') ?>"></i>
+									</label>
+
+									<div class="col-md-2">
+										<select name="<?= $rChannelKey ?>" id="<?= $rChannelKey ?>" class="form-control" data-toggle="select2">
+											<?php $rCurrentChannel = (($rSettings[$rChannelKey] ?? 'stable') === 'unstable') ? 'beta' : ($rSettings[$rChannelKey] ?? 'stable'); ?>
+											<?php foreach (["stable" => "Stable", "beta" => "Beta"] as $rKey => $rValue): ?>
+												<option value="<?= $rKey ?>" <?= $rCurrentChannel == $rKey ? ' selected' : '' ?>>
+													<?= $rValue ?>
+												</option>
+											<?php endforeach; ?>
+										</select>
+									</div>
 								</div>
-							</div>
+							<?php endforeach; ?>
 
 							<h5 class="card-title mb-4"><?= $language::get('dashboard') ?></h5>
 
