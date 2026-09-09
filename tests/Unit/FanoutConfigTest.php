@@ -47,6 +47,7 @@ final class FanoutConfigTest extends TestCase {
 			'fanout_default_prebuffer_sec' => 0,
 			'fanout_idle_buffer_grace_sec' => 30,
 			'fanout_idle_buffer_ratio'     => 0.5,
+			'fanout_source_backend'        => 'auto',
 		);
 	}
 
@@ -119,4 +120,32 @@ final class FanoutConfigTest extends TestCase {
 		$this->assertSame('keep-me', $c['some_future_daemon_key']);
 		$this->assertSame(6, $c['hls_window']);
 	}
+
+	public function testMapsSourceBackend(): void {
+		$this->assertTrue(FanoutConfig::sync($this->baseSettings()));
+		$this->assertSame('auto', $this->read()['source_backend']);
+	}
+
+	public function testSourceBackendAcceptsTheDaemonsValues(): void {
+		foreach (array('auto', 'ffmpeg', 'native') as $rBackend) {
+			$s = $this->baseSettings();
+			$s['fanout_source_backend'] = $rBackend;
+			FanoutConfig::sync($s);
+			$this->assertSame($rBackend, $this->read()['source_backend']);
+		}
+	}
+
+	/**
+	 * A typo must never pin a channel to a backend that does not exist: it falls
+	 * back to auto, the same thing the daemon does with an unknown value.
+	 */
+	public function testSourceBackendRejectsUnknownValues(): void {
+		foreach (array('FFMPEG', 'ffmpg', '', 'nativ') as $rBogus) {
+			$s = $this->baseSettings();
+			$s['fanout_source_backend'] = $rBogus;
+			FanoutConfig::sync($s);
+			$this->assertSame('auto', $this->read()['source_backend'], "bogus value: {$rBogus}");
+		}
+	}
+
 }

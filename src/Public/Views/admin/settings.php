@@ -1513,6 +1513,22 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="fanout_source_backend">
+									<?= $language::get('fanout_source_backend') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: how a non-mp2t source becomes MPEG-TS. auto = convert in-process where possible and fall back to ffmpeg; ffmpeg = always spawn ffmpeg; native = no fallback (diagnostic only)."></i>
+								</label>
+								<div class="col-md-2">
+									<select name="fanout_source_backend" id="fanout_source_backend" class="form-control" data-toggle="select2">
+										<?php foreach (array('auto', 'ffmpeg', 'native') as $rValue): ?>
+											<option value="<?= $rValue ?>" <?= (($rSettings['fanout_source_backend'] ?? 'auto') === $rValue ? ' selected' : '') ?>>
+												<?= $rValue ?>
+											</option>
+										<?php endforeach; ?>
+									</select>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="fanout_chunk_bytes">
 									<?= $language::get('fanout_source_chunk_bytes') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: source read size for daemon-pulled streams, rounded to a multiple of 188 (188-4194304)."></i>
