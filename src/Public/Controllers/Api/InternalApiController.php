@@ -227,7 +227,14 @@ class InternalApiController {
 				$rForceID = intval($rRequest['force_id']);
 
 				if ($rStreamID > 0) {
-					file_put_contents(SIGNALS_TMP_PATH . $rStreamID . '.force', $rForceID);
+					// A supervised stream's watchdog is the fanout daemon, and it does
+					// not read this signal file — MonitorCommand, which did, has stood
+					// down for that stream. Without the control call, forcing a source
+					// would silently do nothing at all. Falls back to the file whenever
+					// the daemon does not hold the stream, or cannot be reached.
+					if (!FanoutClient::forceSource($rStreamID, $rForceID)) {
+						file_put_contents(SIGNALS_TMP_PATH . $rStreamID . '.force', $rForceID);
+					}
 				}
 
 				exit(json_encode(array('result' => true)));

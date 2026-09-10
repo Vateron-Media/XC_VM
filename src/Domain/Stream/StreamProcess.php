@@ -1063,6 +1063,13 @@ class StreamProcess {
 	 * @return mixed Stop result.
 	 */
 	public static function stopStream($rStreamID, $rStop = false) {
+		// Stop the SUPERVISOR before killing anything. If the fanout daemon is
+		// watching this stream's encoder, killing the process is exactly the event
+		// it exists to react to — it would start a replacement and the stream
+		// would refuse to stop. Releasing first makes the daemon let go and kill
+		// the encoder itself; a no-op when it is not supervising or not reachable.
+		FanoutClient::releaseSupervision(intval($rStreamID));
+
 		$rMonitor = self::pidFromFileOrColumn($rStreamID, 'monitor_pid', '_.monitor');
 
 		if (0 < $rMonitor && \XcVm\Streaming\Health\ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']')) && is_numeric($rMonitor)) {

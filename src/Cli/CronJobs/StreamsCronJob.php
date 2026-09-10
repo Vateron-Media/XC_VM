@@ -53,12 +53,12 @@ class StreamsCronJob implements CommandInterface {
      *
      * @param object $db      Database handle.
      * @param array  $rStream The `streams_servers` row being reconciled.
-     * @return void
+     * @return int The encoder pid the daemon reports, or 0.
      */
-    private function reconcileSupervisedStream($db, array $rStream): void {
+    private function reconcileSupervisedStream($db, array $rStream): int {
         $rState = FanoutClient::monitorState((int) $rStream['stream_id']);
         if (!is_array($rState)) {
-            return; // daemon unreachable, or it no longer holds this stream
+            return 0; // daemon unreachable, or it no longer holds this stream
         }
 
         // stream_status: 0 = running, 1 = failed. The daemon knows which, and it
@@ -99,6 +99,8 @@ class StreamsCronJob implements CommandInterface {
         $db->query('UPDATE `streams_servers` SET ' . implode(', ', $rSets) . ' WHERE `server_stream_id` = ?', ...$rArgs);
 
         echo 'Supervised by daemon (pid ' . $rPID . ', ' . ($rStatus === 0 ? 'running' : 'failed') . ")\n";
+
+        return $rPID;
     }
 
     public function execute(array $rArgs): int {
@@ -162,7 +164,17 @@ class StreamsCronJob implements CommandInterface {
                 // stream; ask who before concluding nobody is.
                 $rDaemonMonitored = isset($rSupervisedSet[(string) $rStream['stream_id']]);
                 if ($rDaemonMonitored) {
-                    $this->reconcileSupervisedStream($db, $rStream);
+                    // Record the daemon's own idea of the live pid before anything
+                    // else runs. The rogue-ffmpeg sweep at the end of this pass kills
+                    // every ffmpeg writing an .m3u8 that is not on the active list,
+                    // and an encoder the daemon restarted a moment ago would not
+                    // otherwise be on it — the database pid was read before that
+                    // restart. Shooting it would be a self-inflicted outage, logged
+                    // as having killed a "rogue" process.
+                    $rDaemonPID = $this->reconcileSupervisedStream($db, $rStream);
+                    if ($rDaemonPID > 0) {
+                        $rActivePIDs[] = $rDaemonPID;
+                    }
                 }
 
                 if ($rDaemonMonitored || ProcessManager::isMonitorAlive($rStream['monitor_pid'], $rStream['stream_id']) || $rStream['on_demand']) {
