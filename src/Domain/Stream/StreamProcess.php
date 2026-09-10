@@ -956,6 +956,53 @@ class StreamProcess {
 		return (bool) SettingsManager::get('daemon_supervise');
 	}
 
+	/**
+	 * Translate this stream's watchdog settings into the daemon's health policy.
+	 *
+	 * These are the same conditions MonitorCommand.php checked in its inner loop;
+	 * the daemon judges them against the bytes it is already fanning out instead
+	 * of by hashing a playlist, ffprobing a segment and reading a progress file.
+	 * Each is omitted when the panel has it switched off, and an omitted check is
+	 * simply not made.
+	 *
+	 * @param array $rStream   Stream row (stream_info + server_info).
+	 * @param array $rSettings Resolved panel settings.
+	 * @return array Health policy for FanoutClient::supervise().
+	 */
+	private static function daemonHealthPolicy($rStream, $rSettings): array {
+		$rHealth = array();
+
+		// Stall: the panel restarted when the playlist stopped changing for
+		// seg_time * 6. Same window, measured from the last byte published.
+		$rSegTime = max(1, intval($rSettings['seg_time']));
+		$rHealth['stall_sec'] = $rSegTime * 6;
+
+		if (!empty($rSettings['audio_restart_loss'])) {
+			// The panel could only notice on its 300s ffprobe cycle; the daemon
+			// sees the audio PID go quiet, so the window can be a real one.
+			$rHealth['audio_loss_sec'] = 30;
+		}
+
+		if (!empty($rStream['stream_info']['fps_restart'])) {
+			// fps_threshold is a percentage in the panel and a fraction here.
+			$rThreshold = floatval($rStream['stream_info']['fps_threshold'] ?: 100) / 100.0;
+			if ($rThreshold > 0 && $rThreshold < 1) {
+				$rHealth['fps_threshold'] = $rThreshold;
+				$rHealth['fps_grace_sec'] = intval($rSettings['fps_delay']);
+			}
+		}
+
+		$rAutoRestart = json_decode((string) $rStream['stream_info']['auto_restart'], true);
+		if (!empty($rAutoRestart['days']) && !empty($rAutoRestart['at'])) {
+			$rHealth['auto_restart'] = array(
+				'days' => array_values((array) $rAutoRestart['days']),
+				'at'   => (string) $rAutoRestart['at'],
+			);
+		}
+
+		return $rHealth;
+	}
+
 	public static function createChannelItem($rStreamID, $rSource) {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU;
 		$db = self::db();
@@ -1569,12 +1616,18 @@ class StreamProcess {
 				// legacy shell_exec, which is the rollback path.
 				$rHandedOver = false;
 				if (self::daemonSupervises() && !$rDelayActive) {
-					$rHandedOver = FanoutClient::supervise($rStreamID, $rFFMPEG, (string) $rRealSource, array(
-						'stop_failures'          => intval($rSettings['stop_failures']),
-						'stream_fail_sleep'      => intval($rSettings['stream_fail_sleep']),
-						'on_demand'              => (bool) $rStream['server_info']['on_demand'],
-						'on_demand_failure_exit' => (bool) $rSettings['on_demand_failure_exit'],
-					));
+					$rHandedOver = FanoutClient::supervise(
+						$rStreamID,
+						$rFFMPEG,
+						(string) $rRealSource,
+						array(
+							'stop_failures'          => intval($rSettings['stop_failures']),
+							'stream_fail_sleep'      => intval($rSettings['stream_fail_sleep']),
+							'on_demand'              => (bool) $rStream['server_info']['on_demand'],
+							'on_demand_failure_exit' => (bool) $rSettings['on_demand_failure_exit'],
+						),
+						self::daemonHealthPolicy($rStream, $rSettings)
+					);
 				}
 				if (!$rHandedOver) {
 					$rFFMPEG .= self::liveRedirectTail($rStreamID);

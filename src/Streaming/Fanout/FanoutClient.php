@@ -477,17 +477,24 @@ class FanoutClient {
 	 *                          on_demand, on_demand_failure_exit, start_timeout_sec).
 	 * @return bool True when the daemon accepted the stream.
 	 */
-	public static function supervise(int $rStreamID, string $rCmd, string $rLabel, array $rPolicy = []): bool {
+	public static function supervise(int $rStreamID, string $rCmd, string $rLabel, array $rPolicy = [], array $rHealth = []): bool {
 		if ($rCmd === '') {
 			return false;
 		}
 		$rBody = json_encode([
 			'sources'     => [['label' => $rLabel, 'cmd' => $rCmd]],
 			'policy'      => $rPolicy,
+			'health'      => (object) $rHealth,
 			'pid_path'    => STREAMS_PATH . $rStreamID . '_.pid',
 			'errors_path' => STREAMS_PATH . $rStreamID . '.errors',
 			'log_path'    => LOGS_TMP_PATH . 'stream_log.log',
 			'server_id'   => SERVER_ID,
+			// How the daemon recognises an encoder of OURS that outlived it, so a
+			// daemon restart resumes watching the running ffmpeg instead of
+			// starting a second one beside it. The stream's own HLS path appears
+			// in every live command buildLive produces and in no other process,
+			// which is what makes it safe against pid reuse.
+			'adopt_match' => STREAMS_PATH . $rStreamID . '_.m3u8',
 		]);
 		if ($rBody === false) {
 			return false;
@@ -536,6 +543,45 @@ class FanoutClient {
 	public static function isSupervised(int $rStreamID): bool {
 		$rState = self::monitorState($rStreamID);
 		return is_array($rState) && !empty($rState['supervised']);
+	}
+
+	/**
+	 * Every stream this node's daemon is currently supervising.
+	 *
+	 * A daemon that restarted comes back supervising nothing, so the panel has to
+	 * hand its streams over again — at which point the daemon adopts the ffmpeg
+	 * processes that outlived it rather than starting duplicates. This is how the
+	 * panel notices there is anything to hand over.
+	 *
+	 * Returns null (not an empty array) when the daemon is unreachable, so a
+	 * caller can tell "supervising nothing" apart from "cannot be asked" and does
+	 * not treat a dead socket as every stream needing re-registration.
+	 *
+	 * @return array|null Stream ids as strings, or null if unreachable.
+	 */
+	public static function supervisedIDs(): ?array {
+		$rBody = self::monitorCall('GET', '/monitors', null);
+		if ($rBody === null) {
+			return null;
+		}
+		$rJson = json_decode($rBody, true);
+		return is_array($rJson) ? $rJson : null;
+	}
+
+	/**
+	 * Force a supervised stream onto a specific source (its index in the
+	 * stream_source list). Replaces writing a `<id>.force` signal file.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @param int $rIndex    Source index.
+	 * @return bool True when the daemon accepted the switch.
+	 */
+	public static function forceSource(int $rStreamID, int $rIndex): bool {
+		$rBody = json_encode(['index' => $rIndex]);
+		if ($rBody === false) {
+			return false;
+		}
+		return self::monitorCall('POST', '/monitor/' . $rStreamID . '/source', $rBody) !== null;
 	}
 
 	/**
