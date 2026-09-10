@@ -470,96 +470,14 @@ class GitHubReleases {
         }
     }
     /**
-     * Retrieve the latest GeoLite database release information.
+     * Build the browser download URL for a release asset.
      *
-     * This method fetches the latest release version from the repository,
-     * builds download URLs for the GeoLite2-City and GeoLite2-Country databases and
-     * prepares metadata (paths + MD5). GeoLite2-ASN is no longer fetched; the free
-     * GeoIP2-ISP.mmdb is handled separately via {@see self::getIspDatabase()}.
-     *
-     * @return array|null Returns an associative array with the latest version and file data,
-     *                    or null if no releases are available.
+     * @param string $version Release tag.
+     * @param string $asset   Asset filename.
+     * @return string
      */
-    public function getGeolite(): ?array {
-        // Get all available releases from the repository
-        $releases = $this->getReleases();
-
-        // If there are no releases, return null
-        if (empty($releases)) {
-            return null;
-        }
-
-        // Take the latest release (the first in the list)
-        $latest_version = $releases[0];
-
-        // Prepare the list of data files
-        $data_files = array();
-
-        // Iterate over required GeoLite2 database files
-        foreach (["GeoLite2-City.mmdb", "GeoLite2-Country.mmdb"] as $file) {
-            // Construct the GitHub release download URL
-            $file_url = "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$latest_version}/{$file}";
-
-            // Fetch the MD5 hash for file integrity verification
-            $hash_md5 = $this->getAssetHash($latest_version, $file);
-
-            // Add file information to the list
-            $data_files[] = [
-                "fileurl"   => $file_url,                                // Remote file URL
-                "path"      => "/home/xc_vm/bin/maxmind/{$file}",        // Local path where the file should be stored
-                "md5"       => $hash_md5                                // File hash (MD5)
-            ];
-        }
-
-        // Prepare final data structure containing version and files metadata
-        $data = [
-            "version" => $latest_version,
-            "files"   => $data_files,
-        ];
-
-        // Return the release data
-        return $data;
-    }
-
-    /**
-     * Resolve the ASN catalog master file (blocked_asns.json.gz) from the latest
-     * release — the source for the panel's blocked_asns table.
-     *
-     * @return array|null ['version','fileurl','path','md5'] or null if no release.
-     */
-    public function getAsnCatalog(): ?array {
-        return $this->releaseAsset('blocked_asns.json.gz');
-    }
-
-    /**
-     * Resolve the free self-built GeoIP2-ISP database (GeoIP2-ISP.mmdb) from the
-     * latest release — a drop-in replacement for the paid MaxMind edition.
-     *
-     * @return array|null ['version','fileurl','path','md5'] or null if no release.
-     */
-    public function getIspDatabase(): ?array {
-        return $this->releaseAsset('GeoIP2-ISP.mmdb');
-    }
-
-    /**
-     * Resolve a single release asset to ['version','fileurl','path','md5']. These
-     * files live only in the release repo (not at MaxMind), so they are fetched
-     * regardless of whether MaxMind credentials are set. Null when no release.
-     */
-    private function releaseAsset(string $file): ?array {
-        $releases = $this->getReleases();
-        if (empty($releases)) {
-            return null;
-        }
-
-        $latest_version = $releases[0];
-
-        return [
-            'version' => $latest_version,
-            'fileurl' => "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$latest_version}/{$file}",
-            'path'    => '/home/xc_vm/bin/maxmind/' . $file,
-            'md5'     => $this->getAssetHash($latest_version, $file),
-        ];
+    public function assetUrl(string $version, string $asset): string {
+        return "https://github.com/{$this->owner}/{$this->repo}/releases/download/{$version}/{$asset}";
     }
 
     /**
@@ -671,13 +589,6 @@ class GitHubReleases {
  *
  *   $update = $gh->getUpdate("1.0.0");
  *   print_r($update);
- *
- * ------------------------------------------------------------
- * 8. Получить информацию о GeoLite базах:
- *
- *   $gh = new GitHubReleases("Vateron-Media", "XC_VM_Update");
- *   $geo = $gh->getGeolite();
- *   print_r($geo);
  *
  * ------------------------------------------------------------
  * ⚠️ Важно:

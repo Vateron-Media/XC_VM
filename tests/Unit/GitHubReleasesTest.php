@@ -87,4 +87,12 @@ final class GitHubReleasesTest extends TestCase {
 		$this->expectException(InvalidArgumentException::class);
 		$instance->setChannel('nightly');
 	}
+
+	public function testAssetUrlBuildsReleaseDownloadUrl() {
+		$instance = new GitHubReleases('Vateron-Media', 'XC_VM_Update', 'stable');
+		$this->assertSame(
+			'https://github.com/Vateron-Media/XC_VM_Update/releases/download/29062026/GeoLite2-City.mmdb',
+			$instance->assetUrl('29062026', 'GeoLite2-City.mmdb')
+		);
+	}
 }

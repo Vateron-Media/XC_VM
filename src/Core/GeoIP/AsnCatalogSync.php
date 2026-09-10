@@ -57,19 +57,22 @@ class AsnCatalogSync {
 	 */
 	private static function download(bool $force): bool {
 		$rRepo = new GitHubReleases(GIT_OWNER, GIT_REPO_UPDATE, UpdateChannels::forRepo(GIT_REPO_UPDATE));
-		$rMeta = $rRepo->getAsnCatalog();
-		if (!is_array($rMeta) || empty($rMeta['fileurl'])) {
+		$rVersion = $rRepo->getReleases()[0] ?? null;
+		if ($rVersion === null) {
 			return false;
 		}
 
-		$rPath = $rMeta['path'];
+		$rAsset = 'blocked_asns.json.gz';
+		$rPath = '/home/xc_vm/bin/maxmind/' . $rAsset;
+		$rFileUrl = $rRepo->assetUrl($rVersion, $rAsset);
+		$rMd5 = $rRepo->getAssetHash($rVersion, $rAsset);
 		// Skip when unchanged (md5 available and matches the local copy).
-		if (!$force && is_file($rPath) && !empty($rMeta['md5']) && md5_file($rPath) === $rMeta['md5']) {
+		if (!$force && is_file($rPath) && !empty($rMd5) && md5_file($rPath) === $rMd5) {
 			return false;
 		}
 
 		$ch = curl_init();
-		curl_setopt($ch, CURLOPT_URL, $rMeta['fileurl']);
+		curl_setopt($ch, CURLOPT_URL, $rFileUrl);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 30);
 		curl_setopt($ch, CURLOPT_TIMEOUT, 300);
