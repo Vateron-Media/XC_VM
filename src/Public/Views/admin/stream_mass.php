@@ -556,7 +556,7 @@ renderUnifiedLayoutFooter('admin');
                 [0, 'desc']
             ],
             layout: {
-                topStart: 'pageLength',
+                topStart: null, // page size is driven by the toolbar #show_entries selector
                 topEnd: 'search'
             }
         });

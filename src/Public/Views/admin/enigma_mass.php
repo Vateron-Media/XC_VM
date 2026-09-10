@@ -451,7 +451,7 @@ renderUnifiedLayoutFooter('admin');
             },
             pageLength: <?= (int) ($rSettings['default_entries'] ?: 10); ?>,
             layout: {
-                topStart: 'pageLength',
+                topStart: null, // page size is driven by the toolbar #show_entries selector
                 topEnd: 'search'
             }
         });
