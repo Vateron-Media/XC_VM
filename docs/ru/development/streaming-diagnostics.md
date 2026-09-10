@@ -4,14 +4,22 @@
 
 ---
 
-## `tools/stream-check/stream_queue_check.py` (Только Python, stdlib)
+## `tools/stream-check/stream_check.py` (Только Python, stdlib)
 
-Автономный монитор для **целостность сегмента/очереди пакетов** с дополнительным **панель управления живым буфером**. Автоматическое определение HLS по сравнению с MPEG-TS.
+Единый инструмент без зависимостей, который обеспечивает потоковую передачу данных **проверяет** и вывод результата **рендеры** в формате SVG. Автоматически определяет значения HLS и MPEG-TS. Три подкоманды:
+
+|Подкомандование|Цель|
+| --- | --- |
+| `check <url>` |проверьте один поток (или посмотрите его в прямом эфире с помощью `--live`)|
+|`список воспроизведения <путь\|url>`|протестируйте каждый поток в списке каналов `.m3u` → агрегируйте JSON (+ файлы для каждого потока)|
+| `graph <inputs…>` |визуализируйте JSON из `check`/`playlist` в виде статических SVG-диаграмм|
 
 ```bash
-python3 tools/stream-check/stream_queue_check.py "<url>" --duration 30        # batch check
-python3 tools/stream-check/stream_queue_check.py "<url>" --json               # cron / monitoring
-python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # live dashboard
+python3 tools/stream-check/stream_check.py check "<url>" --duration 30        # batch check
+python3 tools/stream-check/stream_check.py check "<url>" --json               # cron / monitoring
+python3 tools/stream-check/stream_check.py check "<url>" --live --duration 0  # live dashboard
+python3 tools/stream-check/stream_check.py playlist list.m3u --out-dir logs/  # batch a whole playlist
+python3 tools/stream-check/stream_check.py graph logs/ --combined            # JSON → SVG charts
 ```
 
 Что означает "неповрежденная очередь" для каждого типа потока:
@@ -21,7 +29,7 @@ python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # 
 |HLS (`.m3u8`)|`EXT-X-MEDIA-SEQUENCE` монотонный и непрерывный (никаких удаленных или перемотанных сегментов), нет `EXT-X-DISCONTINUITY`, каждый вновь появляющийся сегмент доступен для загрузки. Основные плейлисты отображаются в их первом варианте.|
 |MPEG-TS (`.ts`, `/play/<token>/ts`)|per-PID `continuity_counter` (потерянные / дублированные / переупорядоченные пакеты = разрыв очереди), потеря байта синхронизации, индикатор транспортной ошибки и задержка доставки.|
 
-Основные параметры:
+Ключевые параметры `check`:
 
 |Флаг|Цель|
 | --- | --- |
@@ -51,7 +59,7 @@ python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # 
 График буфера и индикатор окрашены в зеленый (работоспособный) / желтый (низкий) / красный (недостаточный) цвета. Для HLS ряд блоков показывает сегменты, которые все еще находятся в кэше перед началом воспроизведения.
 
 > **Обратите внимание — темп доставки.** Оперативная доставка клиентов теперь осуществляется с помощью
-> `xc_fanout` демон (см. [Streaming Subsystem → Daemon delivery](streaming-subsystem.md#daemon-delivery-xc_fanout)), который извлекает каждый источник по одному разу и передает его через сокет unix. `stream_queue_check.py --live` визуализирует поведение буфера, которое реальный игрок увидел бы при просмотре доставленного потока.
+> `xc_fanout` демон (см. [Streaming Subsystem → Daemon delivery](streaming-subsystem.md#daemon-delivery-xc_fanout)), который извлекает каждый исходный код один раз и передает его через сокет unix. `stream_check.py check --live` визуализирует поведение буфера, которое реальный игрок увидел бы при просмотре доставленного потока.
 
 ---
 
@@ -59,4 +67,4 @@ python3 tools/stream-check/stream_queue_check.py "<url>" --live --duration 0  # 
 
 |Файл|Цель|
 | --- | --- |
-| `tools/stream-check/stream_queue_check.py` |мониторинг целостности очереди + панель мониторинга динамического буфера|
+| `tools/stream-check/stream_check.py` |проверка целостности очереди (`check`), пакетный список воспроизведения (`playlist`), панель мониторинга динамического буфера (`check --live`) и графический редактор SVG (`graph`)|

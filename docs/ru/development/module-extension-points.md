@@ -78,7 +78,198 @@ class MyStreamMiddleware implements StreamMiddlewareInterface {
 |Родительский узел|Гнезда для модулей|
 | ------------------- | ------------------ |
 | `management.service_setup` |`order` ≥ 60|
-| `management.logs` |`order` ≥ 170|
+| `logs.system` |`order` ≥ 50|
+| `profile` |`order` 100–980|
+
+Журналы - это вкладка верхнего уровня `logs` с подгруппами `logs.connections`,
+`logs.streams`, `logs.system`, `logs.users` — прикрепите журнал работы модуля
+в разделе `logs.system`. Присоединение дочернего элемента к родительскому ключу, который не существует
+автоматически сбрасывает его, поэтому синхронизируйте эти клавиши с `CoreNavbarProvider`.
+
+---
+
+## Кнопки на верхней панели (`TopbarProviderInterface`)
+
+Значение для каждой страницы **верхняя панель** (основная кнопка действия и связанные с ней инструменты
+выпадающий список над страницей) собирается с помощью `XcVm\Core\Util\Topbar`. Основные страницы приходят
+из собственного списка Topbar; модуль добавляет свои кнопки через
+`TopbarProviderInterface::registerTopbar(TopbarRegistry $registry)`, вызванный в
+та же фаза загрузки, что и `registerNavbar()`. `BaseModule` по умолчанию не запускается,
+поэтому переопределяйте его только тогда, когда вам нужны кнопки на верхней панели.
+
+A module can do **both** of these, in one `registerTopbar()`:
+
+- **Внедрить кнопки на существующую основную страницу** — передать ключ этой страницы (например,
+`movies`); ваши кнопки будут добавлены после основных.
+- **Создайте свою собственную совершенно новую страницу** — передать ключ страницы, который ядру неизвестен
+(например, `watch`); вся верхняя панель для этой страницы берется из вашего модуля.
+
+```php
+use XcVm\Core\Module\TopbarRegistry;
+
+public function registerTopbar(TopbarRegistry $registry): void
+{
+    // add($page, $label, $url = null, $permission = null, $attr = null, $order = 100)
+
+    // A page the module owns — first entry becomes the primary button.
+    $registry->add('watch', 'Add Folder', 'watch_add', 'folder_watch_add', null, 10);
+    $registry->add('watch', 'Settings',   'settings_watch', 'folder_watch_settings', null, 20);
+    // JS-only action: no url, carry an onClick via $attr.
+    $registry->add('watch', 'Kill Running', null, 'folder_watch_settings', 'onClick="killWatchFolder();"', 40);
+
+    // Inject a button into an existing CORE page.
+    $registry->add('movies', 'Watch Folder', 'watch', 'folder_watch', null, 200);
+}
+```
+
+**Клавиша страницы** равно `AdminHelpers::getPageName()` для страницы, на которой отображается кнопка
+— то же значение, с которым совпадает верхняя панель.
+
+**Форма входа** отражает `[url, permission, attr]` ядро:
+
+|Аргумент|Значение|
+| --- | --- |
+| `$url` | Target page/URL. `null` for a JS-only action (pair with `$attr`). |
+| `$permission` |`adv` дополнительное разрешение для кнопки. `null` = отображается всегда.|
+| `$attr` | Raw extra attributes: `onClick="…"`, or a well-known `id="…"`. |
+| `$order` |Порядок сортировки **среди записей модуля страницы** (по возрастанию).|
+
+**Оформление заказа и основная кнопка.** На странице сначала появляются основные записи, затем
+записи в модуле отсортированы по `$order`. `Topbar::items()` означает первое
+разрешение-сохраняющаяся запись в виде кнопки **первичный**; остальные попадают в поле
+выпадающий. На странице, полностью принадлежащей модулю, самая низкая запись-`$order` - это
+первичный.
+
+**Фильтрация разрешений.** Каждая запись с ненулевым значением `$permission` удаляется
+если только `Authorization::check('adv', $permission)` не пройдет, так что кнопки никогда не протекут
+к ролям, на которые не имеют права.
+
+**Хорошо известные идентификаторы действий** в общем случае связаны оболочкой (`footer.php`) и
+управляется ядром, поэтому модулю нужно только выдать идентификатор:
+
+| `id="…"` |Эффект|
+| --- | --- |
+|`btn-export-csv` / `btn-export-json`|Экспорт отчета — выводится только на страницу журнала/отчета с основным списком **и** с разрешением `backups`.|
+| `btn-clear-logs` |Модальный режим очистки журналов - тип журнала берется из карты core `LOG_TYPES` для страницы.|
+
+Повторная регистрация того же самого `(page, label)` переопределяет более раннюю запись
+(последние выигрыши), соответствующие `NavbarRegistry`.
+
+---
+
+## Табличные данные (`TableProviderInterface`)
+
+Серверная таблица данных отправляет свои данные `id` в конечную точку администратора `./table`
+(`TableController`). Идентификаторы основных таблиц - это жестко запрограммированный переключатель; модуль служит
+свой СОБСТВЕННЫЙ идентификатор таблицы через `TableProviderInterface::registerTables(TableRegistry
+$registry)` (та же фаза загрузки, что и у других), поэтому разработчик находится в модуле
+вместо core. Когда `./table` получает идентификатор, который не является регистром core, он выглядит так
+в реестре. `BaseModule` по умолчанию отправляет сообщение о том, что операции не выполняются.
+
+```php
+use XcVm\Core\Module\TableRegistry;
+
+public function registerTables(TableRegistry $registry): void
+{
+    $registry->register('watch_output', [WatchController::class, 'tableWatchOutput']);
+}
+```
+
+**Контракт с обработчиком** — `fn(array $return, int $start, int $limit, bool $isApi): array`:
+
+```php
+public static function tableWatchOutput(array $rReturn, int $rStart, int $rLimit, bool $rIsAPI): array
+{
+    global $db;                       // same access the core handlers use
+    if (!Authorization::check('adv', 'folder_watch_output')) {
+        return $rReturn;              // empty skeleton = no access
+    }
+    // …read RequestManager params, run COUNT + paged SELECT…
+    $rReturn['recordsTotal']    = $rTotal;
+    $rReturn['recordsFiltered'] = $rTotal;
+    foreach ($rRows as $rRow) {
+        // Return CLEAN, KEYED JSON — never HTML. The view renders every cell.
+        $rReturn['data'][] = ['id' => (int) $rRow['id'], 'status' => (int) $rRow['status'], /* … */];
+    }
+    return $rReturn;                  // do NOT echo/exit — TableController encodes it
+}
+```
+
+Правила:
+
+- Обработчик получает скелет ответа (`recordsTotal`, `recordsFiltered`,
+`data`) и возвращает его заполненным. Оно должно быть **нет** `echo` или `exit` —
+`TableController` JSON - кодирует возвращаемый массив.
+- Возвращает **чистые строки JSON с ключами — без встроенного сервером HTML**. Значки статуса,
+кнопки действий и ссылки отображаются на стороне клиента с помощью представления (то же самое
+соглашение, которому следуют основные таблицы), что позволяет исключить представление
+контроллер и позволяет ячейкам, зависящим от разрешений, использовать флаги, выдаваемые представлением.
+- Для ветки REST API (`$isApi`) повторное использование
+`TableController::filterRow($row, $show, $hide)` для столбца включить/исключить.
+- Данные ajax `d.id` в представлении должны совпадать с зарегистрированным идентификатором.
+
+---
+
+## Разрешения торгового посредника (`PermissionProviderInterface`)
+
+Каталог дополнительных разрешений для реселлеров редактора группы
+(`XcVm\Core\Reference\PermissionReference`) - это основной список. Модуль добавляет свой
+СОБСТВЕННЫЕ ключи доступа через `PermissionProviderInterface::registerPermissions(Регистрация разрешений
+$registry)" (та же фаза загрузки), таким образом, модуль владеет разрешениями, на которые он ссылается,
+вместо того, чтобы они были жестко запрограммированы в core. Ключи объединяются после списка core.
+
+```php
+use XcVm\Core\Module\PermissionRegistry;
+
+public function registerPermissions(PermissionRegistry $registry): void
+{
+    $registry->add('folder_watch');
+    $registry->add('folder_watch_output');
+}
+```
+
+Каждая клавиша отображается в редакторе с метками из переводчика — добавить
+`permission_<key>` и `permission_<key>_text` языковых записей. Маршруты перехода,
+элементы навигационной и верхней панелей на ключе точно такие же, как и при использовании основного разрешения
+(`Authorization::check('adv', 'folder_watch')`); принудительное выполнение считывает сохраненный
+групповые разрешения и не зависит от того, где объявлен ключ.
+
+> **Владение сквозной таблицей модулей.** Журнал/таблица данных модуля полностью соответствует
+> модуль: строит свои строки с помощью `TableProviderInterface` (чистый JSON) и сохраняет
+> его бухгалтерия также удаляется / очищается / импортируется в модуле — expose module
+> `->api(...)` направляет действия в строке и реагирует на ядро **событие** (например
+> `VodImportedEvent`) с помощью `#[ListensTo]` вместо записи таблицы в ядро
+> непосредственно. Ядро никогда не должно быть `DELETE`/`UPDATE`/`TRUNCATE` таблицей, принадлежащей модулю
+> (после удаления модуля он может исчезнуть).
+
+---
+
+## Быстрые инструменты (`QuickToolsProviderInterface`)
+
+Страница "Быстрые инструменты администратора" представляет собой набор одноразовых кнопок обслуживания; каждая из них содержит
+его ключ равен `post.php?action=quick_tools`, который запускает действие сопоставления. Оба
+список кнопок и обработчики являются основными. Модуль добавляет свой собственный инструмент — кнопку
+**и** действие — через интерфейс quicktoolsprovider::registerQuickTools(QuickToolsRegistry).
+$реестр)`.
+
+```php
+use XcVm\Core\Module\QuickToolsRegistry;
+
+public function registerQuickTools(QuickToolsRegistry $registry): void
+{
+    // add($group, $key, $label, $handler)
+    $registry->add('logs', 'clear_watch_logs', 'clear_watch_logs', static function (): void {
+        WatchService::clearAllLogs();   // do the work; query via global $db
+    });
+}
+```
+
+- `$group` - существующая клавиша табуляции (`streams`, `lines`, `logs`, `general`, ...) —
+к нему добавляется инструмент — или новый ключ, отображаемый в виде новой вкладки с
+общий значок и `$group` в качестве его метки-ключа.
+- `$label` - это клавиша перевода для кнопки.
+- `$handler` (`fn(): void`) выполняет действие и должен **нет** повторить/завершить —
+`post.php` выдает стандартный JSON-файл `{result:true}` success после его запуска.
 
 ---
 
@@ -143,7 +334,7 @@ public function getCronEntries(): array {
 > **Два механизма, оба аддитивные.** **файловая схема**, описанный в разделе
 > [Структура каталогов модулей](module-authoring.md#module-directory-structure) (`database.sql` мастер +
 > `database_drop.sql` разборка + `migrations/<semver>.sql` дельты) используется по умолчанию для
-> обычный DDL/seed. `MigratableInterface` ниже приведен **программный** путь для обновления
+> обычный DDL/seed. `MigratableInterface` ниже приведен путь **программный** для обновления
 > шаги, требующие логики PHP (повторное заполнение данных, условные изменения). Модуль может использовать
 > один из них или оба; `ModuleManager::updateModule()` сначала запускает файл delta, затем
 > вызываемые миграции.
