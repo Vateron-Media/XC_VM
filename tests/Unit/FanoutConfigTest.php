@@ -75,11 +75,16 @@ final class FanoutConfigTest extends TestCase {
 	public function testSuperviseDefaultsOff(): void {
 		$rSettings = $this->baseSettings();
 		unset($rSettings['fanout_supervise']);
-		$this->assertTrue(FanoutConfig::sync($rSettings));
+		$this->assertTrue(FanoutConfig::sync($rSettings), 'first sync writes the file');
 		$this->assertFalse($this->read()['supervise']);
 
+		// sync() reports whether it WROTE, not whether it succeeded: it skips the
+		// write when nothing the panel owns has changed, to avoid mtime churn that
+		// would make the daemon re-apply for nothing. An explicit 0 resolves to the
+		// same value the absent key did, so there is nothing to write — and the
+		// value on disk must still be false.
 		$rSettings['fanout_supervise'] = 0;
-		$this->assertTrue(FanoutConfig::sync($rSettings));
+		$this->assertFalse(FanoutConfig::sync($rSettings), 'an unchanged value must not rewrite the file');
 		$this->assertFalse($this->read()['supervise']);
 	}
 
