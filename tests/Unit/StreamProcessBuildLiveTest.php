@@ -116,6 +116,35 @@ final class StreamProcessBuildLiveTest extends TestCase {
 		$this->assertStringContainsString('-progress "' . STREAMS_PATH . '42_.progress"', $out);
 		$this->assertStringContainsString("-i 'http://src.example/live.ts'", $out);
 		$this->assertStringContainsString(STREAMS_PATH . '42_%d.ts', $out, 'hls segments');
+	}
+
+	// ── the redirect tail is no longer buildLive's ─────────────
+
+	/**
+	 * buildLive returns the BARE command. It used to append
+	 * `>/dev/null 2>>…errors & echo $! > …pid` itself; that tail moved to
+	 * liveRedirectTail() so the same command can either be run here or handed to
+	 * the fanout daemon, which supervises the process and therefore has to be its
+	 * parent — a backgrounded command leaves it nothing to supervise and no pid
+	 * to signal.
+	 *
+	 * Asserting the ABSENCE is the point. If the tail ever creeps back into
+	 * buildLive, every supervised stream silently stops being supervised, and the
+	 * only symptom is channels that will not restart.
+	 */
+	public function testBareCommandCarriesNoRedirectOrBackgroundTail(): void {
+		$out = $this->build();
+		$this->assertStringNotContainsString('>/dev/null', $out, 'buildLive must not redirect; its caller decides');
+		$this->assertStringNotContainsString('echo $! >', $out, 'buildLive must not background the process');
+		$this->assertStringNotContainsString('2>>' . STREAMS_PATH . '42.errors', $out);
+	}
+
+	/**
+	 * And the legacy composition still yields exactly what buildLive used to, so
+	 * the path that runs the encoder itself is byte-for-byte unchanged.
+	 */
+	public function testLegacyTailRestoresThePreviousCommand(): void {
+		$out = $this->build() . StreamProcess::liveRedirectTail(42);
 		$this->assertStringContainsString('>/dev/null 2>>' . STREAMS_PATH . '42.errors', $out);
 		$this->assertStringContainsString('echo $! > ' . STREAMS_PATH . '42_.pid', $out);
 	}
