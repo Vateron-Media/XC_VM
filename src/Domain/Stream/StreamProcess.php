@@ -894,7 +894,11 @@ class StreamProcess {
 			$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 		}
 
-		$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
+		// NB: the redirect-and-background tail is NOT appended here any more.
+		// buildLive returns the BARE command so it can be handed to the fanout
+		// daemon to supervise (it has to be the process's parent, and a
+		// backgrounded command leaves it nothing to supervise). The legacy path
+		// appends liveRedirectTail() itself, so its behaviour is unchanged.
 
 		$ffprobeContainer = (isset($rFFProbeOutput['container']) && is_string($rFFProbeOutput['container'])) ? $rFFProbeOutput['container'] : '';
 
@@ -919,6 +923,37 @@ class StreamProcess {
 		);
 
 		return $rFFMPEG;
+	}
+
+	/**
+	 * The shell tail that runs a live command the legacy way: stderr appended to
+	 * the stream's .errors file, the process backgrounded, and its pid written to
+	 * `<streams>/<id>_.pid`.
+	 *
+	 * Split out of buildLive so the same command can either be run here or handed
+	 * to the fanout daemon, which supervises the process itself and therefore
+	 * must NOT have it backgrounded — it does the redirection and the pid file on
+	 * its own. Keeping the two in one place is what stops them drifting.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return string Shell fragment to append to a bare live command.
+	 */
+	public static function liveRedirectTail($rStreamID): string {
+		return ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
+	}
+
+	/**
+	 * Whether this node hands live encoders to the fanout daemon to supervise
+	 * instead of running them itself under the PHP watchdog.
+	 *
+	 * Off unless `daemon_supervise` is set, so a panel that has never heard of
+	 * the setting keeps the legacy behaviour exactly — no migration needed, and
+	 * clearing the setting is the rollback.
+	 *
+	 * @return bool
+	 */
+	public static function daemonSupervises(): bool {
+		return (bool) SettingsManager::get('daemon_supervise');
 	}
 
 	public static function createChannelItem($rStreamID, $rSource) {
@@ -1526,7 +1561,27 @@ class StreamProcess {
 						'ingestSock' => $rIngestSock,
 					));
 
-				shell_exec($rFFMPEG);
+				// Hand the encoder to the daemon when this node supervises there.
+				// The daemon starts it, watches it and restarts it, writing the
+				// same pid file the rest of PHP still reads — so everything below
+				// (and stopStream, and isStreamRunning) keeps working unchanged.
+				// A daemon that is unreachable or declines falls through to the
+				// legacy shell_exec, which is the rollback path.
+				$rHandedOver = false;
+				if (self::daemonSupervises() && !$rDelayActive) {
+					$rHandedOver = FanoutClient::supervise($rStreamID, $rFFMPEG, (string) $rRealSource, array(
+						'stop_failures'          => intval($rSettings['stop_failures']),
+						'stream_fail_sleep'      => intval($rSettings['stream_fail_sleep']),
+						'on_demand'              => (bool) $rStream['server_info']['on_demand'],
+						'on_demand_failure_exit' => (bool) $rSettings['on_demand_failure_exit'],
+					));
+				}
+				if (!$rHandedOver) {
+					$rFFMPEG .= self::liveRedirectTail($rStreamID);
+					shell_exec($rFFMPEG);
+				}
+				// Record what actually ran: the bare command when the daemon owns
+				// the process, the backgrounded one when this node does.
 				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 
 				// Wait briefly for PID file to be written, with retry
