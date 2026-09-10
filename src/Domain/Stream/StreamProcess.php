@@ -946,14 +946,15 @@ class StreamProcess {
 	 * Whether this node hands live encoders to the fanout daemon to supervise
 	 * instead of running them itself under the PHP watchdog.
 	 *
-	 * Off unless `daemon_supervise` is set, so a panel that has never heard of
-	 * the setting keeps the legacy behaviour exactly — no migration needed, and
-	 * clearing the setting is the rollback.
+	 * Off unless `fanout_supervise` is set. A panel that predates the setting
+	 * reads null and keeps the legacy behaviour exactly, and clearing it is the
+	 * rollback: MonitorCommand resumes, because its stand-down check asks the
+	 * daemon rather than assuming, and an unreachable daemon answers "no".
 	 *
 	 * @return bool
 	 */
 	public static function daemonSupervises(): bool {
-		return (bool) SettingsManager::get('daemon_supervise');
+		return (bool) SettingsManager::get('fanout_supervise');
 	}
 
 	/**
@@ -1633,9 +1634,16 @@ class StreamProcess {
 					$rFFMPEG .= self::liveRedirectTail($rStreamID);
 					shell_exec($rFFMPEG);
 				}
-				// Record what actually ran: the bare command when the daemon owns
-				// the process, the backgrounded one when this node does.
-				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
+				// Record what actually ran, under a name that says WHO ran it:
+				// `_.fanout` when the daemon owns the process (the bare command it
+				// was handed), `_.ffmpeg` when this node ran it itself (with the
+				// redirect-and-background tail). Two names rather than one because
+				// the first question in any incident is which path the stream took,
+				// and a single file cannot answer it. The stale one is removed so a
+				// stream that switched paths does not leave a lie behind.
+				$rCmdFile = $rHandedOver ? '_.fanout' : '_.ffmpeg';
+				file_put_contents(STREAMS_PATH . $rStreamID . $rCmdFile, $rFFMPEG);
+				@unlink(STREAMS_PATH . $rStreamID . ($rHandedOver ? '_.ffmpeg' : '_.fanout'));
 
 				// Wait briefly for PID file to be written, with retry
 				$rPID = 0;
