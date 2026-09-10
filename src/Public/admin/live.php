@@ -11,6 +11,7 @@ use XcVm\Domain\Stream\AdminStreamToken;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * Admin live stream handler
@@ -86,7 +87,14 @@ if (0 < $db->num_rows()) {
 		$rChannelInfo['pid'] = null;
 
 		if ($rChannelInfo['on_demand'] == 1) {
-			if (!ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
+			// A stream the fanout daemon supervises already has a watchdog; it will
+			// restart the encoder itself. Starting a PHP monitor here would stand
+			// down immediately and never write `_.monitor`, so the wait below would
+			// burn its full three seconds on every on-demand request for that
+			// stream — latency paid on the viewer's connect, for nothing.
+			if (FanoutClient::isSupervised($rStreamID)) {
+				$rChannelInfo['monitor_pid'] = null;
+			} elseif (!ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
 				StreamProcess::startMonitor($rStreamID);
 
 				for ($rRetries = 0; !file_exists(STREAMS_PATH . intval($rStreamID) . '_.monitor') && $rRetries < 300; $rRetries++) {

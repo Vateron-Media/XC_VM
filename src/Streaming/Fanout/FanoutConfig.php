@@ -121,6 +121,10 @@ class FanoutConfig {
 			'idle_buffer_grace_sec' => self::clampInt((int) ($rSettings['fanout_idle_buffer_grace_sec'] ?? 30), 0, 3600),
 			'idle_buffer_ratio'     => $rRatio,
 			'source_backend'        => self::backend((string) ($rSettings['fanout_source_backend'] ?? 'auto')),
+			// Whether this node's daemon may run and watch stream encoders at all.
+			// The panel handing a stream over is the other half; both must be on
+			// for anything to change, and either one off is a full rollback.
+			'supervise'             => (bool) ($rSettings['fanout_supervise'] ?? false),
 		);
 	}
 

@@ -203,11 +203,11 @@ PHP-FPM работник, отвечающий за жизнедеятельно
 
 - **Расходимся веером.** `xc_fanout` (встроенный демон Go) извлекает каждый источник **однажды** и
 предоставляет его каждому пользователю через сокет unix с помощью встроенного в оперативную память сегментатора HLS.
-PHP не соответствует байтовому пути для каждого зрителя: рабочий процесс чтения для каждого зрителя
+PHP находится вне байтового пути для каждого зрителя: рабочий процесс чтения для каждого зрителя
 цикл обслуживания и путь `HLSGenerator::generateHLS()` для обслуживания клиентов не являются
 больше не используется для оперативной доставки (`generateHLS()` сохраняется в классе, но имеет
 абонентов нет). `AsyncFileOperations::awaitFileExists()` — это **нет** удалено - это
-все еще используется для ожидания запуска потока и пути в байтах VOD/timeshift (см.
+по-прежнему используется для ожидания запуска потока и пути в байтах VOD/timeshift (см.
 Таблица показателей).
 - **Две розетки.** Клиентский сокет (ориентированный на nginx) обслуживает `/live/<id>` и
 `/hls/...`; управляющий сокет, предназначенный только для PHP, регистрирует источники
@@ -223,7 +223,7 @@ PHP не соответствует байтовому пути для кажд�
 
 #### Наложение отправленного сообщения
 
-Действие администратора "Отправить сообщение" отображает текстовый баннер на видео, которое просматривает **один** зритель.
+Действие администратора "Отправить сообщение" приводит к появлению текстового баннера на видео, которое просматривает **один** зритель.
 PHP отправляет его в сокет управления демоном
 (`FanoutClient::sendSignal` → `POST /signal/<uuid>`), и демон применяет
 ffmpeg `drawtext` наложение на следующий HLS сегмент этого просмотра (или короткий ~5-секундный фрагмент
@@ -357,7 +357,7 @@ IP-блокировка на основе файлов. Файлы блоков 
 
 Клиент HLS обслуживается демоном `xc_fanout` (см. [Доставка демоном](#daemon-delivery-xc_fanout)), поэтому происходит шифрование **сторона демона**:
 
-1. `StreamProcess` записывает ключ потока AES-128/IV в `content/streams/<id>_.key` / `_.iv`.
+1. `StreamProcess` записывает ключ AES-128 потока/IV в `content/streams/<id>_.key` / `_.iv`.
 2. At ingest registration (`FanoutClient::registerIngest`), when `encrypt_hls` is on, the key/IV are handed to the daemon, which encrypts the HLS segments it serves and emits a matching `#EXT-X-KEY`.
 3. `HLSGenerator::tokenizeDaemonPlaylist()` переписывает URL-адреса сегментов плейлиста демона в ссылки с авторизацией для каждого сегмента `/hls/<token>`, которые `segment.php` передаются через прокси-сервер демона.
 4. Ключ AES доставляется игрокам с помощью `key.php` (`src/Public/stream/key.php`) с использованием того же механизма токенов.
@@ -400,7 +400,7 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 
 ## Диагностика и оснастка
 
-Автономный инструмент проверки целостности потока (`tools/stream-check/stream_queue_check.py`) теперь доступен на отдельной странице - см. [Диагностика и инструменты для потоковой передачи](streaming-diagnostics.md).
+Автономный инструмент проверки целостности потока (`tools/stream-check/stream_check.py`) теперь доступен на отдельной странице - см. [Диагностика и инструменты для потоковой передачи](streaming-diagnostics.md).
 
 ---
 
@@ -411,7 +411,7 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 не является частью опубликованного сайта):
 
 - [ADR 0001 — Tmpfs-free streaming](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0001-tmpfs-free-streaming.md) — PHP out of the byte path, native fan-out, in-RAM HLS.
-- [ADR 0002 — `xc_fanout` daemon](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md) — the native live fan-out daemon.
+- [ADR 0002 — `xc_fanout` демон](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0002-xc-fanout-daemon.md) — собственный демон разветвления в реальном времени.
 - [ADR 0003 — Полное отключение демона](https://github.com/Vateron-Media/XC_VM/blob/main/docs/adr/0003-full-daemon-cutover.md) — отмена устаревшего байтового пути для live.
 
 ---
@@ -432,4 +432,4 @@ SIGNALS_PATH        = /home/xc_vm/signals/
 | `src/Streaming/Lifecycle/ShutdownHandler.php` |очистка соединения при выходе|
 | `src/Domain/Stream/ConnectionTracker.php` |состояние соединения в Redis/MySQL|
 | `src/Core/Init/LegacyInitializer.php` |настройка глобальной переменной для потоковой передачи|
-| `tools/stream-check/stream_queue_check.py` |мониторинг целостности очереди + панель мониторинга динамического буфера|
+| `tools/stream-check/stream_check.py` |проверка целостности очереди + пакет плейлистов + панель мониторинга живого буфера + графический редактор SVG|

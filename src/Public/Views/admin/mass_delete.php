@@ -717,8 +717,11 @@ renderUnifiedLayoutFooter('admin');
                     }
                 },
                 pageLength: PAGE_LEN,
+                // Page size is driven by the toolbar's #*_show_entries selector
+                // (opts.len below); drop DataTables' built-in length control so
+                // the two don't render as a duplicate "entries per page" picker.
                 layout: {
-                    topStart: 'pageLength',
+                    topStart: null,
                     topEnd: null
                 }
             };

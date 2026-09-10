@@ -67,6 +67,33 @@ final class FanoutConfigTest extends TestCase {
 		$this->assertSame(0.5, $c['idle_buffer_ratio']);
 	}
 
+	/**
+	 * Encoder supervision is off unless the panel says otherwise, and a panel
+	 * that predates the setting must read as off rather than as anything else --
+	 * that absence is the upgrade path for every existing install.
+	 */
+	public function testSuperviseDefaultsOff(): void {
+		$rSettings = $this->baseSettings();
+		unset($rSettings['fanout_supervise']);
+		$this->assertTrue(FanoutConfig::sync($rSettings));
+		$this->assertFalse($this->read()['supervise']);
+
+		$rSettings['fanout_supervise'] = 0;
+		$this->assertTrue(FanoutConfig::sync($rSettings));
+		$this->assertFalse($this->read()['supervise']);
+	}
+
+	/**
+	 * And it reaches the daemon's config file when it IS set, since that file is
+	 * the only way the node learns it may supervise at all.
+	 */
+	public function testSuperviseReachesTheDaemonConfig(): void {
+		$rSettings = $this->baseSettings();
+		$rSettings['fanout_supervise'] = 1;
+		$this->assertTrue(FanoutConfig::sync($rSettings));
+		$this->assertTrue($this->read()['supervise']);
+	}
+
 	public function testPrebufferMaxSecIsDerivedAndFloored(): void {
 		// client 30, restreamer 0, hls_window*seg = 6*6 = 36 → floor 40.
 		$this->assertTrue(FanoutConfig::sync($this->baseSettings()));

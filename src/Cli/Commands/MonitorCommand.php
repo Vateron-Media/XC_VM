@@ -12,6 +12,7 @@ use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Streaming\Codec\FFprobeRunner;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * `monitor <stream_id> [restart]` — the per-stream watchdog.
@@ -81,6 +82,21 @@ class MonitorCommand implements CommandInterface {
 		}
 
 		$rStreamInfo = $db->get_row();
+
+		// Stand down if the fanout daemon is already supervising this stream's
+		// encoder. Two watchdogs on one ffmpeg fight: each reads the other's kill
+		// as a stream failure and restarts, so the channel flaps indefinitely.
+		//
+		// The daemon is asked rather than assumed, and an unreachable daemon
+		// answers false — so this watchdog keeps doing its job whenever the
+		// daemon is not actually holding the stream. That is the rollback path,
+		// and it is why the check is here rather than at the call sites: however
+		// a monitor gets started, it defers to whoever really owns the process.
+		if (FanoutClient::isSupervised($rStreamID)) {
+			echo "Stream is supervised by the fanout daemon; monitor standing down.\n";
+			return 0;
+		}
+
 		$db->query('UPDATE `streams_servers` SET `monitor_pid` = ? WHERE `server_stream_id` = ?', getmypid(), $rStreamInfo['server_stream_id']);
 
 		if (SettingsManager::get('enable_cache')) {

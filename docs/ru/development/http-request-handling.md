@@ -54,7 +54,7 @@ nginx -> Public/index.php
 В процессе производственного администрирования не используется `Request::capture()`. Вместо этого `LegacyInitializer::initCore()` управляет обработкой входных данных:
 
 1. `InputValidator::cleanGlobals()` вызывается при `$_GET`, `$_POST`, `$_SESSION`, и `$_COOKIE` на месте, удаляя нулевые байты, последовательности обхода пути (`../`) и символы переопределения RTL.
-2. `InputValidator::parseIncomingRecursively()` очищает ключи и значения (HTML-объекты, теги скриптов, разделители комментариев, окончания строк) и возвращает чистый массив.
+2. `InputValidator::parseIncomingRecursively()` очищает ключи и значения (HTML-объекты, теги сценариев, разделители комментариев, окончания строк) и возвращает чистый массив.
 3. Результат (объединяется с сообщением, сообщение имеет приоритет) сохраняется через `RequestManager::set()`.
 
 Во всей кодовой базе доступ к данным запроса осуществляется через `RequestManager::get($key)` и `RequestManager::getAll()`, а не через объект `Request`.
@@ -70,12 +70,18 @@ nginx -> Public/index.php
 ```text
 nginx -> Public/index.php
   -> XC_Bootstrap::boot(BootContext::Admin)
+  -> ModuleLoader::loadAll() + bootAll($container)   // registries only, NO router
   -> new AdminApiController() or new ResellerRestApiController()
   -> $controller->index()
   -> exit
 ```
 
-Этот путь полностью обходит маршрутизатор.
+Этот путь полностью обходит маршрутизатор. Модули по-прежнему загружаются (без
+маршрутизатор, так что никаких побочных эффектов от прохождения маршрута), чтобы их реестры были заполнены — a
+module-owned serverSide table is therefore reachable over REST. `AdminApiController`
+не имеет жестко заданного регистра для каждой таблицы модулей: его ветвь `default` обслуживает любой идентификатор в
+`TableRegistry` через `AdminAPIWrapper::TableAPI($action, …)`, который отправляет
+`TableController` в процессе разработки.
 
 ---
 
@@ -111,7 +117,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 1. **Защита от наводнений** -- Если файл `FLOOD_TMP_PATH/block_{IP}` существует, запрос отклоняется по протоколу HTTP 403.
 2. **Загрузка кэша настроек** -- Считывает `$rSettings` из кэша файлов, сериализованных в igbinary, по адресу `CACHE_TMP_PATH/settings`.
-3. **Проверка хостинга** -- Если значение `$rSettings['verify_host']` равно true, проверяется, отображается ли `HOST` в кэшированном списке `allowed_domains`. Исключения: имя хоста `xc_vm` и любой допустимый IP-адрес всегда разрешены.
+3. **Проверка хостинга** -- Если `$rSettings['verify_host']` имеет значение true, проверяется, отображается ли `HOST` в кэшированном списке `allowed_domains`. Исключения: имя хоста `xc_vm` и любой допустимый IP-адрес всегда разрешены.
 4. **Флаг отображения ошибки** - Устанавливает константу `PHP_ERRORS` вместо константы `$rSettings['debug_show_errors']`.
 5. **Инициализация регистратора** -- Вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`.
 
@@ -325,7 +331,7 @@ $router->dispatchApi($action);            // returns true if matched
 
 Важно: `dispatchApi()` не запускает промежуточное программное обеспечение. Это намеренное отличие от отправки страниц.
 
-Конечные точки в формате JSON на панели администратора `?action=` регистрируются таким образом и обрабатываются выделенными контроллерами в соответствии с `XcVm\Public\Controllers\Admin\Ajax`. Шаблон контроллера и контракт на структурированный поиск смотрите в [Admin AJAX API](admin-ajax-api.md).
+Конечные точки в формате JSON на панели администратора `?action=` регистрируются таким образом и обрабатываются выделенными контроллерами в соответствии с `XcVm\Public\Controllers\Admin\Ajax`. Шаблон контроллера и контракт структурированного поиска смотрите в [Admin AJAX API](admin-ajax-api.md).
 
 #### Когда ничего не совпадает
 
@@ -413,7 +419,7 @@ $collisions = $router->drainRouteCollisions();
 | `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` |Облегченный загрузчик конечной точки потоковой передачи|
 | `src/Streaming/StreamingBootstrap.php` |Потоковое подключение к базе данных и устаревшая инициализация|
 | `src/bootstrap.php` |Унифицированный bootstrap (класс`XC_Bootstrap`)|
-| `src/Public/index.php` |Передний контроллер для администратора/реселлера/игрока/API|
+| `src/Public/index.php` |Внешний контроллер для администратора/реселлера/игрока/API|
 | `src/Public/routes/admin.php` |Определения маршрутов на странице администратора|
 | `src/Public/routes/reseller.php` |Определения маршрута на странице реселлера|
 | `src/Public/routes/player.php` |Определения маршрута на странице игрока|

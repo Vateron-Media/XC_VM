@@ -1,6 +1,6 @@
 # Разработка модуля
 
-Как создать модуль XC_VM: его расположение на диске, манифест `module.json`, контракт класса модуля + метода, пространства имен и его контроллер. О том, как модуль обнаруживается/загружается/распространяется, смотрите в [Жизненный цикл модуля](module-lifecycle.md); о перехватчиках, к которым он подключается, смотрите в [Точках расширения модуля](module-extension-points.md).
+Как создать модуль XC_VM: его расположение на диске, манифест `module.json`, контракт класса модуля + метода, пространства имен и его контроллер. О том, как модуль обнаруживается/загружается/распространяется, смотрите в [Жизненный цикл модуля](module-lifecycle.md); о подключаемых к нему подключениях смотрите в [Точках расширения модуля](module-extension-points.md).
 
 ## Обзор
 
@@ -118,7 +118,7 @@ src/Modules/my-module_9f1c0/   # {name}_{hash5}; canonical name is "my-module"
 - `dependencies` — если какой—либо модуль недоступен (отсутствует на диске, отключен или находится в состоянии `failed`), зависимому модулю присваивается значение **пропущенный** с записанным каскадным предупреждением (все, что зависит от него, также пропускается). Остальные модули, панель администратора и интерфейс командной строки продолжают работать; единственная неудовлетворенная зависимость больше не прерывает всю загрузку.
 - `optional_dependencies` — загружается перед этим модулем, если присутствует, автоматически пропускается, если отсутствует
 
-> **Остерегайтесь дрейфа.** Модуль, от которого зависят все еще включенные модули, не может быть запущен `disabled` через панель / `ModuleManager::setState()` - операция отклоняется со списком зависимостей (зеркально отображая защиту `uninstallModule()`). Это предотвращает переход в состояние "`plex` включено, но его зависимость от `watch` отключена".
+> **Остерегайтесь дрейфа.** Модуль, от которого зависят все еще включенные модули, не может быть `disabled` передан через панель / `ModuleManager::setState()` - операция отклоняется со списком зависимостей (зеркально отображая защиту `uninstallModule()`). Это предотвращает переход в состояние "`plex` включено, но его зависимость от `watch` отключена".
 
 **Priority:**
 
@@ -167,8 +167,23 @@ ModuleInterface
 └── NavbarProviderInterface    → registerNavbar()
 ```
 
-`StreamMiddlewareProviderInterface` равно **необязательный** — оно не является частью `ModuleInterface`.
-Реализуйте это только в том случае, если модулю необходимо внедрить себя в потоковый конвейер.
+Еще несколько провайдеров являются **необязательный** — НЕ входят в состав `ModuleInterface`. `BaseModule`
+реализует их как no-ops (так что переопределяйте только то, что вам нужно) и `ModuleLoader` обнаруживает
+каждый через `instanceof`. Смотрите [Точки расширения модуля](module-extension-points.md):
+
+```text
+(optional, not in ModuleInterface)
+├── StreamMiddlewareProviderInterface → registerStreamMiddleware(StreamPipeline)
+├── CronProviderInterface             → getCronEntries()
+├── TopbarProviderInterface           → registerTopbar(TopbarRegistry)      · per-page action buttons
+├── TableProviderInterface            → registerTables(TableRegistry)       · serverSide DataTable builders
+├── PermissionProviderInterface       → registerPermissions(PermissionRegistry) · reseller sub-permissions
+└── QuickToolsProviderInterface       → registerQuickTools(QuickToolsRegistry)  · one-shot maintenance actions
+```
+
+Topbar / Table / Permission / QuickTools позволяет модулю полностью управлять своим администратором
+след — кнопки, таблицы журналов/отчетов, предоставляемые разрешения и обслуживание
+инструменты — вместо тех, что жестко закодированы в ядре.
 
 ```php
 // Optional — not in ModuleInterface
@@ -252,6 +267,11 @@ class MyModuleModule extends BaseModule {
 | `registerRoutes(Router)` | `RouteProviderInterface` |Регистрация HTTP- и API-маршрутов|
 | `registerCommands(CommandRegistry)` | `CommandProviderInterface` |Регистрация команд CLI и задач cron|
 | `registerNavbar(NavbarRegistry $registry)` | `NavbarProviderInterface` |Регистрация элементов навигационной панели|
+| `registerTopbar(TopbarRegistry $registry)` |`TopbarProviderInterface` * (необязательно)*|Кнопки на верхней панели для каждой страницы (собственные страницы + добавление на основные страницы)|
+| `registerTables(TableRegistry $registry)` |`TableProviderInterface` * (необязательно)*|Серверные сборщики данных для идентификаторов таблиц модуля|
+| `registerPermissions(PermissionRegistry $registry)` |`PermissionProviderInterface` * (необязательно)*|Дополнительные ключи доступа реселлера к редактору групп|
+| `registerQuickTools(QuickToolsRegistry $registry)` |`QuickToolsProviderInterface` * (необязательно)*|Однократные действия с быстрыми инструментами (кнопка + обработчик)|
+| `getCronEntries(): array` |`CronProviderInterface` * (необязательно)*|Строки Crontab, собранные по запуску/статусу|
 | `install(): void` | `ModuleInterface` |Запуск при установке модуля (миграции, начальный запуск)|
 | `uninstall(): void` | `ModuleInterface` |Запуск при удалении модуля (очистка)|
 
@@ -262,7 +282,7 @@ class MyModuleModule extends BaseModule {
 > и водяной знак `installed_version` сначала читается как `module.json`, и только потом возвращается
 > to `getVersion()` — so a stale `getVersion()` silently drifts out of sync and is a
 > распространенный источник ошибок типа "выполнена /не выполнена неправильная миграция". Если модуль отправляет файл
-> migrations, `database.sql` (master schema) and the highest `migrations/<semver>.sql`
+> миграции, `database.sql` (основная схема) и самый высокий `migrations/<semver>.sql`
 > дельта также должна соответствовать этой версии.
 
 ---
@@ -365,14 +385,14 @@ class MyController {
 
 
 - [ ] Создать `src/Modules/<name>/`
-- [ ] Добавить `namespace XcVm\Module\<PascalName>;` к каждому файлу класса
+- [ ] Добавить `namespace XcVm\Module\<PascalName>;` в каждый файл класса
 - [ ] Создать `module.json` с помощью `name`, `version`, `requires_core`, `priority`, `dependencies`, `optional_dependencies`
 - [ ] Поставьте постоянный штамп `hash_id` (`php -r 'echo bin2hex(random_bytes(16));'`; никогда не пишите его от руки)
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
 - [ ] Укажите версию в **оба** `module.json` `"version"` и `getVersion()` — они должны совпадать (измените обе версии перед публикацией)
 - [ ] Реализовать `boot()` для всех сервисов, предоставляемых модулем
 - [ ] Реализовать `registerRoutes()` для конечных точек HTTP/API
-- [ ] Ввести `registerNavbar()` для элементов панели администратора (или оставить пустым)
+- [ ] Внедрить `registerNavbar()` для элементов панели администратора (или оставить пустым)
 - [ ] (Если кроны) Создайте `MyCron.php` + `MyCronJob.php`, зарегистрируйтесь в `registerCommands()`
 - [ ] (Если crons) Переопределяет `getCronEntries()` в классе модуля (основной файл не изменяется)
 - [ ] (Схема If) Отправляет значения `database.sql` (мастер), `database_drop.sql` (демонтаж) и `migrations/<semver>.sql` дельт
