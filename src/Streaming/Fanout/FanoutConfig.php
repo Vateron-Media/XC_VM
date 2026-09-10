@@ -88,7 +88,7 @@ class FanoutConfig {
 	 * Direct panel-owned tuning (the `fanout_*` settings columns):
 	 *   hls_window, grace_sec, write_timeout_sec, chunk_bytes, max_gop_bytes,
 	 *   source_insecure, default_prebuffer_sec, idle_buffer_grace_sec,
-	 *   idle_buffer_ratio.
+	 *   idle_buffer_ratio, source_backend.
 	 *
 	 * @param array $rSnapshot Current on-disk config (unused now the panel owns
 	 *                         every key; kept for signature stability / future use).
@@ -120,7 +120,20 @@ class FanoutConfig {
 			'default_prebuffer_sec' => self::clampInt((int) ($rSettings['fanout_default_prebuffer_sec'] ?? 0), 0, 120),
 			'idle_buffer_grace_sec' => self::clampInt((int) ($rSettings['fanout_idle_buffer_grace_sec'] ?? 30), 0, 3600),
 			'idle_buffer_ratio'     => $rRatio,
+			'source_backend'        => self::backend((string) ($rSettings['fanout_source_backend'] ?? 'auto')),
 		);
+	}
+
+	/**
+	 * Keep the backend to the daemon's three known values. It converts a NON-mp2t
+	 * source either in-process ("auto", falling back to ffmpeg for anything its
+	 * native reader declines), always with ffmpeg ("ffmpeg"), or natively with no
+	 * fallback ("native", a diagnostic mode — a declined source there is a dead
+	 * channel). The daemon clamps an unknown value to "auto" itself; doing it here
+	 * too keeps the file we write honest rather than relying on that.
+	 */
+	private static function backend(string $rValue): string {
+		return in_array($rValue, array('auto', 'ffmpeg', 'native'), true) ? $rValue : 'auto';
 	}
 
 	/** Clamp an int into [lo, hi]. */
