@@ -1,0 +1,605 @@
+openapi: 3.0.3
+info:
+  title: XC_VM System API
+  version: "1.0.0"
+  description: |
+    Internal **System API** for the XC_VM panel — stream and VOD control, system
+    statistics, directory browsing, log viewing, process management and
+    EPG/nginx reloading.
+
+    - **Controller:** `src/Public/Controllers/Api/InternalApiController.php`
+    - **HTTP entry-point:** `/api.php` (routed by nginx to `Public/index.php` with `XC_API=internal`)
+    - **Authentication:** `password` query parameter matching the `live_streaming_pass` configuration
+    - **IP allow-list:** the requesting IP must be in `ServerRepository::getAllowedIPs()`
+
+    **Request pattern:**
+    ```
+    {protocol}://{host}:{port}/api.php?password=<live_streaming_pass>&action=<action>
+    ```
+
+    ## Error codes
+    | Code | Description |
+    | --- | --- |
+    | `INVALID_API_PASSWORD` | Invalid API password |
+    | `API_IP_NOT_ALLOWED` | IP address not allowed |
+
+    The default response for an unrecognized action is `{ "result": false }`.
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: XC_VM server
+    variables:
+      protocol:
+        default: http
+        enum: [http, https]
+      host:
+        default: your-server.com
+        description: Server IP or domain
+      port:
+        default: '80'
+        description: HTTP port
+
+security:
+  - ApiPassword: []
+
+tags:
+  - name: Streams
+    description: Live stream and RTMP control
+  - name: VOD
+    description: Video-on-Demand control
+  - name: Processes
+    description: Process lifecycle management
+  - name: System
+    description: System statistics and maintenance
+  - name: Files
+    description: File download and directory browsing
+  - name: Connections
+    description: Active connection control
+
+paths:
+  /api.php?action=view_log:
+    get:
+      tags: [Streams]
+      summary: View stream log
+      description: Returns the error log for a given stream or VOD. Checks `STREAMS_PATH` first, then falls back to `VOD_PATH`.
+      parameters:
+        - name: stream_id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: ID of the stream to retrieve the log for
+      responses:
+        '200':
+          description: Plain-text contents of `<stream_id>.errors` (empty if no log exists)
+          content:
+            text/plain:
+              schema: { type: string }
+
+  /api.php?action=streams_ramdisk:
+    get:
+      tags: [Streams]
+      summary: Streams ramdisk usage
+      description: Returns per-stream file sizes from the streams ramdisk directory. Has a 30-second time limit.
+      responses:
+        '200':
+          description: Per-stream byte sizes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: boolean }
+                  streams:
+                    type: object
+                    additionalProperties: { type: integer }
+              example:
+                result: true
+                streams: { "123": 4096000, "456": 2048000 }
+
+  /api.php?action=stream:
+    get:
+      tags: [Streams]
+      summary: Start / stop live streams
+      description: Starts or stops live streams. When starting, a 50 ms delay is applied between each stream.
+      parameters:
+        - name: stream_ids
+          in: query
+          required: true
+          description: List of stream IDs
+          schema: { type: array, items: { type: integer } }
+        - name: function
+          in: query
+          required: true
+          description: Action to perform
+          schema: { type: string, enum: [start, stop] }
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultResponse' }
+
+  /api.php?action=force_stream:
+    get:
+      tags: [Streams]
+      summary: Force stream source
+      description: Forces a stream to use a specific source by writing a force signal file.
+      parameters:
+        - name: stream_id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: ID of the stream to force
+        - name: force_id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: ID of the source to force the stream to
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultResponse' }
+
+  /api.php?action=get_archive_files:
+    get:
+      tags: [Streams]
+      summary: Get archive files
+      description: Returns a list of `.ts` archive segment files for a given stream.
+      parameters:
+        - name: stream_id
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Archive segment paths
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: boolean }
+                  data: { type: array, items: { type: string } }
+              example:
+                result: true
+                data: ["/path/to/archive/123/segment001.ts", "/path/to/archive/123/segment002.ts"]
+
+  /api.php?action=probe:
+    get:
+      tags: [Streams]
+      summary: Probe stream
+      description: Probes a stream URL using FFprobe to retrieve media information.
+      parameters:
+        - name: url
+          in: query
+          required: true
+          schema: { type: string }
+          description: URL of the stream to probe
+        - name: user_agent
+          in: query
+          required: false
+          schema: { type: string }
+          description: Custom User-Agent header
+        - name: http_proxy
+          in: query
+          required: false
+          schema: { type: string }
+          description: HTTP proxy URL
+        - name: cookies
+          in: query
+          required: false
+          schema: { type: string }
+          description: Cookie string to send with the request
+        - name: headers
+          in: query
+          required: false
+          schema: { type: string }
+          description: Additional HTTP headers
+      responses:
+        '200':
+          description: Media info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: boolean }
+                  data: { type: object }
+
+  /api.php?action=rtmp_stats:
+    get:
+      tags: [Streams]
+      summary: RTMP stats
+      description: Returns local RTMP server statistics.
+      responses:
+        '200':
+          description: RTMP statistics (XML/JSON depending on server)
+
+  /api.php?action=rtmp_kill:
+    get:
+      tags: [Streams]
+      summary: RTMP kill
+      description: Drops an RTMP publisher connection by name via the nginx RTMP control interface.
+      parameters:
+        - name: name
+          in: query
+          required: true
+          schema: { type: string }
+          description: RTMP stream name to drop
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=vod:
+    get:
+      tags: [VOD]
+      summary: Start / stop VOD streams
+      description: Starts or stops Video-on-Demand streams. When starting, the stream is first stopped then either force-started or queued depending on `force`.
+      parameters:
+        - name: stream_ids
+          in: query
+          required: true
+          description: List of stream IDs
+          schema: { type: array, items: { type: integer } }
+        - name: function
+          in: query
+          required: true
+          description: Action to perform
+          schema: { type: string, enum: [start, stop] }
+        - name: force
+          in: query
+          required: false
+          description: If true, starts immediately instead of queuing (start only)
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultResponse' }
+
+  /api.php?action=fpm_status:
+    get:
+      tags: [Processes]
+      summary: FPM status
+      description: Returns the PHP-FPM status page from the local server's HTTP broadcast port.
+      responses:
+        '200':
+          description: PHP-FPM status page
+
+  /api.php?action=kill_pid:
+    get:
+      tags: [Processes]
+      summary: Kill process by PID
+      description: Terminates a process by sending SIGKILL (signal 9) to the specified PID.
+      parameters:
+        - name: pid
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Process ID to terminate
+      responses:
+        '200':
+          description: Result
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ResultResponse' }
+
+  /api.php?action=pidsAreRunning:
+    get:
+      tags: [Processes]
+      summary: Process lifecycle check
+      description: Checks whether specified PIDs are currently running and match the expected program binary.
+      parameters:
+        - name: pids
+          in: query
+          required: true
+          description: List of PIDs to verify
+          schema: { type: array, items: { type: integer } }
+        - name: program
+          in: query
+          required: true
+          schema: { type: string }
+          description: Expected program name
+      responses:
+        '200':
+          description: Per-PID running state
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { type: boolean }
+              example: { "1234": true, "5678": false }
+
+  /api.php?action=get_pids:
+    get:
+      tags: [Processes]
+      summary: Get process list
+      description: Returns a list of all running processes with details (from `ps -e`).
+      responses:
+        '200':
+          description: Output lines from `ps -e`
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
+
+  /api.php?action=kill_watch:
+    get:
+      tags: [Processes]
+      summary: Kill watch processes
+      description: Kills all running watch module processes (main PID and worker PIDs).
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=kill_plex:
+    get:
+      tags: [Processes]
+      summary: Kill Plex processes
+      description: Kills all running Plex module processes (main PID and worker PIDs).
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=stats:
+    get:
+      tags: [System]
+      summary: System statistics
+      description: Retrieves system statistics via `SystemInfo::getStats()`.
+      responses:
+        '200':
+          description: System stats
+          content:
+            application/json:
+              schema: { type: object }
+              example:
+                cpu: 8.32
+                cpu_cores: 56
+                cpu_avg: 8.86
+                cpu_name: "Intel(R) Xeon(R) CPU E5-2680 v4 @ 2.40GHz"
+
+  /api.php?action=reload_epg:
+    get:
+      tags: [System]
+      summary: Reload EPG
+      description: Triggers a background EPG reload by running `console.php cron:epg` asynchronously.
+      responses:
+        '200':
+          description: Accepted (runs in background)
+
+  /api.php?action=restore_images:
+    get:
+      tags: [System]
+      summary: Restore images
+      description: Triggers a background image restoration by running `console.php tools images` asynchronously.
+      responses:
+        '200':
+          description: Accepted (runs in background)
+
+  /api.php?action=reload_nginx:
+    get:
+      tags: [System]
+      summary: Reload nginx
+      description: Reloads both the RTMP nginx and the main nginx processes by sending them a reload signal.
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=free_temp:
+    get:
+      tags: [System]
+      summary: Clear temporary folder
+      description: Deletes all files in the `tmp/` directory and runs the cache cron job.
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=free_streams:
+    get:
+      tags: [System]
+      summary: Clear streams folder
+      description: Removes all files from the `content/streams/` directory.
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=get_free_space:
+    get:
+      tags: [System]
+      summary: Get free disk space
+      description: Returns disk usage information from `df -h`.
+      responses:
+        '200':
+          description: Output lines from `df -h`
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
+
+  /api.php?action=get_certificate_info:
+    get:
+      tags: [System]
+      summary: Get certificate info
+      description: Returns SSL/TLS certificate information via `DiagnosticsService::getCertificateInfo()`.
+      responses:
+        '200':
+          description: Certificate info
+
+  /api.php?action=watch_force:
+    get:
+      tags: [System]
+      summary: Force watch cron
+      description: Triggers a background watch cron job for a specific item.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Watch item ID
+      responses:
+        '200':
+          description: Accepted (runs in background)
+
+  /api.php?action=plex_force:
+    get:
+      tags: [System]
+      summary: Force Plex cron
+      description: Triggers a background Plex cron job for a specific item.
+      parameters:
+        - name: id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Plex item ID
+      responses:
+        '200':
+          description: Accepted (runs in background)
+
+  /api.php?action=getFile:
+    get:
+      tags: [Files]
+      summary: Get file
+      description: |
+        Downloads the specified file. Supports HTTP range requests for partial content.
+        Only allows files with specific extensions: `log`, `tar.gz`, `gz`, `zip`, `m3u8`,
+        `mp4`, `mkv`, `avi`, `mpg`, `flv`, `3gp`, `m4v`, `wmv`, `mov`, `ts`, `srt`, `sub`,
+        `sbv`, `jpg`, `png`, `bmp`, `jpeg`, `gif`, `tif`.
+      parameters:
+        - name: filename
+          in: query
+          required: true
+          schema: { type: string }
+          description: Path to the file
+      responses:
+        '200':
+          description: File contents
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+        '206':
+          description: Partial content (when a `Range` header is supplied)
+
+  /api.php?action=scandir_recursive:
+    get:
+      tags: [Files]
+      summary: Recursive directory scan
+      description: Recursively scans a directory using `find`, optionally filtering by file extension. Has a 30-second time limit.
+      parameters:
+        - name: dir
+          in: query
+          required: true
+          schema: { type: string }
+          description: URL-encoded path to the directory
+        - name: allowed
+          in: query
+          required: false
+          schema: { type: string }
+          description: URL-encoded pipe-separated list of allowed extensions (e.g. `mp4|mkv`)
+      responses:
+        '200':
+          description: File paths
+          content:
+            application/json:
+              schema: { type: array, items: { type: string } }
+
+  /api.php?action=scandir:
+    get:
+      tags: [Files]
+      summary: Directory listing
+      description: Lists files and subdirectories in a given directory, optionally filtering files by extension. Has a 30-second time limit.
+      parameters:
+        - name: dir
+          in: query
+          required: true
+          schema: { type: string }
+          description: URL-encoded path to the directory
+        - name: allowed
+          in: query
+          required: false
+          schema: { type: string }
+          description: URL-encoded pipe-separated list of allowed file extensions (e.g. `mp4|mkv`)
+      responses:
+        '200':
+          description: Directory contents
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result: { type: boolean }
+                  dirs: { type: array, items: { type: string } }
+                  files: { type: array, items: { type: string } }
+              example:
+                result: true
+                dirs: ["subdir1", "subdir2"]
+                files: ["video.mp4", "movie.mkv"]
+
+  /api.php?action=closeConnection:
+    get:
+      tags: [Connections]
+      summary: Close connection
+      description: Closes an active connection by its activity ID.
+      parameters:
+        - name: activity_id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Activity ID of the connection
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=redirect_connection:
+    get:
+      tags: [Connections]
+      summary: Redirect connection
+      description: Redirects a connection by writing a signal file identified by UUID.
+      parameters:
+        - name: uuid
+          in: query
+          required: true
+          schema: { type: string }
+          description: UUID identifying the connection
+        - name: stream_id
+          in: query
+          required: true
+          schema: { type: integer }
+          description: Target stream ID
+      responses:
+        '200':
+          description: Result
+
+  /api.php?action=signal_send:
+    get:
+      tags: [Connections]
+      summary: Send signal
+      description: Sends a signal message to a connection identified by UUID.
+      parameters:
+        - name: message
+          in: query
+          required: true
+          schema: { type: string }
+          description: Signal message or command
+        - name: uuid
+          in: query
+          required: true
+          schema: { type: string }
+          description: UUID identifying the connection
+      responses:
+        '200':
+          description: Result
+
+components:
+  securitySchemes:
+    ApiPassword:
+      type: apiKey
+      in: query
+      name: password
+      description: API password matching the `live_streaming_pass` configuration.
+  schemas:
+    ResultResponse:
+      type: object
+      properties:
+        result: { type: boolean }
+      example:
+        result: true
