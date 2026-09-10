@@ -31,6 +31,27 @@ class UpdateCommand implements CommandInterface {
 		return 'System update (update / post-update)';
 	}
 
+	/**
+	 * The update/rollback flow shells out to `sudo` (the Python updater). In
+	 * XC_VM's model the xc_vm user has NO sudoers entry, so that sudo only works
+	 * when this process is already root — the sanctioned path is
+	 * RootSignalsCronJob (which asserts root) launching `console.php update`.
+	 * Run non-root, the nested sudo prompts for a password it can never read and
+	 * the updater silently never starts. Fail fast here, before any state
+	 * change, so a mistaken manual invocation cannot strand the server at
+	 * status=5 (updating) with nothing left to reset it.
+	 */
+	private function assertRunAsRoot(): bool {
+		$rUser = posix_getpwuid(posix_geteuid())['name'] ?? '?';
+		if ($rUser !== 'root') {
+			echo "ERROR: this must run as root (current user: {$rUser}).\n";
+			echo "  Trigger the update from the panel, or run it via sudo/as root.\n";
+			UpdateLogger::error('Aborted: must run as root, invoked as ' . $rUser);
+			return false;
+		}
+		return true;
+	}
+
 	public function execute(array $rArgs): int {
 		set_time_limit(0);
 
@@ -54,6 +75,9 @@ class UpdateCommand implements CommandInterface {
 		switch ($rCommand) {
 			case 'update':
 				UpdateLogger::reset();
+				if (!$this->assertRunAsRoot()) {
+					return 1;
+				}
 				$rIsMain = ServerRepository::getAll()[SERVER_ID]['is_main'];
 				$rServerType = $rIsMain ? 'MAIN' : 'LB';
 				echo "Checking for updates (server={$rServerType}, version=" . XC_VM_VERSION . ")...\n";
@@ -121,12 +145,23 @@ class UpdateCommand implements CommandInterface {
 				echo "Download OK, MD5 verified (" . filesize($rOutputDir) . " bytes).\n";
 				UpdateLogger::info('Download OK, MD5 verified, size=' . filesize($rOutputDir) . ' bytes');
 
+				// Pre-flight the launcher before flipping status: a missing
+				// interpreter or updater script must not strand the server at
+				// status=5 with nothing left running to reset it.
+				$rUpdater = MAIN_HOME . 'update';
+				if (!is_file($rUpdater) || !is_executable('/usr/bin/python3')) {
+					echo "ERROR: updater not launchable (script or python3 missing).\n";
+					UpdateLogger::error('Updater not launchable: script=' . $rUpdater . ', interpreter=/usr/bin/python3');
+					@unlink($rOutputDir);
+					return 1;
+				}
+
 				$db->query('UPDATE `servers` SET `status` = 5 WHERE `id` = ?;', SERVER_ID);
 				UpdateLogger::info('Server status set to 5 (updating), launching system update...');
 
 				echo "Launching system update...\n";
 				$rLogFile = UpdateLogger::getLogFile();
-				$rCmd = 'sudo /usr/bin/python3 ' . MAIN_HOME . 'update '
+				$rCmd = 'sudo /usr/bin/python3 ' . escapeshellarg($rUpdater) . ' '
 					. escapeshellarg($rOutputDir) . ' '
 					. escapeshellarg($UpdateData['md5'])
 					. ' >> ' . escapeshellarg($rLogFile) . ' 2>&1 &';
@@ -135,6 +170,9 @@ class UpdateCommand implements CommandInterface {
 
 			case 'rollback':
 				UpdateLogger::reset();
+				if (!$this->assertRunAsRoot()) {
+					return 1;
+				}
 				$rTarget = isset($rArgs[1]) ? trim((string) $rArgs[1]) : '';
 
 				if (!preg_match('/^\d+\.\d+\.\d+$/', $rTarget)) {
@@ -207,12 +245,23 @@ class UpdateCommand implements CommandInterface {
 				echo "Download OK, MD5 verified (" . filesize($rOutputDir) . " bytes).\n";
 				UpdateLogger::info('Rollback download OK, MD5 verified, size=' . filesize($rOutputDir) . ' bytes');
 
+				// Pre-flight the launcher before flipping status: a missing
+				// interpreter or updater script must not strand the server at
+				// status=5 with nothing left running to reset it.
+				$rUpdater = MAIN_HOME . 'update';
+				if (!is_file($rUpdater) || !is_executable('/usr/bin/python3')) {
+					echo "ERROR: updater not launchable (script or python3 missing).\n";
+					UpdateLogger::error('Updater not launchable: script=' . $rUpdater . ', interpreter=/usr/bin/python3');
+					@unlink($rOutputDir);
+					return 1;
+				}
+
 				$db->query('UPDATE `servers` SET `status` = 5 WHERE `id` = ?;', SERVER_ID);
 				UpdateLogger::info('Server status set to 5 (updating), launching system rollback...');
 
 				echo "Launching system rollback...\n";
 				$rLogFile = UpdateLogger::getLogFile();
-				$rCmd = 'sudo /usr/bin/python3 ' . MAIN_HOME . 'update '
+				$rCmd = 'sudo /usr/bin/python3 ' . escapeshellarg($rUpdater) . ' '
 					. escapeshellarg($rOutputDir) . ' '
 					. escapeshellarg($UpdateData['md5'])
 					. ' >> ' . escapeshellarg($rLogFile) . ' 2>&1 &';
