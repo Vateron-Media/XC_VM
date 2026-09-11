@@ -179,7 +179,7 @@ if (!class_exists('XcNewuiMenuBuilder')) {
             }
             $displayTitle = $title;
             if ($this->language !== '' && class_exists($this->language)) {
-                $langKey = strtolower($title);
+                $langKey = strtolower(str_replace(' ', '_', $title));
                 $trans = ($this->language)::get($langKey);
                 if ($trans !== $langKey && !empty($trans)) {
                     $displayTitle = $trans;
@@ -265,11 +265,12 @@ $_menu = new XcNewuiMenuBuilder($rMobile, $rSettings, (string) $language, AdminH
  * automatically lands in a trailing "More" section, so nothing is lost.
  */
 $_menuSections = [
-    ['title' => '',               'keys' => ['dashboard']],
-    ['title' => 'Users',          'keys' => ['lines', 'active_codes', 'mag', 'e2', 'reseller']],
-    ['title' => 'Catalog',        'keys' => ['content', 'vod', 'distribution']],
-    ['title' => 'Integrations',   'keys' => ['telegram']],
-    ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management.service_setup', 'management.access_codes', 'management.security', 'management.tools', 'management.tickets']],
+    ['title' => '',                   'keys' => ['dashboard']],
+    ['title' => 'Users',              'keys' => ['lines', 'active_codes', 'mag', 'e2', 'reseller']],
+    ['title' => 'Catalog',            'keys' => ['content', 'vod', 'distribution']],
+    ['title' => 'Category Templates', 'keys' => ['category_templates']],
+    ['title' => 'Integrations',       'keys' => ['telegram']],
+    ['title' => 'Infrastructure',     'keys' => ['servers', 'logs', 'management.service_setup', 'management.access_codes', 'management.security', 'management.tools', 'management.tickets']],
 ];
 ?>
 <!-- Vertical menu -->

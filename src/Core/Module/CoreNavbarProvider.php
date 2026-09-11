@@ -40,6 +40,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         self::_content();
         self::_vod();
         self::_distribution();
+        self::_categoryTemplates();
         self::_logs();
         self::_management();
         self::_profile();
@@ -372,6 +373,32 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->desktopOnly()->order(40));
     }
 
+    // ── Category Templates ─────────────────────────────────────────
+
+    /**
+     * Register Category Templates navigation items.
+     *
+     * Provides template management and visual builder for Live, Movies,
+     * and Series category layouts.
+     *
+     * @return void
+     */
+    private static function _categoryTemplates(): void {
+        NavbarRegistry::add((new NavbarItem('category_templates'))
+            ->url('#')->label('category_templates')
+            ->icon('ti tabler-layout-grid')
+            ->permissions(['categories'])
+            ->order(450));
+
+        NavbarRegistry::add((new NavbarItem('category_templates.manage'))
+            ->parent('category_templates')->url('category_templates')
+            ->label('manage_category_templates')->permissions(['categories'])->order(10));
+
+        NavbarRegistry::add((new NavbarItem('category_templates.add'))
+            ->parent('category_templates')->url('category_template')
+            ->label('create_category_template')->permissions(['categories'])->order(20));
+    }
+
     // ── Logs ──────────────────────────────────────────────────────
 
     /**
@@ -490,9 +517,6 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('management.service_setup.categories'))
             ->parent('management.service_setup')->url('stream_categories')
             ->label('categories')->permissions(['categories'])->order(20));
-        NavbarRegistry::add((new NavbarItem('management.service_setup.category_templates'))
-            ->parent('management.service_setup')->url('category_templates')
-            ->label('category_templates')->order(25));
         NavbarRegistry::add((new NavbarItem('management.service_setup.groups'))
             ->parent('management.service_setup')->url('groups')
             ->label('groups')->permissions(['mng_groups'])->order(30));
