@@ -9,5 +9,10 @@
     "optional_dependencies": [],
     "has_navbar": true,
     "has_settings": true,
-    "priority": 0
+    "priority": 0,
+    "update": {
+        "source": "git",
+        "repository": "https://github.com/Rosmi720/Module_Telegram",
+        "channel": "stable"
+    }
 }

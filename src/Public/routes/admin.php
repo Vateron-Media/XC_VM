@@ -127,9 +127,6 @@ use XcVm\Public\Controllers\Admin\StreamReviewController;
 use XcVm\Public\Controllers\Admin\StreamToolsController;
 use XcVm\Public\Controllers\Admin\StreamViewController;
 use XcVm\Public\Controllers\Admin\TableController;
-use XcVm\Public\Controllers\Admin\TelegramBotController;
-use XcVm\Public\Controllers\Admin\TelegramBotsController;
-use XcVm\Public\Controllers\Admin\Ajax\TelegramBotAjaxController;
 use XcVm\Public\Controllers\Admin\TheftDetectionController;
 use XcVm\Public\Controllers\Admin\TicketController;
 use XcVm\Public\Controllers\Admin\TicketsController;
@@ -239,8 +236,6 @@ $router->get('stream_categories', [StreamCategoriesController::class, 'index']);
 $router->get('stream_category', [StreamCategoryController::class, 'index']);
 $router->get('category_templates', [CategoryTemplatesController::class, 'index']);
 $router->get('category_template', [CategoryTemplateController::class, 'index']);
-$router->get('telegram_bots', [TelegramBotsController::class, 'index']);
-$router->get('telegram_bot', [TelegramBotController::class, 'index']);
 $router->get('stream_errors', [StreamErrorsController::class, 'index']);
 $router->get('stream_rank', [StreamRankController::class, 'index']);
 $router->any('stream_review', [StreamReviewController::class, 'index']);
@@ -407,16 +402,6 @@ $router->api('category_template_clone',         [CategoryTemplateAjaxController:
 $router->api('category_template_toggle_system', [CategoryTemplateAjaxController::class, 'toggleSystem']);
 $router->api('category_template_apply_all',     [CategoryTemplateAjaxController::class, 'applyAll']);
 $router->api('category_template_get',           [CategoryTemplateAjaxController::class, 'get']);
-
-// ─── Telegram Bots ─────────────────────────────────
-$router->api('telegram_bot_test_token',    [TelegramBotAjaxController::class, 'testToken']);
-$router->api('telegram_bot_test_chat',     [TelegramBotAjaxController::class, 'testChat']);
-$router->api('telegram_bot_save',          [TelegramBotAjaxController::class, 'save']);
-$router->api('telegram_bot_delete',        [TelegramBotAjaxController::class, 'delete']);
-$router->api('telegram_bot_toggle',        [TelegramBotAjaxController::class, 'toggleStatus']);
-$router->api('telegram_bot_broadcast_test',[TelegramBotAjaxController::class, 'broadcastTest']);
-$router->api('telegram_bot_get',           [TelegramBotAjaxController::class, 'get']);
-$router->api('telegram_bot_logs',          [TelegramBotAjaxController::class, 'logs']);
 
 // ─── Stats & Graphs ────────────────────────────────
 $router->api('graph_stats',  [StatsAjaxController::class, 'graphStats']);
