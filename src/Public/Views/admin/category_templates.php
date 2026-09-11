@@ -137,52 +137,82 @@ $rSearch = $search ?? '';
                                     </span>
                                 </div>
 
-                                <!-- Metric Counter Badges -->
-                                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2 mb-4">
-                                    <div class="col">
-                                        <div class="p-2 rounded bg-label-info text-center border border-info border-opacity-25" title="<?= $language::get('live_categories'); ?>">
-                                            <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
-                                                <i class="icon-base ti tabler-device-tv fs-6"></i>
-                                                <small class="fw-semibold"><?= $language::get('live_categories'); ?></small>
+                                <!-- Category Metrics & Distribution Widget -->
+                                <?php
+                                $cLive   = (int)($tmpl['live_count'] ?? 0);
+                                $cVod    = (int)($tmpl['vod_count'] ?? 0);
+                                $cSeries = (int)($tmpl['series_count'] ?? 0);
+                                $cRadio  = (int)($tmpl['radio_count'] ?? 0);
+                                $cTotal  = $cLive + $cVod + $cSeries + $cRadio;
+
+                                $pctLive   = $cTotal > 0 ? round(($cLive / $cTotal) * 100, 1) : 0;
+                                $pctVod    = $cTotal > 0 ? round(($cVod / $cTotal) * 100, 1) : 0;
+                                $pctSeries = $cTotal > 0 ? round(($cSeries / $cTotal) * 100, 1) : 0;
+                                $pctRadio  = $cTotal > 0 ? round(($cRadio / $cTotal) * 100, 1) : 0;
+                                ?>
+                                <div class="p-2 rounded-3 bg-body-tertiary border mb-4">
+                                    <div class="row g-2 mb-2">
+                                        <div class="col-6 col-sm-3">
+                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
+                                                <span class="badge bg-label-info p-2 rounded-2">
+                                                    <i class="icon-base ti tabler-device-tv fs-6"></i>
+                                                </span>
+                                                <div class="text-truncate">
+                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('live_categories'); ?></small>
+                                                    <span class="fs-6 fw-bold text-heading"><?= $cLive; ?></span>
+                                                </div>
                                             </div>
-                                            <span class="fs-6 fw-bold"><?= (int)$tmpl['live_count']; ?></span>
+                                        </div>
+                                        <div class="col-6 col-sm-3">
+                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
+                                                <span class="badge bg-label-success p-2 rounded-2">
+                                                    <i class="icon-base ti tabler-movie fs-6"></i>
+                                                </span>
+                                                <div class="text-truncate">
+                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('movie_categories'); ?></small>
+                                                    <span class="fs-6 fw-bold text-heading"><?= $cVod; ?></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-3">
+                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
+                                                <span class="badge bg-label-warning p-2 rounded-2">
+                                                    <i class="icon-base ti tabler-clapperboard fs-6"></i>
+                                                </span>
+                                                <div class="text-truncate">
+                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('series_categories'); ?></small>
+                                                    <span class="fs-6 fw-bold text-heading"><?= $cSeries; ?></span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-sm-3">
+                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
+                                                <span class="badge bg-label-danger p-2 rounded-2">
+                                                    <i class="icon-base ti tabler-radio fs-6"></i>
+                                                </span>
+                                                <div class="text-truncate">
+                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('radio_categories'); ?></small>
+                                                    <span class="fs-6 fw-bold text-heading"><?= $cRadio; ?></span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div class="col">
-                                        <div class="p-2 rounded bg-label-success text-center border border-success border-opacity-25" title="<?= $language::get('movie_categories'); ?>">
-                                            <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
-                                                <i class="icon-base ti tabler-movie fs-6"></i>
-                                                <small class="fw-semibold"><?= $language::get('movie_categories'); ?></small>
-                                            </div>
-                                            <span class="fs-6 fw-bold"><?= (int)$tmpl['vod_count']; ?></span>
+
+                                    <!-- Visual Distribution Bar & Total -->
+                                    <div class="d-flex align-items-center gap-2 pt-1 px-1">
+                                        <div class="progress flex-grow-1 bg-body rounded-pill border" style="height: 6px;" title="Live: <?= $cLive; ?> (<?= $pctLive; ?>%) | Movies: <?= $cVod; ?> (<?= $pctVod; ?>%) | Series: <?= $cSeries; ?> (<?= $pctSeries; ?>%) | Radio: <?= $cRadio; ?> (<?= $pctRadio; ?>%)">
+                                            <?php if ($cTotal > 0): ?>
+                                                <?php if ($pctLive > 0): ?><div class="progress-bar bg-info" role="progressbar" style="width: <?= $pctLive; ?>%"></div><?php endif; ?>
+                                                <?php if ($pctVod > 0): ?><div class="progress-bar bg-success" role="progressbar" style="width: <?= $pctVod; ?>%"></div><?php endif; ?>
+                                                <?php if ($pctSeries > 0): ?><div class="progress-bar bg-warning" role="progressbar" style="width: <?= $pctSeries; ?>%"></div><?php endif; ?>
+                                                <?php if ($pctRadio > 0): ?><div class="progress-bar bg-danger" role="progressbar" style="width: <?= $pctRadio; ?>%"></div><?php endif; ?>
+                                            <?php else: ?>
+                                                <div class="progress-bar bg-secondary opacity-25" role="progressbar" style="width: 100%"></div>
+                                            <?php endif; ?>
                                         </div>
-                                    </div>
-                                    <div class="col">
-                                        <div class="p-2 rounded bg-label-warning text-center border border-warning border-opacity-25" title="<?= $language::get('series_categories'); ?>">
-                                            <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
-                                                <i class="icon-base ti tabler-clapperboard fs-6"></i>
-                                                <small class="fw-semibold"><?= $language::get('series_categories'); ?></small>
-                                            </div>
-                                            <span class="fs-6 fw-bold"><?= (int)$tmpl['series_count']; ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="col">
-                                        <div class="p-2 rounded bg-label-danger text-center border border-danger border-opacity-25" title="<?= $language::get('radio_categories'); ?>">
-                                            <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
-                                                <i class="icon-base ti tabler-radio fs-6"></i>
-                                                <small class="fw-semibold"><?= $language::get('radio_categories'); ?></small>
-                                            </div>
-                                            <span class="fs-6 fw-bold"><?= (int)($tmpl['radio_count'] ?? 0); ?></span>
-                                        </div>
-                                    </div>
-                                    <div class="col">
-                                        <div class="p-2 rounded bg-label-primary text-center border border-primary border-opacity-25" title="Subscribers currently attached to this template">
-                                            <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
-                                                <i class="icon-base ti tabler-users fs-6"></i>
-                                                <small class="fw-semibold"><?= $language::get('users') ?? 'Users'; ?></small>
-                                            </div>
-                                            <span class="fs-6 fw-bold text-primary"><?= (int)($tmpl['subscriber_count'] ?? 0); ?></span>
-                                        </div>
+                                        <span class="badge bg-label-secondary text-body-secondary fw-semibold py-1 px-2 rounded-pill" style="font-size: 0.7rem;">
+                                            <?= $cTotal; ?> <?= $language::get('categories') ?? 'Categories'; ?>
+                                        </span>
                                     </div>
                                 </div>
                             </div>
