@@ -451,11 +451,13 @@ class LlodCommand implements CommandInterface {
 	 */
 	private function sourceContext($rURL, $rStreamArguments, $rRequestPrebuffer) {
 		$rArg = static function (string $rKey) use ($rStreamArguments): string {
-			$rValue = $rStreamArguments[$rKey]['value'] ?? '';
-			if ($rValue === '' || $rValue === null) {
-				$rValue = $rStreamArguments[$rKey]['argument_default_value'] ?? '';
+			// `??` already maps a missing or null value to '': an empty value
+			// (after trimming) falls back to the argument's default.
+			$rValue = trim((string) ($rStreamArguments[$rKey]['value'] ?? ''));
+			if ($rValue === '') {
+				$rValue = trim((string) ($rStreamArguments[$rKey]['argument_default_value'] ?? ''));
 			}
-			return trim((string) $rValue);
+			return $rValue;
 		};
 
 		$rHeaders = array();
