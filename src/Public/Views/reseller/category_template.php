@@ -92,7 +92,14 @@ $isShared = (int)($rTemplate['is_shared'] ?? 0) === 1;
                     <button class="nav-link py-3 d-flex align-items-center justify-content-center gap-2" id="tab-btn-series" data-bs-toggle="tab" data-bs-target="#tab-series" type="button" role="tab">
                         <i class="icon-base ti tabler-clapperboard text-warning fs-5"></i>
                         <span class="fw-bold"><?= $language::get('series_categories'); ?></span>
-                        <span class="badge bg-label-warning rounded-pill ms-1" id="count-series"><?= count($rCategories['series']); ?></span>
+                        <span class="badge bg-label-warning rounded-pill ms-1" id="count-series"><?= count($rCategories['series'] ?? []); ?></span>
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link py-3 d-flex align-items-center justify-content-center gap-2" id="tab-btn-radio" data-bs-toggle="tab" data-bs-target="#tab-radio" type="button" role="tab">
+                        <i class="icon-base ti tabler-radio text-danger fs-5"></i>
+                        <span class="fw-bold"><?= $language::get('radio_categories'); ?></span>
+                        <span class="badge bg-label-danger rounded-pill ms-1" id="count-radio"><?= count($rCategories['radio'] ?? []); ?></span>
                     </button>
                 </li>
             </ul>
@@ -104,7 +111,8 @@ $isShared = (int)($rTemplate['is_shared'] ?? 0) === 1;
                 $tabs = [
                     'live'   => ['label' => $language::get('live_categories'), 'color' => 'info', 'icon' => 'tabler-device-tv'],
                     'movie'  => ['label' => $language::get('movie_categories'), 'color' => 'success', 'icon' => 'tabler-movie'],
-                    'series' => ['label' => $language::get('series_categories'), 'color' => 'warning', 'icon' => 'tabler-clapperboard']
+                    'series' => ['label' => $language::get('series_categories'), 'color' => 'warning', 'icon' => 'tabler-clapperboard'],
+                    'radio'  => ['label' => $language::get('radio_categories'), 'color' => 'danger', 'icon' => 'tabler-radio']
                 ];
                 ?>
 
@@ -350,7 +358,7 @@ renderUnifiedLayoutFooter('reseller');
     }
 
     // Setup interactive handlers for each list
-    ['live', 'movie', 'series'].forEach(function(sec) {
+    ['live', 'movie', 'series', 'radio'].forEach(function(sec) {
         var list = document.getElementById('list-' + sec);
         if (!list) return;
 
@@ -533,7 +541,7 @@ renderUnifiedLayoutFooter('reseller');
             var isShared = document.getElementById('templateIsShared') && document.getElementById('templateIsShared').checked ? 1 : 0;
 
             var allCategories = [];
-            ['live', 'movie', 'series'].forEach(function(sec) {
+            ['live', 'movie', 'series', 'radio'].forEach(function(sec) {
                 var container = document.getElementById('list-' + sec);
                 if (!container) return;
                 var rows = container.querySelectorAll('.category-item-row');

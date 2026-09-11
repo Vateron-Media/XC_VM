@@ -137,44 +137,49 @@ $rSearch = $search ?? '';
                                     </span>
                                 </div>
 
-                                <!-- Quadruple Metric Counter Badges -->
-                                <div class="row g-2 mb-4">
-                                    <div class="col-3">
+                                <!-- Metric Counter Badges -->
+                                <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-2 mb-4">
+                                    <div class="col">
                                         <div class="p-2 rounded bg-label-info text-center border border-info border-opacity-25" title="<?= $language::get('live_categories'); ?>">
                                             <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
                                                 <i class="icon-base ti tabler-device-tv fs-6"></i>
-                                                <small class="fw-semibold d-none d-md-inline"><?= $language::get('live_categories'); ?></small>
-                                                <small class="fw-semibold d-inline d-md-none">Live</small>
+                                                <small class="fw-semibold"><?= $language::get('live_categories'); ?></small>
                                             </div>
                                             <span class="fs-6 fw-bold"><?= (int)$tmpl['live_count']; ?></span>
                                         </div>
                                     </div>
-                                    <div class="col-3">
+                                    <div class="col">
                                         <div class="p-2 rounded bg-label-success text-center border border-success border-opacity-25" title="<?= $language::get('movie_categories'); ?>">
                                             <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
                                                 <i class="icon-base ti tabler-movie fs-6"></i>
-                                                <small class="fw-semibold d-none d-md-inline"><?= $language::get('movie_categories'); ?></small>
-                                                <small class="fw-semibold d-inline d-md-none">Movies</small>
+                                                <small class="fw-semibold"><?= $language::get('movie_categories'); ?></small>
                                             </div>
                                             <span class="fs-6 fw-bold"><?= (int)$tmpl['vod_count']; ?></span>
                                         </div>
                                     </div>
-                                    <div class="col-3">
+                                    <div class="col">
                                         <div class="p-2 rounded bg-label-warning text-center border border-warning border-opacity-25" title="<?= $language::get('series_categories'); ?>">
                                             <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
                                                 <i class="icon-base ti tabler-clapperboard fs-6"></i>
-                                                <small class="fw-semibold d-none d-md-inline"><?= $language::get('series_categories'); ?></small>
-                                                <small class="fw-semibold d-inline d-md-none">Series</small>
+                                                <small class="fw-semibold"><?= $language::get('series_categories'); ?></small>
                                             </div>
                                             <span class="fs-6 fw-bold"><?= (int)$tmpl['series_count']; ?></span>
                                         </div>
                                     </div>
-                                    <div class="col-3">
+                                    <div class="col">
+                                        <div class="p-2 rounded bg-label-danger text-center border border-danger border-opacity-25" title="<?= $language::get('radio_categories'); ?>">
+                                            <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
+                                                <i class="icon-base ti tabler-radio fs-6"></i>
+                                                <small class="fw-semibold"><?= $language::get('radio_categories'); ?></small>
+                                            </div>
+                                            <span class="fs-6 fw-bold"><?= (int)($tmpl['radio_count'] ?? 0); ?></span>
+                                        </div>
+                                    </div>
+                                    <div class="col">
                                         <div class="p-2 rounded bg-label-primary text-center border border-primary border-opacity-25" title="Subscribers currently attached to this template">
                                             <div class="d-flex justify-content-center align-items-center gap-1 mb-1">
                                                 <i class="icon-base ti tabler-users fs-6"></i>
-                                                <small class="fw-semibold d-none d-md-inline"><?= $language::get('users') ?? 'Users'; ?></small>
-                                                <small class="fw-semibold d-inline d-md-none">Users</small>
+                                                <small class="fw-semibold"><?= $language::get('users') ?? 'Users'; ?></small>
                                             </div>
                                             <span class="fs-6 fw-bold text-primary"><?= (int)($tmpl['subscriber_count'] ?? 0); ?></span>
                                         </div>

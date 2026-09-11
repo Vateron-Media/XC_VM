@@ -194,21 +194,23 @@ class CategoryTemplateService
         $grouped = [
             'live'   => [],
             'movie'  => [],
-            'series' => []
+            'series' => [],
+            'radio'  => []
         ];
 
         $maxSortOrder = [
             'live'   => 0,
             'movie'  => 0,
-            'series' => 0
+            'series' => 0,
+            'radio'  => 0
         ];
 
         // Normalize category type
         foreach ($allCats as $cat) {
             $cid = (int)$cat['id'];
             $type = $cat['category_type'];
-            if ($type === 'radio' || $type === 'live') {
-                $section = 'live';
+            if ($type === 'radio') {
+                $section = 'radio';
             } elseif ($type === 'movie') {
                 $section = 'movie';
             } elseif ($type === 'series') {
@@ -308,13 +310,14 @@ class CategoryTemplateService
         $liveCount = 0;
         $vodCount = 0;
         $seriesCount = 0;
-        $orderCounters = ['live' => 0, 'movie' => 0, 'series' => 0];
+        $radioCount = 0;
+        $orderCounters = ['live' => 0, 'movie' => 0, 'series' => 0, 'radio' => 0];
 
         foreach ($allCats as $cat) {
             $type = $cat['category_type'];
-            if ($type === 'radio' || $type === 'live') {
-                $section = 'live';
-                $liveCount++;
+            if ($type === 'radio') {
+                $section = 'radio';
+                $radioCount++;
             } elseif ($type === 'movie') {
                 $section = 'movie';
                 $vodCount++;
@@ -340,10 +343,11 @@ class CategoryTemplateService
         }
 
         $db->query(
-            "UPDATE `category_templates` SET `live_count` = ?, `vod_count` = ?, `series_count` = ? WHERE `id` = ?",
+            "UPDATE `category_templates` SET `live_count` = ?, `vod_count` = ?, `series_count` = ?, `radio_count` = ? WHERE `id` = ?",
             $liveCount,
             $vodCount,
             $seriesCount,
+            $radioCount,
             $templateId
         );
 
@@ -400,8 +404,8 @@ class CategoryTemplateService
             $catMap = [];
             foreach ($db->get_rows() ?: [] as $row) {
                 $type = $row['category_type'];
-                if ($type === 'radio' || $type === 'live') {
-                    $catMap[(int)$row['id']] = 'live';
+                if ($type === 'radio') {
+                    $catMap[(int)$row['id']] = 'radio';
                 } elseif ($type === 'movie') {
                     $catMap[(int)$row['id']] = 'movie';
                 } elseif ($type === 'series') {
@@ -418,6 +422,7 @@ class CategoryTemplateService
             $liveCount = 0;
             $vodCount = 0;
             $seriesCount = 0;
+            $radioCount = 0;
 
             if (is_array($categories)) {
                 foreach ($categories as $cat) {
@@ -433,6 +438,8 @@ class CategoryTemplateService
                         $vodCount++;
                     } elseif ($section === 'series') {
                         $seriesCount++;
+                    } elseif ($section === 'radio') {
+                        $radioCount++;
                     }
 
                     $sortOrder = (int)($cat['sort_order'] ?? 0);
@@ -462,6 +469,7 @@ class CategoryTemplateService
                     `live_count` = ?,
                     `vod_count` = ?,
                     `series_count` = ?,
+                    `radio_count` = ?,
                     `updated_at` = ?
                 WHERE `id` = ?",
                 $name,
@@ -470,6 +478,7 @@ class CategoryTemplateService
                 $liveCount,
                 $vodCount,
                 $seriesCount,
+                $radioCount,
                 date('Y-m-d H:i:s'),
                 $templateId
             );
@@ -556,13 +565,14 @@ class CategoryTemplateService
             $db->query(
                 "INSERT INTO `category_templates` (
                     `owner_id`, `name`, `is_system`, `is_shared`,
-                    `live_count`, `vod_count`, `series_count`, `created_at`, `updated_at`
-                ) VALUES (?, ?, 0, 0, ?, ?, ?, ?, ?)",
+                    `live_count`, `vod_count`, `series_count`, `radio_count`, `created_at`, `updated_at`
+                ) VALUES (?, ?, 0, 0, ?, ?, ?, ?, ?, ?)",
                 $newOwnerId,
                 $newName,
                 (int)$source['live_count'],
                 (int)$source['vod_count'],
                 (int)$source['series_count'],
+                (int)($source['radio_count'] ?? 0),
                 $now,
                 $now
             );
@@ -633,7 +643,7 @@ class CategoryTemplateService
         );
         $items = $db->get_rows() ?: [];
 
-        $grouped = ['live' => [], 'movie' => [], 'series' => []];
+        $grouped = ['live' => [], 'movie' => [], 'series' => [], 'radio' => []];
         foreach ($items as $it) {
             $type = $it['category_type'];
             if (!isset($grouped[$type])) {
@@ -645,7 +655,8 @@ class CategoryTemplateService
         $typesMap = [
             'live'   => 'live_cat',
             'movie'  => 'vod_cat',
-            'series' => 'series_cat'
+            'series' => 'series_cat',
+            'radio'  => 'radio_cat'
         ];
 
         $customData = [
@@ -874,11 +885,11 @@ class CategoryTemplateService
     public static function applyCustomDataToCategories(array $outputCategories, $customData, string $section): array
     {
         $parsed = self::parseCustomData($customData);
-        if (!$parsed || empty($parsed[$section]) || !is_array($parsed[$section])) {
+        if (!$parsed) {
             return $outputCategories;
         }
 
-        $sec = $parsed[$section];
+        $sec = (!empty($parsed[$section]) && is_array($parsed[$section])) ? $parsed[$section] : [];
 
         // Parse hide_ids: supports both array and comma-separated string
         $hideIds = [];
@@ -904,6 +915,26 @@ class CategoryTemplateService
         $renamed = [];
         if (isset($sec['renamed'])) {
             $renamed = is_array($sec['renamed']) ? $sec['renamed'] : (is_object($sec['renamed']) ? (array)$sec['renamed'] : []);
+        }
+
+        // In standard XC Player API, get_live_categories contains both live & radio categories.
+        // If radio_cat exists in template, merge its rules when applying live_cat.
+        if ($section === 'live_cat' && !empty($parsed['radio_cat']) && is_array($parsed['radio_cat'])) {
+            $rSec = $parsed['radio_cat'];
+            if (!empty($rSec['hide_ids'])) {
+                $rHide = is_array($rSec['hide_ids']) ? array_map('intval', $rSec['hide_ids']) : array_map('intval', array_filter(array_map('trim', explode(',', $rSec['hide_ids'])), 'strlen'));
+                $hideIds = array_unique(array_merge($hideIds, $rHide));
+            }
+            if (!empty($rSec['renamed'])) {
+                $rRen = is_array($rSec['renamed']) ? $rSec['renamed'] : (is_object($rSec['renamed']) ? (array)$rSec['renamed'] : []);
+                foreach ($rRen as $k => $v) {
+                    $renamed[$k] = $v;
+                }
+            }
+            if (!empty($rSec['order'])) {
+                $rOrd = is_array($rSec['order']) ? array_map('intval', $rSec['order']) : array_map('intval', array_filter(array_map('trim', explode(',', $rSec['order'])), 'strlen'));
+                $order = array_merge($order, $rOrd);
+            }
         }
 
         // 1. Filter out hidden categories and apply custom names
@@ -947,14 +978,24 @@ class CategoryTemplateService
     public static function getCustomCategoryConfig($customData, string $type): array
     {
         $section = match ($type) {
-            'live', 'radio' => 'live_cat',
+            'radio'         => 'radio_cat',
+            'live'          => 'live_cat',
             'movie'         => 'vod_cat',
             'series'        => 'series_cat',
             default         => 'live_cat',
         };
 
         $parsed = self::parseCustomData($customData);
-        if (!$parsed || empty($parsed[$section]) || !is_array($parsed[$section])) {
+        if (!$parsed) {
+            return ['hide_ids' => [], 'renamed' => [], 'order' => []];
+        }
+
+        // Fallback for legacy templates where radio was saved inside live_cat
+        if ($type === 'radio' && (empty($parsed['radio_cat']) || !is_array($parsed['radio_cat']))) {
+            $section = 'live_cat';
+        }
+
+        if (empty($parsed[$section]) || !is_array($parsed[$section])) {
             return ['hide_ids' => [], 'renamed' => [], 'order' => []];
         }
 
