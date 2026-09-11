@@ -190,69 +190,97 @@ $rCounts      = $counts ?? [
                                 $pctSeries = $cTotal > 0 ? round(($cSeries / $cTotal) * 100, 1) : 0;
                                 $pctRadio  = $cTotal > 0 ? round(($cRadio / $cTotal) * 100, 1) : 0;
                                 ?>
-                                <div class="p-2 rounded-3 bg-body-tertiary border mb-4">
-                                    <div class="row g-2 mb-2">
-                                        <div class="col-6 col-sm-3">
-                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
-                                                <span class="badge bg-label-info p-2 rounded-2">
-                                                    <i class="icon-base ti tabler-device-tv fs-6"></i>
-                                                </span>
-                                                <div class="text-truncate">
-                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('live_categories'); ?></small>
-                                                    <span class="fs-6 fw-bold text-heading"><?= $cLive; ?></span>
-                                                </div>
-                                            </div>
+                                <div class="category-breakdown-box p-3 rounded-3 bg-body-tertiary border mb-4">
+                                    <!-- Header: Title & Total Count -->
+                                    <div class="d-flex align-items-center justify-content-between mb-2.5 pb-1">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <span class="badge bg-label-primary p-1.5 rounded-2">
+                                                <i class="icon-base ti tabler-chart-pie-2 fs-6"></i>
+                                            </span>
+                                            <span class="fw-bold text-heading fs-7"><?= $language::get('categories') ?? 'Categories Breakdown'; ?></span>
                                         </div>
-                                        <div class="col-6 col-sm-3">
-                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
-                                                <span class="badge bg-label-success p-2 rounded-2">
-                                                    <i class="icon-base ti tabler-movie fs-6"></i>
-                                                </span>
-                                                <div class="text-truncate">
-                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('movie_categories'); ?></small>
-                                                    <span class="fs-6 fw-bold text-heading"><?= $cVod; ?></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-sm-3">
-                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
-                                                <span class="badge bg-label-warning p-2 rounded-2">
-                                                    <i class="icon-base ti tabler-clapperboard fs-6"></i>
-                                                </span>
-                                                <div class="text-truncate">
-                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('series_categories'); ?></small>
-                                                    <span class="fs-6 fw-bold text-heading"><?= $cSeries; ?></span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-6 col-sm-3">
-                                            <div class="d-flex align-items-center gap-2 p-2 rounded bg-card border h-100">
-                                                <span class="badge bg-label-danger p-2 rounded-2">
-                                                    <i class="icon-base ti tabler-radio fs-6"></i>
-                                                </span>
-                                                <div class="text-truncate">
-                                                    <small class="text-muted d-block text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('radio_categories'); ?></small>
-                                                    <span class="fs-6 fw-bold text-heading"><?= $cRadio; ?></span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                        <span class="badge bg-label-primary rounded-pill px-2.5 py-1 fw-bold fs-8">
+                                            <?= $cTotal; ?> <?= $language::get('total') ?? 'Total'; ?>
+                                        </span>
                                     </div>
 
-                                    <!-- Visual Distribution Bar & Total -->
-                                    <div class="d-flex align-items-center gap-2 pt-1 px-1">
-                                        <div class="progress flex-grow-1 bg-body rounded-pill border" style="height: 6px;" title="Live: <?= $cLive; ?> (<?= $pctLive; ?>%) | Movies: <?= $cVod; ?> (<?= $pctVod; ?>%) | Series: <?= $cSeries; ?> (<?= $pctSeries; ?>%) | Radio: <?= $cRadio; ?> (<?= $pctRadio; ?>%)">
-                                            <?php if ($cTotal > 0): ?>
-                                                <?php if ($pctLive > 0): ?><div class="progress-bar bg-info" role="progressbar" style="width: <?= $pctLive; ?>%"></div><?php endif; ?>
-                                                <?php if ($pctVod > 0): ?><div class="progress-bar bg-success" role="progressbar" style="width: <?= $pctVod; ?>%"></div><?php endif; ?>
-                                                <?php if ($pctSeries > 0): ?><div class="progress-bar bg-warning" role="progressbar" style="width: <?= $pctSeries; ?>%"></div><?php endif; ?>
-                                                <?php if ($pctRadio > 0): ?><div class="progress-bar bg-danger" role="progressbar" style="width: <?= $pctRadio; ?>%"></div><?php endif; ?>
-                                            <?php else: ?>
-                                                <div class="progress-bar bg-secondary opacity-25" role="progressbar" style="width: 100%"></div>
-                                            <?php endif; ?>
+                                    <!-- Segmented Proportional Visual Bar -->
+                                    <div class="progress rounded-pill bg-body border mb-3 overflow-hidden shadow-xs" style="height: 6px;">
+                                        <?php if ($cTotal > 0): ?>
+                                            <?php if ($pctLive > 0): ?><div class="progress-bar bg-info" style="width: <?= $pctLive; ?>%" title="Live: <?= $cLive; ?> (<?= $pctLive; ?>%)"></div><?php endif; ?>
+                                            <?php if ($pctVod > 0): ?><div class="progress-bar bg-success" style="width: <?= $pctVod; ?>%" title="Movies: <?= $cVod; ?> (<?= $pctVod; ?>%)"></div><?php endif; ?>
+                                            <?php if ($pctSeries > 0): ?><div class="progress-bar bg-warning" style="width: <?= $pctSeries; ?>%" title="Series: <?= $cSeries; ?> (<?= $pctSeries; ?>%)"></div><?php endif; ?>
+                                            <?php if ($pctRadio > 0): ?><div class="progress-bar bg-danger" style="width: <?= $pctRadio; ?>%" title="Radio: <?= $cRadio; ?> (<?= $pctRadio; ?>%)"></div><?php endif; ?>
+                                        <?php else: ?>
+                                            <div class="progress-bar bg-secondary opacity-25" style="width: 100%"></div>
+                                        <?php endif; ?>
+                                    </div>
+
+                                    <!-- 4 Accent Pill Cards Grid -->
+                                    <div class="row g-2">
+                                        <!-- Live -->
+                                        <div class="col-6 col-sm-3">
+                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-info) !important;">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('live') ?? 'Live'; ?></span>
+                                                    <i class="icon-base ti tabler-device-tv text-info fs-6"></i>
+                                                </div>
+                                                <div class="d-flex align-items-baseline justify-content-between">
+                                                    <span class="fs-5 fw-bold text-heading"><?= $cLive; ?></span>
+                                                    <?php if ($cTotal > 0): ?>
+                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctLive; ?>%</small>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <span class="badge bg-label-secondary text-body-secondary fw-semibold py-1 px-2 rounded-pill" style="font-size: 0.7rem;">
-                                            <?= $cTotal; ?> <?= $language::get('categories') ?? 'Categories'; ?>
-                                        </span>
+
+                                        <!-- Movies -->
+                                        <div class="col-6 col-sm-3">
+                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-success) !important;">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('movies') ?? 'Movies'; ?></span>
+                                                    <i class="icon-base ti tabler-movie text-success fs-6"></i>
+                                                </div>
+                                                <div class="d-flex align-items-baseline justify-content-between">
+                                                    <span class="fs-5 fw-bold text-heading"><?= $cVod; ?></span>
+                                                    <?php if ($cTotal > 0): ?>
+                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctVod; ?>%</small>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Series -->
+                                        <div class="col-6 col-sm-3">
+                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-warning) !important;">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('series') ?? 'Series'; ?></span>
+                                                    <i class="icon-base ti tabler-clapperboard text-warning fs-6"></i>
+                                                </div>
+                                                <div class="d-flex align-items-baseline justify-content-between">
+                                                    <span class="fs-5 fw-bold text-heading"><?= $cSeries; ?></span>
+                                                    <?php if ($cTotal > 0): ?>
+                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctSeries; ?>%</small>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Radio -->
+                                        <div class="col-6 col-sm-3">
+                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-danger) !important;">
+                                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('radio') ?? 'Radio'; ?></span>
+                                                    <i class="icon-base ti tabler-radio text-danger fs-6"></i>
+                                                </div>
+                                                <div class="d-flex align-items-baseline justify-content-between">
+                                                    <span class="fs-5 fw-bold text-heading"><?= $cRadio; ?></span>
+                                                    <?php if ($cTotal > 0): ?>
+                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctRadio; ?>%</small>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
