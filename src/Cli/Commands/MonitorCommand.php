@@ -217,7 +217,7 @@ class MonitorCommand implements CommandInterface {
 								} else {
 									$rBaselineFps = $rFps;
 								}
-							} elseif ($rBaselineFps && (($rFps * ($rStreamInfo['fps_threshold'] ?: 100)) < $rBaselineFps)) {
+							} elseif ($rBaselineFps && self::isFpsBelowThreshold($rFps, $rBaselineFps, $rStreamInfo['fps_threshold'])) {
 								echo "FPS dropped below threshold! Break\n";
 								StreamProcess::streamLog($rStreamID, SERVER_ID, 'FPS_DROP_THRESHOLD', $rCurrentSource);
 								break;
@@ -265,8 +265,8 @@ class MonitorCommand implements CommandInterface {
 						$rBackupsChecked = time();
 						$rKey = array_search($rCurrentSource, $rSources);
 						if ((!is_numeric($rKey) || (0 < $rKey))) {
-							foreach ($rSources as $rSource) {
-								if (!(($rSource == $rCurrentSource) || ($rSource == $rForceSource))) {
+							foreach (self::higherPrioritySources($rSources, $rCurrentSource) as $rSource) {
+								if ($rSource != $rForceSource) {
 									$rStreamSource = StreamUtils::parseStreamURL($rSource);
 									$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
 									$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
@@ -284,8 +284,9 @@ class MonitorCommand implements CommandInterface {
 					}
 					if ((file_exists(SIGNALS_TMP_PATH . $rStreamID . '.force') && ($rParentID == 0))) {
 						$rForceID = intval(file_get_contents(SIGNALS_TMP_PATH . $rStreamID . '.force'));
-						$rStreamSource = StreamUtils::parseStreamURL($rSources[$rForceID]);
-						if (($rSources[$rForceID] != $rCurrentSource)) {
+						// A stale signal can name a source index that no longer exists.
+						$rStreamSource = isset($rSources[$rForceID]) ? StreamUtils::parseStreamURL($rSources[$rForceID]) : null;
+						if ($rStreamSource !== null && ($rSources[$rForceID] != $rCurrentSource)) {
 							$rProtocol = strtolower(substr($rStreamSource, 0, strpos($rStreamSource, '://')));
 							$rArguments = implode(' ', StreamUtils::getArguments($rStreamArguments, $rProtocol, 'fetch'));
 							if (($rProbe = FFprobeRunner::probeStream($rStreamSource, $rArguments))) {
@@ -365,6 +366,13 @@ class MonitorCommand implements CommandInterface {
 						$rMaxFails++;
 						if (((0 < SettingsManager::get('stop_failures')) && ($rMaxFails >= SettingsManager::get('stop_failures')))) {
 							echo "Failure limit reached, exiting.\n";
+							return 0;
+						}
+						// An on-demand source that cannot even be probed is a failed
+						// start like any other: honour on_demand_failure_exit here too,
+						// instead of re-probing a dead source until the cron stops it.
+						if (SettingsManager::get('on_demand_failure_exit') && $rStreamInfo['on_demand']) {
+							echo "On-demand source failed to probe, exiting.\n";
 							return 0;
 						}
 						echo 'Stream start failed (attempt ' . $rMaxFails . '). Sleeping ' . SettingsManager::get('stream_fail_sleep') . " seconds...\n";
@@ -490,6 +498,40 @@ class MonitorCommand implements CommandInterface {
 				}
 			}
 		}
+	}
+
+	/**
+	 * Whether the current frame rate fell below the stream's threshold — a
+	 * percentage of its baseline ("FPS Threshold %", 90 when unset, the same
+	 * default the fanout supervisor applies). The comparison used to multiply the
+	 * current rate by the percentage without dividing by 100, so it only fired
+	 * below ~1% of the baseline — never, in practice.
+	 *
+	 * @param float $rFps       Current frames per second.
+	 * @param float $rBaseline  Baseline frames per second.
+	 * @param mixed $rThreshold fps_threshold percentage (1..100), or empty.
+	 * @return bool
+	 */
+	public static function isFpsBelowThreshold($rFps, $rBaseline, $rThreshold): bool {
+		$rPercent = min(100, max(1, intval($rThreshold) ?: 90));
+		return 0 < $rBaseline && $rFps < $rBaseline * $rPercent / 100;
+	}
+
+	/**
+	 * The sources ranked above the one in use, in priority order — the only ones
+	 * priority backup may switch back to. Checking every other source let a
+	 * stream on backup B move DOWN to backup C whenever the primary was still out.
+	 *
+	 * @param array $rSources       Ordered source list (primary first).
+	 * @param mixed $rCurrentSource The source in use.
+	 * @return array
+	 */
+	public static function higherPrioritySources(array $rSources, $rCurrentSource): array {
+		$rKey = array_search($rCurrentSource, $rSources);
+		if (!is_numeric($rKey)) {
+			return array_values($rSources); // current is not in the list (e.g. it was edited): all are candidates
+		}
+		return array_slice(array_values($rSources), 0, (int) $rKey);
 	}
 
 	/**

@@ -120,4 +120,31 @@ final class MonitorCommandTest extends TestCase {
 		[, $seg2] = $this->call('persistSegmentDuration', ['of_duration' => 6], 4243, 8);
 		$this->assertSame(8, $seg2, 'segTime kept (already larger)');
 	}
+
+	// ── FPS-drop restart ───────────────────────────────────────
+
+	public function testFpsThresholdIsAPercentageOfTheBaseline(): void {
+		// 90% of 25 fps = 22.5: 22 is a drop, 23 is not.
+		$this->assertTrue(MonitorCommand::isFpsBelowThreshold(22.0, 25.0, 90));
+		$this->assertFalse(MonitorCommand::isFpsBelowThreshold(23.0, 25.0, 90));
+		// The old formula (fps * 90 < baseline) only fired below ~0.28 fps here.
+		$this->assertTrue(MonitorCommand::isFpsBelowThreshold(12.5, 25.0, 90));
+	}
+
+	public function testFpsThresholdDefaultsTo90AndIsClamped(): void {
+		$this->assertTrue(MonitorCommand::isFpsBelowThreshold(22.0, 25.0, 0), 'unset → 90%');
+		$this->assertFalse(MonitorCommand::isFpsBelowThreshold(23.0, 25.0, ''), 'unset → 90%');
+		$this->assertFalse(MonitorCommand::isFpsBelowThreshold(25.0, 25.0, 250), 'clamped to 100%');
+		$this->assertFalse(MonitorCommand::isFpsBelowThreshold(10.0, 0.0, 90), 'no baseline, no restart');
+	}
+
+	// ── priority backup ────────────────────────────────────────
+
+	public function testPriorityBackupOnlyConsidersHigherRankedSources(): void {
+		$sources = ['A', 'B', 'C'];
+		$this->assertSame(['A'], MonitorCommand::higherPrioritySources($sources, 'B'), 'from B only A, never C');
+		$this->assertSame(['A', 'B'], MonitorCommand::higherPrioritySources($sources, 'C'));
+		$this->assertSame([], MonitorCommand::higherPrioritySources($sources, 'A'), 'on the primary: nothing to switch back to');
+		$this->assertSame($sources, MonitorCommand::higherPrioritySources($sources, 'X'), 'unknown current: all are candidates');
+	}
 }
