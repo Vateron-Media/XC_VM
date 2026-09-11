@@ -32,7 +32,7 @@ define('DEV_MODE', false);
 
 define('XC_VM_VERSION', '2.5.1');
 
-define('GIT_OWNER',       'Vateron-Media');
+define('GIT_OWNER',       'Rosmi720');
 define('GIT_REPO_MAIN',   'XC_VM');
 define('GIT_REPO_UPDATE', 'XC_VM_Update');
 define('GIT_REPO_BIN',    'XC_VM_Binaries');

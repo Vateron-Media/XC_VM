@@ -1,0 +1,20 @@
+{
+    "name": "plex",
+    "hash_id": "20cd9576a466f5c1d60cc32c971a571b",
+    "description": "Plex integration module",
+    "version": "1.0.1",
+    "requires_core": ">=2.0",
+    "environment": "any",
+    "dependencies": [
+        "watch"
+    ],
+    "optional_dependencies": [],
+    "has_navbar": true,
+    "has_settings": true,
+    "priority": 0,
+    "update": {
+        "source": "git",
+        "repository": "https://github.com/Vateron-Media/Module_Plex",
+        "channel": "stable"
+    }
+}

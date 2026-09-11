@@ -1,0 +1,13 @@
+{
+    "name": "telegram",
+    "hash_id": "3b6df62de4501021674ea1740edc0a68",
+    "description": "Telegram Bot Integration: Multi-bot support for automated notifications and rich content broadcasting with poster previews when movies/media are added or ready.",
+    "version": "1.0.0",
+    "requires_core": ">=2.0",
+    "environment": "any",
+    "dependencies": [],
+    "optional_dependencies": [],
+    "has_navbar": true,
+    "has_settings": true,
+    "priority": 0
+}

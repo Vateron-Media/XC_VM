@@ -14,7 +14,7 @@ LB_ARCHIVE_NAME := loadbalancer.tar.gz
 # only when generate_deleted_files actually expands LAST_TAG. Override on the CLI
 # to skip the API call entirely (CI passes it this way):
 #   make generate_deleted_files LAST_TAG=v1.2.3
-LAST_TAG ?= $(shell curl -s https://api.github.com/repos/Vateron-Media/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+LAST_TAG ?= $(shell curl -s https://api.github.com/repos/Rosmi720/XC_VM/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 HASH_FILE := hashes.md5
 
 # Directories and files to exclude from archives
