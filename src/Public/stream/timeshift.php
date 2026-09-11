@@ -10,6 +10,7 @@ use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\AsyncFileOperations;
 use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
+use XcVm\Streaming\Delivery\HttpRange;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
 
 /**
@@ -135,6 +136,8 @@ if ($rUserInfo) {
 		DatabaseFactory::connect();
 	}
 
+	$rConnection = null;
+
 	switch ($rExtension) {
 		case 'm3u8':
 			if ($rSettings['redis_handler']) {
@@ -188,7 +191,7 @@ if ($rUserInfo) {
 				generateError('LINE_CREATE_FAIL');
 			}
 
-			StreamAuth::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent);
+			StreamAuth::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent, $rTokenData['uuid']);
 
 			if ($rSettings['redis_handler']) {
 				RedisManager::closeInstance();
@@ -285,7 +288,7 @@ if ($rUserInfo) {
 				generateError('LINE_CREATE_FAIL');
 			}
 
-			StreamAuth::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent);
+			StreamAuth::validateConnections($rUserInfo, null, null, $rIP, $rUserAgent, $rTokenData['uuid']);
 
 			if ($rSettings['redis_handler']) {
 				RedisManager::closeInstance();
@@ -307,64 +310,17 @@ if ($rUserInfo) {
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);
 			header('Content-Type: video/mp2t');
 			$rConSpeedFile = DIVERGENCE_TMP_PATH . $rTokenData['uuid'];
-			$rLength = $rSize = getLength($rQueue) - $rOffset;
+			// The response is the queued minute files back to back, the first one
+			// from its .offset (a partial first minute).
+			$rSize = getLength($rQueue) - $rOffset;
 			$rBitrate = ($rSize * 0.008) / ($rDuration * 60);
-			header('Accept-Ranges: 0-' . $rLength);
-			$rStart = 0;
-			$rEnd = $rSize - 1;
-
-			if (empty($_SERVER['HTTP_RANGE'])) {
-			} else {
-				$rRangeStart = $rStart;
-				$rRangeEnd = $rEnd;
-				list(, $rRange) = explode('=', $_SERVER['HTTP_RANGE'], 2);
-
-				if (strpos($rRange, ',') === false) {
-
-
-
-
-					if ($rRange == '-') {
-						$rRangeStart = $rSize - substr($rRange, 1);
-					} else {
-						$rRange = explode('-', $rRange);
-						$rRangeStart = $rRange[0];
-						$rRangeEnd = (isset($rRange[1]) && is_numeric($rRange[1]) ? $rRange[1] : $rSize);
-					}
-
-					$rRangeEnd = ($rEnd < $rRangeEnd ? $rEnd : $rRangeEnd);
-
-					if (!($rRangeEnd < $rRangeStart || $rSize - 1 < $rRangeStart || $rSize <= $rRangeEnd)) {
-						$rStart = $rRangeStart;
-						$rEnd = $rRangeEnd;
-						$rLength = $rEnd - $rStart + 1;
-						header('HTTP/1.1 206 Partial Content');
-					} else {
-						header('HTTP/1.1 416 Requested Range Not Satisfiable');
-						header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-
-						exit();
-					}
-				} else {
-					header('HTTP/1.1 416 Requested Range Not Satisfiable');
-					header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-
-					exit();
-				}
+			$rServe = HttpRange::sendHeaders(HttpRange::parse($_SERVER['HTTP_RANGE'] ?? null, $rSize), $rSize);
+			if ($rServe === null) {
+				exit(); // 416 already sent
 			}
-
-			header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-			header('Content-Length: ' . $rLength);
-			$rStartFrom = 0;
-
-			if (0 >= $rStart) {
-			} else {
-				$rStartFrom = floor($rStart / ($rSize / count($rQueue)));
-			}
-
-			$rFirstFile = false;
-			$rSeekTo = 0;
-			$rSizeToDate = 0;
+			[$rStart, $rEnd] = $rServe;
+			$rLength = $rEnd - $rStart + 1;
+			$rRemaining = $rLength;
 			$rDownloadBytes = $rBitrate * 125;
 			$rDownloadBytes += $rDownloadBytes * $rSettings['vod_bitrate_plus'] * 0.01;
 			$rLastCheck = $rTimeChecked = $rTimeStart = time();
@@ -381,26 +337,40 @@ if ($rUserInfo) {
 
 			$rApplyLimit = false;
 
-			foreach ($rQueue as $rKey => $rItem) {
-				$rSizeToDate += $rItem['filesize'];
-
-				if ($rFirstFile || 0 >= $rStartFrom) {
-				} else {
-					if ($rKey < $rStartFrom) {
-					} else {
-						$rFirstFile = true;
-						$rSeekTo = $rStart - $rSizeToDate;
-					}
+			// Map the served byte range onto the files: skip every file that ends
+			// before $rStart, seek into the one it falls in, stop after $rEnd. (A
+			// seek used to estimate the start file from the average file size, never
+			// skip the files before it, and seek to a negative offset — so every
+			// catch-up seek streamed from the archive's first byte.)
+			$rPosition = 0; // response offset of the current file's first servable byte
+			foreach (array_values($rQueue) as $rIndex => $rItem) {
+				if ($rRemaining <= 0) {
+					break;
+				}
+				$rFileStart = ($rIndex === 0 ? $rOffset : 0);
+				$rFileBytes = $rItem['filesize'] - $rFileStart;
+				if ($rFileBytes <= 0) {
+					continue;
+				}
+				if ($rPosition + $rFileBytes <= $rStart) {
+					$rPosition += $rFileBytes; // wholly before the range
+					continue;
 				}
 
 				$rFP = fopen($rItem['filename'], 'rb');
-				fseek($rFP, $rSeekTo + $rOffset);
-				$rOffset = 0;
+				if (!$rFP) {
+					break;
+				}
+				fseek($rFP, $rFileStart + max(0, $rStart - $rPosition));
+				$rPosition += $rFileBytes;
 
-				while (!feof($rFP)) {
-					$rPosition = ftell($rFP);
-					$rResponse = stream_get_line($rFP, $rBuffer);
+				while (!feof($rFP) && 0 < $rRemaining) {
+					$rResponse = stream_get_line($rFP, (int) min($rBuffer, $rRemaining));
+					if ($rResponse === false || $rResponse === '') {
+						break;
+					}
 					echo $rResponse;
+					$rRemaining -= strlen($rResponse);
 					$rBytesRead += strlen($rResponse);
 					$i++;
 
@@ -411,8 +381,11 @@ if ($rUserInfo) {
 					}
 
 					if (0 < $rDownloadBytes && $rApplyLimit && ceil($rDownloadBytes / $rBuffer) <= $i) {
-						// Use efficient sleep instead of blocking sleep
-						AsyncFileOperations::efficientSleep(1000000); // 1 second with better CPU usage
+						// Throttled to the recording's bitrate: one second's worth of
+						// chunks, then a second's pause. The count restarts after each
+						// pause — without the reset every later chunk paused a second.
+						AsyncFileOperations::efficientSleep(1000000);
+						$i = 0;
 					}
 					if (30 > time() - $rTimeStart) {
 					} else {
@@ -466,12 +439,9 @@ if ($rUserInfo) {
 					}
 				}
 
-				if (!is_resource($rFP)) {
-				} else {
+				if (is_resource($rFP)) {
 					fclose($rFP);
 				}
-
-				$rSeekTo = 0;
 			}
 	}
 } else {
