@@ -7,6 +7,7 @@ use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Auth\StreamAuth;
@@ -110,9 +111,9 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 																		if (ProcessManager::isStreamAlive($rChannelInfo['pid'], $rStreamID)) {
 																		} else {
 																			if ($rChannelInfo['on_demand'] == 1) {
-																				if (ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
+																				if (StreamProcess::isWatched($rStreamID, $rChannelInfo['monitor_pid'])) {
 																				} else {
-																					ProcessManager::startMonitor($rStreamID);
+																					StreamProcess::startMonitor($rStreamID);
 																					sleep(5);
 																				}
 																			} else {
@@ -239,9 +240,9 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 				if (ProcessManager::isStreamAlive($rChannelInfo['pid'], $rStreamID)) {
 				} else {
 					if ($rChannelInfo['on_demand'] == 1) {
-						if (ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
+						if (StreamProcess::isWatched($rStreamID, $rChannelInfo['monitor_pid'])) {
 						} else {
-							ProcessManager::startMonitor($rStreamID);
+							StreamProcess::startMonitor($rStreamID);
 							sleep(5);
 						}
 					} else {

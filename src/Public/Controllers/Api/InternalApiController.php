@@ -189,12 +189,11 @@ class InternalApiController {
 					switch ($rFunction) {
 						case 'start':
 							foreach ($rStreamIDs as $rStreamID) {
-								if (StreamProcess::startMonitor($rStreamID, true)) {
+								// Handed to the fanout supervisor synchronously, or a PHP
+								// monitor spawned — those are staggered so a bulk start does
+								// not fork hundreds of PHP processes in the same instant.
+								if (StreamProcess::startMonitor($rStreamID, true) === StreamProcess::MONITOR_PHP) {
 									usleep(50000);
-								} else {
-									echo json_encode(array('result' => false));
-
-									exit();
 								}
 							}
 
@@ -227,7 +226,12 @@ class InternalApiController {
 				$rForceID = intval($rRequest['force_id']);
 
 				if ($rStreamID > 0) {
-					file_put_contents(SIGNALS_TMP_PATH . $rStreamID . '.force', $rForceID);
+					// A supervised stream switches through the daemon. The .force file
+					// is only ever read by the PHP monitor, which a supervised stream
+					// does not have, so writing it there would silently do nothing.
+					if (!FanoutClient::forceSource($rStreamID, $rForceID)) {
+						file_put_contents(SIGNALS_TMP_PATH . $rStreamID . '.force', $rForceID);
+					}
 				}
 
 				exit(json_encode(array('result' => true)));

@@ -9,6 +9,7 @@ use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * OndemandCommand — ondemand command
@@ -143,6 +144,11 @@ class OndemandCommand implements CommandInterface {
 				}
 
 				echo "Killing a stream without viewers: ID $rStreamID\n";
+
+				// Release a supervised stream before touching its producer: killing
+				// the producer first is what the fanout supervisor restarts.
+				FanoutClient::release($rStreamID);
+				FanoutClient::unregister($rStreamID);
 
 				if ($rMonitorPID > 0)
 					@posix_kill($rMonitorPID, 9);

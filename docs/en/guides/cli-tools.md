@@ -46,7 +46,7 @@ To see all available commands:
 | `xcvm_core` | `XcvmCoreCommand` | Install/update the `xcvm_core` PHP extension from the binaries repo | root |
 | `ytdlp` | `YtDlpCommand` | Install/update `yt-dlp` from its upstream GitHub release | root |
 | `startup` | `StartupCommand` | System initialization: daemons.sh, crontab, cache | root |
-| `monitor` | `MonitorCommand` | Monitor stream by ID (start/restart/track) | xc_vm |
+| `monitor` | `MonitorCommand` | Monitor stream by ID (start/restart/track). Only for streams the xc_fanout supervisor does not take — it stands down for a supervised one | xc_vm |
 | `thumbnail` | `ThumbnailCommand` | Generate thumbnail frames for a stream | xc_vm |
 | `plex_item` | `PlexItemCommand` | Process single Plex item (movie/series) | xc_vm |
 | `watch_item` | `WatchItemCommand` | Process single Watch item (TMDB search/update) | xc_vm |

@@ -150,16 +150,30 @@ class StreamUtils {
 			}
 			$rURL .= ' live=1 timeout=10';
 		} else {
-			if ($rProtocol == 'http') {
-				$rPlatforms = array('livestream.com', 'ustream.tv', 'twitch.tv', 'vimeo.com', 'facebook.com', 'dailymotion.com', 'cnn.com', 'edition.cnn.com', 'youtube.com', 'youtu.be');
-				$rHost = str_ireplace('www.', '', parse_url($rURL, PHP_URL_HOST));
-				if (in_array($rHost, $rPlatforms)) {
-					$rURLs = trim(shell_exec(YOUTUBE_BIN . ' ' . escapeshellarg($rURL) . ' -q --get-url --skip-download -f best'));
-					list($rURL) = explode("\n", $rURLs);
-				}
+			if (self::needsResolver($rURL)) {
+				$rURLs = trim(shell_exec(YOUTUBE_BIN . ' ' . escapeshellarg($rURL) . ' -q --get-url --skip-download -f best'));
+				list($rURL) = explode("\n", $rURLs);
 			}
 		}
 		return $rURL;
+	}
+
+	/** Video platforms whose page URLs parseStreamURL() resolves through yt-dlp. */
+	const RESOLVED_PLATFORMS = array('livestream.com', 'ustream.tv', 'twitch.tv', 'vimeo.com', 'facebook.com', 'dailymotion.com', 'cnn.com', 'edition.cnn.com', 'youtube.com', 'youtu.be');
+
+	/**
+	 * Whether a source URL is a platform page parseStreamURL() has to resolve
+	 * (through yt-dlp) into a playable — and short-lived — media URL.
+	 *
+	 * @param string $rURL Source URL.
+	 * @return bool
+	 */
+	public static function needsResolver($rURL) {
+		if (strtolower(substr((string) $rURL, 0, 4)) !== 'http') {
+			return false;
+		}
+		$rHost = str_ireplace('www.', '', (string) parse_url($rURL, PHP_URL_HOST));
+		return in_array($rHost, self::RESOLVED_PLATFORMS, true);
 	}
 
 	/**

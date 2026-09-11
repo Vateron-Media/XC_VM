@@ -48,6 +48,7 @@ final class FanoutConfigTest extends TestCase {
 			'fanout_idle_buffer_grace_sec' => 30,
 			'fanout_idle_buffer_ratio'     => 0.5,
 			'fanout_source_backend'        => 'auto',
+			'fanout_supervise'             => 1,
 		);
 	}
 
@@ -146,6 +147,22 @@ final class FanoutConfigTest extends TestCase {
 			FanoutConfig::sync($s);
 			$this->assertSame('auto', $this->read()['source_backend'], "bogus value: {$rBogus}");
 		}
+	}
+
+	/** The daemon accepts streams for supervision only while this says so. */
+	public function testMapsSupervise(): void {
+		$this->assertTrue(FanoutConfig::sync($this->baseSettings()));
+		$this->assertTrue($this->read()['supervise']);
+
+		$s = $this->baseSettings();
+		$s['fanout_supervise'] = 0;
+		FanoutConfig::sync($s);
+		$this->assertFalse($this->read()['supervise']);
+
+		$s = $this->baseSettings();
+		unset($s['fanout_supervise']); // a panel from before migration 018
+		FanoutConfig::sync($s);
+		$this->assertTrue($this->read()['supervise'], 'the column default');
 	}
 
 }

@@ -157,11 +157,153 @@ class ProcessManager {
             );
         }
 
+        // The fanout daemon's native remuxer (`xc_fanout remux … <streams>/<id>_.m3u8`),
+        // which produces a copy-only stream in ffmpeg's place. Its own subcommand
+        // and this stream's playlist must both be there: the daemon process shares
+        // the executable but names no stream playlist.
+        if (strpos($exe, 'xc_fanout') === 0) {
+            $cmdline = (string) @file_get_contents('/proc/' . $pid . '/cmdline');
+            return strpos($cmdline, "\0remux\0") !== false && strpos($cmdline, '/' . $streamId . '_.m3u8') !== false;
+        }
+
         if (strpos($exe, 'php') === 0) {
             return true;
         }
 
         return false;
+    }
+
+    /**
+     * What kind of producer a stream's pid is, for the panel's stream list.
+     *
+     * @param int $pid Process ID
+     * @return string|null 'fanout' (xc_fanout remux), 'ffmpeg', 'php' (the LLOD
+     *                     segmenter / loopback relay), or null when it cannot be read.
+     */
+    public static function producerKind($pid) {
+        $pid = (int)$pid;
+
+        if ($pid <= 0 || !self::procExists($pid) || !is_readable('/proc/' . $pid . '/exe')) {
+            return null;
+        }
+
+        $exe = @basename(@readlink('/proc/' . $pid . '/exe'));
+
+        if (strpos($exe, 'xc_fanout') === 0) {
+            $cmdline = (string) @file_get_contents('/proc/' . $pid . '/cmdline');
+            return strpos($cmdline, "\0remux\0") !== false ? 'fanout' : null;
+        }
+        if (strpos($exe, 'ffmpeg') === 0) {
+            return 'ffmpeg';
+        }
+        if (strpos($exe, 'php') === 0) {
+            return 'php';
+        }
+
+        return null;
+    }
+
+    /**
+     * One CPU/memory reading for a process, from /proc/PID/stat.
+     *
+     * CPU is cumulative (the ticks the process has burned since it started), so a
+     * percentage needs two readings — see cpuPercent(). Memory is resident set
+     * size in bytes, which is the figure that matters for a box running hundreds
+     * of encoders: what they actually hold in RAM.
+     *
+     * @param int $pid Process ID
+     * @return array{ticks:int,rss:int,at:float}|null Null when the process is gone.
+     */
+    public static function resourceSample($pid) {
+        $pid = (int)$pid;
+
+        if ($pid <= 1) {
+            return null;
+        }
+
+        $stat = @file_get_contents('/proc/' . $pid . '/stat');
+        if (!is_string($stat) || $stat === '') {
+            return null;
+        }
+
+        // Field 2 (comm) is parenthesised and may itself contain spaces and
+        // brackets — "(ffmpeg (x))" is a legal name — so everything before the
+        // LAST ')' is skipped and the split starts at field 3 (state).
+        $rClose = strrpos($stat, ')');
+        if ($rClose === false) {
+            return null;
+        }
+        $rFields = preg_split('/\s+/', trim(substr($stat, $rClose + 1)));
+        if (!is_array($rFields) || count($rFields) < 22) {
+            return null;
+        }
+
+        // $rFields[$i] is /proc/PID/stat field $i + 3: utime 14, stime 15, rss 24.
+        return [
+            'ticks' => (int) $rFields[11] + (int) $rFields[12],
+            'rss'   => (int) $rFields[21] * self::pageSize(),
+            'at'    => microtime(true),
+        ];
+    }
+
+    /**
+     * CPU use between two resourceSample() readings, in percent of one core.
+     *
+     * @param array $now  The newer sample.
+     * @param array $prev The older one (from the previous pass).
+     * @return float|null Null when the pair says nothing: no previous reading, a
+     *                    restarted process (its counter went backwards), or two
+     *                    readings from the same instant.
+     */
+    public static function cpuPercent(array $now, array $prev) {
+        if (!isset($now['ticks'], $now['at'], $prev['ticks'], $prev['at'])) {
+            return null;
+        }
+
+        $rSeconds = (float) $now['at'] - (float) $prev['at'];
+        $rTicks = (int) $now['ticks'] - (int) $prev['ticks'];
+        if ($rSeconds <= 0 || $rTicks < 0) {
+            return null;
+        }
+
+        // /proc reports CPU time in USER_HZ, which is 100 on Linux whatever the
+        // kernel's own tick rate — it is part of the /proc ABI, not CONFIG_HZ.
+        return round(($rTicks / 100) / $rSeconds * 100, 1);
+    }
+
+    /**
+     * The kernel page size, in bytes — /proc/PID/stat counts RSS in pages.
+     *
+     * Derived from this process's own two views of its memory (statm in pages,
+     * status in kB) rather than assumed, because 64K pages are normal on arm64.
+     *
+     * @return int
+     */
+    protected static function pageSize() {
+        static $rSize = null;
+        if ($rSize !== null) {
+            return $rSize;
+        }
+
+        $rSize = 4096;
+        $rStatm = @file_get_contents('/proc/self/statm');
+        $rStatus = @file_get_contents('/proc/self/status');
+        if (is_string($rStatm) && is_string($rStatus) && preg_match('/^VmRSS:\s+(\d+) kB/m', $rStatus, $rMatch)) {
+            $rPages = (int) (preg_split('/\s+/', trim($rStatm))[1] ?? 0);
+            if ($rPages > 0) {
+                // The two files are read a moment apart, so snap the ratio to a
+                // real page size instead of trusting it to the byte.
+                $rRatio = ((int) $rMatch[1] * 1024) / $rPages;
+                foreach ([4096, 8192, 16384, 65536] as $rCandidate) {
+                    if ($rRatio >= $rCandidate * 0.75 && $rRatio <= $rCandidate * 1.25) {
+                        $rSize = $rCandidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $rSize;
     }
 
     // ───────────────────────────────────────────────────────────
@@ -415,7 +557,9 @@ class ProcessManager {
     /**
      * Start a stream monitor process in background.
      *
-     * Extracted from ProcessManager::startMonitor().
+     * Always the PHP watchdog. Stream code calls StreamProcess::startMonitor()
+     * instead, which hands the stream to the fanout daemon's supervisor when this
+     * server supervises and only falls back to this.
      *
      * @param int $streamID
      * @param int $restart
