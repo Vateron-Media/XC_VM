@@ -256,7 +256,11 @@ database write; the daemon runs what it is handed.
 - **Reconcile** — the daemon cannot write the database, so `StreamProcess::reconcileSupervised()`
   copies its state into `streams_servers` (status, pid, current source, codecs, resolution,
   measured bitrate): every `cron:streams` pass, and every 5 s from the `signals` daemon. A
-  supervised stream whose row is gone or marked stopped is released.
+  supervised stream whose row is gone or marked stopped is released. The codecs and picture size
+  are written to the `stream_info` JSON as well as the flat columns — that JSON is what the
+  streams list renders, what the adaptive master playlist takes `BANDWIDTH`/`RESOLUTION` from and
+  where `stream/auth.php` reads the viewer's video codec, and a supervised stream never runs
+  ffprobe to fill it.
 - **Stop** — `StreamProcess::stopStream()` releases first (`DELETE /monitor/<id>`, which kills the
   producer); killing the producer first is what the supervisor restarts.
 - **Fallback to PHP** — a daemon that is down or not accepting, and the stream kinds it does not

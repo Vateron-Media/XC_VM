@@ -221,12 +221,54 @@ final class StreamProcessSupervisionTest extends TestCase {
 	}
 
 	public function testMetadataFromTheBytes(): void {
-		$set = $this->update($this->row(), ['running' => true, 'confirmed' => true, 'pid' => 1, 'meta' => ['video_codec' => 'h264', 'audio_codec' => 'aac', 'height' => 1088, 'bitrate_kbps' => 4500]]);
+		$set = $this->update($this->row(), ['running' => true, 'confirmed' => true, 'pid' => 1, 'meta' => ['video_codec' => 'h264', 'audio_codec' => 'aac', 'width' => 1920, 'height' => 1088, 'bitrate_kbps' => 4500]]);
 		$this->assertSame('h264', $set['video_codec']);
 		$this->assertSame('aac', $set['audio_codec']);
 		$this->assertSame(1, $set['compatible']);
 		$this->assertSame(1080, $set['resolution'], 'snapped to the nearest standard height');
 		$this->assertSame(4500, $set['bitrate']);
+	}
+
+	/**
+	 * The streams list, the adaptive master playlist and the viewer's codec all
+	 * read the `stream_info` JSON, not the flat columns — a supervised stream
+	 * that never runs ffprobe has to have it written from the daemon's reading.
+	 */
+	public function testMetadataAlsoFillsTheStreamInfoJson(): void {
+		$set = $this->update($this->row(), ['running' => true, 'confirmed' => true, 'pid' => 1, 'meta' => ['video_codec' => 'hevc', 'audio_codec' => 'ac3', 'width' => 1920, 'height' => 1080, 'bitrate_kbps' => 4500]]);
+		$rInfo = json_decode($set['stream_info'], true);
+		$this->assertSame('hevc', $rInfo['codecs']['video']['codec_name']);
+		$this->assertSame('video', $rInfo['codecs']['video']['codec_type']);
+		$this->assertSame(1920, $rInfo['codecs']['video']['width']);
+		$this->assertSame(1080, $rInfo['codecs']['video']['height']);
+		$this->assertSame('ac3', $rInfo['codecs']['audio']['codec_name']);
+		$this->assertSame(4500000, $rInfo['bitrate'], 'bit/s here, kbit/s in the column');
+	}
+
+	/** Whatever ffprobe once found is kept; only what the daemon read is replaced. */
+	public function testStreamInfoIsMergedNotReplaced(): void {
+		$rRow = $this->row(['stream_info' => json_encode([
+			'container' => 'mpegts',
+			'codecs' => ['video' => ['codec_name' => 'h264', 'codec_type' => 'video', 'width' => 1280, 'height' => 720, 'r_frame_rate' => 25]],
+		])]);
+		$set = $this->update($rRow, ['running' => true, 'confirmed' => true, 'pid' => 1, 'meta' => ['video_codec' => 'h264', 'width' => 1920, 'height' => 1080]]);
+		$rInfo = json_decode($set['stream_info'], true);
+		$this->assertSame('mpegts', $rInfo['container']);
+		$this->assertSame(25, $rInfo['codecs']['video']['r_frame_rate'], 'a field the daemon does not read survives');
+		$this->assertSame(1920, $rInfo['codecs']['video']['width']);
+		$this->assertSame(1080, $rInfo['codecs']['video']['height']);
+	}
+
+	/** Nothing new read means no write: the JSON is not rewritten every pass. */
+	public function testStreamInfoIsNotRewrittenWhenNothingChanged(): void {
+		$rRow = $this->row(['pid' => 1, 'stream_status' => 0, 'video_codec' => 'h264', 'audio_codec' => 'aac', 'stream_info' => json_encode([
+			'codecs' => [
+				'video' => ['codec_name' => 'h264', 'codec_type' => 'video', 'width' => 1920, 'height' => 1080],
+				'audio' => ['codec_name' => 'aac', 'codec_type' => 'audio'],
+			],
+		])]);
+		$set = $this->update($rRow, ['running' => true, 'confirmed' => true, 'pid' => 1, 'meta' => ['video_codec' => 'h264', 'audio_codec' => 'aac', 'width' => 1920, 'height' => 1080]]);
+		$this->assertArrayNotHasKey('stream_info', $set);
 	}
 
 	/** Unknown is left unknown: a correct value is never overwritten with a blank. */

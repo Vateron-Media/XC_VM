@@ -1613,7 +1613,20 @@ class StreamProcess {
 			$rWant['stream_started'] = $rNow - intdiv(intval($rState['uptime_ms'] ?? 0), 1000);
 		}
 
+		// The daemon reads codecs and picture size off the bytes it is fanning out,
+		// so a supervised stream needs no ffprobe. Both shapes the panel keeps are
+		// written: the flat columns it filters and sorts on, and the `stream_info`
+		// JSON — which is what the streams list renders (resolution, codecs), what
+		// the adaptive master playlist takes BANDWIDTH and RESOLUTION from, and
+		// where stream/auth.php reads the viewer's video codec. Without it a
+		// supervised stream showed "? x ?" and "N/A", and every adaptive variant
+		// was dropped for want of a width.
 		$rMeta = (isset($rState['meta']) && is_array($rState['meta'])) ? $rState['meta'] : array();
+		$rInfo = json_decode((string) ($rRow['stream_info'] ?? ''), true);
+		if (!is_array($rInfo)) {
+			$rInfo = array();
+		}
+		$rInfoWas = $rInfo;
 		if (!empty($rMeta['video_codec']) || !empty($rMeta['audio_codec'])) {
 			$rVideo = (string) ($rMeta['video_codec'] ?? '') ?: $rRow['video_codec'];
 			$rAudio = (string) ($rMeta['audio_codec'] ?? '') ?: $rRow['audio_codec'];
@@ -1627,12 +1640,28 @@ class StreamProcess {
 				$rCodecs['audio'] = array('codec_name' => $rAudio, 'codec_type' => 'audio');
 			}
 			$rWant['compatible'] = intval(DiagnosticsService::checkCompatibility(array('codecs' => $rCodecs), $rAllowHevc));
+			foreach ($rCodecs as $rKind => $rCodec) {
+				$rInfo['codecs'][$rKind] = array_merge(
+					is_array($rInfo['codecs'][$rKind] ?? null) ? $rInfo['codecs'][$rKind] : array(),
+					$rCodec
+				);
+			}
 		}
 		if (intval($rMeta['height'] ?? 0) > 0) {
 			$rWant['resolution'] = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), intval($rMeta['height']));
+			$rInfo['codecs']['video']['height'] = intval($rMeta['height']);
+		}
+		if (intval($rMeta['width'] ?? 0) > 0) {
+			$rInfo['codecs']['video']['width'] = intval($rMeta['width']);
 		}
 		if (intval($rMeta['bitrate_kbps'] ?? 0) > 0) {
 			$rWant['bitrate'] = intval($rMeta['bitrate_kbps']);
+			// The column is kbit/s, this JSON field is ffprobe's format.bit_rate —
+			// bit/s, which is also what the adaptive playlist's BANDWIDTH wants.
+			$rInfo['bitrate'] = intval($rMeta['bitrate_kbps']) * 1000;
+		}
+		if ($rInfo !== $rInfoWas) {
+			$rWant['stream_info'] = json_encode($rInfo);
 		}
 
 		$rSet = array();
