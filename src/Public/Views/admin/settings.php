@@ -1556,16 +1556,6 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="fanout_supervise">
-									<?= $language::get('fanout_supervise') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: let the daemon run and watch stream encoders instead of one PHP monitor process per stream. The node's daemon must also have supervision enabled. Off = the PHP watchdog keeps running."></i>
-								</label>
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="fanout_supervise" id="fanout_supervise" type="checkbox" <?= ($rSettings["fanout_supervise"] ?? 0) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="split_by">
 									<?= $language::get('load_balancing') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('preferred_method_of_load_balancing_connections') ?>"></i>

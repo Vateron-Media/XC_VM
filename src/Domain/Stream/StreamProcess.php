@@ -894,11 +894,7 @@ class StreamProcess {
 			$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 		}
 
-		// NB: the redirect-and-background tail is NOT appended here any more.
-		// buildLive returns the BARE command so it can be handed to the fanout
-		// daemon to supervise (it has to be the process's parent, and a
-		// backgrounded command leaves it nothing to supervise). The legacy path
-		// appends liveRedirectTail() itself, so its behaviour is unchanged.
+		$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
 
 		$ffprobeContainer = (isset($rFFProbeOutput['container']) && is_string($rFFProbeOutput['container'])) ? $rFFProbeOutput['container'] : '';
 
@@ -923,85 +919,6 @@ class StreamProcess {
 		);
 
 		return $rFFMPEG;
-	}
-
-	/**
-	 * The shell tail that runs a live command the legacy way: stderr appended to
-	 * the stream's .errors file, the process backgrounded, and its pid written to
-	 * `<streams>/<id>_.pid`.
-	 *
-	 * Split out of buildLive so the same command can either be run here or handed
-	 * to the fanout daemon, which supervises the process itself and therefore
-	 * must NOT have it backgrounded — it does the redirection and the pid file on
-	 * its own. Keeping the two in one place is what stops them drifting.
-	 *
-	 * @param int $rStreamID Stream id.
-	 * @return string Shell fragment to append to a bare live command.
-	 */
-	public static function liveRedirectTail($rStreamID): string {
-		return ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
-	}
-
-	/**
-	 * Whether this node hands live encoders to the fanout daemon to supervise
-	 * instead of running them itself under the PHP watchdog.
-	 *
-	 * Off unless `fanout_supervise` is set. A panel that predates the setting
-	 * reads null and keeps the legacy behaviour exactly, and clearing it is the
-	 * rollback: MonitorCommand resumes, because its stand-down check asks the
-	 * daemon rather than assuming, and an unreachable daemon answers "no".
-	 *
-	 * @return bool
-	 */
-	public static function daemonSupervises(): bool {
-		return (bool) SettingsManager::get('fanout_supervise');
-	}
-
-	/**
-	 * Translate this stream's watchdog settings into the daemon's health policy.
-	 *
-	 * These are the same conditions MonitorCommand.php checked in its inner loop;
-	 * the daemon judges them against the bytes it is already fanning out instead
-	 * of by hashing a playlist, ffprobing a segment and reading a progress file.
-	 * Each is omitted when the panel has it switched off, and an omitted check is
-	 * simply not made.
-	 *
-	 * @param array $rStream   Stream row (stream_info + server_info).
-	 * @param array $rSettings Resolved panel settings.
-	 * @return array Health policy for FanoutClient::supervise().
-	 */
-	private static function daemonHealthPolicy($rStream, $rSettings): array {
-		$rHealth = array();
-
-		// Stall: the panel restarted when the playlist stopped changing for
-		// seg_time * 6. Same window, measured from the last byte published.
-		$rSegTime = max(1, intval($rSettings['seg_time']));
-		$rHealth['stall_sec'] = $rSegTime * 6;
-
-		if (!empty($rSettings['audio_restart_loss'])) {
-			// The panel could only notice on its 300s ffprobe cycle; the daemon
-			// sees the audio PID go quiet, so the window can be a real one.
-			$rHealth['audio_loss_sec'] = 30;
-		}
-
-		if (!empty($rStream['stream_info']['fps_restart'])) {
-			// fps_threshold is a percentage in the panel and a fraction here.
-			$rThreshold = floatval($rStream['stream_info']['fps_threshold'] ?: 100) / 100.0;
-			if ($rThreshold > 0 && $rThreshold < 1) {
-				$rHealth['fps_threshold'] = $rThreshold;
-				$rHealth['fps_grace_sec'] = intval($rSettings['fps_delay']);
-			}
-		}
-
-		$rAutoRestart = json_decode((string) $rStream['stream_info']['auto_restart'], true);
-		if (!empty($rAutoRestart['days']) && !empty($rAutoRestart['at'])) {
-			$rHealth['auto_restart'] = array(
-				'days' => array_values((array) $rAutoRestart['days']),
-				'at'   => (string) $rAutoRestart['at'],
-			);
-		}
-
-		return $rHealth;
 	}
 
 	public static function createChannelItem($rStreamID, $rSource) {
@@ -1063,13 +980,6 @@ class StreamProcess {
 	 * @return mixed Stop result.
 	 */
 	public static function stopStream($rStreamID, $rStop = false) {
-		// Stop the SUPERVISOR before killing anything. If the fanout daemon is
-		// watching this stream's encoder, killing the process is exactly the event
-		// it exists to react to — it would start a replacement and the stream
-		// would refuse to stop. Releasing first makes the daemon let go and kill
-		// the encoder itself; a no-op when it is not supervising or not reachable.
-		FanoutClient::releaseSupervision(intval($rStreamID));
-
 		$rMonitor = self::pidFromFileOrColumn($rStreamID, 'monitor_pid', '_.monitor');
 
 		if (0 < $rMonitor && \XcVm\Streaming\Health\ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
@@ -1616,41 +1526,8 @@ class StreamProcess {
 						'ingestSock' => $rIngestSock,
 					));
 
-				// Hand the encoder to the daemon when this node supervises there.
-				// The daemon starts it, watches it and restarts it, writing the
-				// same pid file the rest of PHP still reads — so everything below
-				// (and stopStream, and isStreamRunning) keeps working unchanged.
-				// A daemon that is unreachable or declines falls through to the
-				// legacy shell_exec, which is the rollback path.
-				$rHandedOver = false;
-				if (self::daemonSupervises() && !$rDelayActive) {
-					$rHandedOver = FanoutClient::supervise(
-						$rStreamID,
-						$rFFMPEG,
-						(string) $rRealSource,
-						array(
-							'stop_failures'          => intval($rSettings['stop_failures']),
-							'stream_fail_sleep'      => intval($rSettings['stream_fail_sleep']),
-							'on_demand'              => (bool) $rStream['server_info']['on_demand'],
-							'on_demand_failure_exit' => (bool) $rSettings['on_demand_failure_exit'],
-						),
-						self::daemonHealthPolicy($rStream, $rSettings)
-					);
-				}
-				if (!$rHandedOver) {
-					$rFFMPEG .= self::liveRedirectTail($rStreamID);
-					shell_exec($rFFMPEG);
-				}
-				// Record what actually ran, under a name that says WHO ran it:
-				// `_.fanout` when the daemon owns the process (the bare command it
-				// was handed), `_.ffmpeg` when this node ran it itself (with the
-				// redirect-and-background tail). Two names rather than one because
-				// the first question in any incident is which path the stream took,
-				// and a single file cannot answer it. The stale one is removed so a
-				// stream that switched paths does not leave a lie behind.
-				$rCmdFile = $rHandedOver ? '_.fanout' : '_.ffmpeg';
-				file_put_contents(STREAMS_PATH . $rStreamID . $rCmdFile, $rFFMPEG);
-				@unlink(STREAMS_PATH . $rStreamID . ($rHandedOver ? '_.ffmpeg' : '_.fanout'));
+				shell_exec($rFFMPEG);
+				file_put_contents(STREAMS_PATH . $rStreamID . '_.ffmpeg', $rFFMPEG);
 
 				// Wait briefly for PID file to be written, with retry
 				$rPID = 0;
