@@ -67,6 +67,53 @@ final class HlsSequenceTest extends TestCase {
 		$this->assertGreaterThanOrEqual($offAirSeen, $live);
 	}
 
+	public function testLongSegmentsAreNeverRenumberedWhilePlaying() {
+		// 12 s segments against the 10 s off-air floor: the daemon counter falls
+		// behind the wall clock. Re-anchoring to the floor on every publish shifted
+		// every listed segment by one each time it caught up — players replayed or
+		// skipped a segment. With a fresh, uninterrupted run base must stay fixed.
+		$t0 = 1700000000;
+		$state = null;
+		$base = null;
+		for ($t = $t0; $t < $t0 + 600; $t += 2) {
+			$daemon = intdiv($t - $t0, 12);
+			[$seq, $state] = HlsSequence::reconcile($daemon, intdiv($t, 10), $state, $t, 12);
+			$base ??= $state['base'];
+			$this->assertSame($base, $state['base'], "renumbered at t+" . ($t - $t0));
+			$this->assertSame($daemon + $base, $seq);
+		}
+	}
+
+	public function testStalePublishReappliesTheFloor() {
+		// Nothing published for longer than the stale gap: a player may have been
+		// shown the off-air loop meanwhile, so the next live value is floored again.
+		$state = ['base' => 100, 'last' => 150, 'daemon' => 50, 'at' => 1000];
+		[$seq] = HlsSequence::reconcile(51, 500, $state, 1000 + 31, 6);
+		$this->assertSame(500, $seq);
+
+		// Within the gap the run is continuous and the floor is not applied.
+		[$seq] = HlsSequence::reconcile(51, 500, $state, 1000 + 20, 6);
+		$this->assertSame(151, $seq);
+	}
+
+	public function testOffAirMarkReappliesTheFloor() {
+		// markOffAir() zeroes `at`: even a daemon counter that ran on through a
+		// brief outage is re-anchored above the off-air loop the player just saw.
+		$state = ['base' => 100, 'last' => 150, 'daemon' => 50, 'at' => 0];
+		[$seq] = HlsSequence::reconcile(51, 500, $state, 1000, 6);
+		$this->assertSame(500, $seq);
+	}
+
+	public function testDaemonRestartWithFreshStateStillHolds() {
+		// A fresh state with a daemon counter that went BACKWARDS is a restart: hold
+		// at last (≥ floor), never step back.
+		$state = ['base' => 1000, 'last' => 1600, 'daemon' => 600, 'at' => 1000];
+		[$seq, $state] = HlsSequence::reconcile(0, 1200, $state, 1001, 6);
+		$this->assertSame(1600, $seq);
+		[$seq] = HlsSequence::reconcile(1, 1200, $state, 1007, 6);
+		$this->assertSame(1601, $seq);
+	}
+
 	public function testPublishedSequenceIsAlwaysMonotonic() {
 		// Property check: across an arbitrary run of daemon values, floors and a
 		// restart, the published sequence never decreases.
