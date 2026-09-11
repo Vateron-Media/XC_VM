@@ -37,7 +37,9 @@ Stop with Ctrl+C.
 
 import argparse
 import atexit
+import collections
 import os
+import queue
 import re
 import shutil
 import signal
@@ -53,11 +55,25 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 TS_PACKET = 188
 TS_CHUNK = TS_PACKET * 64  # ~12 KiB
 
-# Long-run safety: cap concurrent /stream.ts pulls (each spawns an ffmpeg) and
-# bound socket writes so a stalled/half-open client cannot pin an ffmpeg + FDs
-# indefinitely. Both are overridable from the CLI.
+# Long-run safety: cap concurrent /stream.ts readers (they all share ONE encoder
+# now, so this bounds threads/FDs/memory, not ffmpeg processes) and bound socket
+# writes so a stalled/half-open client cannot pin resources. Both CLI-overridable.
 DEFAULT_MAX_TS_CLIENTS = 32
 TS_WRITE_TIMEOUT = 30  # seconds a write may stall before the client is dropped
+
+# Shared MPEG-TS fan-out. One persistent ffmpeg feeds every /stream.ts client, so
+# opening the channel (including repeated panel on-demand pulls) never spawns a
+# fresh encoder — there are always exactly TWO encoders, one HLS and one TS,
+# started at boot — and a joining client attaches to the live byte stream with no
+# cold-start latency.
+TS_KEYFRAME_TIME = 0.4                  # seconds between keyframes on the TS encoder.
+                                        # Small on purpose: a consumer that joins the
+                                        # shared stream mid-GOP (e.g. the panel's LLOD
+                                        # probe with analyzeduration=0.5s) must find an
+                                        # IDR + SPS/PPS within its analysis window, or it
+                                        # reports "dimensions not set" and never starts.
+TS_PREBUFFER_BYTES = 4 * 1024 * 1024    # recent bytes replayed to a joiner (spans >=1 keyframe → instant decode)
+TS_CLIENT_QUEUE = 1024                  # per-client backlog chunks before a slow reader is dropped
 
 # Sliding-window HLS so the playlist never grows unbounded.
 HLS_SEGMENT_TIME = 4
@@ -133,16 +149,19 @@ def _vf(label):
     return ",".join(texts + boxes)
 
 
-def _encode(for_hls):
-    """Encode args (the synthetic source is raw, so it is always re-encoded)."""
+def _encode(keyint_seconds=None):
+    """Encode args (the synthetic source is raw, so it is always re-encoded).
+
+    A `keyint_seconds` pins a regular keyframe cadence: HLS needs it to cut clean
+    segments; the shared TS encoder needs it so a client joining the live fan-out
+    finds a keyframe in the prebuffer and starts decoding immediately."""
     args = [
         "-c:v", "libx264", "-preset", "veryfast", "-tune", "zerolatency",
         "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-ar", "48000",
     ]
-    if for_hls:
-        # Keyframe every segment so HLS can cut cleanly.
-        args += ["-g", str(HLS_SEGMENT_TIME * CONFIG["fps"]),
-                 "-force_key_frames", "expr:gte(t,n_forced*%d)" % HLS_SEGMENT_TIME]
+    if keyint_seconds:
+        args += ["-g", str(max(1, int(keyint_seconds * CONFIG["fps"]))),
+                 "-force_key_frames", "expr:gte(t,n_forced*%s)" % keyint_seconds]
     return args
 
 
@@ -154,16 +173,18 @@ def _source_inputs():
 
 
 def build_ts_cmd(label="TS - LLOD"):
-    """Per-client continuous MPEG-TS to stdout (pipe:1). The source is generated
-    live, so each client simply starts "now"; there is no file to seek or loop."""
+    """The single, always-running MPEG-TS encoder to stdout (pipe:1), fanned out
+    to every /stream.ts client by TsBroadcaster. Frequent keyframes + a short
+    PAT/PMT period (-pat_period 1) let a joining client lock on almost instantly
+    from the prebuffer."""
     return [
         CONFIG["ffmpeg"], "-hide_banner", "-loglevel", "error", "-re",
         *_source_inputs(),
         "-vf", _vf(label),
         "-af", "volume=" + AUDIO_VOLUME,
-        *_encode(for_hls=False),
+        *_encode(keyint_seconds=TS_KEYFRAME_TIME),
         "-mpegts_flags", "+initial_discontinuity",
-        "-pat_period", "2",
+        "-pat_period", "1",
         "-f", "mpegts", "pipe:1",
     ]
 
@@ -175,7 +196,7 @@ def build_hls_cmd(hls_dir):
         *_source_inputs(),
         "-vf", _vf("HLS"),
         "-af", "volume=" + AUDIO_VOLUME,
-        *_encode(for_hls=True),
+        *_encode(keyint_seconds=HLS_SEGMENT_TIME),
         "-f", "hls",
         "-hls_time", str(HLS_SEGMENT_TIME),
         "-hls_list_size", str(HLS_LIST_SIZE),
@@ -225,6 +246,121 @@ class HlsWriter:
                 self.proc.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 self.proc.kill()
+
+
+# --------------------------------------------------------------------------- #
+# Shared MPEG-TS broadcaster (one encoder, fanned out to every client)
+# --------------------------------------------------------------------------- #
+class TsBroadcaster:
+    """Runs ONE persistent ffmpeg producing continuous MPEG-TS and fans its
+    output out to every connected /stream.ts client. Opening the channel never
+    spawns a new encoder, so there is no per-connection cold start and the process
+    count stays fixed (one TS + one HLS) no matter how many clients or repeated
+    panel on-demand pulls arrive.
+
+    Each client gets its own bounded queue; a joiner is primed with the recent
+    prebuffer (which spans at least one keyframe) so it decodes at once. A reader
+    that falls too far behind is dropped rather than stalling the encoder or the
+    other clients.
+    """
+
+    def __init__(self):
+        self.proc = None
+        self._stop = threading.Event()
+        self._lock = threading.Lock()
+        self._clients = set()                        # set[queue.Queue]
+        self._prebuffer = collections.deque()        # recent chunks for instant join
+        self._prebuffer_bytes = 0
+        self._thread = threading.Thread(target=self._run, daemon=True)
+
+    def start(self):
+        self._thread.start()
+
+    # ---- encoder lifecycle ------------------------------------------------ #
+    def _run(self):
+        while not self._stop.is_set():
+            # stderr → DEVNULL: the identical HLS encoder captures/surfaces any
+            # ffmpeg error, and a persistent unread stderr pipe could otherwise
+            # fill and stall the encoder.
+            self.proc = subprocess.Popen(
+                build_ts_cmd(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
+            )
+            try:
+                while not self._stop.is_set():
+                    chunk = self.proc.stdout.read(TS_CHUNK)
+                    if not chunk:
+                        break
+                    self._publish(chunk)
+            finally:
+                if self.proc.poll() is None:
+                    self.proc.terminate()
+                    try:
+                        self.proc.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        self.proc.kill()
+            if self._stop.is_set():
+                return
+            sys.stderr.write("[ts] encoder exited (code %s), restarting in 2s\n"
+                             % self.proc.returncode)
+            time.sleep(2)
+
+    # ---- fan-out ---------------------------------------------------------- #
+    def _publish(self, chunk):
+        with self._lock:
+            self._prebuffer.append(chunk)
+            self._prebuffer_bytes += len(chunk)
+            while self._prebuffer_bytes > TS_PREBUFFER_BYTES and len(self._prebuffer) > 1:
+                self._prebuffer_bytes -= len(self._prebuffer.popleft())
+            dead = []
+            for q in self._clients:
+                try:
+                    q.put_nowait(chunk)
+                except queue.Full:
+                    dead.append(q)
+            for q in dead:
+                self._clients.discard(q)
+                # make room + wake the client's reader thread so it exits cleanly
+                try:
+                    q.get_nowait()
+                except queue.Empty:
+                    pass
+                try:
+                    q.put_nowait(None)
+                except queue.Full:
+                    pass
+
+    def add_client(self):
+        """Register a client; return (queue, prime_bytes) where prime_bytes is the
+        current prebuffer to send first for an immediate lock-on."""
+        q = queue.Queue(maxsize=TS_CLIENT_QUEUE)
+        with self._lock:
+            prime = b"".join(self._prebuffer)
+            self._clients.add(q)
+        return q, prime
+
+    def remove_client(self, q):
+        with self._lock:
+            self._clients.discard(q)
+
+    def client_count(self):
+        with self._lock:
+            return len(self._clients)
+
+    def stop(self):
+        self._stop.set()
+        if self.proc and self.proc.poll() is None:
+            self.proc.terminate()
+            try:
+                self.proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.proc.kill()
+        with self._lock:
+            for q in self._clients:
+                try:
+                    q.put_nowait(None)
+                except queue.Full:
+                    pass
+            self._clients.clear()
 
 
 # --------------------------------------------------------------------------- #
@@ -285,22 +421,25 @@ class Handler(BaseHTTPRequestHandler):
         self._send_text("\n".join(lines), content_type="audio/x-mpegurl")
 
     def _stream_ts(self):
-        """Continuous MPEG-TS — the LLOD-compatible endpoint. A per-client ffmpeg
-        (which the panel LLOD probe/pull expects) generating the synthetic source
-        live, so opening the channel starts a fresh 'now'.
+        """Continuous MPEG-TS — the LLOD-compatible endpoint. Served from the
+        single shared TsBroadcaster: the client attaches to the always-running
+        encoder's live byte stream (primed with a keyframe-aligned prebuffer), so
+        opening the channel is instant and never spawns a new ffmpeg — no matter
+        how many clients or repeated panel on-demand pulls connect.
 
-        Long-run hardening: a bounded number of concurrent pulls (each is an
-        ffmpeg), a socket write timeout + TCP keepalive so a stalled/half-open
-        client is dropped instead of pinning the ffmpeg forever, and a hard kill
-        if terminate() does not reap it."""
+        Long-run hardening: a bounded number of concurrent readers, a socket write
+        timeout + TCP keepalive so a stalled/half-open client is dropped instead
+        of holding a slot, and a bounded per-client queue so a slow reader is
+        dropped instead of growing memory."""
         slots = CONFIG["ts_slots"]
         if not slots.acquire(blocking=False):
-            sys.stderr.write("[ts] refused %s: at client cap (%d)\n"
+            sys.stderr.write("[ts] refused %s: at reader cap (%d)\n"
                              % (self.address_string(), CONFIG["max_clients"]))
             self._send_text("Too many concurrent streams, try later.\n", status=503)
             return
 
-        proc = None
+        bcast = CONFIG["ts_broadcaster"]
+        q = None
         try:
             self.send_response(200)
             self.send_header("Content-Type", "video/mp2t")
@@ -318,31 +457,24 @@ class Handler(BaseHTTPRequestHandler):
                 pass
             self.connection.settimeout(TS_WRITE_TIMEOUT)
 
-            sys.stderr.write("[ts] start %s\n" % self.address_string())
-            proc = subprocess.Popen(
-                build_ts_cmd(), stdout=subprocess.PIPE, stderr=subprocess.DEVNULL
-            )
+            q, prime = bcast.add_client()
+            sys.stderr.write("[ts] join  %s (readers=%d)\n"
+                             % (self.address_string(), bcast.client_count()))
+            if prime:
+                self.wfile.write(prime)
             while True:
-                chunk = proc.stdout.read(TS_CHUNK)
-                if not chunk:
-                    break
+                chunk = q.get()
+                if chunk is None:
+                    break  # dropped (too slow) or server shutting down
                 self.wfile.write(chunk)
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError,
                 socket.timeout, TimeoutError, OSError):
             pass  # client disconnected or stalled past the write timeout — expected
         finally:
-            if proc is not None and proc.poll() is None:
-                proc.terminate()
-                try:
-                    proc.wait(timeout=5)
-                except subprocess.TimeoutExpired:
-                    proc.kill()
-                    try:
-                        proc.wait(timeout=2)
-                    except subprocess.TimeoutExpired:
-                        pass
+            if q is not None:
+                bcast.remove_client(q)
             slots.release()
-            sys.stderr.write("[ts] end   %s\n" % self.address_string())
+            sys.stderr.write("[ts] leave %s\n" % self.address_string())
 
     def _index(self):
         base = self._base_url()
@@ -425,7 +557,7 @@ def parse_args():
     p.add_argument("--ffmpeg", default="ffmpeg", help="ffmpeg binary (default: ffmpeg in PATH)")
     p.add_argument(
         "--max-clients", type=int, default=DEFAULT_MAX_TS_CLIENTS,
-        help="max concurrent /stream.ts pulls, each is an ffmpeg (default %d)" % DEFAULT_MAX_TS_CLIENTS,
+        help="max concurrent /stream.ts readers, all sharing one encoder (default %d)" % DEFAULT_MAX_TS_CLIENTS,
     )
     p.add_argument(
         "--verbose", action="store_true",
@@ -518,13 +650,20 @@ def main():
     writer = HlsWriter(hls_dir)
     writer.start()
 
+    # Second, always-running encoder: the shared MPEG-TS source. Started at boot
+    # (not per client) so /stream.ts joins are instant and the ffmpeg count is
+    # fixed at two.
+    ts_bcast = TsBroadcaster()
+    CONFIG["ts_broadcaster"] = ts_bcast
+    ts_bcast.start()
+
     httpd = QuietThreadingHTTPServer((args.host, args.port), Handler)
 
     base = "http://%s:%d" % (CONFIG["advertise_host"], args.port)
     print("XC_VM test stream generator")
     print("  source: generated %s @ %dfps (moving pattern + stopwatch + wall-clock)" % (args.size, args.fps))
     print("  font  : %s" % (font or "(none — testsrc built-in timer)"))
-    print("  bind  : %s:%d  (max %d TS clients)" % (args.host, args.port, args.max_clients))
+    print("  bind  : %s:%d  (2 encoders: 1 HLS + 1 shared TS, max %d TS readers)" % (args.host, args.port, args.max_clients))
     print("")
     print("Paste one of these into the panel's stream source field:")
     print("  TS (LLOD): %s/stream.ts" % base)
@@ -537,6 +676,7 @@ def main():
     def shutdown(*_):
         print("\nstopping...")
         writer.stop()
+        ts_bcast.stop()
         threading.Thread(target=httpd.shutdown, daemon=True).start()
 
     signal.signal(signal.SIGINT, shutdown)
@@ -547,6 +687,7 @@ def main():
     finally:
         httpd.server_close()
         writer.stop()
+        ts_bcast.stop()
 
 
 if __name__ == "__main__":

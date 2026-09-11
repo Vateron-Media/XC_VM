@@ -1,0 +1,21 @@
+#EXTM3U
+# XC_VM test-stream-generator — variant channel list.
+# The same two upstream endpoints served by stream_server.py, duplicated under a
+# channel name per panel delivery/processing mode you want to exercise.
+# Replace HOST:PORT below with the address stream_server.py prints on start
+# (default port 8088). HLS has no "LLOD v3" variant by design — LLOD v3 is the
+# MPEG-TS daemon feed (ADR 0003).
+#EXTINF:-1 tvg-id="xcvm.test.ts.llod2" tvg-name="XC_VM Test TS — LLOD v2" group-title="XC_VM Test / MPEGTS",XC_VM Test TS — LLOD v2
+http://127.0.0.1:8088/stream.ts
+#EXTINF:-1 tvg-id="xcvm.test.ts.llod3" tvg-name="XC_VM Test TS — LLOD v3" group-title="XC_VM Test / MPEGTS",XC_VM Test TS — LLOD v3
+http://127.0.0.1:8088/stream.ts
+#EXTINF:-1 tvg-id="xcvm.test.ts.clean" tvg-name="XC_VM Test TS — Clean" group-title="XC_VM Test / MPEGTS",XC_VM Test TS — Clean
+http://127.0.0.1:8088/stream.ts
+#EXTINF:-1 tvg-id="xcvm.test.ts.proxy" tvg-name="XC_VM Test TS — Proxy" group-title="XC_VM Test / MPEGTS",XC_VM Test TS — Proxy
+http://127.0.0.1:8088/stream.ts
+#EXTINF:-1 tvg-id="xcvm.test.hls.llod2" tvg-name="XC_VM Test HLS — LLOD v2" group-title="XC_VM Test / HLS",XC_VM Test HLS — LLOD v2
+http://127.0.0.1:8088/stream.m3u8
+#EXTINF:-1 tvg-id="xcvm.test.hls.clean" tvg-name="XC_VM Test HLS — Clean" group-title="XC_VM Test / HLS",XC_VM Test HLS — Clean
+http://127.0.0.1:8088/stream.m3u8
+#EXTINF:-1 tvg-id="xcvm.test.hls.proxy" tvg-name="XC_VM Test HLS — Proxy" group-title="XC_VM Test / HLS",XC_VM Test HLS — Proxy
+http://127.0.0.1:8088/stream.m3u8

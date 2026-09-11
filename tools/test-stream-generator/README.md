@@ -48,7 +48,7 @@ Stop with `Ctrl+C`.
 | `--size`            | `1280x720`  | Frame size `WxH`.                                                  |
 | `--fps`             | `25`        | Frame rate.                                                        |
 | `--font`            | autodetect  | Path to a `.ttf` for the on-screen clock/labels.                  |
-| `--max-clients`     | `32`        | Max concurrent `/stream.ts` pulls (each is an ffmpeg). Extra connections get `503`. |
+| `--max-clients`     | `32`        | Max concurrent `/stream.ts` **readers** (all share the one TS encoder). Extra connections get `503`. |
 | `--verbose`         | off         | Log every HTTP request (off by default to keep long runs quiet).  |
 | `--ffmpeg`          | `ffmpeg`    | ffmpeg binary to use.                                              |
 
@@ -61,7 +61,7 @@ Stop with `Ctrl+C`.
 
 | URL              | Content-Type                      | Use                                                   |
 | ---------------- | --------------------------------- | ----------------------------------------------------- |
-| `/stream.ts`     | `video/mp2t`                      | Continuous MPEG-TS — **the endpoint for testing LLOD**. |
+| `/stream.ts`     | `video/mp2t`                      | Continuous MPEG-TS — **the endpoint for testing LLOD**. Served from one shared, always-running encoder, so every open — including repeated on-demand pulls — attaches instantly with no new ffmpeg. |
 | `/stream.m3u8`   | `application/vnd.apple.mpegurl`   | Live HLS (sliding-window playlist + `.ts` segments).  |
 | `/playlist.m3u`  | `audio/x-mpegurl`                 | M3U channel list with both URLs, for bulk import.     |
 | `/`              | `text/html`                       | Index page listing every URL.                         |
