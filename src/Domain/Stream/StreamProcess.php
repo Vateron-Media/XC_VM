@@ -1059,8 +1059,10 @@ class StreamProcess {
 	 * @return string|null
 	 */
 	private static function nativeRefusal(array $rStreamInfo, array $rArgs): ?string {
-		if (($rStreamInfo['type_key'] ?? '') !== 'live_streams') {
-			return 'not a live channel'; // radio and created channels are ffmpeg's
+		// `live` is the key of the Live Streams type in `streams_types`; the other
+		// live ones are `created_live` and `radio_streams`, both ffmpeg's.
+		if (($rStreamInfo['type_key'] ?? '') !== 'live') {
+			return 'not a live channel (type ' . ($rStreamInfo['type_key'] ?? '?') . ')';
 		}
 		if (intval($rStreamInfo['enable_transcode'] ?? 0) === 1) {
 			return 'transcoding is enabled';
@@ -1078,14 +1080,16 @@ class StreamProcess {
 		if (is_array($rPush) && !empty($rPush[SERVER_ID])) {
 			return 'the stream is pushed to an external server';
 		}
-		// Asked for timestamp repair or realtime pacing: the source is not a
-		// clean live feed, and passing its bytes through unchanged is not enough.
-		if (intval($rStreamInfo['gen_timestamps'] ?? 0) === 1) {
-			return 'Generate PTS is on';
-		}
-		if (intval($rStreamInfo['read_native'] ?? 0) === 1) {
-			return 'Read Native is on';
-		}
+		// `gen_timestamps` (-fflags +genpts -async 1) and `read_native` (-re) are
+		// NOT refusals, although the remuxer does neither: both default to 1 for
+		// every row in `streams`, so they carry no operator intent — refusing them
+		// would mean the native backend never runs at all. -re paces a file-ish
+		// input, which a passthrough of a live http/udp/rtp source does by itself
+		// (the sender sets the pace), and genpts only synthesises timestamps a
+		// source failed to send — a source broken enough for that has no usable
+		// video clock either, which ends the run with exit 3 and, in `auto`, hands
+		// it to ffmpeg. A channel that genuinely needs the repair belongs on the
+		// ffmpeg backend.
 		if (!empty($rArgs['force_input_acodec']['value'])) {
 			return 'an input audio codec is forced'; // re-interprets the audio
 		}

@@ -249,8 +249,10 @@ database write; the daemon runs what it is handed.
   files like the self-launched path's `<id>_.ffmpeg`: `<id>_.fanout` for the remuxer,
   `<id>_.ffmpeg` for ffmpeg (in `auto`, both). When the native backend is on and a stream runs
   ffmpeg anyway, `StreamProcess::nativeRefusal()`'s reason is appended to `<id>.errors`
-  (`[panel] ffmpeg runs this stream: Generate PTS is on`), the same file the producer's stderr
-  goes to.
+  (`[panel] ffmpeg runs this stream: transcoding is enabled`), the same file the producer's
+  stderr goes to. The qualifying type is `streams_types.type_key` = `live`; `gen_timestamps` and
+  `read_native` are deliberately not refusals (both default to 1, so they say nothing about the
+  channel — see the daemon runbook).
 - **Reconcile** — the daemon cannot write the database, so `StreamProcess::reconcileSupervised()`
   copies its state into `streams_servers` (status, pid, current source, codecs, resolution,
   measured bitrate): every `cron:streams` pass, and every 5 s from the `signals` daemon. A

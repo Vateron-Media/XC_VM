@@ -37,7 +37,7 @@ final class StreamProcessBuildLiveTest extends TestCase {
 					'custom_ffmpeg' => '',
 					'stream_all' => 0,
 					'custom_map' => '',
-					'type_key' => 'live_streams',
+					'type_key' => 'live',
 					'gen_timestamps' => 0,
 					'read_native' => 0,
 					'enable_transcode' => 0,

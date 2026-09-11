@@ -99,7 +99,9 @@ final class StreamProcessSupervisionTest extends TestCase {
 
 	private function plainStream(array $rOverrides = []): array {
 		return array_merge([
-			'type_key' => 'live_streams',
+			// `streams_types`: (1, 'Live Streams', 'live'), (3, 'created_live'),
+			// (4, 'radio_streams') — the key, not the table name.
+			'type_key' => 'live',
 			'enable_transcode' => 0,
 			'custom_ffmpeg' => '',
 			'custom_map' => '',
@@ -114,6 +116,15 @@ final class StreamProcessSupervisionTest extends TestCase {
 		$this->assertNull(self::call('nativeRefusal', $this->plainStream(), []));
 	}
 
+	/**
+	 * Both default to 1 in `streams`, so they say nothing about this channel —
+	 * refusing them is refusing every channel, which is how the native backend
+	 * came to never run.
+	 */
+	public function testSchemaDefaultsDoNotRefuseTheRemuxer(): void {
+		$this->assertNull(self::call('nativeRefusal', $this->plainStream(['gen_timestamps' => 1, 'read_native' => 1]), []));
+	}
+
 	public function testAnythingNeedingFfmpegIsNotNativeEligible(): void {
 		foreach ([
 			'transcode' => ['enable_transcode' => 1],
@@ -121,10 +132,9 @@ final class StreamProcessSupervisionTest extends TestCase {
 			'custom map' => ['custom_map' => '-map 0:0'],
 			'rtmp output' => ['rtmp_output' => 1],
 			'external push here' => ['external_push' => json_encode([1 => ['rtmp://push/x']])],
-			'timestamp repair' => ['gen_timestamps' => 1],
-			'realtime pacing' => ['read_native' => 1],
 			'radio' => ['type_key' => 'radio_streams'],
 			'created channel' => ['type_key' => 'created_live'],
+			'a type key that is not the schema\'s' => ['type_key' => 'live_streams'],
 		] as $rWhy => $rOverride) {
 			// The refusal is written to the stream's log, so every one of them
 			// must say something an operator can act on.
