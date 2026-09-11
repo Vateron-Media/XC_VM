@@ -128,6 +128,7 @@ $rStatusFilters = [
                     <th><?= $language::get('player'); ?></th>
                     <th>EPG</th>
                     <th><?= $language::get('stream_info'); ?></th>
+                    <th><?= $language::get('stream_usage'); ?></th>
                     <th><?= $language::get('actions'); ?></th>
                 </tr>
             </thead>
@@ -264,6 +265,26 @@ renderUnifiedLayoutFooter('admin');
         };
         var running = function(row) {
             return row.status === 1 || row.status === 2 || row.status === 3 || row.status === 5 || row.on_demand;
+        };
+        var fmtBytes = function(b) {
+            if (b == null) {
+                return '—';
+            }
+            return b >= 1073741824 ? (b / 1073741824).toFixed(1) + ' GB' : Math.round(b / 1048576) + ' MB';
+        };
+        // CPU is percent of ONE core, so a transcode legitimately passes 100.
+        var cpuTone = function(c) {
+            if (c == null) {
+                return 'secondary';
+            }
+            return c < 50 ? 'success' : (c < 150 ? 'warning' : 'danger');
+        };
+        // Which process produces the stream: the fanout daemon's native remuxer,
+        // ffmpeg, or PHP (the LLOD segmenter / loopback relay).
+        var PRODUCER = {
+            fanout: ['info', 'fanout'],
+            ffmpeg: ['secondary', 'ffmpeg'],
+            php: ['secondary', 'php']
         };
 
         var selected = {};
@@ -465,6 +486,26 @@ renderUnifiedLayoutFooter('admin');
                             '<span class="badge bg-label-success">' + esc(d.audio) + '</span>' +
                             '<span class="badge bg-label-secondary">' + esc(d.speed) + '</span>' +
                             '<span class="badge bg-label-secondary">' + esc(d.fps) + '</span></div>';
+                    }
+                },
+                {
+                    data: 'usage',
+                    orderable: false,
+                    searchable: false,
+                    className: 'text-nowrap',
+                    render: function(d) {
+                        if (!d) {
+                            return '<small class="text-body-secondary">—</small>';
+                        }
+                        var p = PRODUCER[d.producer] || null;
+                        var html = '<div class="d-flex flex-wrap gap-1">';
+                        if (p) {
+                            html += '<span class="badge bg-label-' + p[0] + '">' + p[1] + '</span>';
+                        }
+                        html += '<span class="badge bg-label-' + cpuTone(d.cpu) + '" title="CPU">' +
+                            (d.cpu == null ? '—' : Number(d.cpu).toFixed(1) + '%') + '</span>' +
+                            '<span class="badge bg-label-secondary" title="RAM">' + esc(fmtBytes(d.mem)) + '</span></div>';
+                        return html;
                     }
                 },
                 {

@@ -66,6 +66,47 @@ class StreamsCronJob implements CommandInterface {
         return (strpos($rExe, 'ffmpeg') === 0 && FanoutClient::daemonStreamMissing(intval($rStream['stream_id']))) ? 1 : 0;
     }
 
+    /**
+     * Fold the producer's CPU, memory and kind into the stream's progress JSON —
+     * what the admin streams list shows per stream.
+     *
+     * Only this node can read its own /proc, so the reading is taken here and
+     * travels to the panel in the row the cron already writes. CPU is a delta
+     * against the previous pass's reading (carried in the same JSON), so it is
+     * the average over the pass rather than ffmpeg's lifetime average, which for
+     * a channel running for days says nothing about now.
+     *
+     * @param string      $rProgressJson This pass's progress report.
+     * @param string|null $rPreviousJson Last pass's, for the CPU delta.
+     * @param int         $rPID          The producer's pid.
+     * @return string The JSON to store.
+     */
+    private static function withResourceUsage(string $rProgressJson, ?string $rPreviousJson, int $rPID): string {
+        $rProgress = json_decode($rProgressJson, true);
+        if (!is_array($rProgress)) {
+            $rProgress = array();
+        }
+        $rSample = ProcessManager::resourceSample($rPID);
+        if ($rSample === null) {
+            unset($rProgress['cpu'], $rProgress['mem'], $rProgress['producer'], $rProgress['cpu_t'], $rProgress['cpu_at']);
+            return json_encode($rProgress);
+        }
+
+        $rPrevious = json_decode((string) $rPreviousJson, true);
+        $rCPU = null;
+        if (is_array($rPrevious) && isset($rPrevious['cpu_t'], $rPrevious['cpu_at'])) {
+            $rCPU = ProcessManager::cpuPercent($rSample, array('ticks' => (int) $rPrevious['cpu_t'], 'at' => (float) $rPrevious['cpu_at']));
+        }
+
+        $rProgress['cpu'] = $rCPU; // null on the first pass and after a restart
+        $rProgress['mem'] = $rSample['rss'];
+        $rProgress['producer'] = ProcessManager::producerKind($rPID);
+        $rProgress['cpu_t'] = $rSample['ticks'];
+        $rProgress['cpu_at'] = round($rSample['at'], 3);
+
+        return json_encode($rProgress);
+    }
+
     private function loadCron(): void {
         $rRedis = SettingsManager::getBool('redis_handler');
         global $db;
@@ -250,6 +291,7 @@ class StreamsCronJob implements CommandInterface {
                         } else {
                             $rProgress = $rStream['progress_info'];
                         }
+                        $rProgress = self::withResourceUsage((string) $rProgress, $rStream['progress_info'], $rPID);
                         // A supervised stream's codecs, resolution and bitrate come
                         // from the daemon, measured off the bytes (reconcileSupervised
                         // wrote them above); recomputing them here from a stream_info

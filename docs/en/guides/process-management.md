@@ -67,6 +67,28 @@ around?".
 
 ---
 
+## Per-stream CPU and memory
+
+```php
+ProcessManager::resourceSample($pid): ?array          // ['ticks' => CPU ticks so far, 'rss' => bytes, 'at' => microtime]
+ProcessManager::cpuPercent(array $now, array $prev): ?float   // percent of ONE core between two samples
+ProcessManager::producerKind($pid): ?string           // 'fanout' (xc_fanout remux) | 'ffmpeg' | 'php'
+```
+
+Read straight out of `/proc/PID/stat` (fields 14/15 for CPU, 24 for RSS; the page size is derived
+from this process's own `statm` vs `status`, since 64K pages are normal on arm64). CPU in `/proc`
+is cumulative, so a percentage needs **two** samples: `cpuPercent()` returns `null` when the pair
+says nothing — no previous reading, two readings from the same instant, or a counter that went
+backwards because the producer restarted under the same stream.
+
+`cron:streams` samples each running stream's producer once per pass and folds the result into that
+stream's `progress_info` JSON (`cpu`, `mem`, `producer`, plus `cpu_t` / `cpu_at` carrying the
+reading the next pass subtracts from). Only the node running a stream can read its own `/proc`, so
+the sampling happens there and travels to the panel in the row the cron already writes; the admin
+streams list renders it as the **Resources** column (producer badge, CPU %, RAM).
+
+---
+
 ## Process Termination
 
 ```php

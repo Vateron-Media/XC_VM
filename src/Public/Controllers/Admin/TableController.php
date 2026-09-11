@@ -769,7 +769,10 @@ class TableController extends BaseAdminController {
 		}
 		$rCategories = CategoryService::getAllByType("live");
 		// Leading false, false = Responsive control + bulk-select checkbox columns (Bootstrap 5).
-		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
+		// One entry per column of the streams table (admin/streams.php), in order:
+		// control, select, id, icon, title, server, connections, status, player,
+		// EPG, stream info, usage, actions. false = not sortable in SQL.
+		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 		} else {
@@ -1142,6 +1145,21 @@ class TableController extends BaseAdminController {
 							$rPlayerVideo = strtoupper((string) ($rVideo["codec_name"] ?? ""));
 						}
 
+						// What the producer costs this node, and which producer it is
+						// (ffmpeg, or the fanout daemon's native remuxer). Sampled
+						// from /proc by cron:streams ON the server that runs the
+						// stream — only it can read its own processes — and carried
+						// here in the progress report it writes anyway.
+						$rUsage = null;
+						$rUsageInfo = json_decode($rRow["progress_info"] ?? '', true);
+						if (is_array($rUsageInfo) && (isset($rUsageInfo["mem"]) || isset($rUsageInfo["producer"]))) {
+							$rUsage = [
+								"cpu" => isset($rUsageInfo["cpu"]) ? (float) $rUsageInfo["cpu"] : null,
+								"mem" => isset($rUsageInfo["mem"]) ? (int) $rUsageInfo["mem"] : null,
+								"producer" => $rUsageInfo["producer"] ?? null,
+							];
+						}
+
 						// EPG availability + player codec compatibility.
 						$rEPG = file_exists(EPG_PATH . "stream_" . $rRow["id"]) ? "available" : ($rRow["channel_id"] ? "pending" : "none");
 						$rPlayerOk = false;
@@ -1176,6 +1194,7 @@ class TableController extends BaseAdminController {
 							"notes" => !empty($rRow["notes"]) ? $rRow["notes"] : null,
 							"player_ok" => $rPlayerOk,
 							"info" => $rInfo,
+							"usage" => $rUsage,
 						];
 					}
 				}
