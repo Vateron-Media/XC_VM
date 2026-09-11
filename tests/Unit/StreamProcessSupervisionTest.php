@@ -6,7 +6,7 @@ use XcVm\Domain\Stream\StreamProcess;
 /**
  * The pure parts of handing a live stream to the xc_fanout supervisor: the
  * native remuxer command (buildNativeLive), which streams may use it
- * (isNativeEligible / isNativeSource), the policy and health the PHP monitor
+ * (nativeRefusal / isNativeSource), the policy and health the PHP monitor
  * obeyed (supervisorPolicy / supervisorHealth), and what a supervisor state
  * means for streams_servers (supervisedRowUpdate).
  */
@@ -111,7 +111,7 @@ final class StreamProcessSupervisionTest extends TestCase {
 	}
 
 	public function testPlainCopyStreamIsNativeEligible(): void {
-		$this->assertTrue(self::call('isNativeEligible', $this->plainStream(), []));
+		$this->assertNull(self::call('nativeRefusal', $this->plainStream(), []));
 	}
 
 	public function testAnythingNeedingFfmpegIsNotNativeEligible(): void {
@@ -126,10 +126,18 @@ final class StreamProcessSupervisionTest extends TestCase {
 			'radio' => ['type_key' => 'radio_streams'],
 			'created channel' => ['type_key' => 'created_live'],
 		] as $rWhy => $rOverride) {
-			$this->assertFalse(self::call('isNativeEligible', $this->plainStream($rOverride), []), $rWhy);
+			// The refusal is written to the stream's log, so every one of them
+			// must say something an operator can act on.
+			$this->assertIsString(self::call('nativeRefusal', $this->plainStream($rOverride), []), $rWhy);
 		}
-		$this->assertTrue(self::call('isNativeEligible', $this->plainStream(['external_push' => json_encode([7 => ['rtmp://push/x']])]), []), "another server's push is not this one's");
-		$this->assertFalse(self::call('isNativeEligible', $this->plainStream(), ['force_input_acodec' => ['value' => 'ac3']]), 'forced input codec');
+		$this->assertNull(self::call('nativeRefusal', $this->plainStream(['external_push' => json_encode([7 => ['rtmp://push/x']])]), []), "another server's push is not this one's");
+		$this->assertIsString(self::call('nativeRefusal', $this->plainStream(), ['force_input_acodec' => ['value' => 'ac3']]), 'forced input codec');
+	}
+
+	public function testRemuxCommandIsRecognisedForTheCommandRecord(): void {
+		$rCmd = $this->native(['binary' => \XcVm\Streaming\Fanout\FanoutClient::binaryPath()]);
+		$this->assertTrue(self::call('isRemuxCommand', $rCmd), 'the remuxer command is recorded as <id>_.fanout');
+		$this->assertFalse(self::call('isRemuxCommand', '/bin/ffmpeg40 -i x -c copy -f tee y'), 'an ffmpeg command is not');
 	}
 
 	public function testNativeSources(): void {

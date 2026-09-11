@@ -28,6 +28,9 @@ class FanoutClient {
 	/** Default source User-Agent, matching ProxyCommand::startProxy(). */
 	private const DEFAULT_UA = 'Mozilla/5.0';
 
+	/** What the last monitorStates() call reported the daemon can be handed. */
+	private static ?array $features = null;
+
 	/**
 	 * Build the daemon source config from a `streams` row and its keyed
 	 * `streams_arguments` (as ProxyCommand reads them). Pure function — no I/O —
@@ -495,7 +498,29 @@ class FanoutClient {
 		if (!is_array($rData) || !isset($rData['streams']) || !is_array($rData['streams'])) {
 			return null;
 		}
-		return array('accepting' => !empty($rData['accepting']), 'daemon_pid' => intval($rData['daemon_pid'] ?? 0), 'streams' => $rData['streams']);
+		$rFeatures = (isset($rData['features']) && is_array($rData['features'])) ? array_map('strval', $rData['features']) : array();
+		self::$features = $rFeatures;
+		return array('accepting' => !empty($rData['accepting']), 'daemon_pid' => intval($rData['daemon_pid'] ?? 0), 'features' => $rFeatures, 'streams' => $rData['streams']);
+	}
+
+	/**
+	 * Whether the running daemon understands `xc_fanout remux` — the native
+	 * remuxer command the panel composes for a copy-only stream.
+	 *
+	 * A daemon from before it does not reject such a command, it MISPARSES it:
+	 * `remux` reads as a positional argument to the daemon's own flag set, the
+	 * process tries to become a second daemon on sockets the running one holds,
+	 * and the stream never starts. So a panel that is newer than the node's
+	 * binary must ask first — on a half-upgraded node the streams simply keep
+	 * running ffmpeg, which is the whole point of asking.
+	 *
+	 * @return bool False when the daemon has not been asked yet, or says no.
+	 */
+	public static function supportsRemux(): bool {
+		if (self::$features === null) {
+			self::monitorStates();
+		}
+		return is_array(self::$features) && in_array('remux', self::$features, true);
 	}
 
 	/**

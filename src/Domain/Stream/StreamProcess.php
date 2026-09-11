@@ -1045,41 +1045,51 @@ class StreamProcess {
 	}
 
 	/**
-	 * Whether a live stream's configuration is a pure copy the native remuxer
-	 * reproduces: one MPEG-TS source passed through, with nothing configured that
-	 * needs ffmpeg in the path. PURE. Anything unrecognised falls to ffmpeg — a
-	 * refusal costs an ffmpeg process, a wrong acceptance a channel served wrong.
+	 * Why the native remuxer cannot serve this live stream — or null when it can:
+	 * one MPEG-TS source passed through, with nothing configured that needs ffmpeg
+	 * in the path. PURE. Anything unrecognised falls to ffmpeg — a refusal costs
+	 * an ffmpeg process, a wrong acceptance a channel served wrong.
+	 *
+	 * The reason is a sentence, not a flag, because it is written to the stream's
+	 * log: "this channel runs ffmpeg" is the question operators ask of a panel
+	 * with the native backend on, and the answer is always one of these settings.
 	 *
 	 * @param array $rStreamInfo streams ⨝ streams_types row.
 	 * @param array $rArgs       Stream arguments keyed by argument_key.
-	 * @return bool
+	 * @return string|null
 	 */
-	private static function isNativeEligible(array $rStreamInfo, array $rArgs): bool {
+	private static function nativeRefusal(array $rStreamInfo, array $rArgs): ?string {
 		if (($rStreamInfo['type_key'] ?? '') !== 'live_streams') {
-			return false; // radio and created channels are ffmpeg's
+			return 'not a live channel'; // radio and created channels are ffmpeg's
 		}
-		if (intval($rStreamInfo['enable_transcode'] ?? 0) === 1 || !empty($rStreamInfo['custom_ffmpeg'])) {
-			return false; // re-encoding
+		if (intval($rStreamInfo['enable_transcode'] ?? 0) === 1) {
+			return 'transcoding is enabled';
+		}
+		if (!empty($rStreamInfo['custom_ffmpeg'])) {
+			return 'the stream has a custom ffmpeg command';
 		}
 		if (!empty($rStreamInfo['custom_map'])) {
-			return false; // a stream selection the remuxer (which copies every PID) cannot honour
+			return 'the stream maps specific tracks'; // the remuxer copies every PID
 		}
 		if (intval($rStreamInfo['rtmp_output'] ?? 0) === 1) {
-			return false; // FLV output
+			return 'RTMP (FLV) output is enabled';
 		}
 		$rPush = json_decode((string) ($rStreamInfo['external_push'] ?? ''), true);
 		if (is_array($rPush) && !empty($rPush[SERVER_ID])) {
-			return false; // external RTMP pushes
+			return 'the stream is pushed to an external server';
 		}
 		// Asked for timestamp repair or realtime pacing: the source is not a
 		// clean live feed, and passing its bytes through unchanged is not enough.
-		if (intval($rStreamInfo['gen_timestamps'] ?? 0) === 1 || intval($rStreamInfo['read_native'] ?? 0) === 1) {
-			return false;
+		if (intval($rStreamInfo['gen_timestamps'] ?? 0) === 1) {
+			return 'Generate PTS is on';
+		}
+		if (intval($rStreamInfo['read_native'] ?? 0) === 1) {
+			return 'Read Native is on';
 		}
 		if (!empty($rArgs['force_input_acodec']['value'])) {
-			return false; // re-interprets the audio: an ffmpeg input option
+			return 'an input audio codec is forced'; // re-interprets the audio
 		}
-		return true;
+		return null;
 	}
 
 	/**
@@ -1228,7 +1238,21 @@ class StreamProcess {
 			$rArgsByKey[$rArg['argument_key']] = $rArg;
 		}
 		$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
-		$rNativeStream = $rBackend !== 'ffmpeg' && self::isNativeEligible($rInfo, $rArgsByKey);
+		$rNativeStream = false;
+		if ($rBackend !== 'ffmpeg') {
+			$rRefusal = self::nativeRefusal($rInfo, $rArgsByKey);
+			if ($rRefusal === null && !FanoutClient::supportsRemux()) {
+				// The node's daemon predates `xc_fanout remux`. Handing it the
+				// command would not fail cleanly — it would start a process that
+				// tries to be a second daemon — so this stream stays on ffmpeg
+				// until the binary is updated.
+				$rRefusal = 'this node\'s xc_fanout has no native remuxer (update the daemon binary)';
+			}
+			$rNativeStream = $rRefusal === null;
+			if ($rRefusal !== null) {
+				self::noteProducer($rStreamID, 'ffmpeg runs this stream: ' . $rRefusal);
+			}
+		}
 		$rPriority = !empty($rSettings['priority_backup']) && count($rSources) > 1 && !$rLoopback;
 
 		$rSpecSources = array();
@@ -1260,6 +1284,9 @@ class StreamProcess {
 			));
 
 			$rEntry = array('label' => $rLabels[$i], 'cmd' => $rFFMPEG);
+			if ($rNativeStream && !self::isNativeSource($rStreamSource)) {
+				self::noteProducer($rStreamID, 'ffmpeg runs source #' . $i . ': ' . strtolower((string) parse_url($rStreamSource, PHP_URL_SCHEME)) . ':// is not a scheme the remuxer reads');
+			}
 			if ($rNativeStream && self::isNativeSource($rStreamSource)) {
 				$rNativeArgs = array();
 				foreach ($rArguments as $rArg) {
@@ -1410,8 +1437,51 @@ class StreamProcess {
 			FanoutClient::release($rStreamID);
 			return false;
 		}
+		self::recordCommand($rStreamID, $rSpec);
 		self::updateStream($rStreamID);
 		return true;
+	}
+
+	/**
+	 * Record the command(s) handed to the supervisor beside the stream's files,
+	 * the way the self-launched path records its ffmpeg line in `<id>_.ffmpeg`:
+	 * the native remuxer's goes to `<id>_.fanout`, ffmpeg's (the command itself,
+	 * or the fallback the supervisor switches to in `auto`) to `<id>_.ffmpeg`.
+	 * Purely a forensic record — nothing reads these back — but it is the first
+	 * thing anyone opens when a channel misbehaves, and a supervised stream used
+	 * to leave none. Both are removed with the rest of `<id>_*` when it stops.
+	 */
+	private static function recordCommand(int $rStreamID, array $rSpec): void {
+		$rCmd = (string) ($rSpec['sources'][0]['cmd'] ?? '');
+		$rFanout = STREAMS_PATH . $rStreamID . '_.fanout';
+		$rFFMPEG = STREAMS_PATH . $rStreamID . '_.ffmpeg';
+		if (self::isRemuxCommand($rCmd)) {
+			@file_put_contents($rFanout, $rCmd);
+			$rFallback = (string) ($rSpec['sources'][0]['fallback_cmd'] ?? '');
+			if ($rFallback !== '') {
+				@file_put_contents($rFFMPEG, $rFallback);
+			} else {
+				@unlink($rFFMPEG);
+			}
+			return;
+		}
+		@file_put_contents($rFFMPEG, $rCmd);
+		@unlink($rFanout);
+	}
+
+	/**
+	 * Append a panel-side line to the stream's error log — the file the producer's
+	 * own stderr goes to, and the one an operator opens. Used for the decisions
+	 * that happen before any producer exists, above all "why is this channel on
+	 * ffmpeg when the native backend is on".
+	 */
+	private static function noteProducer(int $rStreamID, string $rLine): void {
+		@file_put_contents(STREAMS_PATH . $rStreamID . '.errors', date('Y/m/d H:i:s') . ' [panel] ' . $rLine . "\n", FILE_APPEND);
+	}
+
+	/** Whether a supervisor command line is the daemon's native remuxer. */
+	private static function isRemuxCommand(string $rCmd): bool {
+		return strpos($rCmd, ' remux ') !== false && strpos($rCmd, FanoutClient::binaryPath()) !== false;
 	}
 
 	/**

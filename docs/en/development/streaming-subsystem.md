@@ -240,9 +240,17 @@ database write; the daemon runs what it is handed.
   built by `StreamProcess::buildNativeLive()` beside `buildLive()`: it reads the source natively
   (MPEG-TS over http(s), HLS with TS segments, udp/rtp) and writes the same on-disk HLS and daemon
   feed as ffmpeg's `-f tee` line, with no ffmpeg. Which streams qualify is
-  `StreamProcess::isNativeEligible()` / `isNativeSource()`; `fanout_source_backend` decides:
+  `StreamProcess::nativeRefusal()` / `isNativeSource()`; `fanout_source_backend` decides:
   `auto` = remuxer with the ffmpeg command as `fallback_cmd` (used when the remuxer exits 3,
-  "cannot serve this source"), `native` = remuxer only, `ffmpeg` = ffmpeg only.
+  "cannot serve this source"), `native` = remuxer only, `ffmpeg` = ffmpeg only. The panel only
+  writes a remuxer command when the node's daemon advertises it (`features` in
+  `GET /monitors/state`, `FanoutClient::supportsRemux()`) — an older binary would misparse it.
+- **Which producer ran, and why** — the command handed over is recorded beside the stream's
+  files like the self-launched path's `<id>_.ffmpeg`: `<id>_.fanout` for the remuxer,
+  `<id>_.ffmpeg` for ffmpeg (in `auto`, both). When the native backend is on and a stream runs
+  ffmpeg anyway, `StreamProcess::nativeRefusal()`'s reason is appended to `<id>.errors`
+  (`[panel] ffmpeg runs this stream: Generate PTS is on`), the same file the producer's stderr
+  goes to.
 - **Reconcile** — the daemon cannot write the database, so `StreamProcess::reconcileSupervised()`
   copies its state into `streams_servers` (status, pid, current source, codecs, resolution,
   measured bitrate): every `cron:streams` pass, and every 5 s from the `signals` daemon. A
