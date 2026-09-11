@@ -92,15 +92,27 @@ class StreamAuth {
 		return (empty($rRedirectID) ? array_search(min($rPriorityServers), $rPriorityServers) : $rRedirectID);
 	}
 
-	public static function validateConnections($rUserInfo, $rIsHMAC = false, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
+	/**
+	 * Enforce the line's (or HMAC identity's) connection limit after the current
+	 * request's connection was recorded.
+	 *
+	 * @param array       $rUserInfo  Line info (id, pair_id, max_connections).
+	 * @param mixed       $rIsHMAC    HMAC id, or falsy for a line.
+	 * @param string|null $rIdentifier HMAC identifier.
+	 * @param string|null $rIP        Requesting IP.
+	 * @param string|null $rUserAgent Requesting user agent.
+	 * @param string|null $rUUID      The current connection's uuid, which is never evicted.
+	 * @return void
+	 */
+	public static function validateConnections($rUserInfo, $rIsHMAC = false, $rIdentifier = '', $rIP = null, $rUserAgent = null, $rUUID = null) {
 		if ($rUserInfo['max_connections'] != 0) {
 			if (!$rIsHMAC) {
 				if (!empty($rUserInfo['pair_id'])) {
-					ConnectionLimiter::closeConnections($rUserInfo['pair_id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent);
+					ConnectionLimiter::closeConnections($rUserInfo['pair_id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent, $rUUID);
 				}
-				ConnectionLimiter::closeConnections($rUserInfo['id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent);
+				ConnectionLimiter::closeConnections($rUserInfo['id'], $rUserInfo['max_connections'], null, '', $rIP, $rUserAgent, $rUUID);
 			} else {
-				ConnectionLimiter::closeConnections(null, $rUserInfo['max_connections'], $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+				ConnectionLimiter::closeConnections(null, $rUserInfo['max_connections'], $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, $rUUID);
 			}
 		}
 	}

@@ -18,6 +18,21 @@ use XcVm\Streaming\Balancer\ProxySelector;
  */
 
 class OffAirHandler {
+	/** The live stream this request serves, when known (live.php sets it). */
+	private static ?int $rHlsStreamID = null;
+
+	/**
+	 * Name the live stream this request is for, so an off-air HLS playlist served
+	 * in its place can tell HlsSequence — the next live playlist then numbers its
+	 * segments above the loop the player was shown.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return void
+	 */
+	public static function forStream(int $rStreamID): void {
+		self::$rHlsStreamID = $rStreamID;
+	}
+
 	public static function getOffAirVideo($rPathKey) {
 		global $rSettings;
 		if (!(isset($rSettings[$rPathKey]) && 0 < strlen($rSettings[$rPathKey]))) {
@@ -72,7 +87,7 @@ class OffAirHandler {
 	public static function showVideoServer($rShowOptionKey, $rVideoPathKey, $rExtension, $rUserInfo, $rIP, $rCountryCode, $rISP, $rServerID = null, $rProxyID = null) {
 		global $rSettings, $rServers;
 		$rVideoPath = self::getOffAirVideo($rVideoPathKey);
-		if (!(!$rUserInfo['is_restreamer'] && $rSettings[$rShowOptionKey] && 0 < strlen($rVideoPath))) {
+		if (!(!$rUserInfo['is_restreamer'] && $rSettings[$rShowOptionKey] && 0 < strlen((string) $rVideoPath))) {
 			switch ($rShowOptionKey) {
 				case 'show_expired_video':
 					generateError('EXPIRED');
@@ -115,7 +130,10 @@ class OffAirHandler {
 		$rTokenData = array('expires' => time() + 10, 'video_path' => $rVideoPath);
 		$rToken = Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 		if ($rExtension == 'm3u8') {
-			$segmentDuration = 10;
+			if (self::$rHlsStreamID !== null) {
+				HlsSequence::markOffAir(self::$rHlsStreamID);
+			}
+			$segmentDuration = HlsSequence::SEG;
 			$sequence = intval(time() / $segmentDuration);
 			$rM3U8 = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-MEDIA-SEQUENCE:{$sequence}\n#EXT-X-ALLOW-CACHE:NO\n#EXT-X-TARGETDURATION:{$segmentDuration}\n#EXT-X-PLAYLIST-TYPE:EVENT\n";
 			for ($i = 0; $i < 3; $i++) {

@@ -61,6 +61,7 @@ if (isset($rRequest["token"])) {
         }
 
         $rStreamID = intval($rTokenData["stream_id"]);
+        OffAirHandler::forStream($rStreamID);
         $rExtension = $rTokenData["extension"];
         $rChannelInfo = $rTokenData["channel_info"];
         $rUserInfo = $rTokenData["user_info"];
@@ -157,6 +158,14 @@ if ($rChannelInfo) {
                     generateError("TOKEN_EXPIRED");
                 }
 
+                // Both pids are dead (checked above), so their files are leftovers
+                // of the last run — e.g. a monitor that gave up under
+                // on_demand_failure_exit. Clear them, or the waits below would read
+                // them back as the new monitor/producer before it wrote its own.
+                @unlink(STREAMS_PATH . $rStreamID . "_.monitor");
+                @unlink(STREAMS_PATH . $rStreamID . "_.pid");
+                AsyncFileOperations::clearFileCache();
+
                 DatabaseFactory::connect(); // the hand-over reads the stream's config
                 if (StreamProcess::startMonitor($rStreamID) === StreamProcess::MONITOR_FANOUT) {
                     // The daemon is the monitor: there is no _.monitor file to wait
@@ -174,10 +183,13 @@ if ($rChannelInfo) {
                 OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
             }
 
-            for ($rRetries = 0; !AsyncFileOperations::awaitFileExists(STREAMS_PATH . intval($rStreamID) . "_.pid", 1, 10) && $rRetries < 300; $rRetries++) {
-                AsyncFileOperations::efficientSleep(10000);
-            }
-            $rChannelInfo["pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid")) ?: NULL);
+            // The producer's pid appears once the monitor has probed the source and
+            // launched it, which can take most of the on-demand wait on its own (a
+            // 10 s analyze window for a non-LLOD start) — so the wait is the
+            // configured on_demand_wait_time, not a fixed ~6 s.
+            $rPidWaitMs = max(1, intval($rSettings["on_demand_wait_time"])) * 1000;
+            AsyncFileOperations::awaitFileExists(STREAMS_PATH . intval($rStreamID) . "_.pid", intdiv($rPidWaitMs, 20), 20);
+            $rChannelInfo["pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.pid", false)) ?: NULL);
 
             if (!$rChannelInfo["pid"]) {
                 OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
@@ -215,7 +227,7 @@ if ($rChannelInfo) {
             }
         } else {
             $maxRetries = intval($rSettings["on_demand_wait_time"]) * 10;
-            $foundFile = AsyncFileOperations::awaitAnyFileExists([$rPlaylist, STREAMS_PATH . $rStreamID . "_.m3u8"], $maxRetries, 100);
+            $foundFile = AsyncFileOperations::awaitAnyFileExists([$rPlaylist], $maxRetries, 100);
 
             if (!$foundFile) {
                 generateError("WAIT_TIME_EXPIRED");
@@ -249,7 +261,9 @@ if ($rChannelInfo) {
                 $rAcceptIP = $rConnections[0]["user_ip"];
             }
         } else {
-            $db->query('SELECT `user_ip` FROM `lines_live` WHERE `user_id` = ? AND `hls_end` = 0 ORDER BY `activity_id` DESC LIMIT 1;', $rUserInfo["id"]);
+            // The FIRST connection's IP is the accepted one — as the Redis path
+            // above picks it (oldest date_start); this used to take the newest.
+            $db->query('SELECT `user_ip` FROM `lines_live` WHERE `user_id` = ? AND `hls_end` = 0 ORDER BY `activity_id` ASC LIMIT 1;', $rUserInfo["id"]);
 
             if ($db->num_rows() == 1) {
                 $rAcceptIP = $db->get_row()["user_ip"];
@@ -321,7 +335,7 @@ if ($rChannelInfo) {
                 generateError("LINE_CREATE_FAIL");
             }
 
-            StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+            StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, $rTokenData["uuid"]);
 
             if ($rSettings["redis_handler"]) {
                 RedisManager::closeInstance();
@@ -345,7 +359,9 @@ if ($rChannelInfo) {
 
             if ($rHLS) {
                 touch(CONS_TMP_PATH . $rTokenData["uuid"]);
-                ob_end_clean();
+                while (ob_get_level()) {
+                    ob_end_clean();
+                }
                 header("Content-Type: application/x-mpegurl");
                 header("Content-Length: " . strlen($rHLS));
                 header("Cache-Control: no-store, no-cache, must-revalidate");
@@ -397,7 +413,7 @@ if ($rChannelInfo) {
                 generateError("LINE_CREATE_FAIL");
             }
 
-            StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+            StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, $rTokenData["uuid"]);
 
             if ($rSettings["redis_handler"]) {
                 RedisManager::closeInstance();

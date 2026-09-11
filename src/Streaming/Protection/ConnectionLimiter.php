@@ -21,12 +21,36 @@ class ConnectionLimiter {
 		ConnectionTracker::writeOfflineActivity($rSettings, intval($rServerID), intval($rProxyID ?? 0), intval($rUserID), intval($rStreamID), intval($rStart), strval($rUserAgent), strval($rIP), strval($rExtension), strval($rGeoIP), strval($rISP), $rExternalDevice, intval($rDivergence), $rIsHMAC, $rIdentifier);
 	}
 
-	public static function closeConnections($rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null) {
+	/**
+	 * Enforce a line's connection limit by closing its oldest connections,
+	 * preferring ones from the requesting device (same IP + user agent), then the
+	 * same IP, then any.
+	 *
+	 * @param int|null    $rUserID        Line id (null for an HMAC identity).
+	 * @param int         $rMaxConnections The line's limit.
+	 * @param int|null    $rIsHMAC        HMAC id, or null for a line.
+	 * @param string      $rIdentifier    HMAC identifier.
+	 * @param string|null $rIP            Requesting IP.
+	 * @param string|null $rUserAgent     Requesting user agent.
+	 * @param string|null $rCurrentUUID   The requesting connection's uuid — never
+	 *                                    closed. A worker used to spare itself by
+	 *                                    pid, but a daemon-served viewer's row has
+	 *                                    pid 0, so the new viewer could evict itself.
+	 * @return int|null Connections closed, or null when within the limit.
+	 */
+	public static function closeConnections($rUserID, $rMaxConnections, $rIsHMAC = null, $rIdentifier = '', $rIP = null, $rUserAgent = null, $rCurrentUUID = null) {
 		global $rSettings, $rServers, $db;
 		$redis = RedisManager::instance();
 		if ($rSettings['redis_handler']) {
+			if (!$redis) {
+				return null;
+			}
 			$rConnections = array();
-			$rKeys = ConnectionTracker::getLineConnections($rUserID, true, true);
+			// An HMAC identity's connections are keyed by "<hmac_id>_<identifier>",
+			// not a line id (which is null for it).
+			$rIdentity = $rIsHMAC ? $rIsHMAC . '_' . $rIdentifier : intval($rUserID);
+			$rKeys = $redis->zRangeByScore('LINE#' . $rIdentity, '-inf', '+inf');
+			$rKeys = is_array($rKeys) ? $rKeys : array();
 			$rToKill = count($rKeys) - $rMaxConnections;
 			if ($rToKill > 0) {
 				foreach (array_map('igbinary_unserialize', $redis->mGet($rKeys)) as $rConnection) {
@@ -72,7 +96,8 @@ class ConnectionLimiter {
 			$i = 0;
 			while ($i < count($rConnections) && $rKilled < $rToKill) {
 				if ($rKilled != $rToKill) {
-					if ($rConnections[$i]['pid'] != getmypid()) {
+					$rIsCurrent = $rCurrentUUID !== null && ($rConnections[$i]['uuid'] ?? null) === $rCurrentUUID;
+					if (!$rIsCurrent && $rConnections[$i]['pid'] != getmypid()) {
 						if ($rConnections[$i]['user_ip'] == $rIP && $rConnections[$i]['user_agent'] == $rUserAgent && $rKillOwnIP == 2 || $rConnections[$i]['user_ip'] == $rIP && $rKillOwnIP == 1 || $rKillOwnIP == 0) {
 							if (self::closeConnection($rConnections[$i])) {
 								$rKilled++;
@@ -179,6 +204,16 @@ class ConnectionLimiter {
 				} else {
 					$db->query('UPDATE `lines_live` SET `hls_end` = 1 WHERE `activity_id` = ?', $rActivityInfo['activity_id']);
 				}
+				// segment.php serves a daemon HLS segment only while this marker
+				// exists: removing it ends the kicked player within one segment
+				// instead of at its next playlist refresh.
+				if ($rActivityInfo['server_id'] == SERVER_ID && !empty($rActivityInfo['uuid'])) {
+					@unlink(CONS_TMP_PATH . $rActivityInfo['uuid']);
+				}
+			} else if (intval($rActivityInfo['pid']) === 0) {
+				// Daemon-served live TS (ADR 0003): no worker to kill — the daemon
+				// serving it drops the uuid (directly, or via its node's signals).
+				ConnectionTracker::dropDaemonViewer($rActivityInfo);
 			} else {
 				if ($rActivityInfo['server_id'] == SERVER_ID) {
 					if ($rActivityInfo['pid'] != getmypid() && is_numeric($rActivityInfo['pid']) && 0 < $rActivityInfo['pid']) {
