@@ -88,7 +88,7 @@ class FanoutConfig {
 	 * Direct panel-owned tuning (the `fanout_*` settings columns):
 	 *   hls_window, grace_sec, write_timeout_sec, chunk_bytes, max_gop_bytes,
 	 *   source_insecure, default_prebuffer_sec, idle_buffer_grace_sec,
-	 *   idle_buffer_ratio, source_backend.
+	 *   idle_buffer_ratio, source_backend, supervise.
 	 *
 	 * @param array $rSnapshot Current on-disk config (unused now the panel owns
 	 *                         every key; kept for signature stability / future use).
@@ -121,6 +121,9 @@ class FanoutConfig {
 			'idle_buffer_grace_sec' => self::clampInt((int) ($rSettings['fanout_idle_buffer_grace_sec'] ?? 30), 0, 3600),
 			'idle_buffer_ratio'     => $rRatio,
 			'source_backend'        => self::backend((string) ($rSettings['fanout_source_backend'] ?? 'auto')),
+			// Whether the daemon accepts streams handed over for supervision
+			// (StreamProcess::superviseStream). Applied live by the daemon.
+			'supervise'             => (bool) ($rSettings['fanout_supervise'] ?? true),
 		);
 	}
 
@@ -128,9 +131,12 @@ class FanoutConfig {
 	 * Keep the backend to the daemon's three known values. It converts a NON-mp2t
 	 * source either in-process ("auto", falling back to ffmpeg for anything its
 	 * native reader declines), always with ffmpeg ("ffmpeg"), or natively with no
-	 * fallback ("native", a diagnostic mode — a declined source there is a dead
-	 * channel). The daemon clamps an unknown value to "auto" itself; doing it here
-	 * too keeps the file we write honest rather than relying on that.
+	 * fallback ("native" — a declined source there is a dead channel). The panel
+	 * applies the same three meanings to its own supervised streams: auto and
+	 * native run copy-only streams on the native remuxer (`xc_fanout remux`),
+	 * auto with the ffmpeg command as fallback (StreamProcess::buildSupervisorSpec).
+	 * The daemon clamps an unknown value to "auto" itself; doing it here too keeps
+	 * the file we write honest rather than relying on that.
 	 */
 	private static function backend(string $rValue): string {
 		return in_array($rValue, array('auto', 'ffmpeg', 'native'), true) ? $rValue : 'auto';

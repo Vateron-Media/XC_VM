@@ -37,7 +37,7 @@ final class StreamProcessBuildLiveTest extends TestCase {
 					'custom_ffmpeg' => '',
 					'stream_all' => 0,
 					'custom_map' => '',
-					'type_key' => 'live_streams',
+					'type_key' => 'live',
 					'gen_timestamps' => 0,
 					'read_native' => 0,
 					'enable_transcode' => 0,
@@ -118,6 +118,30 @@ final class StreamProcessBuildLiveTest extends TestCase {
 		$this->assertStringContainsString(STREAMS_PATH . '42_%d.ts', $out, 'hls segments');
 		$this->assertStringContainsString('>/dev/null 2>>' . STREAMS_PATH . '42.errors', $out);
 		$this->assertStringContainsString('echo $! > ' . STREAMS_PATH . '42_.pid', $out);
+	}
+
+	// ── supervised (launched by the fanout daemon) ─────────────
+
+	/** The daemon is the parent: the shell's redirect/background/pid tail must go. */
+	public function testSupervisedOmitsTheLaunchTail(): void {
+		$out = $this->build(['supervised' => true]);
+		$this->assertStringNotContainsString('>/dev/null', $out);
+		$this->assertStringNotContainsString('echo $!', $out);
+		$this->assertStringNotContainsString(' & ', $out);
+		$this->assertStringContainsString(STREAMS_PATH . '42_.m3u8', $out, 'still names its playlist (adopt_match)');
+	}
+
+	/** A supervised loopback feeds the daemon, which confirms and judges it by those bytes. */
+	public function testSupervisedLoopbackTeesIntoTheDaemon(): void {
+		$out = $this->build(['loopback' => true, 'ingestSock' => '/run/ingest/42.sock', 'supervised' => true]);
+		$this->assertStringContainsString('-f tee', $out);
+		$this->assertStringContainsString('unix:/run/ingest/42.sock', $out);
+		$this->assertStringContainsString('-map 0 -copy_unknown', $out);
+	}
+
+	/** The legacy path registers no ingest for loopback and must stay on-disk only. */
+	public function testLegacyLoopbackStaysOnDiskOnly(): void {
+		$this->assertStringNotContainsString('-f tee', $this->build(['loopback' => true]));
 	}
 
 	// ── custom_ffmpeg branch ───────────────────────────────────

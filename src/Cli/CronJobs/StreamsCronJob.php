@@ -47,6 +47,66 @@ class StreamsCronJob implements CommandInterface {
         return 0;
     }
 
+    /**
+     * Whether handing a stream (whose watchdog is gone) to the fanout supervisor
+     * must restart its producer rather than adopt it.
+     *
+     * An ffmpeg producer's feed into the daemon is a tee slave that, once broken
+     * by a daemon restart, stays broken for the life of the process — adopting it
+     * would leave the daemon's viewers on dead air until a stall restart. The
+     * native remuxer redials the ingest socket by itself, so it is adopted and
+     * the channel does not blink.
+     */
+    private static function handOverNeedsRestart(array $rStream): int {
+        $rPID = file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.pid') ? intval(@file_get_contents(STREAMS_PATH . $rStream['stream_id'] . '_.pid')) : intval($rStream['pid']);
+        if (!ProcessManager::isStreamRunning($rPID, $rStream['stream_id'])) {
+            return 0; // nothing running: a plain start
+        }
+        $rExe = basename((string) @readlink('/proc/' . $rPID . '/exe'));
+        return (strpos($rExe, 'ffmpeg') === 0 && FanoutClient::daemonStreamMissing(intval($rStream['stream_id']))) ? 1 : 0;
+    }
+
+    /**
+     * Fold the producer's CPU, memory and kind into the stream's progress JSON —
+     * what the admin streams list shows per stream.
+     *
+     * Only this node can read its own /proc, so the reading is taken here and
+     * travels to the panel in the row the cron already writes. CPU is a delta
+     * against the previous pass's reading (carried in the same JSON), so it is
+     * the average over the pass rather than ffmpeg's lifetime average, which for
+     * a channel running for days says nothing about now.
+     *
+     * @param string      $rProgressJson This pass's progress report.
+     * @param string|null $rPreviousJson Last pass's, for the CPU delta.
+     * @param int         $rPID          The producer's pid.
+     * @return string The JSON to store.
+     */
+    private static function withResourceUsage(string $rProgressJson, ?string $rPreviousJson, int $rPID): string {
+        $rProgress = json_decode($rProgressJson, true);
+        if (!is_array($rProgress)) {
+            $rProgress = array();
+        }
+        $rSample = ProcessManager::resourceSample($rPID);
+        if ($rSample === null) {
+            unset($rProgress['cpu'], $rProgress['mem'], $rProgress['producer'], $rProgress['cpu_t'], $rProgress['cpu_at']);
+            return json_encode($rProgress);
+        }
+
+        $rPrevious = json_decode((string) $rPreviousJson, true);
+        $rCPU = null;
+        if (is_array($rPrevious) && isset($rPrevious['cpu_t'], $rPrevious['cpu_at'])) {
+            $rCPU = ProcessManager::cpuPercent($rSample, array('ticks' => (int) $rPrevious['cpu_t'], 'at' => (float) $rPrevious['cpu_at']));
+        }
+
+        $rProgress['cpu'] = $rCPU; // null on the first pass and after a restart
+        $rProgress['mem'] = $rSample['rss'];
+        $rProgress['producer'] = ProcessManager::producerKind($rPID);
+        $rProgress['cpu_t'] = $rSample['ticks'];
+        $rProgress['cpu_at'] = round($rSample['at'], 3);
+
+        return json_encode($rProgress);
+    }
+
     private function loadCron(): void {
         $rRedis = SettingsManager::getBool('redis_handler');
         global $db;
@@ -62,6 +122,18 @@ class StreamsCronJob implements CommandInterface {
         $rActivePIDs = array();
         $rStreamIDs = array();
 
+        // Bring streams_servers in step with the fanout supervisor first, so the
+        // pass below reads what is actually running. $rSupervised is the set it
+        // is supervising, or null when it cannot be asked — unknown, which the
+        // checks below treat as "not supervised" exactly as before this existed.
+        $rStates = FanoutClient::monitorStates();
+        $rSupervised = StreamProcess::reconcileSupervised($rStates);
+        $rSupervisedSet = array_flip($rSupervised ?? array());
+        // While the daemon takes hand-overs, streams still under a PHP monitor
+        // (started before supervision was on, or while the daemon was down) are
+        // moved to it — adopting their running encoder, so they do not restart.
+        $rMigrate = $rStates !== null && !empty($rStates['accepting']) && StreamProcess::supervisionEnabled();
+
         if ($rRedis) {
             $db->query('SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
         } else {
@@ -73,7 +145,17 @@ class StreamsCronJob implements CommandInterface {
                 echo 'Stream ID: ' . $rStream['stream_id'] . "\n";
                 $rStreamIDs[] = $rStream['stream_id'];
 
-                if (ProcessManager::isMonitorAlive($rStream['monitor_pid'], $rStream['stream_id']) || $rStream['on_demand']) {
+                $rIsSupervised = isset($rSupervisedSet[intval($rStream['stream_id'])]);
+                // superviseStream, not startMonitor: a stream the daemon will not
+                // take (delay, created channels) must keep the PHP monitor it has,
+                // not have a second one spawned beside it every pass.
+                if ($rMigrate && !$rIsSupervised && ProcessManager::isMonitorAlive($rStream['monitor_pid'], $rStream['stream_id'])) {
+                    if (StreamProcess::superviseStream(intval($rStream['stream_id']), false)) {
+                        echo 'Handed over to the fanout supervisor.' . "\n\n";
+                        continue;
+                    }
+                }
+                if ($rIsSupervised || ProcessManager::isMonitorAlive($rStream['monitor_pid'], $rStream['stream_id']) || $rStream['on_demand']) {
                     if ($rStream['on_demand'] == 1 && $rStream['attached'] == 0) {
                         if ($rRedis) {
                             $rCount = 0;
@@ -209,6 +291,19 @@ class StreamsCronJob implements CommandInterface {
                         } else {
                             $rProgress = $rStream['progress_info'];
                         }
+                        $rProgress = self::withResourceUsage((string) $rProgress, $rStream['progress_info'], $rPID);
+                        // A supervised stream's codecs, resolution and bitrate come
+                        // from the daemon, measured off the bytes (reconcileSupervised
+                        // wrote them above); recomputing them here from a stream_info
+                        // that nothing probes any more would blank them. Only the
+                        // producer's progress report is this pass's to record.
+                        if ($rIsSupervised) {
+                            if ($rProgress !== $rStream['progress_info']) {
+                                $db->query('UPDATE `streams_servers` SET `progress_info` = ? WHERE `server_stream_id` = ?', $rProgress, $rStream['server_stream_id']);
+                            }
+                            echo "\n";
+                            continue;
+                        }
                         if (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.stream_info')) {
                             $rStreamInfo = file_get_contents(STREAMS_PATH . $rStream['stream_id'] . '_.stream_info');
                             unlink(STREAMS_PATH . $rStream['stream_id'] . '_.stream_info');
@@ -238,8 +333,9 @@ class StreamsCronJob implements CommandInterface {
                     echo "\n";
                 } else {
                     echo 'Start monitor...' . "\n\n";
-                    StreamProcess::startMonitor($rStream['stream_id']);
-                    usleep(50000);
+                    if (StreamProcess::startMonitor($rStream['stream_id'], self::handOverNeedsRestart($rStream)) === StreamProcess::MONITOR_PHP) {
+                        usleep(50000); // stagger PHP monitor spawns
+                    }
                 }
             }
         }
@@ -310,6 +406,15 @@ class StreamsCronJob implements CommandInterface {
         }
 
         if (SettingsManager::getBool('kill_rogue_ffmpeg')) {
+            // The supervisor restarts producers on its own schedule: a pid read from
+            // _.pid at the top of this pass may already have been replaced, and the
+            // replacement is not rogue. Ask the daemon for what it runs NOW.
+            $rStates = FanoutClient::monitorStates();
+            foreach (($rStates['streams'] ?? array()) as $rState) {
+                if (intval($rState['pid'] ?? 0) > 0) {
+                    $rActivePIDs[] = intval($rState['pid']);
+                }
+            }
             exec("ps aux | grep -v grep | grep '/*_.m3u8' | awk '{print \$2}'", $rRoguePIDs);
             foreach ($rRoguePIDs as $rPID) {
                 if (is_numeric($rPID) && intval($rPID) > 0 && !in_array($rPID, $rActivePIDs)) {

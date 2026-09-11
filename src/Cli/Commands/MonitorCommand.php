@@ -12,6 +12,7 @@ use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Streaming\Codec\FFprobeRunner;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * `monitor <stream_id> [restart]` — the per-stream watchdog.
@@ -67,6 +68,15 @@ class MonitorCommand implements CommandInterface {
 
 		$rStreamID = intval($rArgs[0]);
 		$rRestart = !empty($rArgs[1]);
+
+		// A stream the fanout daemon supervises already has a monitor. This one
+		// can only have been started by a path that has not learned that (or in
+		// a race with a hand-over), and two watchdogs would fight over one
+		// producer. Ask the daemon rather than assume: unreachable is not "no".
+		if (FanoutClient::isSupervised($rStreamID) === true) {
+			echo "Stream is supervised by the fanout daemon; monitor standing down.\n";
+			return 0;
+		}
 
 		global $db;
 

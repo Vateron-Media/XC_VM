@@ -219,7 +219,59 @@ PHP-FPM worker for the life of the stream.
 - **Off-air.** If the daemon reports no data (`has_data=false` / stale), PHP
   shows a "not on air" page instead of letting the viewer hang.
 - **On-disk HLS retained** only for timeshift / thumbnails / `.analyse` /
-  `MonitorCommand` — not for client delivery.
+  loopback children / the on-demand start checks — not for client delivery.
+
+#### Stream supervision and the native remuxer
+
+With **Fanout Encoder Supervision** on (`fanout_supervise`, migration 018, on by default), a
+live stream gets no PHP watchdog. `StreamProcess::startMonitor()` builds its commands and hands
+them to the daemon's supervisor (`FanoutClient::supervise` → `PUT /monitor/<id>`), which starts,
+watches and restarts them — failover, priority backup, forced source, stalled output, audio loss,
+frame-rate drop and scheduled restart included. PHP keeps building every command and making every
+database write; the daemon runs what it is handed.
+
+- **Hand-over** — `StreamProcess::superviseStream()` asks the daemon first
+  (`GET /monitors/state`: reachable, `accepting`), builds the spec
+  (`StreamProcess::buildSupervisorSpec()`: one command per source, policy and health mapped from
+  the settings `MonitorCommand` obeyed), records the daemon's pid as `monitor_pid`, then hands it
+  over. Without a restart a running encoder is **adopted**, not replaced; `cron:streams` moves
+  PHP-monitored streams over this way on its next pass.
+- **Commands** — a copy-only live stream runs the daemon's native remuxer, `xc_fanout remux`,
+  built by `StreamProcess::buildNativeLive()` beside `buildLive()`: it reads the source natively
+  (MPEG-TS over http(s), HLS with TS segments, udp/rtp) and writes the same on-disk HLS and daemon
+  feed as ffmpeg's `-f tee` line, with no ffmpeg. Which streams qualify is
+  `StreamProcess::nativeRefusal()` / `isNativeSource()`; `fanout_source_backend` decides:
+  `auto` = remuxer with the ffmpeg command as `fallback_cmd` (used when the remuxer exits 3,
+  "cannot serve this source"), `native` = remuxer only, `ffmpeg` = ffmpeg only. The panel only
+  writes a remuxer command when the node's daemon advertises it (`features` in
+  `GET /monitors/state`, `FanoutClient::supportsRemux()`) — an older binary would misparse it.
+- **Which producer ran, and why** — the command handed over is recorded beside the stream's
+  files like the self-launched path's `<id>_.ffmpeg`: `<id>_.fanout` for the remuxer,
+  `<id>_.ffmpeg` for ffmpeg (in `auto`, both). When the native backend is on and a stream runs
+  ffmpeg anyway, `StreamProcess::nativeRefusal()`'s reason is appended to `<id>.errors`
+  (`[panel] ffmpeg runs this stream: transcoding is enabled`), the same file the producer's
+  stderr goes to. The qualifying type is `streams_types.type_key` = `live`; `gen_timestamps` and
+  `read_native` are deliberately not refusals (both default to 1, so they say nothing about the
+  channel — see the daemon runbook).
+- **Reconcile** — the daemon cannot write the database, so `StreamProcess::reconcileSupervised()`
+  copies its state into `streams_servers` (status, pid, current source, codecs, resolution,
+  measured bitrate): every `cron:streams` pass, and every 5 s from the `signals` daemon. A
+  supervised stream whose row is gone or marked stopped is released. The codecs and picture size
+  are written to the `stream_info` JSON as well as the flat columns — that JSON is what the
+  streams list renders, what the adaptive master playlist takes `BANDWIDTH`/`RESOLUTION` from and
+  where `stream/auth.php` reads the viewer's video codec, and a supervised stream never runs
+  ffprobe to fill it.
+- **Stop** — `StreamProcess::stopStream()` releases first (`DELETE /monitor/<id>`, which kills the
+  producer); killing the producer first is what the supervisor restarts.
+- **Fallback to PHP** — a daemon that is down or not accepting, and the stream kinds it does not
+  take (delay, created channels, `yt-dlp` platform sources), run `MonitorCommand` as before;
+  `MonitorCommand` stands down for a stream the daemon supervises.
+- **"Is it watched?"** — for a supervised stream `monitor_pid` is the daemon's pid, so callers use
+  `StreamProcess::isWatched()` (PHP monitor alive, or supervised) rather than
+  `ProcessManager::isMonitorAlive()` alone.
+
+The daemon-side runbook — enabling, verifying, rollback, the remuxer's exit codes — is
+`docs/en/09-encoder-supervision.md` in the `XC_VM_Fanout` repository.
 
 #### Send-message overlay
 
@@ -431,5 +483,7 @@ not part of the published site):
 | `src/Streaming/AsyncFileOperations.php` | non-blocking filesystem utilities |
 | `src/Streaming/Lifecycle/ShutdownHandler.php` | connection cleanup on exit |
 | `src/Domain/Stream/ConnectionTracker.php` | connection state in Redis/MySQL |
+| `src/Domain/Stream/StreamProcess.php` | command building (`buildLive` / `buildNativeLive`), supervision hand-over and reconcile |
+| `src/Streaming/Fanout/FanoutClient.php` | daemon control API (ingest, supervision, force source) |
 | `src/Core/Init/LegacyInitializer.php` | global variable setup for streaming |
 | `tools/stream-check/stream_check.py` | queue-integrity checker + playlist batch + live buffer dashboard + SVG grapher |

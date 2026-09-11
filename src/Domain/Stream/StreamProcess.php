@@ -5,6 +5,7 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\CurlClient;
+use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Streaming\Fanout\FanoutClient;
 
@@ -84,15 +85,49 @@ class StreamProcess {
 	}
 
 	/**
-	 * Start the monitor process for a stream.
+	 * Whether anything is watching this stream on this server: its PHP monitor
+	 * (verified by command line, as ever), or the fanout supervisor. For a
+	 * supervised stream `monitor_pid` names the daemon, which the PHP check
+	 * rightly rejects — so "no PHP monitor" must not be read as "unwatched", or
+	 * the caller starts a second watchdog for a stream that already has one.
+	 *
+	 * @param int $rStreamID  Stream id.
+	 * @param mixed $rMonitorPID The stream's recorded monitor pid.
+	 * @return bool
+	 */
+	public static function isWatched($rStreamID, $rMonitorPID): bool {
+		if (ProcessManager::isMonitorAlive($rMonitorPID, $rStreamID)) {
+			return true;
+		}
+		return FanoutClient::isSupervised(intval($rStreamID)) === true;
+	}
+
+	/** startMonitor(): the stream was handed to the fanout daemon's supervisor. */
+	const MONITOR_FANOUT = 'fanout';
+	/** startMonitor(): a PHP watchdog (`console.php monitor`) was started for it. */
+	const MONITOR_PHP = 'php';
+
+	/**
+	 * Start watching a live stream: hand it to the fanout daemon's supervisor
+	 * when this server supervises (see superviseStream()), otherwise start the
+	 * PHP watchdog for it.
 	 *
 	 * @param int $rStreamID Stream id.
-	 * @param int $rRestart  Restart flag/counter.
-	 * @return mixed Start result.
+	 * @param int $rRestart  Truthy to restart what is running rather than take it as it is.
+	 * @return string MONITOR_FANOUT or MONITOR_PHP — which one now watches it.
 	 */
 	public static function startMonitor($rStreamID, $rRestart = 0) {
+		if (self::superviseStream(intval($rStreamID), (bool) $rRestart)) {
+			return self::MONITOR_FANOUT;
+		}
+		// The PHP monitor takes it. A stream the daemon still supervises — its
+		// supervision since turned off, or the daemon refusing it now — is taken
+		// back first: otherwise the new monitor would find it supervised and stand
+		// down, and a restart would do nothing. This ends its producer; a running
+		// encoder cannot be handed back to PHP without a restart.
+		FanoutClient::release(intval($rStreamID));
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php monitor ' . intval($rStreamID) . ' ' . intval($rRestart) . ' >/dev/null 2>/dev/null &');
-		return true;
+		return self::MONITOR_PHP;
 	}
 
 
@@ -838,10 +873,13 @@ class StreamProcess {
 		// Capped at seg_time so a small seg_time never produces a longer first segment.
 		$rInitTime = min(2, intval($rSegmentSettings['seg_time']));
 		// When the xc_fanout daemon accepted an ingest registration (reachable),
-		// tee the HLS output to it too (ADR 0003, A2). Standard live only — not
-		// loopback/delay. If the daemon was unreachable ($data['ingestSock'] is
-		// null) the original on-disk-only HLS output runs, unchanged.
-		if (!$rLoopback && !$rDelayActive && !empty($data['ingestSock'])) {
+		// tee the HLS output to it too (ADR 0003, A2). Never for delay, whose HLS
+		// goes to its own directory. startStream() registers no ingest for a
+		// loopback stream (the PHP relay feeds the daemon for those); a supervised
+		// one does, because the supervisor confirms and judges a stream by the
+		// bytes the daemon receives. If the daemon was unreachable
+		// ($data['ingestSock'] is null) the original on-disk-only HLS runs.
+		if (!$rDelayActive && !empty($data['ingestSock'])) {
 			// The tee muxer needs an EXPLICIT -map — plain single outputs use
 			// ffmpeg's automatic stream selection, but tee does not ("Output file
 			// does not contain any stream" otherwise). Reuse the stream's own map,
@@ -894,7 +932,13 @@ class StreamProcess {
 			$rFFMPEG .= '{MAP} -individual_header_trailer 0 -f hls -hls_time ' . intval($rSegmentSettings['seg_time']) . ' -hls_list_size ' . intval($rStream['stream_info']['delay_minutes']) * 6 . ' -hls_delete_threshold 4 -start_number ' . $rSegmentStart . ' -hls_flags delete_segments+discont_start+omit_endlist -hls_segment_type mpegts -hls_segment_filename "' . DELAY_PATH . intval($rStreamID) . '_%d.ts" "' . DELAY_PATH . intval($rStreamID) . '_.m3u8" ';
 		}
 
-		$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
+		// Launched by the shell here: redirect, background, record the pid. A
+		// supervised command is launched by the fanout daemon instead, which has
+		// to be its parent to reap it and redirects stderr / writes the pid file
+		// itself — so it must arrive without this tail.
+		if (empty($data['supervised'])) {
+			$rFFMPEG .= ' >/dev/null 2>>' . STREAMS_PATH . intval($rStreamID) . '.errors & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid';
+		}
 
 		$ffprobeContainer = (isset($rFFProbeOutput['container']) && is_string($rFFProbeOutput['container'])) ? $rFFProbeOutput['container'] : '';
 
@@ -919,6 +963,715 @@ class StreamProcess {
 		);
 
 		return $rFFMPEG;
+	}
+
+	// ── Fanout supervision + native remuxer ─────────────────────────────────
+	//
+	// With `fanout_supervise` on, a live stream is not given a PHP watchdog
+	// (`console.php monitor`, MonitorCommand). startMonitor() builds the stream's
+	// commands here and hands them to the xc_fanout daemon's supervisor
+	// (XC_VM_Fanout ADR 0002), which runs, watches and restarts them. The PHP
+	// monitor remains the fallback for a daemon that cannot be reached, and for
+	// the stream kinds the supervisor does not take (delay, created channels,
+	// sources that need a URL resolver).
+	//
+	// With `fanout_source_backend` native or auto, a copy-only stream's command is
+	// the daemon's native remuxer — `xc_fanout remux`, built by buildNativeLive()
+	// exactly as buildLive() builds an ffmpeg one — instead of ffmpeg. native runs
+	// only the remuxer; auto gives each source the ffmpeg command as an explicit
+	// fallback, which the supervisor switches to when the remuxer reports it
+	// cannot read that source.
+
+	/** Exit status of `xc_fanout remux` for "cannot be served natively" (supervisor.ExitUnsupported). */
+	const REMUX_EXIT_UNSUPPORTED = 3;
+
+	/**
+	 * Assemble the native remuxer command — `xc_fanout remux` — for one source of
+	 * a copy-only live stream: the same source, fetch arguments, segment settings
+	 * and ingest socket buildLive() turns into an ffmpeg `-c copy -f tee` line,
+	 * producing the same two outputs (the on-disk HLS under this stream's names,
+	 * the MPEG-TS feed into the daemon) with no ffmpeg. PURE: no I/O.
+	 *
+	 * Like a supervised buildLive() line it carries no redirect/background tail:
+	 * the daemon runs it, redirects its stderr to <id>.errors and writes the pid.
+	 *
+	 * @param array $data streamID, source (resolved URL), arguments (rows keyed by
+	 *                    argument_key), segmentSettings, ingestSock, settings, binary.
+	 * @return string The shell command line.
+	 */
+	private static function buildNativeLive(array $data): string {
+		$rStreamID = intval($data['streamID']);
+		$rSeg = $data['segmentSettings'];
+		$rArgs = $data['arguments'];
+		$rSettings = $data['settings'];
+		$rSegTime = max(1, intval($rSeg['seg_time']));
+
+		// The fetch identity the daemon's own puller uses for this stream
+		// (user_agent / proxy / cookie resolution is shared, not re-derived).
+		$rSource = FanoutClient::buildSource(array('stream_source' => json_encode(array($data['source']))), $rArgs);
+
+		$rCmd = array(
+			$data['binary'], 'remux',
+			'-loglevel', (!empty($rSettings['ffmpeg_warnings']) ? 'warning' : 'error'),
+			'-i', escapeshellarg($data['source']),
+		);
+		if ($rSource['ua'] !== '') {
+			$rCmd[] = '-user_agent ' . escapeshellarg($rSource['ua']);
+		}
+		if ($rSource['cookie'] !== '') {
+			$rCmd[] = '-cookies ' . escapeshellarg(StreamUtils::fixCookie($rSource['cookie']));
+		}
+		if ($rSource['proxy'] !== '') {
+			$rCmd[] = '-http_proxy ' . escapeshellarg($rSource['proxy']);
+		}
+		if (!empty($rArgs['headers']['value'])) {
+			$rCmd[] = '-headers ' . escapeshellarg($rArgs['headers']['value']);
+		}
+		if (!isset($rSettings['fanout_source_insecure']) || !empty($rSettings['fanout_source_insecure'])) {
+			$rCmd[] = '-insecure';
+		}
+		if (!empty($data['ingestSock'])) {
+			$rCmd[] = '-ingest ' . escapeshellarg('unix:' . $data['ingestSock']);
+		}
+		$rCmd[] = '-hls_time ' . $rSegTime;
+		$rCmd[] = '-hls_init_time ' . min(2, $rSegTime); // buildLive's fast first segment
+		$rCmd[] = '-hls_list_size ' . intval($rSeg['seg_list_size']);
+		$rCmd[] = '-hls_delete_threshold ' . intval($rSeg['seg_delete_threshold']);
+		$rCmd[] = '-progress ' . escapeshellarg(STREAMS_PATH . $rStreamID . '_.progress');
+		$rCmd[] = '-hls_segment_filename ' . escapeshellarg(STREAMS_PATH . $rStreamID . '_%d.ts');
+		$rCmd[] = escapeshellarg(STREAMS_PATH . $rStreamID . '_.m3u8');
+
+		return implode(' ', $rCmd);
+	}
+
+	/**
+	 * Why the native remuxer cannot serve this live stream — or null when it can:
+	 * one MPEG-TS source passed through, with nothing configured that needs ffmpeg
+	 * in the path. PURE. Anything unrecognised falls to ffmpeg — a refusal costs
+	 * an ffmpeg process, a wrong acceptance a channel served wrong.
+	 *
+	 * The reason is a sentence, not a flag, because it is written to the stream's
+	 * log: "this channel runs ffmpeg" is the question operators ask of a panel
+	 * with the native backend on, and the answer is always one of these settings.
+	 *
+	 * @param array $rStreamInfo streams ⨝ streams_types row.
+	 * @param array $rArgs       Stream arguments keyed by argument_key.
+	 * @return string|null
+	 */
+	private static function nativeRefusal(array $rStreamInfo, array $rArgs): ?string {
+		// `live` is the key of the Live Streams type in `streams_types`; the other
+		// live ones are `created_live` and `radio_streams`, both ffmpeg's.
+		if (($rStreamInfo['type_key'] ?? '') !== 'live') {
+			return 'not a live channel (type ' . ($rStreamInfo['type_key'] ?? '?') . ')';
+		}
+		if (intval($rStreamInfo['enable_transcode'] ?? 0) === 1) {
+			return 'transcoding is enabled';
+		}
+		if (!empty($rStreamInfo['custom_ffmpeg'])) {
+			return 'the stream has a custom ffmpeg command';
+		}
+		if (!empty($rStreamInfo['custom_map'])) {
+			return 'the stream maps specific tracks'; // the remuxer copies every PID
+		}
+		if (intval($rStreamInfo['rtmp_output'] ?? 0) === 1) {
+			return 'RTMP (FLV) output is enabled';
+		}
+		$rPush = json_decode((string) ($rStreamInfo['external_push'] ?? ''), true);
+		if (is_array($rPush) && !empty($rPush[SERVER_ID])) {
+			return 'the stream is pushed to an external server';
+		}
+		// `gen_timestamps` (-fflags +genpts -async 1) and `read_native` (-re) are
+		// NOT refusals, although the remuxer does neither: both default to 1 for
+		// every row in `streams`, so they carry no operator intent — refusing them
+		// would mean the native backend never runs at all. -re paces a file-ish
+		// input, which a passthrough of a live http/udp/rtp source does by itself
+		// (the sender sets the pace), and genpts only synthesises timestamps a
+		// source failed to send — a source broken enough for that has no usable
+		// video clock either, which ends the run with exit 3 and, in `auto`, hands
+		// it to ffmpeg. A channel that genuinely needs the repair belongs on the
+		// ffmpeg backend.
+		if (!empty($rArgs['force_input_acodec']['value'])) {
+			return 'an input audio codec is forced'; // re-interprets the audio
+		}
+		return null;
+	}
+
+	/**
+	 * Whether one source URL is one the native remuxer reads (xc_fanout's
+	 * nativesrc: MPEG-TS over http(s) — plain or as HLS with TS segments — and
+	 * udp/rtp). What it can only discover by connecting (fMP4 or encrypted HLS)
+	 * it reports at run time, which is what the auto-mode fallback is for.
+	 */
+	private static function isNativeSource(string $rURL): bool {
+		$rScheme = strtolower((string) parse_url($rURL, PHP_URL_SCHEME));
+		return in_array($rScheme, array('http', 'https', 'udp', 'rtp'), true) && !StreamUtils::needsResolver($rURL);
+	}
+
+	/**
+	 * The supervisor policy for a stream, from the panel settings the PHP monitor
+	 * obeyed. PURE.
+	 *
+	 * @return array The spec's `policy` object.
+	 */
+	private static function supervisorPolicy(array $rServerInfo, array $rSettings, int $rSourceCount, int $rProbeSeconds): array {
+		$rSegTime = max(1, intval($rSettings['seg_time'] ?? 10));
+		// The PHP monitor probed (up to the analyse window plus slack) and then
+		// waited for the playlist; the daemon confirms a start by bytes arriving,
+		// which for ffmpeg comes after its own probe. Same budget.
+		$rStartTimeout = $rProbeSeconds + max(20, min($rSegTime * 3, 30));
+		return array(
+			'stop_failures'          => max(0, intval($rSettings['stop_failures'] ?? 0)),
+			'stream_fail_sleep'      => max(1, intval($rSettings['stream_fail_sleep'] ?? 10)),
+			'on_demand'              => !empty($rServerInfo['on_demand']),
+			'on_demand_failure_exit' => !empty($rSettings['on_demand_failure_exit']),
+			'start_timeout_sec'      => $rStartTimeout,
+			'priority_backup_sec'    => (!empty($rSettings['priority_backup']) && $rSourceCount > 1 && empty($rServerInfo['parent_id'])) ? 300 : 0,
+		);
+	}
+
+	/**
+	 * The supervisor health policy for a stream, from the checks the PHP monitor
+	 * made. PURE. Each check is off when its panel setting is.
+	 *
+	 * @return array The spec's `health` object.
+	 */
+	private static function supervisorHealth(array $rStreamInfo, array $rSettings): array {
+		$rSegTime = max(1, intval($rSettings['seg_time'] ?? 10));
+		$rHealth = array(
+			'stall_sec'      => $rSegTime * 6, // the monitor's "playlist unchanged for seg_time × 6"
+			'audio_loss_sec' => !empty($rSettings['audio_restart_loss']) ? 30 : 0,
+			'fps_threshold'  => 0,
+			'fps_grace_sec'  => max(0, intval($rSettings['fps_delay'] ?? 0)),
+		);
+		if (intval($rStreamInfo['fps_restart'] ?? 0) === 1) {
+			// "FPS Threshold %": restart below this share of the stream's own rate.
+			$rPercent = intval($rStreamInfo['fps_threshold'] ?? 0) ?: 90;
+			$rHealth['fps_threshold'] = min(100, max(1, $rPercent)) / 100;
+		}
+		$rAuto = json_decode((string) ($rStreamInfo['auto_restart'] ?? ''), true);
+		if (is_array($rAuto) && !empty($rAuto['days']) && !empty($rAuto['at'])) {
+			$rHealth['auto_restart'] = array('days' => array_values((array) $rAuto['days']), 'at' => (string) $rAuto['at']);
+		}
+		return $rHealth;
+	}
+
+	/**
+	 * Whether live streams on this server are handed to the fanout supervisor.
+	 */
+	public static function supervisionEnabled(): bool {
+		return !empty(SettingsManager::get('fanout_supervise')) && defined('FANOUT_CTL_SOCK') && file_exists(FANOUT_CTL_SOCK);
+	}
+
+	/**
+	 * Build the supervisor spec for a live stream on this server, or null when it
+	 * has to run under the PHP monitor (not found, a kind the supervisor does not
+	 * take, or no daemon ingest to feed).
+	 *
+	 * Registers the stream's ingest with the daemon and writes its HLS key/iv,
+	 * because both are baked into the commands.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return array|null The spec for FanoutClient::supervise(), or null.
+	 */
+	public static function buildSupervisorSpec(int $rStreamID): ?array {
+		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
+		$db = self::db();
+		$rFFMPEGCpu = $rFFMPEG_CPU ?: \XcVm\Streaming\Codec\FfmpegPaths::cpu();
+		$rFFMPEGGpu = $rFFMPEG_GPU ?: \XcVm\Streaming\Codec\FfmpegPaths::gpu();
+		$rFFProbeBin = $rFFPROBE ?: \XcVm\Streaming\Codec\FfmpegPaths::probe();
+
+		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 1 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
+		if ($db->num_rows() <= 0) {
+			return null;
+		}
+		$rStream = array('stream_info' => $db->get_row());
+		$db->query('SELECT * FROM `streams_servers` WHERE stream_id = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
+		if ($db->num_rows() <= 0) {
+			return null;
+		}
+		$rStream['server_info'] = $db->get_row();
+		$db->query('SELECT t1.*, t2.* FROM `streams_options` t1, `streams_arguments` t2 WHERE t1.stream_id = ? AND t1.argument_id = t2.id', $rStreamID);
+		$rStream['stream_arguments'] = $db->get_rows();
+
+		$rInfo = $rStream['stream_info'];
+		$rParentID = intval($rStream['server_info']['parent_id']);
+		// Kinds the PHP monitor keeps: a delayed stream runs its own playlist
+		// worker off the encoder's, and a created channel resumes at an offset
+		// computed at each start.
+		if ((intval($rInfo['delay_minutes']) > 0 && $rParentID === 0) || $rInfo['type_key'] === 'created_live') {
+			return null;
+		}
+
+		if ($rParentID > 0) {
+			$rLoopURL = (!is_null($rServers[SERVER_ID]['private_url_ip']) && !is_null($rServers[$rParentID]['private_url_ip']) ? $rServers[$rParentID]['private_url_ip'] : $rServers[$rParentID]['public_url_ip']);
+			$rSources = array($rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts');
+			$rLabels = array('Loopback: #' . $rParentID);
+		} else {
+			$rSources = array_values(array_filter(array_map('trim', (array) json_decode((string) $rInfo['stream_source'], true)), static fn(string $source): bool => $source !== ''));
+			$rLabels = $rSources;
+		}
+		if (count($rSources) === 0) {
+			return null;
+		}
+		foreach ($rSources as $rSource) {
+			// A platform URL is resolved to a short-lived one at each start; a
+			// command built now would carry a URL that expires under it.
+			if (StreamUtils::needsResolver($rSource)) {
+				return null;
+			}
+		}
+
+		$rLoopback = $rParentID > 0;
+		$rLLOD = !empty($rStream['server_info']['on_demand']) && ($rLoopback || intval($rInfo['llod']) > 0);
+		$rSegmentSettings = array('seg_time' => intval($rSettings['seg_time']), 'seg_list_size' => intval($rSettings['seg_list_size']), 'seg_delete_threshold' => intval($rSettings['seg_delete_threshold']));
+		list($rProbesize, $rAnalyseDuration, $rTimeout) = self::resolveProbeSettings($rStream['server_info']['on_demand'], $rInfo['probesize_ondemand'], $rLLOD, $rSettings);
+
+		self::writeStreamKeyIv($rStreamID);
+		$rEncKey = $rEncIV = null;
+		if (!empty($rSettings['encrypt_hls']) && !$rLoopback) {
+			$rEncKey = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.key'));
+			$rEncIV = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.iv'));
+		}
+		$rIngestSock = FanoutClient::registerIngest($rStreamID, $rEncKey, $rEncIV);
+		if ($rIngestSock === null) {
+			return null; // no daemon to feed: the stream runs the legacy way
+		}
+
+		$rArgsByKey = array();
+		foreach ($rStream['stream_arguments'] as $rArg) {
+			$rArgsByKey[$rArg['argument_key']] = $rArg;
+		}
+		$rBackend = (string) ($rSettings['fanout_source_backend'] ?? 'auto');
+		$rNativeStream = false;
+		if ($rBackend !== 'ffmpeg') {
+			$rRefusal = self::nativeRefusal($rInfo, $rArgsByKey);
+			if ($rRefusal === null && !FanoutClient::supportsRemux()) {
+				// The node's daemon predates `xc_fanout remux`. Handing it the
+				// command would not fail cleanly — it would start a process that
+				// tries to be a second daemon — so this stream stays on ffmpeg
+				// until the binary is updated.
+				$rRefusal = 'this node\'s xc_fanout has no native remuxer (update the daemon binary)';
+			}
+			$rNativeStream = $rRefusal === null;
+			if ($rRefusal !== null) {
+				self::noteProducer($rStreamID, 'ffmpeg runs this stream: ' . $rRefusal);
+			}
+		}
+		$rPriority = !empty($rSettings['priority_backup']) && count($rSources) > 1 && !$rLoopback;
+
+		$rSpecSources = array();
+		foreach ($rSources as $i => $rSource) {
+			$rStreamSource = StreamUtils::parseStreamURL($rSource);
+			$rProtocol = strtolower(substr($rStreamSource, 0, (int) strpos($rStreamSource, '://')));
+			$rArguments = $rStream['stream_arguments'];
+			$rIsXC_VM = $rLoopback || StreamUtils::detectXC_VM($rStreamSource);
+			if ($rIsXC_VM && !$rLoopback && !empty($rSettings['send_xc_vm_header'])) {
+				$rArguments = self::appendHeaderArgument($rArguments, 'X-XC_VM-Detect:1');
+			}
+			$rProbeArguments = self::appendHeaderArgument($rArguments, 'X-XC_VM-Prebuffer:1');
+			if ($rIsXC_VM && !empty($rStream['server_info']['on_demand']) && !empty($rSettings['request_prebuffer'])) {
+				$rArguments = self::appendHeaderArgument($rArguments, 'X-XC_VM-Prebuffer:1');
+			}
+			$rFetchOptions = implode(' ', StreamUtils::getArguments($rArguments, $rProtocol, 'fetch'));
+
+			$rFFMPEG = self::buildLive(array(
+				'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,
+				'streamID' => $rStreamID, 'streamSource' => $rStreamSource,
+				'fetchOptions' => $rFetchOptions, 'ffprobe' => self::cachedProbe($rSource, $rStreamSource),
+				'protocol' => $rProtocol, 'source' => $rSource,
+				'segmentSettings' => $rSegmentSettings, 'externalPush' => array(),
+				'probesize' => $rProbesize, 'analyseDuration' => $rAnalyseDuration,
+				'llod' => $rLLOD, 'loopback' => $rLoopback,
+				'segmentStart' => 0, 'delayActive' => false,
+				'ffmpegCpu' => $rFFMPEGCpu, 'ffmpegGpu' => $rFFMPEGGpu,
+				'ingestSock' => $rIngestSock, 'supervised' => true,
+			));
+
+			$rEntry = array('label' => $rLabels[$i], 'cmd' => $rFFMPEG);
+			if ($rNativeStream && !self::isNativeSource($rStreamSource)) {
+				self::noteProducer($rStreamID, 'ffmpeg runs source #' . $i . ': ' . strtolower((string) parse_url($rStreamSource, PHP_URL_SCHEME)) . ':// is not a scheme the remuxer reads');
+			}
+			if ($rNativeStream && self::isNativeSource($rStreamSource)) {
+				$rNativeArgs = array();
+				foreach ($rArguments as $rArg) {
+					$rNativeArgs[$rArg['argument_key']] = $rArg;
+				}
+				$rEntry['cmd'] = self::buildNativeLive(array(
+					'streamID' => $rStreamID, 'source' => $rStreamSource, 'arguments' => $rNativeArgs,
+					'segmentSettings' => $rSegmentSettings, 'ingestSock' => $rIngestSock,
+					'settings' => $rSettings, 'binary' => FanoutClient::binaryPath(),
+				));
+				if ($rBackend === 'auto') {
+					$rEntry['fallback_cmd'] = $rFFMPEG;
+				}
+			}
+			if ($rPriority) {
+				$rProbeOptions = implode(' ', StreamUtils::getArguments($rProbeArguments, $rProtocol, 'fetch'));
+				$rEntry['probe_cmd'] = 'timeout ' . intval($rTimeout) . ' ' . $rFFProbeBin . ' ' . $rProbeOptions . ' -probesize ' . intval($rProbesize) . ' -analyzeduration ' . intval($rAnalyseDuration) . ' -i ' . escapeshellarg($rStreamSource) . ' -v quiet -print_format json -show_streams -show_format';
+			}
+			$rSpecSources[] = $rEntry;
+		}
+
+		return array(
+			'sources'     => $rSpecSources,
+			'policy'      => self::supervisorPolicy($rStream['server_info'], $rSettings, count($rSpecSources), intval($rTimeout)),
+			'health'      => self::supervisorHealth($rInfo, $rSettings),
+			'pid_path'    => STREAMS_PATH . $rStreamID . '_.pid',
+			'errors_path' => STREAMS_PATH . $rStreamID . '.errors',
+			'log_path'    => (SettingsManager::get('save_restart_logs') != 0 ? LOGS_TMP_PATH . 'stream_log.log' : ''),
+			'server_id'   => intval(SERVER_ID),
+			// Both producers name this stream's playlist, and nothing else does:
+			// an encoder that outlived a daemon restart is recognised by it.
+			'adopt_match' => STREAMS_PATH . $rStreamID . '_.m3u8',
+		);
+	}
+
+	/**
+	 * The last ffprobe result cached for a source, for the codec-dependent parts
+	 * of an ffmpeg command. A supervised spec carries a command for EVERY source,
+	 * and probing each one on the hand-over path would cost seconds per source,
+	 * so a source with nothing cached gets the minimum buildLive() needs.
+	 */
+	private static function cachedProbe(string $rSource, string $rStreamSource): array {
+		$rCache = CACHE_TMP_PATH . md5($rSource);
+		if (file_exists($rCache)) {
+			$rProbe = @igbinary_unserialize((string) @file_get_contents($rCache));
+			if (is_array($rProbe) && !isset($rProbe['codecs']) && isset($rProbe['streams'])) {
+				$rProbe = \XcVm\Streaming\Codec\FFprobeRunner::parseFFProbe($rProbe);
+			}
+			if (is_array($rProbe) && isset($rProbe['codecs'])) {
+				return $rProbe;
+			}
+		}
+		$rPath = strtolower((string) parse_url($rStreamSource, PHP_URL_PATH));
+		return array('container' => (substr($rPath, -5) === '.m3u8' ? 'hls' : 'mpegts'), 'codecs' => array());
+	}
+
+	/**
+	 * Kill this stream's PHP watchdog, if one is running — only ever a process
+	 * whose command line is exactly `XC_VM[<id>]`. Leaves its encoder alone: a
+	 * hand-over without a restart adopts it.
+	 */
+	private static function killPhpMonitor(int $rStreamID): void {
+		$rCandidates = array();
+		if (file_exists(STREAMS_PATH . $rStreamID . '_.monitor')) {
+			$rCandidates[] = intval(@file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
+		}
+		self::db()->query('SELECT `monitor_pid` FROM `streams_servers` WHERE `stream_id` = ? AND `server_id` = ?', $rStreamID, SERVER_ID);
+		if (self::db()->num_rows() > 0) {
+			$rCandidates[] = intval(self::db()->get_row()['monitor_pid']);
+		}
+		foreach (array_unique($rCandidates) as $rPID) {
+			if ($rPID > 0 && ProcessManager::isMonitorAlive($rPID, $rStreamID)) {
+				posix_kill($rPID, 9);
+			}
+		}
+		@unlink(STREAMS_PATH . $rStreamID . '_.monitor');
+	}
+
+	/**
+	 * Hand a live stream to the fanout daemon's supervisor — what startMonitor()
+	 * does instead of spawning a PHP watchdog.
+	 *
+	 * Without a restart, a stream the daemon already supervises is left alone,
+	 * and a running encoder is adopted rather than replaced (a PHP-monitored
+	 * stream moves over without a blip); nothing is touched unless the daemon can
+	 * take the stream. With a restart, whatever is running is ended first — the
+	 * PHP monitor's restart semantics.
+	 *
+	 * @param int  $rStreamID Stream id.
+	 * @param bool $rRestart  Restart it (an admin start/restart) rather than take it as it is.
+	 * @return bool True when the daemon is now supervising it; false = run the PHP monitor.
+	 */
+	public static function superviseStream(int $rStreamID, bool $rRestart): bool {
+		if (!self::supervisionEnabled()) {
+			return false;
+		}
+		// Asked before anything is touched: a daemon that is down or not taking
+		// hand-overs leaves the stream entirely to the PHP monitor.
+		$rStates = FanoutClient::monitorStates();
+		if ($rStates === null || empty($rStates['accepting'])) {
+			return false;
+		}
+		if (!$rRestart && isset($rStates['streams'][(string) $rStreamID])) {
+			return true; // already supervised
+		}
+
+		if ($rRestart) {
+			// End everything first — the spec below writes the stream's fresh HLS
+			// key/iv, which the cleanup would otherwise delete.
+			self::killPhpMonitor($rStreamID);
+			FanoutClient::release($rStreamID);
+			self::killProducer($rStreamID, false);
+			shell_exec('rm -f ' . STREAMS_PATH . intval($rStreamID) . '_*');
+		}
+
+		// Built before anything of a running stream is touched: a stream the
+		// daemon will not take keeps its PHP monitor and its encoder as they are.
+		$rSpec = self::buildSupervisorSpec($rStreamID);
+		if ($rSpec === null) {
+			return false;
+		}
+
+		$rAdopting = false;
+		if (!$rRestart) {
+			// One watchdog at a time: the PHP monitor goes before the daemon takes
+			// over, and a producer the daemon cannot adopt goes with it.
+			self::killPhpMonitor($rStreamID);
+			$rAdopting = self::killProducer($rStreamID, true);
+		}
+
+		// The daemon is the monitor now: record its pid where the panel looks for
+		// "is anything watching this stream" BEFORE handing over. The reconcile
+		// releases any supervised stream whose row reads stopped, and must not
+		// catch this one in the moment between the hand-over and this write. A
+		// fresh start is marked in progress until the reconcile sees it confirmed;
+		// an adopted, already-running one keeps its status and start time.
+		$rDaemonPID = intval($rStates['daemon_pid'] ?? 0) ?: null;
+		if ($rAdopting) {
+			self::db()->query('UPDATE `streams_servers` SET `monitor_pid` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDaemonPID, $rStreamID, SERVER_ID);
+		} else {
+			self::db()->query('UPDATE `streams_servers` SET `monitor_pid` = ?, `pid` = NULL, `stream_status` = 2, `to_analyze` = 0, `stream_started` = ?, `current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', $rDaemonPID, time(), $rSpec['sources'][0]['label'], $rStreamID, SERVER_ID);
+		}
+
+		if (!FanoutClient::supervise($rStreamID, $rSpec)) {
+			// Refused after all. Make sure the daemon holds nothing for this stream
+			// before a PHP monitor starts a second producer for it; the PHP
+			// monitor records its own pid over the daemon's.
+			FanoutClient::release($rStreamID);
+			return false;
+		}
+		self::recordCommand($rStreamID, $rSpec);
+		self::updateStream($rStreamID);
+		return true;
+	}
+
+	/**
+	 * Record the command(s) handed to the supervisor beside the stream's files,
+	 * the way the self-launched path records its ffmpeg line in `<id>_.ffmpeg`:
+	 * the native remuxer's goes to `<id>_.fanout`, ffmpeg's (the command itself,
+	 * or the fallback the supervisor switches to in `auto`) to `<id>_.ffmpeg`.
+	 * Purely a forensic record — nothing reads these back — but it is the first
+	 * thing anyone opens when a channel misbehaves, and a supervised stream used
+	 * to leave none. Both are removed with the rest of `<id>_*` when it stops.
+	 */
+	private static function recordCommand(int $rStreamID, array $rSpec): void {
+		$rCmd = (string) ($rSpec['sources'][0]['cmd'] ?? '');
+		$rFanout = STREAMS_PATH . $rStreamID . '_.fanout';
+		$rFFMPEG = STREAMS_PATH . $rStreamID . '_.ffmpeg';
+		if (self::isRemuxCommand($rCmd)) {
+			@file_put_contents($rFanout, $rCmd);
+			$rFallback = (string) ($rSpec['sources'][0]['fallback_cmd'] ?? '');
+			if ($rFallback !== '') {
+				@file_put_contents($rFFMPEG, $rFallback);
+			} else {
+				@unlink($rFFMPEG);
+			}
+			return;
+		}
+		@file_put_contents($rFFMPEG, $rCmd);
+		@unlink($rFanout);
+	}
+
+	/**
+	 * Append a panel-side line to the stream's error log — the file the producer's
+	 * own stderr goes to, and the one an operator opens. Used for the decisions
+	 * that happen before any producer exists, above all "why is this channel on
+	 * ffmpeg when the native backend is on".
+	 */
+	private static function noteProducer(int $rStreamID, string $rLine): void {
+		@file_put_contents(STREAMS_PATH . $rStreamID . '.errors', date('Y/m/d H:i:s') . ' [panel] ' . $rLine . "\n", FILE_APPEND);
+	}
+
+	/** Whether a supervisor command line is the daemon's native remuxer. */
+	private static function isRemuxCommand(string $rCmd): bool {
+		return strpos($rCmd, ' remux ') !== false && strpos($rCmd, FanoutClient::binaryPath()) !== false;
+	}
+
+	/**
+	 * End this stream's running producer, if it has one — or, with $rKeepAdoptable,
+	 * only if the daemon could not adopt it: adoption needs the producer's command
+	 * line to name this stream's playlist (spec adopt_match), which ffmpeg and the
+	 * native remuxer do and the PHP LLOD segmenter and PHP loopback relay do not.
+	 * Left running, one of those would share the stream's files with the
+	 * replacement the daemon starts.
+	 *
+	 * @return bool True when an adoptable producer was left running.
+	 */
+	private static function killProducer(int $rStreamID, bool $rKeepAdoptable): bool {
+		$rPID = self::pidFromFileOrColumn($rStreamID, 'pid', '_.pid');
+		if ($rPID <= 0 || !\XcVm\Streaming\Health\ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']'))) {
+			return false;
+		}
+		if ($rKeepAdoptable && strpos((string) @file_get_contents('/proc/' . $rPID . '/cmdline'), STREAMS_PATH . $rStreamID . '_.m3u8') !== false) {
+			return true;
+		}
+		posix_kill($rPID, 9);
+		return false;
+	}
+
+	/**
+	 * Bring streams_servers in step with what the fanout supervisor reports for
+	 * this server's streams — the DB writes the PHP monitor used to make itself.
+	 * Called by cron:streams every pass and by the signals daemon every few
+	 * seconds, so a start or a failure shows in the panel promptly.
+	 *
+	 * Streams the daemon supervises but the panel no longer runs here (deleted,
+	 * or stopped in a race) are released.
+	 *
+	 * @param array|null $rStates FanoutClient::monitorStates(), or null to fetch it.
+	 * @return int[]|null Ids supervised after the pass; null when the daemon is
+	 *                    unreachable (unknown — never "none").
+	 */
+	public static function reconcileSupervised(?array $rStates = null): ?array {
+		if ($rStates === null) {
+			$rStates = FanoutClient::monitorStates();
+		}
+		if ($rStates === null) {
+			return null;
+		}
+		$rIDs = array_map('intval', array_keys($rStates['streams']));
+		if (count($rIDs) === 0) {
+			return array();
+		}
+		$db = self::db();
+		$db->query('SELECT `stream_id`, `pid`, `monitor_pid`, `stream_status`, `current_source`, `stream_started`, `stream_info`, `audio_codec`, `video_codec`, `resolution`, `bitrate`, `compatible` FROM `streams_servers` WHERE `server_id` = ? AND `stream_id` IN (' . implode(',', $rIDs) . ')', SERVER_ID);
+		$rRows = array();
+		foreach ($db->get_rows() as $rRow) {
+			$rRows[intval($rRow['stream_id'])] = $rRow;
+		}
+
+		$rKept = array();
+		$rChanged = array();
+		foreach ($rStates['streams'] as $rID => $rState) {
+			$rID = intval($rID);
+			$rRow = $rRows[$rID] ?? null;
+			// No row, or a row the panel has marked stopped: nothing should be
+			// producing this stream here.
+			if ($rRow === null || (is_null($rRow['monitor_pid']) && is_null($rRow['pid']) && intval($rRow['stream_status']) === 0)) {
+				FanoutClient::release($rID);
+				continue;
+			}
+			$rKept[] = $rID;
+			$rSet = self::supervisedRowUpdate($rRow, $rState, (bool) SettingsManager::get('player_allow_hevc'), time());
+			if (count($rSet) > 0) {
+				$rCols = array();
+				$rVals = array();
+				foreach ($rSet as $rCol => $rVal) {
+					$rCols[] = '`' . $rCol . '` = ?';
+					$rVals[] = $rVal;
+				}
+				$rVals[] = $rID;
+				$rVals[] = SERVER_ID;
+				$db->query('UPDATE `streams_servers` SET ' . implode(', ', $rCols) . ' WHERE `stream_id` = ? AND `server_id` = ?', ...$rVals);
+				$rChanged[] = $rID;
+			}
+		}
+		if (count($rChanged) > 0) {
+			self::updateStreams($rChanged);
+		}
+		return $rKept;
+	}
+
+	/**
+	 * The streams_servers changes one supervisor state implies, as column =>
+	 * value; only columns whose value differs. PURE.
+	 *
+	 * Status follows the PHP monitor's meaning: 2 while a start is in progress,
+	 * 0 once it is confirmed, 1 when the supervisor has given up or is between
+	 * failed starts. Metadata the daemon could not determine is left as it is —
+	 * a correct value is never overwritten with a blank.
+	 *
+	 * @param array $rRow       Current streams_servers columns.
+	 * @param array $rState     One stream's supervisor state.
+	 * @param bool  $rAllowHevc player_allow_hevc (for `compatible`).
+	 * @param int   $rNow       Current time.
+	 * @return array Column => new value.
+	 */
+	private static function supervisedRowUpdate(array $rRow, array $rState, bool $rAllowHevc, int $rNow): array {
+		$rRunning = !empty($rState['running']);
+		$rConfirmed = $rRunning && !empty($rState['confirmed']);
+		if ($rConfirmed) {
+			$rStatus = 0;
+		} elseif (!empty($rState['gave_up']) || (!$rRunning && intval($rState['failures'] ?? 0) > 0)) {
+			$rStatus = 1;
+		} else {
+			$rStatus = 2;
+		}
+		$rWant = array(
+			'stream_status' => $rStatus,
+			'pid'           => ($rRunning && intval($rState['pid'] ?? 0) > 0) ? intval($rState['pid']) : null,
+		);
+		if (intval($rState['daemon_pid'] ?? 0) > 0) {
+			$rWant['monitor_pid'] = intval($rState['daemon_pid']);
+		}
+		if (($rState['source'] ?? '') !== '') {
+			$rWant['current_source'] = (string) $rState['source'];
+		}
+		// stream_started is when the running producer came up.
+		if ($rConfirmed && intval($rRow['stream_status']) !== 0) {
+			$rWant['stream_started'] = $rNow - intdiv(intval($rState['uptime_ms'] ?? 0), 1000);
+		}
+
+		// The daemon reads codecs and picture size off the bytes it is fanning out,
+		// so a supervised stream needs no ffprobe. Both shapes the panel keeps are
+		// written: the flat columns it filters and sorts on, and the `stream_info`
+		// JSON — which is what the streams list renders (resolution, codecs), what
+		// the adaptive master playlist takes BANDWIDTH and RESOLUTION from, and
+		// where stream/auth.php reads the viewer's video codec. Without it a
+		// supervised stream showed "? x ?" and "N/A", and every adaptive variant
+		// was dropped for want of a width.
+		$rMeta = (isset($rState['meta']) && is_array($rState['meta'])) ? $rState['meta'] : array();
+		$rInfo = json_decode((string) ($rRow['stream_info'] ?? ''), true);
+		if (!is_array($rInfo)) {
+			$rInfo = array();
+		}
+		$rInfoWas = $rInfo;
+		if (!empty($rMeta['video_codec']) || !empty($rMeta['audio_codec'])) {
+			$rVideo = (string) ($rMeta['video_codec'] ?? '') ?: $rRow['video_codec'];
+			$rAudio = (string) ($rMeta['audio_codec'] ?? '') ?: $rRow['audio_codec'];
+			$rWant['video_codec'] = $rVideo;
+			$rWant['audio_codec'] = $rAudio;
+			$rCodecs = array();
+			if ($rVideo) {
+				$rCodecs['video'] = array('codec_name' => $rVideo, 'codec_type' => 'video');
+			}
+			if ($rAudio) {
+				$rCodecs['audio'] = array('codec_name' => $rAudio, 'codec_type' => 'audio');
+			}
+			$rWant['compatible'] = intval(DiagnosticsService::checkCompatibility(array('codecs' => $rCodecs), $rAllowHevc));
+			foreach ($rCodecs as $rKind => $rCodec) {
+				$rInfo['codecs'][$rKind] = array_merge(
+					is_array($rInfo['codecs'][$rKind] ?? null) ? $rInfo['codecs'][$rKind] : array(),
+					$rCodec
+				);
+			}
+		}
+		if (intval($rMeta['height'] ?? 0) > 0) {
+			$rWant['resolution'] = StreamSorter::getNearest(array(240, 360, 480, 576, 720, 1080, 1440, 2160), intval($rMeta['height']));
+			$rInfo['codecs']['video']['height'] = intval($rMeta['height']);
+		}
+		if (intval($rMeta['width'] ?? 0) > 0) {
+			$rInfo['codecs']['video']['width'] = intval($rMeta['width']);
+		}
+		if (intval($rMeta['bitrate_kbps'] ?? 0) > 0) {
+			$rWant['bitrate'] = intval($rMeta['bitrate_kbps']);
+			// The column is kbit/s, this JSON field is ffprobe's format.bit_rate —
+			// bit/s, which is also what the adaptive playlist's BANDWIDTH wants.
+			$rInfo['bitrate'] = intval($rMeta['bitrate_kbps']) * 1000;
+		}
+		if ($rInfo !== $rInfoWas) {
+			$rWant['stream_info'] = json_encode($rInfo);
+		}
+
+		$rSet = array();
+		foreach ($rWant as $rCol => $rVal) {
+			$rHave = $rRow[$rCol] ?? null;
+			if ((is_null($rVal) !== is_null($rHave)) || (!is_null($rVal) && (string) $rVal !== (string) $rHave)) {
+				$rSet[$rCol] = $rVal;
+			}
+		}
+		return $rSet;
 	}
 
 	public static function createChannelItem($rStreamID, $rSource) {
@@ -980,6 +1733,13 @@ class StreamProcess {
 	 * @return mixed Stop result.
 	 */
 	public static function stopStream($rStreamID, $rStop = false) {
+		// A supervised stream is released FIRST: its producer dying is exactly
+		// what the fanout supervisor restarts, so killing it before the release
+		// would have the daemon start a replacement and the stream refuse to stop.
+		// The release kills the producer itself. A no-op for a stream the daemon
+		// does not supervise (or a daemon that is not there).
+		FanoutClient::release(intval($rStreamID));
+
 		$rMonitor = self::pidFromFileOrColumn($rStreamID, 'monitor_pid', '_.monitor');
 
 		if (0 < $rMonitor && \XcVm\Streaming\Health\ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']')) && is_numeric($rMonitor)) {

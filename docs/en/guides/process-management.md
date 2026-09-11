@@ -36,7 +36,13 @@ ProcessManager::isStreamRunning(int $pid, int $streamId): bool
 ```
 
 - `ffmpeg`: validates stream-specific output pattern in cmdline
+- `xc_fanout`: only the native remuxer (`xc_fanout remux … /<id>_.m3u8`) — the daemon process
+  itself shares the executable but names no stream playlist
 - `php`: considered alive for stream worker context
+
+For "is anything **watching** this stream", use `StreamProcess::isWatched($streamId, $monitorPid)`:
+a supervised stream's `monitor_pid` is the xc_fanout daemon's, which `isMonitorAlive()` (an
+`XC_VM[<id>]` PHP process) rightly rejects.
 
 ---
 
@@ -58,6 +64,28 @@ producing *this* stream. `isStreamAlive()` is a looser, case-insensitive substri
 stream ID in the cmdline — cheaper, but it does not verify output. Use `isStreamRunning()` when
 "is this stream being produced?" matters, `isStreamAlive()` for a quick "is a process for this ID
 around?".
+
+---
+
+## Per-stream CPU and memory
+
+```php
+ProcessManager::resourceSample($pid): ?array          // ['ticks' => CPU ticks so far, 'rss' => bytes, 'at' => microtime]
+ProcessManager::cpuPercent(array $now, array $prev): ?float   // percent of ONE core between two samples
+ProcessManager::producerKind($pid): ?string           // 'fanout' (xc_fanout remux) | 'ffmpeg' | 'php'
+```
+
+Read straight out of `/proc/PID/stat` (fields 14/15 for CPU, 24 for RSS; the page size is derived
+from this process's own `statm` vs `status`, since 64K pages are normal on arm64). CPU in `/proc`
+is cumulative, so a percentage needs **two** samples: `cpuPercent()` returns `null` when the pair
+says nothing — no previous reading, two readings from the same instant, or a counter that went
+backwards because the producer restarted under the same stream.
+
+`cron:streams` samples each running stream's producer once per pass and folds the result into that
+stream's `progress_info` JSON (`cpu`, `mem`, `producer`, plus `cpu_t` / `cpu_at` carrying the
+reading the next pass subtracts from). Only the node running a stream can read its own `/proc`, so
+the sampling happens there and travels to the panel in the row the cron already writes; the admin
+streams list renders it as the **Resources** column (producer badge, CPU %, RAM).
 
 ---
 

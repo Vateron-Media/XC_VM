@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
@@ -20,6 +21,9 @@ use XcVm\Infrastructure\Redis\RedisManager;
 
 class SignalsCommand implements CommandInterface {
 	use DaemonTrait;
+
+	/** Seconds between syncs of supervised streams' rows from the fanout daemon. */
+	const RECONCILE_INTERVAL = 5;
 
 	public function getName(): string {
 		return 'signals';
@@ -46,6 +50,7 @@ class SignalsCommand implements CommandInterface {
 		$this->initRedisIfEnabled();
 
 		$rServers = ServerRepository::getAll();
+		$rLastReconcile = 0;
 
 		while ($db && $db->ping()) {
 			if (!$this->refreshOrBreak()) {
@@ -60,6 +65,15 @@ class SignalsCommand implements CommandInterface {
 			// ping here used to kill the daemon with an uncaught exception.
 			if (!$this->checkRedisHealth()) {
 				break;
+			}
+
+			// Keep supervised streams' rows current: the fanout daemon runs their
+			// producers but cannot write the database, and the minute cron alone
+			// would leave a start showing "starting" (or a failure showing "up")
+			// for up to a minute. One control-socket call when nothing changed.
+			if (time() - $rLastReconcile >= self::RECONCILE_INTERVAL) {
+				$rLastReconcile = time();
+				StreamProcess::reconcileSupervised();
 			}
 
 			// ── Kill-сигналы из БД ──────────────────────────────

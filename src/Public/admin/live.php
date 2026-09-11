@@ -86,13 +86,17 @@ if (0 < $db->num_rows()) {
 		$rChannelInfo['pid'] = null;
 
 		if ($rChannelInfo['on_demand'] == 1) {
-			if (!ProcessManager::isMonitorAlive($rChannelInfo['monitor_pid'], $rStreamID)) {
-				StreamProcess::startMonitor($rStreamID);
-
-				for ($rRetries = 0; !file_exists(STREAMS_PATH . intval($rStreamID) . '_.monitor') && $rRetries < 300; $rRetries++) {
-					usleep(10000);
+			if (!StreamProcess::isWatched($rStreamID, $rChannelInfo['monitor_pid'])) {
+				DatabaseFactory::connect(); // closed above; the hand-over reads the stream's config
+				if (StreamProcess::startMonitor($rStreamID) === StreamProcess::MONITOR_FANOUT) {
+					// The daemon is the monitor, and writes no _.monitor file.
+					$rChannelInfo['monitor_pid'] = -1;
+				} else {
+					for ($rRetries = 0; !file_exists(STREAMS_PATH . intval($rStreamID) . '_.monitor') && $rRetries < 300; $rRetries++) {
+						usleep(10000);
+					}
+					$rChannelInfo['monitor_pid'] = intval(@file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 				}
-				$rChannelInfo['monitor_pid'] = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.monitor'));
 			}
 		} else {
 			generate404();

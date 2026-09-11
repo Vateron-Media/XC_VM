@@ -1504,7 +1504,7 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="fanout_source_backend">
 									<?= $language::get('fanout_source_backend') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: how a non-mp2t source becomes MPEG-TS. auto = convert in-process where possible and fall back to ffmpeg; ffmpeg = always spawn ffmpeg; native = no fallback (diagnostic only)."></i>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: how a source becomes MPEG-TS, for daemon-pulled and (with supervision on) panel streams. auto = native remuxer where possible, ffmpeg for the rest; ffmpeg = always ffmpeg; native = native remuxer only, no fallback."></i>
 								</label>
 								<div class="col-md-2">
 									<select name="fanout_source_backend" id="fanout_source_backend" class="form-control" data-toggle="select2">
@@ -1514,6 +1514,13 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 											</option>
 										<?php endforeach; ?>
 									</select>
+								</div>
+								<label class="col-md-4 col-form-label" for="fanout_supervise">
+									<?= $language::get('fanout_supervise') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout runs and watches each live stream (restart, failover, health checks) instead of a per-stream PHP monitor. Copy-only streams run on the native remuxer when the source backend is auto or native. Off = the PHP monitor for every stream."></i>
+								</label>
+								<div class="col-md-2">
+									<div class="form-check form-switch"><input name="fanout_supervise" id="fanout_supervise" type="checkbox" <?= ($rSettings["fanout_supervise"] ?? 1) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
 								</div>
 							</div>
 

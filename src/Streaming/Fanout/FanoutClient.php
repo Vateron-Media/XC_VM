@@ -28,6 +28,9 @@ class FanoutClient {
 	/** Default source User-Agent, matching ProxyCommand::startProxy(). */
 	private const DEFAULT_UA = 'Mozilla/5.0';
 
+	/** What the last monitorStates() call reported the daemon can be handed. */
+	private static ?array $features = null;
+
 	/**
 	 * Build the daemon source config from a `streams` row and its keyed
 	 * `streams_arguments` (as ProxyCommand reads them). Pure function — no I/O —
@@ -420,6 +423,174 @@ class FanoutClient {
 	 */
 	public static function unregister(int $rStreamID): bool {
 		return self::call('DELETE', $rStreamID, null);
+	}
+
+	// ── Encoder supervision (XC_VM_Fanout ADR 0002) ─────────────────────────
+	//
+	// The daemon's supervisor runs and watches a stream's producer — the ffmpeg
+	// command StreamProcess::buildLive composes, or the native remuxer
+	// (`xc_fanout remux`) StreamProcess::buildNativeLive composes — in place of the
+	// per-stream PHP watchdog (`console.php monitor`, MonitorCommand). PHP still
+	// builds every command and still owns every database write; the daemon runs
+	// what it is handed and reports back.
+
+	/** Path of the daemon binary, which is also the native remuxer (`xc_fanout remux`). */
+	public static function binaryPath(): string {
+		return BIN_PATH . 'xc_fanout/xc_fanout';
+	}
+
+	/**
+	 * Hand a stream to the daemon's supervisor (PUT /monitor/<id>). Re-handing a
+	 * supervised stream replaces its spec and restarts its producer.
+	 *
+	 * @param int   $rStreamID Stream id.
+	 * @param array $rSpec     Spec: sources (label/cmd/fallback_cmd/probe_cmd),
+	 *                         policy, health, pid/errors/log paths, server_id,
+	 *                         adopt_match — see StreamProcess::buildSupervisorSpec().
+	 * @return bool True when the daemon took it (204); false when it is
+	 *              unreachable, not accepting hand-overs (501) or refused the spec.
+	 */
+	public static function supervise(int $rStreamID, array $rSpec): bool {
+		$rBody = json_encode($rSpec, JSON_UNESCAPED_SLASHES);
+		if ($rBody === false) {
+			return false;
+		}
+		return self::request('PUT', '/monitor/' . $rStreamID, $rBody, 2, 5)['code'] === 204;
+	}
+
+	/**
+	 * Stop supervising a stream and kill its producer (DELETE /monitor/<id>).
+	 * Idempotent: a stream the daemon is not supervising answers 204 too.
+	 *
+	 * This MUST come before anything kills the producer by pid — killing it
+	 * first is precisely what the supervisor exists to react to, so it would
+	 * start a replacement and the stream would refuse to stop.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return bool True when the daemon answered (whether or not it was supervising).
+	 */
+	public static function release(int $rStreamID): bool {
+		$rCode = self::request('DELETE', '/monitor/' . $rStreamID, null, 2, 5)['code'];
+		return $rCode >= 200 && $rCode < 300;
+	}
+
+	/**
+	 * Every supervised stream's state in one call (GET /monitors/state), for the
+	 * streams_servers reconcile.
+	 *
+	 * Returns null — never an empty list — when the daemon cannot be reached, so
+	 * a dead socket is never mistaken for "supervising nothing" (which would have
+	 * the caller start a PHP monitor for every stream on the node).
+	 *
+	 * @return array{accepting:bool,daemon_pid:int,streams:array<string,array>}|null
+	 *   accepting  — whether a new hand-over would be taken now;
+	 *   daemon_pid — the daemon's pid, a supervised stream's monitor_pid;
+	 *   streams   — id => state (running, pid, source, source_idx, restarts,
+	 *               failures, uptime_ms, gave_up, adopted, fallback, last_error,
+	 *               daemon_pid, meta{…}).
+	 */
+	public static function monitorStates(): ?array {
+		$rRes = self::request('GET', '/monitors/state', null, 1, 3);
+		if ($rRes['code'] !== 200 || !is_string($rRes['body'])) {
+			return null;
+		}
+		$rData = json_decode($rRes['body'], true);
+		if (!is_array($rData) || !isset($rData['streams']) || !is_array($rData['streams'])) {
+			return null;
+		}
+		$rFeatures = (isset($rData['features']) && is_array($rData['features'])) ? array_map('strval', $rData['features']) : array();
+		self::$features = $rFeatures;
+		return array('accepting' => !empty($rData['accepting']), 'daemon_pid' => intval($rData['daemon_pid'] ?? 0), 'features' => $rFeatures, 'streams' => $rData['streams']);
+	}
+
+	/**
+	 * Whether the running daemon understands `xc_fanout remux` — the native
+	 * remuxer command the panel composes for a copy-only stream.
+	 *
+	 * A daemon from before it does not reject such a command, it MISPARSES it:
+	 * `remux` reads as a positional argument to the daemon's own flag set, the
+	 * process tries to become a second daemon on sockets the running one holds,
+	 * and the stream never starts. So a panel that is newer than the node's
+	 * binary must ask first — on a half-upgraded node the streams simply keep
+	 * running ffmpeg, which is the whole point of asking.
+	 *
+	 * @return bool False when the daemon has not been asked yet, or says no.
+	 */
+	public static function supportsRemux(): bool {
+		if (self::$features === null) {
+			self::monitorStates();
+		}
+		return is_array(self::$features) && in_array('remux', self::$features, true);
+	}
+
+	/**
+	 * Whether the daemon is supervising this stream.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return bool|null True/false from a reachable daemon; null when it cannot
+	 *                   be asked, which callers must treat as "unknown", not "no".
+	 */
+	public static function isSupervised(int $rStreamID): ?bool {
+		$rRes = self::request('GET', '/monitor/' . $rStreamID, null, 1, 2);
+		if ($rRes['errno'] !== 0 || $rRes['code'] === 0) {
+			return null;
+		}
+		if ($rRes['code'] === 404) {
+			return false;
+		}
+		if ($rRes['code'] !== 200 || !is_string($rRes['body'])) {
+			return null;
+		}
+		$rData = json_decode($rRes['body'], true);
+		return is_array($rData) && !empty($rData['supervised']);
+	}
+
+	/**
+	 * Force a supervised stream onto one of its sources (POST
+	 * /monitor/<id>/source) — the supervised form of the `<id>.force` signal file,
+	 * which only the PHP monitor ever read.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @param int $rIndex    Index into the stream's source list.
+	 * @return bool True when the daemon queued the switch.
+	 */
+	public static function forceSource(int $rStreamID, int $rIndex): bool {
+		$rCode = self::request('POST', '/monitor/' . $rStreamID . '/source', json_encode(array('index' => $rIndex)), 1, 3)['code'];
+		return $rCode >= 200 && $rCode < 300;
+	}
+
+	/**
+	 * One control request over the daemon's unix socket.
+	 *
+	 * @param string      $rMethod  HTTP method.
+	 * @param string      $rPath    Request path.
+	 * @param string|null $rBody    JSON body, or null.
+	 * @param int         $rConnect Connect timeout, seconds.
+	 * @param int         $rTimeout Whole-request timeout, seconds.
+	 * @return array{code:int,body:string|null,errno:int} code 0 / errno set when unreachable.
+	 */
+	private static function request(string $rMethod, string $rPath, ?string $rBody, int $rConnect, int $rTimeout): array {
+		if (!function_exists('curl_init') || !defined('FANOUT_CTL_SOCK') || !file_exists(FANOUT_CTL_SOCK)) {
+			return array('code' => 0, 'body' => null, 'errno' => -1);
+		}
+		$rCurl = curl_init();
+		curl_setopt_array($rCurl, [
+			CURLOPT_UNIX_SOCKET_PATH => FANOUT_CTL_SOCK,
+			CURLOPT_URL            => 'http://localhost' . $rPath,
+			CURLOPT_CUSTOMREQUEST  => $rMethod,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_CONNECTTIMEOUT => $rConnect,
+			CURLOPT_TIMEOUT        => $rTimeout,
+		]);
+		if ($rBody !== null) {
+			curl_setopt($rCurl, CURLOPT_POSTFIELDS, $rBody);
+			curl_setopt($rCurl, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+		}
+		$rResponse = curl_exec($rCurl);
+		$rCode = (int) curl_getinfo($rCurl, CURLINFO_HTTP_CODE);
+		$rErrno = curl_errno($rCurl);
+		curl_close($rCurl);
+		return array('code' => $rCode, 'body' => is_string($rResponse) ? $rResponse : null, 'errno' => $rErrno);
 	}
 
 	/**
