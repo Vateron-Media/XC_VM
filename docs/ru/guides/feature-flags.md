@@ -58,6 +58,8 @@ define('DEV_MODE', false); // master development-mode flag
 | `recaptcha_enable` | `bool` |включите reCAPTCHA v2 при входе в систему|
 | `verify_host` | `bool` |принудительная проверка списка разрешений хоста|
 | `save_login_logs` | `bool` |постоянные попытки входа в систему в `login_logs`|
+| `fanout_supervise` | `bool` |передача прямых трансляций супервизору xc_fanout вместо монитора PHP (по умолчанию включен)|
+| `fanout_source_backend` |`auto` / `ffmpeg` / `native`|как преобразуются исходные тексты в MPEG-TS; под наблюдением, будут ли потоки, предназначенные только для копирования, запускать собственный ремиксер (`auto`: с резервным копированием ffmpeg)|
 
 Эти значения загружаются из `CACHE_TMP_PATH/settings` защитниками запросов.
 
