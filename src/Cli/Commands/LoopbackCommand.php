@@ -5,6 +5,7 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Streaming\Fanout\FanoutClient;
+use XcVm\Streaming\Fanout\IngestFeeder;
 
 /**
  * LoopbackCommand — loopback command
@@ -127,24 +128,18 @@ class LoopbackCommand implements CommandInterface {
 		stream_set_blocking($rFP, true);
 
 		// Loopback daemon feed (ADR 0003, Phase G restream-from-origin). Loopback
-		// reads MPEG-TS from the parent server itself (no ffmpeg), so — like LLOD v3
-		// — mirror the bytes into the xc_fanout daemon's push-fed ingest socket: the
-		// same stream then fans out via /live/<id> and in-RAM /hls on this LB, and
-		// live.php's isStreamFed() routes viewers to the daemon instead of the PHP
-		// byte path (the whole point on an LB too). The write is non-blocking +
-		// best-effort so a daemon stall never slows loopback's own segmenting; the
-		// daemon resyncs on PAT/PMT after any dropped bytes. Null/failed connect ⇒
-		// legacy-only, no behaviour change. We mirror the SANITIZED buffer (below),
-		// not the raw read, because admin/live interleaves 0xFF padding that would
-		// otherwise break the daemon's packet parsing.
-		$rDaemonSock = FanoutClient::registerIngest($rStreamID);
-		$rDaemonConn = null;
-		if ($rDaemonSock !== null) {
-			$rDaemonConn = @stream_socket_client('unix://' . $rDaemonSock, $rDErrno, $rDErrstr, 2);
-			if ($rDaemonConn) {
-				stream_set_blocking($rDaemonConn, false);
-			}
-		}
+		// reads MPEG-TS from the parent server itself (no ffmpeg) and pushes it into
+		// the xc_fanout daemon's ingest socket; the daemon is what serves this LB's
+		// viewers (/live/<id> and the in-RAM /hls) — there is no other client path
+		// since Phase E, so this feed is the channel's delivery. IngestFeeder keeps
+		// short writes from tearing packets, re-registers and redials after a daemon
+		// restart, and carries the HLS key when encrypted HLS is on. We feed the
+		// SANITIZED buffer (below), not the raw read, because admin/live interleaves
+		// 0xFF padding that would otherwise break the daemon's packet parsing.
+		$rFeeder = IngestFeeder::forStream($rStreamID, !empty($rSettings['encrypt_hls']), function (string $rLine) use ($rStreamID) {
+			$this->writeError($rStreamID, '[Loopback] ' . $rLine);
+		});
+		$rFeeder->connect();
 
 		$rExcessBuffer = $rPrebuffer = $rBuffer = $rPacket = '';
 		$rPATHeaders = array();
@@ -207,16 +202,12 @@ class LoopbackCommand implements CommandInterface {
 				}
 			}
 			$rPacketNum = floor(strlen($rBuffer) / PACKET_SIZE);
+			if (0 == $rPacketNum) {
+				$rFeeder->flush(); // drain a backlog / reconnect even when nothing new arrived
+			}
 			if (0 < $rPacketNum) {
-				// Mirror the sanitized whole-packet buffer to the daemon (best-effort,
-				// non-blocking). On a write error (daemon gone) stop mirroring; viewers
-				// then fall back to the legacy on-disk HLS this loop still writes.
-				if ($rDaemonConn) {
-					if (@fwrite($rDaemonConn, $rBuffer) === false) {
-						@fclose($rDaemonConn);
-						$rDaemonConn = null;
-					}
-				}
+				// Feed the sanitized whole-packet buffer to the daemon (see above).
+				$rFeeder->write($rBuffer);
 				foreach (str_split($rBuffer, PACKET_SIZE) as $rPacket) {
 					list(, $rHeader) = unpack('N', substr($rPacket, 0, 4));
 					$rSync = $rHeader >> 24 & 255;
@@ -318,9 +309,7 @@ class LoopbackCommand implements CommandInterface {
 		if (time() - $rLastPacket < TIMEOUT) {
 			$this->writeError($rStreamID, '[Loopback] Connection to source closed unexpectedly.');
 		}
-		if ($rDaemonConn) {
-			@fclose($rDaemonConn);
-		}
+		$rFeeder->close();
 		FanoutClient::unregister($rStreamID);
 		fclose($rSegmentFile);
 		fclose($rFP);
@@ -382,7 +371,11 @@ class LoopbackCommand implements CommandInterface {
 				$rHLS .= '#EXTINF:' . round((isset($rSegmentDuration[$rSegment]) ? $rSegmentDuration[$rSegment] : 10), 0) . '.000000,' . "\n" . $rStreamID . '_' . $rSegment . '.ts' . "\n";
 			}
 		}
-		file_put_contents(STREAMS_PATH . $rStreamID . '_.m3u8', $rHLS);
+		// Write-then-rename: readers never see a half-written playlist.
+		$rTmp = STREAMS_PATH . $rStreamID . '_.m3u8.tmp';
+		if (@file_put_contents($rTmp, $rHLS) === false || !@rename($rTmp, STREAMS_PATH . $rStreamID . '_.m3u8')) {
+			@unlink($rTmp);
+		}
 	}
 
 	private function writeError($rStreamID, $rError): void {

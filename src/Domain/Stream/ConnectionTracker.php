@@ -5,6 +5,7 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * ConnectionTracker — live streaming connection management.
@@ -336,7 +337,10 @@ class ConnectionTracker {
 		if (!$rRedis) {
 			return false;
 		}
-		$rKey = 'SIGNAL#' . md5($rServerID . '#' . $rPID . '#' . $rRTMP);
+		// The payload is part of the key when there is one: pid-less signals
+		// (a daemon viewer's drop_con) would otherwise all share one key per server
+		// and overwrite each other before the target's signals daemon read them.
+		$rKey = 'SIGNAL#' . md5($rServerID . '#' . $rPID . '#' . $rRTMP . (is_null($rCustomData) ? '' : '#' . json_encode($rCustomData)));
 		$rData = array('pid' => $rPID, 'server_id' => $rServerID, 'rtmp' => $rRTMP, 'time' => time(), 'custom_data' => $rCustomData, 'key' => $rKey);
 		return $rRedis->multi()->sAdd('SIGNALS#' . $rServerID, $rKey)->set($rKey, igbinary_serialize($rData))->exec();
 	}
@@ -705,6 +709,10 @@ class ConnectionTracker {
 			return false;
 		}
 		$rMulti = $rRedis->multi();
+		// An HLS uuid is derived from the player (hlsConnectionKey), so a re-auth
+		// after a close reuses it: leave ENDED, or the main server's reaper would
+		// close and delete this fresh connection as the old ended one.
+		$rMulti->sRem('ENDED', $rData['uuid']);
 		$rMulti->zAdd('LINE#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('LINE_ALL#' . $rData['identity'], $rData['date_start'], $rData['uuid']);
 		$rMulti->zAdd('STREAM#' . $rData['stream_id'], $rData['date_start'], $rData['uuid']);
@@ -771,6 +779,13 @@ class ConnectionTracker {
 
 		$db = self::db();
 
+		// A re-auth after a close reuses the player's HLS uuid. Drop the closed row
+		// (its activity was logged when it was closed) — the reaper deletes by uuid
+		// and would otherwise take this new row down with the old one.
+		if ($rContainer === 'hls') {
+			$db->query('DELETE FROM `lines_live` WHERE `uuid` = ? AND `hls_end` = 1;', $rConn["uuid"]);
+		}
+
 		if (is_null($rCtx["is_hmac"])) {
 			return $db->query('INSERT INTO `lines_live` (`user_id`,`stream_id`,`server_id`,`proxy_id`,`user_agent`,`user_ip`,`container`,`pid`,`uuid`,`date_start`,`geoip_country_code`,`isp`,`external_device`,`hls_last_read`) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)', $rConn["user_id"], $rConn["stream_id"], $rConn["server_id"], $rConn["proxy_id"], $rConn["user_agent"], $rConn["user_ip"], $rConn["container"], $rConn["pid"], $rConn["uuid"], $rConn["date_start"], $rConn["geoip_country_code"], $rConn["isp"], $rConn["external_device"], $rConn["hls_last_read"]);
 		}
@@ -796,7 +811,16 @@ class ConnectionTracker {
 	 */
 	public static function lookupLive(array $rSettings, array $rCtx, string $rContainer, bool $rWithPid, bool $rOpenOnly, bool $rAllowAdaptive): ?array {
 		if ($rSettings["redis_handler"]) {
-			return self::getConnection($rCtx["uuid"]);
+			$rConnection = self::getConnection($rCtx["uuid"]);
+			// Same meaning as `hls_end = 0` on the table path: a connection that was
+			// closed — kicked for the line's limit, or by an admin — is not resumed
+			// by the player's next playlist request (which would quietly undo the
+			// kick); the request is treated as a new connection and its token's
+			// expiry and the line's limits apply again.
+			if ($rOpenOnly && is_array($rConnection) && !empty($rConnection['hls_end'])) {
+				return null;
+			}
+			return $rConnection;
 		}
 
 		$db = self::db();
@@ -912,6 +936,35 @@ class ConnectionTracker {
 	}
 
 	/**
+	 * End a daemon-served live-TS viewer — a `pid = 0` row (ADR 0003). The worker
+	 * that admitted it returned at the X-Accel hand-off, so there is no process to
+	 * kill: the xc_fanout daemon serving it has to drop the uuid. On this node that
+	 * is one control call; for a viewer on another node it is a `drop_con` signal,
+	 * which that node's signals daemon turns into the same call.
+	 *
+	 * @param array $rConnection Connection row (needs uuid and server_id).
+	 * @return void
+	 */
+	public static function dropDaemonViewer(array $rConnection): void {
+		global $rSettings;
+		$rUUID = (string) ($rConnection['uuid'] ?? '');
+		if ($rUUID === '') {
+			return;
+		}
+		$rServerID = intval($rConnection['server_id'] ?? 0);
+		if ($rServerID <= 0 || $rServerID == SERVER_ID) {
+			FanoutClient::dropConnection($rUUID);
+			return;
+		}
+		$rSignal = array('type' => 'drop_con', 'uuid' => $rUUID);
+		if (!empty($rSettings['redis_handler'])) {
+			self::redisSignal(0, $rServerID, 0, $rSignal);
+		} else {
+			self::db()->query('INSERT INTO `signals` (`server_id`, `cache`, `time`, `custom_data`) VALUES(?, 1, UNIX_TIMESTAMP(), ?);', $rServerID, json_encode($rSignal));
+		}
+	}
+
+	/**
 	 * Close an active connection.
 	 *
 	 * Performs the full close cycle: kills the process (RTMP drop client,
@@ -973,7 +1026,9 @@ class ConnectionTracker {
 							@unlink(CONS_TMP_PATH . $rActivityInfo['stream_id'] . '/' . $rActivityInfo['uuid']);
 						}
 					} else {
-						if ($rActivityInfo['server_id'] == SERVER_ID) {
+						if (intval($rActivityInfo['pid']) === 0) {
+							self::dropDaemonViewer($rActivityInfo);
+						} elseif ($rActivityInfo['server_id'] == SERVER_ID) {
 							if (!($rActivityInfo['pid'] != getmypid() && is_numeric($rActivityInfo['pid']) && 0 < $rActivityInfo['pid'])) {
 							} else {
 								posix_kill(intval($rActivityInfo['pid']), 9);

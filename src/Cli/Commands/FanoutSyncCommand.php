@@ -40,6 +40,9 @@ class FanoutSyncCommand implements CommandInterface {
 	/** Reconcile interval, seconds. */
 	private const INTERVAL = 10;
 
+	/** @var array<string,int> Daemon viewer uuid => when it was first seen without a row. */
+	private array $rOrphanSince = array();
+
 	public function getName(): string {
 		return 'fanout_sync';
 	}
@@ -79,8 +82,11 @@ class FanoutSyncCommand implements CommandInterface {
 			$rActive = FanoutClient::activeConnections();
 			if ($rActive !== null) {
 				$rConns = $this->daemonConnections();
-				$this->reconcile(array_flip($rActive), $rConns);
-				$this->writeDivergence($rConns);
+				if ($rConns !== null) {
+					$this->reconcile(array_flip($rActive), $rConns);
+					$this->dropOrphans($rActive, $rConns);
+					$this->writeDivergence($rConns);
+				}
 			}
 
 			sleep(self::INTERVAL);
@@ -127,6 +133,53 @@ class FanoutSyncCommand implements CommandInterface {
 				ConnectionTracker::closeConnection($rConn);
 			}
 		}
+	}
+
+	/**
+	 * The other direction of reconcile(): end daemon viewers that have no open row
+	 * any more. Every path that closes a connection by deleting its row — the
+	 * reaper, an expired or banned line, a limit eviction on a node that could not
+	 * reach this daemon — would otherwise leave the viewer streaming, untracked
+	 * and uncounted. A uuid must stay orphaned for GRACE before it is dropped (the
+	 * row is written before the X-Accel hand-off, so a live viewer always has one;
+	 * the grace covers a read racing that write).
+	 *
+	 * @param string[]                       $rActive Uuids connected to the daemon.
+	 * @param array<int,array<string,mixed>> $rConns  Open rows on this server.
+	 * @param int|null                       $rNow    Current time (tests), default now.
+	 * @param callable|null                  $rDrop   fn(string $uuid) (tests), default the daemon call.
+	 * @return string[] The uuids dropped on this pass.
+	 */
+	public function dropOrphans(array $rActive, array $rConns, ?int $rNow = null, ?callable $rDrop = null): array {
+		$rKnown = array();
+		foreach ($rConns as $rConn) {
+			if (is_array($rConn) && !empty($rConn['uuid']) && empty($rConn['hls_end'])) {
+				$rKnown[$rConn['uuid']] = true;
+			}
+		}
+
+		$rNow = $rNow ?? time();
+		$rDrop = $rDrop ?? static function (string $rUUID): void {
+			FanoutClient::dropConnection($rUUID);
+		};
+		$rSeen = array();
+		$rDropped = array();
+		foreach ($rActive as $rUUID) {
+			$rUUID = (string) $rUUID;
+			if ($rUUID === '' || isset($rKnown[$rUUID])) {
+				continue;
+			}
+			$rSince = $this->rOrphanSince[$rUUID] ?? $rNow;
+			if ($rNow - $rSince >= self::GRACE) {
+				echo 'Dropping daemon viewer without a connection row: ' . $rUUID . "\n";
+				$rDrop($rUUID);
+				$rDropped[] = $rUUID;
+				continue;
+			}
+			$rSeen[$rUUID] = $rSince;
+		}
+		$this->rOrphanSince = $rSeen;
+		return $rDropped;
 	}
 
 	/**
@@ -215,21 +268,27 @@ class FanoutSyncCommand implements CommandInterface {
 
 	/**
 	 * Candidate daemon-served rows (pid=0, open) on this server, from Redis or DB.
+	 * Null when they could not be read — distinct from "none", which would have
+	 * dropOrphans() disconnect every daemon viewer on a Redis or database blip.
 	 *
-	 * @return array<int,array<string,mixed>>
+	 * @return array<int,array<string,mixed>>|null
 	 */
-	private function daemonConnections(): array {
+	private function daemonConnections(): ?array {
 		global $rSettings;
 
 		if (!empty($rSettings['redis_handler'])) {
 			RedisManager::ensureConnected();
 			$rRedis = RedisManager::instance();
 			if (!$rRedis) {
-				return array();
+				return null;
 			}
-			$rKeys = $rRedis->zRangeByScore('SERVER#' . SERVER_ID, '-inf', '+inf');
+			try {
+				$rKeys = $rRedis->zRangeByScore('SERVER#' . SERVER_ID, '-inf', '+inf');
+			} catch (\Throwable $rError) {
+				return null;
+			}
 			if (!is_array($rKeys)) {
-				return array();
+				return null;
 			}
 			$rOut = array();
 			foreach ($rKeys as $rUUID) {
@@ -243,7 +302,9 @@ class FanoutSyncCommand implements CommandInterface {
 
 		DatabaseFactory::connect();
 		global $db;
-		$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ? AND `pid` = 0 AND `hls_end` = 0', SERVER_ID);
+		if (!$db->query('SELECT * FROM `lines_live` WHERE `server_id` = ? AND `pid` = 0 AND `hls_end` = 0', SERVER_ID)) {
+			return null;
+		}
 		return $db->get_rows();
 	}
 }

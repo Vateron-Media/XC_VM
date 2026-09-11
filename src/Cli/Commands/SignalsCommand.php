@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Redis\RedisManager;
+use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
  * SignalsCommand — signals command
@@ -134,6 +135,11 @@ class SignalsCommand implements CommandInterface {
 									// suppress the harmless "No such file" warning.
 									@unlink(CONS_TMP_PATH . $rCustomData['uuid']);
 									break;
+								case 'drop_con':
+									// A daemon-served viewer on this node was kicked
+									// from another (ConnectionTracker::dropDaemonViewer).
+									FanoutClient::dropConnection((string) ($rCustomData['uuid'] ?? ''));
+									break;
 								case 'delete_vod':
 									exec('rm ' . MAIN_HOME . 'content/vod/' . intval($rCustomData['id']) . '.*');
 									break;
@@ -168,7 +174,9 @@ class SignalsCommand implements CommandInterface {
 								$rRow = igbinary_unserialize($rData);
 								$rIDs[] = $rRow['key'];
 								$rPID = $rRow['pid'];
-								if ($rRow['rtmp'] == 0) {
+								if (is_array($rRow['custom_data'] ?? null) && ($rRow['custom_data']['type'] ?? '') === 'drop_con') {
+									FanoutClient::dropConnection((string) ($rRow['custom_data']['uuid'] ?? ''));
+								} elseif ($rRow['rtmp'] == 0) {
 									if (!empty($rPID) && file_exists('/proc/' . $rPID) && is_numeric($rPID) && 0 < $rPID) {
 										shell_exec('kill -9 ' . intval($rPID));
 									}

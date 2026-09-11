@@ -32,10 +32,11 @@ class AsyncFileOperations {
     private static $fileCache = [];
 
     /**
-     * Cache TTL in microseconds (100ms)
-     * @var int
+     * Cache TTL in seconds (100 ms) — compared against microtime(true) deltas.
+     * (It was 100000, read as seconds: a "100 ms" cache that lasted 27 hours.)
+     * @var float
      */
-    private static $cacheTTL = 100000;
+    private static $cacheTTL = 0.1;
 
     /**
      * Non-blocking file existence check with intelligent polling
@@ -74,7 +75,6 @@ class AsyncFileOperations {
     private static function awaitFileWithInotify($file, $maxRetries, $delayMs) {
         try {
             $directory = dirname($file);
-            $filename = basename($file);
 
             $inotify = @inotify_init();
             if ($inotify === false) {
@@ -84,28 +84,34 @@ class AsyncFileOperations {
             // Watch directory for file creation
             @inotify_add_watch($inotify, $directory, IN_CREATE | IN_MOVED_TO | IN_CLOSE_WRITE);
 
-            $checkCount = 0;
-            $timeout = intval($maxRetries * max(1, intval($delayMs / 100)));
-
-            while ($checkCount < $maxRetries) {
+            // The budget is TIME (maxRetries × delayMs, as for polling), and every
+            // wait is bounded: a blocking inotify_read() never returned when the
+            // file was not created, and counting events instead of time let a busy
+            // directory use up the retries in milliseconds.
+            $deadline = microtime(true) + max(1, $maxRetries) * max(1, $delayMs) / 1000;
+            $slice = max(1000, $delayMs * 1000);
+            while (true) {
+                clearstatcache(true, $file);
                 if (file_exists($file)) {
                     @fclose($inotify);
+                    self::clearFileCache($file);
                     return true;
                 }
-
-                // Wait for inotify events with timeout
-                $events = @inotify_read($inotify);
-
-                if ($events === false) {
-                    usleep(max(1000, $delayMs * 1000));
+                $left = $deadline - microtime(true);
+                if ($left <= 0) {
+                    break;
                 }
-
-                $checkCount++;
+                $read = array($inotify);
+                $write = $except = null;
+                $wait = (int) min($slice, $left * 1000000);
+                if (@stream_select($read, $write, $except, 0, $wait) > 0) {
+                    @inotify_read($inotify); // drain; the loop re-checks the file
+                }
             }
 
             @fclose($inotify);
             return false;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             return self::awaitFileWithPolling($file, $maxRetries, $delayMs);
         }
     }
@@ -124,7 +130,9 @@ class AsyncFileOperations {
 
         for ($i = 0; $i < $maxRetries; $i++) {
             // Check with stat() for better performance
+            clearstatcache(true, $file);
             if (@stat($file) !== false) {
+                self::clearFileCache($file); // a later readFile() must see the new file
                 return true;
             }
 
@@ -191,7 +199,9 @@ class AsyncFileOperations {
 
         for ($i = 0; $i < $maxRetries; $i++) {
             foreach ($files as $file) {
+                clearstatcache(true, $file);
                 if (@stat($file) !== false) {
+                    self::clearFileCache($file);
                     return $file;
                 }
             }

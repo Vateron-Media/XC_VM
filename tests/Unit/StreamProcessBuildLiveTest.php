@@ -139,9 +139,38 @@ final class StreamProcessBuildLiveTest extends TestCase {
 		$this->assertStringContainsString('-map 0 -copy_unknown', $out);
 	}
 
-	/** The legacy path registers no ingest for loopback and must stay on-disk only. */
-	public function testLegacyLoopbackStaysOnDiskOnly(): void {
+	/** With no daemon ingest (daemon unreachable) a loopback stays on-disk only. */
+	public function testLoopbackWithoutIngestStaysOnDiskOnly(): void {
 		$this->assertStringNotContainsString('-f tee', $this->build(['loopback' => true]));
+	}
+
+	/** A self-launched (unsupervised) loopback feeds the daemon too — clients are daemon-only. */
+	public function testUnsupervisedLoopbackTeesIntoTheDaemon(): void {
+		$out = $this->build(['loopback' => true, 'ingestSock' => '/run/ingest/42.sock']);
+		$this->assertStringContainsString('-f tee', $out);
+		$this->assertStringContainsString('unix:/run/ingest/42.sock', $out);
+	}
+
+	// ── LLOD ───────────────────────────────────────────────────
+
+	/** +nobuffer is a demuxer flag: it belongs before -i, not among the output options. */
+	public function testLlodLatencyFlagsSitOnTheInput(): void {
+		$out = $this->build(['llod' => true]);
+		$input = substr($out, 0, (int) strpos($out, ' -i '));
+		$this->assertStringContainsString('-fflags +discardcorrupt+nobuffer', $input);
+		$this->assertStringNotContainsString('-fflags nobuffer', $out);
+	}
+
+	/** A stream copy gets no encoder tune; x264 gets zerolatency; NVENC its own option. */
+	public function testLlodTuneMatchesTheEncoder(): void {
+		$this->assertStringNotContainsString('-tune', $this->build(['llod' => true]));
+
+		$x264 = $this->build(['llod' => true, 'stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => 1, 'profile_options' => json_encode(['-vcodec' => 'libx264'])]]);
+		$this->assertStringContainsString('-tune zerolatency', $x264);
+
+		$nvenc = $this->build(['llod' => true, 'stream_info' => ['enable_transcode' => 1, 'transcode_profile_id' => 1, 'profile_options' => json_encode(['-vcodec' => 'h264_nvenc'])]]);
+		$this->assertStringNotContainsString('-tune zerolatency', $nvenc, 'NVENC rejects the x264 tune value');
+		$this->assertStringContainsString('-zerolatency 1', $nvenc);
 	}
 
 	// ── custom_ffmpeg branch ───────────────────────────────────

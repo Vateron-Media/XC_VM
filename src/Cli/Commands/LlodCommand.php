@@ -3,7 +3,10 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\StreamUtils;
 use XcVm\Streaming\Fanout\FanoutClient;
+use XcVm\Streaming\Fanout\IngestFeeder;
 
 /**
  * LlodCommand — llod command
@@ -112,12 +115,12 @@ class LlodCommand implements CommandInterface {
 
 		echo "Starting LLOD processing...\n\n";
 
-		$this->startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegTime, $rSegmentStatus, $rFP, $rSegmentFile);
+		$this->startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegTime, !empty($rSettings['encrypt_hls']), $rSegmentStatus, $rFP, $rSegmentFile);
 
 		return 0;
 	}
 
-	private function startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegTime, &$rSegmentStatus, &$rFP, &$rSegmentFile): void {
+	private function startLlod($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSegListSize, $rSegDeleteThreshold, $rSegTime, $rEncryptHLS, &$rSegmentStatus, &$rFP, &$rSegmentFile): void {
 		// Keyframe-aligned segmentation. The previous version cut segments on a
 		// fixed wall-clock timer (SEGMENT_DURATION) at an arbitrary TS-packet
 		// boundary, so a segment frequently started mid-GOP (no IDR keyframe) or
@@ -139,20 +142,8 @@ class LlodCommand implements CommandInterface {
 			}
 		}
 
-		$ua = $rStreamArguments['user_agent']['value'] ?? 'Mozilla/5.0';
-
-		$context = stream_context_create([
-			'http' => [
-				'timeout'    => TIMEOUT,
-				'user_agent' => $ua,
-			],
-			'ssl' => [
-				'verify_peer'      => false,
-				'verify_peer_name' => false,
-			]
-		]);
-
-		$rFP = $this->getActiveStream($rStreamID, $rStreamSources, $context);
+		$rSniffed = '';
+		$rFP = $this->getActiveStream($rStreamID, $rStreamSources, $rStreamArguments, $rRequestPrebuffer, $rSniffed);
 		if (!$rFP) {
 			echo "No active stream\n";
 			return;
@@ -160,21 +151,19 @@ class LlodCommand implements CommandInterface {
 
 		stream_set_blocking($rFP, true);
 
-		// LLOD v3 daemon feed (ADR 0003). LLOD reads MPEG-TS itself (no ffmpeg),
-		// so mirror the raw bytes into the xc_fanout daemon's push-fed ingest
-		// socket — the same stream then fans out via /live/<id> and in-RAM /hls,
-		// and live.php's isStreamFed() routes viewers to the daemon. The write is
-		// non-blocking + best-effort so a daemon stall never slows LLOD's own
-		// segmenting (its primary job); the daemon resyncs on PAT/PMT after any
-		// dropped bytes. Null / failed connect ⇒ legacy-only, no behaviour change.
-		$rDaemonSock = FanoutClient::registerIngest($rStreamID);
-		$rDaemonConn = null;
-		if ($rDaemonSock !== null) {
-			$rDaemonConn = @stream_socket_client('unix://' . $rDaemonSock, $rDErrno, $rDErrstr, 2);
-			if ($rDaemonConn) {
-				stream_set_blocking($rDaemonConn, false);
-			}
-		}
+		// LLOD v3 daemon feed (ADR 0003). LLOD reads MPEG-TS itself (no ffmpeg) and
+		// pushes it into the xc_fanout daemon's ingest socket: the daemon is what
+		// serves this channel's viewers (/live/<id> and the in-RAM /hls) — there is
+		// no other client path since Phase E, so the feed is the delivery, and the
+		// on-disk segments below only serve timeshift/thumbnails/the monitor.
+		// IngestFeeder keeps short writes from tearing packets, re-registers and
+		// redials after a daemon restart, and carries the HLS key when encrypted
+		// HLS is on (the playlist declares it; without the key the daemon served
+		// plain segments no player could decrypt).
+		$rFeeder = IngestFeeder::forStream($rStreamID, !empty($rEncryptHLS), function (string $rLine) use ($rStreamID) {
+			$this->writeError($rStreamID, '[LLOD] ' . $rLine);
+		});
+		$rFeeder->connect();
 
 		shell_exec('rm -f ' . STREAMS_PATH . escapeshellarg($rStreamID) . '_*.ts');
 
@@ -191,12 +180,13 @@ class LlodCommand implements CommandInterface {
 
 		$lastData    = time();
 		$firstDataAt = microtime(true);
-		$buffer      = '';
+		$buffer      = $rSniffed; // bytes read while identifying the source as MPEG-TS
 
 		while (!feof($rFP)) {
 			$data = fread($rFP, BUFFER_SIZE);
 
 			if ($data === '' || $data === false) {
+				$rFeeder->flush(); // drain a backlog / reconnect while the source is quiet
 				if (time() - $lastData > TIMEOUT) {
 					$this->writeError($rStreamID, '[LLOD] stream timeout');
 					break;
@@ -208,17 +198,9 @@ class LlodCommand implements CommandInterface {
 			$lastData = time();
 			$buffer  .= $data;
 
-			// Mirror to the daemon (best-effort, non-blocking). On a write error
-			// (daemon gone) stop mirroring; live.php then falls back to legacy.
-			if ($rDaemonConn) {
-				if (@fwrite($rDaemonConn, $data) === false) {
-					@fclose($rDaemonConn);
-					$rDaemonConn = null;
-				}
-			}
-
 			$len = strlen($buffer);
 			$off = 0;
+			$rFeed = ''; // whole packets for the daemon
 
 			// Process only whole 188-byte TS packets; keep any remainder buffered.
 			while ($len - $off >= PACKET_SIZE) {
@@ -239,6 +221,7 @@ class LlodCommand implements CommandInterface {
 
 				$pkt = substr($buffer, $off, PACKET_SIZE);
 				$off += PACKET_SIZE;
+				$rFeed .= $pkt; // every aligned packet goes to the daemon, from the first
 
 				$hdr = $this->parseTsHeader($pkt);
 				$pid = $hdr['pid'];
@@ -304,6 +287,8 @@ class LlodCommand implements CommandInterface {
 				fwrite($rSegmentFile, $pkt);
 			}
 
+			$rFeeder->write($rFeed);
+
 			// Retain the partial trailing packet for the next read.
 			$buffer = ($off >= $len) ? '' : substr($buffer, $off);
 		}
@@ -314,9 +299,7 @@ class LlodCommand implements CommandInterface {
 		if (is_resource($rFP)) {
 			fclose($rFP);
 		}
-		if (is_resource($rDaemonConn)) {
-			fclose($rDaemonConn);
-		}
+		$rFeeder->close();
 		// Drop the daemon ingest on a clean exit; stopStream() is the backstop
 		// when LLOD is killed mid-loop.
 		FanoutClient::unregister($rStreamID);
@@ -454,13 +437,95 @@ class LlodCommand implements CommandInterface {
 		return $pcrPid !== 0x1FFF ? $pcrPid : null;
 	}
 
-	private function getActiveStream($rStreamID, $rURLs, $rContext) {
+	/**
+	 * The HTTP stream context for one source, from the stream's fetch arguments —
+	 * the same user agent, extra headers, cookie and proxy the ffmpeg path sends
+	 * (it used to send only a user agent, and no default one when the argument
+	 * was left empty), plus the prebuffer request an XC_VM source understands
+	 * when request_prebuffer is on.
+	 *
+	 * @param string $rURL              Source URL.
+	 * @param array  $rStreamArguments  argument_key => {value, argument_default_value}.
+	 * @param mixed  $rRequestPrebuffer The request_prebuffer setting.
+	 * @return resource
+	 */
+	private function sourceContext($rURL, $rStreamArguments, $rRequestPrebuffer) {
+		$rArg = static function (string $rKey) use ($rStreamArguments): string {
+			// `??` already maps a missing or null value to '': an empty value
+			// (after trimming) falls back to the argument's default.
+			$rValue = trim((string) ($rStreamArguments[$rKey]['value'] ?? ''));
+			if ($rValue === '') {
+				$rValue = trim((string) ($rStreamArguments[$rKey]['argument_default_value'] ?? ''));
+			}
+			return $rValue;
+		};
+
+		$rHeaders = array();
+		foreach (preg_split('/\r\n|\r|\n/', $rArg('headers')) as $rLine) {
+			if (trim($rLine) !== '' && strpos($rLine, ':') !== false) {
+				$rHeaders[] = trim($rLine);
+			}
+		}
+		if ($rArg('cookie') !== '') {
+			$rHeaders[] = 'Cookie: ' . $rArg('cookie');
+		}
+		if (!empty($rRequestPrebuffer) && StreamUtils::detectXC_VM($rURL)) {
+			$rHeaders[] = 'X-XC_VM-Prebuffer: 1';
+		}
+
+		$rHTTP = array(
+			'timeout'    => TIMEOUT,
+			'user_agent' => ($rArg('user_agent') !== '' ? $rArg('user_agent') : 'Mozilla/5.0'),
+		);
+		if (count($rHeaders) > 0) {
+			$rHTTP['header'] = implode("\r\n", $rHeaders);
+		}
+		$rProxy = $rArg('proxy');
+		if ($rProxy !== '') {
+			$rHTTP['proxy'] = (strpos($rProxy, '://') === false ? 'tcp://' : '') . $rProxy;
+			$rHTTP['request_fulluri'] = true;
+		}
+
+		return stream_context_create(array(
+			'http' => $rHTTP,
+			'ssl'  => array('verify_peer' => false, 'verify_peer_name' => false),
+		));
+	}
+
+	/**
+	 * Read up to $rLength bytes from a just-opened source to recognise MPEG-TS by
+	 * its content: two sync bytes one packet apart.
+	 *
+	 * @param resource $rFP     Source stream.
+	 * @param string   $rSniffed Receives the bytes read (they are part of the stream).
+	 * @return bool
+	 */
+	private function looksLikeMpegTs($rFP, string &$rSniffed): bool {
+		$rSniffed = '';
+		$rDeadline = time() + TIMEOUT;
+		while (strlen($rSniffed) < PACKET_SIZE * 4 && !feof($rFP) && time() < $rDeadline) {
+			$rChunk = fread($rFP, PACKET_SIZE * 4 - strlen($rSniffed));
+			if ($rChunk === false || $rChunk === '') {
+				usleep(10000);
+				continue;
+			}
+			$rSniffed .= $rChunk;
+		}
+		for ($i = 0; $i + PACKET_SIZE < strlen($rSniffed) && $i < PACKET_SIZE; $i++) {
+			if ($rSniffed[$i] === "\x47" && $rSniffed[$i + PACKET_SIZE] === "\x47") {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private function getActiveStream($rStreamID, $rURLs, $rStreamArguments, $rRequestPrebuffer, string &$rSniffed) {
 		echo "Trying to get active stream from " . count($rURLs) . " URL(s)\n";
 
 		foreach ($rURLs as $index => $rURL) {
 			echo "\nAttempting source " . ($index + 1) . "/" . count($rURLs) . ": $rURL\n";
 
-			$rFP = @fopen($rURL, 'rb', false, $rContext);
+			$rFP = @fopen($rURL, 'rb', false, $this->sourceContext($rURL, $rStreamArguments, $rRequestPrebuffer));
 
 			if ($rFP) {
 				echo "Connection successful\n";
@@ -490,7 +555,13 @@ class LlodCommand implements CommandInterface {
 					echo "  $key: $value\n";
 				}
 
-				$rContentType = $rHeaders['Content-Type'] ?? '';
+				// Header names are case-insensitive (HTTP/2-style lower-case is common).
+				$rContentType = '';
+				foreach ($rHeaders as $rKey => $rValue) {
+					if (is_string($rKey) && strcasecmp($rKey, 'Content-Type') === 0) {
+						$rContentType = $rValue;
+					}
+				}
 				echo "Content-Type: $rContentType\n";
 
 				if (stripos($rContentType, 'video/mp2t') !== false) {
@@ -499,7 +570,17 @@ class LlodCommand implements CommandInterface {
 					return $rFP;
 				}
 
-				$contentTypeInfo = $rHeaders['Content-Type'] ?? 'unknown';
+				// Many TS sources label it application/octet-stream, or nothing at
+				// all: recognise it by content rather than refusing a playable
+				// source. An HLS playlist or an HTML error page fails the check.
+				if ($this->looksLikeMpegTs($rFP, $rSniffed)) {
+					echo "Content is MPEG-TS (labelled '$rContentType')\n";
+					echo "=== getActiveStream() successful ===\n\n";
+					return $rFP;
+				}
+				$rSniffed = '';
+
+				$contentTypeInfo = ($rContentType !== '' ? $rContentType : 'unknown');
 				$this->writeError($rStreamID, "[LLOD] Source isn't MPEG-TS: " . $rURL . ' - ' . $contentTypeInfo);
 				fclose($rFP);
 			} else {
@@ -596,7 +677,11 @@ class LlodCommand implements CommandInterface {
 			$m3u8 .= "{$rStreamID}_{$seg}.ts\n";
 		}
 
-		if (@file_put_contents(STREAMS_PATH . $rStreamID . '_.m3u8', $m3u8, LOCK_EX) === false) {
+		// Write-then-rename: readers (the monitor's staleness check, thumbnails,
+		// timeshift) never see a half-written playlist.
+		$rTmp = STREAMS_PATH . $rStreamID . '_.m3u8.tmp';
+		if (@file_put_contents($rTmp, $m3u8) === false || !@rename($rTmp, STREAMS_PATH . $rStreamID . '_.m3u8')) {
+			@unlink($rTmp);
 			$this->writeError($rStreamID, '[LLOD] Failed to write playlist file');
 			return;
 		}
@@ -611,41 +696,18 @@ class LlodCommand implements CommandInterface {
 		@file_put_contents(STREAMS_PATH . $rStreamID . '.errors', $logMessage, FILE_APPEND | LOCK_EX);
 	}
 
+	/**
+	 * One segmenter per stream: end any other LLOD process for this stream (one a
+	 * killed monitor left behind). This used to read `_.monitor`, which holds the
+	 * MONITOR's pid — never an LLOD one — so an old segmenter was never found and
+	 * two could write the same segment files and feed the daemon at once.
+	 */
 	private function checkRunning($rStreamID): void {
 		echo "Checking for existing process for stream $rStreamID\n";
-		clearstatcache(true);
-		$monitorFile = STREAMS_PATH . $rStreamID . '_.monitor';
-		$rPID = null;
-		if (file_exists($monitorFile)) {
-			$rPID = intval(file_get_contents($monitorFile));
-			echo "Monitor file found, PID: $rPID\n";
-		} else {
-			echo "No monitor file found\n";
-		}
-		if (empty($rPID)) {
-			$killCmd = "kill -9 `ps -ef | grep 'LLOD\\[" . intval($rStreamID) . "\\]' | grep -v grep | awk '{print \$2}'`";
-			echo "No PID from monitor, executing kill command: $killCmd\n";
-			shell_exec($killCmd);
-		} else {
-			if (file_exists('/proc/' . $rPID)) {
-				echo "Process directory exists: /proc/$rPID\n";
-				$cmdlineFile = '/proc/' . $rPID . '/cmdline';
-				if (file_exists($cmdlineFile)) {
-					$rCommand = trim(file_get_contents($cmdlineFile));
-					echo "Process command line: $rCommand\n";
-					$expectedCommand = 'LLOD[' . $rStreamID . ']';
-					if ($rCommand === $expectedCommand && 0 < $rPID) {
-						echo "Killing existing process PID: $rPID\n";
-						posix_kill($rPID, 9);
-					} else {
-						echo "Process command doesn't match expected: '$rCommand' != '$expectedCommand'\n";
-					}
-				} else {
-					echo "Command line file not found\n";
-				}
-			} else {
-				echo "Process directory doesn't exist, process not running\n";
-			}
+		$rTerms = array('LLOD[' . intval($rStreamID) . ']', 'console.php llod ' . intval($rStreamID) . ' ');
+		foreach (ProcessManager::findProcessPIDs($rTerms) as $rPID) {
+			echo "Killing existing LLOD process PID: $rPID\n";
+			@posix_kill($rPID, 9);
 		}
 	}
 }

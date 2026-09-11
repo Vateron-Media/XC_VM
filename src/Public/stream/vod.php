@@ -9,6 +9,7 @@ use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\AsyncFileOperations;
 use XcVm\Streaming\Auth\StreamAuth;
 use XcVm\Streaming\Auth\StreamAuthMiddleware;
+use XcVm\Streaming\Delivery\HttpRange;
 use XcVm\Streaming\Lifecycle\ShutdownHandler;
 
 /**
@@ -173,7 +174,7 @@ if ($rChannelInfo) {
 		generateError('LINE_CREATE_FAIL');
 	}
 
-	StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent);
+	StreamAuth::validateConnections($rUserInfo, $rIsHMAC, $rIdentifier, $rIP, $rUserAgent, $rTokenData['uuid']);
 
 	if ($rSettings['redis_handler']) {
 		RedisManager::closeInstance();
@@ -255,54 +256,15 @@ if ($rChannelInfo) {
 		} else {
 			$rFP = @fopen($rRequest, 'rb');
 			$rSize = filesize($rRequest);
-			$rLength = $rSize;
-			$rStart = 0;
-			$rEnd = $rSize - 1;
-			header('Accept-Ranges: 0-' . $rLength);
-
-			if (empty($_SERVER['HTTP_RANGE'])) {
-			} else {
-				$rRangeStart = $rStart;
-				$rRangeEnd = $rEnd;
-				list(, $rRange) = explode('=', $_SERVER['HTTP_RANGE'], 2);
-
-				if (strpos($rRange, ',') === false) {
-
-
-
-
-					if ($rRange == '-') {
-						$rRangeStart = $rSize - substr($rRange, 1);
-					} else {
-						$rRange = explode('-', $rRange);
-						$rRangeStart = $rRange[0];
-						$rRangeEnd = (isset($rRange[1]) && is_numeric($rRange[1]) ? $rRange[1] : $rSize);
-					}
-
-					$rRangeEnd = ($rEnd < $rRangeEnd ? $rEnd : $rRangeEnd);
-
-					if (!($rRangeEnd < $rRangeStart || $rSize - 1 < $rRangeStart || $rSize <= $rRangeEnd)) {
-						$rStart = $rRangeStart;
-						$rEnd = $rRangeEnd;
-						$rLength = $rEnd - $rStart + 1;
-						fseek($rFP, $rStart);
-						header('HTTP/1.1 206 Partial Content');
-					} else {
-						header('HTTP/1.1 416 Requested Range Not Satisfiable');
-						header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-
-						exit();
-					}
-				} else {
-					header('HTTP/1.1 416 Requested Range Not Satisfiable');
-					header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-
-					exit();
-				}
+			$rServe = HttpRange::sendHeaders(HttpRange::parse($_SERVER['HTTP_RANGE'] ?? null, $rSize), $rSize);
+			if ($rServe === null) {
+				exit(); // 416 already sent
 			}
-
-			header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-			header('Content-Length: ' . $rLength);
+			[$rStart, $rEnd] = $rServe;
+			$rLength = $rEnd - $rStart + 1;
+			if (0 < $rStart) {
+				fseek($rFP, $rStart);
+			}
 			$rLastCheck = $rTimeStart = $rTimeChecked = time();
 			$rBytesRead = 0;
 			$rBuffer = $rSettings['read_buffer_size'];
@@ -318,7 +280,9 @@ if ($rChannelInfo) {
 			$rApplyLimit = false;
 
 			while (!feof($rFP) && ($p = ftell($rFP)) <= $rEnd) {
-				$rResponse = stream_get_line($rFP, $rBuffer);
+				// Never read past the range end: a bounded request (a player probing
+				// bytes=0-1, or fetching an index near the end) got a whole buffer.
+				$rResponse = stream_get_line($rFP, (int) min($rBuffer, $rEnd - $p + 1));
 				$i++;
 
 				if (!$rApplyLimit && $rLimitAt <= $o * $rBuffer) {
@@ -392,88 +356,53 @@ if ($rChannelInfo) {
 			exit();
 		}
 	} else {
-
-		$opts = array(
-			'http' => array(
-				'max_redirects' => '20',
-				'method' =>   "GET",
-				'timeout' => 122,
-				'user_agent' => 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.16; rv:101.0) Gecko/20100101 Firefox/101.0'
-			)
-		);
-		$context = stream_context_create($opts);
-		$rHeaders = get_headers($rDirectProxy, 1, $context);
-		$rContentType = (is_array($rHeaders['Content-Type']) ? $rHeaders['Content-Type'][count($rHeaders['Content-Type']) - 1] : $rHeaders['Content-Type']);
-		$rSize = $rLength = $rHeaders['Content-Length'];
-
-		if (0 < $rLength && in_array($rContentType, array('video/mp4', 'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/x-flv', 'video/x-ms-wmv', 'video/quicktime', 'video/mp2t', 'video/mpeg', 'application/octet-stream'))) {
-			if (!$rHeaders['Location']) {
-			} else {
-				if (is_array($rHeaders['Location'])) {
-					$tmp = array_reverse($rHeaders['Location']);
-					$rDirectProxy = $tmp[0];
-				} else {
-					$rDirectProxy = $rHeaders['Location'];
+		// Direct-proxy VOD: relay the source. Its size and type are read with cURL
+		// — get_headers() goes through the https stream wrapper, which does not
+		// work under PHP-FPM here (every https source failed), and returned
+		// Content-Length as an array after a redirect. The final response's
+		// headers are kept; the body is not downloaded.
+		$rSourceUA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.16; rv:101.0) Gecko/20100101 Firefox/101.0';
+		$rHeaders = array();
+		$ch = curl_init($rDirectProxy);
+		curl_setopt_array($ch, array(
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_MAXREDIRS => 20,
+			CURLOPT_CONNECTTIMEOUT => 10,
+			CURLOPT_TIMEOUT => 122,
+			CURLOPT_SSL_VERIFYPEER => 0,
+			CURLOPT_USERAGENT => $rSourceUA,
+			CURLOPT_HEADERFUNCTION => static function ($rHandle, $rLine) use (&$rHeaders) {
+				if (preg_match('#^HTTP/\S+\s+\d+#i', $rLine)) {
+					$rHeaders = array(); // a redirect hop: only the final response counts
+				} elseif (strpos($rLine, ':') !== false) {
+					[$rName, $rValue] = explode(':', $rLine, 2);
+					$rHeaders[strtolower(trim($rName))] = trim($rValue);
 				}
-				unset($rHeaders['Location']);
-			}
+				return strlen($rLine);
+			},
+			CURLOPT_WRITEFUNCTION => static function () {
+				return 0; // headers only: stop at the first body byte
+			},
+		));
+		curl_exec($ch);
+		$rDirectProxy = (string) (curl_getinfo($ch, CURLINFO_EFFECTIVE_URL) ?: $rDirectProxy);
+		curl_close($ch);
 
+		$rSize = intval($rHeaders['content-length'] ?? 0);
+		$rContentType = strtolower(trim(explode(';', (string) ($rHeaders['content-type'] ?? ''))[0]));
+
+		if (0 < $rSize && in_array($rContentType, array('video/mp4', 'video/x-matroska', 'video/x-msvideo', 'video/3gpp', 'video/x-flv', 'video/x-ms-wmv', 'video/quicktime', 'video/mp2t', 'video/mpeg', 'application/octet-stream'), true)) {
 			header('Content-Type: ' . $rContentType);
-			header('Accept-Ranges: bytes');
-			$rStart = 0;
-			$rEnd = $rSize - 1;
-
-			if (empty($_SERVER['HTTP_RANGE'])) {
-			} else {
-				$rRangeStart = $rStart;
-				$rRangeEnd = $rEnd;
-				list(, $rRange) = explode('=', $_SERVER['HTTP_RANGE'], 2);
-
-				if (strpos($rRange, ',') === false) {
-
-
-
-
-					if ($rRange == '-') {
-						$rRangeStart = $rSize - substr($rRange, 1);
-					} else {
-						$rRange = explode('-', $rRange);
-						$rRangeStart = $rRange[0];
-						$rRangeEnd = (isset($rRange[1]) && is_numeric($rRange[1]) ? $rRange[1] : $rSize);
-					}
-
-					$rRangeEnd = ($rEnd < $rRangeEnd ? $rEnd : $rRangeEnd);
-
-					if (!($rRangeEnd < $rRangeStart || $rSize - 1 < $rRangeStart || $rSize <= $rRangeEnd)) {
-						$rStart = $rRangeStart;
-						$rEnd = $rRangeEnd;
-						$rLength = $rEnd - $rStart + 1;
-						header('HTTP/1.1 206 Partial Content');
-					} else {
-						header('HTTP/1.1 416 Requested Range Not Satisfiable');
-						header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-
-						exit();
-					}
-				} else {
-					header('HTTP/1.1 416 Requested Range Not Satisfiable');
-					header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-
-					exit();
-				}
+			$rServe = HttpRange::sendHeaders(HttpRange::parse($_SERVER['HTTP_RANGE'] ?? null, $rSize), $rSize);
+			if ($rServe === null) {
+				exit(); // 416 already sent
 			}
+			[$rStart, $rEnd] = $rServe;
 
-			header('Content-Range: bytes ' . $rStart . '-' . $rEnd . '/' . $rSize);
-			header('Content-Length: ' . $rLength);
 			$ch = curl_init();
-
-			if (!isset($_SERVER['HTTP_RANGE'])) {
-			} else {
-				preg_match('/bytes=(\\d+)-(\\d+)?/', $_SERVER['HTTP_RANGE'], $rMatches);
-				$rOffset = intval($rMatches[1]);
-				$rLength = $rSize - $rOffset - 1;
-				$rHeaders = array('Range: bytes=' . $rOffset . '-' . ($rOffset + $rLength));
-				curl_setopt($ch, CURLOPT_HTTPHEADER, $rHeaders);
+			if (0 < $rStart || $rEnd < $rSize - 1) {
+				// Ask the source for exactly the range this response promises.
+				curl_setopt($ch, CURLOPT_HTTPHEADER, array('Range: bytes=' . $rStart . '-' . $rEnd));
 			}
 
 			if (512 * 1024 * 1024 >= $rSize) {
@@ -489,10 +418,10 @@ if ($rChannelInfo) {
 			}
 
 			curl_setopt($ch, CURLOPT_BUFFERSIZE, 10 * 1024 * 1024);
-			curl_setopt($ch, CURLOPT_VERBOSE, 1);
 			curl_setopt($ch, CURLOPT_TIMEOUT, 0);
 			curl_setopt($ch, CURLOPT_URL, $rDirectProxy);
 			curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+			curl_setopt($ch, CURLOPT_USERAGENT, $rSourceUA);
 			curl_setopt($ch, CURLOPT_HEADER, false);
 			curl_setopt($ch, CURLOPT_FRESH_CONNECT, true);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);

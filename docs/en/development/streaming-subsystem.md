@@ -189,11 +189,11 @@ Main delivery endpoint (~650 lines):
 
 ### VOD (vod.php)
 
-Same auth flow as live. Reads from `VOD_PATH` instead of `STREAMS_PATH`.
+Same auth flow as live. Reads from `VOD_PATH` instead of `STREAMS_PATH`. Byte ranges (seeking) are resolved by `Streaming\Delivery\HttpRange` (RFC 7233 single ranges, suffix ranges included). A direct-proxy movie is relayed with cURL, asking the source for exactly the requested range.
 
 ### Timeshift (timeshift.php)
 
-Serves archived segments (timeshift / catch-up) from the archive path.
+Serves archived segments (timeshift / catch-up) from the archive path. A TS request streams the minute files back to back; a byte range (a seek) is mapped onto them — files before the start are skipped, the first is entered at the right offset and delivery stops at the range end.
 
 ### Daemon delivery — `xc_fanout`
 
@@ -204,18 +204,36 @@ PHP-FPM worker for the life of the stream.
 - **Fan-out.** `xc_fanout` (a bundled Go daemon) pulls each source **once** and
   fans it out to every viewer over a unix socket, with an in-RAM HLS segmenter.
   PHP is out of the per-viewer byte path: the worker-per-viewer chase-read
-  serving loop and the `HLSGenerator::generateHLS()` client-serving path are no
-  longer used for live delivery (`generateHLS()` is retained in the class but has
-  no callers). `AsyncFileOperations::awaitFileExists()` is **not** removed — it is
-  still used for stream-startup waits and the VOD/timeshift byte path (see the
-  Performance table).
+  serving loop and the on-disk `generateHLS()` client path are gone.
+  `AsyncFileOperations::awaitFileExists()` is still used for stream-startup
+  waits and the VOD/timeshift byte path (see the Performance table).
+- **Who feeds the daemon.** Since the daemon is the only client path, every live
+  producer must feed it, or the channel cannot be watched:
+  the stream's ffmpeg tees into its ingest socket (`buildLive()`; loopback
+  children included), the daemon supervisor's producers do the same, the PHP
+  producers — the LLOD segmenter (`LlodCommand`) and the loopback relay
+  (`LoopbackCommand`) — push through `Streaming\Fanout\IngestFeeder`, and a
+  **delayed** stream is fed by `DelayCommand`, which pushes each delayed segment
+  as it publishes it, paced over the segment's duration (its encoder output is
+  the undelayed one, so the tee is not used for it). `IngestFeeder` buffers what
+  a non-blocking write could not send (a short write no longer tears packets),
+  re-registers and redials after a daemon restart, and carries the HLS key.
 - **Two sockets.** A client socket (nginx-facing) serves `/live/<id>` and
   `/hls/...`; a PHP-only control socket registers sources
   (`PUT /streams/<id>` / `/ingest/<id>`), answers off-air status
   (`GET /streams/<id>`, `GET /probe/<id>`) and exposes telemetry.
 - **Telemetry / reconciliation.** `fanout_sync` polls `GET /rates` (per-uuid
-  KB/s → `lines_divergence`) and `GET /connections` (reconciles `lines_live`
-  rows, since PHP cannot see a disconnect under `X-Accel`).
+  KB/s → `lines_divergence`) and reconciles `GET /connections` against the
+  `lines_live` rows in both directions: a row whose viewer left the daemon is
+  closed (PHP cannot see a disconnect under `X-Accel`), and a daemon viewer whose
+  row is gone — reaped, expired or banned line — is dropped after a 20 s grace
+  (`DELETE /connections/<uuid>`).
+- **Kicks and connection limits.** A daemon-served TS viewer's row has `pid = 0`:
+  there is no worker to kill. `ConnectionLimiter` / `ConnectionTracker::closeConnection()`
+  end it with `ConnectionTracker::dropDaemonViewer()` — `FanoutClient::dropConnection()`
+  on this node, or a `drop_con` signal that the viewer's node turns into the
+  same call. The limiter never evicts the requesting connection itself (it is
+  identified by uuid, since every daemon row shares pid 0).
 - **Off-air.** If the daemon reports no data (`has_data=false` / stale), PHP
   shows a "not on air" page instead of letting the viewer hang.
 - **On-disk HLS retained** only for timeshift / thumbnails / `.analyse` /
@@ -401,7 +419,11 @@ File-based IP blocking. Block files are created by upstream flood detection logi
 
 ### 3. ConnectionLimiter (per-user)
 
-Enforced after token validation. Limits concurrent streams per user based on `max_connections`.
+Enforced after token validation. Limits concurrent streams per user based on `max_connections`, closing the oldest connections first (the requesting device's own older ones before others). Daemon-served viewers are disconnected through the daemon — see [Daemon delivery](#daemon-delivery-xc_fanout).
+
+### 4. Proxy-only servers
+
+A server with `enable_proxy` only accepts requests that arrive through one of its proxies. `auth.php` checks the TCP peer nginx saw — `XC_PEER_ADDR`, set to `$realip_remote_addr` in the stream location of `nginx.conf` — not a request header, which the client controls.
 
 ---
 
@@ -409,12 +431,12 @@ Enforced after token validation. Limits concurrent streams per user based on `ma
 
 Client HLS is served by the `xc_fanout` daemon (see [Daemon delivery](#daemon-delivery-xc_fanout)), so encryption happens **daemon-side**:
 
-1. `StreamProcess` writes the stream's AES-128 key/IV to `content/streams/<id>_.key` / `_.iv`.
-2. At ingest registration (`FanoutClient::registerIngest`), when `encrypt_hls` is on, the key/IV are handed to the daemon, which encrypts the HLS segments it serves and emits a matching `#EXT-X-KEY`.
-3. `HLSGenerator::tokenizeDaemonPlaylist()` rewrites the daemon playlist's segment URLs into per-segment auth'd `/hls/<token>` links that `segment.php` proxies from the daemon.
+1. `StreamProcess` writes the stream's AES-128 key/IV to `content/streams/<id>_.key` / `_.iv` — before it spawns a PHP producer, which registers with the daemon moments after starting.
+2. At ingest registration (`FanoutClient::registerIngest`), when `encrypt_hls` is on, the key/IV are handed to the daemon, which encrypts the HLS segments it serves. Every producer passes them — ffmpeg streams (loopback children included), supervised streams, and the PHP producers via `IngestFeeder::forStream()` — because the playlist always declares the key: a daemon fed without it served plain segments no player could decrypt.
+3. `HLSGenerator::tokenizeDaemonPlaylist()` rewrites the daemon playlist's segment URLs into per-segment auth'd `/hls/<token>` links that `segment.php` proxies from the daemon, and adds the `#EXT-X-KEY` line.
 4. The AES key is delivered to players by `key.php` (`src/Public/stream/key.php`) using the same token mechanism.
 
-> The legacy `HLSGenerator::generateHLS()` (which built and encrypted an on-disk HLS playlist for PHP to serve) is retained in the class but is **no longer on the client path** after the daemon cutover.
+The live playlist's `#EXT-X-MEDIA-SEQUENCE` is re-anchored by `HlsSequence` so it never steps back across an off-air ↔ live transition, without renumbering a stream that is playing (its state lives in `tmp/signals/hlsseq_<id>`, so it survives a stream restart).
 
 ---
 

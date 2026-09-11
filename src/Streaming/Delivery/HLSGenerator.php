@@ -5,7 +5,8 @@ namespace XcVm\Streaming\Delivery;
 use XcVm\Core\Util\Encryption;
 
 /**
- * HLSGenerator — h l s generator
+ * HLSGenerator — turns the xc_fanout daemon's in-RAM HLS playlist into the
+ * per-viewer, token-authenticated playlist a client receives.
  *
  * @package XC_VM_Streaming_Delivery
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -15,56 +16,13 @@ use XcVm\Core\Util\Encryption;
  */
 
 class HLSGenerator {
-	public static function generateHLS($rSettings, $rM3U8, $rUsername, $rPassword, $rStreamID, $rUUID, $rIP, $rIsHMAC = null, $rIdentifier = '', $rVideoCodec = 'h264', $rOnDemand = 0, $rServerID = null, $rProxyID = null) {
-		if (!file_exists($rM3U8)) {
-			return false;
-		}
-		$rSource = file_get_contents($rM3U8);
-		if ($rSettings['encrypt_hls']) {
-			$rKeyToken = Encryption::encrypt($rIP . '/' . $rStreamID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-			$rSource = "#EXTM3U\n#EXT-X-KEY:METHOD=AES-128,URI=\"" . (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/key/' . $rKeyToken . "\",IV=0x" . bin2hex(file_get_contents(STREAMS_PATH . $rStreamID . '_.iv')) . "\n" . substr($rSource, 8, strlen($rSource) - 8);
-		}
-
-		if (preg_match('/#EXT-X-MAP:URI="(.*?)"/', $rSource, $rInitMatch)) {
-			$rInitSegment = $rInitMatch[1];
-			if ($rIsHMAC) {
-				$rInitToken = Encryption::encrypt('HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rInitSegment . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-			} else {
-				$rInitToken = Encryption::encrypt($rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rInitSegment . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-			}
-			if ($rSettings['allow_cdn_access']) {
-				$rSource = str_replace('URI="' . $rInitSegment . '"', 'URI="' . (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rInitSegment . '?token=' . $rInitToken . '"', $rSource);
-			} else {
-				$rSource = str_replace('URI="' . $rInitSegment . '"', 'URI="' . (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rInitToken . '"', $rSource);
-			}
-		}
-
-		if (preg_match_all('/(.*?)\.(ts|m4s)/', $rSource, $rMatches)) {
-			foreach ($rMatches[0] as $rMatch) {
-				if ($rIsHMAC) {
-					$rToken = Encryption::encrypt('HMAC#' . $rIsHMAC . '/' . $rIdentifier . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-				} else {
-					$rToken = Encryption::encrypt($rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rMatch . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
-				}
-				if ($rSettings['allow_cdn_access']) {
-					$rSource = str_replace($rMatch, (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rMatch . '?token=' . $rToken, $rSource);
-				} else {
-					$rSource = str_replace($rMatch, (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . $rToken, $rSource);
-				}
-			}
-			return $rSource;
-		}
-
-		return false;
-	}
-
 	/**
 	 * Tokenize the xc_fanout daemon's in-RAM HLS playlist (ADR 0003, Phase B).
-	 * The daemon lists plain segments by sequence (`<seq>.ts`); rewrite each into
-	 * the same per-segment auth'd URL scheme generateHLS() uses, but with a
-	 * segment name marked as a daemon segment (`<id>_d<seq>.ts`) so segment.php
-	 * proxies it from the daemon's RAM instead of tmpfs. Daemon HLS is always
-	 * plain mpegts (unencrypted) — callers gate on `!encrypt_hls`.
+	 * The daemon lists plain segments by sequence (`<seq>.ts`); each is rewritten
+	 * into a per-segment auth'd URL with a segment name marked as a daemon segment
+	 * (`<id>_d<seq>.ts`), which segment.php proxies from the daemon's RAM. When
+	 * encrypt_hls is on, the daemon serves AES-128-CBC segments (it was given the
+	 * stream's key/iv at ingest registration) and the #EXT-X-KEY line is added here.
 	 *
 	 * @param string $rPlaylist Raw daemon m3u8.
 	 * @return string|false Tokenized playlist, or false if it has no segments.
@@ -99,13 +57,14 @@ class HLSGenerator {
 		// live sequence to the same wall-clock base via a persisted per-stream offset
 		// so it only ever advances (see HlsSequence).
 		if (preg_match('/#EXT-X-MEDIA-SEQUENCE:(\d+)/', $rSource, $rSeqMatch)) {
-			$rSeq = HlsSequence::liveSequence((int) $rStreamID, (int) $rSeqMatch[1]);
+			$rTarget = preg_match('/#EXT-X-TARGETDURATION:(\d+)/', $rSource, $rTargetMatch) ? max(1, (int) $rTargetMatch[1]) : HlsSequence::SEG;
+			$rSeq = HlsSequence::liveSequence((int) $rStreamID, (int) $rSeqMatch[1], $rTarget);
 			$rSource = preg_replace('/#EXT-X-MEDIA-SEQUENCE:\d+/', '#EXT-X-MEDIA-SEQUENCE:' . $rSeq, $rSource, 1);
 		}
 
 		// Encrypted HLS: the daemon serves AES-128-CBC segments (it was given the
-		// same key/iv), so declare the key exactly like generateHLS — URI to the
-		// /key token endpoint, IV from the stream's iv file.
+		// same key/iv), so declare the key — URI to the /key token endpoint, IV
+		// from the stream's iv file.
 		if (!empty($rSettings['encrypt_hls'])) {
 			$rIVFile = STREAMS_PATH . intval($rStreamID) . '_.iv';
 			if (is_file($rIVFile)) {

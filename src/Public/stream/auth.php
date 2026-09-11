@@ -139,13 +139,17 @@ if ($rExtension) {
 		$rStream = (igbinary_unserialize(file_get_contents(STREAMS_TMP_PATH . 'stream_' . $rStreamID)) ?: null);
 		$rAvailableServers = array();
 
-		if ($rType == 'archive') {
+		// Catch-up is served from the archive server, whether or not the channel
+		// is live anywhere right now. (This compared against 'archive', a type the
+		// requests never carry, so timeshift fell through to the live check and a
+		// channel whose live stream was down refused its own catch-up.)
+		if ($rType == 'timeshift') {
 			if ((0 < $rStream['info']['tv_archive_duration'] && 0 < $rStream['info']['tv_archive_server_id'] && array_key_exists($rStream['info']['tv_archive_server_id'], $rServers) && $rServers[$rStream['info']['tv_archive_server_id']]['server_online'])) {
-				$rAvailableServers[] = array($rStream['info']['tv_archive_server_id']);
+				$rAvailableServers[] = $rStream['info']['tv_archive_server_id'];
 			}
 		} else {
 			if (($rStream['info']['direct_source'] == 1 && $rStream['info']['direct_proxy'] == 0)) {
-				$rAvailableServers[] = $rServerID;
+				$rAvailableServers[] = 'direct'; // redirected straight to the source (SERVER_ID is not defined yet here)
 			}
 
 			$servers = $rStream['servers'] ?? [];
@@ -170,7 +174,10 @@ if ($rExtension) {
 		}
 
 		if (count($rAvailableServers) == 0) {
-			OffAirHandler::showVideoServer('show_not_on_air_video', 'not_on_air_video_path', $rExtension, $rUserInfo, $rIP, $rCountryCode, $rUserInfo['con_isp_name'], defined('SERVER_ID') ? SERVER_ID : 0);
+			// This fast path only runs with show_not_on_air_video off, where the
+			// off-air handler can only answer STREAM_OFFLINE — and the line is not
+			// authenticated yet, so there is no user info to hand it.
+			generateError('STREAM_OFFLINE');
 		}
 	}
 
@@ -196,7 +203,7 @@ if ($rExtension) {
 	$rIsHMAC = null;
 	$rIdentifier = '';
 	$rPID = getmypid();
-	$rUUID = md5(uniqid());
+	$rUUID = bin2hex(random_bytes(16)); // connection id: unpredictable, 32 hex chars like md5()
 	$rIP = $_SERVER['REMOTE_ADDR'];
 	$rCountryCode = GeoIPService::getIPInfo($rIP);
 	$rCountryCode = (empty($rCountryCode) ? "" : $rCountryCode['country']['iso_code']);
@@ -254,7 +261,20 @@ if ($rExtension) {
 		BruteforceGuard::checkAuthFlood($rUserInfo, $rIP);
 		$rUserID = $rUserInfo['id'] ?? null;
 
-		if ((($rServers[SERVER_ID]['enable_proxy'] ?? 0) && !($rProxies[$_SERVER['HTTP_X_IP']] ?? null) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
+		// A server behind proxies only accepts requests that came through one. The
+		// peer is the TCP connection nginx saw (XC_PEER_ADDR = $realip_remote_addr,
+		// before real_ip rewrote REMOTE_ADDR to the client). The X-IP request header
+		// this used to trust alone is set by whoever sends the request, so a direct
+		// client could name a (public) proxy IP and pass; it now counts only when the
+		// peer is itself an XC_VM server or whitelisted address (a proxy reaching us
+		// from an address other than the one it is registered under), or on an nginx
+		// config too old to pass the peer at all.
+		$rPeerAddr = $_SERVER['XC_PEER_ADDR'] ?? null;
+		$rProxyHeader = $_SERVER['HTTP_X_IP'] ?? '';
+		$rViaProxy = ($rPeerAddr === null)
+			? isset($rProxies[$rProxyHeader])
+			: (isset($rProxies[$rPeerAddr]) || (in_array($rPeerAddr, $rAllowedIPs, true) && isset($rProxies[$rProxyHeader])));
+		if ((($rServers[SERVER_ID]['enable_proxy'] ?? 0) && !$rViaProxy && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 			generateError('PROXY_ACCESS_DENIED');
 		}
 
@@ -477,7 +497,7 @@ if ($rExtension) {
 							generateError('HLS_DISABLED');
 						}
 
-						$rAdaptive = json_decode($rChannelInfo['adaptive_link'], true);
+						$rAdaptive = json_decode((string) ($rChannelInfo['adaptive_link'] ?? ''), true);
 
 						if (!$rIsHMAC && is_array($rAdaptive) && 0 < count($rAdaptive)) {
 							$rParts = array();
@@ -485,12 +505,15 @@ if ($rExtension) {
 							foreach (array_merge(array($rStreamID), $rAdaptive) as $rAdaptiveID) {
 								if ($rAdaptiveID != $rStreamID) {
 									$rAdaptiveInfo = StreamRedirector::redirectStream($rCached, $rSettings, $rServers, $rAdaptiveID, $rExtension, $rUserInfo, $rCountryCode, $rUserInfo['con_isp_name'], 'live');
+									if (!is_array($rAdaptiveInfo) || empty($rAdaptiveInfo['redirect_id'])) {
+										continue; // a variant with no server to serve it is left out of the master
+									}
 
 									if (($rServers[$rAdaptiveInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
 										$rProxies = ConnectionTracker::getProxies($rAdaptiveInfo['redirect_id']);
-											$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
+										$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 										if (!$rProxyID) {
-											generateError('NO_SERVERS_AVAILABLE');
+											continue;
 										}
 
 										$rAdaptiveInfo['originator_id'] = $rAdaptiveInfo['redirect_id'];
@@ -502,13 +525,13 @@ if ($rExtension) {
 									$rAdaptiveInfo = $rChannelInfo;
 								}
 
-								$rStreamInfo = json_decode($rAdaptiveInfo['stream_info'], true);
-								$rBitrate = ($rStreamInfo['bitrate'] ?: 0);
-								$rWidth = ($rStreamInfo['codecs']['video']['width'] ?: 0);
-								$rHeight = ($rStreamInfo['codecs']['video']['height'] ?: 0);
+								$rStreamInfo = json_decode((string) ($rAdaptiveInfo['stream_info'] ?? ''), true);
+								$rBitrate = intval($rStreamInfo['bitrate'] ?? 0);
+								$rWidth = intval($rStreamInfo['codecs']['video']['width'] ?? 0);
+								$rHeight = intval($rStreamInfo['codecs']['video']['height'] ?? 0);
 
 								if ((0 < $rBitrate && 0 < $rHeight && 0 < $rWidth)) {
-									$rTokenData = array('stream_id' => $rAdaptiveID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'pid' => $rPID, 'channel_info' => array('redirect_id' => $rAdaptiveInfo['redirect_id'], 'originator_id' => ($rAdaptiveInfo['originator_id'] ?? null), 'pid' => $rAdaptiveInfo['pid'], 'on_demand' => $rAdaptiveInfo['on_demand'], 'monitor_pid' => $rAdaptiveInfo['monitor_pid']), 'user_info' => array('id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']), 'external_device' => $rExternalDevice, 'activity_start' => $rActivityStart, 'country_code' => $rCountryCode, 'video_codec' => ($rStreamInfo['codecs']['video']['codec_name'] ?: 'h264'), 'uuid' => $rUUID, 'adaptive' => array($rChannelInfo['redirect_id'], $rStreamID));
+									$rTokenData = array('stream_id' => $rAdaptiveID, 'username' => $rUserInfo['username'], 'password' => $rUserInfo['password'], 'extension' => $rExtension, 'pid' => $rPID, 'channel_info' => array('redirect_id' => $rAdaptiveInfo['redirect_id'], 'originator_id' => ($rAdaptiveInfo['originator_id'] ?? null), 'pid' => $rAdaptiveInfo['pid'], 'on_demand' => $rAdaptiveInfo['on_demand'], 'monitor_pid' => $rAdaptiveInfo['monitor_pid']), 'user_info' => array('id' => $rUserInfo['id'], 'max_connections' => $rUserInfo['max_connections'], 'pair_id' => $rUserInfo['pair_id'], 'con_isp_name' => $rUserInfo['con_isp_name'], 'is_restreamer' => $rUserInfo['is_restreamer']), 'external_device' => $rExternalDevice, 'activity_start' => $rActivityStart, 'country_code' => $rCountryCode, 'video_codec' => ($rStreamInfo['codecs']['video']['codec_name'] ?? 'h264'), 'uuid' => $rUUID, 'adaptive' => array($rChannelInfo['redirect_id'], $rStreamID));
 									$rStreamURL = (string) $rURL . '/auth/' . Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 									$rParts[$rBitrate] = '#EXT-X-STREAM-INF:BANDWIDTH=' . $rBitrate . ',RESOLUTION=' . $rWidth . 'x' . $rHeight . "\n" . $rStreamURL;
 								}
@@ -636,11 +659,18 @@ if ($rExtension) {
 				break;
 			}
 
-			if (($rServers[$rChannelInfo['redirect_id']]['enable_proxy'] && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
-				$rProxies = ConnectionTracker::getProxies($rChannelInfo['redirect_id']);
+			// The archive server's proxies, as for live. (This read $rChannelInfo,
+			// which the timeshift path never sets, so catch-up always bypassed the
+			// proxy — and was refused by an archive server that requires one.)
+			if ((($rServers[$rRedirectID]['enable_proxy'] ?? 0) && (!$rUserInfo['is_restreamer'] || !$rSettings['restreamer_bypass_proxy']))) {
+				$rProxies = ConnectionTracker::getProxies($rRedirectID);
 				$rProxyID = ProxySelector::availableProxy(array_keys($rProxies), $rCountryCode, $rUserInfo['con_isp_name']);
 
-				$rOriginatorID = $rChannelInfo['redirect_id'];
+				if (!$rProxyID) {
+					generateError('NO_SERVERS_AVAILABLE');
+				}
+
+				$rOriginatorID = $rRedirectID;
 				$rRedirectID = $rProxyID;
 			}
 
@@ -745,8 +775,8 @@ if ($rExtension) {
 					$rChannelInfo['redirect_id'] = $rProxyID;
 				}
 
-				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?: null), $rForceHTTP, $rUserID);
-				$rTokenData = array('stream_id' => $rStreamID, 'sub_id' => (intval($rRequest['sid']) ?: 0), 'webvtt' => (intval($rRequest['webvtt']) ?: 0), 'expires' => time() + 5);
+				$rURL = StreamRedirector::getStreamingURL($rSettings, $rServers, $rChannelInfo['redirect_id'], ($rChannelInfo['originator_id'] ?? null), $rForceHTTP, $rUserID);
+				$rTokenData = array('stream_id' => $rStreamID, 'sub_id' => intval($rRequest['sid'] ?? 0), 'webvtt' => intval($rRequest['webvtt'] ?? 0), 'expires' => time() + 5);
 				$rToken = Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 				header('Location: ' . $rURL . '/subauth/' . $rToken);
 
