@@ -6,6 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\StreamProcess;
+use XcVm\Streaming\Fanout\IngestFeeder;
 
 /**
  * DelayCommand — delay command
@@ -77,8 +78,22 @@ class DelayCommand implements CommandInterface {
 		if (file_exists($rPlaylistOld)) {
 			$rOldSegments = $this->getSegments($rPlaylistOld, -1);
 		}
+		// Clients are served only by the xc_fanout daemon (ADR 0003, Phase E), and a
+		// delayed stream's encoder output is the undelayed one — so nothing fed the
+		// daemon the delayed stream and a delayed channel could not be watched at
+		// all. The segments this worker publishes are now pushed into the daemon's
+		// ingest as they go out, paced over their duration so TS viewers get a
+		// steady stream; the daemon re-segments them for HLS.
+		$rFeeder = IngestFeeder::forStream($rStreamID, (bool) SettingsManager::get('encrypt_hls'), static function (string $rLine) use ($rStreamID) {
+			@file_put_contents(STREAMS_PATH . $rStreamID . '.errors', '[Delay] ' . $rLine . "\n", FILE_APPEND | LOCK_EX);
+		});
+		$rFeeder->connect();
+		$rFedSegment = null;
+		$rFeedQueue = array();
+		$rFeedCurrent = null;
+
 		$rPrevMD5 = null;
-		$rMD5 = md5(file_get_contents($rPlaylistDelay));
+		$rMD5 = md5((string) @file_get_contents($rPlaylistDelay));
 		while (ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylistDelay)) {
 			if ($rMD5 != $rPrevMD5) {
 				if (file_exists(STREAMS_PATH . $rStreamID . '_.dur')) {
@@ -103,16 +118,108 @@ class DelayCommand implements CommandInterface {
 						$rData .= '#EXTINF:' . $rSegment['seconds'] . ',' . "\n" . $rSegment['file'] . "\n";
 					}
 					file_put_contents($rPlaylist, $rData, LOCK_EX);
+					$this->queueForDaemon($rM3U8['segments'], $rFedSegment, $rFeedQueue);
 					$rMD5 = $rPrevMD5;
 					$this->deleteSegments($rStreamID, $rSequence - 2);
 					$this->cleanUpSegments($rStreamID, $rDelayDuration);
 				}
 			}
-			usleep(1000);
-			$rPrevMD5 = md5(file_get_contents($rPlaylistDelay));
+			$this->pumpDaemon($rFeeder, $rFeedQueue, $rFeedCurrent);
+			// 50 ms: fine enough to pace the daemon feed and to publish a new
+			// delayed segment promptly (this used to spin every 1 ms, hashing the
+			// playlist a thousand times a second).
+			usleep(50000);
+			$rPrevMD5 = md5((string) @file_get_contents($rPlaylistDelay));
 		}
 
+		$rFeeder->close(); // the daemon keeps the stream; viewers wait for the restart's feed
 		return 0;
+	}
+
+	/** Segments sent at once when the worker starts, so viewers get data immediately. */
+	private const FEED_SEED_SEGMENTS = 2;
+
+	/** Queued segments past which the feed stops pacing and catches up. */
+	private const FEED_BACKLOG_SEGMENTS = 3;
+
+	/**
+	 * Queue the segments just published that the daemon has not been fed yet (all
+	 * but the newest FEED_SEED_SEGMENTS are skipped on the worker's first pass).
+	 *
+	 * @param array    $rSegments  Published segments, oldest first ({seconds, file}).
+	 * @param int|null $rFedSegment Highest segment number queued so far.
+	 * @param array    $rQueue     Pending {data, dur, burst} entries.
+	 * @return void
+	 */
+	private function queueForDaemon(array $rSegments, ?int &$rFedSegment, array &$rQueue): void {
+		$rNew = array();
+		foreach ($rSegments as $rSegment) {
+			if (preg_match('/_(\d+)\.ts$/', (string) ($rSegment['file'] ?? ''), $rMatch)) {
+				$rNumber = intval($rMatch[1]);
+				if ($rFedSegment === null || $rNumber > $rFedSegment) {
+					$rNew[$rNumber] = $rSegment;
+				}
+			}
+		}
+		if (count($rNew) === 0) {
+			return;
+		}
+		ksort($rNew);
+		$rSeed = ($rFedSegment === null);
+		if ($rSeed) {
+			$rNew = array_slice($rNew, -self::FEED_SEED_SEGMENTS, null, true);
+		}
+		foreach ($rNew as $rNumber => $rSegment) {
+			$rData = @file_get_contents(STREAMS_PATH . $rSegment['file']);
+			if (!is_string($rData) || $rData === '') {
+				$rData = @file_get_contents(DELAY_PATH . $rSegment['file']);
+			}
+			if (is_string($rData) && strlen($rData) >= 188) {
+				$rData = substr($rData, 0, strlen($rData) - strlen($rData) % 188); // whole packets
+				$rQueue[] = array('data' => $rData, 'dur' => max(0.5, floatval($rSegment['seconds'])), 'burst' => $rSeed);
+			}
+			$rFedSegment = $rNumber;
+		}
+	}
+
+	/**
+	 * Feed the daemon: the current segment is released in whole packets spread
+	 * over 90% of its duration (so the feed never falls behind the playlist); the
+	 * start-up seed, or a backlog of queued segments, is sent at once.
+	 *
+	 * @param IngestFeeder $rFeeder  The daemon feed.
+	 * @param array        $rQueue   Pending {data, dur, burst} entries.
+	 * @param array|null   $rCurrent The segment being paced ({data, sent, start, dur, burst}).
+	 * @return void
+	 */
+	private function pumpDaemon(IngestFeeder $rFeeder, array &$rQueue, ?array &$rCurrent): void {
+		$rNow = microtime(true);
+		if ($rCurrent === null && count($rQueue) > 0) {
+			$rItem = array_shift($rQueue);
+			$rCurrent = array('data' => $rItem['data'], 'sent' => 0, 'start' => $rNow, 'dur' => $rItem['dur'], 'burst' => $rItem['burst']);
+		}
+		if ($rCurrent === null) {
+			$rFeeder->flush();
+			return;
+		}
+
+		$rLength = strlen($rCurrent['data']);
+		if ($rCurrent['burst'] || count($rQueue) >= self::FEED_BACKLOG_SEGMENTS) {
+			$rTarget = $rLength;
+		} else {
+			$rTarget = (int) min($rLength, ceil($rLength * ($rNow - $rCurrent['start']) / ($rCurrent['dur'] * 0.9)));
+			$rTarget -= $rTarget % 188;
+		}
+		$rChunk = $rTarget - $rCurrent['sent'];
+		if ($rChunk > 0) {
+			$rFeeder->write(substr($rCurrent['data'], $rCurrent['sent'], $rChunk));
+			$rCurrent['sent'] += $rChunk;
+		} else {
+			$rFeeder->flush();
+		}
+		if ($rCurrent['sent'] >= $rLength) {
+			$rCurrent = null;
+		}
 	}
 
 	private function cleanUpSegments($rStreamID, $rDelayDuration): void {

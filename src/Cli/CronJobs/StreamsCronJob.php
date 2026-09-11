@@ -135,9 +135,9 @@ class StreamsCronJob implements CommandInterface {
         $rMigrate = $rStates !== null && !empty($rStates['accepting']) && StreamProcess::supervisionEnabled();
 
         if ($rRedis) {
-            $db->query('SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
+            $db->query('SELECT t2.stream_display_name, t2.delay_minutes, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0 GROUP BY `stream_id`) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1', SERVER_ID, SERVER_ID);
         } else {
-            $db->query("SELECT t2.stream_display_name, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, clients.online_clients, clients_hls.online_clients_hls, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0 GROUP BY stream_id) AS clients ON clients.stream_id = t1.stream_id LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients_hls FROM `lines_live` WHERE `server_id` = ? AND `container` = 'hls' AND `hls_end` = 0 GROUP BY stream_id) AS clients_hls ON clients_hls.stream_id = t1.stream_id WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1", SERVER_ID, SERVER_ID, SERVER_ID, SERVER_ID);
+            $db->query("SELECT t2.stream_display_name, t2.delay_minutes, t1.stream_started, t1.stream_info, t2.fps_restart, t1.stream_status, t1.progress_info, t1.stream_id, t1.monitor_pid, t1.on_demand, t1.server_stream_id, t1.pid, clients.online_clients, clients_hls.online_clients_hls, servers_attached.attached, t2.vframes_server_id, t2.vframes_pid, t2.tv_archive_server_id, t2.tv_archive_pid FROM `streams_servers` t1 INNER JOIN `streams` t2 ON t2.id = t1.stream_id AND t2.direct_source = 0 INNER JOIN `streams_types` t3 ON t3.type_id = t2.type LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients FROM `lines_live` WHERE `server_id` = ? AND `hls_end` = 0 GROUP BY stream_id) AS clients ON clients.stream_id = t1.stream_id LEFT JOIN (SELECT `stream_id`, COUNT(*) AS `attached` FROM `streams_servers` WHERE `parent_id` = ? AND `pid` IS NOT NULL AND `pid` > 0 AND `monitor_pid` IS NOT NULL AND `monitor_pid` > 0 GROUP BY `stream_id`) AS `servers_attached` ON `servers_attached`.`stream_id` = t1.`stream_id` LEFT JOIN (SELECT stream_id, COUNT(*) as online_clients_hls FROM `lines_live` WHERE `server_id` = ? AND `container` = 'hls' AND `hls_end` = 0 GROUP BY stream_id) AS clients_hls ON clients_hls.stream_id = t1.stream_id WHERE (t1.pid IS NOT NULL OR t1.stream_status <> 0 OR t1.to_analyze = 1) AND t1.server_id = ? AND t3.live = 1", SERVER_ID, SERVER_ID, SERVER_ID, SERVER_ID);
         }
 
         if ($db->num_rows() > 0) {
@@ -192,6 +192,9 @@ class StreamsCronJob implements CommandInterface {
                         if ($rQueue == 0 && $rAdminQueue == 0 && $rStream['online_clients'] == 0 && (file_exists(STREAMS_PATH . $rStream['stream_id'] . '_.m3u8') || SettingsManager::getInt('on_demand_wait_time') < time() - intval($rStream['stream_started']) || $rStream['stream_status'] == 1)) {
                             echo 'Stop on-demand stream...' . "\n\n";
                             StreamProcess::stopStream($rStream['stream_id'], true);
+                            // Stopped: nothing below applies (it would start a thumbnail
+                            // and a TV archive worker for the stream just stopped).
+                            continue;
                         }
                     }
 
@@ -232,8 +235,17 @@ class StreamsCronJob implements CommandInterface {
                         // stamp so a stream whose ingest keeps failing is not
                         // restart-looped every cron tick. Proxy streams have no
                         // local ffmpeg, so they never reach this running branch.
-                        if (FanoutClient::daemonStreamMissing($rStream['stream_id'])) {
-                            $rRefeedStamp = STREAMS_PATH . $rStream['stream_id'] . '_.refeed';
+                        // Only an ffmpeg producer needs the restart: a broken tee slave
+                        // stays broken. The PHP relays (LLOD, loopback) and a delayed
+                        // stream's DelayCommand re-register and redial the daemon by
+                        // themselves (IngestFeeder), and restarting a delayed stream
+                        // would throw its buffer away.
+                        $rSelfFeeding = intval($rStream['delay_minutes'] ?? 0) > 0 || ProcessManager::producerKind($rPID) === 'php';
+                        if (!$rSelfFeeding && FanoutClient::daemonStreamMissing($rStream['stream_id'])) {
+                            // The stamp lives outside STREAMS_PATH: the restart below
+                            // runs `rm -f <id>_*` there, which deleted a `<id>_.refeed`
+                            // stamp — and with it the 120 s throttle it was meant to be.
+                            $rRefeedStamp = SIGNALS_TMP_PATH . 'refeed_' . intval($rStream['stream_id']);
                             if (!file_exists($rRefeedStamp) || time() - filemtime($rRefeedStamp) > 120) {
                                 echo 'Daemon lost stream ' . $rStream['stream_id'] . ' (restarted) — re-feeding...' . "\n\n";
                                 touch($rRefeedStamp);

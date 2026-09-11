@@ -8,6 +8,7 @@ use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Streaming\Fanout\FanoutClient;
+use XcVm\Streaming\Fanout\IngestFeeder;
 
 /**
  * StreamProcess — stream process
@@ -289,12 +290,14 @@ class StreamProcess {
 		if (!empty($rSubtitles) && !empty($rSubtitles['files']) && is_array($rSubtitles['files'])) {
 			$rCount = count($rSubtitles['files']);
 			for ($i = 0; $i < $rCount; $i++) {
-				$rSubtitleFile = escapeshellarg($rSubtitles['files'][$i]);
 				$rInputCharset = escapeshellarg($rSubtitles['charset'][$i]);
 				if ($rSubtitles['location'] == SERVER_ID) {
-					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . $rSubtitleFile . ' ';
+					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . escapeshellarg($rSubtitles['files'][$i]) . ' ';
 				} else {
-					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i "' . $rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitleFile) . '" ';
+					// URL-encode the raw path, then quote the whole URL for the shell.
+					// (Encoding the already shell-quoted path sent the quotes along,
+					// so the remote server looked up a filename that does not exist.)
+					$rSubtitlesImport .= '-sub_charenc ' . $rInputCharset . ' -i ' . escapeshellarg($rServers[$rSubtitles['location']]['api_url'] . '&action=getFile&filename=' . urlencode($rSubtitles['files'][$i])) . ' ';
 				}
 			}
 			for ($i = 0; $i < $rCount; $i++) {
@@ -465,6 +468,31 @@ class StreamProcess {
 		$rDaemon = '[f=mpegts:onfail=ignore:mpegts_flags=+initial_discontinuity]unix:' . $rIngestSock;
 
 		return $rOptions . ' -f tee "' . $rHls . '|' . $rDaemon . '"';
+	}
+
+	/**
+	 * The output options a live-on-demand (LLOD) start adds for low latency.
+	 *
+	 * The encoder tune is chosen per encoder: `-tune zerolatency` is an x264/x265
+	 * option, which NVENC rejects as an unknown tune value (failing the start) and
+	 * a stream copy ignores; NVENC's equivalent is `-zerolatency 1`.
+	 *
+	 * @param array $rTranscodeAttributes Resolved transcode attributes.
+	 * @return string Options for the {LLOD} placeholder.
+	 */
+	private static function llodOutputOptions(array $rTranscodeAttributes): string {
+		$rCodec = $rTranscodeAttributes['-vcodec'] ?? 'copy';
+		if (is_array($rCodec)) {
+			$rCodec = $rCodec['cmd'] ?? ($rCodec['val'] ?? '');
+		}
+		$rCodec = strtolower(trim((string) $rCodec));
+		$rTune = '';
+		if (in_array($rCodec, array('libx264', 'libx265'), true)) {
+			$rTune = '-tune zerolatency ';
+		} elseif (substr($rCodec, -6) === '_nvenc') {
+			$rTune = '-zerolatency 1 ';
+		}
+		return $rTune . '-strict experimental';
 	}
 
 	/**
@@ -783,9 +811,12 @@ class StreamProcess {
 		$rReconnect = (!$rLoopback && is_string($rSource) && preg_match('#^https?://#i', $rSource))
 			? '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5 '
 			: '';
-		// +discardcorrupt tolerates corrupt packets from the source; keep it scoped
-		// to the on-demand (LLOD) path where it originally shipped.
-		$rLLODInputFlags = $rReconnect . (($rLLOD && !$rLoopback) ? '-fflags +discardcorrupt ' : '');
+		// LLOD input flags: +discardcorrupt tolerates corrupt packets from the
+		// source, +nobuffer stops the demuxer holding back what it read during
+		// stream analysis. Both are demuxer (input) flags — +nobuffer used to sit
+		// among the output options, where it does nothing. Scoped to the on-demand
+		// (LLOD) path where they shipped.
+		$rLLODInputFlags = $rReconnect . (($rLLOD && !$rLoopback) ? '-fflags +discardcorrupt+nobuffer ' : '');
 
 		// Command-template defaults: only the non-custom_ffmpeg branch below
 		// assigns these, yet the {MAP}/{GEN_PTS}/{READ_NATIVE} substitution and
@@ -856,7 +887,7 @@ class StreamProcess {
 			$rFFMPEG = ((stripos($rStream['stream_info']['custom_ffmpeg'], 'nvenc') !== false ? $rFFMPEG_GPU : $rFFMPEG_CPU)) . ' -y -nostdin -hide_banner -loglevel ' . (($rSettings['ffmpeg_warnings'] ? 'warning' : 'error')) . ' -progress "' . $rProgressFile . '" ' . $rStream['stream_info']['custom_ffmpeg'];
 		}
 
-		$rLLODOptions = ($rLLOD && !$rLoopback ? '-tune zerolatency -fflags nobuffer -flags low_delay -strict experimental -threads 0' : '');
+		$rLLODOptions = ($rLLOD && !$rLoopback ? self::llodOutputOptions($rStream['stream_info']['transcode_attributes']) : '');
 		$rOutputs = array();
 
 		if ($rLoopback) {
@@ -874,11 +905,11 @@ class StreamProcess {
 		$rInitTime = min(2, intval($rSegmentSettings['seg_time']));
 		// When the xc_fanout daemon accepted an ingest registration (reachable),
 		// tee the HLS output to it too (ADR 0003, A2). Never for delay, whose HLS
-		// goes to its own directory. startStream() registers no ingest for a
-		// loopback stream (the PHP relay feeds the daemon for those); a supervised
-		// one does, because the supervisor confirms and judges a stream by the
-		// bytes the daemon receives. If the daemon was unreachable
-		// ($data['ingestSock'] is null) the original on-disk-only HLS runs.
+		// goes to its own directory and whose DelayCommand feeds the daemon the
+		// delayed segments. A loopback stream tees too: clients are served only by
+		// the daemon, so an ffmpeg loopback that did not feed it could not be
+		// watched. If the daemon was unreachable ($data['ingestSock'] is null) the
+		// on-disk-only HLS runs.
 		if (!$rDelayActive && !empty($data['ingestSock'])) {
 			// The tee muxer needs an EXPLICIT -map — plain single outputs use
 			// ffmpeg's automatic stream selection, but tee does not ("Output file
@@ -1227,11 +1258,10 @@ class StreamProcess {
 		list($rProbesize, $rAnalyseDuration, $rTimeout) = self::resolveProbeSettings($rStream['server_info']['on_demand'], $rInfo['probesize_ondemand'], $rLLOD, $rSettings);
 
 		self::writeStreamKeyIv($rStreamID);
-		$rEncKey = $rEncIV = null;
-		if (!empty($rSettings['encrypt_hls']) && !$rLoopback) {
-			$rEncKey = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.key'));
-			$rEncIV = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.iv'));
-		}
+		// Loopback included: the playlist declares AES-128 whenever encrypt_hls is
+		// on (HLSGenerator::tokenizeDaemonPlaylist), so a daemon fed without the
+		// key served plain segments no player could decrypt.
+		[$rEncKey, $rEncIV] = !empty($rSettings['encrypt_hls']) ? IngestFeeder::streamKey($rStreamID) : array(null, null);
 		$rIngestSock = FanoutClient::registerIngest($rStreamID, $rEncKey, $rEncIV);
 		if ($rIngestSock === null) {
 			return null; // no daemon to feed: the stream runs the legacy way
@@ -1968,11 +1998,13 @@ class StreamProcess {
 			if ($db->num_rows() > 0) {
 				$rStream['server_info'] = $db->get_row();
 				if ($rStream['server_info']['parent_id'] != 0) {
+					// The key first: the relay hands it to the daemon when it
+					// registers its ingest, moments after it starts.
+					self::writeStreamKeyIv($rStreamID);
 					shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php loopback ' . intval($rStreamID) . ' ' . intval($rStream['server_info']['parent_id']) . ' >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
 					$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
 					$rLoopURL = (!is_null($rServers[SERVER_ID]['private_url_ip']) && !is_null($rServers[$rStream['server_info']['parent_id']]['private_url_ip']) ? $rServers[$rStream['server_info']['parent_id']]['private_url_ip'] : $rServers[$rStream['server_info']['parent_id']]['public_url_ip']);
 					$rCurrentSource = $rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts';
-					self::writeStreamKeyIv($rStreamID);
 					$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', null, time(), null, $rPID, json_encode(array()), $rCurrentSource, $rStreamID, SERVER_ID);
 					self::updateStream($rStreamID);
 					return array('main_pid' => $rPID, 'stream_source' => $rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts', 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
@@ -2001,9 +2033,11 @@ class StreamProcess {
 		foreach ($rStreamArguments as $rStreamArgument) {
 			$rArgumentMap[$rStreamArgument['argument_key']] = array('value' => $rStreamArgument['value'], 'argument_default_value' => $rStreamArgument['argument_default_value']);
 		}
+		// The key first: the segmenter hands it to the daemon when it registers
+		// its ingest, moments after it starts.
+		self::writeStreamKeyIv($rStreamID);
 		shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php llod ' . intval($rStreamID) . ' "' . base64_encode(json_encode($rSources)) . '" "' . base64_encode(json_encode($rArgumentMap)) . '" >/dev/null 2>/dev/null & echo $! > ' . STREAMS_PATH . intval($rStreamID) . '_.pid');
 		$rPID = intval(file_get_contents(STREAMS_PATH . $rStreamID . '_.pid'));
-		self::writeStreamKeyIv($rStreamID);
 		$db->query('UPDATE `streams_servers` SET `delay_available_at` = ?,`to_analyze` = 0,`stream_started` = ?,`stream_info` = ?,`stream_status` = 2,`pid` = ?,`progress_info` = ?,`current_source` = ? WHERE `stream_id` = ? AND `server_id` = ?', null, time(), null, $rPID, json_encode(array()), $rSources[0], $rStreamID, SERVER_ID);
 		self::updateStream($rStreamID);
 		return array('main_pid' => $rPID, 'stream_source' => $rSources[0], 'delay_enabled' => false, 'parent_id' => 0, 'delay_start_at' => null, 'playlist' => STREAMS_PATH . $rStreamID . '_.m3u8', 'transcode' => false, 'offset' => 0);
@@ -2208,6 +2242,10 @@ class StreamProcess {
 
 							break;
 						}
+					} else {
+						// LLOD skips the probe, so nothing above can pick a source:
+						// start on the first one rather than falling through to the last.
+						break;
 					}
 				}
 				if (!($rStream['server_info']['on_demand'] && $rLLOD)) {
@@ -2257,21 +2295,20 @@ class StreamProcess {
 					// Assemble the live ffmpeg command (pure). buildLive() does all the
 					// transcode-attribute resolution and {TEMPLATE} substitution internally, so
 					// it is fed the raw stream row.
-					// Register a daemon ingest for standard live streams (ADR 0003,
-					// A2). The daemon starts listening on the returned socket, then
-					// buildLive tees the HLS output into it. Null when the daemon is
-					// unreachable → buildLive emits the on-disk-only HLS (rollback).
-					// Generate the stream's HLS key/iv up-front so, when encrypt_hls
-					// is on, we can hand them to the daemon at ingest registration
-					// and it encrypts the HLS segments it serves (ADR 0003, Phase B
-					// encrypted) — matching the panel's #EXT-X-KEY.
+					// Register a daemon ingest (ADR 0003, A2). The daemon starts
+					// listening on the returned socket, then buildLive tees the HLS
+					// output into it. Null when the daemon is unreachable →
+					// buildLive emits the on-disk-only HLS. Loopback streams tee too
+					// (clients are served only by the daemon); a delayed stream does
+					// not — its encoder output is the undelayed one, and DelayCommand
+					// feeds the daemon the delayed segments instead.
+					// The stream's HLS key/iv are generated up-front so, when
+					// encrypt_hls is on, the daemon gets them at registration and
+					// encrypts the HLS segments it serves (ADR 0003, Phase B) —
+					// matching the panel's #EXT-X-KEY.
 					self::writeStreamKeyIv($rStreamID);
-					$rEncKey = $rEncIV = null;
-					if (!empty($rSettings['encrypt_hls']) && !$rLoopback && !$rDelayActive) {
-						$rEncKey = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.key'));
-						$rEncIV = @bin2hex((string) @file_get_contents(STREAMS_PATH . $rStreamID . '_.iv'));
-					}
-					$rIngestSock = (!$rLoopback && !$rDelayActive) ? FanoutClient::registerIngest($rStreamID, $rEncKey, $rEncIV) : null;
+					[$rEncKey, $rEncIV] = (!empty($rSettings['encrypt_hls']) && !$rDelayActive) ? IngestFeeder::streamKey(intval($rStreamID)) : array(null, null);
+					$rIngestSock = !$rDelayActive ? FanoutClient::registerIngest(intval($rStreamID), $rEncKey, $rEncIV) : null;
 
 					$rFFMPEG = self::buildLive(array(
 						'stream' => $rStream, 'settings' => $rSettings, 'servers' => $rServers,

@@ -96,4 +96,26 @@ final class StreamProcessSubtitleTest extends TestCase {
 		$this->assertStringContainsString('action=getFile', $import);
 		$this->assertStringContainsString('filename=', $import);
 	}
+
+	/**
+	 * The remote filename is URL-encoded from the raw path — not from the shell-
+	 * quoted one, which put encoded quotes (%27) into the name the remote server
+	 * looked up.
+	 */
+	public function testRemoteSubtitleFilenameCarriesNoShellQuotes(): void {
+		if (PHP_OS_FAMILY === 'Windows') {
+			$this->markTestSkipped('escapeshellarg() rewrites % on Windows; the panel runs on Linux');
+		}
+		$servers = [2 => ['api_url' => 'http://node2/api?key=abc']];
+		$json = json_encode([
+			'location' => 2,
+			'files'    => ['/subs/My Movie.srt'],
+			'charset'  => ['UTF-8'],
+			'names'    => ['Remote'],
+		]);
+		[$import] = $this->build($json, $servers);
+
+		$this->assertStringContainsString('filename=' . urlencode('/subs/My Movie.srt'), $import);
+		$this->assertStringNotContainsString('%27', $import);
+	}
 }
