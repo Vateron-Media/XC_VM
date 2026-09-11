@@ -1207,7 +1207,7 @@ class StreamProcess {
 			$rSources = array($rLoopURL . 'admin/live?stream=' . intval($rStreamID) . '&password=' . urlencode($rSettings['live_streaming_pass']) . '&extension=ts');
 			$rLabels = array('Loopback: #' . $rParentID);
 		} else {
-			$rSources = array_values(array_filter(array_map('trim', (array) json_decode((string) $rInfo['stream_source'], true)), 'strlen'));
+			$rSources = array_values(array_filter(array_map('trim', (array) json_decode((string) $rInfo['stream_source'], true)), static fn(string $source): bool => $source !== ''));
 			$rLabels = $rSources;
 		}
 		if (count($rSources) === 0) {
