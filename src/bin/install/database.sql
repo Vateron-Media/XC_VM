@@ -812,6 +812,7 @@ CREATE TABLE IF NOT EXISTS `panel_logs` (
   `unique` varchar(32) DEFAULT NULL,
   `file` varchar(255) DEFAULT NULL,
   `env` varchar(32) NOT NULL DEFAULT 'cli',
+  `version` varchar(30) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb3 COLLATE=utf8mb3_unicode_ci;
 

@@ -86,6 +86,9 @@ class ErrorsCronJob implements CommandInterface {
             $rLogTime = (int) ($row['time'] ?? time());
             $rLogFile = (string) ($row['file'] ?? '');
             $rLogEnv = (string) ($row['env'] ?? php_sapi_name());
+            // Panel version frozen when the error occurred (Logger::log). Empty for
+            // legacy records written before the field existed.
+            $rLogVersion = (string) ($row['version'] ?? '');
             // Prefer the origin server stamped into the record (FileLogger); fall
             // back to this node's SERVER_ID for legacy files written before the
             // field existed. This is what lets a panel_logs row show LB vs MAIN.
@@ -119,7 +122,7 @@ class ErrorsCronJob implements CommandInterface {
             $hashes[$hash] = true;
 
             $query .= sprintf(
-                "(%d,%s,%s,%s,%s,%s,%s,%s,%s),",
+                "(%d,%s,%s,%s,%s,%s,%s,%s,%s,%s),",
                 $rLogServerID,
                 $this->sqlValue($rLogType),
                 $this->sqlValue($rLogMessage),
@@ -128,6 +131,7 @@ class ErrorsCronJob implements CommandInterface {
                 $this->sqlValue($rLogTime, true),
                 $this->sqlValue($rLogFile),
                 $this->sqlValue($rLogEnv),
+                $this->sqlValue($rLogVersion),
                 $this->sqlValue($hash)
             );
         }
@@ -185,7 +189,7 @@ class ErrorsCronJob implements CommandInterface {
         if (file_exists($rLog)) {
             $rQuery = $this->parseLog(LOGS_TMP_PATH . 'error_log.log');
             if ($rQuery !== '') {
-                $rInserted = $db->query("INSERT IGNORE INTO panel_logs(server_id, type, log_message, log_extra, line, date, file, env, `unique`) VALUES {$rQuery};");
+                $rInserted = $db->query("INSERT IGNORE INTO panel_logs(server_id, type, log_message, log_extra, line, date, file, env, version, `unique`) VALUES {$rQuery};");
                 if ($rInserted) {
                     unlink($rLog);
                 }

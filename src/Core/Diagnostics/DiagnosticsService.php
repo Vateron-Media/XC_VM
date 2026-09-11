@@ -118,10 +118,10 @@ class DiagnosticsService {
 		$errors = [];
 
 		try {
-			$query = "SELECT `type`, `log_message`, `log_extra`, `line`, `date` 
-                  FROM `panel_logs` 
-                  WHERE `type` <> 'epg' 
-                  ORDER BY `date` DESC 
+			$query = "SELECT `type`, `log_message`, `log_extra`, `line`, `date`, `version`
+                  FROM `panel_logs`
+                  WHERE `type` <> 'epg'
+                  ORDER BY `date` DESC
                   LIMIT 1000";
 
 			$result = $db->query($query);
@@ -138,6 +138,7 @@ class DiagnosticsService {
 					'file'    => isset($error['log_extra']) ? htmlspecialchars($error['log_extra'], ENT_QUOTES, 'UTF-8') : '',
 					'line'    => isset($error['line']) ? (int)$error['line'] : 0,
 					'date'    => isset($error['date']) ? (int)$error['date'] : 0,
+					'version' => isset($error['version']) ? htmlspecialchars((string)$error['version'], ENT_QUOTES, 'UTF-8') : '',
 				];
 
 				try {
@@ -181,7 +182,7 @@ class DiagnosticsService {
 		ini_set('default_socket_timeout', 60);
 
 		// Select only logs not yet marked as sent
-		$db->query("SELECT `id`, `type`, `log_message`, `log_extra`, `line`, `date` FROM `panel_logs` WHERE `type` <> 'epg' AND IFNULL(`sent`,0)=0 GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
+		$db->query("SELECT `id`, `type`, `log_message`, `log_extra`, `line`, `date`, `version` FROM `panel_logs` WHERE `type` <> 'epg' AND IFNULL(`sent`,0)=0 GROUP BY CONCAT(`type`, `log_message`, `log_extra`) ORDER BY `date` DESC LIMIT 1000;");
 
 		$rows = $db->get_rows() ?: [];
 
@@ -204,6 +205,9 @@ class DiagnosticsService {
 				'log_extra'   => $row['log_extra'] ?? '',
 				'line'        => isset($row['line']) ? (string)$row['line'] : '',
 				'date'        => $ts > 0 ? gmdate('Y-m-d H:i:s', $ts) : '',
+				// Per-error panel version frozen when the error occurred. The log
+				// server attributes the entry to THIS, not the batch/current version.
+				'version'     => (string) ($row['version'] ?? ''),
 			];
 			if (isset($row['id'])) {
 				$ids[] = (int)$row['id'];

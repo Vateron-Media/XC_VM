@@ -149,7 +149,8 @@ final class Logger {
             'line'    => $line,
             'log_extra'   => $trace,            // Process ID
             'time'    => time(),                  // Unix timestamp
-            'env'     => php_sapi_name()          // SAPI name (cli, fpm-fcgi, etc.)
+            'env'     => php_sapi_name(),         // SAPI name (cli, fpm-fcgi, etc.)
+            'version' => defined('XC_VM_VERSION') ? XC_VM_VERSION : 'unknown',
         ];
 
         // Ensure log directory exists
