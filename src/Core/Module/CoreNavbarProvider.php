@@ -112,81 +112,87 @@ class CoreNavbarProvider implements NavbarProviderInterface {
      * @return void
      */
     private static function _users(): void {
-        NavbarRegistry::add((new NavbarItem('users'))
-            ->url('#')->label('users')
-            ->icon('fas fa-desktop')->order(300));
-
         // Lines
-        NavbarRegistry::add((new NavbarItem('users.lines'))
-            ->parent('users')->url('#')
-            ->label('user_lines')->permissions(['add_user', 'users'])->order(10));
-        NavbarRegistry::add((new NavbarItem('users.lines.add'))
-            ->parent('users.lines')->url('line')
+        NavbarRegistry::add((new NavbarItem('lines'))
+            ->url('#')->label('user_lines')
+            ->icon('ti tabler-users')
+            ->permissions(['add_user', 'users', 'mass_edit_lines'])
+            ->order(300));
+        NavbarRegistry::add((new NavbarItem('lines.add'))
+            ->parent('lines')->url('line')
             ->label('add_line')->permissions(['add_user'])->order(10));
-        NavbarRegistry::add((new NavbarItem('users.lines.manage'))
-            ->parent('users.lines')->url('lines')
+        NavbarRegistry::add((new NavbarItem('lines.manage'))
+            ->parent('lines')->url('lines')
             ->label('manage_lines')->permissions(['users'])->order(20));
-        NavbarRegistry::add((new NavbarItem('users.lines.mass'))
-            ->parent('users.lines')->url('line_mass')
+        NavbarRegistry::add((new NavbarItem('lines.mass'))
+            ->parent('lines')->url('line_mass')
             ->label('mass_edit_lines')->permissions(['mass_edit_lines'])->order(30));
 
         // Active Codes
-        NavbarRegistry::add((new NavbarItem('users.active_codes'))
-            ->parent('users')->url('#')
-            ->label('active_codes')->permissions(['add_user', 'users'])->order(15));
-        NavbarRegistry::add((new NavbarItem('users.active_codes.add'))
-            ->parent('users.active_codes')->url('active_code')
+        NavbarRegistry::add((new NavbarItem('active_codes'))
+            ->url('#')->label('active_codes')
+            ->icon('ti tabler-key')
+            ->permissions(['add_user', 'users', 'mass_edit_lines'])
+            ->order(310));
+        NavbarRegistry::add((new NavbarItem('active_codes.add'))
+            ->parent('active_codes')->url('active_code')
             ->label('generate_codes')->permissions(['add_user'])->order(10));
-        NavbarRegistry::add((new NavbarItem('users.active_codes.manage'))
-            ->parent('users.active_codes')->url('active_codes')
+        NavbarRegistry::add((new NavbarItem('active_codes.manage'))
+            ->parent('active_codes')->url('active_codes')
             ->label('manage_active_codes')->permissions(['users'])->order(20));
-        NavbarRegistry::add((new NavbarItem('users.active_codes.batch'))
-            ->parent('users.active_codes')->url('active_codes_batch')
+        NavbarRegistry::add((new NavbarItem('active_codes.batch'))
+            ->parent('active_codes')->url('active_codes_batch')
             ->label('batch_manager')->permissions(['users'])->order(25));
-        NavbarRegistry::add((new NavbarItem('users.active_codes.mass'))
-            ->parent('users.active_codes')->url('active_codes_mass')
+        NavbarRegistry::add((new NavbarItem('active_codes.mass'))
+            ->parent('active_codes')->url('active_codes_mass')
             ->label('mass_edit_active_codes')->permissions(['mass_edit_lines'])->order(30));
 
-        // MAG
-        NavbarRegistry::add((new NavbarItem('users.mag'))
-            ->parent('users')->url('#')
-            ->label('mag_devices')->permissions(['add_mag', 'manage_mag'])->order(20));
-        NavbarRegistry::add((new NavbarItem('users.mag.add'))
-            ->parent('users.mag')->url('mag')
+        // MAG Devices
+        NavbarRegistry::add((new NavbarItem('mag'))
+            ->url('#')->label('mag_devices')
+            ->icon('ti tabler-device-tv')
+            ->permissions(['add_mag', 'manage_mag', 'mass_edit_mags'])
+            ->order(320));
+        NavbarRegistry::add((new NavbarItem('mag.add'))
+            ->parent('mag')->url('mag')
             ->label('add_mag')->permissions(['add_mag'])->order(10));
-        NavbarRegistry::add((new NavbarItem('users.mag.manage'))
-            ->parent('users.mag')->url('mags')
+        NavbarRegistry::add((new NavbarItem('mag.manage'))
+            ->parent('mag')->url('mags')
             ->label('manage_mag_devices')->permissions(['manage_mag'])->order(20));
-        NavbarRegistry::add((new NavbarItem('users.mag.mass'))
-            ->parent('users.mag')->url('mag_mass')
+        NavbarRegistry::add((new NavbarItem('mag.mass'))
+            ->parent('mag')->url('mag_mass')
             ->label('mass_edit_mags')->permissions(['mass_edit_mags'])->order(30));
 
-        // Enigma
-        NavbarRegistry::add((new NavbarItem('users.e2'))
-            ->parent('users')->url('#')
-            ->label('enigma_devices')->permissions(['add_e2', 'manage_e2'])->order(30));
-        NavbarRegistry::add((new NavbarItem('users.e2.add'))
-            ->parent('users.e2')->url('enigma')
+        // Enigma Devices
+        NavbarRegistry::add((new NavbarItem('e2'))
+            ->url('#')->label('enigma_devices')
+            ->icon('ti tabler-cpu')
+            ->permissions(['add_e2', 'manage_e2', 'mass_edit_enigmas'])
+            ->order(330));
+        NavbarRegistry::add((new NavbarItem('e2.add'))
+            ->parent('e2')->url('enigma')
             ->label('add_enigma')->permissions(['add_e2'])->order(10));
-        NavbarRegistry::add((new NavbarItem('users.e2.manage'))
-            ->parent('users.e2')->url('enigmas')
+        NavbarRegistry::add((new NavbarItem('e2.manage'))
+            ->parent('e2')->url('enigmas')
             ->label('manage_enigma_devices')->permissions(['manage_e2'])->order(20));
-        NavbarRegistry::add((new NavbarItem('users.e2.mass'))
-            ->parent('users.e2')->url('enigma_mass')
+        NavbarRegistry::add((new NavbarItem('e2.mass'))
+            ->parent('e2')->url('enigma_mass')
             ->label('mass_edit_enigmas')->permissions(['mass_edit_enigmas'])->order(30));
 
-        // Reseller
-        NavbarRegistry::add((new NavbarItem('users.reseller'))
-            ->parent('users')->url('#')
-            ->label('reseller')->permissions(['add_reguser', 'mng_regusers'])->order(40));
-        NavbarRegistry::add((new NavbarItem('users.reseller.add'))
-            ->parent('users.reseller')->url('user')
+        // Resellers
+        NavbarRegistry::add((new NavbarItem('reseller'))
+            ->url('#')->label('reseller')
+            ->icon('ti tabler-user-check')
+            ->permissions(['add_reguser', 'mng_regusers', 'mass_edit_users'])
+            ->order(340));
+        NavbarRegistry::add((new NavbarItem('reseller.add'))
+            ->parent('reseller')->url('user')
             ->label('add_registered_user')->permissions(['add_reguser'])->order(10));
-        NavbarRegistry::add((new NavbarItem('users.reseller.manage'))
-            ->parent('users.reseller')->url('users')
+        NavbarRegistry::add((new NavbarItem('reseller.manage'))
+            ->parent('reseller')->url('users')
             ->label('manage_registered_user')->permissions(['mng_regusers'])->order(20));
-        NavbarRegistry::add((new NavbarItem('users.reseller.mass'))
-            ->parent('users.reseller')->url('user_mass')
+        NavbarRegistry::add((new NavbarItem('reseller.mass'))
+            ->parent('reseller')->url('user_mass')
             ->label('mass_edit_resellers')->permissions(['mass_edit_users'])->order(30));
     }
 
