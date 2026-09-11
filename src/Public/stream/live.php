@@ -4,6 +4,7 @@ use XcVm\Core\Logging\DatabaseLogger;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\AsyncFileOperations;
@@ -149,16 +150,24 @@ if ($rChannelInfo) {
         $rChannelInfo["pid"] = NULL;
 
         if ($rChannelInfo["on_demand"] == 1) {
-            if (!ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID)) {
+            // Watched = a live PHP monitor, or the fanout supervisor (whose pid
+            // the PHP check rightly rejects). Either way, do not start another.
+            if (!StreamProcess::isWatched($rStreamID, $rChannelInfo["monitor_pid"])) {
                 if (($rActivityStart + $rCreateExpiration) - intval($rServers[SERVER_ID]["time_offset"]) < time()) {
                     generateError("TOKEN_EXPIRED");
                 }
 
-                ProcessManager::startMonitor($rStreamID);
-
-                if (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
+                DatabaseFactory::connect(); // the hand-over reads the stream's config
+                if (StreamProcess::startMonitor($rStreamID) === StreamProcess::MONITOR_FANOUT) {
+                    // The daemon is the monitor: there is no _.monitor file to wait
+                    // for, and waiting its full three seconds would be pure latency
+                    // on the viewer's connect. It writes _.pid as it launches.
+                    $rChannelInfo["monitor_pid"] = -1;
+                } elseif (AsyncFileOperations::awaitFileExists(STREAMS_PATH . $rStreamID . "_.monitor", 300, 10)) {
                     $rChannelInfo["monitor_pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor")) ?: NULL);
                 }
+            } elseif (!$rChannelInfo["monitor_pid"]) {
+                $rChannelInfo["monitor_pid"] = -1; // supervised; its pid is the daemon's
             }
 
             if (!$rChannelInfo["monitor_pid"]) {
@@ -199,7 +208,7 @@ if ($rChannelInfo) {
                     generateError("WAIT_TIME_EXPIRED");
                 } else {
                     // Verify stream is still running
-                    if (!(ProcessManager::isMonitorAlive($rChannelInfo["monitor_pid"], $rStreamID) && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID))) {
+                    if (!(StreamProcess::isWatched($rStreamID, $rChannelInfo["monitor_pid"]) && ProcessManager::isStreamAlive($rChannelInfo["pid"], $rStreamID))) {
                         OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);
                     }
                 }

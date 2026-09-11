@@ -157,6 +157,15 @@ class ProcessManager {
             );
         }
 
+        // The fanout daemon's native remuxer (`xc_fanout remux … <streams>/<id>_.m3u8`),
+        // which produces a copy-only stream in ffmpeg's place. Its own subcommand
+        // and this stream's playlist must both be there: the daemon process shares
+        // the executable but names no stream playlist.
+        if (strpos($exe, 'xc_fanout') === 0) {
+            $cmdline = (string) @file_get_contents('/proc/' . $pid . '/cmdline');
+            return strpos($cmdline, "\0remux\0") !== false && strpos($cmdline, '/' . $streamId . '_.m3u8') !== false;
+        }
+
         if (strpos($exe, 'php') === 0) {
             return true;
         }
@@ -415,7 +424,9 @@ class ProcessManager {
     /**
      * Start a stream monitor process in background.
      *
-     * Extracted from ProcessManager::startMonitor().
+     * Always the PHP watchdog. Stream code calls StreamProcess::startMonitor()
+     * instead, which hands the stream to the fanout daemon's supervisor when this
+     * server supervises and only falls back to this.
      *
      * @param int $streamID
      * @param int $restart
