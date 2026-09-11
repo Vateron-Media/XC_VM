@@ -2,7 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\PackageService;
 
 /**
@@ -17,10 +16,10 @@ class ActiveCodesMassController extends BaseAdminController
         $this->requirePermission();
         $this->setTitle('Mass Edit Active Codes');
 
+        $rPackages = PackageService::getAll(1, 'line') ?: [];
+
         $this->render('active_codes_mass', [
-            'rPackages' => PackageService::getAll(1, 'line') ?: [],
-            'batches'   => ActiveCodeService::getRecentBatchNames(),
-            'resellers' => ActiveCodeService::getResellersWithCodes(),
+            'rPackages' => $rPackages,
         ]);
     }
 }

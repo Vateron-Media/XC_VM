@@ -6,6 +6,7 @@ use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\ActiveCodeService;
+use XcVm\Domain\User\UserRepository;
 
 /**
  * ActiveCodeApiController — Dedicated REST API for Smart Activation Codes

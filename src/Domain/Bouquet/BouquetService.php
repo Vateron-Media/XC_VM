@@ -270,6 +270,9 @@ class BouquetService {
 			$rRadiosList = is_array($rRadiosList) ? $rRadiosList : array();
 			$rSeriesList = is_array($rSeriesList) ? $rSeriesList : array();
 
+			$rOutput[$rID]['id'] = (int)$rID;
+			$rOutput[$rID]['bouquet_name'] = $rChannels['bouquet_name'];
+			$rOutput[$rID]['bouquet_order'] = $rChannels['bouquet_order'];
 			$rOutput[$rID]['streams'] = array_merge($rChannelsList, $rMoviesList, $rRadiosList);
 			$rOutput[$rID]['series'] = $rSeriesList;
 			$rOutput[$rID]['channels'] = $rChannelsList;

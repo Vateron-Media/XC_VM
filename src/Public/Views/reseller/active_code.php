@@ -7,12 +7,16 @@
  * batch naming, bouquet customization, and instant result export.
  */
 
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Server\ServerRepository;
 
 $rUserInfo = $GLOBALS['rUserInfo'] ?? [];
 $rPermissions = $GLOBALS['rPermissions'] ?? [];
 
-$rPackages = $rPackages ?? [];
-$rBouquets = $rBouquets ?? [];
+$rPackages = $rPackages ?? PackageService::getAll($rUserInfo['member_group_id'] ?? 0, 'line') ?: [];
+$rBouquets = $rBouquets ?? BouquetService::getAll() ?: [];
 $userCredits = floatval($rUserInfo['credits'] ?? 0);
 
 // Pre-calculate package prices with override
@@ -46,43 +50,38 @@ foreach ($rPackages as $pkg) {
 $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['reseller_dns'] ?? ''))));
 ?>
 <style>
-    .bq-wrapper {
-        background-color: var(--bs-body-bg, #25293c);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 0.75rem;
-    }
-
-    .bq-scroll-area {
-        max-height: 290px;
-        overflow-y: auto;
-        scrollbar-width: thin;
-    }
-
-    .bq-tile {
-        background-color: var(--bs-card-bg, #2f3349);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 0.5rem;
-        transition: all 0.2s ease-in-out;
-        cursor: pointer;
-        user-select: none;
-    }
-
-    .bq-tile:hover {
-        border-color: #7367f0;
-        background-color: rgba(115, 103, 240, 0.06);
-        transform: translateY(-1px);
-    }
-
-    .bq-tile.is-checked {
-        border-color: #7367f0 !important;
-        background-color: rgba(115, 103, 240, 0.12) !important;
-    }
-
-    .bq-filter-tab.active {
-        background-color: #7367f0 !important;
-        color: #fff !important;
-        border-color: #7367f0 !important;
-    }
+.bq-wrapper {
+    background-color: var(--bs-body-bg, #25293c);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.75rem;
+}
+.bq-scroll-area {
+    max-height: 290px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+.bq-tile {
+    background-color: var(--bs-card-bg, #2f3349);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0.5rem;
+    transition: all 0.2s ease-in-out;
+    cursor: pointer;
+    user-select: none;
+}
+.bq-tile:hover {
+    border-color: #7367f0;
+    background-color: rgba(115, 103, 240, 0.06);
+    transform: translateY(-1px);
+}
+.bq-tile.is-checked {
+    border-color: #7367f0 !important;
+    background-color: rgba(115, 103, 240, 0.12) !important;
+}
+.bq-filter-tab.active {
+    background-color: #7367f0 !important;
+    color: #fff !important;
+    border-color: #7367f0 !important;
+}
 </style>
 
 <div class="row g-4">
@@ -157,13 +156,29 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                         <select id="package_id" name="package_id" class="form-select form-select-lg" required>
                             <option value="" disabled selected>-- Select a Package --</option>
                             <?php foreach ($rPackages as $pkg): ?>
-                                <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['cost']; ?>" data-trial="<?= $packagePrices[(int)$pkg['id']]['is_trial'] ? 1 : 0; ?>">
-                                    <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
+                                <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['cost']; ?>" data-trial="<?= $packagePrices[(int)$pkg['id']]['is_trial'] ? 1 : 0; ?>" data-bouquets="<?= htmlspecialchars((string)($pkg['bouquets'] ?? '[]'), ENT_QUOTES); ?>">
+                                    <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?> 
                                     (<?= $packagePrices[(int)$pkg['id']]['cost']; ?> Credits)
                                     <?= $packagePrices[(int)$pkg['id']]['is_trial'] ? ' - [TRIAL]' : ''; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <!-- Category Template -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="category_template_id">
+                            <i class="ti tabler-layout-grid text-primary me-1"></i> <?= $language::get('category_template'); ?>
+                        </label>
+                        <select id="category_template_id" name="category_template_id" class="form-select select2">
+                            <option value="">-- <?= $language::get('none_default'); ?> --</option>
+                            <?php foreach ($categoryTemplates ?? [] as $tpl): ?>
+                                <option value="<?= (int)$tpl['id']; ?>">
+                                    <?= htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? ''); ?><?= !empty($tpl['is_system']) ? ' (' . $language::get('system') . ')' : ''; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
                     </div>
 
                     <!-- Bouquets Customization -->
@@ -226,33 +241,35 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab" data-filter="unselected">
                                     Unselected (<span class="tab-count-unsel">0</span>)
                                 </button>
-                                <?php
-                                $adultCount = 0;
-                                foreach ($rBouquets as $b) {
-                                    $bn = (string)$b['bouquet_name'];
-                                    if (stripos($bn, 'adult') !== false || stripos($bn, 'xxx') !== false || stripos($bn, '+18') !== false || stripos($bn, '18+') !== false) {
-                                        $adultCount++;
+                                <?php 
+                                    $adultCount = 0;
+                                    foreach ($rBouquets as $b) {
+                                        $bn = (string)$b['bouquet_name'];
+                                        if (stripos($bn, 'adult') !== false || stripos($bn, 'xxx') !== false || stripos($bn, '+18') !== false || stripos($bn, '18+') !== false) {
+                                            $adultCount++;
+                                        }
                                     }
-                                }
-                                if ($adultCount > 0):
+                                    if ($adultCount > 0):
                                 ?>
-                                    <button type="button" class="btn btn-xs btn-label-danger bq-filter-tab" data-filter="adult">
-                                        <i class="ti tabler-lock me-1"></i>18+ Adult (<?= $adultCount; ?>)
-                                    </button>
+                                <button type="button" class="btn btn-xs btn-label-danger bq-filter-tab" data-filter="adult">
+                                    <i class="ti tabler-lock me-1"></i>18+ Adult (<?= $adultCount; ?>)
+                                </button>
                                 <?php endif; ?>
                             </div>
 
                             <!-- Bouquets Grid with Custom Scroll -->
                             <div class="bq-scroll-area p-1">
                                 <div class="row g-2" id="bouquets-grid">
-                                    <?php foreach ($rBouquets as $bq):
-                                        $bqName = (string)$bq['bouquet_name'];
+                                    <?php foreach ($rBouquets as $bq): 
+                                        $bqId = (int)($bq['id'] ?? 0);
+                                        $bqName = (string)($bq['bouquet_name'] ?? '');
+                                        if ($bqId <= 0) continue;
                                         $isAdult = (stripos($bqName, 'adult') !== false || stripos($bqName, 'xxx') !== false || stripos($bqName, '+18') !== false || stripos($bqName, '18+') !== false);
                                     ?>
-                                        <div class="col-12 col-md-6 bouquet-item" data-name="<?= strtolower(htmlspecialchars($bqName, ENT_QUOTES)); ?>" data-adult="<?= $isAdult ? 1 : 0; ?>">
-                                            <label class="bq-tile is-checked d-flex align-items-center justify-content-between p-2 px-3 w-100 mb-0" for="bq_<?= (int)$bq['id']; ?>">
+                                        <div class="col-12 col-md-6 bouquet-item" data-id="<?= $bqId; ?>" data-name="<?= strtolower(htmlspecialchars($bqName, ENT_QUOTES)); ?>" data-adult="<?= $isAdult ? 1 : 0; ?>">
+                                            <label class="bq-tile is-checked d-flex align-items-center justify-content-between p-2 px-3 w-100 mb-0 user-select-none" for="bq_<?= $bqId; ?>" style="cursor: pointer;">
                                                 <div class="d-flex align-items-center gap-2 text-truncate me-2">
-                                                    <input class="form-check-input bq-checkbox m-0 flex-shrink-0" type="checkbox" name="bouquets_selected[]" value="<?= (int)$bq['id']; ?>" id="bq_<?= (int)$bq['id']; ?>" checked>
+                                                    <input class="form-check-input bq-checkbox m-0 flex-shrink-0" type="checkbox" name="bouquets_selected[]" value="<?= $bqId; ?>" id="bq_<?= $bqId; ?>" checked>
                                                     <span class="bq-name small fw-semibold text-truncate text-body"><?= htmlspecialchars($bqName, ENT_QUOTES); ?></span>
                                                 </div>
                                                 <?php if ($isAdult): ?>
@@ -427,220 +444,238 @@ require_once __DIR__ . '/../layouts/footer.php';
 renderUnifiedLayoutFooter('reseller');
 ?>
 <script>
-    (function($) {
-        'use strict';
-        $(function() {
-            const userCredits = <?= json_encode($userCredits); ?>;
-            const packagePrices = <?= json_encode($packagePrices); ?>;
-            let currentGeneratedCodes = [];
+(function($) {
+    'use strict';
+    $(function() {
+        const userCredits = <?= json_encode($userCredits); ?>;
+        const packagePrices = <?= json_encode($packagePrices); ?>;
+        let currentGeneratedCodes = [];
 
-            // Pill clicks for quick quantity
-            jQuery('.qty-pill').on('click', function() {
-                jQuery('#num_codes').val(jQuery(this).data('qty')).trigger('input');
-            });
+    // Pill clicks for quick quantity
+    jQuery('.qty-pill').on('click', function() {
+        jQuery('#num_codes').val(jQuery(this).data('qty')).trigger('input');
+    });
 
-            // Random Batch Name generator button
-            jQuery('#btn-rand-batch').on('click', function() {
-                const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
-                const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, "");
-                jQuery('#batch_name').val(`BATCH-${dateStr}-${rand}`);
-            });
+    // Random Batch Name generator button
+    jQuery('#btn-rand-batch').on('click', function() {
+        const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+        const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
+        jQuery('#batch_name').val(`BATCH-${dateStr}-${rand}`);
+    });
 
-            // Dynamic Credit Calculator
-            function updateCalculator() {
-                const pkgId = jQuery('#package_id').val();
-                const qty = Math.max(1, parseInt(jQuery('#num_codes').val(), 10) || 1);
-                let costPerCode = 0;
+    // Dynamic Credit Calculator
+    function updateCalculator() {
+        const pkgId = jQuery('#package_id').val();
+        const qty = Math.max(1, parseInt(jQuery('#num_codes').val(), 10) || 1);
+        let costPerCode = 0;
 
-                if (pkgId && packagePrices[pkgId]) {
-                    costPerCode = packagePrices[pkgId].cost;
-                }
+        if (pkgId && packagePrices[pkgId]) {
+            costPerCode = packagePrices[pkgId].cost;
+        }
 
-                const totalCost = qty * costPerCode;
-                const balanceAfter = userCredits - totalCost;
+        const totalCost = qty * costPerCode;
+        const balanceAfter = userCredits - totalCost;
 
-                jQuery('#card-qty').text(qty);
-                jQuery('#card-cost-per-code').text(costPerCode.toFixed(2) + ' Credits');
-                jQuery('#card-total-cost').text(totalCost.toFixed(2) + ' Credits');
-                jQuery('#card-balance-after').text(balanceAfter.toFixed(2) + ' Credits');
+        jQuery('#card-qty').text(qty);
+        jQuery('#card-cost-per-code').text(costPerCode.toFixed(2) + ' Credits');
+        jQuery('#card-total-cost').text(totalCost.toFixed(2) + ' Credits');
+        jQuery('#card-balance-after').text(balanceAfter.toFixed(2) + ' Credits');
 
-                if (balanceAfter < 0) {
-                    jQuery('#insufficient-balance-alert').removeClass('d-none');
-                    jQuery('#btn-generate-submit').prop('disabled', true);
-                    jQuery('#card-balance-after').addClass('text-danger');
-                } else {
-                    jQuery('#insufficient-balance-alert').addClass('d-none');
-                    jQuery('#btn-generate-submit').prop('disabled', false);
-                    jQuery('#card-balance-after').removeClass('text-danger');
-                }
+        if (balanceAfter < 0) {
+            jQuery('#insufficient-balance-alert').removeClass('d-none');
+            jQuery('#btn-generate-submit').prop('disabled', true);
+            jQuery('#card-balance-after').addClass('text-danger');
+        } else {
+            jQuery('#insufficient-balance-alert').addClass('d-none');
+            jQuery('#btn-generate-submit').prop('disabled', false);
+            jQuery('#card-balance-after').removeClass('text-danger');
+        }
+    }
+
+    jQuery('#package_id, #num_codes').on('change input', updateCalculator);
+
+    // Bouquets Selection & Interactive Filtering
+    function updateBouquetCounts() {
+        const total = jQuery('.bq-checkbox').length;
+        const selected = jQuery('.bq-checkbox:checked').length;
+        const unselected = total - selected;
+
+        jQuery('#bq-selected-count').text(`${selected} / ${total} Selected`);
+        jQuery('.tab-count-all').text(total);
+        jQuery('.tab-count-sel').text(selected);
+        jQuery('.tab-count-unsel').text(unselected);
+
+        // Update tile styles
+        jQuery('.bq-checkbox').each(function() {
+            const tile = jQuery(this).closest('.bq-tile');
+            if (this.checked) {
+                tile.addClass('is-checked');
+            } else {
+                tile.removeClass('is-checked');
             }
+        });
+    }
 
-            jQuery('#package_id, #num_codes').on('change input', updateCalculator);
+    // Toggle tile state on change
+    jQuery(document).on('change', '.bq-checkbox', function() {
+        updateBouquetCounts();
+        applyBouquetFilter();
+    });
 
-            // Bouquets Selection & Interactive Filtering
-            function updateBouquetCounts() {
-                const total = jQuery('.bq-checkbox').length;
-                const selected = jQuery('.bq-checkbox:checked').length;
-                const unselected = total - selected;
-
-                jQuery('#bq-selected-count').text(`${selected} / ${total} Selected`);
-                jQuery('.tab-count-all').text(total);
-                jQuery('.tab-count-sel').text(selected);
-                jQuery('.tab-count-unsel').text(unselected);
-
-                // Update tile styles
+    // Auto-select bouquets based on chosen package
+    jQuery('#package_id').on('change', function() {
+        const opt = jQuery(this).find('option:selected');
+        const bqRaw = opt.data('bouquets');
+        if (bqRaw !== undefined && bqRaw !== null && bqRaw !== '') {
+            let pkgBqs = [];
+            try {
+                pkgBqs = typeof bqRaw === 'string' ? JSON.parse(bqRaw) : bqRaw;
+            } catch (e) {
+                pkgBqs = [];
+            }
+            if (Array.isArray(pkgBqs) && pkgBqs.length > 0) {
+                const bqIds = pkgBqs.map(Number);
                 jQuery('.bq-checkbox').each(function() {
-                    const tile = jQuery(this).closest('.bq-tile');
-                    if (this.checked) {
-                        tile.addClass('is-checked');
-                    } else {
-                        tile.removeClass('is-checked');
-                    }
+                    const cid = parseInt(this.value, 10);
+                    this.checked = bqIds.includes(cid);
                 });
+                updateBouquetCounts();
+                applyBouquetFilter();
+            }
+        }
+    });
+
+    // Select All
+    jQuery('#btn-select-all-bq').on('click', function() {
+        jQuery('.bouquet-item:visible .bq-checkbox').prop('checked', true);
+        updateBouquetCounts();
+    });
+
+    // Clear All
+    jQuery('#btn-deselect-all-bq').on('click', function() {
+        jQuery('.bouquet-item:visible .bq-checkbox').prop('checked', false);
+        updateBouquetCounts();
+    });
+
+    // Invert Selection
+    jQuery('#btn-invert-bq').on('click', function() {
+        jQuery('.bouquet-item:visible .bq-checkbox').each(function() {
+            this.checked = !this.checked;
+        });
+        updateBouquetCounts();
+    });
+
+    // Exclude Adult
+    jQuery('#btn-filter-adult').on('click', function() {
+        jQuery('.bouquet-item[data-adult="1"] .bq-checkbox').prop('checked', false);
+        updateBouquetCounts();
+    });
+
+    // Tab Filter & Search Combined Function
+    let currentBqFilter = 'all';
+    function applyBouquetFilter() {
+        const term = (jQuery('#filter-bq-input').val() || '').toLowerCase().trim();
+        let visibleCount = 0;
+
+        jQuery('.bouquet-item').each(function() {
+            const item = jQuery(this);
+            const name = item.data('name') || '';
+            const isAdult = item.data('adult') == 1;
+            const isChecked = item.find('.bq-checkbox').is(':checked');
+
+            const matchesSearch = !term || name.includes(term);
+            let matchesTab = true;
+
+            if (currentBqFilter === 'selected') {
+                matchesTab = isChecked;
+            } else if (currentBqFilter === 'unselected') {
+                matchesTab = !isChecked;
+            } else if (currentBqFilter === 'adult') {
+                matchesTab = isAdult;
             }
 
-            // Toggle tile state on change
-            jQuery(document).on('change', '.bq-checkbox', function() {
-                updateBouquetCounts();
-                applyBouquetFilter();
+            const isVisible = matchesSearch && matchesTab;
+            item.toggle(isVisible);
+            if (isVisible) visibleCount++;
+        });
+
+        jQuery('#bq-no-results').toggleClass('d-none', visibleCount > 0);
+    }
+
+    jQuery('.bq-filter-tab').on('click', function() {
+        jQuery('.bq-filter-tab').removeClass('active');
+        jQuery(this).addClass('active');
+        currentBqFilter = jQuery(this).data('filter');
+        applyBouquetFilter();
+    });
+
+    jQuery('#filter-bq-input').on('input keyup', function() {
+        const hasText = (this.value.trim().length > 0);
+        jQuery('#btn-clear-bq-search').toggleClass('d-none', !hasText);
+        applyBouquetFilter();
+    });
+
+    jQuery('#btn-clear-bq-search').on('click', function() {
+        jQuery('#filter-bq-input').val('');
+        jQuery(this).addClass('d-none');
+        applyBouquetFilter();
+        jQuery('#filter-bq-input').focus();
+    });
+
+    updateBouquetCounts();
+
+    // Auto-check bouquets matching selected package
+    jQuery('#package_id').on('change', function() {
+        const pkgId = this.value;
+        if (packagePrices[pkgId] && packagePrices[pkgId].bouquets) {
+            const allowed = new Set(packagePrices[pkgId].bouquets.map(Number));
+            jQuery('.bq-checkbox').each(function() {
+                this.checked = allowed.has(Number(this.value));
             });
-
-            // Select All
-            jQuery('#btn-select-all-bq').on('click', function() {
-                jQuery('.bouquet-item:visible .bq-checkbox').prop('checked', true);
-                updateBouquetCounts();
-            });
-
-            // Clear All
-            jQuery('#btn-deselect-all-bq').on('click', function() {
-                jQuery('.bouquet-item:visible .bq-checkbox').prop('checked', false);
-                updateBouquetCounts();
-            });
-
-            // Invert Selection
-            jQuery('#btn-invert-bq').on('click', function() {
-                jQuery('.bouquet-item:visible .bq-checkbox').each(function() {
-                    this.checked = !this.checked;
-                });
-                updateBouquetCounts();
-            });
-
-            // Exclude Adult
-            jQuery('#btn-filter-adult').on('click', function() {
-                jQuery('.bouquet-item[data-adult="1"] .bq-checkbox').prop('checked', false);
-                updateBouquetCounts();
-            });
-
-            // Tab Filter & Search Combined Function
-            let currentBqFilter = 'all';
-
-            function applyBouquetFilter() {
-                const term = (jQuery('#filter-bq-input').val() || '').toLowerCase().trim();
-                let visibleCount = 0;
-
-                jQuery('.bouquet-item').each(function() {
-                    const item = jQuery(this);
-                    const name = item.data('name') || '';
-                    const isAdult = item.data('adult') == 1;
-                    const isChecked = item.find('.bq-checkbox').is(':checked');
-
-                    const matchesSearch = !term || name.includes(term);
-                    let matchesTab = true;
-
-                    if (currentBqFilter === 'selected') {
-                        matchesTab = isChecked;
-                    } else if (currentBqFilter === 'unselected') {
-                        matchesTab = !isChecked;
-                    } else if (currentBqFilter === 'adult') {
-                        matchesTab = isAdult;
-                    }
-
-                    const isVisible = matchesSearch && matchesTab;
-                    item.toggle(isVisible);
-                    if (isVisible) visibleCount++;
-                });
-
-                jQuery('#bq-no-results').toggleClass('d-none', visibleCount > 0);
-            }
-
-            jQuery('.bq-filter-tab').on('click', function() {
-                jQuery('.bq-filter-tab').removeClass('active');
-                jQuery(this).addClass('active');
-                currentBqFilter = jQuery(this).data('filter');
-                applyBouquetFilter();
-            });
-
-            jQuery('#filter-bq-input').on('input keyup', function() {
-                const hasText = (this.value.trim().length > 0);
-                jQuery('#btn-clear-bq-search').toggleClass('d-none', !hasText);
-                applyBouquetFilter();
-            });
-
-            jQuery('#btn-clear-bq-search').on('click', function() {
-                jQuery('#filter-bq-input').val('');
-                jQuery(this).addClass('d-none');
-                applyBouquetFilter();
-                jQuery('#filter-bq-input').focus();
-            });
-
             updateBouquetCounts();
+        }
+    });
 
-            // Auto-check bouquets matching selected package
-            jQuery('#package_id').on('change', function() {
-                const pkgId = this.value;
-                if (packagePrices[pkgId] && packagePrices[pkgId].bouquets) {
-                    const allowed = new Set(packagePrices[pkgId].bouquets.map(Number));
-                    jQuery('.bq-checkbox').each(function() {
-                        this.checked = allowed.has(Number(this.value));
-                    });
-                    updateBouquetCounts();
-                }
-            });
+    // Submit Form via AJAX
+    jQuery('#active-code-form').on('submit', function(e) {
+        e.preventDefault();
 
-            // Submit Form via AJAX
-            jQuery('#active-code-form').on('submit', function(e) {
-                e.preventDefault();
+        const btn = jQuery('#btn-generate-submit');
+        const origText = btn.html();
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Generating...');
 
-                const btn = jQuery('#btn-generate-submit');
-                const origText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Generating...');
+        const formData = jQuery(this).serializeArray();
+        const postData = { action: 'generate_active_codes' };
+        formData.forEach(item => {
+            if (item.name.endsWith('[]')) {
+                const key = item.name.slice(0, -2);
+                if (!postData[key]) postData[key] = [];
+                postData[key].push(item.value);
+            } else {
+                postData[item.name] = item.value;
+            }
+        });
 
-                const formData = jQuery(this).serializeArray();
-                const postData = {
-                    action: 'generate_active_codes'
-                };
-                formData.forEach(item => {
-                    if (item.name.endsWith('[]')) {
-                        const key = item.name.slice(0, -2);
-                        if (!postData[key]) postData[key] = [];
-                        postData[key].push(item.value);
-                    } else {
-                        postData[item.name] = item.value;
-                    }
-                });
+        jQuery.post('./api', postData, function(res) {
+            btn.prop('disabled', false).html(origText);
+            let data = res;
+            if (typeof res === 'string') {
+                try { data = JSON.parse(res); } catch(e) {}
+            }
 
-                jQuery.post('./api', postData, function(res) {
-                    btn.prop('disabled', false).html(origText);
-                    let data = res;
-                    if (typeof res === 'string') {
-                        try {
-                            data = JSON.parse(res);
-                        } catch (e) {}
-                    }
+            if (!data.result) {
+                alert(data.message || 'Generation failed.');
+                return;
+            }
 
-                    if (!data.result) {
-                        alert(data.message || 'Generation failed.');
-                        return;
-                    }
+            currentGeneratedCodes = data.codes || [];
+            jQuery('#res-batch-name').text(data.batch_name);
+            jQuery('#res-qty').text(data.qty);
+            jQuery('#res-batch-link').attr('href', 'active_codes_batch');
 
-                    currentGeneratedCodes = data.codes || [];
-                    jQuery('#res-batch-name').text(data.batch_name);
-                    jQuery('#res-qty').text(data.qty);
-                    jQuery('#res-batch-link').attr('href', 'active_codes_batch');
-
-                    let html = '';
-                    currentGeneratedCodes.forEach((c, idx) => {
-                        html += `
+            let html = '';
+            currentGeneratedCodes.forEach((c, idx) => {
+                html += `
                     <tr>
                         <td>${idx + 1}</td>
                         <td>
@@ -652,73 +687,72 @@ renderUnifiedLayoutFooter('reseller');
                         <td><span class="badge bg-label-success badge-pulse">Ready (Stock)</span></td>
                     </tr>
                 `;
-                    });
-
-                    jQuery('#res-codes-table').html(html);
-                    jQuery('#generation-results-card').removeClass('d-none');
-                    // Smooth scroll to results
-                    document.getElementById('generation-results-card').scrollIntoView({
-                        behavior: 'smooth'
-                    });
-                }).fail(function() {
-                    btn.prop('disabled', false).html(origText);
-                    alert('Request failed. Please check your network connection.');
-                });
             });
 
-            function copyToClipboard(text) {
-                if (navigator.clipboard && window.isSecureContext) {
-                    return navigator.clipboard.writeText(text);
-                }
-                return new Promise((resolve, reject) => {
-                    try {
-                        const textarea = document.createElement('textarea');
-                        textarea.value = String(text);
-                        textarea.style.position = 'fixed';
-                        textarea.style.left = '-9999px';
-                        textarea.style.top = '0';
-                        textarea.setAttribute('readonly', '');
-                        document.body.appendChild(textarea);
-                        textarea.focus();
-                        textarea.select();
-                        const success = document.execCommand('copy');
-                        document.body.removeChild(textarea);
-                        success ? resolve() : reject();
-                    } catch (err) {
-                        reject(err);
-                    }
-                });
-            }
-
-            // Copy single code
-            jQuery(document).on('click', '.btn-copy-one', function() {
-                const code = jQuery(this).data('code');
-                const btn = jQuery(this);
-                const orig = btn.html();
-                copyToClipboard(code).then(() => {
-                    btn.html('<i class="ti tabler-check text-success"></i>');
-                    setTimeout(() => btn.html(orig), 1500);
-                }).catch(() => {
-                    prompt('Copy code:', code);
-                });
-            });
-
-            // Copy all generated codes
-            jQuery('#btn-copy-all-res').on('click', function() {
-                if (!currentGeneratedCodes.length) return;
-                const text = currentGeneratedCodes.map(c => c.code).join("\n");
-                const btn = jQuery(this);
-                const orig = btn.html();
-                copyToClipboard(text).then(() => {
-                    btn.html('<i class="ti tabler-check me-1"></i>Copied!');
-                    setTimeout(() => btn.html(orig), 1500);
-                }).catch(() => {
-                    prompt('Copy codes:', text);
-                });
-            });
+            jQuery('#res-codes-table').html(html);
+            jQuery('#generation-results-card').removeClass('d-none');
+            // Smooth scroll to results
+            document.getElementById('generation-results-card').scrollIntoView({ behavior: 'smooth' });
+        }).fail(function() {
+            btn.prop('disabled', false).html(origText);
+            alert('Request failed. Please check your network connection.');
         });
-    })(jQuery);
+    });
+
+    function copyToClipboard(text) {
+        if (navigator.clipboard && window.isSecureContext) {
+            return navigator.clipboard.writeText(text);
+        }
+        return new Promise((resolve, reject) => {
+            try {
+                const textarea = document.createElement('textarea');
+                textarea.value = String(text);
+                textarea.style.position = 'fixed';
+                textarea.style.left = '-9999px';
+                textarea.style.top = '0';
+                textarea.setAttribute('readonly', '');
+                document.body.appendChild(textarea);
+                textarea.focus();
+                textarea.select();
+                const success = document.execCommand('copy');
+                document.body.removeChild(textarea);
+                success ? resolve() : reject();
+            } catch (err) {
+                reject(err);
+            }
+        });
+    }
+
+    // Copy single code
+    jQuery(document).on('click', '.btn-copy-one', function() {
+        const code = jQuery(this).data('code');
+        const btn = jQuery(this);
+        const orig = btn.html();
+        copyToClipboard(code).then(() => {
+            btn.html('<i class="ti tabler-check text-success"></i>');
+            setTimeout(() => btn.html(orig), 1500);
+        }).catch(() => {
+            prompt('Copy code:', code);
+        });
+    });
+
+    // Copy all generated codes
+    jQuery('#btn-copy-all-res').on('click', function() {
+        if (!currentGeneratedCodes.length) return;
+        const text = currentGeneratedCodes.map(c => c.code).join("\n");
+        const btn = jQuery(this);
+        const orig = btn.html();
+        copyToClipboard(text).then(() => {
+            btn.html('<i class="ti tabler-check me-1"></i>Copied!');
+            setTimeout(() => btn.html(orig), 1500);
+        }).catch(() => {
+            prompt('Copy codes:', text);
+        });
+    });
+    });
+})(jQuery);
 </script>
 </body>
 
 </html>
+

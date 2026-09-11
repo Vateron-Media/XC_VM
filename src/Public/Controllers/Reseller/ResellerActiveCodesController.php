@@ -2,9 +2,6 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\Line\ActiveCodeService;
-use XcVm\Domain\Line\PackageService;
-
 /**
  * ResellerActiveCodesController — Active Codes Inventory
  *
@@ -16,13 +13,6 @@ class ResellerActiveCodesController extends BaseResellerController
     {
         $this->requirePermission();
         $this->setTitle('Active Codes');
-
-        $rUserInfo = $GLOBALS['rUserInfo'] ?? [];
-        $allowedReports = (array) ($rUserInfo['reports'] ?? [$rUserInfo['id'] ?? 0]);
-
-        $this->render('active_codes', [
-            'rPackages' => PackageService::getAll($rUserInfo['member_group_id'] ?? 0, 'line') ?: [],
-            'batches'   => ActiveCodeService::getRecentBatchNames($allowedReports),
-        ]);
+        $this->render('active_codes');
     }
 }

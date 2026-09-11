@@ -19,11 +19,16 @@ class ResellerActiveCodeController extends BaseResellerController
 
         $rUserInfo = $GLOBALS['rUserInfo'] ?? [];
         $rPackages = PackageService::getAll($rUserInfo['member_group_id'] ?? 0, 'line') ?: [];
-        $rBouquets = BouquetService::getAll() ?: [];
+        $rBouquets = BouquetService::getAllSimple() ?: [];
+        $categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
+            $rUserInfo,
+            false
+        );
 
         $this->render('active_code', [
-            'rPackages' => $rPackages,
-            'rBouquets' => $rBouquets,
+            'rPackages'         => $rPackages,
+            'rBouquets'         => $rBouquets,
+            'categoryTemplates' => $categoryTemplates,
         ]);
     }
 }

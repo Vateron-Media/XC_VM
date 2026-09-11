@@ -4,9 +4,14 @@
  * Mass Edit Active Codes (Bootstrap 5, Admin)
  */
 
-$rPackages = $rPackages ?? [];
-$batches   = $batches ?? [];
-$resellers = $resellers ?? [];
+use XcVm\Domain\Line\PackageService;
+
+global $db;
+
+$rPackages = $rPackages ?? PackageService::getAll(1, 'line') ?: [];
+
+$batches = $db->fetchAll("SELECT DISTINCT `batch_name` FROM `activation_codes` WHERE `batch_name` IS NOT NULL ORDER BY `created_at` DESC;");
+$resellers = $db->fetchAll("SELECT DISTINCT `users`.`id`, `users`.`username` FROM `activation_codes` INNER JOIN `users` ON `users`.`id` = `activation_codes`.`created_by` ORDER BY `users`.`username` ASC;");
 
 ?>
 

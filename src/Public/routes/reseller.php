@@ -1,9 +1,12 @@
 <?php
 
+use XcVm\Public\Controllers\Admin\Ajax\CategoryTemplateAjaxController;
 use XcVm\Public\Controllers\Reseller\ResellerActiveCodeController;
 use XcVm\Public\Controllers\Reseller\ResellerActiveCodesBatchController;
 use XcVm\Public\Controllers\Reseller\ResellerActiveCodesController;
 use XcVm\Public\Controllers\Reseller\ResellerApiController;
+use XcVm\Public\Controllers\Reseller\ResellerCategoryTemplateController;
+use XcVm\Public\Controllers\Reseller\ResellerCategoryTemplatesController;
 use XcVm\Public\Controllers\Reseller\ResellerCreatedChannelsController;
 use XcVm\Public\Controllers\Reseller\ResellerDashboardController;
 use XcVm\Public\Controllers\Reseller\ResellerEditProfileController;
@@ -109,3 +112,14 @@ $router->get('ticket_view', [ResellerTicketViewController::class, 'index']);
 $router->get('users', [ResellerUsersController::class, 'index']);
 $router->get('user', [ResellerUserController::class, 'index']);
 $router->get('user_logs', [ResellerUserLogsController::class, 'index']);
+
+// ─── Category Templates ────────────────────────────
+$router->get('category_templates', [ResellerCategoryTemplatesController::class, 'index']);
+$router->get('category_template',  [ResellerCategoryTemplateController::class, 'index']);
+
+$router->api('category_template_create',    [CategoryTemplateAjaxController::class, 'create']);
+$router->api('category_template_save',      [CategoryTemplateAjaxController::class, 'save']);
+$router->api('category_template_delete',    [CategoryTemplateAjaxController::class, 'delete']);
+$router->api('category_template_clone',     [CategoryTemplateAjaxController::class, 'clone']);
+$router->api('category_template_apply_all', [CategoryTemplateAjaxController::class, 'applyAll']);
+$router->api('category_template_get',       [CategoryTemplateAjaxController::class, 'get']);

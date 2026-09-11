@@ -484,6 +484,9 @@ class CoreNavbarProvider implements NavbarProviderInterface {
         NavbarRegistry::add((new NavbarItem('management.service_setup.categories'))
             ->parent('management.service_setup')->url('stream_categories')
             ->label('categories')->permissions(['categories'])->order(20));
+        NavbarRegistry::add((new NavbarItem('management.service_setup.category_templates'))
+            ->parent('management.service_setup')->url('category_templates')
+            ->label('category_templates')->order(25));
         NavbarRegistry::add((new NavbarItem('management.service_setup.groups'))
             ->parent('management.service_setup')->url('groups')
             ->label('groups')->permissions(['mng_groups'])->order(30));
@@ -494,6 +497,17 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->parent('management.service_setup')->url('profiles')
             ->label('transcode_profiles')->permissions(['tprofiles'])->order(50));
         // Modules inject at order 60+
+
+        // Telegram Bots
+        NavbarRegistry::add((new NavbarItem('telegram'))
+            ->url('#')->icon('ti tabler-brand-telegram')
+            ->label('', 'Telegram Bots')->order(605));
+        NavbarRegistry::add((new NavbarItem('telegram.bots'))
+            ->parent('telegram')->url('telegram_bots')
+            ->label('', 'Manage Bots')->order(10));
+        NavbarRegistry::add((new NavbarItem('telegram.add'))
+            ->parent('telegram')->url('telegram_bot')
+            ->label('', 'Add Bot (Wizard)')->order(20));
 
         // Access codes
         NavbarRegistry::add((new NavbarItem('management.access_codes'))

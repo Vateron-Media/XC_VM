@@ -42,13 +42,18 @@ class ResellerMagController extends BaseResellerController
         }
 
         $rPackages = PackageService::getAll($GLOBALS['rUserInfo']['member_group_id'], 'mag') ?: [];
+        $categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
+            $GLOBALS['rUserInfo'] ?? [],
+            false
+        );
 
         $this->setTitle('MAG Device');
         $this->render('mag', [
-            'rDevice'      => $rDevice,
-            'rLine'        => $rLine,
-            'rOrigPackage' => $rOrigPackage,
-            'rPackages'    => $rPackages,
+            'rDevice'           => $rDevice,
+            'rLine'             => $rLine,
+            'rOrigPackage'      => $rOrigPackage,
+            'rPackages'         => $rPackages,
+            'categoryTemplates' => $categoryTemplates,
         ]);
     }
 }

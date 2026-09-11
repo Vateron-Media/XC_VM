@@ -48,24 +48,31 @@ class MultiAjaxController extends BaseAjaxController {
             switch ($rType) {
                 case 'line':
                     $this->handleLine($rRequestIDs, $rSub);
+                    // no break — handler terminates the request
                 case 'active_code':
                     $this->handleActiveCode($rRequestIDs, $rSub);
+                    // no break
                 case 'mag':
                 case 'enigma':
                     $this->handleDevices($rType, $rRequestIDs, $rSub);
+                    // no break
                 case 'user':
                     $this->handleUser($rRequestIDs, $rSub);
+                    // no break
                 case 'server':
                 case 'proxy':
                     $this->handleServers($rType, $rRequestIDs, $rSub);
+                    // no break
                 case 'series':
                     $this->handleSeries($rRequestIDs, $rSub);
+                    // no break
                 case 'stream':
                 case 'movie':
                 case 'episode':
                 case 'cchannel':
                 case 'radio':
                     $this->handleStreams($rType, $rRequestIDs, $rSub);
+                    // no break
             }
         }
 

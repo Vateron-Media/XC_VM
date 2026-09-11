@@ -48,7 +48,24 @@ class ActiveCodeAjaxController extends BaseAjaxController
         }
 
         $package = PackageService::getById((int)$code['package_id']);
-        $portalUrl = rtrim($code['dns_base'] ?: DomainResolver::resolve(SERVER_ID), '/');
+
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
+            || (isset($_SERVER['SERVER_PORT']) && in_array((int)$_SERVER['SERVER_PORT'], [443, 3434], true))
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+            || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+        $currentScheme = $isHttps ? 'https' : 'http';
+
+        if (!empty($code['dns_base'])) {
+            $portalUrl = rtrim($code['dns_base'], '/');
+            if (!preg_match('#^https?://#i', $portalUrl)) {
+                $portalUrl = "{$currentScheme}://{$portalUrl}";
+            }
+        } elseif (!empty($_SERVER['HTTP_HOST'])) {
+            $portalUrl = "{$currentScheme}://{$_SERVER['HTTP_HOST']}";
+        } else {
+            $portalUrl = rtrim(DomainResolver::resolve(SERVER_ID, $isHttps), '/');
+        }
         $portalParsed = parse_url($portalUrl);
 
         $m3uHls = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=hls";

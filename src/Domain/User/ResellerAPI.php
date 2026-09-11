@@ -357,6 +357,19 @@ class ResellerAPI {
 						$rUserArray['pair_id'] = null;
 					}
 
+					if (isset($rData['category_template_id'])) {
+						if ($rData['category_template_id'] === '0' || $rData['category_template_id'] === 'none') {
+							$rUserArray['custom_data'] = null;
+						} elseif (intval($rData['category_template_id']) > 0) {
+							$customDataObj = \XcVm\Domain\Stream\CategoryTemplateService::buildCustomData(intval($rData['category_template_id']));
+							$rUserArray['custom_data'] = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
+						}
+					} elseif (isset($rData['custom_data'])) {
+						$rUserArray['custom_data'] = (strlen((string) $rData['custom_data']) > 0)
+							? (is_array($rData['custom_data']) ? json_encode($rData['custom_data'], JSON_UNESCAPED_UNICODE) : $rData['custom_data'])
+							: null;
+					}
+
 					$rPrepare = QueryHelper::prepareArray($rUserArray);
 					$rQuery = 'REPLACE INTO `lines`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
@@ -1178,6 +1191,19 @@ class ResellerAPI {
 						$rOutputs[] = $rOutputID;
 					}
 					$rArray['allowed_outputs'] = '[' . implode(',', array_map('intval', $rOutputs)) . ']';
+				}
+
+				if (isset($rData['category_template_id'])) {
+					if ($rData['category_template_id'] === '0' || $rData['category_template_id'] === 'none') {
+						$rArray['custom_data'] = null;
+					} elseif (intval($rData['category_template_id']) > 0) {
+						$customDataObj = \XcVm\Domain\Stream\CategoryTemplateService::buildCustomData(intval($rData['category_template_id']));
+						$rArray['custom_data'] = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
+					}
+				} elseif (isset($rData['custom_data'])) {
+					$rArray['custom_data'] = (strlen((string) $rData['custom_data']) > 0)
+						? (is_array($rData['custom_data']) ? json_encode($rData['custom_data'], JSON_UNESCAPED_UNICODE) : $rData['custom_data'])
+						: null;
 				}
 
 				$rPrepare = QueryHelper::prepareArray($rArray);

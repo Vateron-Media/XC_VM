@@ -13,6 +13,7 @@ use XcVm\Core\Reference\StatusBadge;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
@@ -332,9 +333,10 @@ class TableController extends BaseAdminController {
 		$db->query($countSql, ...$rWhereV);
 		$rReturn["recordsTotal"] = $rReturn["recordsFiltered"] = (int)($db->get_row()["total"] ?? 0);
 
-		$sql = "SELECT
+		$sql = "SELECT 
 					`activation_codes`.*,
 					`lines`.`username` as `sub_username`,
+					`lines`.`password` as `sub_password`,
 					`lines`.`exp_date` as `sub_exp_date`,
 					`lines`.`enabled` as `line_enabled`,
 					`users`.`username` as `creator_username`
@@ -350,38 +352,95 @@ class TableController extends BaseAdminController {
 
 		$data = [];
 		$packagesCache = [];
-		$now = time();
 
 		foreach ($rows as $row) {
-			$pkgId = (int) $row["package_id"];
+			$pkgId = (int)$row["package_id"];
 			if (!isset($packagesCache[$pkgId])) {
 				$pkg = PackageService::getById($pkgId);
 				$packagesCache[$pkgId] = $pkg["package_name"] ?? "Package #" . $pkgId;
 			}
+			$pkgName = $packagesCache[$pkgId];
 
-			$status = (int) $row["status"];
-			$expUnix = $row["sub_exp_date"] ? (int) $row["sub_exp_date"] : 0;
-			$expExpired = ($status === 2 && $expUnix && $expUnix < $now);
-			$createdUnix = $row["created_at"] ? (int) $row["created_at"] : 0;
+			$rowId = (int)$row["id"];
+			$code = htmlspecialchars((string)$row["activation_code"], ENT_QUOTES);
+			$batch = htmlspecialchars((string)($row["batch_name"] ?: "None"), ENT_QUOTES);
+			$creator = htmlspecialchars((string)($row["creator_username"] ?: "Admin"), ENT_QUOTES);
+			$isTrial = !empty($row["is_trial"]);
 
-			// Clean, keyed row payload; the Bootstrap 5 view renders every badge /
-			// status / action button client-side. Mirrors the reseller active_codes
-			// handler. The subscriber password is intentionally NOT exposed here.
+			$status = (int)$row["status"];
+			$expDate = $row["sub_exp_date"] ? (int)$row["sub_exp_date"] : null;
+			$now = time();
+
+			if ($status === 0) {
+				$statusBadge = '<span class="badge bg-label-danger"><i class="ti tabler-ban me-1"></i>Disabled</span>';
+				$expiryHtml = '<span class="text-muted fst-italic">Suspended</span>';
+			} elseif ($status === 1) {
+				$statusBadge = '<span class="badge bg-label-success badge-pulse"><i class="ti tabler-sparkles me-1"></i>Ready (Stock)</span>';
+				$expiryHtml = '<span class="text-muted"><i class="ti tabler-snowflake me-1"></i>Frozen</span>';
+			} elseif ($status === 2 && $expDate && $expDate < $now) {
+				$statusBadge = '<span class="badge bg-label-secondary"><i class="ti tabler-clock-off me-1"></i>Expired</span>';
+				$expiryHtml = '<span class="text-danger fw-semibold">' . date("Y-m-d H:i", $expDate) . '</span>';
+			} else {
+				$statusBadge = '<span class="badge bg-label-primary"><i class="ti tabler-player-play me-1"></i>Active</span>';
+				$remainingDays = $expDate ? ceil(($expDate - $now) / 86400) : 0;
+				$expiryHtml = '<span class="text-primary">' . ($expDate ? date("Y-m-d H:i", $expDate) : "Never") . '</span> <small class="text-muted">(' . $remainingDays . 'd)</small>';
+			}
+
+			$packageBadge = '<span class="badge bg-label-info">' . htmlspecialchars($pkgName, ENT_QUOTES) . '</span>';
+			if ($isTrial) {
+				$packageBadge .= ' <span class="badge bg-label-warning ms-1">Trial</span>';
+			}
+
+			$subUsername = $row["sub_username"]
+				? '<span class="fw-semibold">' . htmlspecialchars((string)$row["sub_username"], ENT_QUOTES) . '</span>'
+				: '<span class="text-muted fst-italic">Auto-assigned</span>';
+
+			$macBadge = !empty($row["mac"])
+				? '<span class="badge bg-label-dark font-monospace">' . htmlspecialchars((string)$row["mac"], ENT_QUOTES) . '</span>'
+				: '<span class="text-muted">-</span>';
+
+			$createdFormatted = $row["created_at"] ? date("Y-m-d H:i", (int)$row["created_at"]) : "-";
+
+			$actions = '
+			<div class="d-inline-block text-nowrap">
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-view-code" data-id="' . $rowId . '" title="View Details">
+					<i class="ti tabler-eye"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-toggle-code" data-id="' . $rowId . '" data-status="' . $status . '" title="' . ($status == 0 ? "Enable" : "Disable") . '">
+					<i class="ti ' . ($status == 0 ? "tabler-check text-success" : "tabler-ban text-warning") . '"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-reset-code-device" data-id="' . $rowId . '" title="Reset Device Lock">
+					<i class="ti tabler-device-desktop-off"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-delete-code" data-id="' . $rowId . '" title="Delete Code">
+					<i class="ti tabler-trash text-danger"></i>
+				</button>
+			</div>';
+
+			$codeCol = '
+			<div class="d-flex align-items-center gap-2">
+				<code class="fw-bold font-monospace text-primary fs-6 user-select-all">' . $code . '</code>
+				<button type="button" class="btn btn-sm btn-icon btn-outline-secondary btn-copy-code" data-code="' . $code . '" title="Copy Code">
+					<i class="ti tabler-copy"></i>
+				</button>
+			</div>';
+
+			$batchCol = '<span class="badge bg-label-secondary font-monospace">' . $batch . '</span>';
+			$creatorCol = '<span class="badge bg-label-dark"><i class="ti tabler-user me-1"></i>' . $creator . '</span>';
+
 			$data[] = [
-				"id" => (int) $row["id"],
-				"code" => (string) $row["activation_code"],
-				"batch" => (string) ($row["batch_name"] ?: "None"),
-				"package_name" => $packagesCache[$pkgId],
-				"is_trial" => !empty($row["is_trial"]),
-				"creator" => (string) ($row["creator_username"] ?: "Admin"),
-				"status" => $status,
-				"exp_unix" => $expUnix,
-				"exp_str" => $expUnix ? date("Y-m-d H:i", $expUnix) : "",
-				"exp_expired" => $expExpired,
-				"remaining_days" => ($expUnix && !$expExpired && $status !== 0 && $status !== 1) ? (int) ceil(($expUnix - $now) / 86400) : 0,
-				"sub_username" => $row["sub_username"] !== null ? (string) $row["sub_username"] : null,
-				"mac" => !empty($row["mac"]) ? (string) $row["mac"] : null,
-				"created_str" => $createdUnix ? date("Y-m-d H:i", $createdUnix) : "-",
+				"", // control
+				'<input type="checkbox" class="form-check-input row-select" value="' . $rowId . '" data-code="' . $code . '">',
+				$codeCol,
+				$batchCol,
+				$packageBadge,
+				$creatorCol,
+				$statusBadge,
+				$expiryHtml,
+				$subUsername,
+				$macBadge,
+				$createdFormatted,
+				$actions
 			];
 		}
 

@@ -105,6 +105,7 @@ if (!class_exists('XcNewuiMenuBuilder')) {
             'useragent'       => 'useragents',
             'ticket'          => 'tickets',
             'ticket_view'     => 'tickets',
+            'telegram_bot'    => 'telegram_bots',
         ];
 
         public function __construct(
@@ -256,6 +257,7 @@ $_menu = new XcNewuiMenuBuilder($rMobile, $rSettings, (string) $language, AdminH
 $_menuSections = [
     ['title' => '',               'keys' => ['dashboard']],
     ['title' => 'Catalog',        'keys' => ['users', 'content', 'vod', 'distribution']],
+    ['title' => 'Integrations',   'keys' => ['telegram']],
     ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management.service_setup', 'management.access_codes', 'management.security', 'management.tools', 'management.tickets']],
 ];
 ?>

@@ -3,7 +3,6 @@
 namespace XcVm\Infrastructure;
 
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
@@ -48,78 +47,30 @@ class ResellerApiDispatcher {
 	public static function dispatch(string $action, ?array $rUserInfo, array $rPermissions): void {
 		global $db;
 		switch ($action) {
-			case 'dashboard':
-				self::handleDashboard($rUserInfo, $rPermissions, $db);
-				break;
-			case 'connections':
-				self::handleConnections($rUserInfo, $rPermissions, $db);
-				break;
-			case 'line':
-				self::handleLine($rUserInfo, $rPermissions, $db);
-				break;
-			case 'line_activity':
-				self::handleLineActivity($rUserInfo, $rPermissions, $db);
-				break;
-			case 'adjust_credits':
-				self::handleAdjustCredits($rUserInfo, $rPermissions, $db);
-				break;
-			case 'reg_user':
-				self::handleRegUser($rUserInfo, $rPermissions, $db);
-				break;
-			case 'ticket':
-				self::handleTicket($rUserInfo, $rPermissions, $db);
-				break;
-			case 'mag':
-				self::handleMag($rUserInfo, $rPermissions, $db);
-				break;
-			case 'enigma':
-				self::handleEnigma($rUserInfo, $rPermissions, $db);
-				break;
-			case 'get_package':
-				self::handleGetPackage($rUserInfo, $rPermissions, $db);
-				break;
-			case 'get_package_trial':
-				self::handleGetPackageTrial($rUserInfo, $rPermissions, $db);
-				break;
-			case 'header_stats':
-				self::handleHeaderStats($rUserInfo, $rPermissions, $db);
-				break;
-			case 'stats':
-				self::handleStats($rUserInfo, $rPermissions, $db);
-				break;
-			case 'userlist':
-				self::handleUserList($rUserInfo, $rPermissions, $db);
-				break;
-			case 'send_event':
-				self::handleSendEvent($rUserInfo, $rPermissions, $db);
-				break;
-			case 'streamlist':
-				self::handleStreamList($rUserInfo, $rPermissions, $db);
-				break;
-			case 'ip_whois':
-				self::handleIpWhois($rUserInfo, $rPermissions, $db);
-				break;
-			case 'get_epg':
-				self::handleGetEpg($rUserInfo, $rPermissions, $db);
-				break;
-			case 'get_programme':
-				self::handleGetProgramme($rUserInfo, $rPermissions, $db);
-				break;
-			case 'active_code_details':
-				self::handleActiveCodeDetails($rUserInfo, $rPermissions, $db);
-				break;
-			case 'active_codes_mass':
-				self::handleActiveCodesMass($rUserInfo, $rPermissions, $db);
-				break;
-			case 'active_codes_batch_action':
-				self::handleActiveCodesBatchAction($rUserInfo, $rPermissions, $db);
-				break;
-			case 'active_codes_export_txt':
-				self::handleActiveCodesExportTxt($rUserInfo, $rPermissions, $db);
-				break;
-			case 'generate_active_codes':
-				self::handleGenerateActiveCodes($rUserInfo, $rPermissions, $db);
-				break;
+			case 'dashboard':         self::handleDashboard($rUserInfo, $rPermissions, $db);         break;
+			case 'connections':       self::handleConnections($rUserInfo, $rPermissions, $db);       break;
+			case 'line':              self::handleLine($rUserInfo, $rPermissions, $db);              break;
+			case 'line_activity':     self::handleLineActivity($rUserInfo, $rPermissions, $db);      break;
+			case 'adjust_credits':    self::handleAdjustCredits($rUserInfo, $rPermissions, $db);     break;
+			case 'reg_user':          self::handleRegUser($rUserInfo, $rPermissions, $db);           break;
+			case 'ticket':            self::handleTicket($rUserInfo, $rPermissions, $db);            break;
+			case 'mag':               self::handleMag($rUserInfo, $rPermissions, $db);               break;
+			case 'enigma':            self::handleEnigma($rUserInfo, $rPermissions, $db);            break;
+			case 'get_package':       self::handleGetPackage($rUserInfo, $rPermissions, $db);        break;
+			case 'get_package_trial': self::handleGetPackageTrial($rUserInfo, $rPermissions, $db);   break;
+			case 'header_stats':      self::handleHeaderStats($rUserInfo, $rPermissions, $db);       break;
+			case 'stats':             self::handleStats($rUserInfo, $rPermissions, $db);             break;
+			case 'userlist':          self::handleUserList($rUserInfo, $rPermissions, $db);          break;
+			case 'send_event':        self::handleSendEvent($rUserInfo, $rPermissions, $db);         break;
+			case 'streamlist':        self::handleStreamList($rUserInfo, $rPermissions, $db);        break;
+			case 'ip_whois':          self::handleIpWhois($rUserInfo, $rPermissions, $db);           break;
+			case 'get_epg':           self::handleGetEpg($rUserInfo, $rPermissions, $db);            break;
+			case 'get_programme':     self::handleGetProgramme($rUserInfo, $rPermissions, $db);      break;
+			case 'active_code_details':       self::handleActiveCodeDetails($rUserInfo, $rPermissions, $db);       break;
+			case 'active_codes_mass':         self::handleActiveCodesMass($rUserInfo, $rPermissions, $db);         break;
+			case 'active_codes_batch_action': self::handleActiveCodesBatchAction($rUserInfo, $rPermissions, $db);  break;
+			case 'active_codes_export_txt':   self::handleActiveCodesExportTxt($rUserInfo, $rPermissions, $db);    break;
+			case 'generate_active_codes':     self::handleGenerateActiveCodes($rUserInfo, $rPermissions, $db);     break;
 		}
 	}
 
@@ -1096,7 +1047,24 @@ class ResellerApiDispatcher {
 		}
 
 		$package = PackageService::getById((int)$code['package_id']);
-		$portalUrl = rtrim($code['dns_base'] ?: DomainResolver::resolve(SERVER_ID), '/');
+
+		$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+			|| (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
+			|| (isset($_SERVER['SERVER_PORT']) && in_array((int)$_SERVER['SERVER_PORT'], [443, 3434], true))
+			|| (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+			|| (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+		$currentScheme = $isHttps ? 'https' : 'http';
+
+		if (!empty($code['dns_base'])) {
+			$portalUrl = rtrim($code['dns_base'], '/');
+			if (!preg_match('#^https?://#i', $portalUrl)) {
+				$portalUrl = "{$currentScheme}://{$portalUrl}";
+			}
+		} elseif (!empty($_SERVER['HTTP_HOST'])) {
+			$portalUrl = "{$currentScheme}://{$_SERVER['HTTP_HOST']}";
+		} else {
+			$portalUrl = rtrim(DomainResolver::resolve(SERVER_ID, $isHttps), '/');
+		}
 		$portalParsed = parse_url($portalUrl);
 
 		$m3uHls = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=hls";

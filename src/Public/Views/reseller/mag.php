@@ -208,6 +208,27 @@ $rStatusMessages = [
                             <label class="form-label" for="reseller_notes">Reseller Notes</label>
                             <textarea id="reseller_notes" name="reseller_notes" class="form-control" rows="3"><?= isset($rDevice) ? htmlspecialchars((string) $rLine['reseller_notes'], ENT_QUOTES) : ''; ?></textarea>
                         </div>
+
+                        <div class="mb-4 mt-4 p-3 bg-light-subtle rounded-3 border">
+                            <label class="form-label fw-semibold" for="category_template_id">
+                                <i class="icon-base ti tabler-layout-grid me-1 text-primary"></i> <?= $language::get('category_template'); ?>
+                            </label>
+                            <select name="category_template_id" id="category_template_id" class="form-select select2">
+                                <option value=""><?= (isset($rLine) && !empty($rLine['custom_data'])) ? '-- ' . $language::get('keep_current_custom_layout') . ' --' : '-- ' . $language::get('none_default') . ' --'; ?></option>
+                                <option value="0"><?= $language::get('reset_to_default_no_template'); ?></option>
+                                <?php foreach ($categoryTemplates ?? [] as $tpl): ?>
+                                    <option value="<?= (int) $tpl['id']; ?>">
+                                        <?= htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? ''); ?><?= !empty($tpl['is_system']) ? ' (' . $language::get('system') . ')' : ''; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
+                            <?php if (isset($rLine) && !empty($rLine['custom_data'])): ?>
+                                <div class="badge bg-label-info mt-2">
+                                    <i class="icon-base ti tabler-check me-1"></i> <?= $language::get('custom_categories_applied_to_device'); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
                     </div>
 
                     <?php if ($rIsEdit): ?>

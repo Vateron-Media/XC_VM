@@ -131,12 +131,28 @@ $rResellers = $rResellers ?? [];
                         <select id="package_id" name="package_id" class="form-select form-select-lg" required>
                             <option value="" disabled selected>-- Select a Package --</option>
                             <?php foreach ($rPackages as $pkg): ?>
-                                <option value="<?= (int)$pkg['id']; ?>" data-trial="<?= !empty($pkg['is_trial']) ? 1 : 0; ?>">
+                                <option value="<?= (int)$pkg['id']; ?>" data-trial="<?= !empty($pkg['is_trial']) ? 1 : 0; ?>" data-bouquets="<?= htmlspecialchars((string)($pkg['bouquets'] ?? '[]'), ENT_QUOTES); ?>">
                                     <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
                                     <?= !empty($pkg['is_trial']) ? ' - [TRIAL]' : ''; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <!-- Category Template -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="category_template_id">
+                            <i class="ti tabler-layout-grid text-primary me-1"></i> <?= $language::get('category_template'); ?>
+                        </label>
+                        <select id="category_template_id" name="category_template_id" class="form-select select2">
+                            <option value="">-- <?= $language::get('none_default'); ?> --</option>
+                            <?php foreach ($categoryTemplates ?? [] as $tpl): ?>
+                                <option value="<?= (int)$tpl['id']; ?>">
+                                    <?= htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? ''); ?><?= !empty($tpl['is_system']) ? ' (' . $language::get('system') . ')' : ''; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
                     </div>
 
                     <!-- Bouquets Customization -->
@@ -219,13 +235,15 @@ $rResellers = $rResellers ?? [];
                             <div class="bq-scroll-area p-1">
                                 <div class="row g-2" id="bouquets-grid">
                                     <?php foreach ($rBouquets as $bq): 
-                                        $bqName = (string)$bq['bouquet_name'];
+                                        $bqId = (int)($bq['id'] ?? 0);
+                                        $bqName = (string)($bq['bouquet_name'] ?? '');
+                                        if ($bqId <= 0) continue;
                                         $isAdult = (stripos($bqName, 'adult') !== false || stripos($bqName, 'xxx') !== false || stripos($bqName, '+18') !== false || stripos($bqName, '18+') !== false);
                                     ?>
-                                        <div class="col-12 col-md-6 bouquet-item" data-name="<?= strtolower(htmlspecialchars($bqName, ENT_QUOTES)); ?>" data-adult="<?= $isAdult ? 1 : 0; ?>">
-                                            <label class="bq-tile is-checked d-flex align-items-center justify-content-between p-2 px-3 w-100 mb-0" for="abq_<?= (int)$bq['id']; ?>">
+                                        <div class="col-12 col-md-6 bouquet-item" data-id="<?= $bqId; ?>" data-name="<?= strtolower(htmlspecialchars($bqName, ENT_QUOTES)); ?>" data-adult="<?= $isAdult ? 1 : 0; ?>">
+                                            <label class="bq-tile is-checked d-flex align-items-center justify-content-between p-2 px-3 w-100 mb-0 user-select-none" for="abq_<?= $bqId; ?>" style="cursor: pointer;">
                                                 <div class="d-flex align-items-center gap-2 text-truncate me-2">
-                                                    <input class="form-check-input bq-checkbox m-0 flex-shrink-0" type="checkbox" name="bouquets_selected[]" value="<?= (int)$bq['id']; ?>" id="abq_<?= (int)$bq['id']; ?>" checked>
+                                                    <input class="form-check-input bq-checkbox m-0 flex-shrink-0" type="checkbox" name="bouquets_selected[]" value="<?= $bqId; ?>" id="abq_<?= $bqId; ?>" checked>
                                                     <span class="bq-name small fw-semibold text-truncate text-body"><?= htmlspecialchars($bqName, ENT_QUOTES); ?></span>
                                                 </div>
                                                 <?php if ($isAdult): ?>
@@ -476,6 +494,29 @@ renderUnifiedLayoutFooter('admin');
     jQuery(document).on('change', '.bq-checkbox', function() {
         updateBouquetCounts();
         applyBouquetFilter();
+    });
+
+    // Auto-select bouquets based on chosen package
+    jQuery('#package_id').on('change', function() {
+        const opt = jQuery(this).find('option:selected');
+        const bqRaw = opt.data('bouquets');
+        if (bqRaw !== undefined && bqRaw !== null && bqRaw !== '') {
+            let pkgBqs = [];
+            try {
+                pkgBqs = typeof bqRaw === 'string' ? JSON.parse(bqRaw) : bqRaw;
+            } catch (e) {
+                pkgBqs = [];
+            }
+            if (Array.isArray(pkgBqs) && pkgBqs.length > 0) {
+                const bqIds = pkgBqs.map(Number);
+                jQuery('.bq-checkbox').each(function() {
+                    const cid = parseInt(this.value, 10);
+                    this.checked = bqIds.includes(cid);
+                });
+                updateBouquetCounts();
+                applyBouquetFilter();
+            }
+        }
     });
 
     // Select All

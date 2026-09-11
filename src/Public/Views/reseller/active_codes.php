@@ -7,6 +7,25 @@
  * (Stock Mode), instant clipboard copy, live modal details, and floating mass actions bar.
  */
 
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Http\RequestManager;
+use XcVm\Domain\Line\PackageService;
+
+global $db;
+
+$rUserInfo = $GLOBALS['rUserInfo'] ?? [];
+$rPermissions = $GLOBALS['rPermissions'] ?? [];
+
+$rPackages = PackageService::getAll($rUserInfo['member_group_id'] ?? 0, 'line') ?: [];
+
+// Get distinct batches for filter dropdown
+$allowedReports = (array)($rUserInfo['reports'] ?? [$rUserInfo['id']]);
+$batches = $db->fetchAll(
+    "SELECT DISTINCT `batch_name` FROM `activation_codes` 
+     WHERE `created_by` IN (" . implode(',', array_map('intval', $allowedReports)) . ") AND `batch_name` IS NOT NULL 
+     ORDER BY `created_at` DESC LIMIT 100;"
+);
+
 ?>
 
 <div class="card mb-4">
@@ -216,61 +235,6 @@ renderUnifiedLayoutFooter('reseller');
         const tableEl = $('#active-codes-table');
     let selectedIds = new Set();
 
-    // Escape helpers + cell renderers (server now returns a clean keyed payload;
-    // all badges / actions are built client-side).
-    function escHtml(s) {
-        if (s === null || s === undefined) return '';
-        return String(s).replace(/[&<>"']/g, function(c) {
-            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c];
-        });
-    }
-    function renderCheckbox(d, type, row) {
-        const code = escHtml(row.code);
-        return '<input type="checkbox" class="form-check-input row-select" value="' + row.id + '" data-code="' + code + '">';
-    }
-    function renderCode(d, type, row) {
-        const code = escHtml(row.code);
-        return '<div class="d-flex align-items-center gap-2">' +
-            '<code class="fw-bold font-monospace text-primary fs-6 user-select-all">' + code + '</code>' +
-            '<button type="button" class="btn btn-sm btn-icon btn-outline-secondary btn-copy-code" data-code="' + code + '" title="Copy Code"><i class="ti tabler-copy"></i></button>' +
-            '</div>';
-    }
-    function renderBatch(d) {
-        return '<span class="badge bg-label-secondary font-monospace">' + escHtml(d) + '</span>';
-    }
-    function renderPackage(d, type, row) {
-        let html = '<span class="badge bg-label-info">' + escHtml(row.package_name) + '</span>';
-        if (row.is_trial) html += ' <span class="badge bg-label-warning ms-1">Trial</span>';
-        return html;
-    }
-    function renderStatus(d, type, row) {
-        if (row.status === 0) return '<span class="badge bg-label-danger"><i class="ti tabler-ban me-1"></i>Disabled</span>';
-        if (row.status === 1) return '<span class="badge bg-label-success badge-pulse"><i class="ti tabler-sparkles me-1"></i>Ready (Stock)</span>';
-        if (row.exp_expired) return '<span class="badge bg-label-secondary"><i class="ti tabler-clock-off me-1"></i>Expired</span>';
-        return '<span class="badge bg-label-primary"><i class="ti tabler-player-play me-1"></i>Active</span>';
-    }
-    function renderExpiry(d, type, row) {
-        if (row.status === 0) return '<span class="text-muted fst-italic">Suspended</span>';
-        if (row.status === 1) return '<span class="text-muted"><i class="ti tabler-snowflake me-1"></i>Frozen</span>';
-        if (row.exp_expired) return '<span class="text-danger fw-semibold">' + escHtml(row.exp_str) + '</span>';
-        return '<span class="text-primary">' + (row.exp_unix ? escHtml(row.exp_str) : 'Never') + '</span> <small class="text-muted">(' + row.remaining_days + 'd)</small>';
-    }
-    function renderSubscriber(d) {
-        return d ? '<span class="fw-semibold">' + escHtml(d) + '</span>' : '<span class="text-muted fst-italic">Auto-assigned</span>';
-    }
-    function renderMac(d) {
-        return d ? '<span class="badge bg-label-dark font-monospace">' + escHtml(d) + '</span>' : '<span class="text-muted">-</span>';
-    }
-    function renderActions(d, type, row) {
-        const id = row.id, status = row.status;
-        return '<div class="d-inline-block text-nowrap">' +
-            '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-view-code" data-id="' + id + '" title="View Details"><i class="ti tabler-eye"></i></button>' +
-            '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-toggle-code" data-id="' + id + '" data-status="' + status + '" title="' + (status == 0 ? 'Enable' : 'Disable') + '"><i class="ti ' + (status == 0 ? 'tabler-check text-success' : 'tabler-ban text-warning') + '"></i></button>' +
-            '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-reset-code-device" data-id="' + id + '" title="Reset Device Lock"><i class="ti tabler-device-desktop-off"></i></button>' +
-            '<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-delete-code" data-id="' + id + '" title="Delete Code"><i class="ti tabler-trash text-danger"></i></button>' +
-            '</div>';
-    }
-
     const dt = tableEl.DataTable({
         processing: true,
         serverSide: true,
@@ -288,17 +252,8 @@ renderUnifiedLayoutFooter('reseller');
                 d.package = jQuery('#filter-package').val();
             }
         },
-        columns: [
-            { data: null, orderable: false, searchable: false, render: renderCheckbox },
-            { data: 'code', render: renderCode },
-            { data: 'batch', render: renderBatch },
-            { data: null, render: renderPackage },
-            { data: null, render: renderStatus },
-            { data: null, render: renderExpiry },
-            { data: 'sub_username', render: renderSubscriber },
-            { data: 'mac', render: renderMac },
-            { data: 'created_str', render: escHtml },
-            { data: null, orderable: false, searchable: false, render: renderActions }
+        columnDefs: [
+            { targets: [0, 9], orderable: false, searchable: false }
         ],
         drawCallback: function() {
             updateFloatingBar();
@@ -416,6 +371,56 @@ renderUnifiedLayoutFooter('reseller');
                 return;
             }
             const d = res.data;
+            // Ensure Server Host / URL dynamically reflects the website URL with http or https
+            let portalUrl = d.portal_url || '';
+            const currentProtocol = window.location.protocol;
+            const currentHost = window.location.host;
+            const defaultOrigin = `${currentProtocol}//${currentHost}`;
+
+            if (portalUrl.startsWith('http')) {
+                try {
+                    const u = new URL(portalUrl);
+                    if (u.hostname === 'localhost' || u.hostname === '127.0.0.1' || !u.hostname) {
+                        portalUrl = defaultOrigin;
+                    } else {
+                        portalUrl = `${currentProtocol}//${u.host}`;
+                    }
+                } catch(e) {
+                    portalUrl = defaultOrigin;
+                }
+            } else if (portalUrl) {
+                portalUrl = `${currentProtocol}//${portalUrl.replace(/^\/+/, '')}`;
+            } else {
+                portalUrl = defaultOrigin;
+            }
+            d.portal_url = portalUrl;
+
+            // Extract port if not explicit
+            if (!d.port || d.port == 80 || d.port == 443) {
+                try {
+                    const pu = new URL(portalUrl);
+                    if (pu.port) {
+                        d.port = pu.port;
+                    } else {
+                        d.port = currentProtocol === 'https:' ? 443 : 80;
+                    }
+                } catch(e) {}
+            }
+
+            // Sync direct stream and M3U links
+            if (d.m3u_hls && d.m3u_hls.startsWith('http')) {
+                try {
+                    const hu = new URL(d.m3u_hls);
+                    d.m3u_hls = `${portalUrl}${hu.pathname}${hu.search}`;
+                } catch(e) {}
+            }
+            if (d.m3u_ts && d.m3u_ts.startsWith('http')) {
+                try {
+                    const tu = new URL(d.m3u_ts);
+                    d.m3u_ts = `${portalUrl}${tu.pathname}${tu.search}`;
+                } catch(e) {}
+            }
+
             const html = `
                 <div class="row g-4">
                     <div class="col-12 col-md-6">
@@ -477,53 +482,177 @@ renderUnifiedLayoutFooter('reseller');
                     </div>
 
                     <div class="col-12">
-                        <div class="card bg-dark text-white border-0 shadow-sm">
-                            <div class="card-body">
-                                <h6 class="card-title text-white d-flex align-items-center gap-2 mb-3">
-                                    <i class="ti tabler-device-tv text-warning"></i>Xtream Codes & Streaming Credentials
-                                </h6>
-                                <div class="row g-2 text-start">
-                                    <div class="col-12 col-md-6">
-                                        <small class="text-secondary d-block">Username</small>
-                                        <div class="font-monospace fw-semibold">${d.username}</div>
+                        <div class="xc-cred-hub" data-host="${d.portal_url}" data-port="${d.port}" data-user="${d.username}" data-pass="${d.password}" data-m3u="${d.m3u_hls}">
+                            <div class="p-3 p-md-4">
+                                <!-- Hub Header -->
+                                <div class="xc-cred-header">
+                                    <div>
+                                        <div class="xc-cred-title">
+                                            <i class="ti tabler-device-tv text-warning fs-4"></i>
+                                            <span>Streaming & Xtream Codes Credentials</span>
+                                            <span class="xc-status-pill ms-2">
+                                                <span class="xc-pulse-dot"></span>
+                                                Live Ready
+                                            </span>
+                                        </div>
+                                        <span class="xc-cred-subtitle">High-speed endpoints for IPTV Apps, Smart TVs, MAG, and Mobile Devices</span>
                                     </div>
-                                    <div class="col-12 col-md-6">
-                                        <small class="text-secondary d-block">Password</small>
-                                        <div class="font-monospace fw-semibold">${d.password}</div>
-                                    </div>
-                                    <div class="col-12 col-md-8">
-                                        <small class="text-secondary d-block">Server URL</small>
-                                        <div class="font-monospace small">${d.portal_url}</div>
-                                    </div>
-                                    <div class="col-12 col-md-4">
-                                        <small class="text-secondary d-block">Port</small>
-                                        <div class="font-monospace">${d.port}</div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 btn-copy-all-reseller" title="Copy all parameters formatted together">
+                                            <i class="ti tabler-copy me-1"></i>Copy All Parameters
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-label-secondary rounded-pill px-3 btn-qr-toggle" title="Toggle QR Code">
+                                            <i class="ti tabler-qrcode me-1"></i>QR Code
+                                        </button>
                                     </div>
                                 </div>
-                                <hr class="border-secondary my-3">
-                                <div class="d-flex flex-wrap gap-2">
-                                    <a href="${d.m3u_hls}" class="btn btn-sm btn-outline-light" target="_blank">
-                                        <i class="ti tabler-download me-1"></i>Download M3U (HLS)
+
+                                <!-- Interactive Credential Tiles -->
+                                <div class="row g-3">
+                                    <!-- Server URL -->
+                                    <div class="col-12 col-md-6">
+                                        <div class="xc-cred-tile h-100">
+                                            <div class="xc-cred-tile-top">
+                                                <div class="xc-cred-label-wrap">
+                                                    <div class="xc-cred-icon xc-icon-server">
+                                                        <i class="ti tabler-server"></i>
+                                                    </div>
+                                                    <span class="xc-cred-label">Server Host / URL</span>
+                                                </div>
+                                                <button class="btn btn-xc-icon btn-copy-code" data-code="${d.portal_url}" title="Copy Server URL">
+                                                    <i class="ti tabler-copy"></i>
+                                                </button>
+                                            </div>
+                                            <div class="xc-cred-val" title="${d.portal_url}">${d.portal_url}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Server Port -->
+                                    <div class="col-12 col-md-6">
+                                        <div class="xc-cred-tile h-100">
+                                            <div class="xc-cred-tile-top">
+                                                <div class="xc-cred-label-wrap">
+                                                    <div class="xc-cred-icon xc-icon-port">
+                                                        <i class="ti tabler-network"></i>
+                                                    </div>
+                                                    <span class="xc-cred-label">Server Port</span>
+                                                </div>
+                                                <button class="btn btn-xc-icon btn-copy-code" data-code="${d.port}" title="Copy Port">
+                                                    <i class="ti tabler-copy"></i>
+                                                </button>
+                                            </div>
+                                            <div class="xc-cred-val">${d.port}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Username -->
+                                    <div class="col-12 col-md-6">
+                                        <div class="xc-cred-tile h-100">
+                                            <div class="xc-cred-tile-top">
+                                                <div class="xc-cred-label-wrap">
+                                                    <div class="xc-cred-icon xc-icon-user">
+                                                        <i class="ti tabler-user"></i>
+                                                    </div>
+                                                    <span class="xc-cred-label">Streaming Username</span>
+                                                </div>
+                                                <button class="btn btn-xc-icon btn-copy-code" data-code="${d.username}" title="Copy Username">
+                                                    <i class="ti tabler-copy"></i>
+                                                </button>
+                                            </div>
+                                            <div class="xc-cred-val">${d.username}</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Password -->
+                                    <div class="col-12 col-md-6">
+                                        <div class="xc-cred-tile h-100">
+                                            <div class="xc-cred-tile-top">
+                                                <div class="xc-cred-label-wrap">
+                                                    <div class="xc-cred-icon xc-icon-pass">
+                                                        <i class="ti tabler-key"></i>
+                                                    </div>
+                                                    <span class="xc-cred-label">Streaming Password</span>
+                                                </div>
+                                                <div class="xc-cred-actions">
+                                                    <button class="btn btn-xc-icon btn-modal-toggle-pw" title="Show / Hide Password">
+                                                        <i class="ti tabler-eye"></i>
+                                                    </button>
+                                                    <button class="btn btn-xc-icon btn-copy-code" data-code="${d.password}" title="Copy Password">
+                                                        <i class="ti tabler-copy"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="xc-cred-val modal-pw-val" data-raw="${d.password}">••••••••••••</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- One-Click Direct Stream URI Bar -->
+                                <div class="xc-uri-bar">
+                                    <div class="xc-uri-label">
+                                        <i class="ti tabler-link text-primary"></i>
+                                        <span>Stream URI</span>
+                                    </div>
+                                    <div class="xc-uri-text" title="${d.portal_url}/get.php?username=${encodeURIComponent(d.username)}&password=${encodeURIComponent(d.password)}&type=m3u_plus&output=ts">${d.portal_url}/get.php?username=${encodeURIComponent(d.username)}&password=${encodeURIComponent(d.password)}&type=m3u_plus&output=ts</div>
+                                    <button type="button" class="btn btn-xs btn-label-primary px-3 rounded-pill flex-shrink-0 btn-copy-code" data-code="${d.portal_url}/get.php?username=${encodeURIComponent(d.username)}&password=${encodeURIComponent(d.password)}&type=m3u_plus&output=ts" title="Copy Stream Link">
+                                        <i class="ti tabler-copy me-1"></i>Copy
+                                    </button>
+                                </div>
+
+                                <!-- Collapsible QR Code Box -->
+                                <div class="reseller-qr-box d-none text-center p-3 mb-3 bg-dark-subtle rounded-3 border border-secondary border-opacity-25">
+                                    <div class="xc-qr-box mb-2">
+                                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(d.m3u_hls)}" width="180" height="180" alt="M3U QR Code">
+                                    </div>
+                                    <small class="text-muted d-block">Scan to load M3U playlist stream directly on Mobile or Smart TV.</small>
+                                </div>
+
+                                <!-- Action Buttons Bar -->
+                                <div class="xc-action-bar">
+                                    <a href="${d.m3u_hls}" class="btn-xc-m3u" target="_blank">
+                                        <i class="ti tabler-download fs-5"></i>
+                                        <span>Download M3U (HLS)</span>
+                                        <span class="btn-subtag">Apple / Android</span>
                                     </a>
-                                    <a href="${d.m3u_ts}" class="btn btn-sm btn-outline-light" target="_blank">
-                                        <i class="ti tabler-download me-1"></i>Download M3U (TS)
+                                    <a href="${d.m3u_ts}" class="btn-xc-m3u" target="_blank">
+                                        <i class="ti tabler-download fs-5"></i>
+                                        <span>Download M3U (TS)</span>
+                                        <span class="btn-subtag">Smart TV / MAG</span>
                                     </a>
-                                    <button class="btn btn-sm btn-outline-info btn-copy-code" data-code="${d.m3u_hls}">
-                                        <i class="ti tabler-copy me-1"></i>Copy M3U
+                                    <button class="btn-xc-copy-m3u btn-copy-code" data-code="${d.m3u_hls}">
+                                        <i class="ti tabler-copy fs-5"></i>
+                                        <span>Copy M3U Link</span>
                                     </button>
                                     ${d.direct_activate_url ? `
-                                        <button class="btn btn-sm btn-primary btn-copy-code" data-code="${d.direct_activate_url}">
-                                            <i class="ti tabler-link me-1"></i>Copy Activation Portal Link
+                                        <button class="btn btn-outline-primary btn-copy-code" data-code="${d.direct_activate_url}" title="Copy Activation Portal Link">
+                                            <i class="ti tabler-link me-1"></i>Copy Portal Link
                                         </button>
-                                        <a href="${d.direct_activate_url}" class="btn btn-sm btn-outline-light" target="_blank" title="Test Subscriber Activation Portal">
+                                        <a href="${d.direct_activate_url}" class="btn btn-outline-light" target="_blank" title="Test Subscriber Activation Portal">
                                             <i class="ti tabler-external-link me-1"></i>Open Portal
                                         </a>
                                     ` : ''}
                                     ${d.web_player_url ? `
-                                        <a href="${d.web_player_url}" class="btn btn-sm btn-warning text-dark fw-bold" target="_blank">
-                                            <i class="ti tabler-player-play me-1"></i>Launch Web Player
+                                        <a href="${d.web_player_url}" class="btn-xc-player" target="_blank">
+                                            <i class="ti tabler-player-play fs-5"></i>
+                                            <span>Launch Web Player</span>
                                         </a>
                                     ` : ''}
+                                </div>
+
+                                <!-- IPTV Apps Compatibility Strip -->
+                                <div class="xc-apps-strip">
+                                    <div class="xc-apps-label">
+                                        <i class="ti tabler-devices text-info"></i>
+                                        <span>Compatible Players:</span>
+                                    </div>
+                                    <div class="xc-app-badges">
+                                        <span class="xc-app-badge">IPTV Smarters Pro</span>
+                                        <span class="xc-app-badge">TiviMate</span>
+                                        <span class="xc-app-badge">XCIPTV</span>
+                                        <span class="xc-app-badge">IBO Player</span>
+                                        <span class="xc-app-badge">VLC Player</span>
+                                        <span class="xc-app-badge">OTT Navigator</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -531,6 +660,50 @@ renderUnifiedLayoutFooter('reseller');
                 </div>
             `;
             jQuery('#modal-details-body').html(html);
+        });
+    });
+
+    // Modal Password Toggle & QR Code Handlers
+    jQuery(document).on('click', '.btn-modal-toggle-pw', function() {
+        const valElem = jQuery(this).closest('.xc-cred-tile').find('.modal-pw-val');
+        const icon = jQuery(this).find('i');
+        const raw = valElem.data('raw');
+        if (valElem.text() === '••••••••••••') {
+            valElem.text(raw);
+            icon.removeClass('tabler-eye').addClass('tabler-eye-off');
+        } else {
+            valElem.text('••••••••••••');
+            icon.removeClass('tabler-eye-off').addClass('tabler-eye');
+        }
+    });
+
+    jQuery(document).on('click', '.btn-qr-toggle', function() {
+        jQuery(this).closest('.xc-cred-hub').find('.reseller-qr-box').toggleClass('d-none');
+    });
+
+    jQuery(document).on('click', '.btn-copy-all-reseller', function() {
+        const hub = jQuery(this).closest('.xc-cred-hub');
+        const host = hub.data('host');
+        const port = hub.data('port');
+        const user = hub.data('user');
+        const pass = hub.data('pass');
+        const m3u = hub.data('m3u');
+        const text = [
+            '========================================',
+            '   STREAMING & XTREAM CODES CREDENTIALS',
+            '========================================',
+            `Server Host / URL : ${host}`,
+            `Server Port       : ${port}`,
+            `Username          : ${user}`,
+            `Password          : ${pass}`,
+            `M3U Playlist Link : ${m3u}`,
+            '========================================'
+        ].join('\n');
+        const btn = jQuery(this);
+        const orig = btn.html();
+        copyToClipboard(text).then(() => {
+            btn.html('<i class="ti tabler-check text-success me-1"></i>Copied All!');
+            setTimeout(() => btn.html(orig), 1800);
         });
     });
 

@@ -13,8 +13,10 @@ use XcVm\Domain\Line\ActiveCodeService;
  *
  * @package XC_VM_Public_Controllers_Player
  */
-class PortalController {
-    public function index() {
+class PortalController
+{
+    public function index()
+    {
         $action = RequestManager::get('action') ?? '';
         $code = trim(RequestManager::get('code') ?? '');
 

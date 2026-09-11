@@ -428,6 +428,11 @@ class PlayerApiController {
 		$rMovieNum = 0;
 		$output = array();
 
+		$seriesCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'series');
+		if (!empty($rCategoryIDSearch) && in_array((int)$rCategoryIDSearch, $seriesCfg['hide_ids'], true)) {
+			return $output;
+		}
+
 		if (count($this->userInfo['series_ids']) > 0) {
 			if ($rCached) {
 				if ($rSettings['vod_sort_newest']) {
@@ -452,6 +457,9 @@ class PlayerApiController {
 					$rCategoryIDs = json_decode($rSeriesItem['category_id'], true);
 
 					foreach ($rCategoryIDs as $rCategoryID) {
+						if (!empty($seriesCfg['hide_ids']) && in_array((int)$rCategoryID, $seriesCfg['hide_ids'], true)) {
+							continue;
+						}
 						if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 							$rating = is_numeric($rSeriesItem['rating']) ? floatval($rSeriesItem['rating']) : 0.0;
 							$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rSeriesItem['title'], $rSeriesItem['year']), 'title' => $rSeriesItem['title'], 'year' => strval($rSeriesItem['year']), 'stream_type' => 'series', 'series_id' => (int) $rSeriesItem['id'], 'cover' => ImageUtils::validateURL($rSeriesItem['cover']), 'plot' => $rSeriesItem['plot'], 'cast' => $rSeriesItem['cast'], 'director' => $rSeriesItem['director'], 'genre' => $rSeriesItem['genre'], 'release_date' => $rSeriesItem['release_date'], 'releaseDate' => $rSeriesItem['release_date'], 'last_modified' => $rSeriesItem['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesItem['youtube_trailer'], 'episode_run_time' => strval($rSeriesItem['episode_run_time']), 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs);
@@ -488,6 +496,9 @@ class PlayerApiController {
 						$rCategoryIDs = json_decode($rSeriesItem['category_id'], true);
 
 						foreach ($rCategoryIDs as $rCategoryID) {
+							if (!empty($seriesCfg['hide_ids']) && in_array((int)$rCategoryID, $seriesCfg['hide_ids'], true)) {
+								continue;
+							}
 							if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 								$rating = is_numeric($rSeriesItem['rating']) ? floatval($rSeriesItem['rating']) : 0.0;
 								$output[] = array('num' => ++$rMovieNum, 'name' => StreamSorter::formatTitle($rSeriesItem['title'], $rSeriesItem['year']), 'title' => $rSeriesItem['title'], 'year' => $rSeriesItem['year'], 'stream_type' => 'series', 'series_id' => (int) $rSeriesItem['id'], 'cover' => ImageUtils::validateURL($rSeriesItem['cover']), 'plot' => $rSeriesItem['plot'], 'cast' => $rSeriesItem['cast'], 'director' => $rSeriesItem['director'], 'genre' => $rSeriesItem['genre'], 'release_date' => $rSeriesItem['release_date'], 'releaseDate' => $rSeriesItem['release_date'], 'last_modified' => $rSeriesItem['last_modified'], 'rating' => number_format($rating, 0), 'rating_5based' => number_format($rating * 0.5, 1) + 0, 'backdrop_path' => $rBackdrops, 'youtube_trailer' => $rSeriesItem['youtube_trailer'], 'episode_run_time' => $rSeriesItem['episode_run_time'], 'category_id' => strval($rCategoryID), 'category_ids' => $rCategoryIDs);
@@ -515,7 +526,7 @@ class PlayerApiController {
 			}
 		}
 
-		return $output;
+		return \XcVm\Domain\Stream\CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'vod_cat');
 	}
 
 	private function getSeriesCategories($rCategories) {
@@ -528,7 +539,7 @@ class PlayerApiController {
 			}
 		}
 
-		return $output;
+		return \XcVm\Domain\Stream\CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'series_cat');
 	}
 
 	private function getLiveCategories($rCategories) {
@@ -541,7 +552,7 @@ class PlayerApiController {
 			}
 		}
 
-		return $output;
+		return \XcVm\Domain\Stream\CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'live_cat');
 	}
 
 	private function getSimpleDataTable() {
@@ -691,6 +702,12 @@ class PlayerApiController {
 		$rCategoryIDSearch = (empty($rRequest['category_id']) ? null : intval($rRequest['category_id']));
 		$rLiveNum = 0;
 		$output = array();
+
+		$liveCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'live');
+		if (!empty($rCategoryIDSearch) && in_array((int)$rCategoryIDSearch, $liveCfg['hide_ids'], true)) {
+			return $output;
+		}
+
 		$this->userInfo['live_ids'] = array_merge($this->userInfo['live_ids'], $this->userInfo['radio_ids']);
 
 		if (!empty($this->limit)) {
@@ -746,6 +763,9 @@ class PlayerApiController {
 				}
 
 				foreach ($rCategoryIDs as $rCategoryID) {
+					if (!empty($liveCfg['hide_ids']) && in_array((int)$rCategoryID, $liveCfg['hide_ids'], true)) {
+						continue;
+					}
 					if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 						$rStreamIcon = (ImageUtils::validateURL($rChannel['stream_icon']) ?: '');
 						$rTVArchive = (!empty($rChannel['tv_archive_server_id']) && !empty($rChannel['tv_archive_duration']) ? 1 : 0);
@@ -856,6 +876,11 @@ class PlayerApiController {
 		$rMovieNum = 0;
 		$output = array();
 
+		$vodCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'movie');
+		if (!empty($rCategoryIDSearch) && in_array((int)$rCategoryIDSearch, $vodCfg['hide_ids'], true)) {
+			return $output;
+		}
+
 		if (!empty($this->limit)) {
 			$this->userInfo['vod_ids'] = array_slice($this->userInfo['vod_ids'], $this->offset, $this->limit);
 		}
@@ -914,6 +939,9 @@ class PlayerApiController {
 				$rCategoryIDs = json_decode($rChannel['category_id'], true);
 
 				foreach ($rCategoryIDs as $rCategoryID) {
+					if (!empty($vodCfg['hide_ids']) && in_array((int)$rCategoryID, $vodCfg['hide_ids'], true)) {
+						continue;
+					}
 					if (!$rCategoryIDSearch || $rCategoryIDSearch == $rCategoryID) {
 						if ($rSettings['api_redirect']) {
 							$rEncData = 'movie/' . $this->userInfo['username'] . '/' . $this->userInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];

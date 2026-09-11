@@ -2,9 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Domain\Line\ActiveCodeService;
-use XcVm\Domain\Line\PackageService;
-
 /**
  * ActiveCodesController — Admin Active Codes Management
  *
@@ -16,10 +13,6 @@ class ActiveCodesController extends BaseAdminController
     {
         $this->requirePermission();
         $this->setTitle('Active Codes');
-        $this->render('active_codes', [
-            'rPackages' => PackageService::getAll(1, 'line') ?: [],
-            'resellers' => ActiveCodeService::getResellersWithCodes(),
-            'batches'   => ActiveCodeService::getRecentBatchNames(),
-        ]);
+        $this->render('active_codes');
     }
 }

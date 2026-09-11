@@ -59,8 +59,15 @@ class LineController extends BaseAdminController {
         }
 
         $rRegisteredUsers = UserRepository::getRegisteredUsers();
+        $categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
+            $GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []),
+            true
+        );
 
-        $data = ['rRegisteredUsers' => $rRegisteredUsers];
+        $data = [
+            'rRegisteredUsers'  => $rRegisteredUsers,
+            'categoryTemplates' => $categoryTemplates,
+        ];
         if ($rLine) {
             $data['rLine'] = $rLine;
         }

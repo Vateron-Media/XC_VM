@@ -2,7 +2,12 @@
 
 namespace XcVm\Domain\Line;
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -120,6 +125,15 @@ class ActiveCodeService {
         $isAdult = !empty($data['is_adult']) ? 1 : 0;
         $outputFormats = $package['output_formats'] ?? '[]';
 
+        $customDataJson = null;
+        if (!empty($data['category_template_id']) && intval($data['category_template_id']) > 0) {
+            $tplId = intval($data['category_template_id']);
+            $customDataObj = \XcVm\Domain\Stream\CategoryTemplateService::buildCustomData($tplId);
+            $customDataJson = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
+        } elseif (!empty($data['custom_data'])) {
+            $customDataJson = is_array($data['custom_data']) ? json_encode($data['custom_data'], JSON_UNESCAPED_UNICODE) : (string)$data['custom_data'];
+        }
+
         $generatedCodes = [];
 
         $db->beginTransaction();
@@ -168,8 +182,8 @@ class ActiveCodeService {
                         `member_id`, `username`, `password`, `exp_date`, `admin_enabled`, `enabled`,
                         `bouquet`, `allowed_outputs`, `max_connections`, `is_restreamer`, `is_trial`,
                         `is_mag`, `is_e2`, `forced_country`, `package_id`, `is_activecode`, `created_at`,
-                        `reseller_notes`
-                    ) VALUES (?, ?, ?, NULL, 1, 1, ?, ?, ?, 0, ?, 0, 0, ?, ?, 1, ?, ?);",
+                        `reseller_notes`, `custom_data`
+                    ) VALUES (?, ?, ?, NULL, 1, 1, ?, ?, ?, 0, ?, 0, 0, ?, ?, 1, ?, ?, ?);",
                     $targetOwnerId,
                     $lineUsername,
                     $linePassword,
@@ -180,7 +194,8 @@ class ActiveCodeService {
                     $forcedCountry,
                     $packageId,
                     time(),
-                    "Active Code: {$code} (Batch: {$batchName})"
+                    "Active Code: {$code} (Batch: {$batchName})",
+                    $customDataJson
                 );
 
                 $lineId = (int)$db->last_insert_id();
@@ -326,14 +341,27 @@ class ActiveCodeService {
             }
         }
 
-        // Resolve Portal and M3U URLs
-        $portalHost = DomainResolver::resolve(SERVER_ID);
+        // Resolve Portal and M3U URLs (dynamically respecting http / https protocol)
+        $isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
+            || (isset($_SERVER['SERVER_PORT']) && in_array((int)$_SERVER['SERVER_PORT'], [443, 3434], true))
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+            || (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+        $currentScheme = $isHttps ? 'https' : 'http';
+
         if (!empty($codeRow['dns_base'])) {
             $portalHost = rtrim($codeRow['dns_base'], '/');
+            if (!preg_match('#^https?://#i', $portalHost)) {
+                $portalHost = "{$currentScheme}://{$portalHost}";
+            }
+        } elseif (!empty($_SERVER['HTTP_HOST'])) {
+            $portalHost = "{$currentScheme}://{$_SERVER['HTTP_HOST']}";
+        } else {
+            $portalHost = rtrim(DomainResolver::resolve(SERVER_ID, $isHttps), '/');
         }
         $portalParsed = parse_url($portalHost);
         $serverDomain = $portalParsed['host'] ?? $_SERVER['HTTP_HOST'] ?? 'localhost';
-        $serverPort = $portalParsed['port'] ?? (isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : 80);
+        $serverPort = $portalParsed['port'] ?? (isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : ($isHttps ? 443 : 80));
 
         $m3uHls = "{$portalHost}/get.php?username={$line['username']}&password={$line['password']}&type=m3u_plus&output=hls";
         $m3uTs  = "{$portalHost}/get.php?username={$line['username']}&password={$line['password']}&type=m3u_plus&output=ts";
@@ -390,45 +418,6 @@ class ActiveCodeService {
         $db = self::db();
         $db->query('SELECT * FROM `activation_codes` WHERE `id` = ? LIMIT 1;', $id);
         return $db->num_rows() > 0 ? $db->get_row() : null;
-    }
-
-    /**
-     * Distinct resellers who have created activation codes (reseller filter).
-     */
-    public static function getResellersWithCodes(): array {
-        $db = self::db();
-        return $db->fetchAll(
-            'SELECT DISTINCT `users`.`id`, `users`.`username`
-             FROM `activation_codes`
-             INNER JOIN `users` ON `users`.`id` = `activation_codes`.`created_by`
-             ORDER BY `users`.`username` ASC;'
-        );
-    }
-
-    /**
-     * Recent distinct batch names (batch filter). Pass a list of creator ids to
-     * scope it (reseller view); empty = all batches (admin view).
-     */
-    public static function getRecentBatchNames(array $createdBy = [], int $limit = 100): array {
-        $db = self::db();
-        $where = '`batch_name` IS NOT NULL';
-        if (!empty($createdBy)) {
-            $where = '`created_by` IN (' . implode(',', array_map('intval', $createdBy)) . ') AND ' . $where;
-        }
-        return $db->fetchAll(
-            'SELECT DISTINCT `batch_name` FROM `activation_codes`
-             WHERE ' . $where . '
-             ORDER BY `created_at` DESC LIMIT ' . (int) $limit . ';'
-        );
-    }
-
-    /**
-     * All resellers with their credit balance, for the creator-assignment
-     * dropdown on the admin generate-codes wizard.
-     */
-    public static function getResellersForAssignment(): array {
-        $db = self::db();
-        return $db->fetchAll('SELECT `id`, `username`, `credits` FROM `users` ORDER BY `username` ASC;');
     }
 
     /**

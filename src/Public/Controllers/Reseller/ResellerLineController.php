@@ -42,11 +42,16 @@ class ResellerLineController extends BaseResellerController
         }
 
         $rPackages = PackageService::getAll($rUserInfo['member_group_id'], 'line') ?: [];
+        $categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
+            $rUserInfo,
+            false
+        );
 
         $this->render('line', [
-            'rLine'        => $rLine,
-            'rOrigPackage' => $rOrigPackage,
-            'rPackages'    => $rPackages,
+            'rLine'             => $rLine,
+            'rOrigPackage'      => $rOrigPackage,
+            'rPackages'         => $rPackages,
+            'categoryTemplates' => $categoryTemplates,
         ]);
     }
 }
