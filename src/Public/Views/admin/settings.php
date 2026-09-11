@@ -571,17 +571,6 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 								</div>
 							</div>
 
-							<div class="form-group row mb-4">
-								<label class="col-md-3 col-form-label" for="probesize_ondemand">
-									<?= $language::get('on_demand_probesize') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('adjustable_probesize_for_ondemand_streams_tooltip') ?>"></i>
-								</label>
-
-								<div class="col-md-3">
-									<input type="text" class="form-control text-center" id="probesize_ondemand" name="probesize_ondemand" value="<?= intval($rSettings["probesize_ondemand"]) ?>">
-								</div>
-							</div>
-
 						</div>
 					</div>
 				</div>
@@ -1922,7 +1911,9 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 								<div class="col-md-2">
 									<input type="text" class="form-control text-center" id="stream_max_analyze" name="stream_max_analyze" value="<?= htmlspecialchars($rSettings["stream_max_analyze"] ?? '') ?>">
 								</div>
+							</div>
 
+							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="probesize">
 									<?= $language::get('probe_size') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('amount_of_data_to_be_probed_in_bytes') ?>"></i>
@@ -1930,6 +1921,14 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 
 								<div class="col-md-2">
 									<input type="text" class="form-control text-center" id="probesize" name="probesize" value="<?= htmlspecialchars($rSettings["probesize"] ?? '') ?>">
+								</div>
+
+								<label class="col-md-4 col-form-label" for="probesize_ondemand">
+									<?= $language::get('on_demand_probesize') ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('adjustable_probesize_for_ondemand_streams_tooltip') ?>"></i>
+								</label>
+								<div class="col-md-2">
+									<input type="text" class="form-control text-center" id="probesize_ondemand" name="probesize_ondemand" value="<?= intval($rSettings["probesize_ondemand"]) ?>">
 								</div>
 							</div>
 
