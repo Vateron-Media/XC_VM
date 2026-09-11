@@ -58,6 +58,8 @@ Loaded from settings cache and used in runtime decision points.
 | `recaptcha_enable` | `bool` | enable reCAPTCHA v2 on login |
 | `verify_host` | `bool` | enforce host allowlist validation |
 | `save_login_logs` | `bool` | persist login attempts in `login_logs` |
+| `fanout_supervise` | `bool` | hand live streams to the xc_fanout supervisor instead of a PHP monitor (default on) |
+| `fanout_source_backend` | `auto` / `ffmpeg` / `native` | how sources become MPEG-TS; with supervision, whether copy-only streams run the native remuxer (`auto`: with ffmpeg fallback) |
 
 These values are loaded from `CACHE_TMP_PATH/settings` by request guards.
 

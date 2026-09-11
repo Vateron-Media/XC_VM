@@ -36,7 +36,13 @@ ProcessManager::isStreamRunning(int $pid, int $streamId): bool
 ```
 
 - `ffmpeg`: validates stream-specific output pattern in cmdline
+- `xc_fanout`: only the native remuxer (`xc_fanout remux … /<id>_.m3u8`) — the daemon process
+  itself shares the executable but names no stream playlist
 - `php`: considered alive for stream worker context
+
+For "is anything **watching** this stream", use `StreamProcess::isWatched($streamId, $monitorPid)`:
+a supervised stream's `monitor_pid` is the xc_fanout daemon's, which `isMonitorAlive()` (an
+`XC_VM[<id>]` PHP process) rightly rejects.
 
 ---
 
