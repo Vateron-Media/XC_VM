@@ -33,21 +33,28 @@ class ResellerCategoryTemplateController extends BaseResellerController
         }
 
         $user = $GLOBALS['rUserInfo'] ?? [];
-        $isOwner = ((int)$template['owner_id'] === (int)($user['id'] ?? 0));
+        $userId = (int)($user['id'] ?? 0);
+        $isOwner = ((int)$template['owner_id'] === $userId);
         $isSystem = ((int)$template['is_system'] === 1);
-        $canEdit = $isOwner && !$isSystem;
+
+        $subUsers = \XcVm\Domain\User\UserRepository::getSubUsers($userId);
+        $subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
+        $isSubReseller = in_array((int)$template['owner_id'], $subResellerIds, true);
+
+        $canEdit = ($isOwner || $isSubReseller) && !$isSystem;
 
         $this->setTitle('Category Template: ' . $template['name']);
 
         $categories = CategoryTemplateService::getEditorCategories($id);
 
         $this->render('category_template', [
-            'template'    => $template,
-            'categories'  => $categories,
-            'isAdmin'     => false,
-            'isOwner'     => $isOwner,
-            'canEdit'     => $canEdit,
-            'currentUser' => $user
+            'template'      => $template,
+            'categories'    => $categories,
+            'isAdmin'       => false,
+            'isOwner'       => $isOwner,
+            'isSubReseller' => $isSubReseller,
+            'canEdit'       => $canEdit,
+            'currentUser'   => $user
         ]);
     }
 }

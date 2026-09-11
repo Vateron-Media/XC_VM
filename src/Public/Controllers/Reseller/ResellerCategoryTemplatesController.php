@@ -23,14 +23,33 @@ class ResellerCategoryTemplatesController extends BaseResellerController
 
         $user = $GLOBALS['rUserInfo'] ?? [];
         $search = RequestManager::has('search') ? trim((string)RequestManager::get('search')) : null;
+        $scope = RequestManager::has('scope') ? trim((string)RequestManager::get('scope')) : '';
 
-        $templates = CategoryTemplateService::getTemplatesForUser($user, false, null, $search);
+        $allTemplates = CategoryTemplateService::getTemplatesForUser($user, false, null, $search);
+
+        $counts = [
+            'total'       => count($allTemplates),
+            'mine'        => count(array_filter($allTemplates, static fn($t) => !empty($t['is_mine']))),
+            'subreseller' => count(array_filter($allTemplates, static fn($t) => !empty($t['is_subreseller']))),
+            'admin'       => count(array_filter($allTemplates, static fn($t) => !empty($t['is_system']) || !empty($t['is_admin_shared']))),
+        ];
+
+        $templates = $allTemplates;
+        if ($scope === 'mine') {
+            $templates = array_values(array_filter($allTemplates, static fn($t) => !empty($t['is_mine'])));
+        } elseif ($scope === 'subreseller') {
+            $templates = array_values(array_filter($allTemplates, static fn($t) => !empty($t['is_subreseller'])));
+        } elseif ($scope === 'admin') {
+            $templates = array_values(array_filter($allTemplates, static fn($t) => !empty($t['is_system']) || !empty($t['is_admin_shared'])));
+        }
 
         $this->render('category_templates', [
-            'templates'   => $templates,
-            'search'      => $search,
-            'isAdmin'     => false,
-            'currentUser' => $user
+            'templates'    => $templates,
+            'search'       => $search,
+            'scope'        => $scope,
+            'counts'       => $counts,
+            'isAdmin'      => false,
+            'currentUser'  => $user
         ]);
     }
 }

@@ -37,6 +37,10 @@ $xmThemePref = $xmUiPrefs['theme'] ?? null;
 $xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
 
 $xmPage        = AdminHelpers::getPageName();
+$xmPageAliases = [
+    'category_template' => 'category_templates',
+];
+$xmPage        = $xmPageAliases[$xmPage] ?? $xmPage;
 $xmPermissions = $rPermissions ?? [];
 
 /**
@@ -123,6 +127,16 @@ $xmMenu = [
             ['label' => 'episodes',         'url' => 'episodes',         'show' => true],
             ['label' => 'radios',           'url' => 'radios',           'show' => true],
             ['label' => 'tv_guide',         'url' => 'epg_view',         'show' => !$rMobile],
+        ],
+    ],
+    [
+        'label' => 'category_templates',
+        'icon'  => 'ti tabler-layout-grid',
+        'url'   => '#',
+        'show'  => true,
+        'children' => [
+            ['label' => 'manage_category_templates', 'url' => 'category_templates',          'show' => true],
+            ['label' => 'create_category_template',  'url' => 'category_templates?create=1', 'show' => true],
         ],
     ],
     [

@@ -53,16 +53,34 @@ class CategoryTemplateService
                 $where[] = "t.owner_id = ?";
                 $params[] = $filterOwnerId;
             }
+            $subResellerIds = [];
         } else {
-            // Reseller can view: own templates OR global system templates OR parent shared templates
-            if ($parentOwnerId > 1) {
-                $where[] = "(t.owner_id = ? OR t.is_system = 1 OR (t.owner_id = ? AND t.is_shared = 1))";
-                $params[] = $userId;
-                $params[] = $parentOwnerId;
-            } else {
-                $where[] = "(t.owner_id = ? OR t.is_system = 1)";
-                $params[] = $userId;
+            $orConditions = [];
+
+            // 1. Current user's own templates
+            $orConditions[] = "t.owner_id = ?";
+            $params[] = $userId;
+
+            // 2. All sub-resellers' templates (all recursive generations)
+            $subUsers = \XcVm\Domain\User\UserRepository::getSubUsers($userId);
+            $subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
+            if (!empty($subResellerIds)) {
+                $orConditions[] = "t.owner_id IN (" . implode(',', $subResellerIds) . ")";
             }
+
+            // 3. System templates (admin global)
+            $orConditions[] = "t.is_system = 1";
+
+            // 4. Admin-shared templates (is_shared = 1 created by administrators)
+            $orConditions[] = "(t.is_shared = 1 AND (t.owner_id = 1 OR u.member_group_id = 1))";
+
+            // 5. Parent-shared templates (shared by direct parent reseller)
+            if ($parentOwnerId > 0) {
+                $orConditions[] = "(t.is_shared = 1 AND t.owner_id = ?)";
+                $params[] = $parentOwnerId;
+            }
+
+            $where[] = '(' . implode(' OR ', $orConditions) . ')';
         }
 
         if (!empty($search)) {
@@ -81,7 +99,28 @@ class CategoryTemplateService
         $db->query($sql, ...$params);
         $templates = $db->get_rows() ?: [];
         foreach ($templates as &$tmpl) {
-            $tmpl['subscriber_count'] = self::getSubscriberCount((int)$tmpl['id']);
+            $tmplId = (int)$tmpl['id'];
+            $tmpl['subscriber_count'] = self::getSubscriberCount($tmplId);
+
+            $ownerId = (int)$tmpl['owner_id'];
+            $isMine = ($ownerId === $userId);
+            $isSubReseller = in_array($ownerId, $subResellerIds, true);
+            $isSystem = ((int)$tmpl['is_system'] === 1);
+            $isAdminShared = ((int)$tmpl['is_shared'] === 1 && ($ownerId === 1 || (int)($tmpl['owner_group_id'] ?? 0) === 1));
+
+            $tmpl['is_mine'] = $isMine;
+            $tmpl['is_subreseller'] = $isSubReseller;
+            $tmpl['is_admin_shared'] = $isAdminShared;
+
+            if ($isMine) {
+                $tmpl['scope_type'] = 'mine';
+            } elseif ($isSubReseller) {
+                $tmpl['scope_type'] = 'subreseller';
+            } elseif ($isSystem || $isAdminShared) {
+                $tmpl['scope_type'] = 'admin';
+            } else {
+                $tmpl['scope_type'] = 'shared';
+            }
         }
         unset($tmpl);
         return $templates;
@@ -333,8 +372,16 @@ class CategoryTemplateService
             return ['success' => false, 'message' => 'Template not found.'];
         }
 
-        // Permission check
-        if (!$isAdmin && (int)$template['owner_id'] !== (int)$user['id']) {
+        // Permission check: allow admin, owner, or parent reseller of the owner
+        $isOwner = ((int)$template['owner_id'] === (int)$user['id']);
+        $isSubReseller = false;
+        if (!$isAdmin && !$isOwner) {
+            $subUsers = \XcVm\Domain\User\UserRepository::getSubUsers((int)$user['id']);
+            $subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
+            $isSubReseller = in_array((int)$template['owner_id'], $subResellerIds, true);
+        }
+
+        if (!$isAdmin && !$isOwner && !$isSubReseller) {
             return ['success' => false, 'message' => 'You do not have permission to edit this template.'];
         }
 
@@ -465,7 +512,15 @@ class CategoryTemplateService
         }
 
         if (!$isAdmin) {
-            if ((int)$template['owner_id'] !== (int)$user['id']) {
+            $isOwner = ((int)$template['owner_id'] === (int)$user['id']);
+            $isSubReseller = false;
+            if (!$isOwner) {
+                $subUsers = \XcVm\Domain\User\UserRepository::getSubUsers((int)$user['id']);
+                $subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
+                $isSubReseller = in_array((int)$template['owner_id'], $subResellerIds, true);
+            }
+
+            if (!$isOwner && !$isSubReseller) {
                 return ['success' => false, 'message' => 'You are not authorized to delete this template.'];
             }
             if ((int)$template['is_system'] === 1) {
