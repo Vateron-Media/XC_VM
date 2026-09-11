@@ -394,6 +394,22 @@ class UserRepository {
 	}
 
 	/**
+	 * Fetch a line by username.
+	 *
+	 * @param string $rUsername Line username.
+	 * @return array|null The line row, or null if not found.
+	 */
+	public static function getLineByUsername($rUsername) {
+		$db = self::db();
+		$db->query('SELECT * FROM `lines` WHERE `username` = ?;', $rUsername);
+
+		if ($db->num_rows() == 1) {
+			return $db->get_row();
+		}
+		return null;
+	}
+
+	/**
 	 * Fetch a registered (panel) user by id.
 	 *
 	 * @param int $rID User id.
@@ -407,6 +423,16 @@ class UserRepository {
 			return $db->get_row();
 		}
 		return null;
+	}
+
+	/**
+	 * Alias for getRegisteredUserById.
+	 *
+	 * @param int $rID User id.
+	 * @return array|null
+	 */
+	public static function getUserById($rID) {
+		return self::getRegisteredUserById($rID);
 	}
 
 	/**

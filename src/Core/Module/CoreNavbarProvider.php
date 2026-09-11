@@ -130,6 +130,23 @@ class CoreNavbarProvider implements NavbarProviderInterface {
             ->parent('users.lines')->url('line_mass')
             ->label('mass_edit_lines')->permissions(['mass_edit_lines'])->order(30));
 
+        // Active Codes
+        NavbarRegistry::add((new NavbarItem('users.active_codes'))
+            ->parent('users')->url('#')
+            ->label('active_codes')->permissions(['add_user', 'users'])->order(15));
+        NavbarRegistry::add((new NavbarItem('users.active_codes.add'))
+            ->parent('users.active_codes')->url('active_code')
+            ->label('generate_codes')->permissions(['add_user'])->order(10));
+        NavbarRegistry::add((new NavbarItem('users.active_codes.manage'))
+            ->parent('users.active_codes')->url('active_codes')
+            ->label('manage_active_codes')->permissions(['users'])->order(20));
+        NavbarRegistry::add((new NavbarItem('users.active_codes.batch'))
+            ->parent('users.active_codes')->url('active_codes_batch')
+            ->label('batch_manager')->permissions(['users'])->order(25));
+        NavbarRegistry::add((new NavbarItem('users.active_codes.mass'))
+            ->parent('users.active_codes')->url('active_codes_mass')
+            ->label('mass_edit_active_codes')->permissions(['mass_edit_lines'])->order(30));
+
         // MAG
         NavbarRegistry::add((new NavbarItem('users.mag'))
             ->parent('users')->url('#')

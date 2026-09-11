@@ -5,6 +5,7 @@ use XcVm\Core\Module\ModuleLoader;
 use XcVm\Infrastructure\Bootstrap\ScopeBootstrapFactory;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
 use XcVm\Infrastructure\Bootstrap\WebApiBootstrap;
+use XcVm\Public\Controllers\Api\ActiveCodeApiController;
 use XcVm\Public\Controllers\Api\AdminApiController;
 use XcVm\Public\Controllers\Api\Enigma2ApiController;
 use XcVm\Public\Controllers\Api\EpgApiController;
@@ -13,6 +14,7 @@ use XcVm\Public\Controllers\Api\PlayerApiController;
 use XcVm\Public\Controllers\Api\PlaylistApiController;
 use XcVm\Public\Controllers\Api\ResellerRestApiController;
 use XcVm\Public\Controllers\Api\XPluginApiController;
+use XcVm\Public\Controllers\Player\PortalController;
 
 /**
  * Front Controller — единая точка входа для admin/reseller/player.
@@ -62,6 +64,7 @@ if (!empty($_SERVER['XC_SCOPE'])) {
         'includes/api/admin'   => 'admin',
         'includes/api/reseller' => 'reseller',
         'player'               => 'player',
+        'portal'               => 'portal',
     ];
 
     $scope = $scopeMap[$rawScope] ?? 'admin';
@@ -73,8 +76,8 @@ if (!empty($_SERVER['XC_SCOPE'])) {
         $parts = explode('/', $pageName, 2);
         $pageName = $parts[1] ?? '';
     }
-} elseif (preg_match('#^/(admin|reseller)(?:/(.*))?$#', $urlPath, $m)) {
-    // Режим B: прямой URL /admin/... или /reseller/...
+} elseif (preg_match('#^/(admin|reseller|portal)(?:/(.*))?$#', $urlPath, $m)) {
+    // Режим B: прямой URL /admin/... или /reseller/... или /portal/...
     $scope    = $m[1];
     $pageName = isset($m[2]) ? trim($m[2], '/') : '';
 } else {
@@ -127,11 +130,9 @@ if (
     exit;
 }
 
-// 4b. Player: /CODE (без завершающего слэша) → /CODE/ — страницы плеера ссылаются
-// на статику относительно ("css/main.css"), без слэша браузер резолвит её от
-// корня и весь CSS/JS уходит в 404.
+// 4b. Player / Portal: /CODE (без завершающего слэша) → /CODE/
 if (
-    $accessCode && $scope === 'player'
+    $accessCode && in_array($scope, ['player', 'portal'], true)
     && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
     && rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', '/') === '/' . $accessCode
     && substr(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', -1) !== '/'
@@ -162,8 +163,9 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
         'enigma2'    => [Enigma2ApiController::class,  'web'],
         'xplugin'    => [XPluginApiController::class,  'web'],
         'epg'        => [EpgApiController::class,      'web'],
-        'playlist'   => [PlaylistApiController::class, 'web'],
-        'internal'   => [InternalApiController::class, 'web'],
+        'playlist'    => [PlaylistApiController::class,   'web'],
+        'internal'    => [InternalApiController::class,   'web'],
+        'active_code' => [ActiveCodeApiController::class, 'web'],
     ];
 
     if (!isset($rApiEndpoints[$rApiName])) {
@@ -200,6 +202,14 @@ if ($scope === 'ministra') {
         header('Location: ' . $rPortalBase . 'portal.php' . ($rQuery !== '' ? '?' . $rQuery : ''), true, 302);
         exit;
     }
+}
+
+// 6c. Subscriber Activation Portal (public access, no admin/reseller session required)
+if ($scope === 'portal') {
+    WebApiBootstrap::init('portal');
+    $portalController = new PortalController();
+    $portalController->index();
+    exit;
 }
 
 // 7. Scope bootstrap — working directory + session/functions files

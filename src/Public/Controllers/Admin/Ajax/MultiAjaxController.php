@@ -7,6 +7,7 @@ use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\LineRepository;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Server\ServerRepository;
@@ -47,28 +48,24 @@ class MultiAjaxController extends BaseAjaxController {
             switch ($rType) {
                 case 'line':
                     $this->handleLine($rRequestIDs, $rSub);
-                    // no break — handler terminates the request
+                case 'active_code':
+                    $this->handleActiveCode($rRequestIDs, $rSub);
                 case 'mag':
                 case 'enigma':
                     $this->handleDevices($rType, $rRequestIDs, $rSub);
-                    // no break
                 case 'user':
                     $this->handleUser($rRequestIDs, $rSub);
-                    // no break
                 case 'server':
                 case 'proxy':
                     $this->handleServers($rType, $rRequestIDs, $rSub);
-                    // no break
                 case 'series':
                     $this->handleSeries($rRequestIDs, $rSub);
-                    // no break
                 case 'stream':
                 case 'movie':
                 case 'episode':
                 case 'cchannel':
                 case 'radio':
                     $this->handleStreams($rType, $rRequestIDs, $rSub);
-                    // no break
             }
         }
 
@@ -356,5 +353,16 @@ class MultiAjaxController extends BaseAjaxController {
     /** `implode(',', array_map('intval', …))` — the recurring `IN (…)` id list. */
     private function inList(array $rIDs): string {
         return implode(',', array_map('intval', $rIDs));
+    }
+
+    private function handleActiveCode(array $rRequestIDs, string $rSub): never {
+        $extra = [
+            'days' => intval(RequestManager::get('days') ?? 30),
+            'package_id' => intval(RequestManager::get('package_id') ?? 0),
+            'refund_credits' => !empty(RequestManager::get('refund_credits')),
+        ];
+        $res = ActiveCodeService::massAction($rSub, $rRequestIDs, $GLOBALS['rUserInfo'] ?? [], true, $extra);
+        echo json_encode(['result' => ($res['status'] === 'SUCCESS'), 'message' => $res['message'] ?? '']);
+        exit;
     }
 }

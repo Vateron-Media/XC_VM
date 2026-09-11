@@ -20,12 +20,24 @@ if (!Authorization::check('adv', 'add_code')):
 endif;
 
 // Access-code type labels (matches the code form's type select).
-$rCodeTypes = [0 => 'Admin', 1 => 'Reseller', 2 => 'Ministra', 3 => 'Admin API', 4 => 'Reseller API', 6 => 'Web Player'];
+$rCodeTypes = [0 => 'Admin', 1 => 'Reseller', 2 => 'Ministra', 3 => 'Admin API', 4 => 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal'];
+$rTypeBadges = [
+    0 => 'bg-label-primary',
+    1 => 'bg-label-warning',
+    2 => 'bg-label-secondary',
+    3 => 'bg-label-dark',
+    4 => 'bg-label-dark',
+    6 => 'bg-label-success',
+    7 => 'bg-label-info',
+];
 ?>
 
 <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex align-items-center justify-content-between">
         <h5 class="card-title mb-0"><?= $language::get('access_codes'); ?></h5>
+        <a href="code" class="btn btn-sm btn-primary">
+            <i class="icon-base ti tabler-plus me-1"></i><?= $language::get('add'); ?> <?= $language::get('access_code'); ?>
+        </a>
     </div>
     <div class="card-datatable table-responsive">
         <table id="codes-table" class="table" style="width:100%">
@@ -44,12 +56,26 @@ $rCodeTypes = [0 => 'Admin', 1 => 'Reseller', 2 => 'Ministra', 3 => 'Admin API',
                     <tr>
                         <td></td>
                         <td class="text-center"><?= (int) $rCode['id']; ?></td>
-                        <td class="text-nowrap"><?= htmlspecialchars((string) $rCode['code'], ENT_QUOTES); ?></td>
-                        <td class="text-center"><span class="badge bg-label-primary"><?= htmlspecialchars($rCodeTypes[(int) $rCode['type']] ?? (string) $rCode['type'], ENT_QUOTES); ?></span></td>
+                        <td class="text-nowrap">
+                            <span class="font-monospace fw-semibold"><?= htmlspecialchars((string) $rCode['code'], ENT_QUOTES); ?></span>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge <?= $rTypeBadges[(int) $rCode['type']] ?? 'bg-label-primary'; ?>">
+                                <?= htmlspecialchars($rCodeTypes[(int) $rCode['type']] ?? (string) $rCode['type'], ENT_QUOTES); ?>
+                            </span>
+                        </td>
                         <td class="text-center" data-order="<?= (int) (bool) $rCode['enabled']; ?>">
                             <i class="icon-base ti tabler-square-filled <?= $rCode['enabled'] ? 'text-success' : 'text-body-secondary'; ?>"></i>
                         </td>
                         <td class="text-center text-nowrap">
+                            <?php if ($rCode['enabled']): ?>
+                                <a href="/<?= htmlspecialchars((string) $rCode['code'], ENT_QUOTES); ?>/" target="_blank" class="btn btn-sm btn-icon btn-label-info me-1" title="Open Portal / Access Link">
+                                    <i class="icon-base ti tabler-external-link"></i>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-icon btn-label-secondary js-copy-link me-1" data-code="<?= htmlspecialchars((string) $rCode['code'], ENT_QUOTES); ?>" title="Copy Full URL">
+                                    <i class="icon-base ti tabler-copy"></i>
+                                </button>
+                            <?php endif; ?>
                             <a href="code?id=<?= (int) $rCode['id']; ?>" class="btn btn-sm btn-icon btn-label-secondary" title="<?= $language::get('edit_code'); ?>"><i class="icon-base ti tabler-pencil"></i></a>
                             <button type="button" class="btn btn-sm btn-icon btn-label-danger js-del" data-id="<?= (int) $rCode['id']; ?>" title="<?= $language::get('delete_code'); ?>"><i class="icon-base ti tabler-trash"></i></button>
                         </td>
@@ -122,6 +148,40 @@ renderUnifiedLayoutFooter('admin');
                     .catch(function() {
                         xcToast(errMsg, 'error');
                     });
+            });
+        });
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise(function(resolve, reject) {
+                try {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = String(text);
+                    textarea.style.position = 'fixed';
+                    textarea.style.left = '-9999px';
+                    textarea.style.top = '0';
+                    textarea.setAttribute('readonly', '');
+                    document.body.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    var success = document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    success ? resolve() : reject();
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+
+        jQuery('#codes-table tbody').on('click', '.js-copy-link', function() {
+            var code = this.getAttribute('data-code');
+            var fullUrl = window.location.origin + '/' + encodeURIComponent(code) + '/';
+            copyToClipboard(fullUrl).then(function() {
+                xcToast('Access URL copied to clipboard!', 'success');
+            }).catch(function() {
+                prompt('Copy Access URL:', fullUrl);
             });
         });
     })();

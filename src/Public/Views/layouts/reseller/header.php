@@ -101,6 +101,17 @@ $xmMenu = [
         ],
     ],
     [
+        'label' => 'active_codes',
+        'icon'  => 'ti tabler-key',
+        'url'   => '#',
+        'show'  => !empty($xmPermissions['create_line']),
+        'children' => [
+            ['label' => 'generate_codes', 'url' => 'active_code',        'show' => true],
+            ['label' => 'manage_codes',   'url' => 'active_codes',       'show' => true],
+            ['label' => 'batch_manager',  'url' => 'active_codes_batch', 'show' => true],
+        ],
+    ],
+    [
         'label' => 'content',
         'icon'  => 'ti tabler-player-play',
         'url'   => '#',

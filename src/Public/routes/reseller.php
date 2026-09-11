@@ -1,5 +1,8 @@
 <?php
 
+use XcVm\Public\Controllers\Reseller\ResellerActiveCodeController;
+use XcVm\Public\Controllers\Reseller\ResellerActiveCodesBatchController;
+use XcVm\Public\Controllers\Reseller\ResellerActiveCodesController;
 use XcVm\Public\Controllers\Reseller\ResellerApiController;
 use XcVm\Public\Controllers\Reseller\ResellerCreatedChannelsController;
 use XcVm\Public\Controllers\Reseller\ResellerDashboardController;
@@ -72,6 +75,12 @@ $router->get('lines', [ResellerLinesController::class, 'index']);
 $router->get('line', [ResellerLineController::class, 'index']);
 $router->get('line_activity', [ResellerLineActivityController::class, 'index']);
 $router->get('live_connections', [ResellerLiveConnectionsController::class, 'index']);
+
+// ─── Smart Activation Codes ─────────────────────────
+
+$router->get('active_codes', [ResellerActiveCodesController::class, 'index']);
+$router->get('active_code', [ResellerActiveCodeController::class, 'index']);
+$router->get('active_codes_batch', [ResellerActiveCodesBatchController::class, 'index']);
 
 // ─── Devices MAG / Enigma ──────────────────────────
 

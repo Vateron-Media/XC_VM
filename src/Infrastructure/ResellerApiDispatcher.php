@@ -3,12 +3,14 @@
 namespace XcVm\Infrastructure;
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Stream\CategoryService;
@@ -46,25 +48,78 @@ class ResellerApiDispatcher {
 	public static function dispatch(string $action, ?array $rUserInfo, array $rPermissions): void {
 		global $db;
 		switch ($action) {
-			case 'dashboard':         self::handleDashboard($rUserInfo, $rPermissions, $db);         break;
-			case 'connections':       self::handleConnections($rUserInfo, $rPermissions, $db);       break;
-			case 'line':              self::handleLine($rUserInfo, $rPermissions, $db);              break;
-			case 'line_activity':     self::handleLineActivity($rUserInfo, $rPermissions, $db);      break;
-			case 'adjust_credits':    self::handleAdjustCredits($rUserInfo, $rPermissions, $db);     break;
-			case 'reg_user':          self::handleRegUser($rUserInfo, $rPermissions, $db);           break;
-			case 'ticket':            self::handleTicket($rUserInfo, $rPermissions, $db);            break;
-			case 'mag':               self::handleMag($rUserInfo, $rPermissions, $db);               break;
-			case 'enigma':            self::handleEnigma($rUserInfo, $rPermissions, $db);            break;
-			case 'get_package':       self::handleGetPackage($rUserInfo, $rPermissions, $db);        break;
-			case 'get_package_trial': self::handleGetPackageTrial($rUserInfo, $rPermissions, $db);   break;
-			case 'header_stats':      self::handleHeaderStats($rUserInfo, $rPermissions, $db);       break;
-			case 'stats':             self::handleStats($rUserInfo, $rPermissions, $db);             break;
-			case 'userlist':          self::handleUserList($rUserInfo, $rPermissions, $db);          break;
-			case 'send_event':        self::handleSendEvent($rUserInfo, $rPermissions, $db);         break;
-			case 'streamlist':        self::handleStreamList($rUserInfo, $rPermissions, $db);        break;
-			case 'ip_whois':          self::handleIpWhois($rUserInfo, $rPermissions, $db);           break;
-			case 'get_epg':           self::handleGetEpg($rUserInfo, $rPermissions, $db);            break;
-			case 'get_programme':     self::handleGetProgramme($rUserInfo, $rPermissions, $db);      break;
+			case 'dashboard':
+				self::handleDashboard($rUserInfo, $rPermissions, $db);
+				break;
+			case 'connections':
+				self::handleConnections($rUserInfo, $rPermissions, $db);
+				break;
+			case 'line':
+				self::handleLine($rUserInfo, $rPermissions, $db);
+				break;
+			case 'line_activity':
+				self::handleLineActivity($rUserInfo, $rPermissions, $db);
+				break;
+			case 'adjust_credits':
+				self::handleAdjustCredits($rUserInfo, $rPermissions, $db);
+				break;
+			case 'reg_user':
+				self::handleRegUser($rUserInfo, $rPermissions, $db);
+				break;
+			case 'ticket':
+				self::handleTicket($rUserInfo, $rPermissions, $db);
+				break;
+			case 'mag':
+				self::handleMag($rUserInfo, $rPermissions, $db);
+				break;
+			case 'enigma':
+				self::handleEnigma($rUserInfo, $rPermissions, $db);
+				break;
+			case 'get_package':
+				self::handleGetPackage($rUserInfo, $rPermissions, $db);
+				break;
+			case 'get_package_trial':
+				self::handleGetPackageTrial($rUserInfo, $rPermissions, $db);
+				break;
+			case 'header_stats':
+				self::handleHeaderStats($rUserInfo, $rPermissions, $db);
+				break;
+			case 'stats':
+				self::handleStats($rUserInfo, $rPermissions, $db);
+				break;
+			case 'userlist':
+				self::handleUserList($rUserInfo, $rPermissions, $db);
+				break;
+			case 'send_event':
+				self::handleSendEvent($rUserInfo, $rPermissions, $db);
+				break;
+			case 'streamlist':
+				self::handleStreamList($rUserInfo, $rPermissions, $db);
+				break;
+			case 'ip_whois':
+				self::handleIpWhois($rUserInfo, $rPermissions, $db);
+				break;
+			case 'get_epg':
+				self::handleGetEpg($rUserInfo, $rPermissions, $db);
+				break;
+			case 'get_programme':
+				self::handleGetProgramme($rUserInfo, $rPermissions, $db);
+				break;
+			case 'active_code_details':
+				self::handleActiveCodeDetails($rUserInfo, $rPermissions, $db);
+				break;
+			case 'active_codes_mass':
+				self::handleActiveCodesMass($rUserInfo, $rPermissions, $db);
+				break;
+			case 'active_codes_batch_action':
+				self::handleActiveCodesBatchAction($rUserInfo, $rPermissions, $db);
+				break;
+			case 'active_codes_export_txt':
+				self::handleActiveCodesExportTxt($rUserInfo, $rPermissions, $db);
+				break;
+			case 'generate_active_codes':
+				self::handleGenerateActiveCodes($rUserInfo, $rPermissions, $db);
+				break;
 		}
 	}
 
@@ -1012,6 +1067,175 @@ class ResellerApiDispatcher {
 			echo json_encode(array('result' => false));
 			exit();
 		}
+		exit();
+	}
+
+	/**
+	 * Handle Active Code Details AJAX (modal view)
+	 */
+	private static function handleActiveCodeDetails(?array $rUserInfo, array $rPermissions, $db): void {
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		if (!$codeId) {
+			echo json_encode(['result' => false, 'message' => 'Missing code ID.']);
+			exit();
+		}
+
+		$allowedReports = (array)($rUserInfo['reports'] ?? [$rUserInfo['id']]);
+		$code = $db->fetchOne(
+			"SELECT `activation_codes`.*, `lines`.`username` as `sub_username`, `lines`.`password` as `sub_password`,
+			        `lines`.`exp_date` as `sub_exp_date`, `lines`.`max_connections` as `line_max_conn`
+			 FROM `activation_codes`
+			 LEFT JOIN `lines` ON `lines`.`id` = `activation_codes`.`subscriber_id`
+			 WHERE `activation_codes`.`id` = ? AND `activation_codes`.`created_by` IN (" . implode(',', array_map('intval', $allowedReports)) . ") LIMIT 1;",
+			$codeId
+		);
+
+		if (!$code) {
+			echo json_encode(['result' => false, 'message' => 'Code not found or access denied.']);
+			exit();
+		}
+
+		$package = PackageService::getById((int)$code['package_id']);
+		$portalUrl = rtrim($code['dns_base'] ?: DomainResolver::resolve(SERVER_ID), '/');
+		$portalParsed = parse_url($portalUrl);
+
+		$m3uHls = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=hls";
+		$m3uTs  = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=ts";
+
+		$portalCode = null;
+		$db->query("SELECT `code` FROM `access_codes` WHERE `type` = 7 AND `enabled` = 1 LIMIT 1;");
+		if ($db->num_rows() > 0) {
+			$portalCode = $db->get_row()['code'];
+		}
+
+		$playerCode = null;
+		$db->query("SELECT `code` FROM `access_codes` WHERE `type` = 6 AND `enabled` = 1 LIMIT 1;");
+		if ($db->num_rows() > 0) {
+			$playerCode = $db->get_row()['code'];
+		}
+
+		$subscriberPortalUrl = $portalCode ? "{$portalUrl}/{$portalCode}/" : "{$portalUrl}/portal";
+		$directActivateUrl   = "{$subscriberPortalUrl}?code=" . urlencode((string)$code['activation_code']);
+		$webPlayerUrl        = $playerCode ? "{$portalUrl}/{$playerCode}/" : null;
+
+		echo json_encode([
+			'result' => true,
+			'data' => [
+				'id' => (int)$code['id'],
+				'code' => $code['activation_code'],
+				'batch_name' => $code['batch_name'],
+				'status' => (int)$code['status'],
+				'status_text' => ($code['status'] == 1) ? 'Ready (Stock)' : (($code['status'] == 2) ? 'Active' : 'Disabled'),
+				'package_name' => $package['package_name'] ?? 'Custom Package',
+				'is_trial' => (bool)$code['is_trial'],
+				'max_connections' => (int)($code['line_max_conn'] ?: $code['max_connections']),
+				'exp_date' => $code['sub_exp_date'] ? date('Y-m-d H:i:s', (int)$code['sub_exp_date']) : 'Frozen (Stock)',
+				'activated_at' => $code['activated_at'] ? date('Y-m-d H:i:s', (int)$code['activated_at']) : 'Never',
+				'created_at' => $code['created_at'] ? date('Y-m-d H:i:s', (int)$code['created_at']) : '-',
+				'mac' => $code['mac'] ?: 'None',
+				'device_id' => $code['device_id'] ?: 'None',
+				'username' => $code['sub_username'],
+				'password' => $code['sub_password'],
+				'server' => $portalParsed['host'] ?? 'localhost',
+				'port' => $portalParsed['port'] ?? (isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : 80),
+				'portal_url' => $portalUrl,
+				'activation_portal_url' => $subscriberPortalUrl,
+				'direct_activate_url' => $directActivateUrl,
+				'web_player_url' => $webPlayerUrl,
+				'm3u_hls' => $m3uHls,
+				'm3u_ts' => $m3uTs,
+			]
+		]);
+		exit();
+	}
+
+	/**
+	 * Handle Active Codes Mass Actions AJAX
+	 */
+	private static function handleActiveCodesMass(?array $rUserInfo, array $rPermissions, $db): void {
+		$subAction = trim(RequestManager::get('sub_action') ?? '');
+		$ids = json_decode(RequestManager::get('ids') ?? '[]', true) ?: [];
+		$extra = [
+			'days' => intval(RequestManager::get('days') ?? 30),
+			'package_id' => intval(RequestManager::get('package_id') ?? 0),
+			'refund_credits' => !empty(RequestManager::get('refund_credits')),
+		];
+
+		$res = ActiveCodeService::massAction($subAction, $ids, $rUserInfo, false, $extra);
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? 'Action processed.'
+		]);
+		exit();
+	}
+
+	/**
+	 * Handle Batch Action AJAX (Enable, Disable, Delete)
+	 */
+	private static function handleActiveCodesBatchAction(?array $rUserInfo, array $rPermissions, $db): void {
+		$batchName = trim(RequestManager::get('batch_name') ?? '');
+		$subAction = trim(RequestManager::get('sub_action') ?? '');
+		$refund = !empty(RequestManager::get('refund_credits'));
+
+		if (empty($batchName)) {
+			echo json_encode(['result' => false, 'message' => 'Missing batch name.']);
+			exit();
+		}
+
+		$allowedReports = (array)($rUserInfo['reports'] ?? [$rUserInfo['id']]);
+		$codes = $db->fetchAll(
+			"SELECT `id` FROM `activation_codes` WHERE `batch_name` = ? AND `created_by` IN (" . implode(',', array_map('intval', $allowedReports)) . ");",
+			$batchName
+		);
+
+		if (empty($codes)) {
+			echo json_encode(['result' => false, 'message' => 'No codes found for this batch.']);
+			exit();
+		}
+
+		$ids = array_column($codes, 'id');
+		$res = ActiveCodeService::massAction($subAction, $ids, $rUserInfo, false, ['refund_credits' => $refund]);
+
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? 'Batch action processed.'
+		]);
+		exit();
+	}
+
+	/**
+	 * Handle Export Scratch Cards TXT
+	 */
+	private static function handleActiveCodesExportTxt(?array $rUserInfo, array $rPermissions, $db): void {
+		$batchName = trim(RequestManager::get('batch_name') ?? '');
+		if (empty($batchName)) {
+			exit('Invalid batch name');
+		}
+
+		$content = ActiveCodeService::exportBatchTxt($batchName, $rUserInfo, false);
+		$filename = preg_replace('/[^A-Za-z0-9_\-]/', '_', $batchName) . '_vouchers.txt';
+
+		header('Content-Type: text/plain; charset=utf-8');
+		header('Content-Disposition: attachment; filename="' . $filename . '"');
+		header('Content-Length: ' . strlen($content));
+		echo $content;
+		exit();
+	}
+
+	/**
+	 * Handle AJAX Code Generation
+	 */
+	private static function handleGenerateActiveCodes(?array $rUserInfo, array $rPermissions, $db): void {
+		$data = RequestManager::getAll();
+		$res = ActiveCodeService::generateCodes($data, $rUserInfo, false);
+
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? '',
+			'batch_name' => $res['batch_name'] ?? null,
+			'qty' => $res['qty'] ?? 0,
+			'codes' => $res['codes'] ?? []
+		]);
 		exit();
 	}
 }

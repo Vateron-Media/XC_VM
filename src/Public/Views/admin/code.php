@@ -14,7 +14,7 @@ use XcVm\Domain\User\GroupService;
 $rIsEdit = isset($rCode);
 $rCodeGroups = ($rIsEdit && !empty($rCode['groups'])) ? (json_decode((string) $rCode['groups'], true) ?: []) : [];
 $rWhitelist = ($rIsEdit && !empty($rCode['whitelist'])) ? (json_decode((string) $rCode['whitelist'], true) ?: []) : [];
-$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player'];
+$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal'];
 ?>
 
 <div class="d-flex align-items-center mb-4">
@@ -66,6 +66,27 @@ $rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'W
                     <div class="form-check form-switch">
                         <input class="form-check-input" type="checkbox" id="enabled" name="enabled" value="1" <?= (!$rIsEdit || $rCode['enabled'] == 1) ? 'checked' : ''; ?>>
                         <label class="form-check-label" for="enabled"><?= $language::get('enabled'); ?></label>
+                    </div>
+
+                    <div class="alert alert-primary bg-primary bg-opacity-10 border-primary border-opacity-25 mt-4 d-none" id="portal-preview-box">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="avatar avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center mt-1 flex-shrink-0">
+                                <i class="icon-base ti tabler-key fs-5" id="preview-box-icon"></i>
+                            </div>
+                            <div class="flex-grow-1 overflow-hidden">
+                                <h6 class="alert-heading fw-bold mb-1" id="preview-box-title">Active Code Portal Direct Access</h6>
+                                <p class="mb-2 small text-body-secondary" id="preview-box-desc">
+                                    Subscribers can open this URL to input their activation codes, receive Xtream Codes credentials, and download playlists.
+                                </p>
+                                <div class="d-flex align-items-center gap-2 bg-body p-2 rounded-2 border">
+                                    <i class="icon-base ti tabler-link text-primary flex-shrink-0"></i>
+                                    <span class="font-monospace small fw-bold text-truncate" id="portal-url-preview"></span>
+                                    <button type="button" class="btn btn-xs btn-label-secondary ms-auto flex-shrink-0" id="btn-copy-preview-url" title="Copy URL">
+                                        <i class="icon-base ti tabler-copy me-1"></i>Copy URL
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="tab-pane fade" id="tab-groups" role="tabpanel">
@@ -133,6 +154,89 @@ renderUnifiedLayoutFooter('admin');
                 document.getElementById('code').value = genCode();
             }
         <?php endif; ?>
+
+        // Dynamic preview for Web Player (6) and Active Code Portal (7)
+        var typeSelect = document.getElementById('type');
+        var codeInput = document.getElementById('code');
+        var previewBox = document.getElementById('portal-preview-box');
+        var previewTitle = document.getElementById('preview-box-title');
+        var previewDesc = document.getElementById('preview-box-desc');
+        var previewUrl = document.getElementById('portal-url-preview');
+        var previewIcon = document.getElementById('preview-box-icon');
+        var copyPreviewBtn = document.getElementById('btn-copy-preview-url');
+        var tabGroupsBtn = document.querySelector('button[data-bs-target="#tab-groups"]');
+
+        function updatePreview() {
+            var typeVal = parseInt(typeSelect.value, 10);
+            var codeVal = codeInput.value.trim();
+            var origin = window.location.origin;
+            var fullUrl = origin + '/' + (codeVal ? encodeURIComponent(codeVal) : '...') + '/';
+
+            if (typeVal === 7) {
+                previewBox.classList.remove('d-none');
+                previewTitle.textContent = 'Active Code Portal (Subscriber Activation)';
+                previewDesc.textContent = 'Subscribers open this URL to enter their activation codes, view Xtream Codes credentials, and download playlists.';
+                previewIcon.className = 'icon-base ti tabler-key fs-5';
+                previewUrl.textContent = fullUrl;
+                if (tabGroupsBtn) {
+                    tabGroupsBtn.classList.add('disabled', 'opacity-50');
+                    tabGroupsBtn.title = 'Groups do not apply to subscriber portals';
+                }
+            } else if (typeVal === 6) {
+                previewBox.classList.remove('d-none');
+                previewTitle.textContent = 'Web Player Direct Access';
+                previewDesc.textContent = 'Subscribers open this URL to stream channels and VOD directly in their web browser.';
+                previewIcon.className = 'icon-base ti tabler-device-tv fs-5';
+                previewUrl.textContent = fullUrl;
+                if (tabGroupsBtn) {
+                    tabGroupsBtn.classList.add('disabled', 'opacity-50');
+                    tabGroupsBtn.title = 'Groups do not apply to web players';
+                }
+            } else {
+                previewBox.classList.add('d-none');
+                if (tabGroupsBtn) {
+                    tabGroupsBtn.classList.remove('disabled', 'opacity-50');
+                    tabGroupsBtn.removeAttribute('title');
+                }
+            }
+        }
+
+        typeSelect.addEventListener('change', updatePreview);
+        codeInput.addEventListener('input', updatePreview);
+        updatePreview();
+
+        if (copyPreviewBtn) {
+            copyPreviewBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                var txt = previewUrl.textContent;
+                if (!txt) return;
+                var p = (navigator.clipboard && window.isSecureContext)
+                    ? navigator.clipboard.writeText(txt)
+                    : new Promise(function(resolve, reject) {
+                        try {
+                            var textarea = document.createElement('textarea');
+                            textarea.value = String(txt);
+                            textarea.style.position = 'fixed';
+                            textarea.style.left = '-9999px';
+                            textarea.style.top = '0';
+                            textarea.setAttribute('readonly', '');
+                            document.body.appendChild(textarea);
+                            textarea.focus();
+                            textarea.select();
+                            var success = document.execCommand('copy');
+                            document.body.removeChild(textarea);
+                            success ? resolve() : reject();
+                        } catch (err) {
+                            reject(err);
+                        }
+                    });
+                p.then(function() {
+                    xcToast('Copied portal URL to clipboard!', 'success');
+                }).catch(function() {
+                    prompt('Copy portal URL:', txt);
+                });
+            });
+        }
 
         // Group select-all / none.
         document.getElementById('grp-all').addEventListener('click', function() {

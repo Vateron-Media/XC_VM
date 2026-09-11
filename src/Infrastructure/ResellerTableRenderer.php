@@ -88,6 +88,9 @@ class ResellerTableRenderer {
 			case 'reg_users':
 				self::handleRegUsers($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
+			case 'active_codes':
+				self::handleActiveCodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
+				break;
 		}
 	}
 
@@ -125,6 +128,7 @@ class ResellerTableRenderer {
 		}
 		$rWhere = $rWhereV = array();
 		$rWhere[] = '`lines`.`is_mag` = 0 AND `lines`.`is_e2` = 0';
+		$rWhere[] = '(`lines`.`is_activecode` = 0 OR `lines`.`is_activecode` IS NULL)';
 		$rWhere[] = '`lines`.`member_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if (0 >= strlen(RequestManager::get('search')['value'])) {
 		} else {
@@ -1797,8 +1801,141 @@ class ResellerTableRenderer {
 				}
 			}
 			return $rReturn;
-		} else {
-			return $rRow;
 		}
+		return $rRow;
+	}
+
+	/**
+	 * Render the reseller "active_codes" table.
+	 */
+	private static function handleActiveCodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
+		$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir'] ?? '') === 'desc' ? 'desc' : 'asc');
+		$rOrder = [
+			false, // checkbox
+			'`activation_codes`.`activation_code`',
+			'`activation_codes`.`batch_name`',
+			'`activation_codes`.`package_id`',
+			'`activation_codes`.`status`',
+			'`lines`.`exp_date`',
+			'`lines`.`username`',
+			'`activation_codes`.`mac`',
+			'`activation_codes`.`created_at`',
+			false // actions
+		];
+
+		$rOrderRow = (RequestManager::has('order') && strlen(RequestManager::get('order')[0]['column'] ?? '') > 0)
+			? intval(RequestManager::get('order')[0]['column'])
+			: 8;
+
+		$rOrderBy = (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow] !== false)
+			? "ORDER BY {$rOrder[$rOrderRow]} {$rOrderDirection}"
+			: "ORDER BY `activation_codes`.`created_at` DESC";
+
+		$rWhere = [];
+		$rWhereV = [];
+
+		// Scoped to reseller and sub-resellers
+		$rWhere[] = '`activation_codes`.`created_by` IN (' . implode(',', array_map('intval', $rUserInfo['reports'])) . ')';
+
+		// Search
+		$searchVal = trim(RequestManager::get('search')['value'] ?? '');
+		if (strlen($searchVal) > 0) {
+			$searchParam = "%{$searchVal}%";
+			$rWhere[] = '(`activation_codes`.`activation_code` LIKE ? OR `activation_codes`.`batch_name` LIKE ? OR `lines`.`username` LIKE ? OR `activation_codes`.`mac` LIKE ?)';
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+		}
+
+		// Status filter: 1=Ready/Stock, 2=Active, 3=Expired, 4=Disabled
+		$filter = RequestManager::get('filter');
+		if (strlen((string)$filter) > 0 && $filter != 0) {
+			if ($filter == 1) {
+				$rWhere[] = '`activation_codes`.`status` = 1';
+			} elseif ($filter == 2) {
+				$rWhere[] = '`activation_codes`.`status` = 2 AND (`lines`.`exp_date` IS NULL OR `lines`.`exp_date` > UNIX_TIMESTAMP())';
+			} elseif ($filter == 3) {
+				$rWhere[] = '`activation_codes`.`status` = 2 AND `lines`.`exp_date` IS NOT NULL AND `lines`.`exp_date` <= UNIX_TIMESTAMP()';
+			} elseif ($filter == 4) {
+				$rWhere[] = '`activation_codes`.`status` = 0';
+			}
+		}
+
+		// Batch filter
+		$batchFilter = trim((string)RequestManager::get('batch'));
+		if (strlen($batchFilter) > 0) {
+			$rWhere[] = '`activation_codes`.`batch_name` = ?';
+			$rWhereV[] = $batchFilter;
+		}
+
+		// Package filter
+		$packageFilter = intval(RequestManager::get('package'));
+		if ($packageFilter > 0) {
+			$rWhere[] = '`activation_codes`.`package_id` = ?';
+			$rWhereV[] = $packageFilter;
+		}
+
+		$whereClause = 'WHERE ' . implode(' AND ', $rWhere);
+
+		$countSql = "SELECT COUNT(*) as `total` FROM `activation_codes` LEFT JOIN `lines` ON `lines`.`id` = `activation_codes`.`subscriber_id` {$whereClause};";
+		$db->query($countSql, ...$rWhereV);
+		$rReturn['recordsTotal'] = $rReturn['recordsFiltered'] = (int)($db->get_row()['total'] ?? 0);
+
+		$sql = "SELECT
+					`activation_codes`.*,
+					`lines`.`username` as `sub_username`,
+					`lines`.`exp_date` as `sub_exp_date`,
+					`lines`.`enabled` as `line_enabled`,
+					`users`.`username` as `creator_username`
+				FROM `activation_codes`
+				LEFT JOIN `lines` ON `lines`.`id` = `activation_codes`.`subscriber_id`
+				LEFT JOIN `users` ON `users`.`id` = `activation_codes`.`created_by`
+				{$whereClause}
+				{$rOrderBy}
+				LIMIT {$rStart}, {$rLimit};";
+
+		$db->query($sql, ...$rWhereV);
+		$rows = $db->get_rows() ?: [];
+
+		$data = [];
+		$packagesCache = [];
+		$now = time();
+
+		foreach ($rows as $row) {
+			$pkgId = (int) $row['package_id'];
+			if (!isset($packagesCache[$pkgId])) {
+				$pkg = PackageService::getById($pkgId);
+				$packagesCache[$pkgId] = $pkg['package_name'] ?? 'Package #' . $pkgId;
+			}
+
+			$status = (int) $row['status'];
+			$expUnix = $row['sub_exp_date'] ? (int) $row['sub_exp_date'] : 0;
+			$expExpired = ($status === 2 && $expUnix && $expUnix < $now);
+			$createdUnix = $row['created_at'] ? (int) $row['created_at'] : 0;
+
+			// Clean, keyed row payload; the Bootstrap 5 view renders every badge /
+			// status / action button client-side. Mirrors the admin active_codes
+			// handler. The subscriber password is intentionally NOT exposed here.
+			$data[] = [
+				'id' => (int) $row['id'],
+				'code' => (string) $row['activation_code'],
+				'batch' => (string) ($row['batch_name'] ?: 'None'),
+				'package_name' => $packagesCache[$pkgId],
+				'is_trial' => !empty($row['is_trial']),
+				'status' => $status,
+				'exp_unix' => $expUnix,
+				'exp_str' => $expUnix ? date('Y-m-d H:i', $expUnix) : '',
+				'exp_expired' => $expExpired,
+				'remaining_days' => ($expUnix && !$expExpired && $status !== 0 && $status !== 1) ? (int) ceil(($expUnix - $now) / 86400) : 0,
+				'sub_username' => $row['sub_username'] !== null ? (string) $row['sub_username'] : null,
+				'mac' => !empty($row['mac']) ? (string) $row['mac'] : null,
+				'created_str' => $createdUnix ? date('Y-m-d H:i', $createdUnix) : '-',
+			];
+		}
+
+		$rReturn['data'] = $data;
+		echo json_encode($rReturn);
+		exit();
 	}
 }

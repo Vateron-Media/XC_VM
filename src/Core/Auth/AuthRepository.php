@@ -64,6 +64,34 @@ class AuthRepository {
 	}
 
 	/**
+	 * Get the active code string for Web Player (type 6), if configured and enabled.
+	 *
+	 * @return string|null
+	 */
+	public static function getWebPlayerCode(): ?string {
+		foreach (self::getAllCodes(6) as $code) {
+			if (!empty($code['enabled'])) {
+				return (string)$code['code'];
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Get the active code string for Active Code Portal (type 7), if configured and enabled.
+	 *
+	 * @return string|null
+	 */
+	public static function getActiveCodePortalCode(): ?string {
+		foreach (self::getAllCodes(7) as $code) {
+			if (!empty($code['enabled'])) {
+				return (string)$code['code'];
+			}
+		}
+		return null;
+	}
+
+	/**
 	 * Regenerate per-code nginx config files from the database and reload nginx.
 	 *
 	 * Rebuilds `bin/nginx/conf/codes/*.conf` for every enabled access code,
@@ -95,9 +123,13 @@ class AuthRepository {
 				// NOTE: 'includes/api/admin' and 'includes/api/reseller' are legacy nginx route
 				// identifiers baked into generated access-code configs — NOT filesystem paths.
 				// Do not rename without regenerating all deployed nginx configs.
-				$rType = array('admin', 'reseller', 'ministra', 'includes/api/admin', 'includes/api/reseller', 'ministra/new', 'player')[$rCode['type']];
-				$rAlias = array('Public/Views/admin', 'reseller', 'Ministra', 'includes/api/admin', 'includes/api/reseller', 'Ministra/new', 'Public/assets/player')[$rCode['type']];
-				$rBurst = array(500, 50, 50, 1000, 1000, 50, 500)[$rCode['type']];
+				$rTypeMap = [0 => 'admin', 1 => 'reseller', 2 => 'ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'ministra/new', 6 => 'player', 7 => 'portal'];
+				$rAliasMap = [0 => 'Public/Views/admin', 1 => 'reseller', 2 => 'Ministra', 3 => 'includes/api/admin', 4 => 'includes/api/reseller', 5 => 'Ministra/new', 6 => 'Public/assets/player', 7 => 'Public/Views/portal'];
+				$rBurstMap = [0 => 500, 1 => 50, 2 => 50, 3 => 1000, 4 => 1000, 5 => 50, 6 => 500, 7 => 500];
+
+				$rType = $rTypeMap[(int)$rCode['type']] ?? 'admin';
+				$rAlias = $rAliasMap[(int)$rCode['type']] ?? 'Public/Views/admin';
+				$rBurst = $rBurstMap[(int)$rCode['type']] ?? 500;
 				$rCurrentTemplate = in_array($rType, array('ministra', 'ministra/new')) ? $rMinistraTemplate : $rTemplate;
 
 				if (in_array($rType, array('ministra', 'ministra/new')) || strlen($rCode['code']) >= 4) {

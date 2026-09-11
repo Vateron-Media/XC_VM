@@ -6,6 +6,7 @@ use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamSorter;
 use XcVm\Domain\User\UserRepository;
@@ -106,15 +107,39 @@ class PlayerApiController {
 		}
 		$rUserInfo = null;
 
-		if (isset($rRequest['username']) && isset($rRequest['password'])) {
+		if (isset($rRequest['username'])) {
 			$rUsername = $rRequest['username'];
-			$rPassword = $rRequest['password'];
+			$rPassword = $rRequest['password'] ?? '';
 
-			if (empty($rUsername) || empty($rPassword)) {
-				generateError('NO_CREDENTIALS');
+			if (!empty($rUsername) && !empty($rPassword)) {
+				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
 			}
 
-			$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
+			// Active Code transparent auto-activation fallback
+			if (!$rUserInfo && !empty($rUsername) && class_exists(ActiveCodeService::class)) {
+				$candidateCode = trim($rUsername);
+				$codeRow = ActiveCodeService::getByCode($candidateCode);
+				if ($codeRow) {
+					$deviceInfo = [
+						'mac' => $rRequest['mac'] ?? '',
+						'device_id' => $rRequest['device_id'] ?? '',
+						'ip' => $rIP
+					];
+					$actRes = ActiveCodeService::activateCode($candidateCode, $deviceInfo);
+					if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
+						$rUsername = $actRes['line']['username'];
+						$rPassword = $actRes['line']['password'];
+						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
+						if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
+							$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
+						}
+					}
+				}
+			}
+
+			if (!$rUserInfo && (empty($rUsername) || empty($rPassword))) {
+				generateError('NO_CREDENTIALS');
+			}
 		} else {
 			if (isset($rRequest['token'])) {
 				$rToken = $rRequest['token'];
@@ -124,6 +149,27 @@ class PlayerApiController {
 				}
 
 				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rToken, null, $rGetChannels);
+
+				if (!$rUserInfo && class_exists(ActiveCodeService::class)) {
+					$candidateCode = trim($rToken);
+					$codeRow = ActiveCodeService::getByCode($candidateCode);
+					if ($codeRow) {
+						$deviceInfo = [
+							'mac' => $rRequest['mac'] ?? '',
+							'device_id' => $rRequest['device_id'] ?? '',
+							'ip' => $rIP
+						];
+						$actRes = ActiveCodeService::activateCode($candidateCode, $deviceInfo);
+						if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
+							$rUsername = $actRes['line']['username'];
+							$rPassword = $actRes['line']['password'];
+							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
+							if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
+								$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
+							}
+						}
+					}
+				}
 			}
 		}
 

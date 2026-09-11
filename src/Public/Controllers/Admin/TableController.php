@@ -104,6 +104,9 @@ class TableController extends BaseAdminController {
 			case "lines":
 				$this->handleLines($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
+			case "active_codes":
+				$this->handleActiveCodes($rReturn, $rStart, $rLimit, $rIsAPI);
+				return;
 			case "mags":
 				$this->handleMags($rReturn, $rStart, $rLimit, $rIsAPI);
 				return;
@@ -243,6 +246,150 @@ class TableController extends BaseAdminController {
 		}
 	}
 
+	private function handleActiveCodes($rReturn, $rStart, $rLimit, $rIsAPI) {
+		global $db;
+		if (!Authorization::check("adv", "users") && !Authorization::check("adv", "manage_lines")) {
+			exit;
+		}
+
+		$rOrderDirection = strtolower(RequestManager::get("order")[0]["dir"] ?? '') === "desc" ? "desc" : "asc";
+		$rOrder = [
+			false, // control
+			false, // checkbox
+			'`activation_codes`.`activation_code`',
+			'`activation_codes`.`batch_name`',
+			'`activation_codes`.`package_id`',
+			'`users`.`username`',
+			'`activation_codes`.`status`',
+			'`lines`.`exp_date`',
+			'`lines`.`username`',
+			'`activation_codes`.`mac`',
+			'`activation_codes`.`created_at`',
+			false // actions
+		];
+
+		$rOrderRow = (RequestManager::has("order") && strlen(RequestManager::get("order")[0]["column"] ?? '') > 0)
+			? (int)(RequestManager::get("order")[0]["column"])
+			: 10;
+
+		$rOrderBy = (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow] !== false)
+			? "ORDER BY {$rOrder[$rOrderRow]} {$rOrderDirection}"
+			: "ORDER BY `activation_codes`.`created_at` DESC";
+
+		$rWhere = [];
+		$rWhereV = [];
+
+		// Reseller filter
+		$resellerFilter = (int)(RequestManager::get("reseller") ?? 0);
+		if ($resellerFilter > 0) {
+			$rWhere[] = "`activation_codes`.`created_by` = ?";
+			$rWhereV[] = $resellerFilter;
+		}
+
+		// Status filter: 1=Ready/Stock, 2=Active, 3=Expired, 4=Disabled
+		$filter = RequestManager::get("filter");
+		if (strlen((string)$filter) > 0 && $filter != 0) {
+			if ($filter == 1) {
+				$rWhere[] = "`activation_codes`.`status` = 1";
+			} elseif ($filter == 2) {
+				$rWhere[] = "`activation_codes`.`status` = 2 AND (`lines`.`exp_date` IS NULL OR `lines`.`exp_date` > UNIX_TIMESTAMP())";
+			} elseif ($filter == 3) {
+				$rWhere[] = "`activation_codes`.`status` = 2 AND `lines`.`exp_date` IS NOT NULL AND `lines`.`exp_date` <= UNIX_TIMESTAMP()";
+			} elseif ($filter == 4) {
+				$rWhere[] = "`activation_codes`.`status` = 0";
+			}
+		}
+
+		// Batch filter
+		$batchFilter = trim((string)RequestManager::get("batch"));
+		if (strlen($batchFilter) > 0) {
+			$rWhere[] = "`activation_codes`.`batch_name` = ?";
+			$rWhereV[] = $batchFilter;
+		}
+
+		// Package filter
+		$packageFilter = (int)(RequestManager::get("package") ?? 0);
+		if ($packageFilter > 0) {
+			$rWhere[] = "`activation_codes`.`package_id` = ?";
+			$rWhereV[] = $packageFilter;
+		}
+
+		// Search
+		$searchVal = trim(RequestManager::get("search")["value"] ?? '');
+		if (strlen($searchVal) > 0) {
+			$searchParam = "%{$searchVal}%";
+			$rWhere[] = "(`activation_codes`.`activation_code` LIKE ? OR `activation_codes`.`batch_name` LIKE ? OR `lines`.`username` LIKE ? OR `users`.`username` LIKE ? OR `activation_codes`.`mac` LIKE ?)";
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+			$rWhereV[] = $searchParam;
+		}
+
+		$whereClause = !empty($rWhere) ? ("WHERE " . implode(" AND ", $rWhere)) : "";
+
+		$countSql = "SELECT COUNT(*) as `total` FROM `activation_codes` LEFT JOIN `lines` ON `lines`.`id` = `activation_codes`.`subscriber_id` LEFT JOIN `users` ON `users`.`id` = `activation_codes`.`created_by` {$whereClause};";
+		$db->query($countSql, ...$rWhereV);
+		$rReturn["recordsTotal"] = $rReturn["recordsFiltered"] = (int)($db->get_row()["total"] ?? 0);
+
+		$sql = "SELECT
+					`activation_codes`.*,
+					`lines`.`username` as `sub_username`,
+					`lines`.`exp_date` as `sub_exp_date`,
+					`lines`.`enabled` as `line_enabled`,
+					`users`.`username` as `creator_username`
+				FROM `activation_codes`
+				LEFT JOIN `lines` ON `lines`.`id` = `activation_codes`.`subscriber_id`
+				LEFT JOIN `users` ON `users`.`id` = `activation_codes`.`created_by`
+				{$whereClause}
+				{$rOrderBy}
+				LIMIT {$rStart}, {$rLimit};";
+
+		$db->query($sql, ...$rWhereV);
+		$rows = $db->get_rows() ?: [];
+
+		$data = [];
+		$packagesCache = [];
+		$now = time();
+
+		foreach ($rows as $row) {
+			$pkgId = (int) $row["package_id"];
+			if (!isset($packagesCache[$pkgId])) {
+				$pkg = PackageService::getById($pkgId);
+				$packagesCache[$pkgId] = $pkg["package_name"] ?? "Package #" . $pkgId;
+			}
+
+			$status = (int) $row["status"];
+			$expUnix = $row["sub_exp_date"] ? (int) $row["sub_exp_date"] : 0;
+			$expExpired = ($status === 2 && $expUnix && $expUnix < $now);
+			$createdUnix = $row["created_at"] ? (int) $row["created_at"] : 0;
+
+			// Clean, keyed row payload; the Bootstrap 5 view renders every badge /
+			// status / action button client-side. Mirrors the reseller active_codes
+			// handler. The subscriber password is intentionally NOT exposed here.
+			$data[] = [
+				"id" => (int) $row["id"],
+				"code" => (string) $row["activation_code"],
+				"batch" => (string) ($row["batch_name"] ?: "None"),
+				"package_name" => $packagesCache[$pkgId],
+				"is_trial" => !empty($row["is_trial"]),
+				"creator" => (string) ($row["creator_username"] ?: "Admin"),
+				"status" => $status,
+				"exp_unix" => $expUnix,
+				"exp_str" => $expUnix ? date("Y-m-d H:i", $expUnix) : "",
+				"exp_expired" => $expExpired,
+				"remaining_days" => ($expUnix && !$expExpired && $status !== 0 && $status !== 1) ? (int) ceil(($expUnix - $now) / 86400) : 0,
+				"sub_username" => $row["sub_username"] !== null ? (string) $row["sub_username"] : null,
+				"mac" => !empty($row["mac"]) ? (string) $row["mac"] : null,
+				"created_str" => $createdUnix ? date("Y-m-d H:i", $createdUnix) : "-",
+			];
+		}
+
+		$rReturn["data"] = $data;
+		echo json_encode($rReturn);
+		exit;
+	}
+
 	private function handleLines($rReturn, $rStart, $rLimit, $rIsAPI) {
 		global $db, $rSettings;
 		if (!Authorization::check("adv", "users") && !Authorization::check("adv", "mass_edit_users")) {
@@ -258,6 +405,7 @@ class TableController extends BaseAdminController {
 		}
 		$rWhere = $rWhereV = [];
 		$rWhere[] = "(`is_mag` + `is_e2`) = 0";
+		$rWhere[] = "(`lines`.`is_activecode` = 0 OR `lines`.`is_activecode` IS NULL)";
 		if (0 < strlen(RequestManager::get("search")["value"] ?? '')) {
 			foreach (range(1, 6) as $rInt) {
 				$rWhereV[] = "%" . RequestManager::get("search")["value"] . "%";
@@ -769,10 +917,7 @@ class TableController extends BaseAdminController {
 		}
 		$rCategories = CategoryService::getAllByType("live");
 		// Leading false, false = Responsive control + bulk-select checkbox columns (Bootstrap 5).
-		// One entry per column of the streams table (admin/streams.php), in order:
-		// control, select, id, icon, title, server, connections, status, player,
-		// EPG, stream info, usage, actions. false = not sortable in SQL.
-		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, false, "`streams_servers`.`bitrate`"];
+		$rOrder = [false, false, "`streams`.`id`", "`streams`.`stream_icon`", "`streams`.`stream_display_name`", "`streams_servers`.`current_source`", "`clients`", "`streams_servers`.`stream_started`", false, false, false, "`streams_servers`.`bitrate`"];
 		if (RequestManager::has("order") && 0 < strlen(RequestManager::get("order")[0]["column"] ?? '')) {
 			$rOrderRow = (int) (RequestManager::get("order")[0]["column"] ?? 0);
 		} else {
@@ -1145,21 +1290,6 @@ class TableController extends BaseAdminController {
 							$rPlayerVideo = strtoupper((string) ($rVideo["codec_name"] ?? ""));
 						}
 
-						// What the producer costs this node, and which producer it is
-						// (ffmpeg, or the fanout daemon's native remuxer). Sampled
-						// from /proc by cron:streams ON the server that runs the
-						// stream — only it can read its own processes — and carried
-						// here in the progress report it writes anyway.
-						$rUsage = null;
-						$rUsageInfo = json_decode($rRow["progress_info"] ?? '', true);
-						if (is_array($rUsageInfo) && (isset($rUsageInfo["mem"]) || isset($rUsageInfo["producer"]))) {
-							$rUsage = [
-								"cpu" => isset($rUsageInfo["cpu"]) ? (float) $rUsageInfo["cpu"] : null,
-								"mem" => isset($rUsageInfo["mem"]) ? (int) $rUsageInfo["mem"] : null,
-								"producer" => $rUsageInfo["producer"] ?? null,
-							];
-						}
-
 						// EPG availability + player codec compatibility.
 						$rEPG = file_exists(EPG_PATH . "stream_" . $rRow["id"]) ? "available" : ($rRow["channel_id"] ? "pending" : "none");
 						$rPlayerOk = false;
@@ -1194,7 +1324,6 @@ class TableController extends BaseAdminController {
 							"notes" => !empty($rRow["notes"]) ? $rRow["notes"] : null,
 							"player_ok" => $rPlayerOk,
 							"info" => $rInfo,
-							"usage" => $rUsage,
 						];
 					}
 				}
