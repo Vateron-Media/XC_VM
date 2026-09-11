@@ -340,6 +340,25 @@ class FanoutClient {
 	}
 
 	/**
+	 * Disconnect a daemon-served live-TS viewer by its connection uuid (control
+	 * DELETE /connections/<uuid>). Under X-Accel the PHP worker that admitted the
+	 * viewer returned at hand-off, so this is the only way a connection-limit
+	 * eviction or an admin kick can end the session — deleting the viewer's row
+	 * alone left it streaming, untracked.
+	 *
+	 * @param string $rUUID Viewer connection uuid (the X-Accel `?c=` value).
+	 * @return bool True when the daemon dropped a connection (204); false when the
+	 *              uuid is not connected to this node's daemon, the daemon predates
+	 *              the endpoint, or it is unreachable.
+	 */
+	public static function dropConnection(string $rUUID): bool {
+		if ($rUUID === '') {
+			return false;
+		}
+		return self::request('DELETE', '/connections/' . rawurlencode($rUUID), null, 1, 2)['code'] === 204;
+	}
+
+	/**
 	 * Per-viewer average delivery rate (KB/s since attach), keyed by connection
 	 * uuid, across all daemon streams (control GET /rates). This is the daemon
 	 * replacement for the legacy chase-read loop's DIVERGENCE_TMP_PATH speed
