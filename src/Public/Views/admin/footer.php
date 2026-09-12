@@ -85,6 +85,7 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
     window.XC_VM = window.XC_VM || {};
     window.XC_VM.Config = {
         jsNavigate: <?= !empty($rSettings['js_navigate']) ? 'true' : 'false'; ?>,
+        disableTableResponsive: <?= !empty($rSettings['disable_table_responsive']) ? 'true' : 'false'; ?>,
         i18n: {
             error_occured: <?= json_encode($language::get('error_occured')); ?>
         }
@@ -150,12 +151,40 @@ $xmBare  = $xmSetup || isset($_GET['modal']);
         var $ = jQuery;
         var errText = (window.XC_VM && XC_VM.Config && XC_VM.Config.i18n && XC_VM.Config.i18n.error_occured) || 'An error occurred.';
 
+        // Panel-wide "disable responsive tables" (settings -> disable_table_responsive).
+        // Wrap the DataTables constructor so every table inits with responsive:false:
+        // columns no longer collapse into an expandable child row on narrow screens; the
+        // surrounding .table-responsive wrapper gives a horizontal scrollbar instead. Runs
+        // here (footer, after the vendor bundle) before pages initialise their own tables.
+        var xcNoResponsive = !!(window.XC_VM && XC_VM.Config && XC_VM.Config.disableTableResponsive);
+        if (xcNoResponsive) {
+            ['DataTable', 'dataTable'].forEach(function(name) {
+                var orig = $.fn[name];
+                if (typeof orig !== 'function' || orig.xcNoResponsive) {
+                    return;
+                }
+                var wrapped = function(options) {
+                    if (options && typeof options === 'object') {
+                        options.responsive = false;
+                    }
+                    return orig.apply(this, arguments);
+                };
+                $.extend(wrapped, orig);
+                wrapped.xcNoResponsive = true;
+                $.fn[name] = wrapped;
+            });
+        }
+
         // Header alignment should follow the column's data (DataTables does not
         // propagate a body-cell class like text-center to the <th>). On init,
         // copy each column's body text-align onto its header so centered/right
         // columns don't show a left-aligned header.
         $(document).on('init.dt', function(e, settings) {
             var api = new $.fn.dataTable.Api(settings);
+            if (xcNoResponsive) {
+                // With responsive off the control (+/-) column is dead weight — hide it.
+                api.columns('.control').visible(false);
+            }
             api.columns().every(function() {
                 var cells = this.nodes(),
                     header = this.header();

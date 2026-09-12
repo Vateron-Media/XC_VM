@@ -222,6 +222,17 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
+								<label class="col-md-4 col-form-label" for="responsive_tables">
+									<?= $language::get('responsive_tables') ?: 'Responsive Tables'; ?>
+									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('responsive_tables_tooltip') ?: 'On: table columns collapse into an expandable row on narrow screens. Off: tables keep full width with a horizontal scrollbar.'; ?>"></i>
+								</label>
+
+								<div class="col-md-2">
+									<div class="form-check form-switch"><input name="responsive_tables" id="responsive_tables" type="checkbox" <?= empty($rSettings["disable_table_responsive"]) ? ' checked' : '' ?> class="form-check-input"></div>
+								</div>
+							</div>
+
+							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="show_tickets">
 									<?= $language::get('show_tickets_icon') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('show_tickets_icon_in_the_tooltip') ?>"></i>
