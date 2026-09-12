@@ -43,12 +43,18 @@ $rBouquetId = (int) RequestManager::get('id');
             <?php $rFirst = true;
             foreach ($rTypes as $rType => $rMeta): ?>
                 <div class="tab-pane fade <?= $rFirst ? 'show active' : ''; ?>" id="order-<?= $rType; ?>" role="tabpanel">
-                    <p class="text-body-secondary small"><i class="icon-base ti tabler-grip-vertical"></i> Drag to re-order, then click <b>Save Changes</b>.</p>
+                    <p class="text-body-secondary small"><i class="icon-base ti tabler-grip-vertical"></i> Drag to re-order (or use the arrow buttons), then click <b>Save Changes</b>.</p>
                     <ol class="list-group xc-sortable mb-3" id="list-<?= $rType; ?>" style="list-style:none;padding-left:0;max-height:60vh;overflow-y:auto">
                         <?php foreach (($rOrdered[$rType] ?? []) as $rItem): ?>
                             <li class="list-group-item d-flex align-items-center" data-id="<?= (int) $rItem['id']; ?>" draggable="true">
                                 <i class="icon-base ti tabler-grip-vertical text-body-secondary me-3" style="cursor:grab"></i>
                                 <span class="flex-grow-1"><?= htmlspecialchars((string) ($rItem['stream_display_name'] ?? $rItem['title'] ?? ''), ENT_QUOTES); ?></span>
+                                <div class="btn-group btn-group-sm ms-2 flex-shrink-0" role="group">
+                                    <button type="button" class="btn btn-label-secondary btn-icon js-move-top" title="<?= htmlspecialchars((string) ($language::get('move_to_top') ?: 'Move to top'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-arrow-bar-to-up"></i></button>
+                                    <button type="button" class="btn btn-label-secondary btn-icon js-move-up" title="<?= htmlspecialchars((string) ($language::get('move_up') ?: 'Move up'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-chevron-up"></i></button>
+                                    <button type="button" class="btn btn-label-secondary btn-icon js-move-down" title="<?= htmlspecialchars((string) ($language::get('move_down') ?: 'Move down'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-chevron-down"></i></button>
+                                    <button type="button" class="btn btn-label-secondary btn-icon js-move-bottom" title="<?= htmlspecialchars((string) ($language::get('move_to_bottom') ?: 'Move to bottom'), ENT_QUOTES); ?>"><i class="icon-base ti tabler-arrow-bar-to-down"></i></button>
+                                </div>
                             </li>
                         <?php endforeach; ?>
                     </ol>
@@ -75,11 +81,62 @@ renderUnifiedLayoutFooter('admin');
         var errText = <?= json_encode($language::get('error_occured')); ?>;
         var toast = window.xcToast || function() {};
         var types = ['stream', 'movie', 'series', 'radio'];
+        function moveRow(btn, dir) {
+            var li = btn.closest('li');
+            if (!li) {
+                return;
+            }
+            var sibling = dir < 0 ? li.previousElementSibling : li.nextElementSibling;
+            if (!sibling) {
+                return;
+            }
+            if (dir < 0) {
+                li.parentNode.insertBefore(li, sibling);
+            } else {
+                li.parentNode.insertBefore(sibling, li);
+            }
+        }
+        function moveEdge(btn, dir) {
+            var li = btn.closest('li');
+            if (!li) {
+                return;
+            }
+            var ol = li.parentNode;
+            if (dir < 0) {
+                ol.insertBefore(li, ol.firstElementChild);
+            } else {
+                ol.appendChild(li);
+            }
+        }
         types.forEach(function(t) {
             var el = document.getElementById('list-' + t);
-            if (el && window.xcSortable) {
+            if (!el) {
+                return;
+            }
+            if (window.xcSortable) {
                 window.xcSortable(el);
             }
+            el.addEventListener('click', function(e) {
+                var top = e.target.closest('.js-move-top');
+                if (top) {
+                    moveEdge(top, -1);
+                    return;
+                }
+                var bottom = e.target.closest('.js-move-bottom');
+                if (bottom) {
+                    moveEdge(bottom, 1);
+                    return;
+                }
+                var up = e.target.closest('.js-move-up');
+                if (up) {
+                    moveRow(up, -1);
+                    return;
+                }
+                var down = e.target.closest('.js-move-down');
+                if (down) {
+                    moveRow(down, 1);
+                }
+            });
         });
         var form = document.getElementById('order-form');
         form.addEventListener('submit', function(e) {
