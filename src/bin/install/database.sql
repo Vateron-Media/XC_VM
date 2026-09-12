@@ -1950,7 +1950,7 @@ CREATE TABLE IF NOT EXISTS `users_packages` (
   `output_formats` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin,
   `max_connections` int(11) DEFAULT '1',
   `force_server_id` int(11) DEFAULT '0',
-  `forced_country` varchar(2) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `forced_country` varchar(3) COLLATE utf8_unicode_ci DEFAULT NULL,
   `lock_device` tinyint(4) DEFAULT '1',
   `check_compatible` tinyint(4) DEFAULT '1',
   PRIMARY KEY (`id`),
