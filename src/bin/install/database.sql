@@ -141,6 +141,49 @@ CREATE TABLE IF NOT EXISTS `bouquets` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `category_templates`
+--
+
+CREATE TABLE IF NOT EXISTS `category_templates` (
+  `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `owner_id` int(10) UNSIGNED NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `is_system` tinyint(1) DEFAULT '0',
+  `is_shared` tinyint(1) DEFAULT '0',
+  `live_count` int(10) UNSIGNED DEFAULT '0',
+  `vod_count` int(10) UNSIGNED DEFAULT '0',
+  `series_count` int(10) UNSIGNED DEFAULT '0',
+  `radio_count` int(10) UNSIGNED DEFAULT '0',
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_owner` (`owner_id`),
+  KEY `idx_is_system` (`is_system`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `category_template_items`
+--
+
+CREATE TABLE IF NOT EXISTS `category_template_items` (
+  `id` bigint(20) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `template_id` int(10) UNSIGNED NOT NULL,
+  `category_id` int(10) UNSIGNED NOT NULL,
+  `category_type` enum('live','movie','series','radio') NOT NULL,
+  `sort_order` int(10) UNSIGNED NOT NULL DEFAULT '1',
+  `is_visible` tinyint(1) NOT NULL DEFAULT '1',
+  `custom_name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_template` (`template_id`),
+  KEY `idx_category` (`category_id`),
+  CONSTRAINT `fk_template_items` FOREIGN KEY (`template_id`) REFERENCES `category_templates` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `crontab`
 --
 
@@ -378,6 +421,7 @@ CREATE TABLE IF NOT EXISTS `lines` (
   `last_activity_array` mediumtext COLLATE utf8_unicode_ci,
   `updated` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `is_activecode` tinyint(1) NOT NULL DEFAULT '0',
+  `custom_data` mediumtext COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `member_id` (`member_id`),
   KEY `exp_date` (`exp_date`),

@@ -136,6 +136,21 @@ class ActiveCodeService {
             $customDataJson = is_array($data['custom_data']) ? json_encode($data['custom_data'], JSON_UNESCAPED_UNICODE) : (string)$data['custom_data'];
         }
 
+        $customUsername = trim((string)($data['streaming_username'] ?? $data['username'] ?? ''));
+        $customPassword = trim((string)($data['streaming_password'] ?? $data['password'] ?? ''));
+
+        if ($qty === 1 && $customUsername !== '') {
+            if (strlen($customUsername) < 3) {
+                return ['status' => 'ERROR', 'message' => 'Streaming username must be at least 3 characters.'];
+            }
+            if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $customUsername)) {
+                return ['status' => 'ERROR', 'message' => 'Streaming username contains invalid characters. Use letters, numbers, dots, hyphens, or underscores.'];
+            }
+            if (UserRepository::getLineByUsername($customUsername)) {
+                return ['status' => 'ERROR', 'message' => "The streaming username '{$customUsername}' already exists. Please choose a different username."];
+            }
+        }
+
         $generatedCodes = [];
 
         $db->beginTransaction();
@@ -170,16 +185,21 @@ class ActiveCodeService {
             for ($i = 0; $i < $qty; $i++) {
                 $code = self::generateCodeString($length, $format);
 
-                // Auto-create companion line with frozen countdown (exp_date = NULL)
-                $lineUsername = 'ac_' . strtolower(substr(bin2hex(random_bytes(5)), 0, 9));
-                $linePassword = substr(bin2hex(random_bytes(6)), 0, 10);
-
-                // Ensure username collision-free
-                while (UserRepository::getLineByUsername($lineUsername)) {
+                if ($qty === 1 && $customUsername !== '') {
+                    $lineUsername = $customUsername;
+                    $linePassword = ($customPassword !== '') ? $customPassword : substr(bin2hex(random_bytes(6)), 0, 10);
+                } else {
+                    // Auto-create companion line with frozen countdown (exp_date = NULL)
                     $lineUsername = 'ac_' . strtolower(substr(bin2hex(random_bytes(5)), 0, 9));
+                    $linePassword = substr(bin2hex(random_bytes(6)), 0, 10);
+
+                    // Ensure username collision-free
+                    while (UserRepository::getLineByUsername($lineUsername)) {
+                        $lineUsername = 'ac_' . strtolower(substr(bin2hex(random_bytes(5)), 0, 9));
+                    }
                 }
 
-                $db->query(
+                $insertResult = $db->query(
                     "INSERT INTO `lines` (
                         `member_id`, `username`, `password`, `exp_date`, `admin_enabled`, `enabled`,
                         `bouquet`, `allowed_outputs`, `max_connections`, `is_restreamer`, `is_trial`,
@@ -201,9 +221,13 @@ class ActiveCodeService {
                 );
 
                 $lineId = (int)$db->last_insert_id();
+                if (!$insertResult || $lineId <= 0) {
+                    $lastErr = (isset($db->lastError) && $db->lastError) ? $db->lastError : 'Database error';
+                    throw new \RuntimeException("Failed to create subscriber line for code {$code}: {$lastErr}");
+                }
 
                 // Insert into activation_codes table
-                $db->query(
+                $acInsertResult = $db->query(
                     "INSERT INTO `activation_codes` (
                         `activation_code`, `batch_name`, `subscriber_id`, `status`, `created_by`,
                         `package_id`, `bouquets`, `is_adult`, `is_trial`, `purchase_cost`,
@@ -223,6 +247,12 @@ class ActiveCodeService {
                     $maxConnections,
                     time()
                 );
+
+                $acId = (int)$db->last_insert_id();
+                if (!$acInsertResult || $acId <= 0) {
+                    $lastErr = (isset($db->lastError) && $db->lastError) ? $db->lastError : 'Database error';
+                    throw new \RuntimeException("Failed to register activation code {$code}: {$lastErr}");
+                }
 
                 $generatedCodes[] = [
                     'code' => $code,
@@ -359,7 +389,7 @@ class ActiveCodeService {
         } elseif (!empty($_SERVER['HTTP_HOST'])) {
             $portalHost = "{$currentScheme}://{$_SERVER['HTTP_HOST']}";
         } else {
-            $portalHost = rtrim(DomainResolver::resolve(SERVER_ID, $isHttps), '/');
+            $portalHost = rtrim(DomainResolver::resolve(defined('SERVER_ID') ? constant('SERVER_ID') : 1, $isHttps), '/');
         }
         $portalParsed = parse_url($portalHost);
         $serverDomain = $portalParsed['host'] ?? $_SERVER['HTTP_HOST'] ?? 'localhost';
@@ -619,7 +649,7 @@ class ActiveCodeService {
         $first = $codes[0];
         $pkg = PackageService::getById($first['package_id']);
         $pkgName = $pkg['package_name'] ?? 'IPTV Subscription';
-        $portalUrl = DomainResolver::resolve(SERVER_ID);
+        $portalUrl = DomainResolver::resolve(defined('SERVER_ID') ? constant('SERVER_ID') : 1);
         if (!empty($first['dns_base'])) {
             $portalUrl = rtrim($first['dns_base'], '/');
         }

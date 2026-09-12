@@ -69,7 +69,7 @@ $rResellers = $rResellers ?? [];
                         <label class="form-label fw-semibold" for="created_by">Assign Ownership to Reseller</label>
                         <select id="created_by" name="created_by" class="form-select select2">
                             <option value="1">System Administrator (Admin Inventory)</option>
-                            <?php foreach ($rResellers as $res): 
+                            <?php foreach ($rResellers as $res):
                                 if ((int)$res['id'] === 1) continue;
                             ?>
                                 <option value="<?= (int)$res['id']; ?>">
@@ -157,6 +157,57 @@ $rResellers = $rResellers ?? [];
                         <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
                     </div>
 
+                    <!-- Companion Streaming Credentials -->
+                    <div class="card bg-light-subtle border mb-4 shadow-none" id="streaming-credentials-card">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar avatar-xs bg-label-info rounded-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <i class="ti tabler-user-check fs-5 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">Streaming Account Credentials</h6>
+                                        <div class="small text-muted" id="streaming-cred-hint">Custom streaming credentials for 1 voucher, or leave blank to auto-generate.</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-label-primary" id="streaming-mode-badge">
+                                    <i class="ti tabler-sparkles me-1"></i>Auto-Generated
+                                </span>
+                            </div>
+
+                            <div class="row g-3" id="streaming-cred-fields">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-semibold" for="streaming_username">Streaming Username <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ti tabler-user"></i></span>
+                                        <input type="text" id="streaming_username" name="streaming_username" class="form-control font-monospace" placeholder="Leave blank to auto-generate (ac_...)" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-rand-username" title="Generate Random Username">
+                                            <i class="ti tabler-refresh"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small">Leave blank to auto-generate a unique <code>ac_xxxxxxxx</code> subscriber username.</div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-semibold" for="streaming_password">Streaming Password <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ti tabler-key"></i></span>
+                                        <input type="text" id="streaming_password" name="streaming_password" class="form-control font-monospace" placeholder="Leave blank to auto-generate" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-rand-password" title="Generate Random Password">
+                                            <i class="ti tabler-refresh"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small">Leave blank to automatically create a strong cryptographic password.</div>
+                                </div>
+                            </div>
+
+                            <div id="bulk-cred-notice" class="d-none alert alert-light mb-0 py-2 border d-flex align-items-center gap-2">
+                                <i class="ti tabler-info-circle text-info fs-5"></i>
+                                <span class="small text-body"><strong>Bulk Generation Active:</strong> Each activation code in this batch will automatically generate a dedicated, unique companion line account with collision-free credentials (e.g. <code>ac_xxxxxxxx</code>).</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Bouquets Customization -->
                     <div class="mb-4">
                         <div class="bq-wrapper p-3">
@@ -217,7 +268,7 @@ $rResellers = $rResellers ?? [];
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab" data-filter="unselected">
                                     Unselected (<span class="tab-count-unsel">0</span>)
                                 </button>
-                                <?php 
+                                <?php
                                     $adultCount = 0;
                                     foreach ($rBouquets as $b) {
                                         $bn = (string)$b['bouquet_name'];
@@ -236,7 +287,7 @@ $rResellers = $rResellers ?? [];
                             <!-- Bouquets Grid with Custom Scroll -->
                             <div class="bq-scroll-area p-1">
                                 <div class="row g-2" id="bouquets-grid">
-                                    <?php foreach ($rBouquets as $bq): 
+                                    <?php foreach ($rBouquets as $bq):
                                         $bqId = (int)($bq['id'] ?? 0);
                                         $bqName = (string)($bq['bouquet_name'] ?? '');
                                         if ($bqId <= 0) continue;
@@ -378,6 +429,10 @@ $rResellers = $rResellers ?? [];
                         <span class="fw-semibold text-body text-truncate ms-2" id="preview-package-name">-- Not Selected --</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-1 small">
+                        <span class="text-muted">Streaming User:</span>
+                        <span class="font-monospace text-body text-truncate ms-2" id="preview-username-val">Auto-Generated</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 small">
                         <span class="text-muted">Geo-Lock Country:</span>
                         <span class="fw-semibold text-body text-truncate ms-2" id="preview-country-val">Off</span>
                     </div>
@@ -454,7 +509,7 @@ renderUnifiedLayoutFooter('admin');
         }
 
     function updateLivePreview() {
-        const qty = jQuery('#num_codes').val() || 1;
+        const qty = parseInt(jQuery('#num_codes').val(), 10) || 1;
         jQuery('#preview-qty-pill').text(`${qty} Voucher${qty > 1 ? 's' : ''}`);
 
         const ownerText = jQuery('#created_by option:selected').text().split('(')[0].trim();
@@ -462,6 +517,27 @@ renderUnifiedLayoutFooter('admin');
 
         const pkgText = jQuery('#package_id option:selected').text().trim();
         jQuery('#preview-package-name').text(pkgText && !pkgText.startsWith('--') ? pkgText : '-- Not Selected --');
+
+        const customUser = (jQuery('#streaming_username').val() || '').trim();
+
+        if (qty === 1) {
+            jQuery('#streaming-cred-fields').removeClass('d-none');
+            jQuery('#bulk-cred-notice').addClass('d-none');
+            jQuery('#streaming_username, #streaming_password').prop('disabled', false);
+            if (customUser) {
+                jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-success').html('<i class="ti tabler-check me-1"></i>Custom Credentials');
+                jQuery('#preview-username-val').text(customUser);
+            } else {
+                jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-primary').html('<i class="ti tabler-sparkles me-1"></i>Auto-Generated');
+                jQuery('#preview-username-val').text('Auto-Generated (ac_...)');
+            }
+        } else {
+            jQuery('#streaming-cred-fields').addClass('d-none');
+            jQuery('#bulk-cred-notice').removeClass('d-none');
+            jQuery('#streaming_username, #streaming_password').prop('disabled', true);
+            jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-secondary').html('<i class="ti tabler-layers-linked me-1"></i>Bulk Auto-Provision');
+            jQuery('#preview-username-val').text(`Unique per voucher (${qty} accounts)`);
+        }
 
         const countryText = jQuery('#forced_country option:selected').text().trim();
         jQuery('#preview-country-val').text(countryText || 'Off');
@@ -472,7 +548,21 @@ renderUnifiedLayoutFooter('admin');
         jQuery('#preview-format-val').text(`${fmtTitle} (${length} chars)`);
     }
 
-    jQuery('#num_codes, #created_by, #package_id, #code_format, #code_length, #forced_country').on('change input', updateLivePreview);
+    jQuery('#num_codes, #created_by, #package_id, #code_format, #code_length, #forced_country, #streaming_username').on('change input', updateLivePreview);
+
+    jQuery('#btn-rand-username').on('click', function() {
+        const rand = Math.random().toString(36).substring(2, 9);
+        jQuery('#streaming_username').val('ac_' + rand).trigger('input');
+    });
+
+    jQuery('#btn-rand-password').on('click', function() {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz!@#$%';
+        let pass = '';
+        for (let i = 0; i < 10; i++) {
+            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        jQuery('#streaming_password').val(pass);
+    });
 
     jQuery('.qty-pill').on('click', function() {
         jQuery('#num_codes').val(jQuery(this).data('qty'));

@@ -182,6 +182,57 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                         <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
                     </div>
 
+                    <!-- Companion Streaming Credentials -->
+                    <div class="card bg-light-subtle border mb-4 shadow-none" id="streaming-credentials-card">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar avatar-xs bg-label-info rounded-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <i class="ti tabler-user-check fs-5 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">Streaming Account Credentials</h6>
+                                        <div class="small text-muted" id="streaming-cred-hint">Custom streaming credentials for 1 voucher, or leave blank to auto-generate.</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-label-primary" id="streaming-mode-badge">
+                                    <i class="ti tabler-sparkles me-1"></i>Auto-Generated
+                                </span>
+                            </div>
+
+                            <div class="row g-3" id="streaming-cred-fields">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-semibold" for="streaming_username">Streaming Username <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ti tabler-user"></i></span>
+                                        <input type="text" id="streaming_username" name="streaming_username" class="form-control font-monospace" placeholder="Leave blank to auto-generate (ac_...)" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-rand-username" title="Generate Random Username">
+                                            <i class="ti tabler-refresh"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small">Leave blank to auto-generate a unique <code>ac_xxxxxxxx</code> subscriber username.</div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-semibold" for="streaming_password">Streaming Password <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ti tabler-key"></i></span>
+                                        <input type="text" id="streaming_password" name="streaming_password" class="form-control font-monospace" placeholder="Leave blank to auto-generate" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-rand-password" title="Generate Random Password">
+                                            <i class="ti tabler-refresh"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small">Leave blank to automatically create a strong cryptographic password.</div>
+                                </div>
+                            </div>
+
+                            <div id="bulk-cred-notice" class="d-none alert alert-light mb-0 py-2 border d-flex align-items-center gap-2">
+                                <i class="ti tabler-info-circle text-info fs-5"></i>
+                                <span class="small text-muted"><strong>Bulk Generation Active:</strong> Each activation code in this batch will automatically generate a dedicated, unique companion line account with collision-free credentials (e.g. <code>ac_xxxxxxxx</code>).</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Bouquets Customization -->
                     <div class="mb-4">
                         <div class="bq-wrapper p-3">
@@ -502,6 +553,24 @@ renderUnifiedLayoutFooter('reseller');
         jQuery('#card-total-cost').text(totalCost.toFixed(2) + ' Credits');
         jQuery('#card-balance-after').text(balanceAfter.toFixed(2) + ' Credits');
 
+        // Toggle Streaming credentials for single vs bulk
+        const customUser = (jQuery('#streaming_username').val() || '').trim();
+        if (qty === 1) {
+            jQuery('#streaming-cred-fields').removeClass('d-none');
+            jQuery('#bulk-cred-notice').addClass('d-none');
+            jQuery('#streaming_username, #streaming_password').prop('disabled', false);
+            if (customUser) {
+                jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-success').html('<i class="ti tabler-check me-1"></i>Custom Credentials');
+            } else {
+                jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-primary').html('<i class="ti tabler-sparkles me-1"></i>Auto-Generated');
+            }
+        } else {
+            jQuery('#streaming-cred-fields').addClass('d-none');
+            jQuery('#bulk-cred-notice').removeClass('d-none');
+            jQuery('#streaming_username, #streaming_password').prop('disabled', true);
+            jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-secondary').html('<i class="ti tabler-layers-linked me-1"></i>Bulk Auto-Provision');
+        }
+
         if (balanceAfter < 0) {
             jQuery('#insufficient-balance-alert').removeClass('d-none');
             jQuery('#btn-generate-submit').prop('disabled', true);
@@ -513,7 +582,21 @@ renderUnifiedLayoutFooter('reseller');
         }
     }
 
-    jQuery('#package_id, #num_codes').on('change input', updateCalculator);
+    jQuery('#package_id, #num_codes, #streaming_username').on('change input', updateCalculator);
+
+    jQuery('#btn-rand-username').on('click', function() {
+        const rand = Math.random().toString(36).substring(2, 9);
+        jQuery('#streaming_username').val('ac_' + rand).trigger('input');
+    });
+
+    jQuery('#btn-rand-password').on('click', function() {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz!@#$%';
+        let pass = '';
+        for (let i = 0; i < 10; i++) {
+            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        jQuery('#streaming_password').val(pass);
+    });
 
     // Bouquets Selection & Interactive Filtering
     function updateBouquetCounts() {
