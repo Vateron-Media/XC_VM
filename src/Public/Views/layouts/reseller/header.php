@@ -58,7 +58,7 @@ $xmMenu = [
     ],
     [
         'label' => 'sub_resellers',
-        'icon'  => 'ti tabler-users',
+        'icon'  => 'ti tabler-user-shield',
         'url'   => '#',
         'show'  => !empty($xmPermissions['create_sub_resellers']),
         'children' => [
@@ -67,41 +67,36 @@ $xmMenu = [
         ],
     ],
     [
-        'label' => 'devices',
+        'label' => 'user_lines',
         'icon'  => 'ti tabler-device-desktop',
         'url'   => '#',
-        'show'  => !empty($xmPermissions['create_line']) || !empty($xmPermissions['create_mag']) || !empty($xmPermissions['create_enigma']),
+        'show'  => !empty($xmPermissions['create_line']),
         'children' => [
-            [
-                'label' => 'user_lines',
-                'url'   => '#',
-                'show'  => !empty($xmPermissions['create_line']),
-                'children' => [
-                    ['label' => 'add_line',      'url' => 'line',         'show' => true],
-                    ['label' => 'generate_trial', 'url' => 'line?trial=1', 'show' => $rGenTrials],
-                    ['label' => 'manage_lines',  'url' => 'lines',        'show' => true],
-                ],
-            ],
-            [
-                'label' => 'mag_devices',
-                'url'   => '#',
-                'show'  => !empty($xmPermissions['create_mag']),
-                'children' => [
-                    ['label' => 'add_mag',            'url' => 'mag',         'show' => true],
-                    ['label' => 'generate_trial',     'url' => 'mag?trial=1', 'show' => $rGenTrials],
-                    ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => true],
-                ],
-            ],
-            [
-                'label' => 'enigma_devices',
-                'url'   => '#',
-                'show'  => !empty($xmPermissions['create_enigma']),
-                'children' => [
-                    ['label' => 'add_enigma',            'url' => 'enigma',         'show' => true],
-                    ['label' => 'generate_trial',        'url' => 'enigma?trial=1', 'show' => $rGenTrials],
-                    ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => true],
-                ],
-            ],
+            ['label' => 'add_line',       'url' => 'line',         'show' => true],
+            ['label' => 'generate_trial', 'url' => 'line?trial=1', 'show' => $rGenTrials],
+            ['label' => 'manage_lines',   'url' => 'lines',        'show' => true],
+        ],
+    ],
+    [
+        'label' => 'mag_devices',
+        'icon'  => 'ti tabler-device-tv',
+        'url'   => '#',
+        'show'  => !empty($xmPermissions['create_mag']),
+        'children' => [
+            ['label' => 'add_mag',            'url' => 'mag',         'show' => true],
+            ['label' => 'generate_trial',     'url' => 'mag?trial=1', 'show' => $rGenTrials],
+            ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => true],
+        ],
+    ],
+    [
+        'label' => 'enigma_devices',
+        'icon'  => 'ti tabler-cpu',
+        'url'   => '#',
+        'show'  => !empty($xmPermissions['create_enigma']),
+        'children' => [
+            ['label' => 'add_enigma',            'url' => 'enigma',         'show' => true],
+            ['label' => 'generate_trial',        'url' => 'enigma?trial=1', 'show' => $rGenTrials],
+            ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => true],
         ],
     ],
     [

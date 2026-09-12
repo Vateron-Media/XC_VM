@@ -83,6 +83,21 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
     color: #fff !important;
     border-color: #7367f0 !important;
 }
+.credit-accounting-card {
+    background: radial-gradient(circle at 100% 0%, rgba(115, 103, 240, 0.12) 0%, rgba(115, 103, 240, 0.02) 65%), var(--bs-card-bg);
+    border: 1px solid rgba(115, 103, 240, 0.22) !important;
+    position: relative;
+}
+.guide-feature-box {
+    transition: all 0.25s ease;
+    border: 1px solid rgba(115, 103, 240, 0.12);
+}
+.guide-feature-box:hover {
+    border-color: rgba(115, 103, 240, 0.45) !important;
+    background-color: rgba(115, 103, 240, 0.05) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
 </style>
 
 <div class="row g-4">
@@ -378,77 +393,154 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
         </div>
     </div>
 
-    <!-- Right Column: Live Credit Calculator & Guidelines -->
+    <!-- Right Column: Live Credit Ledger & Architecture Guidelines -->
     <div class="col-12 col-xl-4">
-        <!-- Live Credit Calculator Card -->
-        <div class="card shadow-sm border-0 mb-4 bg-primary text-white">
+        <!-- Live Credit Accounting Ledger Card -->
+        <div class="card shadow-sm border-0 mb-4 credit-accounting-card">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-white-50 text-uppercase fw-semibold small">Credit Accounting</span>
-                    <i class="ti tabler-wallet fs-3 text-white"></i>
-                </div>
-
-                <div class="mb-4">
-                    <small class="text-white-50 d-block">Your Current Balance</small>
-                    <h2 class="text-white fw-bold mb-0" id="card-current-balance"><?= number_format($userCredits, 2); ?> <span class="fs-6 fw-normal">Credits</span></h2>
-                </div>
-
-                <div class="p-3 bg-white bg-opacity-10 rounded-3 mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-white-50">Cost Per Voucher:</span>
-                        <span class="fw-semibold" id="card-cost-per-code">0.00 Credits</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="avatar avatar-sm bg-label-primary rounded-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="ti tabler-wallet fs-4 text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0 fw-bold">Credit Accounting</h6>
+                            <small class="text-muted" style="font-size: 0.72rem;">Real-time Balance & Cost Ledger</small>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-white-50">Quantity:</span>
-                        <span class="fw-semibold" id="card-qty">1</span>
+                    <span class="badge bg-label-primary rounded-pill px-2 py-1">
+                        <i class="ti tabler-point-filled me-1 fs-6 text-primary"></i>Live Ledger
+                    </span>
+                </div>
+
+                <!-- Current Balance Hero -->
+                <div class="p-3 rounded-3 mb-3 border bg-light-subtle d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-muted text-uppercase fw-semibold d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">Your Current Balance</span>
+                        <div class="d-flex align-items-baseline gap-1 mt-1">
+                            <h3 class="fw-bold mb-0 text-heading font-monospace" id="card-current-balance"><?= number_format($userCredits, 2); ?></h3>
+                            <span class="text-muted fw-semibold small">Credits</span>
+                        </div>
                     </div>
-                    <hr class="border-white opacity-25 my-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold">Total Cost:</span>
-                        <span class="fs-5 fw-bold text-warning" id="card-total-cost">0.00 Credits</span>
+                    <div class="avatar avatar-md bg-label-success rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                        <i class="ti tabler-coin fs-3 text-success"></i>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center p-2 rounded-3 bg-black bg-opacity-25" id="balance-after-box">
-                    <span class="small text-white-50">Balance After Generation:</span>
-                    <span class="fw-bold" id="card-balance-after"><?= number_format($userCredits, 2); ?> Credits</span>
+                <!-- Metrics Grid: Cost per voucher & Quantity -->
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="p-2 p-md-3 rounded-3 border bg-light-subtle h-100">
+                            <div class="d-flex align-items-center gap-1 mb-1">
+                                <i class="ti tabler-tag text-primary fs-6"></i>
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Cost Per Voucher</span>
+                            </div>
+                            <span class="fw-bold text-heading font-monospace fs-6" id="card-cost-per-code">0.00 Credits</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 p-md-3 rounded-3 border bg-light-subtle h-100">
+                            <div class="d-flex align-items-center gap-1 mb-1">
+                                <i class="ti tabler-layers-linked text-info fs-6"></i>
+                                <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Quantity</span>
+                            </div>
+                            <span class="fw-bold text-heading font-monospace fs-6" id="card-qty">1</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div id="insufficient-balance-alert" class="alert alert-danger bg-danger text-white border-0 mt-3 d-none mb-0">
-                    <i class="ti tabler-alert-circle me-1"></i> Insufficient balance for this generation request.
+                <!-- Total Cost Highlight Tile -->
+                <div class="p-3 rounded-3 mb-3 border border-warning-subtle bg-warning bg-opacity-10 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="avatar avatar-xs bg-warning rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 28px; height: 28px;">
+                            <i class="ti tabler-receipt-2 fs-6"></i>
+                        </div>
+                        <span class="fw-bold text-heading">Total Cost:</span>
+                    </div>
+                    <span class="fs-5 fw-extrabold text-warning font-monospace" id="card-total-cost">0.00 Credits</span>
+                </div>
+
+                <!-- Projected Balance After Generation -->
+                <div class="p-3 rounded-3 border bg-light-subtle d-flex align-items-center justify-content-between transition-all" id="balance-after-box">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="ti tabler-scale text-secondary fs-5"></i>
+                        <span class="small text-muted fw-semibold">Balance After Generation:</span>
+                    </div>
+                    <span class="fw-bold font-monospace text-heading" id="card-balance-after"><?= number_format($userCredits, 2); ?> Credits</span>
+                </div>
+
+                <!-- Insufficient Balance Alert -->
+                <div id="insufficient-balance-alert" class="alert alert-danger d-flex align-items-center border-0 mt-3 d-none mb-0 py-2 px-3">
+                    <i class="ti tabler-alert-triangle-filled fs-4 me-2 flex-shrink-0 text-danger"></i>
+                    <div class="small fw-semibold text-danger">Insufficient balance for this generation request.</div>
                 </div>
             </div>
         </div>
 
-        <!-- Stock Mode Explainer Card -->
+        <!-- How Active Codes Work Explainer Card -->
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
-                <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-                    <i class="ti tabler-info-circle text-info"></i>How Active Codes Work
-                </h6>
-                <ul class="list-unstyled mb-0 d-flex flex-column gap-3 small text-muted">
-                    <li class="d-flex gap-2">
-                        <i class="ti tabler-snowflake text-primary fs-5 mt-1"></i>
-                        <div>
-                            <strong class="text-dark d-block">Stock Mode (Delayed Timer)</strong>
-                            Codes sit safely in your inventory without aging. The 30-day (or 1-year) countdown is triggered only when the buyer inputs the code into their TV app or web portal.
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="avatar avatar-sm bg-label-info rounded-2 d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                            <i class="ti tabler-sparkles fs-4 text-info"></i>
                         </div>
-                    </li>
-                    <li class="d-flex gap-2">
-                        <i class="ti tabler-folders text-success fs-5 mt-1"></i>
                         <div>
-                            <strong class="text-dark d-block">Scratch-Card Batch Printing</strong>
-                            Group vouchers by batch and download ready-to-print formatted text files for physical cards or retail store distribution.
+                            <h6 class="mb-0 fw-bold">How Active Codes Work</h6>
+                            <small class="text-muted" style="font-size: 0.72rem;">Voucher Lifecycle & Reseller Protection</small>
                         </div>
-                    </li>
-                    <li class="d-flex gap-2">
-                        <i class="ti tabler-shield-check text-warning fs-5 mt-1"></i>
+                    </div>
+                    <span class="badge bg-label-secondary rounded-pill">Guide</span>
+                </div>
+
+                <div class="d-flex flex-column gap-3">
+                    <!-- Feature 1: Stock Mode -->
+                    <div class="d-flex gap-3 p-3 rounded-3 bg-light-subtle guide-feature-box">
+                        <div class="avatar avatar-sm bg-label-primary rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 mt-1" style="width: 38px; height: 38px;">
+                            <i class="ti tabler-snowflake fs-4 text-primary"></i>
+                        </div>
                         <div>
-                            <strong class="text-dark d-block">Safe Refund on Unused Vouchers</strong>
-                            If you ever delete a batch of unused codes, your credits are automatically returned to your reseller balance.
+                            <strong class="text-heading d-block mb-1">Stock Mode (Delayed Timer)</strong>
+                            <p class="text-muted small mb-0 lh-sm">
+                                Codes sit safely in your inventory without aging. The 30-day (or 1-year) countdown is triggered only when the buyer inputs the code into their TV app or web portal.
+                            </p>
                         </div>
-                    </li>
-                </ul>
+                    </div>
+
+                    <!-- Feature 2: Scratch-Card Batch Printing -->
+                    <div class="d-flex gap-3 p-3 rounded-3 bg-light-subtle guide-feature-box">
+                        <div class="avatar avatar-sm bg-label-success rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 mt-1" style="width: 38px; height: 38px;">
+                            <i class="ti tabler-printer fs-4 text-success"></i>
+                        </div>
+                        <div>
+                            <strong class="text-heading d-block mb-1">Scratch-Card Batch Printing</strong>
+                            <p class="text-muted small mb-0 lh-sm">
+                                Group vouchers by batch and download ready-to-print formatted text files for physical cards or retail store distribution.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Feature 3: Safe Refund -->
+                    <div class="d-flex gap-3 p-3 rounded-3 bg-light-subtle guide-feature-box">
+                        <div class="avatar avatar-sm bg-label-warning rounded-2 d-flex align-items-center justify-content-center flex-shrink-0 mt-1" style="width: 38px; height: 38px;">
+                            <i class="ti tabler-shield-check fs-4 text-warning"></i>
+                        </div>
+                        <div>
+                            <strong class="text-heading d-block mb-1">Safe Refund on Unused Vouchers</strong>
+                            <p class="text-muted small mb-0 lh-sm">
+                                If you ever delete a batch of unused codes, your credits are automatically returned to your reseller balance.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reassurance footer strip -->
+                <div class="mt-3 p-2 rounded-2 bg-primary bg-opacity-10 border border-primary-subtle d-flex align-items-center justify-content-between">
+                    <span class="small text-primary fw-semibold d-flex align-items-center">
+                        <i class="ti tabler-lock-check me-1 fs-5"></i>Zero-Risk Inventory Protection
+                    </span>
+                    <span class="badge bg-primary">Auto Refund</span>
+                </div>
             </div>
         </div>
     </div>
@@ -574,11 +666,13 @@ renderUnifiedLayoutFooter('reseller');
         if (balanceAfter < 0) {
             jQuery('#insufficient-balance-alert').removeClass('d-none');
             jQuery('#btn-generate-submit').prop('disabled', true);
-            jQuery('#card-balance-after').addClass('text-danger');
+            jQuery('#card-balance-after').addClass('text-danger').removeClass('text-heading text-success');
+            jQuery('#balance-after-box').addClass('border-danger bg-danger bg-opacity-10');
         } else {
             jQuery('#insufficient-balance-alert').addClass('d-none');
             jQuery('#btn-generate-submit').prop('disabled', false);
-            jQuery('#card-balance-after').removeClass('text-danger');
+            jQuery('#card-balance-after').removeClass('text-danger').addClass('text-heading');
+            jQuery('#balance-after-box').removeClass('border-danger bg-danger bg-opacity-10');
         }
     }
 
