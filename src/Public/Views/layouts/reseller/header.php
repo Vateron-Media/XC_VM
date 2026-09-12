@@ -56,7 +56,7 @@ $xmMenu = [
         'url'   => 'dashboard',
         'show'  => true,
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'sub_resellers', 'show' => !empty($xmPermissions['create_sub_resellers'])],
     [
         'label' => 'sub_resellers',
         'icon'  => 'ti tabler-user-shield',
@@ -67,7 +67,7 @@ $xmMenu = [
             ['label' => 'manage_users', 'url' => 'users', 'show' => true],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'user_lines', 'show' => !empty($xmPermissions['create_line'])],
     [
         'label' => 'user_lines',
         'icon'  => 'ti tabler-device-desktop',
@@ -79,7 +79,7 @@ $xmMenu = [
             ['label' => 'manage_lines',   'url' => 'lines',        'show' => true],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'mag_devices', 'show' => !empty($xmPermissions['create_mag'])],
     [
         'label' => 'mag_devices',
         'icon'  => 'ti tabler-device-tv',
@@ -91,7 +91,7 @@ $xmMenu = [
             ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => true],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'enigma_devices', 'show' => !empty($xmPermissions['create_enigma'])],
     [
         'label' => 'enigma_devices',
         'icon'  => 'ti tabler-cpu',
@@ -103,7 +103,7 @@ $xmMenu = [
             ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => true],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'active_codes', 'show' => !empty($xmPermissions['create_line'])],
     [
         'label' => 'active_codes',
         'icon'  => 'ti tabler-key',
@@ -115,7 +115,7 @@ $xmMenu = [
             ['label' => 'batch_manager',  'url' => 'active_codes_batch', 'show' => true],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'content', 'show' => !empty($xmPermissions['can_view_vod'])],
     [
         'label' => 'content',
         'icon'  => 'ti tabler-player-play',
@@ -130,7 +130,7 @@ $xmMenu = [
             ['label' => 'tv_guide',         'url' => 'epg_view',         'show' => !$rMobile],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'category_templates', 'show' => true],
     [
         'label' => 'category_templates',
         'icon'  => 'ti tabler-layout-grid',
@@ -141,7 +141,7 @@ $xmMenu = [
             ['label' => 'create_category_template',  'url' => 'category_templates?create=1', 'show' => true],
         ],
     ],
-    ['divider' => true],
+    ['divider' => true, 'header' => 'support_and_logs', 'show' => true],
     [
         'label' => 'tickets',
         'icon'  => 'ti tabler-ticket',
@@ -170,6 +170,15 @@ $xmMenu = [
 if (!function_exists('_xc_reseller_menu_node')) {
     function _xc_reseller_menu_node(array $item, int $depth, string $page, string $language): array {
         if (!empty($item['divider'])) {
+            if (isset($item['show']) && empty($item['show'])) {
+                return ['', false];
+            }
+            $headerKey = $item['header'] ?? $item['label'] ?? '';
+            if ($headerKey !== '') {
+                $trans = $language::get($headerKey);
+                $title = ($trans !== $headerKey && !empty($trans)) ? $trans : ucwords(str_replace('_', ' ', $headerKey));
+                return ['<li class="menu-header small text-uppercase menu-section-header"><span class="menu-header-text">' . htmlspecialchars($title, ENT_QUOTES) . '</span></li>', false];
+            }
             return ['<li class="menu-item menu-divider-item"><div class="menu-divider-glow"></div></li>', false];
         }
         if (empty($item['show'])) {
@@ -264,7 +273,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
     </script>
     <script src="assets/js/config.js"></script>
     <style>
-        /* Distinctive Glowing Sidebar Dividers */
+        /* Distinctive Glowing Sidebar Dividers & Section Headers */
         .menu-vertical .menu-divider-item {
             padding: 0.35rem 1.4rem;
             margin: 0.25rem 0 !important;
@@ -309,6 +318,108 @@ if (!function_exists('_xc_reseller_menu_node')) {
             background-color: #a855f7;
             box-shadow: 0 0 10px 2px rgba(168, 85, 247, 0.95);
         }
+
+        /* Reseller Section Header / Divider with Title */
+        .menu-vertical .menu-header.menu-section-header {
+            display: flex !important;
+            align-items: center !important;
+            margin-top: 1.15rem !important;
+            margin-bottom: 0.4rem !important;
+            padding: 0 1.25rem !important;
+            list-style: none !important;
+            pointer-events: none !important;
+            position: relative !important;
+        }
+        .menu-vertical .menu-header.menu-section-header .menu-header-text {
+            font-size: 0.68rem !important;
+            font-weight: 700 !important;
+            letter-spacing: 0.85px !important;
+            text-transform: uppercase !important;
+            color: #7367f0 !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            white-space: nowrap !important;
+            padding: 0.2rem 0.6rem !important;
+            background: rgba(115, 103, 240, 0.08) !important;
+            border-radius: 6px !important;
+            border: 1px solid rgba(115, 103, 240, 0.22) !important;
+            box-shadow: 0 2px 6px rgba(115, 103, 240, 0.08) !important;
+            transition: all 0.2s ease-in-out !important;
+        }
+        .menu-vertical .menu-header.menu-section-header .menu-header-text::before {
+            content: '' !important;
+            display: inline-block !important;
+            width: 6px !important;
+            height: 6px !important;
+            border-radius: 50% !important;
+            background-color: #7367f0 !important;
+            box-shadow: 0 0 8px 1.5px #7367f0 !important;
+            margin-inline-end: 0.45rem !important;
+            flex-shrink: 0 !important;
+        }
+        .menu-vertical .menu-header.menu-section-header::after {
+            content: '' !important;
+            flex: 1 !important;
+            height: 1px !important;
+            margin-inline-start: 0.65rem !important;
+            background: linear-gradient(90deg, 
+                rgba(115, 103, 240, 0.5) 0%, 
+                rgba(115, 103, 240, 0.15) 60%, 
+                transparent 100%
+            ) !important;
+            border-radius: 999px !important;
+        }
+        [data-bs-theme="dark"] .menu-vertical .menu-header.menu-section-header .menu-header-text {
+            color: #c4b5fd !important;
+            background: rgba(168, 85, 247, 0.12) !important;
+            border-color: rgba(168, 85, 247, 0.3) !important;
+            box-shadow: 0 2px 8px rgba(168, 85, 247, 0.15) !important;
+        }
+        [data-bs-theme="dark"] .menu-vertical .menu-header.menu-section-header .menu-header-text::before {
+            background-color: #a855f7 !important;
+            box-shadow: 0 0 10px 2px rgba(168, 85, 247, 0.95) !important;
+        }
+        [data-bs-theme="dark"] .menu-vertical .menu-header.menu-section-header::after {
+            background: linear-gradient(90deg, 
+                rgba(168, 85, 247, 0.6) 0%, 
+                rgba(168, 85, 247, 0.18) 60%, 
+                transparent 100%
+            ) !important;
+        }
+        html[dir="rtl"] .menu-vertical .menu-header.menu-section-header::after {
+            background: linear-gradient(270deg, 
+                rgba(115, 103, 240, 0.5) 0%, 
+                rgba(115, 103, 240, 0.15) 60%, 
+                transparent 100%
+            ) !important;
+        }
+        [data-bs-theme="dark"] html[dir="rtl"] .menu-vertical .menu-header.menu-section-header::after {
+            background: linear-gradient(270deg, 
+                rgba(168, 85, 247, 0.6) 0%, 
+                rgba(168, 85, 247, 0.18) 60%, 
+                transparent 100%
+            ) !important;
+        }
+        .layout-menu-collapsed:not(.layout-menu-hover) .menu-vertical .menu-header.menu-section-header {
+            padding: 0.4rem 0.55rem !important;
+            margin: 0.3rem 0 !important;
+            justify-content: center !important;
+        }
+        .layout-menu-collapsed:not(.layout-menu-hover) .menu-vertical .menu-header.menu-section-header .menu-header-text {
+            display: none !important;
+        }
+        .layout-menu-collapsed:not(.layout-menu-hover) .menu-vertical .menu-header.menu-section-header::after {
+            display: block !important;
+            margin-inline-start: 0 !important;
+            flex: 0 0 20px !important;
+            height: 2px !important;
+            background: rgba(115, 103, 240, 0.6) !important;
+            box-shadow: 0 0 6px 1px rgba(115, 103, 240, 0.7) !important;
+        }
+        [data-bs-theme="dark"] .layout-menu-collapsed:not(.layout-menu-hover) .menu-vertical .menu-header.menu-section-header::after {
+            background: rgba(168, 85, 247, 0.75) !important;
+            box-shadow: 0 0 8px 2px rgba(168, 85, 247, 0.85) !important;
+        }
         .layout-menu-collapsed:not(.layout-menu-hover) .menu-vertical .menu-divider-item {
             padding: 0.35rem 0.55rem;
         }
@@ -349,11 +460,17 @@ if (!function_exists('_xc_reseller_menu_node')) {
 
                                 foreach ($xmMenu as $xmItem) {
                                     if (!empty($xmItem['divider'])) {
+                                        if (isset($xmItem['show']) && empty($xmItem['show'])) {
+                                            continue;
+                                        }
                                         if ($lastWasDivider) {
                                             continue;
                                         }
-                                        $renderedItems[] = '<li class="menu-item menu-divider-item"><div class="menu-divider-glow"></div></li>';
-                                        $lastWasDivider = true;
+                                        [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language);
+                                        if ($xmNodeHtml !== '') {
+                                            $renderedItems[] = $xmNodeHtml;
+                                            $lastWasDivider = true;
+                                        }
                                         continue;
                                     }
 
