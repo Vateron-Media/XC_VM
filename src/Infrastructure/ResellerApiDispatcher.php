@@ -67,6 +67,8 @@ class ResellerApiDispatcher {
 			case 'get_epg':           self::handleGetEpg($rUserInfo, $rPermissions, $db);            break;
 			case 'get_programme':     self::handleGetProgramme($rUserInfo, $rPermissions, $db);      break;
 			case 'active_code_details':       self::handleActiveCodeDetails($rUserInfo, $rPermissions, $db);       break;
+			case 'active_code_edit':          self::handleActiveCodeEdit($rUserInfo, $rPermissions, $db);          break;
+			case 'active_code_delete':        self::handleActiveCodeDelete($rUserInfo, $rPermissions, $db);        break;
 			case 'active_codes_mass':         self::handleActiveCodesMass($rUserInfo, $rPermissions, $db);         break;
 			case 'active_codes_batch_action': self::handleActiveCodesBatchAction($rUserInfo, $rPermissions, $db);  break;
 			case 'active_codes_export_txt':   self::handleActiveCodesExportTxt($rUserInfo, $rPermissions, $db);    break;
@@ -1094,14 +1096,19 @@ class ResellerApiDispatcher {
 				'batch_name' => $code['batch_name'],
 				'status' => (int)$code['status'],
 				'status_text' => ($code['status'] == 1) ? 'Ready (Stock)' : (($code['status'] == 2) ? 'Active' : 'Disabled'),
+				'package_id' => (int)$code['package_id'],
 				'package_name' => $package['package_name'] ?? 'Custom Package',
 				'is_trial' => (bool)$code['is_trial'],
 				'max_connections' => (int)($code['line_max_conn'] ?: $code['max_connections']),
 				'exp_date' => $code['sub_exp_date'] ? date('Y-m-d H:i:s', (int)$code['sub_exp_date']) : 'Frozen (Stock)',
+				'exp_date_input' => $code['sub_exp_date'] ? date('Y-m-d\TH:i', (int)$code['sub_exp_date']) : '',
+				'has_line' => !empty($code['subscriber_id']),
 				'activated_at' => $code['activated_at'] ? date('Y-m-d H:i:s', (int)$code['activated_at']) : 'Never',
 				'created_at' => $code['created_at'] ? date('Y-m-d H:i:s', (int)$code['created_at']) : '-',
 				'mac' => $code['mac'] ?: 'None',
+				'raw_mac' => $code['mac'] ?? '',
 				'device_id' => $code['device_id'] ?: 'None',
+				'raw_device_id' => $code['device_id'] ?? '',
 				'username' => $code['sub_username'],
 				'password' => $code['sub_password'],
 				'server' => $portalParsed['host'] ?? 'localhost',
@@ -1113,6 +1120,34 @@ class ResellerApiDispatcher {
 				'm3u_hls' => $m3uHls,
 				'm3u_ts' => $m3uTs,
 			]
+		]);
+		exit();
+	}
+
+	/**
+	 * Handle Active Code Edit AJAX (Reseller)
+	 */
+	private static function handleActiveCodeEdit(?array $rUserInfo, array $rPermissions, $db): void {
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		$data = RequestManager::getAll();
+		$res = ActiveCodeService::updateCode($codeId, $data, $rUserInfo ?? [], false);
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? ''
+		]);
+		exit();
+	}
+
+	/**
+	 * Handle Single Active Code Delete AJAX (Reseller)
+	 */
+	private static function handleActiveCodeDelete(?array $rUserInfo, array $rPermissions, $db): void {
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		$refund = !empty(RequestManager::get('refund_credits'));
+		$res = ActiveCodeService::deleteCode($codeId, $rUserInfo ?? [], false, $refund);
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? ''
 		]);
 		exit();
 	}

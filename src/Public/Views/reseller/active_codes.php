@@ -160,9 +160,128 @@ $batches = $db->fetchAll(
                     </div>
                 </div>
             </div>
-            <div class="modal-footer border-top">
-                <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Close</button>
+            <div class="modal-footer border-top d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-danger btn-delete-from-details">
+                    <i class="ti tabler-trash me-1"></i>Delete Code
+                </button>
+                <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary btn-edit-from-details">
+                        <i class="ti tabler-pencil me-1"></i>Edit Code
+                    </button>
+                </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Active Code Modal -->
+<div class="modal fade" id="editCodeModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title d-flex align-items-center gap-2">
+                    <i class="ti tabler-pencil text-primary"></i>
+                    <span>Edit Active Code</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="form-edit-code">
+                <input type="hidden" id="edit-code-id" name="id" value="">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <!-- Code String -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-string">Activation Code <span class="text-danger">*</span></label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="ti tabler-key"></i></span>
+                                <input type="text" id="edit-code-string" name="activation_code" class="form-control font-monospace fw-bold" required>
+                            </div>
+                            <div class="form-text small text-body-secondary">Voucher code redeemed by subscribers or used as username.</div>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-status">Status</label>
+                            <select id="edit-code-status" name="status" class="form-select">
+                                <option value="1">Ready (Stock / Frozen)</option>
+                                <option value="2">Active (Bound to subscriber)</option>
+                                <option value="0">Disabled (Suspended)</option>
+                            </select>
+                        </div>
+
+                        <!-- Package -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-package">Assigned Package</label>
+                            <select id="edit-code-package" name="package_id" class="form-select">
+                                <?php foreach ($rPackages as $pkg): ?>
+                                    <option value="<?= (int)$pkg['id']; ?>">
+                                        <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <!-- Batch Name -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-batch">Batch Name</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="ti tabler-folder"></i></span>
+                                <input type="text" id="edit-code-batch" name="batch_name" class="form-control">
+                            </div>
+                        </div>
+
+                        <!-- Expiration Date -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-exp-date">Expiration Date & Time</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="ti tabler-calendar"></i></span>
+                                <input type="datetime-local" id="edit-code-exp-date" name="exp_date" class="form-control">
+                            </div>
+                            <div class="form-text small text-body-secondary">Leave blank to keep stock/frozen status if unactivated.</div>
+                        </div>
+
+                        <!-- Max Connections -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-max-conn">Max Concurrent Streams</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="ti tabler-users"></i></span>
+                                <input type="number" id="edit-code-max-conn" name="max_connections" class="form-control" min="1" max="50" value="1">
+                            </div>
+                        </div>
+
+                        <!-- Device Lock / MAC -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-mac">Device Lock (MAC Address)</label>
+                            <div class="input-group">
+                                <input type="text" id="edit-code-mac" name="mac" class="form-control font-monospace" placeholder="e.g. 00:1A:79:AB:CD:EF">
+                                <button type="button" class="btn btn-outline-secondary" id="btn-clear-mac" title="Clear MAC Lock">Clear</button>
+                            </div>
+                        </div>
+
+                        <!-- Streaming Password -->
+                        <div class="col-12 col-md-6">
+                            <label class="form-label fw-semibold" for="edit-code-password">Streaming Password</label>
+                            <div class="input-group input-group-merge">
+                                <span class="input-group-text"><i class="ti tabler-lock"></i></span>
+                                <input type="text" id="edit-code-password" name="password" class="form-control font-monospace">
+                            </div>
+                            <div class="form-text small text-body-secondary">Password used by IPTV apps to connect.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-danger btn-delete-from-edit">
+                        <i class="ti tabler-trash me-1"></i>Delete Code
+                    </button>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary btn-save-code-edit">
+                            <i class="ti tabler-check me-1"></i>Save Changes
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 </div>
@@ -197,12 +316,12 @@ $batches = $db->fetchAll(
             </div>
             <div class="modal-body p-4">
                 <p class="mb-3">Are you sure you want to delete the selected activation codes? This will also remove their associated subscriber lines.</p>
-                <div class="form-check p-3 bg-light rounded-3 border">
+                <div class="form-check p-3 bg-label-secondary rounded border">
                     <input class="form-check-input" type="checkbox" id="delete-refund" checked>
                     <label class="form-check-label fw-semibold" for="delete-refund">
                         Refund credits for unactivated stock codes
                     </label>
-                    <div class="form-text small text-muted">Any codes that have not yet been activated by a client will have their purchase credits refunded to your balance.</div>
+                    <div class="form-text small text-body-secondary mt-1">Any codes that have not yet been activated by a client will have their purchase credits refunded to your balance.</div>
                 </div>
             </div>
             <div class="modal-footer border-top">
@@ -212,17 +331,6 @@ $batches = $db->fetchAll(
         </div>
     </div>
 </div>
-
-<style>
-.badge-pulse {
-    animation: pulse-green 2s infinite;
-}
-@keyframes pulse-green {
-    0% { box-shadow: 0 0 0 0 rgba(40, 199, 111, 0.7); }
-    70% { box-shadow: 0 0 0 8px rgba(40, 199, 111, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(40, 199, 111, 0); }
-}
-</style>
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
@@ -354,9 +462,11 @@ renderUnifiedLayoutFooter('reseller');
     });
 
     // View Details Modal
+    let currentDetailsCodeId = null;
     const detailsModal = new bootstrap.Modal(document.getElementById('codeDetailsModal'));
     jQuery(document).on('click', '.btn-view-code', function() {
         const id = jQuery(this).data('id');
+        currentDetailsCodeId = id;
         jQuery('#modal-details-body').html(`
             <div class="text-center py-5">
                 <div class="spinner-border text-primary" role="status"></div>
@@ -737,11 +847,116 @@ renderUnifiedLayoutFooter('reseller');
     });
 
     // Single Delete Code
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
     tableEl.on('click', '.btn-delete-code', function() {
         const id = jQuery(this).data('id');
+        promptDeleteCode(id);
+    });
+
+    function promptDeleteCode(id) {
         selectedIds.clear();
         selectedIds.add(id);
         deleteModal.show();
+    }
+
+    // Edit Active Code Modal Logic
+    let currentEditCodeId = null;
+    const editModal = new bootstrap.Modal(document.getElementById('editCodeModal'));
+
+    function openEditModal(codeId) {
+        currentEditCodeId = codeId;
+        jQuery('#edit-code-id').val(codeId);
+
+        jQuery.getJSON('./api', { action: 'active_code_details', id: codeId }, function(res) {
+            if (!res || !res.data) {
+                if (window.xcToast) xcToast('Failed to load code details.', 'error');
+                return;
+            }
+            const d = res.data;
+            jQuery('#edit-code-string').val(d.code || '');
+            jQuery('#edit-code-status').val(d.status !== undefined ? d.status : 1);
+            if (d.package_id) {
+                jQuery('#edit-code-package').val(d.package_id);
+            }
+            jQuery('#edit-code-batch').val(d.batch_name && d.batch_name !== 'None' ? d.batch_name : '');
+            jQuery('#edit-code-exp-date').val(d.exp_date_input || '');
+            jQuery('#edit-code-max-conn').val(d.max_connections || 1);
+            jQuery('#edit-code-mac').val(d.raw_mac || (d.mac !== 'None' ? d.mac : ''));
+            jQuery('#edit-code-password').val(d.password || '');
+
+            editModal.show();
+        }).fail(function() {
+            if (window.xcToast) xcToast('Error fetching code data.', 'error');
+        });
+    }
+
+    tableEl.on('click', '.btn-edit-code', function() {
+        const id = jQuery(this).data('id');
+        openEditModal(id);
+    });
+
+    jQuery(document).on('click', '.btn-edit-from-details', function() {
+        detailsModal.hide();
+        if (currentDetailsCodeId) {
+            openEditModal(currentDetailsCodeId);
+        }
+    });
+
+    jQuery(document).on('click', '.btn-delete-from-details', function() {
+        detailsModal.hide();
+        if (currentDetailsCodeId) {
+            promptDeleteCode(currentDetailsCodeId);
+        }
+    });
+
+    jQuery(document).on('click', '.btn-delete-from-edit', function() {
+        editModal.hide();
+        if (currentEditCodeId) {
+            promptDeleteCode(currentEditCodeId);
+        }
+    });
+
+    jQuery('#btn-clear-mac').on('click', function() {
+        jQuery('#edit-code-mac').val('');
+    });
+
+    // Form submit for Edit Code
+    jQuery('#form-edit-code').on('submit', function(e) {
+        e.preventDefault();
+        const submitBtn = jQuery(this).find('.btn-save-code-edit');
+        const origText = submitBtn.html();
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1"></span>Saving...');
+
+        const postData = jQuery(this).serializeArray();
+        const dataObj = { action: 'active_code_edit' };
+        postData.forEach(item => {
+            dataObj[item.name] = item.value;
+        });
+
+        jQuery.post('./api', dataObj, function(res) {
+            submitBtn.prop('disabled', false).html(origText);
+            let data = res;
+            if (typeof res === 'string') {
+                try { data = JSON.parse(res); } catch(e) {}
+            }
+            if (data && (data.result || data.status === 'SUCCESS')) {
+                if (window.xcToast) {
+                    xcToast(data.message || 'Active code updated successfully.', 'success');
+                }
+                editModal.hide();
+                dt.ajax.reload(null, false);
+            } else {
+                const err = (data && data.message) ? data.message : 'Failed to update code.';
+                if (window.xcToast) {
+                    xcToast(err, 'error');
+                } else {
+                    alert(err);
+                }
+            }
+        }).fail(function() {
+            submitBtn.prop('disabled', false).html(origText);
+            if (window.xcToast) xcToast('Server error while updating code.', 'error');
+        });
     });
 
     // Mass Extend Modal
@@ -756,7 +971,6 @@ renderUnifiedLayoutFooter('reseller');
     });
 
     // Mass Delete Modal
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
     jQuery('#btn-mass-delete').on('click', function() {
         deleteModal.show();
     });
@@ -788,12 +1002,20 @@ renderUnifiedLayoutFooter('reseller');
             if (typeof res === 'string') {
                 try { data = JSON.parse(res); } catch(e) {}
             }
-            if (data.result) {
+            if (data && (data.result || data.status === 'SUCCESS')) {
                 selectedIds.clear();
                 updateFloatingBar();
                 dt.ajax.reload(null, false);
+                if (window.xcToast) {
+                    xcToast(data.message || 'Operation completed successfully.', 'success');
+                }
             } else {
-                alert(data.message || 'Action failed.');
+                const msg = (data && data.message) ? data.message : 'Action failed.';
+                if (window.xcToast) {
+                    xcToast(msg, 'error');
+                } else {
+                    alert(msg);
+                }
             }
         });
     }

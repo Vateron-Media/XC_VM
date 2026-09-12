@@ -38,8 +38,15 @@ class LiveController extends BasePlayerController
         $rStreamIDs = array();
         $rStreams = getUserStreams($rUserInfo, array('live', 'created_live'), $rCategoryID, null, $rSortBy, $rSearchBy, $rPicking, null, null, true);
 
-        foreach ($rStreams as $rStream) {
-            $rStreamIDs[] = $rStream['id'];
+        if (is_array($rStreams)) {
+            $streamList = isset($rStreams['streams']) ? $rStreams['streams'] : $rStreams;
+            foreach ($streamList as $rStream) {
+                if (is_array($rStream) && isset($rStream['id'])) {
+                    $rStreamIDs[] = $rStream['id'];
+                } elseif (is_numeric($rStream)) {
+                    $rStreamIDs[] = (int)$rStream;
+                }
+            }
         }
 
         $db->query('SELECT `movie_properties` FROM `streams` WHERE `movie_properties` IS NOT NULL AND `type` = 2 ORDER BY RAND() LIMIT 5;');

@@ -1956,6 +1956,9 @@ class ResellerTableRenderer {
 				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-view-code" data-id="' . $rowId . '" title="View Details">
 					<i class="ti tabler-eye"></i>
 				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-edit-code" data-id="' . $rowId . '" title="Edit Active Code">
+					<i class="ti tabler-pencil"></i>
+				</button>
 				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-toggle-code" data-id="' . $rowId . '" data-status="' . $status . '" title="' . ($status == 0 ? 'Enable' : 'Disable') . '">
 					<i class="ti ' . ($status == 0 ? 'tabler-check text-success' : 'tabler-ban text-warning') . '"></i>
 				</button>

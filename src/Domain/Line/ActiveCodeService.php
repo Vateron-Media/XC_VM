@@ -529,17 +529,20 @@ class ActiveCodeService {
         $subIdList = !empty($subscriberIds) ? implode(',', $subscriberIds) : '0';
 
         switch ($action) {
+            case 'enable':
             case 'mass_enable':
                 // Set status: 1 if never activated, 2 if activated
                 $db->query("UPDATE `activation_codes` SET `status` = IF(`activated_at` IS NULL, 1, 2) WHERE `id` IN ({$targetIdList});");
                 $db->query("UPDATE `lines` SET `enabled` = 1, `admin_enabled` = 1 WHERE `id` IN ({$subIdList});");
                 return ['status' => 'SUCCESS', 'message' => count($targetIds) . ' codes successfully enabled.'];
 
+            case 'disable':
             case 'mass_disable':
                 $db->query("UPDATE `activation_codes` SET `status` = 0 WHERE `id` IN ({$targetIdList});");
                 $db->query("UPDATE `lines` SET `enabled` = 0 WHERE `id` IN ({$subIdList});");
                 return ['status' => 'SUCCESS', 'message' => count($targetIds) . ' codes suspended.'];
 
+            case 'extend':
             case 'mass_extend':
                 $days = max(1, intval($extra['days'] ?? 30));
                 $seconds = $days * 86400;
@@ -550,10 +553,12 @@ class ActiveCodeService {
                 );
                 return ['status' => 'SUCCESS', 'message' => "Extended expiration of selected active codes by {$days} days."];
 
+            case 'reset_device':
             case 'mass_reset_device':
                 $db->query("UPDATE `activation_codes` SET `mac` = NULL, `device_id` = NULL WHERE `id` IN ({$targetIdList});");
                 return ['status' => 'SUCCESS', 'message' => 'Hardware/Device lock reset on selected codes.'];
 
+            case 'change_package':
             case 'mass_change_package':
                 $newPackageId = intval($extra['package_id'] ?? 0);
                 $newPackage = PackageService::getById($newPackageId);
@@ -565,6 +570,7 @@ class ActiveCodeService {
                 $db->query("UPDATE `lines` SET `package_id` = ?, `bouquet` = ? WHERE `id` IN ({$subIdList});", $newPackageId, $newBouquets);
                 return ['status' => 'SUCCESS', 'message' => 'Updated package on selected codes.'];
 
+            case 'delete':
             case 'mass_delete':
                 $refund = !empty($extra['refund_credits']) || !empty($extra['refund']);
                 $totalRefunded = 0;
@@ -596,7 +602,7 @@ class ActiveCodeService {
                     $db->query("DELETE FROM `lines` WHERE `id` IN ({$subIdList});");
                     $db->commit();
 
-                    $msg = count($targetIds) . ' codes deleted successfully.';
+                    $msg = count($targetIds) . ' code(s) deleted successfully.';
                     if ($totalRefunded > 0) {
                         $msg .= " Refunded {$totalRefunded} credits for unused stock.";
                     }
@@ -607,7 +613,184 @@ class ActiveCodeService {
                 }
 
             default:
-                return ['status' => 'ERROR', 'message' => 'Unknown mass action.'];
+                return ['status' => 'ERROR', 'message' => 'Unknown action.'];
+        }
+    }
+
+    /**
+     * Delete a single active code with optional refund.
+     */
+    public static function deleteCode(int $codeId, array $user, bool $isAdmin, bool $refund = true): array
+    {
+        return self::massAction('delete', [$codeId], $user, $isAdmin, ['refund_credits' => $refund]);
+    }
+
+    /**
+     * Update an existing active code voucher and its companion subscriber line.
+     */
+    public static function updateCode(int $codeId, array $data, array $user, bool $isAdmin): array
+    {
+        $db = self::db();
+        if ($codeId <= 0) {
+            return ['status' => 'ERROR', 'message' => 'Invalid code ID.'];
+        }
+
+        // Scope check: restrict non-admins to their report hierarchy
+        $whereScope = '';
+        if (!$isAdmin) {
+            $allowedReports = (array)($user['reports'] ?? [$user['id']]);
+            $reportsList = implode(',', array_map('intval', $allowedReports));
+            $whereScope = " AND `created_by` IN ({$reportsList})";
+        }
+
+        $code = $db->fetchOne("SELECT * FROM `activation_codes` WHERE `id` = ? {$whereScope} LIMIT 1;", $codeId);
+        if (!$code) {
+            return ['status' => 'ERROR', 'message' => 'Activation code not found or access denied.'];
+        }
+
+        // 1. Activation code string validation
+        $newCode = trim((string)($data['activation_code'] ?? $code['activation_code']));
+        if (empty($newCode)) {
+            return ['status' => 'ERROR', 'message' => 'Activation code cannot be empty.'];
+        }
+
+        // Check uniqueness if changed
+        if (strcasecmp($newCode, (string)$code['activation_code']) !== 0) {
+            $exists = $db->fetchOne("SELECT `id` FROM `activation_codes` WHERE `activation_code` = ? AND `id` != ? LIMIT 1;", $newCode, $codeId);
+            if ($exists) {
+                return ['status' => 'ERROR', 'message' => 'Activation code "' . $newCode . '" is already taken. Please choose another.'];
+            }
+        }
+
+        // 2. Package update
+        $packageId = isset($data['package_id']) ? (int)$data['package_id'] : (int)$code['package_id'];
+        $bouquets = $code['bouquets'];
+        if ($packageId > 0 && $packageId !== (int)$code['package_id']) {
+            $pkg = PackageService::getById($packageId);
+            if (!$pkg) {
+                return ['status' => 'ERROR', 'message' => 'Selected package does not exist.'];
+            }
+            $bouquets = $pkg['bouquets'] ?? $code['bouquets'];
+        }
+
+        // 3. Status
+        $status = isset($data['status']) ? (int)$data['status'] : (int)$code['status'];
+        if (!in_array($status, [0, 1, 2], true)) {
+            $status = (int)$code['status'];
+        }
+
+        // 4. Device lock / MAC & Device ID
+        $mac = isset($data['mac']) ? trim((string)$data['mac']) : (string)$code['mac'];
+        $mac = (strlen($mac) > 0 && $mac !== 'None') ? $mac : null;
+
+        $deviceId = isset($data['device_id']) ? trim((string)$data['device_id']) : (string)$code['device_id'];
+        $deviceId = (strlen($deviceId) > 0 && $deviceId !== 'None') ? $deviceId : null;
+
+        // 5. Batch name
+        $batchName = isset($data['batch_name']) ? trim((string)$data['batch_name']) : (string)$code['batch_name'];
+        $batchName = strlen($batchName) > 0 ? $batchName : null;
+
+        // 6. Max connections
+        $maxConn = isset($data['max_connections']) ? max(1, (int)$data['max_connections']) : max(1, (int)$code['max_connections']);
+
+        // 7. Expiration date
+        $subId = (int)$code['subscriber_id'];
+        $expDate = null;
+        $hasExpDateInput = false;
+        if (isset($data['exp_date'])) {
+            $expInput = trim((string)$data['exp_date']);
+            if (!empty($expInput)) {
+                $hasExpDateInput = true;
+                $parsed = is_numeric($expInput) ? (int)$expInput : strtotime($expInput);
+                if ($parsed !== false && $parsed > 0) {
+                    $expDate = $parsed;
+                }
+            }
+        }
+
+        $db->beginTransaction();
+        try {
+            // Update activation_codes table
+            $db->query(
+                "UPDATE `activation_codes` SET
+                    `activation_code` = ?,
+                    `batch_name` = ?,
+                    `package_id` = ?,
+                    `bouquets` = ?,
+                    `status` = ?,
+                    `mac` = ?,
+                    `device_id` = ?,
+                    `max_connections` = ?
+                 WHERE `id` = ?;",
+                $newCode,
+                $batchName,
+                $packageId,
+                $bouquets,
+                $status,
+                $mac,
+                $deviceId,
+                $maxConn,
+                $codeId
+            );
+
+            // If companion subscriber line exists, synchronize line details
+            if ($subId > 0) {
+                $lineUpdates = [];
+                $lineParams = [];
+
+                // Sync line username with code if it was matching or prefixed with ac_
+                if (strcasecmp($newCode, (string)$code['activation_code']) !== 0) {
+                    $line = $db->fetchOne("SELECT `username` FROM `lines` WHERE `id` = ? LIMIT 1;", $subId);
+                    if ($line && (strcasecmp((string)$line['username'], (string)$code['activation_code']) === 0 || str_starts_with((string)$line['username'], 'ac_'))) {
+                        $lineUpdates[] = "`username` = ?";
+                        $lineParams[] = $newCode;
+                    }
+                }
+
+                // Streaming password
+                if (!empty($data['password'])) {
+                    $lineUpdates[] = "`password` = ?";
+                    $lineParams[] = trim((string)$data['password']);
+                }
+
+                // Expiration date
+                if ($hasExpDateInput && $expDate !== null) {
+                    $lineUpdates[] = "`exp_date` = ?";
+                    $lineParams[] = $expDate;
+                }
+
+                // Max connections
+                $lineUpdates[] = "`max_connections` = ?";
+                $lineParams[] = $maxConn;
+
+                // Package & bouquet
+                if ($packageId > 0) {
+                    $lineUpdates[] = "`package_id` = ?";
+                    $lineParams[] = $packageId;
+                    $lineUpdates[] = "`bouquet` = ?";
+                    $lineParams[] = $bouquets;
+                }
+
+                // Enabled flag based on status
+                if ($status === 0) {
+                    $lineUpdates[] = "`enabled` = 0";
+                } elseif ($status === 1 || $status === 2) {
+                    $lineUpdates[] = "`enabled` = 1";
+                }
+
+                if (!empty($lineUpdates)) {
+                    $lineParams[] = $subId;
+                    $db->query("UPDATE `lines` SET " . implode(', ', $lineUpdates) . " WHERE `id` = ?;", ...$lineParams);
+                }
+
+                LineService::updateLinesSignal([$subId]);
+            }
+
+            $db->commit();
+            return ['status' => 'SUCCESS', 'message' => 'Active code updated successfully.'];
+        } catch (\Throwable $e) {
+            $db->rollback();
+            return ['status' => 'ERROR', 'message' => 'Failed to update code: ' . $e->getMessage()];
         }
     }
 

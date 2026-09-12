@@ -59,8 +59,12 @@ class HomeController extends BasePlayerController
             $rStreams = $db->get_rows();
 
             foreach ($rStreams as $rStream) {
-                $rProperties = json_decode($rStream['movie_properties'], true);
-                $rPopularNow[] = array('type' => 'movie', 'id' => $rStream['id'], 'title' => $rStream['stream_display_name'], 'year' => ($rStream['year'] ?: null), 'rating' => $rStream['rating'], 'cover' => (ImageUtils::validateURL($rProperties['movie_image']) ?: ''), 'backdrop' => (ImageUtils::validateURL($rProperties['backdrop_path'][0]) ?: ''));
+                $rProperties = json_decode($rStream['movie_properties'] ?? '', true) ?: [];
+                $simBackdrop = '';
+                if (!empty($rProperties['backdrop_path'])) {
+                    $simBackdrop = is_array($rProperties['backdrop_path']) ? ($rProperties['backdrop_path'][0] ?? '') : $rProperties['backdrop_path'];
+                }
+                $rPopularNow[] = array('type' => 'movie', 'id' => $rStream['id'], 'title' => $rStream['stream_display_name'], 'year' => ($rStream['year'] ?: null), 'rating' => ($rStream['rating'] ?? null), 'cover' => (ImageUtils::validateURL($rProperties['movie_image'] ?? '') ?: ''), 'backdrop' => (ImageUtils::validateURL($simBackdrop) ?: ''));
             }
         }
 
@@ -72,11 +76,12 @@ class HomeController extends BasePlayerController
                 $db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path` FROM `streams_series` WHERE `id` IN (' . implode(',', $rPopular['series']) . ') AND `id` IN (' . implode(',', $rUserInfo['series_ids']) . ') ORDER BY FIELD(id, ' . implode(',', $rPopular['series']) . ') ASC LIMIT 50;');
             }
 
-            $rStreams = $db->get_rows();
+            $rStreams = $db->get_rows() ?: [];
 
             foreach ($rStreams as $rStream) {
-                $rBackdrop = json_decode($rStream['backdrop_path'], true);
-                $rPopularNow[] = array('type' => 'episodes', 'id' => $rStream['id'], 'title' => $rStream['title'], 'year' => ($rStream['year'] ?: (substr($rStream['releaseDate'], 0, 4) ?: null)), 'rating' => $rStream['rating'], 'cover' => (ImageUtils::validateURL($rStream['cover']) ?: ''), 'backdrop' => (ImageUtils::validateURL($rBackdrop[0]) ?: ''));
+                $rBackdrop = json_decode($rStream['backdrop_path'] ?? '', true);
+                $simBackdrop = is_array($rBackdrop) ? ($rBackdrop[0] ?? '') : '';
+                $rPopularNow[] = array('type' => 'episodes', 'id' => $rStream['id'], 'title' => $rStream['title'], 'year' => ($rStream['year'] ?: (!empty($rStream['releaseDate']) ? substr($rStream['releaseDate'], 0, 4) : null)), 'rating' => ($rStream['rating'] ?? null), 'cover' => (ImageUtils::validateURL($rStream['cover'] ?? '') ?: ''), 'backdrop' => (ImageUtils::validateURL($simBackdrop) ?: ''));
             }
         }
 

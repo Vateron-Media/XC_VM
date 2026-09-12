@@ -145,7 +145,19 @@ class ListingsController extends BasePlayerController
 
                             $rDefaultArray = $rDefaultEPG;
                             $rDefaultArray['ChannelId'] = $rStream['id'];
-                            $rCategoryIDs = json_decode($rStream['category_id'], true);
+                            $rawCat = $rStream['category_id'] ?? null;
+                            if (is_string($rawCat)) {
+                                $rCategoryIDs = json_decode($rawCat, true);
+                                if (!is_array($rCategoryIDs)) {
+                                    $rCategoryIDs = is_numeric($rawCat) ? [(int)$rawCat] : [];
+                                }
+                            } elseif (is_numeric($rawCat)) {
+                                $rCategoryIDs = [(int)$rawCat];
+                            } elseif (is_array($rawCat)) {
+                                $rCategoryIDs = $rawCat;
+                            } else {
+                                $rCategoryIDs = [];
+                            }
                             $rCategories = CategoryService::getFromDatabase('live');
 
                             if (0 < strlen(RequestManager::get('category') ?? '')) {
@@ -154,8 +166,7 @@ class ListingsController extends BasePlayerController
                                 $rCategory = ($rCategories[$rCategoryIDs[0] ?? null]['category_name'] ?? 'No Category');
                             }
 
-                            if (1 >= count($rCategoryIDs)) {
-                            } else {
+                            if (count($rCategoryIDs) > 1) {
                                 $rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
                             }
 

@@ -139,6 +139,7 @@ function getOrderedCategories($rCategories, $rType = 'movie') {
  */
 function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFav = null, $rOrderBy = null, $rSearchBy = null, $rPicking = array(), $rStart = 0, $rLimit = 10, $rIDs = false) {
 	global $db;
+	$rStreams = array('count' => 0, 'streams' => array());
 	$rPicking = $rPicking ?? [];
 	$rAdded = false;
 	$rChannels = array();
@@ -311,7 +312,7 @@ function getUserStreams($rUserInfo, $rTypes = array(), $rCategoryID = null, $rFa
 
 		return $rStreams;
 	} else {
-		return $rStreams;
+		return $rIDs ? array() : $rStreams;
 	}
 }
 

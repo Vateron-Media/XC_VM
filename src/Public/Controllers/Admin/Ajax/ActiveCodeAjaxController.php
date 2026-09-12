@@ -85,14 +85,19 @@ class ActiveCodeAjaxController extends BaseAjaxController
                 'batch_name' => $code['batch_name'],
                 'status' => (int)$code['status'],
                 'status_text' => ($code['status'] == 1) ? 'Ready (Stock)' : (($code['status'] == 2) ? 'Active' : 'Disabled'),
+                'package_id' => (int)$code['package_id'],
                 'package_name' => $package['package_name'] ?? 'Custom Package',
                 'is_trial' => (bool)$code['is_trial'],
                 'max_connections' => (int)($code['line_max_conn'] ?: $code['max_connections']),
                 'exp_date' => $code['sub_exp_date'] ? date('Y-m-d H:i:s', (int)$code['sub_exp_date']) : 'Frozen (Stock)',
+                'exp_date_input' => $code['sub_exp_date'] ? date('Y-m-d\TH:i', (int)$code['sub_exp_date']) : '',
+                'has_line' => !empty($code['subscriber_id']),
                 'activated_at' => $code['activated_at'] ? date('Y-m-d H:i:s', (int)$code['activated_at']) : 'Never',
                 'created_at' => $code['created_at'] ? date('Y-m-d H:i:s', (int)$code['created_at']) : '-',
                 'mac' => $code['mac'] ?: 'None',
+                'raw_mac' => $code['mac'] ?? '',
                 'device_id' => $code['device_id'] ?: 'None',
+                'raw_device_id' => $code['device_id'] ?? '',
                 'username' => $code['sub_username'],
                 'password' => $code['sub_password'],
                 'server' => $portalParsed['host'] ?? 'localhost',
@@ -187,5 +192,37 @@ class ActiveCodeAjaxController extends BaseAjaxController
         header('Content-Length: ' . strlen($content));
         echo $content;
         exit();
+    }
+
+    /**
+     * action=active_code_edit — Update active code and companion line.
+     */
+    public function edit(): never
+    {
+        $this->requireXhr();
+        $codeId = intval(RequestManager::get('id') ?? 0);
+        $data = RequestManager::getAll();
+        $res = ActiveCodeService::updateCode($codeId, $data, $GLOBALS['rUserInfo'] ?? [], true);
+        if ($res['status'] === 'SUCCESS') {
+            $this->ok(['message' => $res['message']]);
+        }
+
+        $this->fail(['message' => $res['message'] ?? 'Failed to update active code.']);
+    }
+
+    /**
+     * action=active_code_delete — Delete single active code.
+     */
+    public function delete(): never
+    {
+        $this->requireXhr();
+        $codeId = intval(RequestManager::get('id') ?? 0);
+        $refund = !empty(RequestManager::get('refund_credits'));
+        $res = ActiveCodeService::deleteCode($codeId, $GLOBALS['rUserInfo'] ?? [], true, $refund);
+        if ($res['status'] === 'SUCCESS') {
+            $this->ok(['message' => $res['message']]);
+        }
+
+        $this->fail(['message' => $res['message'] ?? 'Failed to delete active code.']);
     }
 }
