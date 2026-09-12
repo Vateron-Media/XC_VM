@@ -83,6 +83,74 @@ foreach (AuthRepository::getAllCodes() as $rCode) {
                     </div>
                 </div>
             <?php endif; ?>
+
+            <hr class="my-4">
+            <h6 class="mb-1"><?= $language::get('appearance_design') ?: 'Appearance (Design)'; ?></h6>
+            <p class="text-body-secondary small mb-3"><?= $language::get('appearance_design_hint') ?: 'The same options as the desktop template customizer — handy on mobile, where the customizer panel is hidden.'; ?></p>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-color"><?= $language::get('primary_color') ?: 'Primary Color'; ?></label>
+                <div class="col-md-9"><input type="color" class="form-control form-control-color" id="ui-color" data-ui-pref="color" value="#FFAB1D"></div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-theme"><?= $language::get('theme') ?: 'Theme'; ?></label>
+                <div class="col-md-9">
+                    <select class="form-select" id="ui-theme" data-ui-pref="theme">
+                        <option value="light"><?= $language::get('light') ?: 'Light'; ?></option>
+                        <option value="dark"><?= $language::get('dark') ?: 'Dark'; ?></option>
+                        <option value="system"><?= $language::get('system') ?: 'System'; ?></option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-skin"><?= $language::get('skin') ?: 'Skin'; ?></label>
+                <div class="col-md-9">
+                    <select class="form-select" id="ui-skin" data-ui-pref="skin">
+                        <option value="default"><?= $language::get('default') ?: 'Default'; ?></option>
+                        <option value="bordered"><?= $language::get('bordered') ?: 'Bordered'; ?></option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-semidark"><?= $language::get('semi_dark') ?: 'Semi Dark'; ?></label>
+                <div class="col-md-9"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ui-semidark" data-ui-pref="semiDark"></div></div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-collapsed"><?= $language::get('menu_collapsed') ?: 'Collapsed Menu'; ?></label>
+                <div class="col-md-9"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ui-collapsed" data-ui-pref="layoutCollapsed"></div></div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-navbar"><?= $language::get('navbar') ?: 'Navbar'; ?></label>
+                <div class="col-md-9">
+                    <select class="form-select" id="ui-navbar" data-ui-pref="navbar">
+                        <option value="sticky"><?= $language::get('sticky') ?: 'Sticky'; ?></option>
+                        <option value="static"><?= $language::get('static') ?: 'Static'; ?></option>
+                        <option value="hidden"><?= $language::get('hidden') ?: 'Hidden'; ?></option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-header"><?= $language::get('header_type') ?: 'Header Type'; ?></label>
+                <div class="col-md-9">
+                    <select class="form-select" id="ui-header" data-ui-pref="headerType">
+                        <option value="static"><?= $language::get('static') ?: 'Static'; ?></option>
+                        <option value="fixed"><?= $language::get('fixed') ?: 'Fixed'; ?></option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-content"><?= $language::get('content_width') ?: 'Content Width'; ?></label>
+                <div class="col-md-9">
+                    <select class="form-select" id="ui-content" data-ui-pref="contentLayout">
+                        <option value="compact"><?= $language::get('compact') ?: 'Compact'; ?></option>
+                        <option value="wide"><?= $language::get('wide') ?: 'Wide'; ?></option>
+                    </select>
+                </div>
+            </div>
+            <div class="row mb-4">
+                <label class="col-md-3 col-form-label" for="ui-rtl"><?= $language::get('rtl') ?: 'RTL'; ?></label>
+                <div class="col-md-9"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="ui-rtl" data-ui-pref="rtl"></div></div>
+            </div>
+
             <div class="text-end"><button type="submit" class="btn btn-primary" name="submit_profile" value="1"><?= $language::get('save_profile'); ?></button></div>
         </form>
     </div>
@@ -105,6 +173,23 @@ renderUnifiedLayoutFooter('admin');
             });
         }
 
+        // Appearance (design) controls — prefill from the effective customizer prefs
+        // (server-authoritative, computed in config.js). These map to users.ui_prefs and
+        // are saved via save_ui_prefs on submit, so mobile users can change the design the
+        // desktop-only template customizer normally owns.
+        var uiEff = window.XC_VM_UIEffective || {};
+        document.querySelectorAll('#profile-form [data-ui-pref]').forEach(function(el) {
+            var key = el.getAttribute('data-ui-pref');
+            if (uiEff[key] === undefined || uiEff[key] === null) {
+                return;
+            }
+            if (el.type === 'checkbox') {
+                el.checked = (uiEff[key] === true || uiEff[key] === 'true');
+            } else {
+                el.value = String(uiEff[key]);
+            }
+        });
+
         var gen = document.getElementById('generate-code');
         if (gen) {
             gen.addEventListener('click', function() {
@@ -126,42 +211,64 @@ renderUnifiedLayoutFooter('admin');
             if (btn) {
                 btn.disabled = true;
             }
+
+            // Appearance prefs -> save_ui_prefs (a separate JSON endpoint; these controls
+            // carry no name= so they are not part of the edit_profile FormData). The server
+            // whitelists/validates the keys, so it is safe to send them all.
+            var uiPayload = {};
+            this.querySelectorAll('[data-ui-pref]').forEach(function(el) {
+                var key = el.getAttribute('data-ui-pref');
+                uiPayload[key] = el.type === 'checkbox' ? !!el.checked : el.value;
+            });
+            var uiUrl = (window.XC_VM && window.XC_VM.uiPrefsUrl) || 'api?action=save_ui_prefs';
+            var uiFetch = fetch(uiUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify(uiPayload)
+            }).catch(function() {
+                return null;
+            });
+
             var fd = new FormData(this);
             fd.append('submit_profile', '1');
-            fetch('post.php?action=edit_profile', {
-                    method: 'POST',
-                    body: fd,
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(function(r) {
-                    return r.text();
-                })
-                .then(function(txt) {
-                    var d;
-                    try {
-                        d = JSON.parse(txt);
-                    } catch (err) {
-                        d = {
-                            result: false
-                        };
-                    }
-                    if (d && d.result !== false) {
-                        window.location.reload();
-                        return;
-                    }
-                    if (btn) {
-                        btn.disabled = false;
-                    }
-                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
-                })
-                .catch(function() {
-                    if (btn) {
-                        btn.disabled = false;
-                    }
-                    toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
-                });
+            var profileFetch = fetch('post.php?action=edit_profile', {
+                method: 'POST',
+                body: fd,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(function(r) {
+                return r.text();
+            });
+
+            Promise.all([profileFetch, uiFetch]).then(function(res) {
+                var d;
+                try {
+                    d = JSON.parse(res[0]);
+                } catch (err) {
+                    d = {
+                        result: false
+                    };
+                }
+                if (d && d.result !== false) {
+                    // Reload so the shell re-injects the new ui_prefs and the customizer
+                    // re-applies the look (works on mobile too, panel hidden or not).
+                    window.location.reload();
+                    return;
+                }
+                if (btn) {
+                    btn.disabled = false;
+                }
+                toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+            }).catch(function() {
+                if (btn) {
+                    btn.disabled = false;
+                }
+                toast(<?= json_encode($language::get('error_occured')); ?>, 'error');
+            });
         });
     })();
 </script>
