@@ -6,6 +6,8 @@
  * Provision active codes for any reseller without credit restrictions.
  */
 
+use XcVm\Core\Reference\GeoReference;
+
 $rPackages = $rPackages ?? [];
 $rBouquets = $rBouquets ?? [];
 $rResellers = $rResellers ?? [];
@@ -131,7 +133,7 @@ $rResellers = $rResellers ?? [];
                         <select id="package_id" name="package_id" class="form-select form-select-lg" required>
                             <option value="" disabled selected>-- Select a Package --</option>
                             <?php foreach ($rPackages as $pkg): ?>
-                                <option value="<?= (int)$pkg['id']; ?>" data-trial="<?= !empty($pkg['is_trial']) ? 1 : 0; ?>" data-bouquets="<?= htmlspecialchars((string)($pkg['bouquets'] ?? '[]'), ENT_QUOTES); ?>">
+                                <option value="<?= (int)$pkg['id']; ?>" data-trial="<?= !empty($pkg['is_trial']) ? 1 : 0; ?>" data-bouquets="<?= htmlspecialchars((string)($pkg['bouquets'] ?? '[]'), ENT_QUOTES); ?>" data-country="<?= htmlspecialchars((string)($pkg['forced_country'] ?? ''), ENT_QUOTES); ?>">
                                     <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
                                     <?= !empty($pkg['is_trial']) ? ' - [TRIAL]' : ''; ?>
                                 </option>
@@ -274,8 +276,12 @@ $rResellers = $rResellers ?? [];
                             <input type="text" id="dns_base" name="dns_base" class="form-control" placeholder="http://domain.com:port">
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="forced_country">Forced Geo-Lock Country</label>
-                            <input type="text" id="forced_country" name="forced_country" class="form-control text-uppercase" maxlength="2" placeholder="e.g. US, EG, SA">
+                            <label class="form-label fw-semibold" for="forced_country">Forced Geo-Lock Country <i title="<?= $language::get('force_user_to_connect_to_tooltip'); ?>" class="icon-base ti tabler-help-circle text-secondary"></i></label>
+                            <select name="forced_country" id="forced_country" class="form-select select2">
+                                <?php foreach (GeoReference::countries() as $rCountry): ?>
+                                    <option value="<?= htmlspecialchars((string) $rCountry['id'], ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rCountry['name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
@@ -372,6 +378,10 @@ $rResellers = $rResellers ?? [];
                         <span class="fw-semibold text-body text-truncate ms-2" id="preview-package-name">-- Not Selected --</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-1 small">
+                        <span class="text-muted">Geo-Lock Country:</span>
+                        <span class="fw-semibold text-body text-truncate ms-2" id="preview-country-val">Off</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 small">
                         <span class="text-muted">Code Format:</span>
                         <span class="font-monospace text-body" id="preview-format-val">Alphanumeric (10 chars)</span>
                     </div>
@@ -437,6 +447,12 @@ renderUnifiedLayoutFooter('admin');
     $(function() {
         let generatedAdminCodes = [];
 
+        if ($.fn.select2) {
+            $('#created_by, #category_template_id, #forced_country').select2({
+                width: '100%'
+            });
+        }
+
     function updateLivePreview() {
         const qty = jQuery('#num_codes').val() || 1;
         jQuery('#preview-qty-pill').text(`${qty} Voucher${qty > 1 ? 's' : ''}`);
@@ -447,17 +463,30 @@ renderUnifiedLayoutFooter('admin');
         const pkgText = jQuery('#package_id option:selected').text().trim();
         jQuery('#preview-package-name').text(pkgText && !pkgText.startsWith('--') ? pkgText : '-- Not Selected --');
 
+        const countryText = jQuery('#forced_country option:selected').text().trim();
+        jQuery('#preview-country-val').text(countryText || 'Off');
+
         const format = jQuery('#code_format').val();
         const length = jQuery('#code_length').val() || 10;
         const fmtTitle = format === 'numeric' ? 'Numeric PIN' : 'Alphanumeric';
         jQuery('#preview-format-val').text(`${fmtTitle} (${length} chars)`);
     }
 
-    jQuery('#num_codes, #created_by, #package_id, #code_format, #code_length').on('change input', updateLivePreview);
+    jQuery('#num_codes, #created_by, #package_id, #code_format, #code_length, #forced_country').on('change input', updateLivePreview);
 
     jQuery('.qty-pill').on('click', function() {
         jQuery('#num_codes').val(jQuery(this).data('qty'));
         updateLivePreview();
+    });
+
+    jQuery('#admin-active-code-form').on('reset', function() {
+        setTimeout(function() {
+            if ($.fn.select2) {
+                $('#created_by, #category_template_id, #forced_country').trigger('change');
+            }
+            updateLivePreview();
+            updateBouquetCounts();
+        }, 10);
     });
 
     updateLivePreview();
@@ -496,7 +525,7 @@ renderUnifiedLayoutFooter('admin');
         applyBouquetFilter();
     });
 
-    // Auto-select bouquets based on chosen package
+    // Auto-select bouquets & forced country based on chosen package
     jQuery('#package_id').on('change', function() {
         const opt = jQuery(this).find('option:selected');
         const bqRaw = opt.data('bouquets');
@@ -516,6 +545,10 @@ renderUnifiedLayoutFooter('admin');
                 updateBouquetCounts();
                 applyBouquetFilter();
             }
+        }
+        const pkgCountry = opt.data('country');
+        if (pkgCountry !== undefined) {
+            jQuery('#forced_country').val(pkgCountry || '').trigger('change');
         }
     });
 

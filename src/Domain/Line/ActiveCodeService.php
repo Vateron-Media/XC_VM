@@ -120,7 +120,9 @@ class ActiveCodeService {
         $bouquetsJson = '[' . implode(',', array_map('intval', $selectedBouquets)) . ']';
 
         $dnsBase = trim($data['dns_base'] ?? '') ?: null;
-        $forcedCountry = trim($data['forced_country'] ?? '') ?: ($package['forced_country'] ?? null);
+        $forcedCountry = array_key_exists('forced_country', $data)
+            ? (trim((string)$data['forced_country']) ?: null)
+            : (trim((string)($package['forced_country'] ?? '')) ?: null);
         $maxConnections = intval($data['max_connections'] ?? ($package['max_connections'] ?: 1));
         $isAdult = !empty($data['is_adult']) ? 1 : 0;
         $outputFormats = $package['output_formats'] ?? '[]';

@@ -8,6 +8,7 @@
  */
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
@@ -305,8 +306,12 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                             </select>
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="forced_country">Geo-Lock Country (Optional)</label>
-                            <input type="text" id="forced_country" name="forced_country" class="form-control text-uppercase" maxlength="2" placeholder="e.g. US, EG, SA, GB, or leave empty">
+                            <label class="form-label fw-semibold" for="forced_country">Forced Geo-Lock Country <i title="<?= $language::get('force_user_to_connect_to_tooltip'); ?>" class="icon-base ti tabler-help-circle text-secondary"></i></label>
+                            <select name="forced_country" id="forced_country" class="form-select select2">
+                                <?php foreach (GeoReference::countries() as $rCountry): ?>
+                                    <option value="<?= htmlspecialchars((string) $rCountry['id'], ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rCountry['name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
@@ -451,6 +456,12 @@ renderUnifiedLayoutFooter('reseller');
         const packagePrices = <?= json_encode($packagePrices); ?>;
         let currentGeneratedCodes = [];
 
+        if ($.fn.select2) {
+            $('#category_template_id, #dns_base, #forced_country').select2({
+                width: '100%'
+            });
+        }
+
     // Pill clicks for quick quantity
     jQuery('.qty-pill').on('click', function() {
         jQuery('#num_codes').val(jQuery(this).data('qty')).trigger('input');
@@ -461,6 +472,16 @@ renderUnifiedLayoutFooter('reseller');
         const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
         const dateStr = new Date().toISOString().slice(0,10).replace(/-/g,"");
         jQuery('#batch_name').val(`BATCH-${dateStr}-${rand}`);
+    });
+
+    jQuery('#active-code-form').on('reset', function() {
+        setTimeout(function() {
+            if ($.fn.select2) {
+                $('#category_template_id, #dns_base, #forced_country').trigger('change');
+            }
+            updateCalculator();
+            updateBouquetCounts();
+        }, 10);
     });
 
     // Dynamic Credit Calculator
@@ -522,7 +543,7 @@ renderUnifiedLayoutFooter('reseller');
         applyBouquetFilter();
     });
 
-    // Auto-select bouquets based on chosen package
+    // Auto-select bouquets & forced country based on chosen package
     jQuery('#package_id').on('change', function() {
         const opt = jQuery(this).find('option:selected');
         const bqRaw = opt.data('bouquets');
@@ -542,6 +563,11 @@ renderUnifiedLayoutFooter('reseller');
                 updateBouquetCounts();
                 applyBouquetFilter();
             }
+        }
+        const pkgId = jQuery(this).val();
+        const pkgData = packagePrices[pkgId];
+        if (pkgData && pkgData.forced_country !== undefined) {
+            jQuery('#forced_country').val(pkgData.forced_country || '').trigger('change');
         }
     });
 
