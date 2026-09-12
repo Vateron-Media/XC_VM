@@ -314,11 +314,12 @@ class ActiveCodeService {
 
         // Extract and sanitize hardware/device identifiers
         $mac = !empty($deviceInfo['mac']) ? trim($deviceInfo['mac']) : null;
-        $deviceId = !empty($deviceInfo['device_id']) ? trim($deviceInfo['device_id']) : null;
+        $explicitDeviceId = !empty($deviceInfo['device_id']) ? trim($deviceInfo['device_id']) : null;
         $clientIp = $deviceInfo['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? null);
         $userAgent = $deviceInfo['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '');
 
-        // Fallback: If neither MAC nor Device ID was provided, derive a deterministic device identifier
+        // Fallback: If neither MAC nor Device ID was provided, derive an ephemeral identifier for logging/session
+        $deviceId = $explicitDeviceId;
         if (empty($mac) && empty($deviceId)) {
             $fingerprint = ($clientIp ?? '') . '|' . $userAgent . '|' . $cleanCode;
             $deviceId = 'DEV-' . strtoupper(substr(hash('sha256', $fingerprint), 0, 12));
@@ -335,7 +336,7 @@ class ActiveCodeService {
 
             $expDate = strtotime("+{$duration} {$unit}", $now);
 
-            // Update activation_codes with bound device credentials
+            // Update activation_codes with bound device credentials (only explicit hardware IDs are permanently locked)
             $db->query(
                 "UPDATE `activation_codes` SET
                     `status` = 2,
@@ -345,7 +346,7 @@ class ActiveCodeService {
                 WHERE `id` = ?;",
                 $now,
                 $mac,
-                $deviceId,
+                $explicitDeviceId,
                 $codeRow['id']
             );
 
@@ -366,7 +367,7 @@ class ActiveCodeService {
             $codeRow['status'] = 2;
             $codeRow['activated_at'] = $now;
             if (!empty($mac)) $codeRow['mac'] = $mac;
-            if (!empty($deviceId)) $codeRow['device_id'] = $deviceId;
+            if (!empty($explicitDeviceId)) $codeRow['device_id'] = $explicitDeviceId;
         } else {
             // Already activated: check if expired
             if (!empty($line['exp_date']) && $line['exp_date'] < $now) {
@@ -379,7 +380,7 @@ class ActiveCodeService {
             }
 
             // Hardware & Device binding upon login:
-            // If code was not bound to a device yet, bind it now to the current device credentials
+            // If code was not bound to a hardware device yet, bind it now to the current device credentials
             $boundUpdated = false;
             $updateFields = [];
             $updateParams = [];
@@ -391,10 +392,12 @@ class ActiveCodeService {
                 $boundUpdated = true;
             }
 
-            if (empty($codeRow['device_id']) && !empty($deviceId)) {
+            // If device_id is empty OR was a synthetic web fingerprint ('DEV-...'), allow explicit device_id binding
+            $storedIsSynthetic = empty($codeRow['device_id']) || str_starts_with($codeRow['device_id'], 'DEV-');
+            if ($storedIsSynthetic && !empty($explicitDeviceId)) {
                 $updateFields[] = "`device_id` = ?";
-                $updateParams[] = $deviceId;
-                $codeRow['device_id'] = $deviceId;
+                $updateParams[] = $explicitDeviceId;
+                $codeRow['device_id'] = $explicitDeviceId;
                 $boundUpdated = true;
             }
 
@@ -406,11 +409,11 @@ class ActiveCodeService {
                 );
             }
 
-            // Check device lock if enforced
+            // Check device lock if enforced (ignore synthetic web fingerprints)
             if (!empty($codeRow['mac']) && !empty($mac) && strcasecmp(trim($codeRow['mac']), trim($mac)) !== 0) {
                 return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device (MAC: ' . htmlspecialchars($codeRow['mac']) . ').'];
             }
-            if (!empty($codeRow['device_id']) && !empty($deviceInfo['device_id']) && strcasecmp(trim($codeRow['device_id']), trim($deviceInfo['device_id'])) !== 0) {
+            if (!empty($codeRow['device_id']) && !str_starts_with($codeRow['device_id'], 'DEV-') && !empty($explicitDeviceId) && !str_starts_with($explicitDeviceId, 'DEV-') && strcasecmp(trim($codeRow['device_id']), trim($explicitDeviceId)) !== 0) {
                 return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device.'];
             }
         }

@@ -66,15 +66,26 @@ class PlayerApiController {
 
 		if ($rSettings['disable_player_api']) {
 			$this->deny = false;
-			generateError('PLAYER_API_DISABLED');
+			$this->sendAuthError('Disabled', 'Player API has been disabled.');
 		}
 
 		if (strtolower(explode('.', ltrim(parse_url($_SERVER['REQUEST_URI'])['path'] ?? '', '/'))[0]) == 'panel_api') {
 			if (!$rSettings['legacy_panel_api']) {
 				$this->deny = false;
-				generateError('LEGACY_PANEL_API_DISABLED');
+				$this->sendAuthError('Disabled', 'Legacy panel_api access has been disabled.');
 			} else {
 				$this->panelAPI = true;
+			}
+		}
+
+		// Parse JSON POST payload if present
+		if (empty($rRequest['username'])) {
+			$rawBody = @file_get_contents('php://input');
+			if ($rawBody) {
+				$jsonData = @json_decode($rawBody, true);
+				if (is_array($jsonData)) {
+					$rRequest = array_merge($rRequest ?? [], $jsonData);
+				}
 			}
 		}
 
@@ -108,8 +119,8 @@ class PlayerApiController {
 		$rUserInfo = null;
 
 		if (isset($rRequest['username'])) {
-			$rUsername = $rRequest['username'];
-			$rPassword = $rRequest['password'] ?? '';
+			$rUsername = trim((string)$rRequest['username']);
+			$rPassword = (string)($rRequest['password'] ?? '');
 
 			if (!empty($rUsername) && !empty($rPassword)) {
 				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
@@ -117,19 +128,20 @@ class PlayerApiController {
 
 			// Active Code transparent auto-activation fallback
 			if (!$rUserInfo && !empty($rUsername) && class_exists(ActiveCodeService::class)) {
-				$candidateCode = trim($rUsername);
+				$candidateCode = strtoupper(trim($rUsername));
 				$codeRow = ActiveCodeService::getByCode($candidateCode);
 				if ($codeRow) {
 					$deviceInfo = [
 						'mac' => $rRequest['mac'] ?? '',
 						'device_id' => $rRequest['device_id'] ?? '',
-						'ip' => $rIP
+						'ip' => $rIP,
+						'user_agent' => $rUserAgent
 					];
 					$actRes = ActiveCodeService::activateCode($candidateCode, $deviceInfo);
 					if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
-						$rUsername = $actRes['line']['username'];
-						$rPassword = $actRes['line']['password'];
-						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
+						$lineUser = $actRes['line']['username'];
+						$linePass = $actRes['line']['password'];
+						$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $lineUser, $linePass, $rGetChannels);
 						if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
 							$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
 						}
@@ -137,33 +149,34 @@ class PlayerApiController {
 				}
 			}
 
-			if (!$rUserInfo && (empty($rUsername) || empty($rPassword))) {
-				generateError('NO_CREDENTIALS');
+			if (!$rUserInfo && empty($rUsername)) {
+				$this->sendAuthError('', 'No credentials provided.');
 			}
 		} else {
 			if (isset($rRequest['token'])) {
-				$rToken = $rRequest['token'];
+				$rToken = trim((string)$rRequest['token']);
 
 				if (empty($rToken)) {
-					generateError('NO_CREDENTIALS');
+					$this->sendAuthError('', 'No credentials provided.');
 				}
 
 				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rToken, null, $rGetChannels);
 
 				if (!$rUserInfo && class_exists(ActiveCodeService::class)) {
-					$candidateCode = trim($rToken);
+					$candidateCode = strtoupper(trim($rToken));
 					$codeRow = ActiveCodeService::getByCode($candidateCode);
 					if ($codeRow) {
 						$deviceInfo = [
 							'mac' => $rRequest['mac'] ?? '',
 							'device_id' => $rRequest['device_id'] ?? '',
-							'ip' => $rIP
+							'ip' => $rIP,
+							'user_agent' => $rUserAgent
 						];
 						$actRes = ActiveCodeService::activateCode($candidateCode, $deviceInfo);
 						if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
-							$rUsername = $actRes['line']['username'];
-							$rPassword = $actRes['line']['password'];
-							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $rUsername, $rPassword, $rGetChannels);
+							$lineUser = $actRes['line']['username'];
+							$linePass = $actRes['line']['password'];
+							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, false, $rBouquets, null, $lineUser, $linePass, $rGetChannels);
 							if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
 								$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
 							}
@@ -183,18 +196,20 @@ class PlayerApiController {
 			if ($rUserInfo['admin_enabled'] == 1 && $rUserInfo['enabled'] == 1 && (is_null($rUserInfo['exp_date']) || time() < $rUserInfo['exp_date'])) {
 				$rValidUser = true;
 			} elseif (!$rUserInfo['admin_enabled']) {
-				generateError('BANNED');
+				$this->sendAuthError('Banned', 'Account has been banned.');
 			} elseif (!$rUserInfo['enabled']) {
-				generateError('DISABLED');
+				$this->sendAuthError('Disabled', 'Account has been disabled.');
 			} else {
-				generateError('EXPIRED');
+				$this->sendAuthError('Expired', 'Account has expired.');
 			}
 
 			BruteforceGuard::checkAuthFlood($rUserInfo);
-			header('Content-Type: application/json');
+			header('Content-Type: application/json; charset=utf-8');
 
 			if (isset($_SERVER['HTTP_ORIGIN'])) {
 				header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+			} else {
+				header('Access-Control-Allow-Origin: *');
 			}
 
 			header('Access-Control-Allow-Credentials: true');
@@ -205,7 +220,7 @@ class PlayerApiController {
 			exit();
 		} else {
 			BruteforceGuard::checkBruteforce(null, null, $rUsername ?? '');
-			generateError('INVALID_CREDENTIALS');
+			$this->sendAuthError('', 'Username or password is invalid.');
 		}
 	}
 
@@ -973,7 +988,7 @@ class PlayerApiController {
 		$output['user_info'] = [
 			'username' => $this->userInfo['username'],
 			'password' => $this->userInfo['password'],
-			'message' => $rSettings['message_of_day'],
+			'message' => $rSettings['message_of_day'] ?? '',
 			'auth' => 1,
 			'status' => 'Active',
 			'exp_date' => $this->userInfo['exp_date'] !== null ? strval($this->userInfo['exp_date']) : null,
@@ -988,20 +1003,55 @@ class PlayerApiController {
 			$output['user_info']['token'] = $token;
 		}
 
+		$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+			|| (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
+			|| (isset($_SERVER['SERVER_PORT']) && in_array((int)$_SERVER['SERVER_PORT'], [443, 3434], true))
+			|| (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+		$currentProtocol = $isHttps ? 'https' : ($rServers[SERVER_ID]['server_protocol'] ?? 'http');
+		$hostHeader = !empty($_SERVER['HTTP_HOST']) ? explode(':', $_SERVER['HTTP_HOST'])[0] : '';
+		$serverUrl = !empty($hostHeader) && !in_array($hostHeader, ['localhost', '127.0.0.1'], true) ? $hostHeader : $this->domain;
+
 		$output['server_info'] = [
 			'version' => XC_VM_VERSION,
-			'url' => $this->domain,
-			'port' => strval($rServers[SERVER_ID]['http_broadcast_port']),
-			'https_port' => strval($rServers[SERVER_ID]['https_broadcast_port']),
-			'server_protocol' => $rServers[SERVER_ID]['server_protocol'],
-			'rtmp_port' => strval($rServers[SERVER_ID]['rtmp_port']),
+			'url' => $serverUrl,
+			'port' => strval($rServers[SERVER_ID]['http_broadcast_port'] ?? 80),
+			'https_port' => strval($rServers[SERVER_ID]['https_broadcast_port'] ?? 443),
+			'server_protocol' => $currentProtocol,
+			'rtmp_port' => strval($rServers[SERVER_ID]['rtmp_port'] ?? 8880),
 			'timestamp_now' => time(),
 			'time_now' => date('Y-m-d H:i:s'),
-			'timezone' => $rSettings['force_epg_timezone'] ? 'UTC' : $rSettings['default_timezone'],
+			'timezone' => $rSettings['force_epg_timezone'] ? 'UTC' : ($rSettings['default_timezone'] ?? 'UTC'),
 			'process' => true
 		];
 
 		return $output;
+	}
+
+	/**
+	 * Send standardized Xtream Codes JSON auth error response.
+	 */
+	private function sendAuthError(string $status = '', string $message = ''): void {
+		$this->deny = false;
+		header('Content-Type: application/json; charset=utf-8');
+		if (isset($_SERVER['HTTP_ORIGIN'])) {
+			header('Access-Control-Allow-Origin: ' . $_SERVER['HTTP_ORIGIN']);
+		} else {
+			header('Access-Control-Allow-Origin: *');
+		}
+		header('Access-Control-Allow-Credentials: true');
+		$payload = [
+			'user_info' => [
+				'auth' => 0
+			]
+		];
+		if ($status !== '') {
+			$payload['user_info']['status'] = $status;
+		}
+		if ($message !== '') {
+			$payload['user_info']['message'] = $message;
+		}
+		echo json_encode($payload);
+		exit();
 	}
 
 	private static function getOutputFormats($rFormats) {

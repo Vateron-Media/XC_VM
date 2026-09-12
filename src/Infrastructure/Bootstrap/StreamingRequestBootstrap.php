@@ -99,5 +99,13 @@ class StreamingRequestBootstrap {
 		if (in_array($rFilename, $rStreamingEndpoints, true)) {
 			\XcVm\Streaming\StreamingBootstrap::bootstrap($rFilename, $rSettings);
 		}
+
+		// Merge raw JSON input (if any) into $GLOBALS['rRequest'] for modern mobile/TV apps
+		if (!$rIsCli) {
+			$rawBody = @file_get_contents('php://input');
+			if ($rawBody && ($jsonData = @json_decode($rawBody, true)) && is_array($jsonData)) {
+				$GLOBALS['rRequest'] = array_merge($GLOBALS['rRequest'] ?? [], $jsonData);
+			}
+		}
 	}
 }

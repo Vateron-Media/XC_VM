@@ -63,15 +63,18 @@ class UserRepository {
 				$rKey = $rSettings['case_sensitive_line'] ? ($rUsername . '_' . $rPassword) : (strtolower($rUsername) . '_' . strtolower($rPassword));
 				$rCachePath = LINES_TMP_PATH . 'line_c_' . $rKey;
 				$rUserID = file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0;
-			} elseif (empty($rUserID)) {
-				return false;
 			}
 
-			if (!$rUserID) {
-				return false;
+			if ($rUserID) {
+				$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
+				if (file_exists($rInfoPath)) {
+					$cachedData = @igbinary_unserialize(file_get_contents($rInfoPath));
+					if (is_array($cachedData)) {
+						return $cachedData;
+					}
+				}
 			}
-			$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
-			return file_exists($rInfoPath) ? igbinary_unserialize(file_get_contents($rInfoPath)) : false;
+			// Cache miss: fall through to database lookup below
 		}
 
 		if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
@@ -84,7 +87,23 @@ class UserRepository {
 			return false;
 		}
 
-		return 0 < $db->num_rows() ? $db->get_row() : false;
+		if (0 < $db->num_rows()) {
+			$row = $db->get_row();
+			$rUserID = (int)($row['id'] ?? 0);
+			if ($rCached && $rUserID > 0) {
+				@file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserID, igbinary_serialize($row));
+				if (!empty($row['username']) && !empty($row['password'])) {
+					$rKey = !empty($rSettings['case_sensitive_line']) ? ($row['username'] . '_' . $row['password']) : (strtolower($row['username']) . '_' . strtolower($row['password']));
+					@file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, (string)$rUserID);
+				}
+				if (!empty($row['access_token'])) {
+					@file_put_contents(LINES_TMP_PATH . 'line_t_' . $row['access_token'], (string)$rUserID);
+				}
+			}
+			return $row;
+		}
+
+		return false;
 	}
 
 	/**
