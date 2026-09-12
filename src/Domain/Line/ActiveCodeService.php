@@ -428,7 +428,7 @@ class ActiveCodeService {
      */
     public static function getResellersForAssignment(): array {
         $db = self::db();
-        return $db->fetchAll('SELECT `id`, `username`, `credits` FROM `users` ORDER BY `username` ASC;');
+        return $db->fetchAll('SELECT `id`, `username`, `credits` FROM `users` ORDER BY `username` ASC;') ?: [];
     }
 
     /**

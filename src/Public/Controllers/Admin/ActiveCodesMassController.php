@@ -18,7 +18,7 @@ class ActiveCodesMassController extends BaseAdminController
         $this->setTitle('Mass Edit Active Codes');
 
         $this->render('active_codes_mass', [
-            'rPackages' => PackageService::getAll(1, 'line') ?: [],
+            'rPackages' => PackageService::getAll(null, 'line') ?: [],
             'batches'   => ActiveCodeService::getRecentBatchNames(),
             'resellers' => ActiveCodeService::getResellersWithCodes(),
         ]);

@@ -19,8 +19,8 @@ class ActiveCodeController extends BaseAdminController
         $this->setTitle('Generate Active Codes');
 
         $this->render('active_code', [
-            'rPackages'  => PackageService::getAll(1, 'line') ?: [],
-            'rBouquets'  => BouquetService::getAll() ?: [],
+            'rPackages'  => PackageService::getAll(null, 'line') ?: [],
+            'rBouquets'  => BouquetService::getAllSimple() ?: [],
             'rResellers' => ActiveCodeService::getResellersForAssignment(),
         ]);
     }

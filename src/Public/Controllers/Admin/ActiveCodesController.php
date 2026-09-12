@@ -17,7 +17,7 @@ class ActiveCodesController extends BaseAdminController
         $this->requirePermission();
         $this->setTitle('Active Codes');
         $this->render('active_codes', [
-            'rPackages' => PackageService::getAll(1, 'line') ?: [],
+            'rPackages' => PackageService::getAll(null, 'line') ?: [],
             'resellers' => ActiveCodeService::getResellersWithCodes(),
             'batches'   => ActiveCodeService::getRecentBatchNames(),
         ]);

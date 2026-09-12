@@ -3,7 +3,6 @@
 namespace XcVm\Infrastructure;
 
 use XcVm\Core\Auth\Authorization;
-use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
@@ -1096,7 +1095,7 @@ class ResellerApiDispatcher {
 		}
 
 		$package = PackageService::getById((int)$code['package_id']);
-		$portalUrl = rtrim($code['dns_base'] ?: DomainResolver::resolve(SERVER_ID), '/');
+		$portalUrl = self::resolveBaseUrl((string)($code['dns_base'] ?? ''));
 		$portalParsed = parse_url($portalUrl);
 
 		$m3uHls = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=hls";
@@ -1147,6 +1146,25 @@ class ResellerApiDispatcher {
 			]
 		]);
 		exit();
+	}
+
+	/**
+	 * Public base URL for the subscriber portal / credential links.
+	 *
+	 * Honours a well-formed per-code dns_base (one that carries an http(s)://
+	 * scheme); otherwise falls back to this panel's own request origin, which is
+	 * where the portal is served. Returns no trailing slash.
+	 */
+	private static function resolveBaseUrl(string $dnsBase): string {
+		$dnsBase = trim($dnsBase);
+		if ($dnsBase !== '' && preg_match('#^https?://#i', $dnsBase)) {
+			return rtrim($dnsBase, '/');
+		}
+
+		$scheme = (!empty($_SERVER['HTTPS']) && strtolower((string)$_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
+		$host = (string)($_SERVER['HTTP_HOST'] ?? '');
+
+		return $host !== '' ? $scheme . '://' . $host : '';
 	}
 
 	/**
