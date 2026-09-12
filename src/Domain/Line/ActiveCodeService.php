@@ -312,6 +312,18 @@ class ActiveCodeService {
         $package = PackageService::getById($codeRow['package_id']);
         $now = time();
 
+        // Extract and sanitize hardware/device identifiers
+        $mac = !empty($deviceInfo['mac']) ? trim($deviceInfo['mac']) : null;
+        $deviceId = !empty($deviceInfo['device_id']) ? trim($deviceInfo['device_id']) : null;
+        $clientIp = $deviceInfo['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? null);
+        $userAgent = $deviceInfo['user_agent'] ?? ($_SERVER['HTTP_USER_AGENT'] ?? '');
+
+        // Fallback: If neither MAC nor Device ID was provided, derive a deterministic device identifier
+        if (empty($mac) && empty($deviceId)) {
+            $fingerprint = ($clientIp ?? '') . '|' . $userAgent . '|' . $cleanCode;
+            $deviceId = 'DEV-' . strtoupper(substr(hash('sha256', $fingerprint), 0, 12));
+        }
+
         // ─── First-Time Activation (Countdown starts now) ───
         if ($codeRow['status'] == 1 || empty($codeRow['activated_at'])) {
             $duration = intval($codeRow['is_trial'] ? ($package['trial_duration'] ?? 1) : ($package['official_duration'] ?? 1));
@@ -322,11 +334,8 @@ class ActiveCodeService {
             }
 
             $expDate = strtotime("+{$duration} {$unit}", $now);
-            $mac = !empty($deviceInfo['mac']) ? trim($deviceInfo['mac']) : null;
-            $deviceId = !empty($deviceInfo['device_id']) ? trim($deviceInfo['device_id']) : null;
-            $clientIp = $deviceInfo['ip'] ?? ($_SERVER['REMOTE_ADDR'] ?? null);
 
-            // Update activation_codes
+            // Update activation_codes with bound device credentials
             $db->query(
                 "UPDATE `activation_codes` SET
                     `status` = 2,
@@ -356,6 +365,8 @@ class ActiveCodeService {
             $line['exp_date'] = $expDate;
             $codeRow['status'] = 2;
             $codeRow['activated_at'] = $now;
+            if (!empty($mac)) $codeRow['mac'] = $mac;
+            if (!empty($deviceId)) $codeRow['device_id'] = $deviceId;
         } else {
             // Already activated: check if expired
             if (!empty($line['exp_date']) && $line['exp_date'] < $now) {
@@ -367,8 +378,39 @@ class ActiveCodeService {
                 ];
             }
 
+            // Hardware & Device binding upon login:
+            // If code was not bound to a device yet, bind it now to the current device credentials
+            $boundUpdated = false;
+            $updateFields = [];
+            $updateParams = [];
+
+            if (empty($codeRow['mac']) && !empty($mac)) {
+                $updateFields[] = "`mac` = ?";
+                $updateParams[] = $mac;
+                $codeRow['mac'] = $mac;
+                $boundUpdated = true;
+            }
+
+            if (empty($codeRow['device_id']) && !empty($deviceId)) {
+                $updateFields[] = "`device_id` = ?";
+                $updateParams[] = $deviceId;
+                $codeRow['device_id'] = $deviceId;
+                $boundUpdated = true;
+            }
+
+            if ($boundUpdated && !empty($updateFields)) {
+                $updateParams[] = $codeRow['id'];
+                $db->query(
+                    "UPDATE `activation_codes` SET " . implode(', ', $updateFields) . " WHERE `id` = ?;",
+                    ...$updateParams
+                );
+            }
+
             // Check device lock if enforced
-            if (!empty($codeRow['mac']) && !empty($deviceInfo['mac']) && strcasecmp($codeRow['mac'], $deviceInfo['mac']) !== 0) {
+            if (!empty($codeRow['mac']) && !empty($mac) && strcasecmp(trim($codeRow['mac']), trim($mac)) !== 0) {
+                return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device (MAC: ' . htmlspecialchars($codeRow['mac']) . ').'];
+            }
+            if (!empty($codeRow['device_id']) && !empty($deviceInfo['device_id']) && strcasecmp(trim($codeRow['device_id']), trim($deviceInfo['device_id'])) !== 0) {
                 return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device.'];
             }
         }
@@ -427,8 +469,8 @@ class ActiveCodeService {
                 'm3u_ts'  => $m3uTs,
             ],
             'device' => [
-                'mac'       => $codeRow['mac'],
-                'device_id' => $codeRow['device_id'],
+                'mac'       => $codeRow['mac'] ?: ($mac ?? ''),
+                'device_id' => $codeRow['device_id'] ?: ($deviceId ?? ''),
             ],
             'code_details' => $codeRow,
         ];

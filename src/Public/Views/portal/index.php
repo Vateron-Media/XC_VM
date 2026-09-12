@@ -217,7 +217,7 @@ $initialResultJson = !empty($result) ? json_encode($result, JSON_UNESCAPED_UNICO
                         </div>
 
                         <div class="card-body p-4">
-                            <form id="portal-activate-form" autocomplete="off">
+                            <form id="portal-activate-form" method="POST" action="javascript:void(0);" onsubmit="return false;" autocomplete="off">
                                 <div class="mb-4">
                                     <label class="form-label fw-semibold fs-6" for="voucher-code">
                                         Activation Code <span class="text-danger">*</span>
@@ -394,6 +394,18 @@ $initialResultJson = !empty($result) ? json_encode($result, JSON_UNESCAPED_UNICO
                                             <span class="badge bg-label-success">TLS 1.3</span>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+
+                            <!-- Hardware & Device Binding HUD -->
+                            <div class="alert alert-primary d-flex align-items-center mb-4 py-2 px-3 d-none" id="res-device-binding-alert">
+                                <i class="ti tabler-device-laptop fs-4 me-2 text-primary flex-shrink-0"></i>
+                                <div class="d-flex flex-wrap align-items-center justify-content-between w-100 gap-2">
+                                    <div class="small">
+                                        <strong class="me-1">Bound Device:</strong>
+                                        <span id="res-device-binding-text" class="font-monospace text-heading">--</span>
+                                    </div>
+                                    <span class="badge bg-label-primary"><i class="ti tabler-lock-check me-1"></i>Hardware Bound</span>
                                 </div>
                             </div>
 
@@ -949,6 +961,17 @@ $initialResultJson = !empty($result) ? json_encode($result, JSON_UNESCAPED_UNICO
             const maxConn = data.max_connections || 1;
             $('#res-conn-count').html(`<i class="ti tabler-devices me-1"></i>${maxConn} Connection${maxConn > 1 ? 's' : ''}`);
 
+            // Display Bound Hardware Device Details
+            if (data.device && (data.device.device_id || data.device.mac)) {
+                const devParts = [];
+                if (data.device.mac) devParts.push('MAC: ' + data.device.mac);
+                if (data.device.device_id) devParts.push('Device ID: ' + data.device.device_id);
+                $('#res-device-binding-text').text(devParts.join(' • '));
+                $('#res-device-binding-alert').removeClass('d-none');
+            } else {
+                $('#res-device-binding-alert').addClass('d-none');
+            }
+
             // Origin / Scheme
             const currentProtocol = window.location.protocol;
             const currentHost = window.location.host;
@@ -1047,69 +1070,133 @@ $initialResultJson = !empty($result) ? json_encode($result, JSON_UNESCAPED_UNICO
             }
         }
 
-        // ─── Activation Form AJAX Submission ───
-        if (activateForm) {
-            activateForm.addEventListener('submit', function(e) {
-                e.preventDefault();
+        // ─── Hardware Device Auto-Detection & Persistent Generation ───
+        function detectOrGenerateDeviceId() {
+            let mac = '';
+            let deviceId = '';
 
-                const code = (voucherInput ? voucherInput.value.trim() : '').toUpperCase();
-                const mac = (document.getElementById('device-mac') ? document.getElementById('device-mac').value.trim() : '');
-                const deviceId = (document.getElementById('device-id') ? document.getElementById('device-id').value.trim() : '');
-
-                if (!code) {
-                    if (errorText) errorText.textContent = 'Please enter an activation code.';
-                    if (errorAlert) errorAlert.classList.remove('d-none');
-                    return;
-                }
-
-                if (errorAlert) errorAlert.classList.add('d-none');
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Activating Subscription...';
-                }
-
-                $.ajax({
-                    url: './portal',
-                    type: 'POST',
-                    dataType: 'json',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                    data: {
-                        action: 'activate',
-                        code: code,
-                        mac: mac,
-                        device_id: deviceId
-                    },
-                    success: function(res) {
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<i class="ti tabler-bolt me-2 fs-4"></i>Activate Subscription Now';
-                        }
-
-                        if (!res || res.status !== 'SUCCESS') {
-                            const msg = (res && res.message) ? res.message : 'Activation failed. Please check your voucher code.';
-                            if (errorText) errorText.textContent = msg;
-                            if (errorAlert) errorAlert.classList.remove('d-none');
-                            return;
-                        }
-
-                        renderSuccess(res, code);
-                    },
-                    error: function() {
-                        if (submitBtn) {
-                            submitBtn.disabled = false;
-                            submitBtn.innerHTML = '<i class="ti tabler-bolt me-2 fs-4"></i>Activate Subscription Now';
-                        }
-                        if (errorText) errorText.textContent = 'Network or connection error. Please try again.';
-                        if (errorAlert) errorAlert.classList.remove('d-none');
+            // 1. Check MAG / STB API
+            try {
+                if (window.stb && window.stb.mac) {
+                    mac = String(window.stb.mac).trim();
+                    deviceId = mac;
+                } else if (window.gSTB && typeof window.gSTB.GetDeviceMacAddress === 'function') {
+                    const smac = String(window.gSTB.GetDeviceMacAddress()).trim();
+                    if (smac) {
+                        mac = smac;
+                        deviceId = smac;
                     }
-                });
-            });
+                }
+            } catch (e) {}
+
+            // 2. Check localStorage
+            if (!deviceId) {
+                try {
+                    deviceId = localStorage.getItem('xc_portal_device_id') || '';
+                } catch (e) {}
+            }
+
+            // 3. Generate fallback unique persistent identifier
+            if (!deviceId) {
+                try {
+                    const arr = new Uint8Array(6);
+                    crypto.getRandomValues(arr);
+                    deviceId = 'DEV-' + Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+                    localStorage.setItem('xc_portal_device_id', deviceId);
+                } catch (e) {
+                    deviceId = 'DEV-' + Math.random().toString(36).substring(2, 10).toUpperCase();
+                }
+            }
+
+            return { mac, deviceId };
         }
+
+        // Initialize device inputs on load
+        const initialDev = detectOrGenerateDeviceId();
+        const macInputElem = document.getElementById('device-mac');
+        const devIdInputElem = document.getElementById('device-id');
+        if (macInputElem && !macInputElem.value && initialDev.mac) {
+            macInputElem.value = initialDev.mac;
+        }
+        if (devIdInputElem && !devIdInputElem.value && initialDev.deviceId) {
+            devIdInputElem.value = initialDev.deviceId;
+        }
+
+        // ─── Activation Form AJAX Submission (Preventing any Page Reload) ───
+        $('#portal-activate-form').on('submit', function(e) {
+            e.preventDefault();
+
+            const code = (voucherInput ? voucherInput.value.trim() : '').toUpperCase();
+            let mac = macInputElem ? macInputElem.value.trim() : '';
+            let deviceId = devIdInputElem ? devIdInputElem.value.trim() : '';
+
+            // Auto-fallback if fields are empty
+            const dev = detectOrGenerateDeviceId();
+            if (!mac && dev.mac) {
+                mac = dev.mac;
+                if (macInputElem) macInputElem.value = mac;
+            }
+            if (!deviceId && dev.deviceId) {
+                deviceId = dev.deviceId;
+                if (devIdInputElem) devIdInputElem.value = deviceId;
+            }
+
+            if (!code) {
+                if (errorText) errorText.textContent = 'Please enter an activation code.';
+                if (errorAlert) errorAlert.classList.remove('d-none');
+                return;
+            }
+
+            if (errorAlert) errorAlert.classList.add('d-none');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Activating Subscription...';
+            }
+
+            // Post to the current portal access code route
+            const postUrl = window.location.pathname;
+
+            $.ajax({
+                url: postUrl,
+                type: 'POST',
+                dataType: 'json',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                data: {
+                    action: 'activate',
+                    code: code,
+                    mac: mac,
+                    device_id: deviceId
+                },
+                success: function(res) {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="ti tabler-bolt me-2 fs-4"></i>Activate Subscription Now';
+                    }
+
+                    if (!res || res.status !== 'SUCCESS') {
+                        const msg = (res && res.message) ? res.message : 'Activation failed. Please check your voucher code.';
+                        if (errorText) errorText.textContent = msg;
+                        if (errorAlert) errorAlert.classList.remove('d-none');
+                        return;
+                    }
+
+                    renderSuccess(res, code);
+                },
+                error: function() {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="ti tabler-bolt me-2 fs-4"></i>Activate Subscription Now';
+                    }
+                    if (errorText) errorText.textContent = 'Network or connection error. Please try again.';
+                    if (errorAlert) errorAlert.classList.remove('d-none');
+                }
+            });
+        });
 
         // ─── Auto-submit if code is in URL ───
         const initialParamCode = <?= json_encode($initialCode); ?>;
         if (initialParamCode && !serverInitialResult && activateForm) {
-            $(activateForm).trigger('submit');
+            $('#portal-activate-form').trigger('submit');
         }
 
     })(jQuery);
