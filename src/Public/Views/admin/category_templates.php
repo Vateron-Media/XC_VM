@@ -98,43 +98,69 @@ $rSearch = $search ?? '';
                 <div class="col-12 col-md-6 col-xl-4 template-card-wrapper" data-name="<?= strtolower(htmlspecialchars((string)$tmpl['name'], ENT_QUOTES)); ?>" data-owner="<?= strtolower(htmlspecialchars((string)($tmpl['owner_name'] ?? ''), ENT_QUOTES)); ?>">
                     <div class="card h-100 border-0 shadow-sm template-card <?= $isSystem ? 'border-system-template' : ''; ?>">
                         <div class="card-body d-flex flex-column justify-content-between p-4">
-                            <!-- Card Header & Badges -->
                             <div>
-                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                                    <h5 class="card-title mb-0 fw-bold text-truncate" title="<?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>">
-                                        <?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>
-                                    </h5>
-                                    <div class="d-flex flex-wrap gap-1 align-items-center">
+                                <!-- Card Header: Avatar, Title, Owner & Badges -->
+                                <div class="d-flex align-items-start justify-content-between gap-2 mb-3">
+                                    <div class="d-flex align-items-center gap-2.5 min-w-0">
+                                        <div class="template-card-avatar flex-shrink-0" title="<?= $isSystem ? $language::get('system') : 'Template'; ?>">
+                                            <i class="icon-base ti <?= $isSystem ? 'tabler-world' : 'tabler-category-2'; ?>"></i>
+                                        </div>
+                                        <div class="min-w-0">
+                                            <h5 class="card-title mb-0 fw-bold text-heading text-truncate" title="<?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>">
+                                                <?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>
+                                            </h5>
+                                            <div class="d-flex align-items-center gap-1.5 mt-1 text-body-secondary small flex-wrap">
+                                                <span class="d-inline-flex align-items-center gap-1" title="<?= $language::get('owner') ?? 'Owner'; ?>">
+                                                    <i class="icon-base ti tabler-user fs-7 text-muted"></i>
+                                                    <strong class="text-heading"><?= htmlspecialchars((string)($tmpl['owner_name'] ?? 'System'), ENT_QUOTES); ?></strong>
+                                                </span>
+                                                <span class="text-muted opacity-50">•</span>
+                                                <span class="d-inline-flex align-items-center gap-1 text-muted" title="<?= $language::get('date') ?? 'Created Date'; ?>">
+                                                    <i class="icon-base ti tabler-calendar fs-7"></i>
+                                                    <?= date('Y-m-d H:i', strtotime($tmpl['created_at'])); ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex flex-column align-items-end flex-shrink-0">
                                         <?php if ($isSystem): ?>
-                                            <span class="badge bg-label-info d-flex align-items-center gap-1" title="<?= $language::get('system_template_desc'); ?>">
+                                            <span class="badge bg-label-info rounded-pill d-inline-flex align-items-center gap-1" title="<?= $language::get('system_template_desc'); ?>">
                                                 <i class="icon-base ti tabler-world fs-7"></i> <?= $language::get('system'); ?>
                                             </span>
                                         <?php elseif ($isShared): ?>
-                                            <span class="badge bg-label-warning d-flex align-items-center gap-1" title="<?= $language::get('shared_desc'); ?>">
+                                            <span class="badge bg-label-warning rounded-pill d-inline-flex align-items-center gap-1" title="<?= $language::get('shared_desc'); ?>">
                                                 <i class="icon-base ti tabler-share fs-7"></i> <?= $language::get('shared_with_subresellers'); ?>
                                             </span>
                                         <?php else: ?>
-                                            <span class="badge bg-label-secondary d-flex align-items-center gap-1" title="<?= $language::get('private_template'); ?>">
+                                            <span class="badge bg-label-secondary rounded-pill d-inline-flex align-items-center gap-1" title="<?= $language::get('private_template'); ?>">
                                                 <i class="icon-base ti tabler-lock fs-7"></i> <?= $language::get('private_template'); ?>
                                             </span>
                                         <?php endif; ?>
                                     </div>
                                 </div>
 
-                                <!-- Owner, Date & Connected Subscribers Meta -->
-                                <div class="text-body-secondary small mb-3 d-flex flex-wrap align-items-center gap-3">
-                                    <span class="d-inline-flex align-items-center gap-1">
-                                        <i class="icon-base ti tabler-user fs-7"></i>
-                                        <strong><?= htmlspecialchars((string)($tmpl['owner_name'] ?? 'System'), ENT_QUOTES); ?></strong>
-                                    </span>
-                                    <span class="d-inline-flex align-items-center gap-1">
-                                        <i class="icon-base ti tabler-calendar fs-7"></i>
-                                        <?= date('Y-m-d H:i', strtotime($tmpl['created_at'])); ?>
-                                    </span>
-                                    <span class="badge bg-label-primary d-inline-flex align-items-center gap-1" title="Connected Subscribers">
-                                        <i class="icon-base ti tabler-users fs-7"></i>
-                                        <strong><?= (int)($tmpl['subscriber_count'] ?? 0); ?></strong> <?= $language::get('users') ?? 'Subscribers'; ?>
-                                    </span>
+                                <!-- Connected Subscribers Live Strip -->
+                                <?php $subCount = (int)($tmpl['subscriber_count'] ?? 0); ?>
+                                <div class="d-flex align-items-center justify-content-between p-2 rounded-2 bg-body-tertiary border mb-3 small">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar avatar-xs bg-label-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 24px; height: 24px;">
+                                            <i class="icon-base ti tabler-users fs-7"></i>
+                                        </div>
+                                        <span class="text-body-secondary">
+                                            <strong class="text-heading"><?= $subCount; ?></strong>
+                                            <span><?= $language::get('users') ?? 'Connected Lines'; ?></span>
+                                        </span>
+                                    </div>
+                                    <?php if ($subCount > 0): ?>
+                                        <span class="d-inline-flex align-items-center gap-1.5 badge bg-label-success rounded-pill px-2.5 py-0.5 fs-8">
+                                            <span class="subscriber-pulse-dot"></span>
+                                            <span><?= $language::get('active') ?? 'Active'; ?></span>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge bg-label-secondary rounded-pill px-2 py-0.5 fs-8 text-muted">
+                                            <?= $language::get('unused') ?? 'Unassigned'; ?>
+                                        </span>
+                                    <?php endif; ?>
                                 </div>
 
                                 <!-- Category Metrics & Distribution Widget -->
@@ -150,13 +176,11 @@ $rSearch = $search ?? '';
                                 $pctSeries = $cTotal > 0 ? round(($cSeries / $cTotal) * 100, 1) : 0;
                                 $pctRadio  = $cTotal > 0 ? round(($cRadio / $cTotal) * 100, 1) : 0;
                                 ?>
-                                <div class="category-breakdown-box p-3 rounded-3 bg-body-tertiary border mb-4">
-                                    <!-- Header: Title & Total Count -->
-                                    <div class="d-flex align-items-center justify-content-between mb-2.5 pb-1">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <span class="badge bg-label-primary p-1.5 rounded-2">
-                                                <i class="icon-base ti tabler-chart-pie-2 fs-6"></i>
-                                            </span>
+                                <div class="template-breakdown-box mb-4">
+                                    <!-- Header: Title & Total Count Pill -->
+                                    <div class="d-flex align-items-center justify-content-between mb-2 pb-0.5">
+                                        <div class="d-flex align-items-center gap-1.5">
+                                            <i class="icon-base ti tabler-chart-pie-2 text-primary fs-6"></i>
                                             <span class="fw-bold text-heading fs-7"><?= $language::get('categories') ?? 'Categories Breakdown'; ?></span>
                                         </div>
                                         <span class="badge bg-label-primary rounded-pill px-2.5 py-1 fw-bold fs-8">
@@ -165,7 +189,7 @@ $rSearch = $search ?? '';
                                     </div>
 
                                     <!-- Segmented Proportional Visual Bar -->
-                                    <div class="progress rounded-pill bg-body border mb-3 overflow-hidden shadow-xs" style="height: 6px;">
+                                    <div class="progress template-dist-progress mb-3">
                                         <?php if ($cTotal > 0): ?>
                                             <?php if ($pctLive > 0): ?><div class="progress-bar bg-info" style="width: <?= $pctLive; ?>%" title="Live: <?= $cLive; ?> (<?= $pctLive; ?>%)"></div><?php endif; ?>
                                             <?php if ($pctVod > 0): ?><div class="progress-bar bg-success" style="width: <?= $pctVod; ?>%" title="Movies: <?= $cVod; ?> (<?= $pctVod; ?>%)"></div><?php endif; ?>
@@ -176,19 +200,19 @@ $rSearch = $search ?? '';
                                         <?php endif; ?>
                                     </div>
 
-                                    <!-- 4 Accent Pill Cards Grid -->
+                                    <!-- 4 Accent Stat Chips Grid -->
                                     <div class="row g-2">
                                         <!-- Live -->
                                         <div class="col-6 col-sm-3">
-                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-info) !important;">
+                                            <div class="template-stat-chip stat-live h-100 d-flex flex-column justify-content-between">
                                                 <div class="d-flex align-items-center justify-content-between mb-1">
-                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('live') ?? 'Live'; ?></span>
+                                                    <span class="stat-label text-info"><?= $language::get('live') ?? 'Live'; ?></span>
                                                     <i class="icon-base ti tabler-device-tv text-info fs-6"></i>
                                                 </div>
                                                 <div class="d-flex align-items-baseline justify-content-between">
-                                                    <span class="fs-5 fw-bold text-heading"><?= $cLive; ?></span>
+                                                    <span class="stat-value text-heading"><?= $cLive; ?></span>
                                                     <?php if ($cTotal > 0): ?>
-                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctLive; ?>%</small>
+                                                        <span class="stat-pct text-info"><?= $pctLive; ?>%</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -196,15 +220,15 @@ $rSearch = $search ?? '';
 
                                         <!-- Movies -->
                                         <div class="col-6 col-sm-3">
-                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-success) !important;">
+                                            <div class="template-stat-chip stat-movies h-100 d-flex flex-column justify-content-between">
                                                 <div class="d-flex align-items-center justify-content-between mb-1">
-                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('movies') ?? 'Movies'; ?></span>
+                                                    <span class="stat-label text-success"><?= $language::get('movies') ?? 'Movies'; ?></span>
                                                     <i class="icon-base ti tabler-movie text-success fs-6"></i>
                                                 </div>
                                                 <div class="d-flex align-items-baseline justify-content-between">
-                                                    <span class="fs-5 fw-bold text-heading"><?= $cVod; ?></span>
+                                                    <span class="stat-value text-heading"><?= $cVod; ?></span>
                                                     <?php if ($cTotal > 0): ?>
-                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctVod; ?>%</small>
+                                                        <span class="stat-pct text-success"><?= $pctVod; ?>%</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -212,15 +236,15 @@ $rSearch = $search ?? '';
 
                                         <!-- Series -->
                                         <div class="col-6 col-sm-3">
-                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-warning) !important;">
+                                            <div class="template-stat-chip stat-series h-100 d-flex flex-column justify-content-between">
                                                 <div class="d-flex align-items-center justify-content-between mb-1">
-                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('series') ?? 'Series'; ?></span>
+                                                    <span class="stat-label text-warning"><?= $language::get('series') ?? 'Series'; ?></span>
                                                     <i class="icon-base ti tabler-clapperboard text-warning fs-6"></i>
                                                 </div>
                                                 <div class="d-flex align-items-baseline justify-content-between">
-                                                    <span class="fs-5 fw-bold text-heading"><?= $cSeries; ?></span>
+                                                    <span class="stat-value text-heading"><?= $cSeries; ?></span>
                                                     <?php if ($cTotal > 0): ?>
-                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctSeries; ?>%</small>
+                                                        <span class="stat-pct text-warning"><?= $pctSeries; ?>%</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -228,15 +252,15 @@ $rSearch = $search ?? '';
 
                                         <!-- Radio -->
                                         <div class="col-6 col-sm-3">
-                                            <div class="p-2.5 rounded-2 bg-body border h-100 d-flex flex-column justify-content-between shadow-xs" style="border-inline-start: 3px solid var(--bs-danger) !important;">
+                                            <div class="template-stat-chip stat-radio h-100 d-flex flex-column justify-content-between">
                                                 <div class="d-flex align-items-center justify-content-between mb-1">
-                                                    <span class="text-muted text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;"><?= $language::get('radio') ?? 'Radio'; ?></span>
+                                                    <span class="stat-label text-danger"><?= $language::get('radio') ?? 'Radio'; ?></span>
                                                     <i class="icon-base ti tabler-radio text-danger fs-6"></i>
                                                 </div>
                                                 <div class="d-flex align-items-baseline justify-content-between">
-                                                    <span class="fs-5 fw-bold text-heading"><?= $cRadio; ?></span>
+                                                    <span class="stat-value text-heading"><?= $cRadio; ?></span>
                                                     <?php if ($cTotal > 0): ?>
-                                                        <small class="text-muted fw-semibold" style="font-size: 0.68rem;"><?= $pctRadio; ?>%</small>
+                                                        <span class="stat-pct text-danger"><?= $pctRadio; ?>%</span>
                                                     <?php endif; ?>
                                                 </div>
                                             </div>
@@ -246,14 +270,14 @@ $rSearch = $search ?? '';
                             </div>
 
                             <!-- Operations Footer -->
-                            <div class="pt-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-2">
-                                <a href="category_template?id=<?= $tmplId; ?>" class="btn btn-sm btn-primary d-flex align-items-center gap-1 flex-grow-1 justify-content-center">
-                                    <i class="icon-base ti tabler-pencil fs-7"></i>
+                            <div class="pt-3 border-top d-flex align-items-center justify-content-between gap-2">
+                                <a href="category_template?id=<?= $tmplId; ?>" class="btn btn-sm btn-primary d-flex align-items-center gap-1.5 flex-grow-1 justify-content-center shadow-xs">
+                                    <i class="icon-base ti tabler-pencil fs-6"></i>
                                     <span><?= $language::get('edit_template'); ?></span>
                                 </a>
 
-                                <button type="button" class="btn btn-sm btn-label-success js-btn-apply-all" data-id="<?= $tmplId; ?>" data-name="<?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>" title="<?= $language::get('apply_to_all_desc'); ?>">
-                                    <i class="icon-base ti tabler-users-group fs-7"></i>
+                                <button type="button" class="btn btn-sm btn-label-success d-flex align-items-center gap-1.5 js-btn-apply-all px-2.5" data-id="<?= $tmplId; ?>" data-name="<?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>" title="<?= $language::get('apply_to_all_desc'); ?>">
+                                    <i class="icon-base ti tabler-users-group fs-6"></i>
                                     <span><?= $language::get('apply_to_all_subscribers'); ?></span>
                                 </button>
 
