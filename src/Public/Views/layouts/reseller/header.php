@@ -56,6 +56,7 @@ $xmMenu = [
         'url'   => 'dashboard',
         'show'  => true,
     ],
+    ['divider' => true],
     [
         'label' => 'sub_resellers',
         'icon'  => 'ti tabler-user-shield',
@@ -66,6 +67,7 @@ $xmMenu = [
             ['label' => 'manage_users', 'url' => 'users', 'show' => true],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'user_lines',
         'icon'  => 'ti tabler-device-desktop',
@@ -77,6 +79,7 @@ $xmMenu = [
             ['label' => 'manage_lines',   'url' => 'lines',        'show' => true],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'mag_devices',
         'icon'  => 'ti tabler-device-tv',
@@ -88,6 +91,7 @@ $xmMenu = [
             ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => true],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'enigma_devices',
         'icon'  => 'ti tabler-cpu',
@@ -99,6 +103,7 @@ $xmMenu = [
             ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => true],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'active_codes',
         'icon'  => 'ti tabler-key',
@@ -110,6 +115,7 @@ $xmMenu = [
             ['label' => 'batch_manager',  'url' => 'active_codes_batch', 'show' => true],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'content',
         'icon'  => 'ti tabler-player-play',
@@ -124,6 +130,7 @@ $xmMenu = [
             ['label' => 'tv_guide',         'url' => 'epg_view',         'show' => !$rMobile],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'category_templates',
         'icon'  => 'ti tabler-layout-grid',
@@ -134,6 +141,7 @@ $xmMenu = [
             ['label' => 'create_category_template',  'url' => 'category_templates?create=1', 'show' => true],
         ],
     ],
+    ['divider' => true],
     [
         'label' => 'tickets',
         'icon'  => 'ti tabler-ticket',
@@ -161,6 +169,9 @@ $xmMenu = [
  */
 if (!function_exists('_xc_reseller_menu_node')) {
     function _xc_reseller_menu_node(array $item, int $depth, string $page, string $language): array {
+        if (!empty($item['divider'])) {
+            return ['<li class="menu-item menu-divider-item"><div class="menu-divider-glow"></div></li>', false];
+        }
         if (empty($item['show'])) {
             return ['', false];
         }
@@ -252,6 +263,56 @@ if (!function_exists('_xc_reseller_menu_node')) {
         window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
     </script>
     <script src="assets/js/config.js"></script>
+    <style>
+        /* Distinctive Glowing Sidebar Dividers */
+        .menu-vertical .menu-divider-item {
+            padding: 0.35rem 1.4rem;
+            margin: 0.25rem 0 !important;
+            list-style: none;
+            pointer-events: none;
+        }
+        .menu-vertical .menu-divider-glow {
+            height: 1px;
+            width: 100%;
+            background: linear-gradient(90deg, 
+                rgba(115, 103, 240, 0) 0%, 
+                rgba(115, 103, 240, 0.4) 20%, 
+                rgba(115, 103, 240, 0.75) 50%, 
+                rgba(115, 103, 240, 0.4) 80%, 
+                rgba(115, 103, 240, 0) 100%
+            );
+            position: relative;
+            border-radius: 999px;
+        }
+        .menu-vertical .menu-divider-glow::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 5px;
+            height: 5px;
+            background-color: #7367f0;
+            border-radius: 50%;
+            box-shadow: 0 0 8px 1px #7367f0;
+        }
+        [data-bs-theme="dark"] .menu-vertical .menu-divider-glow {
+            background: linear-gradient(90deg, 
+                rgba(115, 103, 240, 0) 0%, 
+                rgba(115, 103, 240, 0.45) 20%, 
+                rgba(168, 85, 247, 0.85) 50%, 
+                rgba(115, 103, 240, 0.45) 80%, 
+                rgba(115, 103, 240, 0) 100%
+            );
+        }
+        [data-bs-theme="dark"] .menu-vertical .menu-divider-glow::after {
+            background-color: #a855f7;
+            box-shadow: 0 0 10px 2px rgba(168, 85, 247, 0.95);
+        }
+        .layout-menu-collapsed:not(.layout-menu-hover) .menu-vertical .menu-divider-item {
+            padding: 0.35rem 0.55rem;
+        }
+    </style>
 </head>
 
 <?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
@@ -282,10 +343,33 @@ if (!function_exists('_xc_reseller_menu_node')) {
                             <div class="menu-inner-shadow"></div>
 
                             <ul class="menu-inner py-1">
-                                <?php foreach ($xmMenu as $xmItem): ?>
-                                    <?php [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language); ?>
-                                    <?= $xmNodeHtml; ?>
-                                <?php endforeach; ?>
+                                <?php
+                                $renderedItems = [];
+                                $lastWasDivider = true;
+
+                                foreach ($xmMenu as $xmItem) {
+                                    if (!empty($xmItem['divider'])) {
+                                        if ($lastWasDivider) {
+                                            continue;
+                                        }
+                                        $renderedItems[] = '<li class="menu-item menu-divider-item"><div class="menu-divider-glow"></div></li>';
+                                        $lastWasDivider = true;
+                                        continue;
+                                    }
+
+                                    [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language);
+                                    if ($xmNodeHtml !== '') {
+                                        $renderedItems[] = $xmNodeHtml;
+                                        $lastWasDivider = false;
+                                    }
+                                }
+
+                                if ($lastWasDivider && !empty($renderedItems)) {
+                                    array_pop($renderedItems);
+                                }
+
+                                echo implode("\n", $renderedItems);
+                                ?>
                             </ul>
                         </aside>
                         <!-- / Vertical menu -->
