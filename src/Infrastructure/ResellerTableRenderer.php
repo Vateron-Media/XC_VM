@@ -1811,6 +1811,7 @@ class ResellerTableRenderer {
 	private static function handleActiveCodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir'] ?? '') === 'desc' ? 'desc' : 'asc');
 		$rOrder = [
+			false, // control
 			false, // checkbox
 			'`activation_codes`.`activation_code`',
 			'`activation_codes`.`batch_name`',
@@ -1825,7 +1826,7 @@ class ResellerTableRenderer {
 
 		$rOrderRow = (RequestManager::has('order') && strlen(RequestManager::get('order')[0]['column'] ?? '') > 0)
 			? intval(RequestManager::get('order')[0]['column'])
-			: 8;
+			: 9;
 
 		$rOrderBy = (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow] !== false)
 			? "ORDER BY {$rOrder[$rOrderRow]} {$rOrderDirection}"

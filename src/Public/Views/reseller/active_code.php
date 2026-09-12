@@ -92,10 +92,10 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
             <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                 <div>
                     <h5 class="card-title mb-1"><i class="ti tabler-plus text-primary me-2"></i><?= $language::get('generate_codes') ?: 'Generate Active Codes'; ?></h5>
-                    <p class="text-muted small mb-0">Pre-generate stock activation vouchers for clients. Credits are deducted, but countdown begins only upon first activation.</p>
+                    <p class="text-muted small mb-0"><?= $language::get('ac_generate_page_intro') ?></p>
                 </div>
                 <a href="active_codes" class="btn btn-sm btn-label-secondary">
-                    <i class="ti tabler-arrow-left me-1"></i>Back to Codes
+                    <i class="ti tabler-arrow-left me-1"></i><?= $language::get('ac_back_to_codes') ?>
                 </a>
             </div>
 
@@ -104,22 +104,22 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                     <!-- Batch Information -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-8">
-                            <label class="form-label fw-semibold" for="batch_name">Batch Name / Voucher Label</label>
+                            <label class="form-label fw-semibold" for="batch_name"><?= $language::get('ac_batch_name_voucher_label') ?></label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="ti tabler-tag"></i></span>
                                 <input type="text" id="batch_name" name="batch_name" class="form-control font-monospace" placeholder="BATCH-202609-XXXX" value="BATCH-<?= date('Ymd'); ?>-<?= strtoupper(substr(bin2hex(random_bytes(2)), 0, 4)); ?>">
-                                <button type="button" class="btn btn-outline-secondary" id="btn-rand-batch" title="Generate New Batch ID">
+                                <button type="button" class="btn btn-outline-secondary" id="btn-rand-batch" title="<?= $language::get('ac_generate_new_batch_id') ?>">
                                     <i class="ti tabler-refresh"></i>
                                 </button>
                             </div>
-                            <div class="form-text small">Used to group vouchers for batch export, printing, and management.</div>
+                            <div class="form-text small"><?= $language::get('ac_batch_name_help') ?></div>
                         </div>
 
                         <div class="col-12 col-md-4">
-                            <label class="form-label fw-semibold" for="code_format">Code Format</label>
+                            <label class="form-label fw-semibold" for="code_format"><?= $language::get('ac_code_format') ?></label>
                             <select id="code_format" name="code_format" class="form-select">
-                                <option value="alphanumeric" selected>Alphanumeric (8X7K9P2M)</option>
-                                <option value="numeric">Numeric PIN (87219430)</option>
+                                <option value="alphanumeric" selected><?= $language::get('ac_alphanumeric') ?> (8X7K9P2M)</option>
+                                <option value="numeric"><?= $language::get('ac_numeric_pin') ?> (87219430)</option>
                             </select>
                         </div>
                     </div>
@@ -129,7 +129,7 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                     <!-- Quantity & Code Length -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-7">
-                            <label class="form-label fw-semibold" for="num_codes">Quantity of Codes to Generate</label>
+                            <label class="form-label fw-semibold" for="num_codes"><?= $language::get('ac_quantity_of_codes_to_generate') ?></label>
                             <div class="input-group">
                                 <input type="number" id="num_codes" name="num_codes" class="form-control fs-5 fw-bold text-center" value="1" min="1" max="500">
                                 <button type="button" class="btn btn-outline-secondary qty-pill" data-qty="5">5</button>
@@ -141,26 +141,26 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                         </div>
 
                         <div class="col-12 col-md-5">
-                            <label class="form-label fw-semibold" for="code_length">Code Character Length</label>
+                            <label class="form-label fw-semibold" for="code_length"><?= $language::get('ac_code_character_length') ?></label>
                             <select id="code_length" name="code_length" class="form-select">
-                                <option value="8">8 Characters</option>
-                                <option value="10" selected>10 Characters (Standard)</option>
-                                <option value="12">12 Characters</option>
-                                <option value="16">16 Characters</option>
+                                <option value="8">8 <?= $language::get('ac_characters') ?></option>
+                                <option value="10" selected>10 <?= $language::get('ac_characters') ?> (<?= $language::get('ac_standard') ?>)</option>
+                                <option value="12">12 <?= $language::get('ac_characters') ?></option>
+                                <option value="16">16 <?= $language::get('ac_characters') ?></option>
                             </select>
                         </div>
                     </div>
 
                     <!-- Package Selection -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold" for="package_id">Target Subscription Package <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold" for="package_id"><?= $language::get('ac_target_subscription_package') ?> <span class="text-danger">*</span></label>
                         <select id="package_id" name="package_id" class="form-select form-select-lg" required>
-                            <option value="" disabled selected>-- Select a Package --</option>
+                            <option value="" disabled selected>-- <?= $language::get('ac_select_a_package') ?> --</option>
                             <?php foreach ($rPackages as $pkg): ?>
                                 <option value="<?= (int)$pkg['id']; ?>" data-cost="<?= $packagePrices[(int)$pkg['id']]['cost']; ?>" data-trial="<?= $packagePrices[(int)$pkg['id']]['is_trial'] ? 1 : 0; ?>">
                                     <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
-                                    (<?= $packagePrices[(int)$pkg['id']]['cost']; ?> Credits)
-                                    <?= $packagePrices[(int)$pkg['id']]['is_trial'] ? ' - [TRIAL]' : ''; ?>
+                                    (<?= $packagePrices[(int)$pkg['id']]['cost']; ?> <?= $language::get('ac_credits') ?>)
+                                    <?= $packagePrices[(int)$pkg['id']]['is_trial'] ? ' - [' . $language::get('trial') . ']' : ''; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -176,13 +176,13 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                         <i class="ti tabler-category-2 fs-5 text-primary"></i>
                                     </div>
                                     <div>
-                                        <label class="form-label fw-bold mb-0 fs-6">Bouquets Included</label>
-                                        <div class="small text-muted">Select streaming content categories for this voucher</div>
+                                        <label class="form-label fw-bold mb-0 fs-6"><?= $language::get('ac_bouquets_included') ?></label>
+                                        <div class="small text-muted"><?= $language::get('ac_select_content_categories') ?></div>
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="badge bg-label-primary px-3 py-2 fs-6" id="bq-selected-count">
-                                        <?= count($rBouquets); ?> / <?= count($rBouquets); ?> Selected
+                                        <?= count($rBouquets); ?> / <?= count($rBouquets); ?> <?= $language::get('selected') ?>
                                     </span>
                                 </div>
                             </div>
@@ -192,7 +192,7 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                 <!-- Search -->
                                 <div class="input-group input-group-sm" style="max-width: 260px;">
                                     <span class="input-group-text bg-transparent"><i class="ti tabler-search"></i></span>
-                                    <input type="text" id="filter-bq-input" class="form-control" placeholder="Search bouquets...">
+                                    <input type="text" id="filter-bq-input" class="form-control" placeholder="<?= $language::get('ac_search_bouquets') ?>">
                                     <button type="button" class="btn btn-outline-secondary d-none" id="btn-clear-bq-search">
                                         <i class="ti tabler-x"></i>
                                     </button>
@@ -200,17 +200,17 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
 
                                 <!-- Action Buttons -->
                                 <div class="d-flex flex-wrap gap-1">
-                                    <button type="button" class="btn btn-sm btn-label-primary" id="btn-select-all-bq" title="Select all bouquets">
-                                        <i class="ti tabler-checks me-1"></i>Select All
+                                    <button type="button" class="btn btn-sm btn-label-primary" id="btn-select-all-bq" title="<?= $language::get('ac_select_all_bouquets') ?>">
+                                        <i class="ti tabler-checks me-1"></i><?= $language::get('ac_select_all') ?>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-label-secondary" id="btn-deselect-all-bq" title="Deselect all">
-                                        <i class="ti tabler-x me-1"></i>Clear All
+                                    <button type="button" class="btn btn-sm btn-label-secondary" id="btn-deselect-all-bq" title="<?= $language::get('ac_deselect_all') ?>">
+                                        <i class="ti tabler-x me-1"></i><?= $language::get('ac_clear_all') ?>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-label-info" id="btn-invert-bq" title="Invert selection">
-                                        <i class="ti tabler-arrows-shuffle me-1"></i>Invert
+                                    <button type="button" class="btn btn-sm btn-label-info" id="btn-invert-bq" title="<?= $language::get('ac_invert_selection') ?>">
+                                        <i class="ti tabler-arrows-shuffle me-1"></i><?= $language::get('ac_invert') ?>
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-label-danger" id="btn-filter-adult" title="Exclude adult 18+ content">
-                                        <i class="ti tabler-shield-lock me-1"></i>Exclude 18+
+                                    <button type="button" class="btn btn-sm btn-label-danger" id="btn-filter-adult" title="<?= $language::get('ac_exclude_adult_content') ?>">
+                                        <i class="ti tabler-shield-lock me-1"></i><?= $language::get('ac_exclude_18') ?>
                                     </button>
                                 </div>
                             </div>
@@ -218,13 +218,13 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                             <!-- Filter Tabs: All | Selected | Unselected | 18+ -->
                             <div class="d-flex flex-wrap gap-1 mb-3">
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab active" data-filter="all">
-                                    All (<span class="tab-count-all"><?= count($rBouquets); ?></span>)
+                                    <?= $language::get('all') ?> (<span class="tab-count-all"><?= count($rBouquets); ?></span>)
                                 </button>
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab" data-filter="selected">
-                                    Selected (<span class="tab-count-sel"><?= count($rBouquets); ?></span>)
+                                    <?= $language::get('selected') ?> (<span class="tab-count-sel"><?= count($rBouquets); ?></span>)
                                 </button>
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab" data-filter="unselected">
-                                    Unselected (<span class="tab-count-unsel">0</span>)
+                                    <?= $language::get('ac_unselected') ?> (<span class="tab-count-unsel">0</span>)
                                 </button>
                                 <?php
                                 $adultCount = 0;
@@ -237,7 +237,7 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                 if ($adultCount > 0):
                                 ?>
                                     <button type="button" class="btn btn-xs btn-label-danger bq-filter-tab" data-filter="adult">
-                                        <i class="ti tabler-lock me-1"></i>18+ Adult (<?= $adultCount; ?>)
+                                        <i class="ti tabler-lock me-1"></i><?= $language::get('ac_18_adult') ?> (<?= $adultCount; ?>)
                                     </button>
                                 <?php endif; ?>
                             </div>
@@ -269,7 +269,7 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                                     <?php endforeach; ?>
                                     <div id="bq-no-results" class="col-12 text-center py-4 text-muted d-none">
                                         <i class="ti tabler-folder-off fs-1 mb-1 d-block text-secondary"></i>
-                                        <div>No bouquets found matching your filter.</div>
+                                        <div><?= $language::get('ac_no_bouquets_found') ?></div>
                                     </div>
                                 </div>
                             </div>
@@ -279,25 +279,25 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                     <!-- Routing Options -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="dns_base">Custom DNS Portal (Optional)</label>
+                            <label class="form-label fw-semibold" for="dns_base"><?= $language::get('ac_custom_dns_portal_optional') ?></label>
                             <select id="dns_base" name="dns_base" class="form-select">
-                                <option value="">Default Server Domain</option>
+                                <option value=""><?= $language::get('ac_default_server_domain') ?></option>
                                 <?php foreach ($dnsList as $dns): ?>
                                     <option value="<?= htmlspecialchars($dns, ENT_QUOTES); ?>"><?= htmlspecialchars($dns, ENT_QUOTES); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="forced_country">Geo-Lock Country (Optional)</label>
-                            <input type="text" id="forced_country" name="forced_country" class="form-control text-uppercase" maxlength="2" placeholder="e.g. US, EG, SA, GB, or leave empty">
+                            <label class="form-label fw-semibold" for="forced_country"><?= $language::get('ac_geo_lock_country_optional') ?></label>
+                            <input type="text" id="forced_country" name="forced_country" class="form-control text-uppercase" maxlength="2" placeholder="<?= $language::get('ac_geo_lock_placeholder') ?>">
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
                     <div class="d-flex justify-content-end gap-3 pt-3 border-top">
-                        <button type="reset" class="btn btn-label-secondary">Reset</button>
+                        <button type="reset" class="btn btn-label-secondary"><?= $language::get('ac_reset') ?></button>
                         <button type="submit" class="btn btn-primary px-4" id="btn-generate-submit">
-                            <i class="ti tabler-sparkles me-1"></i>Generate Codes
+                            <i class="ti tabler-sparkles me-1"></i><?= $language::get('generate_codes') ?>
                         </button>
                     </div>
                 </form>
@@ -311,38 +311,38 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
         <div class="card shadow-sm border-0 mb-4 bg-primary text-white">
             <div class="card-body p-4">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-white-50 text-uppercase fw-semibold small">Credit Accounting</span>
+                    <span class="text-white-50 text-uppercase fw-semibold small"><?= $language::get('ac_credit_accounting') ?></span>
                     <i class="ti tabler-wallet fs-3 text-white"></i>
                 </div>
 
                 <div class="mb-4">
-                    <small class="text-white-50 d-block">Your Current Balance</small>
-                    <h2 class="text-white fw-bold mb-0" id="card-current-balance"><?= number_format($userCredits, 2); ?> <span class="fs-6 fw-normal">Credits</span></h2>
+                    <small class="text-white-50 d-block"><?= $language::get('ac_your_current_balance') ?></small>
+                    <h2 class="text-white fw-bold mb-0" id="card-current-balance"><?= number_format($userCredits, 2); ?> <span class="fs-6 fw-normal"><?= $language::get('ac_credits') ?></span></h2>
                 </div>
 
                 <div class="p-3 bg-white bg-opacity-10 rounded-3 mb-3">
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-white-50">Cost Per Voucher:</span>
-                        <span class="fw-semibold" id="card-cost-per-code">0.00 Credits</span>
+                        <span class="small text-white-50"><?= $language::get('ac_cost_per_voucher') ?>:</span>
+                        <span class="fw-semibold" id="card-cost-per-code">0.00 <?= $language::get('ac_credits') ?></span>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-white-50">Quantity:</span>
+                        <span class="small text-white-50"><?= $language::get('ac_quantity') ?>:</span>
                         <span class="fw-semibold" id="card-qty">1</span>
                     </div>
                     <hr class="border-white opacity-25 my-2">
                     <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold">Total Cost:</span>
-                        <span class="fs-5 fw-bold text-warning" id="card-total-cost">0.00 Credits</span>
+                        <span class="fw-bold"><?= $language::get('ac_total_cost') ?>:</span>
+                        <span class="fs-5 fw-bold text-warning" id="card-total-cost">0.00 <?= $language::get('ac_credits') ?></span>
                     </div>
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center p-2 rounded-3 bg-black bg-opacity-25" id="balance-after-box">
-                    <span class="small text-white-50">Balance After Generation:</span>
-                    <span class="fw-bold" id="card-balance-after"><?= number_format($userCredits, 2); ?> Credits</span>
+                    <span class="small text-white-50"><?= $language::get('ac_balance_after_generation') ?>:</span>
+                    <span class="fw-bold" id="card-balance-after"><?= number_format($userCredits, 2); ?> <?= $language::get('ac_credits') ?></span>
                 </div>
 
                 <div id="insufficient-balance-alert" class="alert alert-danger bg-danger text-white border-0 mt-3 d-none mb-0">
-                    <i class="ti tabler-alert-circle me-1"></i> Insufficient balance for this generation request.
+                    <i class="ti tabler-alert-circle me-1"></i> <?= $language::get('ac_insufficient_balance') ?>
                 </div>
             </div>
         </div>
@@ -351,28 +351,28 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
         <div class="card shadow-sm border-0">
             <div class="card-body p-4">
                 <h6 class="fw-semibold mb-3 d-flex align-items-center gap-2">
-                    <i class="ti tabler-info-circle text-info"></i>How Active Codes Work
+                    <i class="ti tabler-info-circle text-info"></i><?= $language::get('ac_how_active_codes_work') ?>
                 </h6>
                 <ul class="list-unstyled mb-0 d-flex flex-column gap-3 small text-muted">
                     <li class="d-flex gap-2">
                         <i class="ti tabler-snowflake text-primary fs-5 mt-1"></i>
                         <div>
-                            <strong class="text-dark d-block">Stock Mode (Delayed Timer)</strong>
-                            Codes sit safely in your inventory without aging. The 30-day (or 1-year) countdown is triggered only when the buyer inputs the code into their TV app or web portal.
+                            <strong class="text-dark d-block"><?= $language::get('ac_stock_mode_title') ?></strong>
+                            <?= $language::get('ac_stock_mode_desc') ?>
                         </div>
                     </li>
                     <li class="d-flex gap-2">
                         <i class="ti tabler-folders text-success fs-5 mt-1"></i>
                         <div>
-                            <strong class="text-dark d-block">Scratch-Card Batch Printing</strong>
-                            Group vouchers by batch and download ready-to-print formatted text files for physical cards or retail store distribution.
+                            <strong class="text-dark d-block"><?= $language::get('ac_scratch_card_printing_title') ?></strong>
+                            <?= $language::get('ac_scratch_card_printing_desc') ?>
                         </div>
                     </li>
                     <li class="d-flex gap-2">
                         <i class="ti tabler-shield-check text-warning fs-5 mt-1"></i>
                         <div>
-                            <strong class="text-dark d-block">Safe Refund on Unused Vouchers</strong>
-                            If you ever delete a batch of unused codes, your credits are automatically returned to your reseller balance.
+                            <strong class="text-dark d-block"><?= $language::get('ac_safe_refund_title') ?></strong>
+                            <?= $language::get('ac_safe_refund_desc') ?>
                         </div>
                     </li>
                 </ul>
@@ -386,23 +386,23 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-3">
         <div class="d-flex align-items-center gap-2">
             <i class="ti tabler-circle-check fs-4"></i>
-            <h5 class="text-white mb-0" id="res-title">Codes Generated Successfully!</h5>
+            <h5 class="text-white mb-0" id="res-title"><?= $language::get('ac_codes_generated_successfully') ?></h5>
         </div>
         <div class="d-flex gap-2">
             <button type="button" class="btn btn-sm btn-light" id="btn-copy-all-res">
-                <i class="ti tabler-copy me-1"></i>Copy All Codes
+                <i class="ti tabler-copy me-1"></i><?= $language::get('ac_copy_all_codes') ?>
             </button>
-            <a href="active_codes" class="btn btn-sm btn-outline-light">View in Inventory</a>
+            <a href="active_codes" class="btn btn-sm btn-outline-light"><?= $language::get('ac_view_in_inventory') ?></a>
         </div>
     </div>
     <div class="card-body p-4">
         <div class="alert alert-primary d-flex align-items-center justify-content-between mb-4">
             <div>
-                <strong>Batch Name:</strong> <span class="font-monospace fw-bold" id="res-batch-name"></span>
+                <strong><?= $language::get('ac_batch_name') ?>:</strong> <span class="font-monospace fw-bold" id="res-batch-name"></span>
                 <span class="mx-2">•</span>
-                <strong>Total Vouchers:</strong> <span class="fw-bold" id="res-qty"></span>
+                <strong><?= $language::get('ac_total_vouchers') ?>:</strong> <span class="fw-bold" id="res-qty"></span>
             </div>
-            <a href="#" id="res-batch-link" class="btn btn-sm btn-primary">Open in Batch Manager</a>
+            <a href="#" id="res-batch-link" class="btn btn-sm btn-primary"><?= $language::get('ac_open_in_batch_manager') ?></a>
         </div>
 
         <div class="table-responsive">
@@ -410,10 +410,10 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                 <thead class="table-light">
                     <tr>
                         <th style="width: 50px;">#</th>
-                        <th>Activation Code</th>
-                        <th>Companion Username</th>
-                        <th>Companion Password</th>
-                        <th>Initial Status</th>
+                        <th><?= $language::get('ac_activation_code') ?></th>
+                        <th><?= $language::get('ac_companion_username') ?></th>
+                        <th><?= $language::get('ac_companion_password') ?></th>
+                        <th><?= $language::get('ac_initial_status') ?></th>
                     </tr>
                 </thead>
                 <tbody id="res-codes-table"></tbody>

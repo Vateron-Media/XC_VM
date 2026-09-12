@@ -365,8 +365,8 @@ class TableController extends BaseAdminController {
 			$createdUnix = $row["created_at"] ? (int) $row["created_at"] : 0;
 
 			// Clean, keyed row payload; the Bootstrap 5 view renders every badge /
-			// status / action button client-side. Mirrors the reseller active_codes
-			// handler. The subscriber password is intentionally NOT exposed here.
+			// status / action button client-side. The subscriber password is
+			// intentionally NOT exposed here.
 			$data[] = [
 				"id" => (int) $row["id"],
 				"code" => (string) $row["activation_code"],
