@@ -65,7 +65,7 @@ class AuthService {
 			$rArray['whitelist'] = '[]';
 		}
 
-		if (in_array((int)$rData['type'], [6, 7], true)) {
+		if (in_array((int)$rData['type'], [6, 7, 8], true)) {
 			if (strlen($rData['code']) < 3) {
 				return array('status' => STATUS_CODE_LENGTH, 'data' => $rData);
 			}

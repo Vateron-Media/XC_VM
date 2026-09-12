@@ -55,6 +55,11 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
             return;
         }
 
+        if ($scope === 'player_v2') {
+            require __DIR__ . '/player_v2/footer.php';
+            return;
+        }
+
         if ($scope === 'reseller') {
             // Every reseller page is migrated to the Bootstrap 5 shell.
             require __DIR__ . '/reseller/footer.php';

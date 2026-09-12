@@ -25,6 +25,7 @@ final class ScopeBootstrapFactory {
 			case 'reseller':
 				return new ResellerScopeBootstrap();
 			case 'player':
+			case 'player_v2':
 				return new PlayerScopeBootstrap();
 			default:
 				return new AdminScopeBootstrap();

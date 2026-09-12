@@ -153,16 +153,32 @@ class UserRepository {
 	 * @return array<int,string> Output keys.
 	 */
 	private static function resolveOutputFormats($db, $rCached, array $rAllowedOutputs): array {
-		if ($rCached) {
-			$rRows = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'output_formats'));
-		} else {
+		$rRows = null;
+		if ($rCached && defined('CACHE_TMP_PATH') && is_file(CACHE_TMP_PATH . 'output_formats')) {
+			$cachedContent = @file_get_contents(CACHE_TMP_PATH . 'output_formats');
+			if ($cachedContent !== false && $cachedContent !== '') {
+				$unserialized = @igbinary_unserialize($cachedContent);
+				if (is_array($unserialized)) {
+					$rRows = $unserialized;
+				}
+			}
+		}
+
+		if (!is_array($rRows)) {
 			$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
-			$rRows = $db->get_rows();
+			$rRows = $db->get_rows() ?: array();
+			if (defined('CACHE_TMP_PATH') && is_dir(CACHE_TMP_PATH)) {
+				$cacheFile = CACHE_TMP_PATH . 'output_formats';
+				$tmpFile = $cacheFile . '.' . getmypid() . '.tmp';
+				if (@file_put_contents($tmpFile, igbinary_serialize($rRows), LOCK_EX) !== false) {
+					@rename($tmpFile, $cacheFile);
+				}
+			}
 		}
 
 		$rFormats = array();
 		foreach ($rRows as $rRow) {
-			if (in_array(intval($rRow['access_output_id']), $rAllowedOutputs)) {
+			if (empty($rAllowedOutputs) || in_array(intval($rRow['access_output_id']), $rAllowedOutputs, true)) {
 				$rFormats[] = $rRow['output_key'];
 			}
 		}
@@ -520,7 +536,16 @@ class UserRepository {
 			$rUserInfo = array_merge($rUserInfo, self::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets));
 		}
 
-		$rCategoryMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'category_map'));
+		$rCategoryMap = null;
+		if (defined('CACHE_TMP_PATH') && is_file(CACHE_TMP_PATH . 'category_map')) {
+			$catContent = @file_get_contents(CACHE_TMP_PATH . 'category_map');
+			if ($catContent !== false && $catContent !== '') {
+				$rCategoryMap = @igbinary_unserialize($catContent);
+			}
+		}
+		if (!is_array($rCategoryMap)) {
+			$rCategoryMap = array();
+		}
 		$rUserInfo['category_ids'] = self::resolveCategoryIds($rUserInfo['bouquet'], $rCategoryMap);
 		return $rUserInfo;
 	}

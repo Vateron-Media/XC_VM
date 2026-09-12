@@ -65,6 +65,7 @@ if (!empty($_SERVER['XC_SCOPE'])) {
         'includes/api/reseller' => 'reseller',
         'player'               => 'player',
         'portal'               => 'portal',
+        'player_v2'            => 'player_v2',
     ];
 
     $scope = $scopeMap[$rawScope] ?? 'admin';
@@ -132,7 +133,7 @@ if (
 
 // 4b. Player / Portal: /CODE (без завершающего слэша) → /CODE/
 if (
-    $accessCode && in_array($scope, ['player', 'portal'], true)
+    $accessCode && in_array($scope, ['player', 'player_v2', 'portal'], true)
     && ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET'
     && rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', '/') === '/' . $accessCode
     && substr(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '', -1) !== '/'
@@ -216,7 +217,7 @@ if ($scope === 'portal') {
 $adminDir = ($scope === 'admin') ? MAIN_HOME . 'Public/Views/admin/' : MAIN_HOME . $scope . '/';
 @chdir(is_dir($adminDir) ? $adminDir : MAIN_HOME);
 
-if ($scope === 'player') {
+if (in_array($scope, ['player', 'player_v2'], true)) {
     $noBootstrapPages = ['login'];
 } else {
     $noBootstrapPages = ['login', 'setup', 'database', 'index', 'session'];
