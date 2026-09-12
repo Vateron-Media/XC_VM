@@ -1,12 +1,12 @@
 <?php
 
 use XcVm\Public\Controllers\Admin\ActiveCodeController;
+use XcVm\Public\Controllers\Admin\ActiveCodeDetailsController;
 use XcVm\Public\Controllers\Admin\ActiveCodesBatchController;
 use XcVm\Public\Controllers\Admin\ActiveCodesController;
 use XcVm\Public\Controllers\Admin\ActiveCodesMassController;
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
-use XcVm\Public\Controllers\Admin\ActiveCodeDetailsController;
 use XcVm\Public\Controllers\Admin\Ajax\ActiveCodeAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BackupAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
