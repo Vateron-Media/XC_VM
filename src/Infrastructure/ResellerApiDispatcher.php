@@ -5,6 +5,7 @@ namespace XcVm\Infrastructure;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
@@ -1075,7 +1076,7 @@ class ResellerApiDispatcher {
 	private static function handleActiveCodeDetails(?array $rUserInfo, array $rPermissions, $db): void {
 		$codeId = intval(RequestManager::get('id') ?? 0);
 		if (!$codeId) {
-			echo json_encode(['result' => false, 'message' => 'Missing code ID.']);
+			http_response_code(404);
 			exit();
 		}
 
@@ -1090,7 +1091,7 @@ class ResellerApiDispatcher {
 		);
 
 		if (!$code) {
-			echo json_encode(['result' => false, 'message' => 'Code not found or access denied.']);
+			http_response_code(404);
 			exit();
 		}
 
@@ -1117,34 +1118,37 @@ class ResellerApiDispatcher {
 		$directActivateUrl   = "{$subscriberPortalUrl}?code=" . urlencode((string)$code['activation_code']);
 		$webPlayerUrl        = $playerCode ? "{$portalUrl}/{$playerCode}/" : null;
 
-		echo json_encode([
-			'result' => true,
-			'data' => [
-				'id' => (int)$code['id'],
-				'code' => $code['activation_code'],
-				'batch_name' => $code['batch_name'],
-				'status' => (int)$code['status'],
-				'status_text' => ($code['status'] == 1) ? 'Ready (Stock)' : (($code['status'] == 2) ? 'Active' : 'Disabled'),
-				'package_name' => $package['package_name'] ?? 'Custom Package',
-				'is_trial' => (bool)$code['is_trial'],
-				'max_connections' => (int)($code['line_max_conn'] ?: $code['max_connections']),
-				'exp_date' => $code['sub_exp_date'] ? date('Y-m-d H:i:s', (int)$code['sub_exp_date']) : 'Frozen (Stock)',
-				'activated_at' => $code['activated_at'] ? date('Y-m-d H:i:s', (int)$code['activated_at']) : 'Never',
-				'created_at' => $code['created_at'] ? date('Y-m-d H:i:s', (int)$code['created_at']) : '-',
-				'mac' => $code['mac'] ?: 'None',
-				'device_id' => $code['device_id'] ?: 'None',
-				'username' => $code['sub_username'],
-				'password' => $code['sub_password'],
-				'server' => $portalParsed['host'] ?? 'localhost',
-				'port' => $portalParsed['port'] ?? (isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : 80),
-				'portal_url' => $portalUrl,
-				'activation_portal_url' => $subscriberPortalUrl,
-				'direct_activate_url' => $directActivateUrl,
-				'web_player_url' => $webPlayerUrl,
-				'm3u_hls' => $m3uHls,
-				'm3u_ts' => $m3uTs,
-			]
-		]);
+		$d = [
+			'id' => (int)$code['id'],
+			'code' => $code['activation_code'],
+			'batch_name' => $code['batch_name'],
+			'status' => (int)$code['status'],
+			'status_text' => ($code['status'] == 1) ? 'Ready (Stock)' : (($code['status'] == 2) ? 'Active' : 'Disabled'),
+			'package_name' => $package['package_name'] ?? 'Custom Package',
+			'is_trial' => (bool)$code['is_trial'],
+			'max_connections' => (int)($code['line_max_conn'] ?: $code['max_connections']),
+			'exp_date' => $code['sub_exp_date'] ? date('Y-m-d H:i:s', (int)$code['sub_exp_date']) : 'Frozen (Stock)',
+			'activated_at' => $code['activated_at'] ? date('Y-m-d H:i:s', (int)$code['activated_at']) : 'Never',
+			'created_at' => $code['created_at'] ? date('Y-m-d H:i:s', (int)$code['created_at']) : '-',
+			'mac' => $code['mac'] ?: 'None',
+			'device_id' => $code['device_id'] ?: 'None',
+			'username' => $code['sub_username'],
+			'password' => $code['sub_password'],
+			'server' => $portalParsed['host'] ?? 'localhost',
+			'port' => $portalParsed['port'] ?? (isset($_SERVER['SERVER_PORT']) ? (int)$_SERVER['SERVER_PORT'] : 80),
+			'portal_url' => $portalUrl,
+			'activation_portal_url' => $subscriberPortalUrl,
+			'direct_activate_url' => $directActivateUrl,
+			'web_player_url' => $webPlayerUrl,
+			'm3u_hls' => $m3uHls,
+			'm3u_ts' => $m3uTs,
+		];
+
+		// Reuse the shared voucher-details fragment (same body as admin), rendered
+		// server-side and injected by the reseller list. $language lets it translate.
+		$language = Translator::class;
+		header('Content-Type: text/html; charset=utf-8');
+		require MAIN_HOME . 'Public/Views/admin/active_code_details.php';
 		exit();
 	}
 

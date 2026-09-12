@@ -6,6 +6,7 @@ use XcVm\Public\Controllers\Admin\ActiveCodesController;
 use XcVm\Public\Controllers\Admin\ActiveCodesMassController;
 use XcVm\Public\Controllers\Admin\AdminLogoutController;
 use XcVm\Public\Controllers\Admin\AdminResizeController;
+use XcVm\Public\Controllers\Admin\ActiveCodeDetailsController;
 use XcVm\Public\Controllers\Admin\Ajax\ActiveCodeAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BackupAjaxController;
 use XcVm\Public\Controllers\Admin\Ajax\BlocklistAjaxController;
@@ -384,7 +385,7 @@ $router->api('get_package',        [PackageAjaxController::class, 'getPackage'])
 $router->api('get_package_trial',  [PackageAjaxController::class, 'getPackageTrial']);
 
 // ─── Active Codes ──────────────────────────────────
-$router->api('active_code_details',       [ActiveCodeAjaxController::class, 'details']);
+$router->api('active_code_details',       [ActiveCodeDetailsController::class, 'index']);
 $router->api('generate_active_codes',     [ActiveCodeAjaxController::class, 'generate']);
 $router->api('active_codes_batch_action', [ActiveCodeAjaxController::class, 'batchAction']);
 $router->api('active_codes_export_txt',   [ActiveCodeAjaxController::class, 'exportTxt']);
