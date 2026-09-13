@@ -225,8 +225,9 @@ INSERT INTO `crontab` (`id`, `filename`, `time`, `enabled`) VALUES
 (25, 'providers', '0 * * * *', 1),
 (26, 'tmdb_popular', '0 * * * *', 1),
 (27, 'plex', '*/5 * * * *', 1),
-(28, 'maxmind', '0 4 * * 2', 1),
-(29, 'proxy', '0 5 * * *', 1);
+(28, 'maxmind', '0 4 * * *', 1),
+(29, 'proxy', '0 5 * * *', 1),
+(30, 'module_updates', '30 4 * * 2', 1);
 
 -- --------------------------------------------------------
 
@@ -715,6 +716,49 @@ CREATE TABLE IF NOT EXISTS `mag_events` (
 -- --------------------------------------------------------
 
 --
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `migrations`
+--
+
+CREATE TABLE IF NOT EXISTS `migrations` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `migration` varchar(255) NOT NULL,
+  `applied_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `migration` (`migration`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+
+--
+-- Dumping data for table `migrations`
+--
+
+INSERT INTO `migrations` (`id`, `migration`, `applied_at`) VALUES
+(1, '001_update_crontab_filenames.sql', '2026-09-11 17:44:31'),
+(2, '002_add_maxmind_cron.sql', '2026-09-11 17:44:31'),
+(3, '003_set_queue_loop_default.sql', '2026-09-11 17:44:31'),
+(4, '005_add_panel_logs_sent_flag.sql', '2026-09-11 17:44:31'),
+(5, '006_fix_headers_argument_cmd.sql', '2026-09-11 17:44:31'),
+(6, '007_add_platform_api_key.sql', '2026-09-11 17:44:31'),
+(7, '008_add_module_updates_cron.sql', '2026-09-11 17:44:31'),
+(8, '009_add_proxy_cron.sql', '2026-09-11 17:44:31'),
+(9, '010_add_shared_mount_prefixes.sql', '2026-09-11 17:44:31'),
+(10, '010_maxmind_daily_schedule.sql', '2026-09-11 17:44:31'),
+(11, '011_rename_update_channel_beta.sql', '2026-09-11 17:44:31'),
+(12, '012_add_auto_unban.sql', '2026-09-11 17:44:31'),
+(13, '013_drop_asn_allocated.sql', '2026-09-11 17:44:31'),
+(14, '014_add_fanout_tuning_settings.sql', '2026-09-11 17:44:31'),
+(15, '015_add_users_ui_prefs.sql', '2026-09-11 17:44:31'),
+(16, '016_per_repo_update_channel.sql', '2026-09-11 17:44:31'),
+(17, '017_add_fanout_source_backend.sql', '2026-09-11 17:44:31'),
+(18, '018_add_fanout_supervise.sql', '2026-09-11 17:44:31'),
+(19, '019_add_activation_codes.sql', '2026-09-11 17:44:31'),
+(20, '020_add_panel_logs_version.sql', '2026-09-11 17:44:31'),
+(21, '021_add_category_templates.sql', '2026-09-11 18:07:43'),
+(23, '023_seed_default_categories_bouquets_packages.sql', '2026-09-12 06:58:48'),
+(24, '024_add_custom_data_to_lines.sql', '2026-09-12 07:19:24');
+
 -- Table structure for table `mag_logs`
 --
 
@@ -852,6 +896,7 @@ CREATE TABLE IF NOT EXISTS `panel_logs` (
   `log_extra` longtext DEFAULT NULL,
   `line` int(11) DEFAULT NULL,
   `date` int(11) DEFAULT NULL,
+  `sent` tinyint(1) NOT NULL DEFAULT '0',
   `server_id` int(11) DEFAULT NULL,
   `unique` varchar(32) DEFAULT NULL,
   `file` varchar(255) DEFAULT NULL,
@@ -1064,7 +1109,7 @@ CREATE TABLE IF NOT EXISTS `servers` (
 --
 
 INSERT INTO `servers` (`id`, `server_type`, `xc_vm_version`, `server_name`, `domain_name`, `server_ip`, `private_ip`, `is_main`, `enabled`, `parent_id`, `http_broadcast_port`, `https_broadcast_port`, `http_ports_add`, `https_ports_add`, `total_clients`, `network_interface`, `status`, `enable_geoip`, `geoip_countries`, `last_check_ago`, `server_hardware`, `total_services`, `persistent_connections`, `rtmp_port`, `geoip_type`, `isp_names`, `isp_type`, `enable_isp`, `network_guaranteed_speed`, `timeshift_only`, `whitelist_ips`, `watchdog_data`, `video_devices`, `audio_devices`, `gpu_info`, `interfaces`, `random_ip`, `enable_proxy`, `enable_https`, `certbot_renew`, `certbot_ssl`, `uuid`, `use_disk`, `last_status`, `time_offset`, `ping`, `requests_per_second`, `php_pids`, `connections`, `users`, `remote_status`, `governors`, `governor`, `sysctl`, `order`, `enable_gzip`, `limit_requests`, `limit_burst`) VALUES
-(1, 0, '2.0.0', 'Main Server', '', '127.0.0.1', '', 1, 1, '0', 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '[\"127.0.0.1\"]', NULL, '[]', '[]', '[]', '[\"eth0\"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, NULL, 0, 0, 1, NULL, NULL, NULL, NULL, 0, 0, 0);
+(1, 0, '2.5.2', 'Main Server', '', '127.0.0.1', '', 1, 1, '0', 80, 443, NULL, NULL, 1000, 'auto', 1, 0, '[]', 0, NULL, 4, 0, 8880, 'low_priority', '', 'low_priority', 0, 1000, 0, '[\"127.0.0.1\"]', NULL, '[]', '[]', '[]', '[\"eth0\"]', 0, 0, 0, 0, NULL, NULL, 0, 0, 0, 0, 0, NULL, 0, 0, 1, NULL, NULL, NULL, NULL, 0, 0, 0);
 
 -- --------------------------------------------------------
 
@@ -1364,7 +1409,9 @@ CREATE TABLE IF NOT EXISTS `settings` (
   `status_uuid` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `live_streaming_pass` varchar(512) COLLATE utf8_unicode_ci DEFAULT NULL,
   `platform_api_key` varchar(128) COLLATE utf8_unicode_ci DEFAULT NULL,
-  `update_channel` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
+  `update_channel_main` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
+  `update_channel_bin` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
+  `update_channel_fanout` varchar(12) COLLATE utf8_unicode_ci DEFAULT 'stable',
   `maxmind_account_id` varchar(20) COLLATE utf8_unicode_ci DEFAULT NULL,
   `maxmind_license_key` varchar(64) COLLATE utf8_unicode_ci DEFAULT NULL,
   `maxmind_editions` mediumtext COLLATE utf8_unicode_ci,
@@ -1397,8 +1444,8 @@ CREATE TABLE IF NOT EXISTS `settings` (
 -- Dumping data for table `settings`
 --
 
-INSERT INTO `settings` (`id`, `server_name`, `default_timezone`, `allowed_stb_types`, `client_prebuffer`, `split_clients`, `stream_max_analyze`, `show_not_on_air_video`, `not_on_air_video_path`, `show_banned_video`, `banned_video_path`, `show_expired_video`, `expired_video_path`, `show_expiring_video`, `expiring_video_path`, `mag_container`, `api_container`, `probesize`, `allowed_ips_admin`, `block_svp`, `allow_countries`, `user_auto_kick_hours`, `disallow_empty_user_agents`, `show_all_category_mag`, `flood_limit`, `flood_ips_exclude`, `flood_seconds`, `vod_bitrate_plus`, `read_buffer_size`, `seg_time`, `seg_list_size`, `tv_channel_default_aspect`, `playback_limit`, `show_tv_channel_logo`, `show_channel_logo_in_preview`, `enable_connection_problem_indication`, `vod_limit_perc`, `allowed_stb_types_for_local_recording`, `stalker_theme`, `rtmp_random`, `api_ips`, `use_buffer`, `restreamer_prebuffer`, `audio_restart_loss`, `stalker_lock_images`, `channel_number_type`, `stb_change_pass`, `enable_debug_stalker`, `online_capacity_interval`, `always_enabled_subtitles`, `test_download_url`, `api_pass`, `message_of_day`, `enable_isp_lock`, `show_isps`, `save_closed_connection`, `client_logs_save`, `case_sensitive_line`, `county_override_1st`, `disallow_2nd_ip_con`, `split_by`, `use_mdomain_in_lists`, `priority_backup`, `tmdb_api_key`, `mag_security`, `hls_accelerator`, `backups_pid`, `backups_to_keep`, `cc_time`, `dashboard_stats`, `default_entries`, `disable_trial`, `download_images`, `dropbox_keep`, `dropbox_remote`, `ip_logout`, `last_backup`, `login_flood`, `recaptcha_enable`, `reseller_restrictions`, `stats_pid`, `tmdb_pid`, `watch_pid`, `automatic_backups`, `dropbox_token`, `recaptcha_v2_secret_key`, `recaptcha_v2_site_key`, `tmdb_language`, `release_parser`, `language`, `encrypt_hls`, `disable_ts`, `disable_ts_allow_restream`, `disable_hls`, `disable_hls_allow_restream`, `disable_rtmp`, `disable_rtmp_allow_restream`, `date_format`, `datetime_format`, `streams_grouped`, `disable_player_api`, `disable_playlist`, `disable_xmltv`, `disable_enigma2`, `disable_ministra`, `api_redirect`, `movie_year_append`, `log_clear`, `cleanup`, `fingerprint_max`, `bruteforce_mac_attempts`, `bruteforce_username_attempts`, `bruteforce_frequency`, `auto_update_lbs`, `update_version`, `dashboard_display_alt`, `dashboard_map`, `cpu_limit`, `mem_limit`, `detect_restream_servers`, `detect_restream_block_user`, `detect_restream_block_ip`, `detect_restream_ports`, `cloudflare`, `js_navigate`, `encrypt_playlist`, `encrypt_playlist_restreamer`, `stream_logs_save`, `restrict_same_ip`, `show_tickets`, `percentage_match`, `thread_count`, `scan_seconds`, `verify_host`, `max_genres`, `legacy_get`, `legacy_xmltv`, `mag_disable_ssl`, `hide_failures`, `legacy_panel_api`, `connection_loop_per`, `connection_loop_count`, `api_probe`, `max_simultaneous_downloads`, `restart_php_fpm`, `cache_playlists`, `send_xc_vm_header`, `request_prebuffer`, `debug_show_errors`, `block_streaming_servers`, `block_proxies`, `ip_subnet_match`, `last_cache`, `last_cache_taken`, `ministra_allow_blank`, `enable_cache`, `legacy_mag_auth`, `ignore_invalid_users`, `on_demand_instant_off`, `on_demand_failure_exit`, `on_demand_wait_time`, `playlist_from_mysql`, `show_images`, `kill_rogue_ffmpeg`, `monitor_connection_status`, `stream_fail_sleep`, `custom_ip_header`, `send_protection_headers`, `send_altsvc_header`, `send_server_header`, `send_unique_header`, `send_unique_header_domain`, `max_items`, `restrict_playlists`, `mag_legacy_redirect`, `save_login_logs`, `save_restart_logs`, `keep_activity`, `keep_client`, `keep_login`, `keep_errors`, `keep_restarts`, `ignore_keyframes`, `seg_delete_threshold`, `fails_per_time`, `thread_count_movie`, `thread_count_show`, `redirect_timeout`, `create_expiration`, `redis_handler`, `redis_password`, `force_epg_timezone`, `check_vod`, `max_encode_movies`, `max_encode_cc`, `queue_loop`, `cache_thread_count`, `cache_changes`, `player_blur`, `player_opacity`, `player_allow_playlist`, `player_allow_bouquet`, `player_hide_incompatible`, `player_allow_hevc`, `read_native_hls`, `keep_protocol`, `ffmpeg_cpu`, `ffmpeg_gpu`, `header_stats`, `mag_keep_extension`, `show_connected_video`, `connected_video_path`, `disallow_2nd_ip_max`, `probesize_ondemand`, `ffmpeg_warnings`, `vod_sort_newest`, `mag_message`, `mag_default_type`, `fps_delay`, `fps_check_type`, `show_category_duplicates`, `probe_extra_wait`, `restream_deny_unauthorised`, `extract_subtitles`, `reseller_ssl_domain`, `disable_xmltv_restreamer`, `disable_playlist_restreamer`, `mag_load_all_channels`, `connection_sync_timer`, `segment_wait_time`, `total_users`, `dts_legacy_ffmpeg`, `allow_cdn_access`, `disable_mag_token`, `ondemand_balance_equal`, `update_data`, `dashboard_status`, `on_demand_checker`, `on_demand_scan_time`, `on_demand_max_probe`, `on_demand_scan_keep`, `parse_type`, `fallback_parser`, `alternative_titles`, `search_items`, `enable_search`, `modal_edit`, `group_buttons`, `license`, `stop_failures`, `restreamer_bypass_proxy`, `mysql_sleep_kill`, `reissues`, `status_uuid`, `live_streaming_pass`, `update_channel`, `threshold_cpu`, `threshold_mem`, `threshold_disk`, `threshold_network`, `threshold_clients`, `auth_flood_seconds`, `auth_flood_limit`, `auth_flood_sleep`, `php_loopback`, `shared_mount_prefixes`, `fanout_hls_window`, `fanout_grace_sec`, `fanout_write_timeout_sec`, `fanout_chunk_bytes`, `fanout_max_gop_bytes`, `fanout_source_insecure`, `fanout_default_prebuffer_sec`, `fanout_idle_buffer_grace_sec`, `fanout_idle_buffer_ratio`, `fanout_source_backend`, `fanout_supervise`) VALUES
-(1, 'XC_VM', 'Europe/London', '[]', 10, 'equal', 5000000, 1, '', 1, '', 1, '', 1, '', 'ts', 'ts', 5000000, '', 1, '[\"ALL\"]', 3, 1, 1, 40, '', 2, 400, 8192, 10, 6, 'fit', 3, 1, 1, 1, 10, '[]', 'default', 1, '', 0, 0, 0, '', 'bouquet', 1, 0, 10, 0, 'https://speed.hetzner.de/100MB.bin', '', 'Welcome to XC_VM', 1, 1, 1, 1, 1, 0, 0, 'conn', 1, 1, '', 1, 1, 0, 0, 0, 1, 50, 0, 1, 10, 0, 1, 0, 20, 0, 1, 0, 0, 0, 'daily', '', '', '', '', 'python', 'en', 0, 0, 0, 0, 0, 0, 0, 'Y-m-d', 'Y-m-d H:i:s', 1, 0, 0, 0, 0, 0, 0, 0, 31, 1, 25, 10, 10, 300, 1, '1.1.0', 1, 0, 0, 0, 1, 0, 0, '[25461,25550,31210]', 0, 1, 1, 0, 1, 1, 0, 80, 50, 86400, 0, 3, 1, 1, 0, 0, 1, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 20, 0, 1, 1, 1, 10, '', 0, 0, '', '', '', 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 4, 86400, 5, 1, 5, 5, 0, '', 0, 0, 10, 1, 5, 10, 1, 0, 10, 1, 1, 0, 0, 1, 0, '4.0', '4.0', 1, 1, 1, NULL, 1, 256000, 1, 0, 'You can switch between the modern and legacy themes by using the <span class=\"label\">Green</span> and <span class=\"label\">Yellow</span> buttons on your remote control. Doing so will restart your device.', 1, 600, 1, 0, 10, 1, 0, 1, 0, 0, 0, 1, 20, 0, 0, 0, 0, 0, NULL, 1, 0, 3600, 5, 604800, 'ptn', 0, 0, 20, 1, 1, 1, NULL, 3, 0, 21600, NULL, NULL, NULL, 'stable', 67, 67, 67, 67, 67, 10, 30, 1, 1, '/opt/arr/media/', 6, 10, 15, 12032, 10528000, 1, 0, 30, 0.50, 'auto', 1);
+INSERT INTO `settings` (`id`, `server_name`, `default_timezone`, `allowed_stb_types`, `client_prebuffer`, `split_clients`, `stream_max_analyze`, `show_not_on_air_video`, `not_on_air_video_path`, `show_banned_video`, `banned_video_path`, `show_expired_video`, `expired_video_path`, `show_expiring_video`, `expiring_video_path`, `mag_container`, `api_container`, `probesize`, `allowed_ips_admin`, `block_svp`, `allow_countries`, `user_auto_kick_hours`, `disallow_empty_user_agents`, `show_all_category_mag`, `flood_limit`, `flood_ips_exclude`, `flood_seconds`, `vod_bitrate_plus`, `read_buffer_size`, `seg_time`, `seg_list_size`, `tv_channel_default_aspect`, `playback_limit`, `show_tv_channel_logo`, `show_channel_logo_in_preview`, `enable_connection_problem_indication`, `vod_limit_perc`, `allowed_stb_types_for_local_recording`, `stalker_theme`, `rtmp_random`, `api_ips`, `use_buffer`, `restreamer_prebuffer`, `audio_restart_loss`, `stalker_lock_images`, `channel_number_type`, `stb_change_pass`, `enable_debug_stalker`, `online_capacity_interval`, `always_enabled_subtitles`, `test_download_url`, `api_pass`, `message_of_day`, `enable_isp_lock`, `show_isps`, `save_closed_connection`, `client_logs_save`, `case_sensitive_line`, `county_override_1st`, `disallow_2nd_ip_con`, `split_by`, `use_mdomain_in_lists`, `priority_backup`, `tmdb_api_key`, `mag_security`, `hls_accelerator`, `backups_pid`, `backups_to_keep`, `cc_time`, `dashboard_stats`, `default_entries`, `disable_trial`, `download_images`, `dropbox_keep`, `dropbox_remote`, `ip_logout`, `last_backup`, `login_flood`, `recaptcha_enable`, `reseller_restrictions`, `stats_pid`, `tmdb_pid`, `watch_pid`, `automatic_backups`, `dropbox_token`, `recaptcha_v2_secret_key`, `recaptcha_v2_site_key`, `tmdb_language`, `release_parser`, `language`, `encrypt_hls`, `disable_ts`, `disable_ts_allow_restream`, `disable_hls`, `disable_hls_allow_restream`, `disable_rtmp`, `disable_rtmp_allow_restream`, `date_format`, `datetime_format`, `streams_grouped`, `disable_player_api`, `disable_playlist`, `disable_xmltv`, `disable_enigma2`, `disable_ministra`, `api_redirect`, `movie_year_append`, `log_clear`, `cleanup`, `fingerprint_max`, `bruteforce_mac_attempts`, `bruteforce_username_attempts`, `bruteforce_frequency`, `auto_update_lbs`, `update_version`, `dashboard_display_alt`, `dashboard_map`, `cpu_limit`, `mem_limit`, `detect_restream_servers`, `detect_restream_block_user`, `detect_restream_block_ip`, `detect_restream_ports`, `cloudflare`, `js_navigate`, `encrypt_playlist`, `encrypt_playlist_restreamer`, `stream_logs_save`, `restrict_same_ip`, `show_tickets`, `percentage_match`, `thread_count`, `scan_seconds`, `verify_host`, `max_genres`, `legacy_get`, `legacy_xmltv`, `mag_disable_ssl`, `hide_failures`, `legacy_panel_api`, `connection_loop_per`, `connection_loop_count`, `api_probe`, `max_simultaneous_downloads`, `restart_php_fpm`, `cache_playlists`, `send_xc_vm_header`, `request_prebuffer`, `debug_show_errors`, `block_streaming_servers`, `block_proxies`, `ip_subnet_match`, `last_cache`, `last_cache_taken`, `ministra_allow_blank`, `enable_cache`, `legacy_mag_auth`, `ignore_invalid_users`, `on_demand_instant_off`, `on_demand_failure_exit`, `on_demand_wait_time`, `playlist_from_mysql`, `show_images`, `kill_rogue_ffmpeg`, `monitor_connection_status`, `stream_fail_sleep`, `custom_ip_header`, `send_protection_headers`, `send_altsvc_header`, `send_server_header`, `send_unique_header`, `send_unique_header_domain`, `max_items`, `restrict_playlists`, `mag_legacy_redirect`, `save_login_logs`, `save_restart_logs`, `keep_activity`, `keep_client`, `keep_login`, `keep_errors`, `keep_restarts`, `ignore_keyframes`, `seg_delete_threshold`, `fails_per_time`, `thread_count_movie`, `thread_count_show`, `redirect_timeout`, `create_expiration`, `redis_handler`, `redis_password`, `force_epg_timezone`, `check_vod`, `max_encode_movies`, `max_encode_cc`, `queue_loop`, `cache_thread_count`, `cache_changes`, `player_blur`, `player_opacity`, `player_allow_playlist`, `player_allow_bouquet`, `player_hide_incompatible`, `player_allow_hevc`, `read_native_hls`, `keep_protocol`, `ffmpeg_cpu`, `ffmpeg_gpu`, `header_stats`, `mag_keep_extension`, `show_connected_video`, `connected_video_path`, `disallow_2nd_ip_max`, `probesize_ondemand`, `ffmpeg_warnings`, `vod_sort_newest`, `mag_message`, `mag_default_type`, `fps_delay`, `fps_check_type`, `show_category_duplicates`, `probe_extra_wait`, `restream_deny_unauthorised`, `extract_subtitles`, `reseller_ssl_domain`, `disable_xmltv_restreamer`, `disable_playlist_restreamer`, `mag_load_all_channels`, `connection_sync_timer`, `segment_wait_time`, `total_users`, `dts_legacy_ffmpeg`, `allow_cdn_access`, `disable_mag_token`, `ondemand_balance_equal`, `update_data`, `dashboard_status`, `on_demand_checker`, `on_demand_scan_time`, `on_demand_max_probe`, `on_demand_scan_keep`, `parse_type`, `fallback_parser`, `alternative_titles`, `search_items`, `enable_search`, `modal_edit`, `group_buttons`, `license`, `stop_failures`, `restreamer_bypass_proxy`, `mysql_sleep_kill`, `reissues`, `status_uuid`, `live_streaming_pass`, `update_channel_main`, `update_channel_bin`, `update_channel_fanout`, `threshold_cpu`, `threshold_mem`, `threshold_disk`, `threshold_network`, `threshold_clients`, `auth_flood_seconds`, `auth_flood_limit`, `auth_flood_sleep`, `php_loopback`, `shared_mount_prefixes`, `fanout_hls_window`, `fanout_grace_sec`, `fanout_write_timeout_sec`, `fanout_chunk_bytes`, `fanout_max_gop_bytes`, `fanout_source_insecure`, `fanout_default_prebuffer_sec`, `fanout_idle_buffer_grace_sec`, `fanout_idle_buffer_ratio`, `fanout_source_backend`, `fanout_supervise`) VALUES
+(1, 'XC_VM', 'Europe/London', '[]', 10, 'equal', 5000000, 1, '', 1, '', 1, '', 1, '', 'ts', 'ts', 5000000, '', 1, '[\"ALL\"]', 3, 1, 1, 40, '', 2, 400, 8192, 10, 6, 'fit', 3, 1, 1, 1, 10, '[]', 'default', 1, '', 0, 0, 0, '', 'bouquet', 1, 0, 10, 0, 'https://speed.hetzner.de/100MB.bin', '', 'Welcome to XC_VM', 1, 1, 1, 1, 1, 0, 0, 'conn', 1, 1, '', 1, 1, 0, 0, 0, 1, 50, 0, 1, 10, 0, 1, 0, 20, 0, 1, 0, 0, 0, 'daily', '', '', '', '', 'python', 'en', 0, 0, 0, 0, 0, 0, 0, 'Y-m-d', 'Y-m-d H:i:s', 1, 0, 0, 0, 0, 0, 0, 0, 31, 1, 25, 10, 10, 300, 1, '1.1.0', 1, 0, 0, 0, 1, 0, 0, '[25461,25550,31210]', 0, 1, 1, 0, 1, 1, 0, 80, 50, 86400, 0, 3, 1, 1, 0, 0, 1, 0, 0, 1, 2, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 20, 0, 1, 1, 1, 10, '', 0, 0, '', '', '', 0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 4, 86400, 5, 1, 5, 5, 0, '', 0, 0, 10, 1, 5, 10, 1, 0, 10, 1, 1, 0, 0, 1, 0, '4.0', '4.0', 1, 1, 1, NULL, 1, 256000, 1, 0, 'You can switch between the modern and legacy themes by using the <span class=\"label\">Green</span> and <span class=\"label\">Yellow</span> buttons on your remote control. Doing so will restart your device.', 1, 600, 1, 0, 10, 1, 0, 1, 0, 0, 0, 1, 20, 0, 0, 0, 0, 0, NULL, 1, 0, 3600, 5, 604800, 'ptn', 0, 0, 20, 1, 1, 1, NULL, 3, 0, 21600, NULL, NULL, NULL, 'stable', 'stable', 'stable', 67, 67, 67, 67, 67, 10, 30, 1, 1, '/opt/arr/media/', 6, 10, 15, 12032, 10528000, 1, 0, 30, 0.50, 'auto', 1);
 
 -- --------------------------------------------------------
 

@@ -3,6 +3,7 @@
 namespace XcVm\Module\Plex;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * PlexItemCommand — plex item command
@@ -15,6 +16,7 @@ use XcVm\Cli\CommandInterface;
  */
 
 class PlexItemCommand implements CommandInterface {
+	use DatabaseAware;
 
 	public function getName(): string {
 		return 'plex_item';
@@ -38,7 +40,7 @@ class PlexItemCommand implements CommandInterface {
 		putenv('LC_ALL=en_US.UTF-8');
 
 		register_shutdown_function(function () {
-			global $db;
+			$db = self::db();
 			if (is_object($db)) {
 				$db->close_mysql();
 			}

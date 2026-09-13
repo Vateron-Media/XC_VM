@@ -244,7 +244,7 @@ lb_copy_files:
 			rel=$${file#src/}; \
 			printf "      → Copying: %s\n" "$$file"; \
 			mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
-			cp "$$file" "$(TEMP_DIR)/$$rel"; \
+			cp -d "$$file" "$(TEMP_DIR)/$$rel"; \
 		done; \
 	done
 
@@ -290,7 +290,7 @@ main_copy_files:
 		rel=$${file#src/}; \
 # 		printf "   → Copying: %s\n" "$$file"; \
 		mkdir -p "$(TEMP_DIR)/$$(dirname $$rel)"; \
-		cp "$$file" "$(TEMP_DIR)/$$rel"; \
+		cp -d "$$file" "$(TEMP_DIR)/$$rel"; \
 	done
 
 	@echo "Remove all .gitkeep files..."

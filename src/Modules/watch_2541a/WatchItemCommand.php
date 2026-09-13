@@ -3,6 +3,7 @@
 namespace XcVm\Module\Watch;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Tmdb\TmdbApiService;
 
 /**
@@ -16,6 +17,7 @@ use XcVm\Infrastructure\Tmdb\TmdbApiService;
  */
 
 class WatchItemCommand implements CommandInterface {
+	use DatabaseAware;
 
 	public function getName(): string {
 		return 'watch_item';
@@ -44,11 +46,11 @@ class WatchItemCommand implements CommandInterface {
 		ini_set('max_execution_time', $rTimeout);
 
 		register_shutdown_function(function () {
-			global $db;
 			global $rShowData;
 			if (is_array($rShowData) && $rShowData['id'] && file_exists(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']))) {
 				unlink(WATCH_TMP_PATH . 'lock_' . intval($rShowData['id']));
 			}
+			$db = self::db();
 			if (is_object($db)) {
 				$db->close_mysql();
 			}
