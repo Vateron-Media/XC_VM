@@ -164,9 +164,10 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
         'enigma2'    => [Enigma2ApiController::class,  'web'],
         'xplugin'    => [XPluginApiController::class,  'web'],
         'epg'        => [EpgApiController::class,      'web'],
-        'playlist'    => [PlaylistApiController::class,   'web'],
-        'internal'    => [InternalApiController::class,   'web'],
-        'active_code' => [ActiveCodeApiController::class, 'web'],
+        'playlist'     => [PlaylistApiController::class,     'web'],
+        'internal'     => [InternalApiController::class,     'web'],
+        'active_code'  => [ActiveCodeApiController::class,   'web'],
+        'active_codes' => [ActiveCodeApiController::class,   'web'],
     ];
 
     if (!isset($rApiEndpoints[$rApiName])) {
@@ -175,7 +176,7 @@ if (isset($rawScope) && $rawScope === 'api' && !empty($_SERVER['XC_API'])) {
     }
 
     [$rControllerClass, $rBootstrapKind] = $rApiEndpoints[$rApiName];
-    $rFilename = ($rApiName === 'internal') ? 'api' : $rApiName;
+    $rFilename = ($rApiName === 'internal') ? 'api' : (in_array($rApiName, ['active_code', 'active_codes'], true) ? 'active_code' : $rApiName);
 
     if ($rBootstrapKind === 'stream') {
         StreamingRequestBootstrap::init($rFilename);

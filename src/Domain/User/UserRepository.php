@@ -396,15 +396,25 @@ class UserRepository {
 	 * @param int $rUser User id.
 	 * @return array Sub-user rows keyed by id.
 	 */
-	public static function getSubUsers($rUser) {
+	public static function getSubUsers($rUser, array &$visited = []) {
 		$db = self::db();
 		$rReturn = array();
-		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ?;', $rUser);
+		$rUserInt = (int)$rUser;
+		if (in_array($rUserInt, $visited, true)) {
+			return $rReturn;
+		}
+		$visited[] = $rUserInt;
+
+		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ? AND `id` != ?;', $rUserInt, $rUserInt);
 
 		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['id']] = array('username' => $rRow['username'], 'parent' => $rUser);
+			$subId = (int)$rRow['id'];
+			if (in_array($subId, $visited, true)) {
+				continue;
+			}
+			$rReturn[$subId] = array('username' => $rRow['username'], 'parent' => $rUserInt);
 
-			foreach (self::getSubUsers($rRow['id']) as $rUserID => $rUserData) {
+			foreach (self::getSubUsers($subId, $visited) as $rUserID => $rUserData) {
 				$rReturn[$rUserID] = $rUserData;
 			}
 		}
