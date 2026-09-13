@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e7e1f8b78adac3f039801f257fb72f6d",
+    "content-hash": "85ccd3a09307c98e9a11a73fc29ed591",
     "packages": [
         {
             "name": "chrisyue/php-m3u8",
@@ -613,11 +613,11 @@
         },
         {
             "name": "phpstan/phpstan",
-            "version": "2.2.12",
+            "version": "2.2.13",
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/174b0d88710f00a42598886504dd7a146f91ace5",
-                "reference": "174b0d88710f00a42598886504dd7a146f91ace5",
+                "url": "https://api.github.com/repos/phpstan/phpstan/zipball/9ba9ac76ee9c5cf5b56d58eb5deec6315b7a0260",
+                "reference": "9ba9ac76ee9c5cf5b56d58eb5deec6315b7a0260",
                 "shasum": ""
             },
             "require": {
@@ -673,7 +673,7 @@
                     "type": "github"
                 }
             ],
-            "time": "2026-08-31T19:09:43+00:00"
+            "time": "2026-09-03T20:38:19+00:00"
         },
         {
             "name": "rector/rector",
@@ -994,15 +994,15 @@
     ],
     "aliases": [],
     "minimum-stability": "stable",
-    "stability-flags": [],
+    "stability-flags": {},
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
         "php": ">=8.1"
     },
-    "platform-dev": [],
+    "platform-dev": {},
     "platform-overrides": {
         "php": "8.1.33"
     },
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
