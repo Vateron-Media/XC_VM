@@ -174,7 +174,7 @@ class PlexItem {
      */
     public static function addToBouquet($rType, $rBouquetID, $rID) {
         global $rThreadData;
-        file_put_contents(WATCH_TMP_PATH . md5($rThreadData['uuid'] . '_' . $rThreadData['key'] . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.pbouquet', json_encode(array('type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID)));
+        file_put_contents(WATCH_TMP_PATH . hash('sha256', $rThreadData['uuid'] . '_' . $rThreadData['key'] . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.pbouquet', json_encode(array('type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID)));
     }
 
     /**
@@ -228,7 +228,7 @@ class PlexItem {
      * @param string $rGenreTag
      */
     public static function addCategory($rType, $rGenreTag) {
-        file_put_contents(WATCH_TMP_PATH . md5($rType . '_' . $rGenreTag) . '.pcat', json_encode(array('type' => $rType, 'title' => $rGenreTag)));
+        file_put_contents(WATCH_TMP_PATH . hash('sha256', $rType . '_' . $rGenreTag) . '.pcat', json_encode(array('type' => $rType, 'title' => $rGenreTag)));
     }
 
     /**

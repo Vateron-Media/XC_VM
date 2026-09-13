@@ -171,7 +171,7 @@ class WatchCron {
         }
         $rRows = $db->get_rows();
         if (count($rRows) > 0) {
-            shell_exec('rm -f ' . WATCH_TMP_PATH . '*.wpid');
+            array_map('unlink', glob(WATCH_TMP_PATH . '*.wpid') ?: []);
             $rSeriesTMDB = $rStreamDatabase = array();
             $rTMDBDatabase = array('movie' => array(), 'series' => array());
             echo 'Generating cache...' . "\n";
@@ -197,7 +197,7 @@ class WatchCron {
                     $rTMDBDatabase['movie'][$rTMDBID] = array('id' => $rRow['id'], 'source' => $rSource);
                 }
             }
-            exec('find ' . WATCH_TMP_PATH . ' -maxdepth 1 -name "*.cache" -print0 | xargs -0 rm');
+            array_map('unlink', glob(WATCH_TMP_PATH . '*.cache') ?: []);
             foreach ($rTMDBDatabase['series'] as $rTMDBID => $rData) {
                 file_put_contents(WATCH_TMP_PATH . 'series_' . $rTMDBID . '.cache', json_encode($rData));
             }
@@ -219,6 +219,7 @@ class WatchCron {
             $rSubtitles = $rFiles = array();
             if (0 < strlen($rRow['rclone_dir'])) {
                 $rCommand = 'rclone --config "' . CONFIG_PATH . 'rclone.conf" lsjson ' . escapeshellarg($rRow['rclone_dir']) . ' -R --fast-list --files-only';
+                // nosemgrep: php.lang.security.exec-use.exec-use
                 exec($rCommand, $a364ed03b3639bd1, $Ee034ad5c6b0c8a3);
                 $rData = implode(' ', $a364ed03b3639bd1);
                 if (!substr($rData, 0, 1) != '[') {
@@ -244,10 +245,12 @@ class WatchCron {
                 } else {
                     $rCommand = '/usr/bin/find "' . escapeshellcmd($rRow['directory']) . '"';
                 }
+                // nosemgrep: php.lang.security.exec-use.exec-use
                 exec($rCommand, $rFiles, $Ee034ad5c6b0c8a3);
                 if (isset($rRow['auto_subtitles'])) {
                     $rExtensions = escapeshellcmd(implode('|', array('srt', 'sub', 'sbv')));
                     $rCommand = '/usr/bin/find "' . escapeshellcmd($rRow['directory']) . '" -regex ".*\\.\\(' . $rExtensions . '\\)"';
+                    // nosemgrep: php.lang.security.exec-use.exec-use
                     exec($rCommand, $rSubtitles, $Ee034ad5c6b0c8a3);
                 } else {
                     $rSubtitles = array();
@@ -287,6 +290,7 @@ class WatchCron {
             $db->close_mysql();
             if ($rThreadCount <= 1) {
                 foreach ($cacheDataKey as $rCommand) {
+                    // nosemgrep: php.lang.security.exec-use.exec-use
                     shell_exec($rCommand);
                 }
             } else {

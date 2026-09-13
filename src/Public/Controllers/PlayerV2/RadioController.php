@@ -35,14 +35,23 @@ class RadioController extends BasePlayerV2Controller
         // ─── Stream Redirect Endpoint ───────────────────────────────────────
         if (RequestManager::has('stream')) {
             $streamId = (int)RequestManager::get('stream');
+
+            // Enforce radio entitlement before redirecting or serving stream
+            if (!empty($rUserInfo['radio_ids'])) {
+                $allowedRadio = array_map('intval', $rUserInfo['radio_ids']);
+                if (!in_array($streamId, $allowedRadio, true)) {
+                    http_response_code(403);
+                    exit('Access denied: Radio station not in bouquet');
+                }
+            }
+
             $db->query('SELECT stream_source, target_container FROM `streams` WHERE `id` = ? AND `type` = 4 LIMIT 1;', $streamId);
             $row = $db->get_row();
-            if ($row && !empty($row['stream_source'])) {
-                $srcs = is_array($row['stream_source']) ? $row['stream_source'] : json_decode($row['stream_source'], true);
-                if (!empty($srcs[0])) {
-                    header('Location: ' . $srcs[0]);
-                    exit;
-                }
+            if ($row) {
+                $container = !empty($row['target_container']) ? '.' . $row['target_container'] : '';
+                $streamUrl = $domainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $streamId . $container;
+                header('Location: ' . $streamUrl);
+                exit;
             }
             http_response_code(404);
             exit('Station stream not found');
@@ -94,23 +103,15 @@ class RadioController extends BasePlayerV2Controller
                 if (!is_array($stream) || empty($stream['id'])) {
                     continue;
                 }
-                $streamId = (int)$stream['id'];
-                $container = !empty($stream['target_container']) ? (string)$stream['target_container'] : '';
-                $directUrl = '';
-                if (!empty($stream['stream_source'])) {
-                    $srcList = is_array($stream['stream_source']) ? $stream['stream_source'] : json_decode($stream['stream_source'], true);
-                    if (!empty($srcList[0])) {
-                        $directUrl = $srcList[0];
-                    }
-                }
+                $container = !empty($stream['target_container']) ? '.' . $stream['target_container'] : '';
+                $streamUrl = $domainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $streamId . $container;
                 $stations[] = [
-                    'id'            => $streamId,
-                    'name'          => $stream['stream_display_name'] ?? 'Station #' . $streamId,
-                    'logo'          => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
-                    'category_id'   => $stream['category_id'] ?? 0,
-                    'container'     => $container,
-                    'direct_source' => $directUrl,
-                    'url'           => !empty($directUrl) ? $directUrl : ($baseUrl . 'radio?stream=' . $streamId),
+                    'id'          => $streamId,
+                    'name'        => $stream['stream_display_name'] ?? 'Station #' . $streamId,
+                    'logo'        => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
+                    'category_id' => $stream['category_id'] ?? 0,
+                    'container'   => !empty($stream['target_container']) ? (string)$stream['target_container'] : '',
+                    'url'         => $streamUrl,
                 ];
             }
 
@@ -160,23 +161,15 @@ class RadioController extends BasePlayerV2Controller
             if (!is_array($stream) || empty($stream['id'])) {
                 continue;
             }
-            $streamId = (int)$stream['id'];
-            $container = !empty($stream['target_container']) ? (string)$stream['target_container'] : '';
-            $directUrl = '';
-            if (!empty($stream['stream_source'])) {
-                $srcList = is_array($stream['stream_source']) ? $stream['stream_source'] : json_decode($stream['stream_source'], true);
-                if (!empty($srcList[0])) {
-                    $directUrl = $srcList[0];
-                }
-            }
+            $container = !empty($stream['target_container']) ? '.' . $stream['target_container'] : '';
+            $streamUrl = $domainName . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $streamId . $container;
             $initialStations[] = [
-                'id'            => $streamId,
-                'name'          => $stream['stream_display_name'] ?? 'Station #' . $streamId,
-                'logo'          => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
-                'category_id'   => $stream['category_id'] ?? 0,
-                'container'     => $container,
-                'direct_source' => $directUrl,
-                'url'           => !empty($directUrl) ? $directUrl : ($baseUrl . 'radio?stream=' . $streamId),
+                'id'          => $streamId,
+                'name'        => $stream['stream_display_name'] ?? 'Station #' . $streamId,
+                'logo'        => !empty($stream['stream_icon']) ? $stream['stream_icon'] : '',
+                'category_id' => $stream['category_id'] ?? 0,
+                'container'   => !empty($stream['target_container']) ? (string)$stream['target_container'] : '',
+                'url'         => $streamUrl,
             ];
         }
 

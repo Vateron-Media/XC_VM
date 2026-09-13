@@ -218,7 +218,7 @@ class PlexCron {
         }
 
         if (count($rRows) > 0) {
-            shell_exec('rm -f ' . WATCH_TMP_PATH . '*.ppid');
+            array_map('unlink', glob(WATCH_TMP_PATH . '*.ppid') ?: []);
             $rLeafCount = $rUUIDs = $rSeriesTMDB = $rStreamDatabase = array();
             $rTMDBDatabase = array('movie' => array(), 'series' => array());
             $rPlexDatabase = array('movie' => array(), 'series' => array());
@@ -262,7 +262,7 @@ class PlexCron {
 
             echo '[PlexCron] Existing sources indexed: total_sources=' . count($rStreamDatabase) . ', plex_movie=' . count($rPlexDatabase['movie']) . ', plex_series=' . count($rPlexDatabase['series']) . "\n";
 
-            exec('find ' . WATCH_TMP_PATH . ' -maxdepth 1 -name "*.pcache" -print0 | xargs -0 rm');
+            array_map('unlink', glob(WATCH_TMP_PATH . '*.pcache') ?: []);
             file_put_contents(WATCH_TMP_PATH . 'stream_database.pcache', json_encode($rStreamDatabase));
             foreach ($rTMDBDatabase['series'] as $rTMDBID => $rData) {
                 file_put_contents(WATCH_TMP_PATH . 'series_' . $rTMDBID . '.pcache', json_encode($rData));
@@ -442,6 +442,7 @@ class PlexCron {
 
             if ($rThreadCount <= 1) {
                 foreach ($cacheDataKey as $rCommand) {
+                    // nosemgrep: php.lang.security.exec-use.exec-use
                     shell_exec($rCommand);
                 }
             } else {

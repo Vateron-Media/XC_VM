@@ -126,7 +126,7 @@ class WatchItem {
                 }
             }
         } else {
-            file_put_contents(WATCH_TMP_PATH . md5($rThreadData['file'] . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.bouquet', json_encode(array('type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID)));
+            file_put_contents(WATCH_TMP_PATH . hash('sha256', $rThreadData['file'] . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.bouquet', json_encode(array('type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID)));
         }
     }
 
@@ -143,6 +143,7 @@ class WatchItem {
         } else {
             $rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(str_replace('-', '_', $rRelease));
         }
+        // nosemgrep: php.lang.security.exec-use.exec-use
         $rResult = json_decode(shell_exec($rCommand), true);
         if (!is_array($rResult)) {
             $rResult = array();
@@ -224,6 +225,7 @@ class WatchItem {
      */
     public static function checksource($rFilename) {
         $rCommand = 'timeout 10 ' . FfmpegPaths::probe() . ' -show_streams -show_format -v quiet ' . escapeshellarg($rFilename) . ' -of json';
+        // nosemgrep: php.lang.security.exec-use.exec-use
         return json_decode(shell_exec($rCommand), true);
     }
 

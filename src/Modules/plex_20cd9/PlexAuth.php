@@ -35,9 +35,9 @@ class PlexAuth {
 
 	public static function getPlexServerCacheKey($ip, $port, $username = null, $password = null) {
 		if ($username && $password) {
-			return md5($ip . ':' . $port . ':' . $username . ':' . $password);
+			return hash('sha256', $ip . ':' . $port . ':' . $username . ':' . $password);
 		}
-		return md5($ip . ':' . $port);
+		return hash('sha256', $ip . ':' . $port);
 	}
 
 	public static function getCachedPlexToken($serverKey) {

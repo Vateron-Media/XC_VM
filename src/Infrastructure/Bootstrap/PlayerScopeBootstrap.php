@@ -92,9 +92,13 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 		if (isset($_SESSION['phash'])) {
 			$rUserInfo = UserRepository::getUserInfo($_SESSION['phash'], null, null, true);
 
+			$expectedSha = hash('sha256', $rUserInfo['username'] . '||' . $rUserInfo['password']);
+			$expectedMd5 = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);
+			$currentVerify = (string) ($_SESSION['pverify'] ?? '');
+
 			if (
 				!$rUserInfo
-				|| $_SESSION['pverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])
+				|| (!hash_equals($expectedSha, $currentVerify) && !hash_equals($expectedMd5, $currentVerify))
 				|| (!is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time())
 				|| $rUserInfo['admin_enabled'] == 0
 				|| $rUserInfo['enabled'] == 0

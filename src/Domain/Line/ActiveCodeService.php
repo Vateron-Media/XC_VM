@@ -73,8 +73,23 @@ class ActiveCodeService {
             return ['status' => 'ERROR', 'message' => 'Invalid package selected.'];
         }
 
-        // Calculate credit cost per code
-        $isTrial = !empty($package['is_trial']) || !empty($data['is_trial']);
+        // Calculate credit cost per code — enforce package trial rules
+        $packageSupportsTrial = !empty($package['is_trial']);
+        $packageSupportsOfficial = !empty($package['is_official']);
+
+        $isTrial = false;
+        if ($packageSupportsTrial) {
+            if (!$packageSupportsOfficial) {
+                $isTrial = true;
+            } elseif (!empty($data['is_trial'])) {
+                $isTrial = true;
+            }
+        }
+
+        if ($isTrial && !$isAdmin && !LineService::canGenerateTrials($user['id'])) {
+            return ['status' => 'NO_TRIALS', 'message' => 'Trial generation limit reached or not allowed.'];
+        }
+
         if ($isTrial) {
             $costPerCode = floatval($package['trial_credits'] ?? 0);
         } else {
@@ -155,10 +170,25 @@ class ActiveCodeService {
 
         $db->beginTransaction();
         try {
-            // 1. Deduct reseller credits if non-admin
+            // 1. Deduct reseller credits atomically if non-admin
             if (!$isAdmin && $totalCost > 0) {
-                $newCredits = floatval($user['credits']) - $totalCost;
-                $db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $newCredits, $user['id']);
+                $db->query(
+                    'UPDATE `users` SET `credits` = `credits` - ? WHERE `id` = ? AND `credits` >= ?;',
+                    $totalCost,
+                    $user['id'],
+                    $totalCost
+                );
+                if ($db->num_rows() === 0) {
+                    $db->rollBack();
+                    return [
+                        'status' => 'INSUFFICIENT_CREDITS',
+                        'message' => "Insufficient balance. Required: {$totalCost} credits."
+                    ];
+                }
+
+                // Fetch fresh balance after atomic decrement
+                $db->query('SELECT `credits` FROM `users` WHERE `id` = ?;', $user['id']);
+                $newCredits = floatval($db->get_row()['credits'] ?? 0);
 
                 // Audit logging
                 $db->query(

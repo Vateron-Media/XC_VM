@@ -219,7 +219,7 @@ class PlayerLoginController
 
         // Success - Set session and return payload
         $_SESSION['phash'] = (int)$rUserInfo['id'];
-        $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);
+        $_SESSION['pverify'] = hash('sha256', $rUserInfo['username'] . '||' . $rUserInfo['password']);
 
         $xcCode = $_SERVER['XC_CODE'] ?? '';
         $redirectUrl = $xcCode ? '/' . $xcCode . '/' : 'index';
@@ -286,7 +286,7 @@ class PlayerLoginController
 
         // Authenticate session
         $_SESSION['phash'] = (int)$line['id'];
-        $_SESSION['pverify'] = md5($line['username'] . '||' . $line['password']);
+        $_SESSION['pverify'] = hash('sha256', $line['username'] . '||' . $line['password']);
 
         $xcCode = $_SERVER['XC_CODE'] ?? '';
         $redirectUrl = $xcCode ? '/' . $xcCode . '/' : 'index';
