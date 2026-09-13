@@ -201,6 +201,9 @@ if (!empty($rData['api_key']) && ResellerAPIWrapper::createSession()) {
         case 'export_active_code_batch':
             echo json_encode(ResellerAPIWrapper::exportActiveCodeBatch($rData['batch_name'] ?? '', $rData['format'] ?? 'json'));
             break;
+        case 'check_active_code':
+            echo json_encode(ResellerAPIWrapper::checkActiveCode($rData['code'] ?? RequestManager::get('code') ?? ''));
+            break;
         default:
             echo json_encode(array('status' => 'STATUS_FAILURE', 'error' => 'Invalid action.'));
             break;

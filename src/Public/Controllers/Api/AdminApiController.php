@@ -658,6 +658,9 @@ if (!empty($rData['api_key']) && AdminAPIWrapper::createSession()) {
         case 'export_active_code_batch':
             echo json_encode(AdminAPIWrapper::exportActiveCodeBatch($rData['batch_name'] ?? '', $rData['format'] ?? 'json'));
             break;
+        case 'check_active_code':
+            echo json_encode(AdminAPIWrapper::checkActiveCode($rData['code'] ?? ''));
+            break;
         default:
             // Module-owned serverSide tables (TableRegistry) are exposed generically
             // by their id, so a module table needs no hard-coded case here.

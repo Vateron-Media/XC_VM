@@ -1608,6 +1608,14 @@ class AdminAPIWrapper {
         $json = ActiveCodeService::exportBatchJson((string)$rBatchName, $user, true);
         return ['status' => 'STATUS_SUCCESS', 'format' => 'json', 'data' => $json];
     }
+
+    public static function checkActiveCode($rCode) {
+        $details = ActiveCodeService::checkCode((string)$rCode);
+        if (!$details) {
+            return ['status' => 'STATUS_FAILURE', 'error' => 'Invalid or inactive code.'];
+        }
+        return ['status' => 'STATUS_SUCCESS', 'data' => $details];
+    }
 }
 
 if (!function_exists(__NAMESPACE__ . '\\parseError') && !function_exists('parseError')) {
