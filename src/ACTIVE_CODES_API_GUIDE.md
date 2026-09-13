@@ -1,96 +1,105 @@
-# XC_VM — دليل واجهات برمجة تطبيقات كود التفعيل الذكي (Active Codes API Guide)
+# XC_VM — Smart Activation Codes REST API Specification
 
-دليل شامل وتفصيلي ومفصول لكيفية استخدام والربط مع نظام **أكواد التفعيل الذكية (Smart Activation Codes)** في منصة **XC_VM** بالطريقة القياسية والرسمية المعتمدة في لوحة التحكم باستخدام نظام **أكواد الوصول (Access Codes)**.
-
----
-
-## 📑 الفهرس العام (Table of Contents)
-
-- [نظرة عامة على معمارية الربط (Architecture Overview)](#نظرة-عامة-على-معمارية-الربط)
-- [الجزء الأول: دليل واجهة المدير (PART 1: Admin API)](#الجزء-الأول-دليل-واجهة-المدير-part-1-admin-api)
-  - [1. كيفية الإعداد والحصول على كود الوصول والمفتاح](#1-كيفية-الإعداد-والحصول-على-كود-الوصول-والمفتاح)
-  - [2. صيغة الاستدعاء العامة (Request Format)](#2-صيغة-الاستدعاء-العامة-request-format)
-  - [3. العمليات والإجراءات المدعومة (Actions Reference)](#3-العمليات-والإجراءات-المدعومة-actions-reference)
-    - [3.1 عرض جميع أكواد التفعيل في السيرفر (`get_active_codes`)](#31-عرض-جميع-أكواد-التفعيل-في-السيرفر-get_active_codes)
-    - [3.2 جلب تفاصيل كود محدد وروابط المشغل (`get_active_code`)](#32-جلب-تفاصيل-كود-محدد-وروابط-المشغل-get_active_code)
-    - [3.3 توليد أكواد تفعيل جديدة (فردي أو بالجملة) (`generate_active_codes`)](#33-توليد-أكواد-تفعيل-جديدة-فردي-أو-بالجملة-generate_active_codes)
-    - [3.4 تعديل بيانات كود التفعيل والاشتراك (`edit_active_code`)](#34-تعديل-بيانات-كود-التفعيل-والاشتراك-edit_active_code)
-    - [3.5 فحص حالة كود بدون استهلاكه (`check_active_code`)](#35-فحص-حالة-كود-بدون-استهلاكه-check_active_code)
-    - [3.6 إيقاف كود التفعيل مؤقتاً (`disable_active_code`)](#36-إيقاف-كود-التفعيل-مؤقتاً-disable_active_code)
-    - [3.7 إعادة تفعيل كود موقوف (`enable_active_code`)](#37-إعادة-تفعيل-كود-موقوف-enable_active_code)
-    - [3.8 فك قفل جهاز العميل والماك (`reset_active_code_device`)](#38-فك-قفل-جهاز-العميل-والماك-reset_active_code_device)
-    - [3.9 حذف كود تفعيل نهائياً (`delete_active_code`)](#39-حذف-كود-تفعيل-نهائياً-delete_active_code)
-    - [3.10 العمليات الجماعية على عدة أكواد (`mass_active_codes`)](#310-العمليات-الجماعية-على-عدة-أكواد-mass_active_codes)
-    - [3.11 إحصائيات وأرصدة الباتشات (`get_active_codes_batches`)](#311-إحصائيات-وأرصدة-الباتشات-get_active_codes_batches)
-    - [3.12 تصدير كروت وبطاقات الباتش (`export_active_code_batch`)](#312-تصدير-كروت-وبطاقات-الباتش-export_active_code_batch)
-  - [4. أمثلة برمجية لاستدعاء Admin API](#4-أمثلة-برمجية-لاستدعاء-admin-api)
-- [الجزء الثاني: دليل واجهة الموزع (PART 2: Reseller API)](#الجزء-الثاني-دليل-واجهة-الموزع-part-2-reseller-api)
-  - [1. كيفية الإعداد والحصول على كود وصول الموزع ومفتاحه](#1-كيفية-الإعداد-والحصول-على-كود-وصول-الموزع-ومفتاحه)
-  - [2. نظام العزل الأمني وحماية الرصيد (Credits & Isolation)](#2-نظام-العزل-الأمني-وحماية-الرصيد-credits--isolation)
-  - [3. صيغة الاستدعاء العامة للموزع (Request Format)](#3-صيغة-الاستدعاء-العامة-للموزع-request-format)
-  - [4. العمليات المتاحة للموزع (Reseller Actions)](#4-العمليات-المتاحة-للموزع-reseller-actions)
-    - [4.1 الاستعلام عن رصيد وبيانات الموزع (`user_info`)](#41-الاستعلام-عن-رصيد-وبيانات-الموزع-user_info)
-    - [4.2 عرض أكواد الموزع وموزعيه التابعين (`get_active_codes`)](#42-عرض-أكواد-الموزع-وموزعيه-التابعين-get_active_codes)
-    - [4.3 جلب تفاصيل كود تابع للموزع (`get_active_code`)](#43-جلب-تفاصيل-كود-تابع-للموزع-get_active_code)
-    - [4.4 توليد أكواد تفعيل مع الخصم من الرصيد (`generate_active_codes`)](#44-توليد-أكواد-تفعيل-مع-الخصم-من-الرصيد-generate_active_codes)
-    - [4.5 فحص كود التفعيل من جانب الموزع (`check_active_code`)](#45-فحص-كود-التفعيل-من-جانب-الموزع-check_active_code)
-    - [4.6 فك قفل جهاز الماك لمشترك الموزع (`reset_active_code_device`)](#46-فك-قفل-جهاز-الماك-لمشترك-الموزع-reset_active_code_device)
-    - [4.7 إيقاف وتفعيل كود التفعيل (`disable_active_code` / `enable_active_code`)](#47-إيقاف-وتفعيل-كود-التفعيل-disable_active_code--enable_active_code)
-    - [4.8 حذف كود واسترجاع الكريديت تلقائياً (`delete_active_code`)](#48-حذف-كود-واسترجاع-الكريديت-تلقائياً-delete_active_code)
-    - [4.9 عرض باتشات الموزع وتصديرها (`get_active_codes_batches` / `export_active_code_batch`)](#49-عرض-باتشات-الموزع-وتصديرها)
-  - [5. أمثلة برمجية لاستدعاء Reseller API](#5-أمثلة-برمجية-لاستدعاء-reseller-api)
-- [ملحق: واجهة تفعيل المشتركين والتطبيقات (Client Player API)](#ملحق-واجهة-تفعيل-المشتركين-والتطبيقات-client-player-api)
+A comprehensive, production-grade technical reference for integrating, automating, and consuming the **Active Codes (Smart Activation System)** in the **XC_VM** IPTV Management Platform using the official **Access Code** routing architecture.
 
 ---
 
-# نظرة عامة على معمارية الربط
+## 📑 Table of Contents
 
-يعمل نظام الـ API في **XC_VM** وفق معمارية آمنة مبنية على **أكواد الوصول (Access Codes)**:
-1. **كود الوصول (Access Code):** هو مسار عشوائي أو مخصص يتم إنشاؤه من لوحة التحكم (`Settings -> Access Codes`). يقوم Nginx بتوليد إعدادات خاصة به لربطه بالـ Backend المعني.
-   - كود نوع **3** (`Type 3`): يربط مسار الطلبات بـ **Admin API**.
-   - كود نوع **4** (`Type 4`): يربط مسار الطلبات بـ **Reseller API**.
-2. **مفتاح الواجهة (API Key):** هو المفتاح السري الخاص بحساب المستخدم في اللوحة (Admin أو Reseller)، ويتم تمريره في كل طلب للتحقق من الهوية والصلاحيات.
+- [Architecture Overview & Routing Mechanism](#architecture-overview--routing-mechanism)
+- [PART 1: Administrator REST API Reference (Admin API)](#part-1-administrator-rest-api-reference-admin-api)
+  - [1. Setup & Credentials Retrieval](#1-setup--credentials-retrieval)
+  - [2. Request Protocol & Base URL Format](#2-request-protocol--base-url-format)
+  - [3. Supported Actions Reference](#3-supported-actions-reference)
+    - [3.1 List Active Codes (`get_active_codes`)](#31-list-active-codes-get_active_codes)
+    - [3.2 Get Single Code Details & Playback URLs (`get_active_code`)](#32-get-single-code-details--playback-urls-get_active_code)
+    - [3.3 Generate Active Codes in Bulk or Single (`generate_active_codes`)](#33-generate-active-codes-in-bulk-or-single-generate_active_codes)
+    - [3.4 Edit Active Code & Line Properties (`edit_active_code`)](#34-edit-active-code--line-properties-edit_active_code)
+    - [3.5 Non-Destructive Code Inspection (`check_active_code`)](#35-non-destructive-code-inspection-check_active_code)
+    - [3.6 Suspend / Disable Code (`disable_active_code`)](#36-suspend--disable-code-disable_active_code)
+    - [3.7 Enable / Reactivate Code (`enable_active_code`)](#37-enable--reactivate-code-enable_active_code)
+    - [3.8 Reset Hardware MAC & Device ID Lock (`reset_active_code_device`)](#38-reset-hardware-mac--device-id-lock-reset_active_code_device)
+    - [3.9 Delete Code (`delete_active_code`)](#39-delete-code-delete_active_code)
+    - [3.10 Mass Actions Engine (`mass_active_codes`)](#310-mass-actions-engine-mass_active_codes)
+    - [3.11 Batch Summary Metrics (`get_active_codes_batches`)](#311-batch-summary-metrics-get_active_codes_batches)
+    - [3.12 Export Batch Vouchers (`export_active_code_batch`)](#312-export-batch-vouchers-export_active_code_batch)
+  - [4. Administrator Implementation Examples](#4-administrator-implementation-examples)
+- [PART 2: Reseller REST API Reference (Reseller API)](#part-2-reseller-rest-api-reference-reseller-api)
+  - [1. Setup & Credentials Retrieval](#1-setup--credentials-retrieval-1)
+  - [2. Security Isolation & Automatic Credit Accounting](#2-security-isolation--automatic-credit-accounting)
+  - [3. Request Protocol & Base URL Format](#3-request-protocol--base-url-format)
+  - [4. Reseller Actions Reference](#4-reseller-actions-reference)
+    - [4.1 Account Information & Credit Balance (`user_info`)](#41-account-information--credit-balance-user_info)
+    - [4.2 List Downline Active Codes (`get_active_codes`)](#42-list-downline-active-codes-get_active_codes)
+    - [4.3 Get Reseller Code Details (`get_active_code`)](#43-get-reseller-code-details-get_active_code)
+    - [4.4 Generate Codes with Transactional Credit Deduction (`generate_active_codes`)](#44-generate-codes-with-transactional-credit-deduction-generate_active_codes)
+    - [4.5 Inspect Code Status (`check_active_code`)](#45-inspect-code-status-check_active_code)
+    - [4.6 Reset Device MAC for Subscriber (`reset_active_code_device`)](#46-reset-device-mac-for-subscriber-reset_active_code_device)
+    - [4.7 Suspend & Reactivate Code (`disable_active_code` / `enable_active_code`)](#47-suspend--reactivate-code-disable_active_code--enable_active_code)
+    - [4.8 Delete Code with Automatic Credit Refund (`delete_active_code`)](#48-delete-code-with-automatic-credit-refund-delete_active_code)
+    - [4.9 Reseller Batches & Voucher Export (`get_active_codes_batches` / `export_active_code_batch`)](#49-reseller-batches--voucher-export)
+  - [5. Reseller Implementation Examples](#5-reseller-implementation-examples)
+- [ADDENDUM: Client Player & STB Direct Activation API](#addendum-client-player--stb-direct-activation-api)
+- [Quick Comparison Matrix](#quick-comparison-matrix)
 
+---
+
+# Architecture Overview & Routing Mechanism
+
+The **Active Codes System** in **XC_VM** separates line generation from subscription expiration. Codes are stored in inventory (`status = 1`, Ready / Stock) without consuming subscription duration until the subscriber powers up their device or application.
+
+The API layer is built on the native **Access Code** model:
+1. **Access Code**: A unique dynamic route defined in the panel under `Settings -> Access Codes`. Nginx creates isolated configuration blocks that forward traffic to the appropriate backend controller:
+   - **Type 3 (Admin API)**: Maps to the `AdminAPIWrapper` layer with global system authority.
+   - **Type 4 (Reseller API)**: Maps to the `ResellerAPIWrapper` layer with strict sub-user isolation and credit validation.
+2. **API Key**: The user's private 32-character authentication token assigned to their panel account, validated per request.
+
+```mermaid
+flowchart TD
+    Client[HTTP Client / Integration Bot] -->|Request| Nginx[Nginx Reverse Proxy]
+    Nginx --> FC[Public/index.php Front Controller]
+    
+    FC --> ScopeCheck{Access Code Type}
+    ScopeCheck -->|Type 3: Admin Scope| AdminWrapper[AdminAPIWrapper & ActiveCodeService]
+    ScopeCheck -->|Type 4: Reseller Scope| ResellerWrapper[ResellerAPIWrapper & ActiveCodeService]
+    
+    AdminWrapper --> DB[(MariaDB: activation_codes & lines)]
+    ResellerWrapper --> CreditCheck{Check Credits & Tree}
+    CreditCheck -->|Authorized| DB
+    CreditCheck -->|Insufficient| Error[Return STATUS_FAILURE]
 ```
-العميل / التطبيق الخارجي
-       │
-       ▼
-http://your-server.com/<Access-Code>/?api_key=<API-KEY>&action=<ACTION>&...
-       │
-       ├─► كود وصول من نوع 3 (Admin)   ──► AdminAPIWrapper & ActiveCodeService (صلاحيات كاملة)
-       └─► كود وصول من نوع 4 (Reseller) ──► ResellerAPIWrapper & ActiveCodeService (عزل + خصم رصيد)
-```
 
 ---
 
-# الجزء الأول: دليل واجهة المدير (PART 1: Admin API)
+# PART 1: Administrator REST API Reference (Admin API)
 
-هذا الجزء مخصص لمدير اللوحة (Super Admin / Administrator) لإدارة نظام كود التفعيل بالكامل على مستوى السيرفر بدون أي قيود على الرصيد أو المستخدمين.
+Designed for server administrators to automate code generation, lifecycle management, subscriber diagnostics, and inventory control with unrestricted authority across the entire platform.
 
-## 1. كيفية الإعداد والحصول على كود الوصول والمفتاح
+## 1. Setup & Credentials Retrieval
 
-1. **كود وصول الأدمن (Admin Access Code):**
-   - ادخل إلى لوحة الأدمن `Admin Panel -> Settings -> Access Codes`.
-   - اضغط على **Add Access Code**.
-   - اختر **Type: Admin API** واكتب اسماً أو كوداً مخصصاً (مثلاً: `admin_api` أو كود عشوائي مثل `9ABDC3947EC81B3D15B7478975E32F68`).
-   - تأكد من تفعيل الكود (`Enabled`).
+1. **Admin Access Code**:
+   - Navigate to `Admin Panel -> Settings -> Access Codes`.
+   - Click **Add Access Code**.
+   - Select **Type: Admin API**.
+   - Set the code string (e.g. `admin_api` or a custom 32-character hash like `9ABDC3947EC81B3D15B7478975E32F68`).
+   - Ensure the status is set to **Enabled**.
 
-2. **مفتاح الأدمن (Admin API Key):**
-   - ادخل إلى `Admin Panel -> Manage Users -> Edit Profile / User`.
-   - انسخ المفتاح الموجود في حقل **API Key** لحساب المدير (مثال: `9ABDC3947EC81B3D15B7478975E32F68`).
+2. **Admin API Key**:
+   - Go to `Admin Panel -> Manage Users -> Edit User (Administrator)`.
+   - Copy the value from the **API Key** field (e.g. `9ABDC3947EC81B3D15B7478975E32F68`).
 
 ---
 
-## 2. صيغة الاستدعاء العامة (Request Format)
+## 2. Request Protocol & Base URL Format
 
-يمكن إرسال المعاملات عبر **GET** (في الـ Query String) أو عبر **POST** (بصيغة `x-www-form-urlencoded` أو `multipart/form-data`):
+Requests may be dispatched via **GET** (query parameters) or **POST** (`application/x-www-form-urlencoded`):
 
 ```http
 GET /<ADMIN_ACCESS_CODE>/?api_key=<ADMIN_API_KEY>&action=<ACTION>&[parameters] HTTP/1.1
 Host: your-server.com
 ```
 
-أو عبر POST:
+Or via POST:
 ```http
 POST /<ADMIN_ACCESS_CODE>/ HTTP/1.1
 Host: your-server.com
@@ -101,33 +110,33 @@ api_key=<ADMIN_API_KEY>&action=<ACTION>&[parameters]
 
 ---
 
-## 3. العمليات والإجراءات المدعومة (Actions Reference)
+## 3. Supported Actions Reference
 
-### 3.1 عرض جميع أكواد التفعيل في السيرفر (`get_active_codes`)
+### 3.1 List Active Codes (`get_active_codes`)
 
-يقوم بجلب قائمة كاملة بأكواد التفعيل في السيرفر مع إمكانية الترقيم (Pagination) والفلترة بعدة معايير.
+Retrieves a paginated list of all active codes on the server with multi-criteria filtering.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `get_active_codes` |
-| `start` | integer | اختياري | نقطة البداية (Offset)، الافتراضي `0` |
-| `limit` | integer | اختياري | عدد العناصر في الصفحة، الافتراضي `50` (الأقصى `500`) |
-| `status` | string/int | اختياري | فلترة حسب الحالة: `stock` (1), `active` (2), `disabled` (3), `expired` |
-| `package_id` | integer | اختياري | فلترة حسب معرّف الباقة |
-| `batch_name` | string | اختياري | فلترة حسب اسم الباتش |
-| `search` | string | اختياري | بحث في نص الكود، اسم المستخدم، الماك، أو الجهاز |
+| `action` | string | **Yes** | Value: `get_active_codes` |
+| `start` | integer | No | Offset index. Default: `0` |
+| `limit` | integer | No | Page size limit. Default: `50` (Max: `500`) |
+| `status` | string/int | No | Status filter: `stock` (1), `active` (2), `disabled` (3), `expired` |
+| `package_id` | integer | No | Filter by package ID |
+| `batch_name` | string | No | Filter by batch identifier (e.g. `BATCH-20260913-13A1B`) |
+| `search` | string | No | Full-text search matching code, username, MAC, or device ID |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
-curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_codes&limit=10&status=active"
+curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_codes&status=active&limit=10"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
-  "total": 120,
+  "total": 142,
   "count": 10,
   "start": 0,
   "limit": 10,
@@ -140,7 +149,7 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_c
       "status_key": "active",
       "status_label": "Active",
       "package_id": 2,
-      "package_name": "⚡ VIP PREMIUM | 1 Month",
+      "package_name": "⚡ VIP PREMIUM | 1 Month Full Access",
       "subscriber_id": 20,
       "line_username": "ac_156aa7d6b",
       "line_password": "newSecretPass123",
@@ -153,9 +162,11 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_c
       "is_trial": 0,
       "purchase_cost": 1,
       "created_by": 2,
-      "creator_username": "reseller_ahmed",
+      "creator_username": "reseller_123",
       "created_at": 1789287410,
-      "activated_at": 1789287442
+      "created_at_formatted": "2026-09-13 09:16:50",
+      "activated_at": 1789287442,
+      "activated_at_formatted": "2026-09-13 09:17:22"
     }
   ]
 }
@@ -163,34 +174,35 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_c
 
 ---
 
-### 3.2 جلب تفاصيل كود محدد وروابط المشغل (`get_active_code`)
+### 3.2 Get Single Code Details & Playback URLs (`get_active_code`)
 
-يجلب التفاصيل الكاملة لكود التفعيل بما في ذلك اشتراك الـ Line المرتبط وروابط التشغيل الجاهزة (M3U, Xtream API, EPG).
+Fetches granular details for a single code, including streaming credentials and ready-to-use playback URLs.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `get_active_code` |
-| `id` أو `code` | mixed | **نعم** | معرّف الكود الرقمي (`id=22`) أو نص الكود (`code=NDXL9ZQ3GR`) |
+| `action` | string | **Yes** | Value: `get_active_code` |
+| `id` or `code` | mixed | **Yes** | Database ID (e.g. `id=22`) or alphanumeric code (`code=NDXL9ZQ3GR`) |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_code&id=22"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
   "data": {
     "id": 22,
     "activation_code": "NDXL9ZQ3GR",
+    "batch_name": "BATCH-20260913-13A1B",
     "status": 2,
     "status_key": "active",
     "status_label": "Active",
     "package": {
       "id": 2,
-      "name": "⚡ VIP PREMIUM | 1 Month"
+      "name": "⚡ VIP PREMIUM | 1 Month Full Access"
     },
     "credentials": {
       "line_id": 20,
@@ -212,32 +224,32 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_c
 
 ---
 
-### 3.3 توليد أكواد تفعيل جديدة (فردي أو بالجملة) (`generate_active_codes`)
+### 3.3 Generate Active Codes in Bulk or Single (`generate_active_codes`)
 
-توليد دفعة من أكواد التفعيل الجاهزة (جاهزة للتوزيع ولا يبدأ عداد الوقت إلا عند أول تشغيل من المشترك).
+Generates unactivated inventory vouchers in bulk or as a single code. Subscription duration countdown does not start until first activation.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة: `generate_active_codes` (أو `create_active_code`) |
-| `package_id` | integer | **نعم** | رقم الباقة المراد التوليد عليها |
-| `count` | integer | اختياري | عدد الأكواد المطلوبة (الافتراضي: 1، الأقصى: 500) |
-| `tag` | string | اختياري | وسم اختياري يميز الباتش (مثال: `PromoVip`) |
-| `code_format` | string | اختياري | نسق الكود: `alpha` (أحرف وأرقام)، `numeric` (أرقام فقط) |
-| `code_length` | integer | اختياري | طول الكود (الافتراضي: 10 أو 12) |
-| `assigned_owner_id` | integer | اختياري | إسناد الأكواد لموزع محدد (خاص بالأدمن فقط) |
+| `action` | string | **Yes** | Value: `generate_active_codes` (or alias: `create_active_code`) |
+| `package_id` | integer | **Yes** | Target package ID |
+| `count` | integer | No | Number of codes to create (Default: 1, Max: 500) |
+| `tag` | string | No | Custom identifier or marketing campaign tag (e.g. `PromoSummer`) |
+| `code_format` | string | No | Format: `alpha` (alphanumeric, default) or `numeric` (digits only) |
+| `code_length` | integer | No | Code string length (Default: 10 or 12) |
+| `assigned_owner_id` | integer | No | Assign generated codes to a specific reseller ID (Admin only) |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s -X POST "http://your-server.com/admin_api/" \
   -d "api_key=ADMIN_KEY" \
   -d "action=generate_active_codes" \
   -d "package_id=2" \
   -d "count=2" \
-  -d "tag=SupermarketOffer"
+  -d "tag=VipBulkOffer"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
@@ -265,48 +277,48 @@ curl -s -X POST "http://your-server.com/admin_api/" \
 
 ---
 
-### 3.4 تعديل بيانات كود التفعيل والاشتراك (`edit_active_code`)
+### 3.4 Edit Active Code & Line Properties (`edit_active_code`)
 
-تعديل خصائص الكود والاشتراك المرتبط به (مثل تغيير كلمة المرور، زيادة عدد الشاشات، تمديد تاريخ الانتهاء، أو تغيير الماك).
+Modifies properties of an active code and its associated line record.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `edit_active_code` |
-| `id` | integer | **نعم** | معرّف الكود في قاعدة البيانات |
-| `password` | string | اختياري | كلمة سر جديدة لخط المشترك |
-| `max_connections` | integer | اختياري | عدد الاتصالات المتزامنة المسموحة |
-| `exp_date` | string/int | اختياري | تاريخ انتهاء جديد (صيغة `YYYY-MM-DD` أو Timestamp) |
-| `mac` | string | اختياري | تعيين عنوان ماك محدد |
+| `action` | string | **Yes** | Value: `edit_active_code` |
+| `id` | integer | **Yes** | Active code database ID |
+| `password` | string | No | Update line password |
+| `max_connections` | integer | No | Update allowed concurrent streaming connections |
+| `exp_date` | string/int | No | Set new expiration date (`YYYY-MM-DD` or Unix timestamp) |
+| `mac` | string | No | Explicitly set or override locked MAC address |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s -X POST "http://your-server.com/admin_api/" \
   -d "api_key=ADMIN_KEY" \
   -d "action=edit_active_code" \
   -d "id=22" \
   -d "max_connections=3" \
-  -d "password=NewStrongPass2026"
+  -d "password=NewSecurePass2026"
 ```
 
 ---
 
-### 3.5 فحص حالة كود بدون استهلاكه (`check_active_code`)
+### 3.5 Non-Destructive Code Inspection (`check_active_code`)
 
-فحص كود التفعيل لمعرفة هل هو صالح أم منتهي أم مقفل على جهاز ماك، **دون استهلاك الاشتراك أو بدء العد التنازلي**.
+Inspects the state of an activation code without activating it or starting its timer.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `check_active_code` |
-| `code` | string | **نعم** | نص كود التفعيل المراد فحصه |
+| `action` | string | **Yes** | Value: `check_active_code` |
+| `code` | string | **Yes** | Code string to inspect |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=check_active_code&code=NDXL9ZQ3GR"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
@@ -316,7 +328,7 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=check_active
     "code": "NDXL9ZQ3GR",
     "code_status": 2,
     "status_label": "Active",
-    "package_name": "⚡ VIP PREMIUM | 1 Month",
+    "package_name": "⚡ VIP PREMIUM | 1 Month Full Access",
     "is_trial": false,
     "max_connections": 2,
     "is_activated": true,
@@ -332,39 +344,38 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=check_active
 
 ---
 
-### 3.6 إيقاف كود التفعيل مؤقتاً (`disable_active_code`)
+### 3.6 Suspend / Disable Code (`disable_active_code`)
 
-تعليق كود التفعيل والاشتراك فوراً ومنع المشترك من الاتصال بالبث حتى إعادة تفعيله.
+Immediately revokes streaming access for the code and underlying line.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=disable_active_code&id=22"
 ```
 
 ---
 
-### 3.7 إعادة تفعيل كود موقوف (`enable_active_code`)
+### 3.7 Enable / Reactivate Code (`enable_active_code`)
 
-إلغاء تعليق الكود وإعادته للعمل الطبيعي.
+Reactivates a suspended code.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=enable_active_code&id=22"
 ```
 
 ---
 
-### 3.8 فك قفل جهاز العميل والماك (`reset_active_code_device`)
+### 3.8 Reset Hardware MAC & Device ID Lock (`reset_active_code_device`)
 
-مسح عنوان الماك (`MAC Address`) ومعرّف الجهاز (`Device ID`) المسجلين على الكود، للسماح للمشترك بنقل اشتراكه إلى شاشة أو جهاز آخر.
+Clears bound MAC addresses and hardware device identifiers, allowing the subscriber to migrate their subscription to another device.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
-curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=reset_active_code_device&id=22"
+curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=reset_active_code_device&code=NDXL9ZQ3GR"
 ```
-*(أو باستخدام الكود مباشرة: `&code=NDXL9ZQ3GR`)*
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
@@ -374,30 +385,30 @@ curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=reset_active
 
 ---
 
-### 3.9 حذف كود تفعيل نهائياً (`delete_active_code`)
+### 3.9 Delete Code (`delete_active_code`)
 
-حذف كود التفعيل والـ Line المرتبط به نهائياً من قاعدة البيانات.
+Permanently deletes the active code and its associated line record.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=delete_active_code&id=22"
 ```
 
 ---
 
-### 3.10 العمليات الجماعية على عدة أكواد (`mass_active_codes`)
+### 3.10 Mass Actions Engine (`mass_active_codes`)
 
-تطبيق إجراء جماعي على قائمة من معرّفات الأكواد دفعة واحدة.
+Executes bulk operations across an array of code IDs in a single atomic transaction.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `mass_active_codes` |
-| `sub_action` | string | **نعم** | نوع العملية: `delete`, `enable`, `disable`, `reset_device`, `extend` |
-| `ids` | array/string | **نعم** | مصفوفة أو قائمة مفصولة بفواصل لمعرفات الأكواد (مثال: `[22, 23, 24]` أو `22,23,24`) |
-| `days` | integer | اختياري | عدد الأيام (مطلوب فقط في حالة `sub_action=extend`) |
+| `action` | string | **Yes** | Value: `mass_active_codes` |
+| `sub_action` | string | **Yes** | Action type: `delete`, `enable`, `disable`, `reset_device`, or `extend` |
+| `ids` | array/string | **Yes** | Comma-delimited string or JSON array of IDs (e.g. `ids=22,23,24`) |
+| `days` | integer | No | Extension duration (required only if `sub_action=extend`) |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s -X POST "http://your-server.com/admin_api/" \
   -d "api_key=ADMIN_KEY" \
@@ -408,67 +419,66 @@ curl -s -X POST "http://your-server.com/admin_api/" \
 
 ---
 
-### 3.11 إحصائيات وأرصدة الباتشات (`get_active_codes_batches`)
+### 3.11 Batch Summary Metrics (`get_active_codes_batches`)
 
-عرض إحصائيات مجمعة لكل دفعة أكواد (إجمالي الأكواد، كم كود تم تفعيله، كم كود ما زال مخزوناً، وكم كود منتهي أو موقوف).
+Retrieves aggregated inventory metrics per batch (total codes, active, stock, expired, disabled).
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=get_active_codes_batches"
 ```
 
 ---
 
-### 3.12 تصدير كروت وبطاقات الباتش (`export_active_code_batch`)
+### 3.12 Export Batch Vouchers (`export_active_code_batch`)
 
-تصدير كافة أكواد الباتش بصيغة مهيأة للطباعة أو لربطها ببرامج الكروت وأنظمة المبيعات.
+Exports vouchers for physical card printing or external billing integration.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `export_active_code_batch` |
-| `batch_name` | string | **نعم** | اسم الباتش المراد تصديره (مثال: `BATCH-20260913-13A1B`) |
-| `format` | string | اختياري | صيغة التصدير: `json` (الافتراضي) أو `txt` (قائمة أسطر نصية) |
+| `action` | string | **Yes** | Value: `export_active_code_batch` |
+| `batch_name` | string | **Yes** | Name of the batch (e.g. `BATCH-20260913-13A1B`) |
+| `format` | string | No | Format: `json` (default) or `txt` |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/admin_api/?api_key=ADMIN_KEY&action=export_active_code_batch&batch_name=BATCH-20260913-13A1B&format=json"
 ```
 
 ---
 
-## 4. أمثلة برمجية لاستدعاء Admin API
+## 4. Administrator Implementation Examples
 
 ### Python 3
 ```python
 import requests
 
-SERVER_URL = "http://your-server.com"
+BASE_URL = "http://your-server.com"
 ADMIN_ACCESS_CODE = "admin_api"
 ADMIN_API_KEY = "9ABDC3947EC81B3D15B7478975E32F68"
 
-endpoint = f"{SERVER_URL}/{ADMIN_ACCESS_CODE}/"
+endpoint = f"{BASE_URL}/{ADMIN_ACCESS_CODE}/"
 
-# 1. توليد كود جديد
-payload = {
+# 1. Generate a new code
+gen_response = requests.post(endpoint, data={
     "api_key": ADMIN_API_KEY,
     "action": "generate_active_codes",
     "package_id": 2,
     "count": 1,
-    "tag": "PythonClient"
-}
-res = requests.post(endpoint, data=payload)
-data = res.json()
-print("Generated Code:", data["data"][0]["code"])
+    "tag": "EnterpriseClient"
+})
+gen_data = gen_response.json()
+code = gen_data["data"][0]["code"]
+print(f"Created Code: {code}")
 
-# 2. فحص حالة الكود
-code = data["data"][0]["code"]
-check_res = requests.get(endpoint, params={
+# 2. Inspect the code non-destructively
+inspect_res = requests.get(endpoint, params={
     "api_key": ADMIN_API_KEY,
     "action": "check_active_code",
     "code": code
 })
-print("Check Status:", check_res.json())
+print("Code Status:", inspect_res.json())
 ```
 
 ### PHP 8+
@@ -478,7 +488,7 @@ $serverUrl = "http://your-server.com";
 $accessCode = "admin_api";
 $apiKey = "9ABDC3947EC81B3D15B7478975E32F68";
 
-$url = "{$serverUrl}/{$accessCode}/?api_key={$apiKey}&action=get_active_codes&limit=5";
+$url = "{$serverUrl}/{$accessCode}/?api_key={$apiKey}&action=get_active_codes&limit=10";
 
 $ch = curl_init($url);
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
@@ -490,17 +500,17 @@ $result = json_decode($response, true);
 print_r($result);
 ```
 
-### JavaScript / Node.js (Fetch)
+### JavaScript / Node.js
 ```javascript
 const SERVER = 'http://your-server.com';
 const ACCESS_CODE = 'admin_api';
 const API_KEY = '9ABDC3947EC81B3D15B7478975E32F68';
 
-async function resetDevice(codeId) {
+async function resetDeviceLock(codeString) {
     const params = new URLSearchParams({
         api_key: API_KEY,
         action: 'reset_active_code_device',
-        id: codeId
+        code: codeString
     });
 
     const res = await fetch(`${SERVER}/${ACCESS_CODE}/?${params}`);
@@ -508,51 +518,49 @@ async function resetDevice(codeId) {
     console.log(data);
 }
 
-resetDevice(22);
+resetDeviceLock('NDXL9ZQ3GR');
 ```
 
 ---
 
-# الجزء الثاني: دليل واجهة الموزع (PART 2: Reseller API)
+# PART 2: Reseller REST API Reference (Reseller API)
 
-هذا الجزء مخصص للموزعين (Resellers) ومطوري لوحات وشاشات وبوتات الموزعين.
+Designed for resellers, sub-dealers, Telegram automation bots, and self-service portals. Enforces strict tree-based data isolation and automated transactional credit accounting.
 
-## 1. كيفية الإعداد والحصول على كود وصول الموزع ومفتاحه
+## 1. Setup & Credentials Retrieval
 
-1. **كود وصول الموزع (Reseller Access Code):**
-   - يقوم الأدمن من اللوحة (`Settings -> Access Codes`) بإنشاء كود وصول من **Type: Reseller API**.
-   - يمكن تسميته باسم مخصص مثل `reseller_api` أو كود عشوائي.
-   - هذا المسار يُتاح للموزعين لاستخدامه للاتصال بسيرفر الـ API.
+1. **Reseller Access Code**:
+   - Configured by the Administrator under `Settings -> Access Codes` with **Type: Reseller API**.
+   - Accessible under a defined path (e.g. `reseller_api` or a randomized string).
 
-2. **مفتاح الموزع (Reseller API Key):**
-   - يحصل كل موزع على مفتاح **API Key** خاص به من خلال بيانات حسابه في اللوحة.
-   - مثال: `D9AD0953309AB740CBC9684C465642F6`.
-
----
-
-## 2. نظام العزل الأمني وحماية الرصيد (Credits & Isolation)
-
-تطبق منصة XC_VM أعلى معايير الحماية للموزعين تلقائياً عبر الطبقات التالية:
-1. **عزل الشجرة (Sub-Users Hierarchy Isolation):**
-   - الموزع **لا يمكنه بأي حال من الأحوال** رؤية أو الوصول أو التعديل أو فحص أي كود تابع لمدير أو موزع آخر خارج شجرته التابعة (`reports`).
-   - عند طلب `get_active_codes`، يتم حصر النتيجة حصرياً في الأكواد التي أنشأها الموزع أو أحد الموزعين التابعين له في شجرته.
-2. **التحقق من الرصيد والخصم التلقائي (Transactional Credit Deduction):**
-   - عند استدعاء `generate_active_codes`، يقوم النظام بحساب التكلفة الإجمالية ومقارنتها برصيد الموزع الحالي.
-   - إذا كان الرصيد غير كافٍ، يُرفض الطلب فوراً بخطأ: `Insufficient credits. Required: X, Available: Y`.
-   - إذا تم التوليد بنجاح، يتم خصم الرصيد تلقائياً وتسجيل المعاملة وإرجاع الرصيد المتبقي `remaining_credits`.
-3. **الاسترجاع التلقائي للرصيد عند حذف المخزون (Auto Stock Refund):**
-   - عند قيام الموزع بحذف كود تفعيل ما زال في المخزون (`status = 1` لم يفعّله المشترك بعد)، يقوم النظام **تلقائياً وبشكل فوري بإعادة تكلفة الكود كاملة إلى رصيد الموزع** وإرجاع رسالة تأكيد صريحة توضح قيمة الكريديت المسترجع ورصيده الجديد.
+2. **Reseller API Key**:
+   - Each reseller possesses their own unique **API Key** generated in their profile.
+   - Example: `D9AD0953309AB740CBC9684C465642F6`.
 
 ---
 
-## 3. صيغة الاستدعاء العامة للموزع (Request Format)
+## 2. Security Isolation & Automatic Credit Accounting
+
+1. **Strict Downline Tree Isolation**:
+   - Resellers cannot view, edit, check, or delete any code belonging to an administrator or another reseller outside their authorized sub-user hierarchy (`reports`).
+   - Query filters (`get_active_codes`) automatically inject `created_by IN (reports)` bounds.
+2. **Transactional Credit Deduction**:
+   - When calling `generate_active_codes`, the system verifies the reseller has sufficient balance (`credits >= total_cost`).
+   - If insufficient, the request aborts with: `Insufficient credits. Required: X, Available: Y`.
+   - Upon success, credits are deducted immediately and the updated balance is returned in `remaining_credits`.
+3. **Automatic Credit Refund on Stock Deletion**:
+   - If a reseller deletes an unactivated code (`status = 1`, Ready/Stock), the system **automatically refunds the full purchase cost** back to the reseller's wallet and confirms the refund in the response.
+
+---
+
+## 3. Request Protocol & Base URL Format
 
 ```http
 GET /<RESELLER_ACCESS_CODE>/?api_key=<RESELLER_API_KEY>&action=<ACTION>&[parameters] HTTP/1.1
 Host: your-server.com
 ```
 
-أو عبر POST:
+Or via POST:
 ```http
 POST /<RESELLER_ACCESS_CODE>/ HTTP/1.1
 Host: your-server.com
@@ -563,18 +571,18 @@ api_key=<RESELLER_API_KEY>&action=<ACTION>&[parameters]
 
 ---
 
-## 4. العمليات المتاحة للموزع (Reseller Actions)
+## 4. Reseller Actions Reference
 
-### 4.1 الاستعلام عن رصيد وبيانات الموزع (`user_info`)
+### 4.1 Account Information & Credit Balance (`user_info`)
 
-معرفة بيانات حساب الموزع، عدد الكريديت المتوفر لديه، والباقات المتاحة له.
+Fetches account details, available credit balance, and assigned package permissions.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=user_info"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
@@ -590,51 +598,51 @@ curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=user_i
 
 ---
 
-### 4.2 عرض أكواد الموزع وموزعيه التابعين (`get_active_codes`)
+### 4.2 List Downline Active Codes (`get_active_codes`)
 
-جلب قائمة الأكواد التابعة للموزع فقط، مفلترة ومصنفة.
+Returns active codes belonging exclusively to the authenticated reseller and their sub-resellers.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=get_active_codes&status=stock"
 ```
 
 ---
 
-### 4.3 جلب تفاصيل كود تابع للموزع (`get_active_code`)
+### 4.3 Get Reseller Code Details (`get_active_code`)
 
-جلب تفاصيل كود محدد مع روابط المشغل، بشرط أن يكون الكود مملوكاً للموزع أو أحد وكلائه التابعين.
+Retrieves code credentials and streaming links for a code owned by the reseller.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
-curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=get_active_code&id=22"
+curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=get_active_code&id=24"
 ```
 
 ---
 
-### 4.4 توليد أكواد تفعيل مع الخصم من الرصيد (`generate_active_codes`)
+### 4.4 Generate Codes with Transactional Credit Deduction (`generate_active_codes`)
 
-توليد كود أو عدة أكواد واقتطاع تكلفتها من رصيد الموزع تلقائياً.
+Generates unactivated codes and immediately debits the required credits from the reseller's wallet.
 
-**المعاملات (Parameters):**
-| المعامل | النوع | إجباري؟ | الوصف |
+**Parameters:**
+| Parameter | Type | Required | Description |
 | :--- | :--- | :--- | :--- |
-| `action` | string | **نعم** | القيمة الثابتة: `generate_active_codes` |
-| `package_id` | integer | **نعم** | رقم الباقة (يجب أن تكون مسموحة للموزع) |
-| `count` | integer | اختياري | عدد الأكواد المطلوبة (الافتراضي: 1) |
-| `tag` | string | اختياري | وسم لتمييز العملية |
+| `action` | string | **Yes** | Value: `generate_active_codes` |
+| `package_id` | integer | **Yes** | Package ID (must be permitted in reseller's allowed packages) |
+| `count` | integer | No | Quantity to generate (Default: 1) |
+| `tag` | string | No | Label or subscriber identifier |
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s -X POST "http://your-server.com/reseller_api/" \
   -d "api_key=RESELLER_KEY" \
   -d "action=generate_active_codes" \
   -d "package_id=2" \
   -d "count=1" \
-  -d "tag=ClientAli"
+  -d "tag=ClientJohn"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
@@ -657,51 +665,51 @@ curl -s -X POST "http://your-server.com/reseller_api/" \
 
 ---
 
-### 4.5 فحص كود التفعيل من جانب الموزع (`check_active_code`)
+### 4.5 Inspect Code Status (`check_active_code`)
 
-التحقق من حالة وصلاحية أي كود (هل هو مفعل، تاريخ الانتهاء، الأيام المتبقية، وقفل الماك).
+Inspects subscription state, expiration date, and device binding without modifying code status.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=check_active_code&code=GGYJHA7SWW"
 ```
 
 ---
 
-### 4.6 فك قفل جهاز الماك لمشترك الموزع (`reset_active_code_device`)
+### 4.6 Reset Device MAC for Subscriber (`reset_active_code_device`)
 
-إزالة قفل الماك المسجل على كود المشترك لتمكينه من تشغيل الاشتراك على شاشة أو ريسيفر بديل.
+Clears bound MAC and hardware IDs for a subscriber under the reseller's account.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=reset_active_code_device&code=GGYJHA7SWW"
 ```
 
 ---
 
-### 4.7 إيقاف وتفعيل كود التفعيل (`disable_active_code` / `enable_active_code`)
+### 4.7 Suspend & Reactivate Code (`disable_active_code` / `enable_active_code`)
 
-- **الإيقاف المؤقت:**
+- **Suspend Code:**
   ```bash
   curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=disable_active_code&id=24"
   ```
-- **إعادة التفعيل:**
+- **Reactivate Code:**
   ```bash
   curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=enable_active_code&id=24"
   ```
 
 ---
 
-### 4.8 حذف كود واسترجاع الكريديت تلقائياً (`delete_active_code`)
+### 4.8 Delete Code with Automatic Credit Refund (`delete_active_code`)
 
-عندما يقرر الموزع حذف كود لم يتم تفعيله بعد من قبل الزبون (Stock)، يقوم النظام بإرجاع الكريديت فوراً لمحفظته.
+Deletes an unactivated inventory code and **instantly refunds the credits** back to the reseller.
 
-**مثال الاستدعاء:**
+**cURL Example:**
 ```bash
 curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=delete_active_code&id=24"
 ```
 
-**نموذج الاستجابة (JSON Response):**
+**JSON Response:**
 ```json
 {
   "status": "STATUS_SUCCESS",
@@ -712,22 +720,22 @@ curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=delete
 
 ---
 
-### 4.9 عرض باتشات الموزع وتصديرها
+### 4.9 Reseller Batches & Voucher Export
 
-- **عرض إحصائيات باتشات الموزع:**
+- **View Reseller Batches:**
   ```bash
   curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=get_active_codes_batches"
   ```
-- **تصدير كروت الباتش للطباعة:**
+- **Export Batch Vouchers:**
   ```bash
   curl -s "http://your-server.com/reseller_api/?api_key=RESELLER_KEY&action=export_active_code_batch&batch_name=BATCH-NAME&format=json"
   ```
 
 ---
 
-## 5. أمثلة برمجية لاستدعاء Reseller API
+## 5. Reseller Implementation Examples
 
-### Python 3 (تطبيق بيع وتوليد كروت للموزع)
+### Python 3 (Reseller Sales & Generation Bot)
 ```python
 import requests
 
@@ -737,74 +745,69 @@ RESELLER_KEY = "D9AD0953309AB740CBC9684C465642F6"
 
 endpoint = f"{SERVER_URL}/{RESELLER_ACCESS_CODE}/"
 
-def generate_voucher(package_id, tag="BotClient"):
-    response = requests.post(endpoint, data={
+def sell_active_code(package_id: int, client_name: str):
+    res = requests.post(endpoint, data={
         "api_key": RESELLER_KEY,
         "action": "generate_active_codes",
         "package_id": package_id,
         "count": 1,
-        "tag": tag
+        "tag": client_name
     })
-    result = response.json()
-    if result.get("status") == "STATUS_SUCCESS":
-        code_info = result["data"][0]
-        print(f"✅ تم إنشاء الكود بنجاح: {code_info['code']}")
-        print(f"💰 الرصيد المتبقي للموزع: {result['remaining_credits']}")
-        return code_info['code']
+    data = res.json()
+    if data.get("status") == "STATUS_SUCCESS":
+        code = data["data"][0]["code"]
+        balance = data["remaining_credits"]
+        print(f"Code Generated: {code} | Remaining Balance: {balance} credits")
+        return code
     else:
-        print("❌ فشل التوليد:", result.get("error"))
+        print("Generation Failed:", data.get("error"))
         return None
 
-# تجربة توليد
-code = generate_voucher(2)
+sell_active_code(2, "TelegramUser_442")
 ```
 
-### PHP 8+ (بوت تيليجرام أو لوحة ويب للموزع)
+### PHP 8+
 ```php
 <?php
-function resellerGenerateCode($packageId, $tag = 'WebStore') {
-    $serverUrl = "http://your-server.com";
-    $accessCode = "reseller_api";
-    $apiKey = "D9AD0953309AB740CBC9684C465642F6";
+$serverUrl = "http://your-server.com";
+$accessCode = "reseller_api";
+$apiKey = "D9AD0953309AB740CBC9684C465642F6";
 
-    $endpoint = "{$serverUrl}/{$accessCode}/";
+$endpoint = "{$serverUrl}/{$accessCode}/";
 
-    $ch = curl_init($endpoint);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
-        'api_key'    => $apiKey,
-        'action'     => 'generate_active_codes',
-        'package_id' => $packageId,
-        'count'      => 1,
-        'tag'        => $tag
-    ]));
+$ch = curl_init($endpoint);
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+curl_setopt($ch, CURLOPT_POST, true);
+curl_setopt($ch, CURLOPT_POSTFIELDS, http_build_query([
+    'api_key'    => $apiKey,
+    'action'     => 'generate_active_codes',
+    'package_id' => 2,
+    'count'      => 1,
+    'tag'        => 'WebStore'
+]));
 
-    $response = curl_exec($ch);
-    curl_close($ch);
+$response = curl_exec($ch);
+curl_close($ch);
 
-    return json_decode($response, true);
-}
-
-$res = resellerGenerateCode(2);
-print_r($res);
+$result = json_decode($response, true);
+print_r($result);
 ```
 
 ---
 
-# ملحق: واجهة تفعيل المشتركين والتطبيقات (Client Player API)
+# ADDENDUM: Client Player & STB Direct Activation API
 
-هذا المسار مخصص لتطبيقات المشغل والشاشات الذكية (Android TV, Samsung, LG, FireStick, STB) حيث يقوم العميل فقط بإدخال كود التفعيل دون الحاجة لأي مفتاح API:
+This dedicated route is consumed directly by Smart TV applications (Android TV, Samsung Tizen, LG webOS, FireStick, MAG/Enigma STBs) where end-users enter only their activation code without requiring an API key.
 
-## المسار الموحد للمشغلات
-- **URL المسار:**
+## Direct Endpoint
+- **URL**:
   ```http
   http://your-server.com/api/active_codes
   ```
-  *(أو المسار التقليدي: `http://your-server.com/active_code.php`)*
+  *(Legacy Alias: `http://your-server.com/active_code.php`)*
 
-### 1. التفعيل الأول وبدء الاشتراك (`action=auth`)
-عند فتح التطبيق لأول مرة وإدخال الكود، يبدأ سريان العداد الزمني وقفل الماك:
+### 1. First-Time Player Activation (`action=auth`)
+Starts the subscription timer and locks the code to the client's hardware identifier.
 
 ```bash
 curl -s -X POST "http://your-server.com/api/active_codes" \
@@ -814,7 +817,7 @@ curl -s -X POST "http://your-server.com/api/active_codes" \
   -d "device_id=SAMSUNG-SMART-TV-2026"
 ```
 
-**الاستجابة الفورية للمشغل:**
+**JSON Response:**
 ```json
 {
   "status": "SUCCESS",
@@ -825,7 +828,7 @@ curl -s -X POST "http://your-server.com/api/active_codes" \
     "password": "cf04c9ca6b"
   },
   "subscription": {
-    "package_name": "⚡ VIP PREMIUM | 1 Month",
+    "package_name": "⚡ VIP PREMIUM | 1 Month Full Access",
     "is_trial": false,
     "max_connections": 1,
     "activated_at": "2026-09-13 09:35:00",
@@ -841,19 +844,19 @@ curl -s -X POST "http://your-server.com/api/active_codes" \
 }
 ```
 
-### 2. فحص الكود من التطبيق بدون تفعيل (`action=check`)
+### 2. Status Verification (`action=check`)
 ```bash
 curl -s "http://your-server.com/api/active_codes?action=check&code=GGYJHA7SWW"
 ```
 
 ---
 
-## ملخص مقارنة سريع (Quick Comparison)
+# Quick Comparison Matrix
 
-| الخاصية / المعيار | كود وصول الأدمن (Admin API) | كود وصول الموزع (Reseller API) | واجهة المشغل (Client API) |
+| Feature / Metric | Administrator API (Admin API) | Reseller API (Reseller API) | Client Player API |
 | :--- | :--- | :--- | :--- |
-| **المسار** | `/<Admin-Access-Code>/` | `/<Reseller-Access-Code>/` | `/api/active_codes` |
-| **المصادقة** | `api_key` الخاص بالمدير | `api_key` الخاص بالموزع | بدون مفتاح (فقط كود التفعيل والماك) |
-| **نطاق الرؤية** | جميع أكواد السيرفر بالكامل | أكواد الموزع وموزعيه التابعين فقط | بيانات الكود المدخل فقط |
-| **الرصيد والكريديت** | غير محدود (بدون خصم) | خصم تلقائي + استرجاع عند حذف المخزون | لا ينطبق |
-| **الصلاحيات** | كاملة (إنشاء، تعديل، حذف، مسح أجهزة، تصدير) | مقيدة بصلاحيات باقات ورصيد الموزع | تسجيل الدخول واستلام روابط القنوات |
+| **Endpoint Base** | `/<Admin-Access-Code>/` | `/<Reseller-Access-Code>/` | `/api/active_codes` |
+| **Authentication** | Administrator `api_key` | Reseller `api_key` | None (Voucher code + MAC) |
+| **Data Scope** | Platform-wide (all codes) | Strictly isolated to downline tree | Single code payload |
+| **Credit System** | Unlimited (no deductions) | Auto deduction + auto stock refund | N/A |
+| **Capabilities** | Full CRUD, mass ops, reset MAC, batches | Generate, inspect, reset MAC, auto-refund | Start timer, lock MAC, receive streams |
