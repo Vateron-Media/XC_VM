@@ -3,9 +3,12 @@
 namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Module\ModuleLoader;
+use XcVm\Core\Module\ModuleManager;
 use XcVm\Infrastructure\Bootstrap\StreamingRequestBootstrap;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
@@ -25,6 +28,8 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  */
 
 class StatusCommand implements CommandInterface {
+
+	use DatabaseAware;
 
 	public function getName(): string {
 		return 'status';
@@ -63,7 +68,7 @@ class StatusCommand implements CommandInterface {
 
 		echo "Database\n------------------------------\n";
 
-		global $db;
+		$db = self::db();
 		DatabaseFactory::connect();
 
 		if (!$db->connected) {
@@ -81,7 +86,7 @@ class StatusCommand implements CommandInterface {
 			// first time after a fresh install/update. Idempotent and safe to
 			// re-run; failures are logged, not fatal.
 			try {
-				$rInstalled = (new \XcVm\Core\Module\ModuleManager(null, null, \XcVm\Core\Container\ServiceContainer::getInstance()))
+				$rInstalled = (new ModuleManager(null, null, ServiceContainer::getInstance()))
 					->syncBundledModules();
 				if (!empty($rInstalled)) {
 					echo 'Installed bundled modules: ' . implode(', ', $rInstalled) . "\n";
@@ -106,8 +111,8 @@ class StatusCommand implements CommandInterface {
 		$this->removeInitScript();
 
 		if ($rServers[SERVER_ID]['is_main']) {
-			$this->broadcastUpdateBinaries($db, $rServers);
-			$this->configureRedis($db, $rServers);
+			$this->broadcastUpdateBinaries($rServers);
+			$this->configureRedis($rServers);
 		} else {
 			// LB nodes run no local Redis (bin/redis is stripped from the LB build)
 			// and never reach configureRedis, so the xcvm_core extension would keep
@@ -115,11 +120,11 @@ class StatusCommand implements CommandInterface {
 			// live.php then fails with LINE_CREATE_FAIL under redis_handler. Point
 			// the extension at the MAIN server's Redis (same host as MySQL) using the
 			// shared password, without touching MAIN's own config.
-			$this->configureRedisLb($db, $rServers);
+			$this->configureRedisLb($rServers);
 		}
 
 		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
-			$this->printStatusReport($db, $rServers);
+			$this->printStatusReport($rServers);
 		}
 
 		$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
@@ -142,7 +147,7 @@ class StatusCommand implements CommandInterface {
 	}
 
 	private function getServers(): array {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `servers`');
 		$rServers = array();
 		$rOnlineStatus = array(1);
@@ -277,14 +282,16 @@ class StatusCommand implements CommandInterface {
 		}
 	}
 
-	private function broadcastUpdateBinaries($db, array $rServers): void {
+	private function broadcastUpdateBinaries(array $rServers): void {
+		$db = self::db();
 		foreach ($rServers as $rServerID => $rServerArray) {
 			$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(array('action' => 'update_binaries')));
 			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(array('action' => 'update_binaries')));
 		}
 	}
 
-	private function configureRedis($db, array $rServers): void {
+	private function configureRedis(array $rServers): void {
+		$db = self::db();
 		$rConfig = file_get_contents(MAIN_HOME . 'bin/redis/redis.conf');
 		$rWrite = false;
 
@@ -346,11 +353,11 @@ class StatusCommand implements CommandInterface {
 	 * host/password into the local config.enc so `\XC_VM::redis_connect()` reaches
 	 * the right server instead of refusing on 127.0.0.1.
 	 *
-	 * @param mixed                        $db       Database handle.
 	 * @param array<int,array<string,mixed>> $rServers Servers keyed by id.
 	 * @return void
 	 */
-	private function configureRedisLb($db, array $rServers): void {
+	private function configureRedisLb(array $rServers): void {
+		$db = self::db();
 		if (!method_exists('XC_VM', 'config_set_redis')) {
 			return;
 		}
@@ -382,7 +389,8 @@ class StatusCommand implements CommandInterface {
 		}
 	}
 
-	private function printStatusReport($db, array $rServers): void {
+	private function printStatusReport(array $rServers): void {
+		$db = self::db();
 		global $rSettings;
 
 		$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);

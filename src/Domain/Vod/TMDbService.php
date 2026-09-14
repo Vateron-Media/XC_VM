@@ -3,6 +3,7 @@
 namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Tmdb\TmdbApiService;
 
 /**
@@ -16,7 +17,7 @@ use XcVm\Infrastructure\Tmdb\TmdbApiService;
  */
 
 class TMDbService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 
 	/**
 	 * Load the \TMDB client library (Infrastructure/Tmdb/lib).

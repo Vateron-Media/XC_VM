@@ -128,7 +128,7 @@ class OffAirHandler {
 			$rURL .= '/' . md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA);
 		}
 		$rTokenData = array('expires' => time() + 10, 'video_path' => $rVideoPath);
-		$rToken = Encryption::encrypt(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+		$rToken = Encryption::mintToken(json_encode($rTokenData), $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
 		if ($rExtension == 'm3u8') {
 			if (self::$rHlsStreamID !== null) {
 				HlsSequence::markOffAir(self::$rHlsStreamID);

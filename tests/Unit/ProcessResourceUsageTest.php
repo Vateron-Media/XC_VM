@@ -53,6 +53,25 @@ final class ProcessResourceUsageTest extends TestCase {
 		$this->assertNull(ProcessManager::cpuPercent(['ticks' => 10, 'at' => 100.0], []));
 	}
 
+	/** The first reading of a producer still shows a figure: its lifetime average. */
+	public function testLifetimeAverageStandsInWithoutAPreviousReading(): void {
+		$rSample = ProcessManager::resourceSample(getmypid());
+		$this->assertArrayHasKey('start', $rSample);
+		$this->assertGreaterThan(0, $rSample['start'], 'starttime, in ticks after boot');
+
+		// 300 ticks (3 s of CPU) over a 6 s life is half a core. The age is read
+		// against /proc/uptime, so place the start 6 s before now.
+		$rUptime = (float) strtok((string) file_get_contents('/proc/uptime'), ' ');
+		$rOld = ['ticks' => 300, 'start' => (int) round(($rUptime - 6) * 100)];
+		$rCPU = ProcessManager::cpuPercentSinceStart($rOld);
+		$this->assertGreaterThan(45.0, $rCPU);
+		$this->assertLessThan(55.0, $rCPU);
+
+		// Younger than a second: not enough life to average over.
+		$this->assertNull(ProcessManager::cpuPercentSinceStart(['ticks' => 1, 'start' => (int) round($rUptime * 100)]));
+		$this->assertNull(ProcessManager::cpuPercentSinceStart([]));
+	}
+
 	public function testProducerKind(): void {
 		$this->assertSame('php', ProcessManager::producerKind(getmypid()));
 		$rMax = (int) @file_get_contents('/proc/sys/kernel/pid_max');

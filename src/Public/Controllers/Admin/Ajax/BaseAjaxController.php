@@ -8,7 +8,7 @@ use XcVm\Core\Auth\Authorization;
  * Base class for the admin-ajax controllers.
  *
  * Emits JSON only (no layout/templates), so it does NOT extend
- * {@see \XcVm\Public\Controllers\Admin\BaseAdminController}. Provides the shared
+ * {@see BaseAdminController}. Provides the shared
  * scaffolding every action reuses: ok()/fail() for the `{"result":…}` envelope,
  * gate()/gateAny() for per-action permission checks, requireXhr() for the
  * AJAX-only guard, and json() for a raw JSON body.
@@ -27,7 +27,7 @@ abstract class BaseAjaxController {
 
     /**
      * JSON response that terminates the request, with the correct Content-Type
-     * (like {@see \XcVm\Public\Controllers\Admin\BaseAdminController::json()}).
+     * (like {@see BaseAdminController::json()}).
      *
      * @param array<string, mixed> $rData
      * @param int $rFlags optional json_encode() flags (e.g. JSON_PARTIAL_OUTPUT_ON_ERROR)

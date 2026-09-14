@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\CurlClient;
@@ -27,7 +28,7 @@ if (!(in_array($rIP, ServerRepository::getAllowedIPs()) || in_array($rIP, Settin
 	generate404();
 }
 
-if (!(empty(SettingsManager::get('api_pass')) || RequestManager::get('api_pass') == SettingsManager::get('api_pass'))) {
+if (!(empty(SettingsManager::get('api_pass')) || AuthService::secretMatches(SettingsManager::get('api_pass'), RequestManager::get('api_pass')))) {
 	generate404();
 }
 

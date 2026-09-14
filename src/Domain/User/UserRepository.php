@@ -6,6 +6,7 @@ use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Signal\SignalQueue;
 
 /**
@@ -19,7 +20,7 @@ use XcVm\Infrastructure\Signal\SignalQueue;
  */
 
 class UserRepository {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 
 	/**
 	 * Whether a freshly looked-up ISP should be written back to the line: only

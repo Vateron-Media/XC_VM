@@ -15,6 +15,8 @@
  *   renderUnifiedLayoutHeader('admin', ['_TITLE' => 'Dashboard']);
  */
 
+use XcVm\Core\Localization\Translator;
+
 if (!function_exists('renderUnifiedLayoutHeader')) {
     function renderUnifiedLayoutHeader($scope = 'admin', array $vars = []) {
         foreach ($vars as $key => $value) {
@@ -53,7 +55,7 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
         unset($_g);
 
         // Translator FQCN for the legacy header's $language::get(...) calls.
-        $language = \XcVm\Core\Localization\Translator::class;
+        $language = Translator::class;
 
         $rootPath = dirname(__DIR__, 3);
 

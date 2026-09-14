@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Module\Contract;
 
+use XcVm\Cli\CommandRegistry;
+
 /**
  * @package XC_VM_Core_Module
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -16,7 +18,7 @@ interface CommandProviderInterface {
      * Module explicitly instantiates and registers CommandInterface instances.
      * No filesystem scanning — all registration is explicit PHP.
      *
-     * @param \XcVm\Cli\CommandRegistry $registry
+     * @param CommandRegistry $registry
      */
-    public function registerCommands(\XcVm\Cli\CommandRegistry $registry): void;
+    public function registerCommands(CommandRegistry $registry): void;
 }

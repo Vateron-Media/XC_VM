@@ -56,7 +56,7 @@ class StreamReviewController extends BaseAdminController {
                             $rHasBouquets[] = $rBouquetID;
                         }
                     }
-                    $rDelBouquet = $rAddBouquet = array();
+                    $rAddBouquet = array();
 
                     foreach ($rHasBouquets as $rBouquetID) {
                         if (in_array($rBouquetID, $rStream['bouquets'])) {

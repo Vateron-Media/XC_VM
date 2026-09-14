@@ -9,6 +9,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * StreamService — stream service
@@ -21,7 +22,7 @@ use XcVm\Domain\Epg\EpgService;
  */
 
 class StreamService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Create or update a stream from admin form data.
 	 *
@@ -477,7 +478,7 @@ class StreamService {
 			if (isset($rData['days_to_restart']) && preg_match('/^(?:2[0-3]|[01][0-9]):[0-5][0-9]$/', $rData['time_to_restart'])) {
 				$rTimeArray = array('days' => array(), 'at' => $rData['time_to_restart']);
 
-				foreach ($rData['days_to_restart'] as $rID => $rDay) {
+				foreach ($rData['days_to_restart'] as $rDay) {
 					$rTimeArray['days'][] = $rDay;
 				}
 				$rArray['auto_restart'] = json_encode($rTimeArray);
@@ -843,7 +844,6 @@ class StreamService {
 	 * @return array Archive information.
 	 */
 	public static function getArchive($rStreamID) {
-		$db = self::db();
 		/** @var array<int, array<string, mixed>> $rReturn Archive ranges keyed by EPG index, accumulated across $rFiles. */
 		$rReturn = array();
 		$rStream = StreamRepository::getById($rStreamID);

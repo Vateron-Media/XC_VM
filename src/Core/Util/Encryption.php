@@ -64,6 +64,87 @@ class Encryption {
     }
 
     /**
+     * Seal $data as a token that cannot be read or altered without the key.
+     *
+     * AES-256-GCM under a key derived from $key and $deviceId, with a fresh
+     * random nonce: base64url(nonce ‖ ciphertext ‖ tag). Same URL-safe alphabet
+     * as encrypt(), so no route or pattern that carries a token changes.
+     *
+     * encrypt() is AES-CBC with a fixed IV and no MAC. A modified token decrypts
+     * to modified bytes, and whether its padding holds shows in the response —
+     * with patience, enough to read someone's token or to write one. Stream links
+     * that the server trusts as they stand (live/vod token data, HLS segment and
+     * key tokens, the web player's proxy URL) must be sealed.
+     *
+     * @param string $data     Plaintext.
+     * @param string $key      Secret (live_streaming_pass).
+     * @param string $deviceId Context string, as for encrypt().
+     * @return string
+     */
+    public static function seal($data, $key, $deviceId) {
+        $rNonce = random_bytes(self::SEAL_NONCE);
+        $rTag = '';
+        $rCipher = openssl_encrypt((string) $data, 'aes-256-gcm', self::sealKey($key, $deviceId), OPENSSL_RAW_DATA, $rNonce, $rTag, '', self::SEAL_TAG);
+        return self::base64urlEncode($rNonce . $rCipher . $rTag);
+    }
+
+    /**
+     * Open a token made by seal().
+     *
+     * @return string|false The plaintext, or false for anything that is not a
+     *                      token sealed with this key and context — an altered
+     *                      one, a legacy encrypt() token, garbage, a non-string.
+     */
+    public static function open($token, $key, $deviceId) {
+        if (!is_string($token) || $token === '') {
+            return false;
+        }
+        $rRaw = self::base64urlDecode($token);
+        if (!is_string($rRaw) || strlen($rRaw) < self::SEAL_NONCE + self::SEAL_TAG) {
+            return false;
+        }
+        return openssl_decrypt(
+            substr($rRaw, self::SEAL_NONCE, -self::SEAL_TAG),
+            'aes-256-gcm',
+            self::sealKey($key, $deviceId),
+            OPENSSL_RAW_DATA,
+            substr($rRaw, 0, self::SEAL_NONCE),
+            substr($rRaw, -self::SEAL_TAG)
+        );
+    }
+
+    /**
+     * Make a stream-link token: sealed when $rSealed (the secure_stream_tokens
+     * setting), otherwise the legacy format servers on an older version read.
+     */
+    public static function mintToken($data, $key, $deviceId, bool $rSealed) {
+        return $rSealed ? self::seal($data, $key, $deviceId) : self::encrypt($data, $key, $deviceId);
+    }
+
+    /**
+     * Read a stream-link token: a sealed one always; a legacy one only where
+     * $rAcceptLegacy — the secure_stream_tokens setting is off, or the token
+     * only carries credentials the caller checks against the database again.
+     *
+     * @return string|false
+     */
+    public static function readToken($token, $key, $deviceId, bool $rAcceptLegacy) {
+        $rPlain = self::open($token, $key, $deviceId);
+        if ($rPlain !== false || !$rAcceptLegacy || !is_string($token)) {
+            return $rPlain;
+        }
+        return self::decrypt($token, $key, $deviceId);
+    }
+
+    private const SEAL_NONCE = 12;
+    private const SEAL_TAG = 16;
+
+    /** The sealing key: an HMAC of the context under the secret, so an empty secret never throws. */
+    private static function sealKey($key, $deviceId) {
+        return hash_hmac('sha256', 'xc_vm stream token v2|' . $deviceId, (string) $key, true);
+    }
+
+    /**
      * Base64url encode (URL-safe base64 without padding)
      *
      * @param string $data Raw data

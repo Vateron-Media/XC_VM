@@ -77,6 +77,7 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 		}
 
 		// $_PAGE is used by header.php and footer.php for active nav highlighting
+		// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global $_PAGE consumed by header.php/footer.php templates
 		$_PAGE = defined('PAGE_NAME') ? PAGE_NAME : 'index';
 
 		$rServers = ServerRepository::getAll();

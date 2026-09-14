@@ -151,6 +151,7 @@ final class AdminScopeBootstrap implements ScopeBootstrap {
 
 			foreach ($rServers as $rServer) {
 				if (!$rServer['server_online'] && $rServer['enabled'] && $rServer['status'] != 3 && $rServer['status'] != 5) {
+					// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy admin view templates
 					$rServerError = true;
 				}
 			}
@@ -158,20 +159,24 @@ final class AdminScopeBootstrap implements ScopeBootstrap {
 
 			foreach ($rProxyServers as $rServer) {
 				if (!$rServer['server_online'] && $rServer['enabled'] && $rServer['status'] != 3 && $rServer['status'] != 5) {
+					// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy admin view templates
 					$allServersHealthy = true;
 				}
 			}
 			$updateRequired = false;
 
 			if (isset($rServers[SERVER_ID]) && !version_compare($rServers[SERVER_ID]['xc_vm_version'], SettingsManager::getString('update_version'), '>=')) {
+				// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy admin view templates
 				$updateRequired = true;
 			}
 		}
 
 		if (RequestManager::has('status')) {
+			// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy admin view templates
 			$_STATUS = intval(RequestManager::get('status'));
 			$rArgs = RequestManager::getAll();
 			unset($rArgs['status']);
+			// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy admin view templates
 			$customScript = AdminHelpers::setArgs($rArgs);
 		}
 

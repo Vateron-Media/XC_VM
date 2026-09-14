@@ -11,6 +11,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * CacheCronJob — cache cron job
@@ -23,6 +24,7 @@ use XcVm\Domain\Stream\CategoryService;
  */
 
 class CacheCronJob implements CommandInterface {
+    use DatabaseAware;
     use CronTrait;
 
     public function getName(): string {
@@ -48,14 +50,13 @@ class CacheCronJob implements CommandInterface {
         $this->setProcessTitle('XC_VM[Cache Builder]');
         $this->acquireCronLock();
 
-        global $db;
-
-        $this->loadCron($db, $rStartup);
+        $this->loadCron($rStartup);
 
         return 0;
     }
 
-    private function loadCron($db, bool $rStartup): void {
+    private function loadCron(bool $rStartup): void {
+        $db = self::db();
         if (!defined('CACHE_TMP_PATH')) {
             exit();
         }

@@ -10,6 +10,7 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * RadioService — radio service
@@ -22,7 +23,7 @@ use XcVm\Domain\Bouquet\BouquetService;
  */
 
 class RadioService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Create or update a radio stream from admin form data.
 	 *
@@ -371,7 +372,6 @@ class RadioService {
 					} else {
 						$rStreamsAdded = array();
 						$rServerTree = json_decode($rData['server_tree_data'], true);
-						$rODTree = json_decode($rData['od_tree_data'], true);
 
 						foreach ($rServerTree as $rServer) {
 							if ($rServer['parent'] == '#') {

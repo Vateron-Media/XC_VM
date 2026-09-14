@@ -10,7 +10,7 @@ namespace XcVm\Core\Reference;
  * Replaces the legacy `$rCountryCodes`, `$rCountries` and `$rGeoCountries`
  * globals from resources/data/admin_constants.php with typed accessors,
  * mirroring the const-array + static-getter shape of
- * {@see \XcVm\Streaming\Codec\FfmpegBinaries}.
+ * {@see FfmpegBinaries}.
  *
  * @package XC_VM_Core_Reference
  * @author  Divarion_D <https://github.com/Divarion-D>

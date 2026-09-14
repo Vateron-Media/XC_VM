@@ -70,8 +70,9 @@ around?".
 ## Per-stream CPU and memory
 
 ```php
-ProcessManager::resourceSample($pid): ?array          // ['ticks' => CPU ticks so far, 'rss' => bytes, 'at' => microtime]
+ProcessManager::resourceSample($pid): ?array          // ['ticks' => CPU ticks so far, 'rss' => bytes, 'at' => microtime, 'start' => ticks after boot]
 ProcessManager::cpuPercent(array $now, array $prev): ?float   // percent of ONE core between two samples
+ProcessManager::cpuPercentSinceStart(array $sample): ?float   // lifetime average, as `ps` shows it
 ProcessManager::producerKind($pid): ?string           // 'fanout' (xc_fanout remux) | 'ffmpeg' | 'php'
 ```
 
@@ -82,10 +83,18 @@ says nothing — no previous reading, two readings from the same instant, or a c
 backwards because the producer restarted under the same stream.
 
 `cron:streams` samples each running stream's producer once per pass and folds the result into that
-stream's `progress_info` JSON (`cpu`, `mem`, `producer`, plus `cpu_t` / `cpu_at` carrying the
-reading the next pass subtracts from). Only the node running a stream can read its own `/proc`, so
-the sampling happens there and travels to the panel in the row the cron already writes; the admin
-streams list renders it as the **Resources** column (producer badge, CPU %, RAM).
+stream's `progress_info` JSON (`cpu`, `mem`, `producer`). The reading the next pass subtracts from
+is kept beside the stream's files, in `<streams>/<id>_.usage` (removed with the rest of `<id>_*`
+when the stream stops) — node-local bookkeeping, so it does not depend on surviving a round trip
+through a database row other code also rewrites. Where there is no usable previous reading (a
+producer's first pass, or a new pid after a restart) the lifetime average stands in, so the column
+shows a figure at once. The age for that comes from the process's own start time in
+`/proc/PID/stat` against `/proc/uptime`, not from `/proc/PID`'s mtime, which is set when something
+first looks at the directory and can be much later than the start.
+
+Only the node running a stream can read its own `/proc`, so the sampling happens there and travels
+to the panel in the row the cron already writes; the admin streams list renders it as the
+**Resources** column (producer badge, CPU %, RAM).
 
 ---
 

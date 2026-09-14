@@ -7,7 +7,6 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Public\Controllers\Admin\TableController;
 
 /**
@@ -192,6 +191,6 @@ class BackupAjaxController extends BaseAjaxController {
     public function downloadPanelLogs(): never {
         $this->requireXhr();
 
-        $this->ok(array('data' => DiagnosticsService::downloadPanelLogs(DatabaseFactory::get())));
+        $this->ok(array('data' => DiagnosticsService::downloadPanelLogs()));
     }
 }

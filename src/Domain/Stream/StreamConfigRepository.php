@@ -2,6 +2,8 @@
 
 namespace XcVm\Domain\Stream;
 
+use XcVm\Infrastructure\Database\DatabaseAware;
+
 /**
  * StreamConfigRepository — аргументы потоков и профили транскодирования.
  *
@@ -13,7 +15,7 @@ namespace XcVm\Domain\Stream;
  */
 
 class StreamConfigRepository {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Получить все аргументы потоков (streams_arguments), индексированные по argument_key.
 	 */

@@ -2,47 +2,50 @@
 
 namespace XcVm\Core\Http;
 
+use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Module\ModuleInterface;
+use XcVm\Core\Util\AdminHelpers;
 
 /**
  * HTTP Router
  *
- * Маршрутизатор запросов. Заменяет паттерн switch($rAction) в admin/api.php
- * и прямые include в admin-страницах. Поддерживает модульные маршруты.
+ * Request router. Replaces the switch($rAction) pattern in admin/api.php and
+ * the direct includes in admin pages. Supports module-provided routes.
  *
  * ──────────────────────────────────────────────────────────────────
- * Использование:
+ * Usage:
  * ──────────────────────────────────────────────────────────────────
  *
  *   $router = new Router();
  *
- *   // Регистрация маршрутов напрямую
+ *   // Direct route registration
  *   $router->get('watch', [WatchController::class, 'index']);
  *   $router->get('watch/add', [WatchController::class, 'add']);
  *   $router->post('watch/save', [WatchController::class, 'save']);
  *
- *   // Группировка с префиксом
- *   $router->group('plex', function(Router $r) {
+ *   // Grouping with a shared prefix
+ *   $router->group('plex', function (Router $r) {
  *       $r->get('', [PlexController::class, 'index']);
  *       $r->get('add', [PlexController::class, 'add']);
  *       $r->post('save', [PlexController::class, 'save']);
  *   });
  *
- *   // API-маршруты (JSON)
+ *   // API routes (JSON)
  *   $router->api('watch/enable', [WatchController::class, 'apiEnable']);
  *   $router->api('watch/disable', [WatchController::class, 'apiDisable']);
  *
- *   // Dispatch (определяет маршрут по URL и вызывает handler)
+ *   // Dispatch (resolves the route from the URL and invokes the handler)
  *   $router->dispatch($page, $method);
  *
  * ──────────────────────────────────────────────────────────────────
- * Модульная регистрация:
+ * Module registration:
  * ──────────────────────────────────────────────────────────────────
  *
- *   // В модуле (реализация ModuleInterface::registerRoutes):
+ *   // Inside a module (ModuleInterface::registerRoutes implementation):
  *   class WatchModule implements ModuleInterface {
  *       public function registerRoutes(Router $router): void {
- *           $router->group('watch', function(Router $r) {
+ *           $router->group('watch', function (Router $r) {
  *               $r->get('', [WatchController::class, 'index']);
  *               $r->get('add', [WatchController::class, 'add']);
  *               $r->post('settings', [WatchController::class, 'saveSettings']);
@@ -52,15 +55,15 @@ use XcVm\Core\Module\ModuleInterface;
  *   }
  *
  * ──────────────────────────────────────────────────────────────────
- * Обратная совместимость:
+ * Backward compatibility:
  * ──────────────────────────────────────────────────────────────────
  *
- *   Пока admin/api.php использует switch($rAction), модули могут
- *   регистрировать API-маршруты через Router, а legacy-код вызывает
- *   $router->dispatchApi($action) как fallback в конце switch-цепочки.
+ *   While admin/api.php still uses switch($rAction), modules register API
+ *   routes here and the legacy code calls $router->dispatchApi($action) as a
+ *   fallback at the end of the switch chain.
  *
- * @see core/Http/Request.php
- * @see core/Http/Response.php
+ * @see Request
+ * @see Response
  * @see ModuleInterface::registerRoutes()
  *
  * @package XC_VM_Core_Http
@@ -69,72 +72,61 @@ use XcVm\Core\Module\ModuleInterface;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
-
 class Router {
 
     /**
-     * Зарегистрированные маршруты для страниц (GET)
-     * Формат: ['route/path' => ['handler' => callable, 'middleware' => [...], 'permission' => [...]]]
-     * @var array
+     * Registered GET (page) routes.
+     * Shape: ['route/path' => ['handler' => callable, 'middleware' => [...], 'permission' => [...]]]
+     * @var array<string, array{handler:mixed,middleware:array,permission:mixed}>
      */
-    protected $getRoutes = [];
+    protected array $getRoutes = [];
 
     /**
-     * Зарегистрированные маршруты для POST
-     * @var array
+     * Registered POST routes.
+     * @var array<string, array{handler:mixed,middleware:array,permission:mixed}>
      */
-    protected $postRoutes = [];
+    protected array $postRoutes = [];
 
     /**
-     * API-маршруты (JSON ответ)
-     * Формат: ['action_name' => ['handler' => callable, 'permission' => [...]]]
-     * @var array
+     * API routes (JSON response), keyed by action name.
+     * @var array<string, array{handler:mixed,middleware:array,permission:mixed}>
      */
-    protected $apiRoutes = [];
+    protected array $apiRoutes = [];
 
     /**
-     * Preserve existing routes during module registration phase.
+     * Preserve existing routes during the module registration phase.
      * When enabled, duplicate route keys are skipped instead of overwritten.
-     * @var bool
      */
-    protected $preserveExistingRoutes = false;
+    protected bool $preserveExistingRoutes = false;
 
     /**
-     * Collected route/API collisions during preserve phase.
+     * Route/API collisions collected during the preserve phase.
      * @var array<int, array{type:string,key:string}>
      */
-    protected $routeCollisions = [];
+    protected array $routeCollisions = [];
+
+    /** Current group prefix. */
+    protected string $groupPrefix = '';
 
     /**
-     * Текущий префикс группы
-     * @var string
+     * Current middleware stack for the active group.
+     * @var array<int, callable>
      */
-    protected $groupPrefix = '';
+    protected array $groupMiddleware = [];
 
     /**
-     * Текущий набор middleware для группы
+     * Current permission spec for the active group.
      * @var array
      */
-    protected $groupMiddleware = [];
+    protected array $groupPermission = [];
+
+    /** Singleton instance. */
+    protected static ?Router $instance = null;
 
     /**
-     * Текущий набор permissions для группы
-     * @var array
+     * Get the singleton instance.
      */
-    protected $groupPermission = [];
-
-    /**
-     * Singleton instance
-     * @var Router|null
-     */
-    protected static $instance = null;
-
-    /**
-     * Получить singleton
-     *
-     * @return Router
-     */
-    public static function getInstance() {
+    public static function getInstance(): self {
         if (self::$instance === null) {
             self::$instance = new self();
         }
@@ -142,25 +134,24 @@ class Router {
     }
 
     /**
-     * Сбросить (для тестов)
+     * Reset the singleton (used by tests).
      */
-    public static function resetInstance() {
+    public static function resetInstance(): void {
         self::$instance = null;
     }
 
     // ───────────────────────────────────────────────────────────
-    //  Регистрация маршрутов
+    //  Route registration
     // ───────────────────────────────────────────────────────────
 
     /**
-     * Зарегистрировать GET-маршрут (страница)
+     * Register a GET route (page).
      *
-     * @param string $route Путь маршрута (напр. 'watch', 'watch/add')
-     * @param callable|array $handler Обработчик: [ClassName, 'method'] или callable
-     * @param array $options Доп. опции: 'permission' => ['type', 'key'], 'middleware' => [...]
-     * @return $this
+     * @param string $route Route path (e.g. 'watch', 'watch/add')
+     * @param callable|array $handler Handler: [ClassName, 'method'] or a callable
+     * @param array $options Extra options: 'permission' => ['type', 'key'], 'middleware' => [...]
      */
-    public function get($route, $handler, array $options = []) {
+    public function get(string $route, $handler, array $options = []): self {
         $fullRoute = $this->buildRoute($route);
 
         if ($this->preserveExistingRoutes && isset($this->getRoutes[$fullRoute])) {
@@ -173,14 +164,13 @@ class Router {
     }
 
     /**
-     * Зарегистрировать POST-маршрут (обработка формы)
+     * Register a POST route (form handling).
      *
-     * @param string $route Путь маршрута
-     * @param callable|array $handler Обработчик
-     * @param array $options Доп. опции
-     * @return $this
+     * @param string $route Route path
+     * @param callable|array $handler Handler
+     * @param array $options Extra options
      */
-    public function post($route, $handler, array $options = []) {
+    public function post(string $route, $handler, array $options = []): self {
         $fullRoute = $this->buildRoute($route);
 
         if ($this->preserveExistingRoutes && isset($this->postRoutes[$fullRoute])) {
@@ -193,32 +183,30 @@ class Router {
     }
 
     /**
-     * Зарегистрировать маршрут для GET и POST одновременно
+     * Register a route for both GET and POST.
      *
-     * @param string $route Путь маршрута
-     * @param callable|array $handler Обработчик
-     * @param array $options Доп. опции
-     * @return $this
+     * @param string $route Route path
+     * @param callable|array $handler Handler
+     * @param array $options Extra options
      */
-    public function any($route, $handler, array $options = []) {
+    public function any(string $route, $handler, array $options = []): self {
         $this->get($route, $handler, $options);
         $this->post($route, $handler, $options);
         return $this;
     }
 
     /**
-     * Зарегистрировать API-маршрут (JSON-ответ через action=...)
+     * Register an API route (JSON response via action=...).
      *
-     * API-маршруты обрабатываются через admin/api.php по action-имени.
-     * При вызове $router->dispatchApi('watch_enable') Router ищет
-     * зарегистрированный маршрут и вызывает его handler.
+     * API routes are dispatched through admin/api.php by action name. When
+     * $router->dispatchApi('watch_enable') is called, the Router looks up the
+     * registered route and invokes its handler.
      *
-     * @param string $action Имя действия (напр. 'enable_watch', 'disable_plex')
-     * @param callable|array $handler Обработчик
-     * @param array $options Доп. опции: 'permission' => ['type', 'key']
-     * @return $this
+     * @param string $action Action name (e.g. 'enable_watch', 'disable_plex')
+     * @param callable|array $handler Handler
+     * @param array $options Extra options: 'permission' => ['type', 'key']
      */
-    public function api($action, $handler, array $options = []) {
+    public function api(string $action, $handler, array $options = []): self {
         $fullAction = $this->groupPrefix ? $this->groupPrefix . '_' . $action : $action;
 
         if ($this->preserveExistingRoutes && isset($this->apiRoutes[$fullAction])) {
@@ -232,11 +220,10 @@ class Router {
 
     /**
      * Enable safe module registration mode.
-     * Existing routes keep priority, duplicates are collected as collisions.
+     * Existing routes keep priority; duplicates are collected as collisions.
      *
-     * @return $this
      */
-    public function beginModuleRegistration() {
+    public function beginModuleRegistration(): self {
         $this->preserveExistingRoutes = true;
         return $this;
     }
@@ -244,47 +231,45 @@ class Router {
     /**
      * Disable safe module registration mode.
      *
-     * @return $this
      */
-    public function endModuleRegistration() {
+    public function endModuleRegistration(): self {
         $this->preserveExistingRoutes = false;
         return $this;
     }
 
     /**
-     * Return and clear collected route collisions.
+     * Return and clear the collected route collisions.
      *
      * @return array<int, array{type:string,key:string}>
      */
-    public function drainRouteCollisions() {
+    public function drainRouteCollisions(): array {
         $collisions = $this->routeCollisions;
         $this->routeCollisions = [];
         return $collisions;
     }
 
     /**
-     * Группировка маршрутов с общим префиксом, middleware и permissions
+     * Group routes under a shared prefix, middleware and permissions.
      *
-     * @param string $prefix Префикс (напр. 'watch', 'plex')
-     * @param callable $callback function(Router $router) — регистрирует маршруты внутри группы
-     * @param array $options Опции группы: 'middleware' => [...], 'permission' => [...]
-     * @return $this
+     * @param string $prefix Prefix (e.g. 'watch', 'plex')
+     * @param callable $callback function(Router $router) — registers the routes in the group
+     * @param array $options Group options: 'middleware' => [...], 'permission' => [...]
      */
-    public function group($prefix, callable $callback, array $options = []) {
-        // Сохраняем текущий контекст
+    public function group(string $prefix, callable $callback, array $options = []): self {
+        // Save the current context
         $prevPrefix     = $this->groupPrefix;
         $prevMiddleware = $this->groupMiddleware;
         $prevPermission = $this->groupPermission;
 
-        // Устанавливаем новый контекст
+        // Set the new context
         $this->groupPrefix     = $prevPrefix ? $prevPrefix . '/' . $prefix : $prefix;
         $this->groupMiddleware = array_merge($prevMiddleware, $options['middleware'] ?? []);
         $this->groupPermission = $options['permission'] ?? $prevPermission;
 
-        // Вызываем callback, который регистрирует маршруты
+        // Invoke the callback, which registers the routes
         $callback($this);
 
-        // Восстанавливаем контекст
+        // Restore the previous context
         $this->groupPrefix     = $prevPrefix;
         $this->groupMiddleware = $prevMiddleware;
         $this->groupPermission = $prevPermission;
@@ -297,20 +282,20 @@ class Router {
     // ───────────────────────────────────────────────────────────
 
     /**
-     * Определить маршрут для страницы и вызвать обработчик
+     * Resolve the page route and invoke its handler.
      *
-     * @param string $page Имя страницы из URL (напр. 'watch', 'plex_add' → 'plex/add')
-     * @param string $method HTTP-метод ('GET' или 'POST')
-     * @return bool true если маршрут найден и выполнен, false — не найден
+     * @param string $page Page name from the URL (e.g. 'watch', 'plex_add' → 'plex/add')
+     * @param string $method HTTP method ('GET' or 'POST')
+     * @return bool true if a route was found and executed, false otherwise
      */
-    public function dispatch($page, $method = 'GET') {
-        // Нормализация: 'plex_add' → 'plex/add', 'watch' → 'watch'
+    public function dispatch(string $page, string $method = 'GET'): bool {
+        // Normalize: 'plex_add' → 'plex/add', 'watch' → 'watch'
         $route = $this->normalizePage($page);
 
-        // Выбираем набор маршрутов в зависимости от метода
+        // Pick the route set based on the method
         $routes = ($method === 'POST') ? $this->postRoutes : $this->getRoutes;
 
-        // Fallback: если POST-маршрут не найден, ищем в GET
+        // Fallback: if no POST route matches, look it up among GET routes
         if ($method === 'POST' && !isset($routes[$route]) && isset($this->getRoutes[$route])) {
             $routes = $this->getRoutes;
         }
@@ -321,163 +306,118 @@ class Router {
 
         $entry = $routes[$route];
 
-        // Проверка прав
         if (!$this->checkPermission($entry)) {
             $this->denyAccess();
             return true;
         }
 
-        // Выполнение middleware
+        // Run middleware
         foreach ($entry['middleware'] as $mw) {
             if (is_callable($mw)) {
                 $result = call_user_func($mw);
                 if ($result === false) {
-                    return true; // middleware остановил выполнение
+                    return true; // middleware halted execution
                 }
             }
         }
 
-        // Вызов обработчика
         $this->callHandler($entry['handler']);
         return true;
     }
 
     /**
-     * Определить API-маршрут и вызвать обработчик
+     * Resolve an API route and invoke its handler.
      *
-     * Используется в admin/api.php как fallback для модульных действий.
-     * Пример: если action='enable_watch' зарегистрирован модулем,
-     * Router вызовет [WatchController::class, 'apiEnable'].
+     * Used in admin/api.php as a fallback for module-provided actions. Example:
+     * if action='enable_watch' was registered by a module, the Router invokes
+     * [WatchController::class, 'apiEnable'].
      *
-     * @param string $action Имя действия (из $_GET['action'])
-     * @return bool true если маршрут найден и выполнен, false — не найден
+     * @param string $action Action name (from $_GET['action'])
+     * @return bool true if a route was found and executed, false otherwise
      */
-    public function dispatchApi($action) {
+    public function dispatchApi(string $action): bool {
         if (!isset($this->apiRoutes[$action])) {
             return false;
         }
 
         $entry = $this->apiRoutes[$action];
 
-        // Проверка прав
         if (!$this->checkPermission($entry)) {
             echo json_encode(['result' => false]);
             exit();
         }
 
-        // Вызов обработчика
         $this->callHandler($entry['handler']);
         return true;
     }
 
-    /**
-     * Проверить, зарегистрирован ли маршрут страницы
-     *
-     * @param string $page Имя страницы
-     * @return bool
-     */
-    public function hasRoute($page) {
-        $route = $this->normalizePage($page);
-        return isset($this->getRoutes[$route]) || isset($this->postRoutes[$route]);
-    }
-
-    /**
-     * Проверить, зарегистрирован ли API-маршрут
-     *
-     * @param string $action Имя действия
-     * @return bool
-     */
-    public function hasApiRoute($action) {
-        return isset($this->apiRoutes[$action]);
-    }
-
-    /**
-     * Получить все зарегистрированные маршруты (для отладки)
-     *
-     * @return array ['get' => [...], 'post' => [...], 'api' => [...]]
-     */
-    public function getRoutes() {
-        return [
-            'get'  => array_keys($this->getRoutes),
-            'post' => array_keys($this->postRoutes),
-            'api'  => array_keys($this->apiRoutes),
-        ];
-    }
-
     // ───────────────────────────────────────────────────────────
-    //  Internal Helpers
+    //  Internal helpers
     // ───────────────────────────────────────────────────────────
 
     /**
-     * Построить полный путь с учётом groupPrefix
-     *
-     * @param string $route
-     * @return string
+     * Build the full path taking groupPrefix into account.
      */
-    protected function buildRoute($route) {
+    protected function buildRoute(string $route): string {
         if ($this->groupPrefix && $route !== '') {
             $full = $this->groupPrefix . '/' . $route;
         } else {
             $full = $this->groupPrefix ?: $route;
         }
-        // Нормализуем при регистрации, чтобы dispatch() находил по тому же ключу
+        // Normalize on registration so dispatch() looks up the same key
         return $this->normalizePage($full);
     }
 
     /**
-     * Сформировать запись маршрута
+     * Assemble a route entry.
      *
      * @param callable|array $handler
      * @param array $options
-     * @return array
+     * @return array{handler:mixed,middleware:array,permission:mixed}
      */
-    protected function buildRouteEntry($handler, array $options) {
+    protected function buildRouteEntry($handler, array $options): array {
         return [
             'handler'    => $handler,
-            'middleware'  => array_merge($this->groupMiddleware, $options['middleware'] ?? []),
+            'middleware' => array_merge($this->groupMiddleware, $options['middleware'] ?? []),
             'permission' => $options['permission'] ?? $this->groupPermission,
         ];
     }
 
     /**
-     * Нормализовать имя страницы в маршрут
+     * Normalize a page name into a route.
      *
-     * Конвертирует legacy-имена (admin-style) в формат маршрута:
+     * Converts legacy (admin-style) names into route format:
      *   'watch'          → 'watch'
      *   'watch_add'      → 'watch/add'
      *   'settings_watch' → 'settings/watch'
      *   'plex_add'       → 'plex/add'
      *   'settings_plex'  → 'settings/plex'
-     *
-     * @param string $page
-     * @return string
      */
-    protected function normalizePage($page) {
-        // Убираем расширение .php если есть
+    protected function normalizePage(string $page): string {
+        // Strip a trailing .php if present
         $page = preg_replace('/\.php$/', '', $page);
-        // Конвертируем _ в /
+        // Convert _ to /
         return str_replace('_', '/', $page);
     }
 
     /**
-     * Проверить разрешения для маршрута
+     * Check the permissions for a route.
      *
-     * @param array $entry Запись маршрута
-     * @return bool
+     * @param array $entry Route entry
      */
-    protected function checkPermission(array $entry) {
+    protected function checkPermission(array $entry): bool {
         if (empty($entry['permission'])) {
             return true;
         }
 
         $perm = $entry['permission'];
 
-        // Поддержка формата ['type', 'key'] для \XcVm\Core\Auth\Authorization::check()
+        // Support the ['type', 'key'] format for Authorization::check()
         if (is_array($perm) && count($perm) === 2 && is_string($perm[0])) {
-            return \XcVm\Core\Auth\Authorization::check($perm[0], $perm[1]);
+            return Authorization::check($perm[0], $perm[1]);
         }
 
-        // Произвольный callable
+        // Arbitrary callable
         if (is_callable($perm)) {
             return call_user_func($perm);
         }
@@ -486,28 +426,28 @@ class Router {
     }
 
     /**
-     * Вызвать обработчик маршрута
+     * Invoke a route handler.
      *
-     * Поддерживает:
-     *   - [ClassName::class, 'method'] → new ClassName()->method()
+     * Supports:
+     *   - [ClassName::class, 'method'] → (new ClassName())->method()
      *   - callable (closure)
      *   - [object, 'method']
      *
      * @param callable|array $handler
      */
-    protected function callHandler($handler) {
+    protected function callHandler($handler): void {
         if (is_array($handler) && count($handler) === 2 && is_string($handler[0])) {
-            // [ClassName, 'method'] → инстанцируем (через DI-контейнер если доступен)
+            // [ClassName, 'method'] → instantiate (via the DI container if available)
             $class  = $handler[0];
             $method = $handler[1];
 
-            // Попытка получить экземпляр через ServiceContainer (DI)
-            if (class_exists(\XcVm\Core\Container\ServiceContainer::class, false)) {
-                $container = \XcVm\Core\Container\ServiceContainer::getInstance();
+            // Resolve through the ServiceContainer (DI) when it is already loaded
+            if (class_exists(ServiceContainer::class, false)) {
+                $container = ServiceContainer::getInstance();
                 try {
                     $obj = $container->get($class);
-                } catch (\Throwable $e) {
-                    // Fallback: конструктор без параметров
+                } catch (\Throwable) {
+                    // Fallback: parameterless constructor
                     $obj = new $class();
                 }
             } else {
@@ -521,15 +461,18 @@ class Router {
     }
 
     /**
-     * Отправить ответ "доступ запрещён"
+     * Send an "access denied" response.
+     *
+     * Prefers redirecting an authenticated-but-unauthorized user to the
+     * dashboard; falls back to a bare 403 if the helper is unavailable.
      */
-    protected function denyAccess() {
-        if (function_exists('goHome')) {
-            \XcVm\Core\Util\AdminHelpers::goHome();
-        } else {
-            http_response_code(403);
-            echo 'Access denied';
-            exit();
+    protected function denyAccess(): void {
+        if (class_exists(AdminHelpers::class)) {
+            AdminHelpers::goHome(); // redirects and exits
         }
+
+        http_response_code(403);
+        echo 'Access denied';
+        exit();
     }
 }

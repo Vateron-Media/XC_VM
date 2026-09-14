@@ -10,6 +10,7 @@
  */
 
 use XcVm\Core\Auth\Authorization;
+use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Server\ServerRepository;
 
 if (!Authorization::check('adv', 'live_connections')):
@@ -21,6 +22,11 @@ if (!Authorization::check('adv', 'live_connections')):
     echo '</body></html>';
     return;
 endif;
+
+// Deep-link filters. ?stream_id / ?user_id / ?server_id pre-select a channel, line or server.
+$rSelectedStream = RequestManager::has('stream_id') ? (int) RequestManager::get('stream_id') : 0;
+$rSelectedUser = RequestManager::has('user_id') ? (int) RequestManager::get('user_id') : 0;
+$rSelectedServer = RequestManager::has('server_id') ? (int) RequestManager::get('server_id') : 0;
 ?>
 
 <div class="card">
@@ -43,7 +49,7 @@ endif;
                 <select id="filter-server" class="form-select">
                     <option value=""><?= $language::get('all_servers'); ?></option>
                     <?php foreach (ServerRepository::getAll() as $rServer): ?>
-                        <option value="<?= (int) $rServer['id']; ?>"><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
+                        <option value="<?= (int) $rServer['id']; ?>"<?= $rSelectedServer === (int) $rServer['id'] ? ' selected' : ''; ?>><?= htmlspecialchars((string) $rServer['server_name'], ENT_QUOTES); ?></option>
                     <?php endforeach; ?>
                 </select>
             </div>
@@ -308,6 +314,12 @@ renderUnifiedLayoutFooter('admin');
         }
         select2ajax('#filter-user', 'userlist', <?= json_encode($language::get('line')); ?>);
         select2ajax('#filter-stream', 'streamlist', <?= json_encode($language::get('stream')); ?>);
+        <?php if ($rSelectedUser): ?>
+        jQuery('#filter-user').append(new Option('#<?= $rSelectedUser; ?>', '<?= $rSelectedUser; ?>', true, true)).trigger('change');
+        <?php endif; ?>
+        <?php if ($rSelectedStream): ?>
+        jQuery('#filter-stream').append(new Option('#<?= $rSelectedStream; ?>', '<?= $rSelectedStream; ?>', true, true)).trigger('change');
+        <?php endif; ?>
         document.getElementById('filter-server').addEventListener('change', function() {
             table.ajax.reload();
         });

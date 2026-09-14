@@ -5,6 +5,7 @@ namespace XcVm\Domain\Epg;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * EpgService — epg service
@@ -17,7 +18,7 @@ use XcVm\Core\Util\AdminHelpers;
  */
 
 class EpgService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Create or update an EPG source from admin form data.
 	 *

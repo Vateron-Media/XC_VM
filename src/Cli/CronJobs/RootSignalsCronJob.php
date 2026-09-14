@@ -181,7 +181,7 @@ class RootSignalsCronJob implements CommandInterface {
             // Auto-unban: on MAIN only, drop expired automatic IP bans (flood/
             // bruteforce) so the sync below removes them from iptables. Manual admin
             // bans (any other notes) are left permanent.
-            $rUnbanSettings = \XcVm\Core\Config\SettingsManager::getAll();
+            $rUnbanSettings = SettingsManager::getAll();
             if (!empty($rServers[SERVER_ID]['is_main']) && !empty($rUnbanSettings['auto_unban_ip'])) {
                 $rUnbanMul = array('minutes' => 60, 'hours' => 3600, 'days' => 86400);
                 $rUnbanUnit = (string) ($rUnbanSettings['ban_duration_unit'] ?? 'hours');
@@ -424,7 +424,7 @@ class RootSignalsCronJob implements CommandInterface {
                 @touch($rCurlMarker);
                 $rHandle = curl_init('http://127.0.0.1:' . $rServers[SERVER_ID]['http_broadcast_port'] . '/init');
                 curl_setopt($rHandle, CURLOPT_RETURNTRANSFER, true);
-                $rResponse = curl_exec($rHandle);
+                curl_exec($rHandle);
                 $rCode = curl_getinfo($rHandle, CURLINFO_HTTP_CODE);
                 if (!in_array($rCode, [500, 502])) {
                     curl_close($rHandle);

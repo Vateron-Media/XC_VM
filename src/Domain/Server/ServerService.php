@@ -7,6 +7,7 @@ use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ServerService — server service
@@ -19,7 +20,7 @@ use XcVm\Core\Util\AdminHelpers;
  */
 
 class ServerService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Create or update a server from admin form data.
 	 *
@@ -399,11 +400,9 @@ class ServerService {
 	 * @return mixed Result.
 	 */
 	public static function restoreImages() {
-		$db = self::db();
 		global $rServers;
 		foreach (array_keys($rServers) as $rServerID) {
-			if (!$rServers[$rServerID]['server_online']) {
-			} else {
+			if ($rServers[$rServerID]['server_online']) {
 				ApiClient::systemRequest($rServerID, array('action' => 'restore_images'));
 			}
 		}

@@ -49,7 +49,9 @@ Admin login method. Steps in order:
 3. Access code group check -- the user's `member_group_id` must be in the current access code's allowed groups, or no access codes must exist.
 4. Permission check -- `is_admin` must be true for the user's group.
 5. Status check -- `$rUserInfo['status'] == 1` (enabled).
-6. On success: re-hashes password, updates `last_login` and `ip` in the database, writes session keys, logs the login.
+6. On success: re-hashes password, updates `last_login` and `ip` in the database, moves the session onto a fresh id (`session_regenerate_id(true)`), writes session keys, logs the login.
+
+The fresh id matters: the id a visitor arrives with at the login form is one someone else may know (a cookie planted from a sibling subdomain, a shared machine), and keeping it would sign them in too. `resellerLogin()` and the first-run setup page do the same.
 
 Session values written on success:
 
@@ -326,13 +328,17 @@ When an IP is blocked:
 
 ### Cookie Configuration
 
-In the admin bootstrap context, session cookies are set with strict SameSite policy:
+In the admin bootstrap context, the session cookie is `SameSite=Strict` and `HttpOnly`, and PHP runs in strict mode, refusing session ids it never issued:
 
 ```php
 $params['samesite'] = 'Strict';
+$params['httponly'] = true;
 session_set_cookie_params($params);
+ini_set('session.use_strict_mode', '1');
 session_start();
 ```
+
+No panel script reads the session cookie, so `HttpOnly` costs nothing and keeps an XSS from reading it.
 
 ### Verify Hash
 
@@ -361,7 +367,7 @@ When `ip_logout` is disabled and the IP changes, the session's stored IP is sile
 
 ## Login Logging
 
-When the `save_login_logs` setting is enabled, all login attempts (success and failure) are recorded in the `login_logs` table:
+Failed sign-ins (`INVALID_LOGIN`) are always recorded, because the login flood limit counts them. When the `save_login_logs` setting is enabled, every other outcome is recorded too. All of it goes into the `login_logs` table:
 
 ```sql
 INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`)
@@ -378,6 +384,12 @@ VALUES($type, $codeId, $userId, $status, $ip, $timestamp);
 | `date` | Unix timestamp |
 
 Player logins do not write to `login_logs`.
+
+### Login Flood Limit
+
+The admin and reseller login pages call `Authenticator::loginFloodExceeded($ip, $rSettings['login_flood'])` before processing a login. When an address has `login_flood` or more `INVALID_LOGIN` rows dated within the last 24 hours, it is added to the blocklist (`LOGIN FLOOD ATTACK`) and the request ends. A `login_flood` of 0 turns the limit off. **Quick Tools → Clear login flood** deletes the counted rows.
+
+`date` is a Unix timestamp, so the window is `date >= time() - 86400`. The pages used to filter it with `TIME_TO_SEC(TIMEDIFF(NOW(), date))`, which is NULL for an integer column, so no address was ever blocked.
 
 ---
 

@@ -45,7 +45,7 @@ $rStreamID = null;
 
 if (!isset($rRequest['token'])) {
 } else {
-	$rTokenData = json_decode(Encryption::decrypt($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
+	$rTokenData = json_decode((string) Encryption::readToken($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])), true);
 
 	if (is_array($rTokenData) && !(isset($rTokenData['expires']) && $rTokenData['expires'] < time() - intval($rServers[SERVER_ID]['time_offset']))) {
 	} else {

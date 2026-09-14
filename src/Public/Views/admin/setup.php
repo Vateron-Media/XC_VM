@@ -77,6 +77,7 @@ if (!RequestManager::has('update')):
                 $rQuery = 'INSERT INTO `users`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
                 if ($db->query($rQuery, ...$rPrepare['data'])) {
+                    session_regenerate_id(true); // signed in from here: a fresh id, as at login
                     $_SESSION['hash'] = $db->last_insert_id();
                     $_SESSION['ip'] = NetworkUtils::getUserIP();
                     $_SESSION['code'] = AuthRepository::getCurrentCode();

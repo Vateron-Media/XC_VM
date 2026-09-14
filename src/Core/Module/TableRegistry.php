@@ -10,7 +10,7 @@ namespace XcVm\Core\Module;
  * a module registers a handler for its OWN table id here instead of the id
  * living in core, so the core controller no longer knows about module tables.
  *
- * A module implements {@see \XcVm\Core\Module\Contract\TableProviderInterface}
+ * A module implements {@see TableProviderInterface}
  * and, in registerTables(), calls register() once per table id. When the
  * requested id is not a core case, TableController looks it up here.
  *

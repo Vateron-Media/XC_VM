@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Util;
 
+use XcVm\Domain\Server\ServerRepository;
+
 /**
  * System Information
  *
@@ -21,7 +23,7 @@ class SystemInfo {
      * Aggregate server statistics.
      *
      * Collects CPU, memory, disk, network, GPU, I/O, audio/video devices.
-     * Requires \XcVm\Domain\Server\ServerRepository::getAll()[SERVER_ID] for network interface selection.
+     * Requires ServerRepository::getAll()[SERVER_ID] for network interface selection.
      *
      * @return array<string, mixed>
      */
@@ -61,12 +63,12 @@ class SystemInfo {
             $rJSON['total_mem_used_percent'] = 100;
         }
 
-        // Network interface selection: delegate to \XcVm\Domain\Server\ServerRepository for backward compat
+        // Network interface selection: delegate to ServerRepository for backward compat
         $rNetworkInterface = null;
-        if (defined('SERVER_ID') && isset(\XcVm\Domain\Server\ServerRepository::getAll()[SERVER_ID]['network_interface'])) {
-            $rNetworkInterface = \XcVm\Domain\Server\ServerRepository::getAll()[SERVER_ID]['network_interface'] == 'auto'
+        if (defined('SERVER_ID') && isset(ServerRepository::getAll()[SERVER_ID]['network_interface'])) {
+            $rNetworkInterface = ServerRepository::getAll()[SERVER_ID]['network_interface'] == 'auto'
                 ? null
-                : \XcVm\Domain\Server\ServerRepository::getAll()[SERVER_ID]['network_interface'];
+                : ServerRepository::getAll()[SERVER_ID]['network_interface'];
         }
         $rJSON['network_info'] = self::getNetwork($rNetworkInterface);
 

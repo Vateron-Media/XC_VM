@@ -15,6 +15,7 @@ use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * Reseller API handler
@@ -27,7 +28,7 @@ use XcVm\Domain\Server\ServerRepository;
  */
 
 class ResellerAPI {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	public static $rSettings = array();
 	public static $rServers = array();
 	public static $rProxyServers = array();
@@ -61,7 +62,6 @@ class ResellerAPI {
 	 * @return void
 	 */
 	public static function init($rUserID = null) {
-		$db = self::db();
 		global $rPermissions;
 		self::$rSettings = SettingsManager::getAll();
 		self::$rServers = ServerRepository::getStreamingSimple($rPermissions);

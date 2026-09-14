@@ -828,7 +828,6 @@ if (isset($rUserInfo['reports'])) {
             } else {
                 $rOrderRow = 0;
             }
-            $rCreated = RequestManager::has('created');
             $rWhere = $rWhereV = array();
             if (0 < count($rPermissions['stream_ids'])) {
                 $rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
@@ -943,7 +942,6 @@ if (isset($rUserInfo['reports'])) {
             } else {
                 $rOrderRow = 0;
             }
-            $rCreated = RequestManager::has('created');
             $rWhere = $rWhereV = array();
             if (0 < count($rPermissions['stream_ids'])) {
                 $rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
@@ -1059,7 +1057,6 @@ if (isset($rUserInfo['reports'])) {
             } else {
                 $rOrderRow = 0;
             }
-            $rCreated = RequestManager::has('created');
             $rWhere = $rWhereV = array();
             if (0 < count($rPermissions['stream_ids'])) {
                 $rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';

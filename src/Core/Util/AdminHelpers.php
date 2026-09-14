@@ -5,6 +5,7 @@ namespace XcVm\Core\Util;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Validation\InputValidator;
+use XcVm\Domain\Stream\StreamSorter;
 
 /*
  * AdminHelpers — utility functions.
@@ -103,14 +104,14 @@ class AdminHelpers {
 	}
 
 	/**
-	 * Find the nearest value in an array (delegates to \XcVm\Domain\Stream\StreamSorter::getNearest()).
+	 * Find the nearest value in an array (delegates to StreamSorter::getNearest()).
 	 *
 	 * @param array     $arr    Values to search.
 	 * @param int|float $search Target value.
 	 * @return mixed The nearest value.
 	 */
 	public static function getNearest($arr, $search) {
-		return \XcVm\Domain\Stream\StreamSorter::getNearest($arr, $search);
+		return StreamSorter::getNearest($arr, $search);
 	}
 
 	/**

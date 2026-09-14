@@ -332,7 +332,7 @@ class Enigma2ApiController {
 			$rChannels->addChild('category_id', $rCatID);
 			$rCDataURL = $rChannels->addChild('stream_url');
 			$rEncData = 'movie/' . $this->username . '/' . $this->password . '/' . $rEpisode['id'] . '/' . $rEpisode['target_container'];
-			$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+			$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
 			$rSource = $this->url . 'play/' . $rToken;
 			$rCDataURL->addCData($rSource);
 		}
@@ -399,7 +399,7 @@ class Enigma2ApiController {
 				$rChannels->addChild('category_id', $rCategoryIDSearch);
 				$rCData = $rChannels->addChild('stream_url');
 				$rEncData = 'live/' . $this->username . '/' . $this->password . '/' . $rStream['id'];
-				$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+				$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
 				$rSource = $this->url . 'play/' . $rToken;
 				$rCData->addCData($rSource);
 
@@ -451,7 +451,7 @@ class Enigma2ApiController {
 				$rChannels->addChild('category_id', $rCategoryIDSearch);
 				$rCDataURL = $rChannels->addChild('stream_url');
 				$rEncData = 'movie/' . $this->username . '/' . $this->password . '/' . $rStream['id'] . '/' . $rStream['target_container'];
-				$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+				$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
 				$rSource = $this->url . 'play/' . $rToken;
 				$rCDataURL->addCData($rSource);
 

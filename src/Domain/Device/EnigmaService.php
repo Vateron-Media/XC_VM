@@ -10,6 +10,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\LineRepository;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * EnigmaService — enigma service
@@ -22,7 +23,7 @@ use XcVm\Domain\User\UserRepository;
  */
 
 class EnigmaService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Bulk delete selected Enigma2 devices.
 	 *

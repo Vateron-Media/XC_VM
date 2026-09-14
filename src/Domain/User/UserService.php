@@ -8,6 +8,7 @@ use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Line\LineService;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * UserService — user service
@@ -20,7 +21,7 @@ use XcVm\Domain\Line\LineService;
  */
 
 class UserService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Bulk delete a set of selected users.
 	 *

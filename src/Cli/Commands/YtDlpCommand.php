@@ -8,7 +8,7 @@ use XcVm\Core\Updates\GitHubReleases;
 /**
  * YtDlpCommand — install/update the bundled yt-dlp binary from upstream releases.
  *
- * yt-dlp resolves direct media URLs ({@see \XcVm\Core\Util\StreamUtils}); as a
+ * yt-dlp resolves direct media URLs ({@see StreamUtils}); as a
  * static bundled binary it goes stale between panel releases and breaks
  * extraction. This is the panel-side updater, modelled on {@see FanoutBinaryCommand}:
  * it reads the installed version from the binary (`yt-dlp --version`), compares it

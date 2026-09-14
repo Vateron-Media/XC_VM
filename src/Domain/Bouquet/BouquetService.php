@@ -5,9 +5,12 @@ namespace XcVm\Domain\Bouquet;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Database\QueryHelper;
+use XcVm\Core\Events\Bouquet\BouquetDeletedEvent;
+use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * BouquetService — bouquet service
@@ -20,7 +23,7 @@ use XcVm\Domain\Line\PackageService;
  */
 
 class BouquetService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Create or update a bouquet from admin form data.
 	 *
@@ -392,7 +395,7 @@ class BouquetService {
 
 		// Notify modules (e.g. watch) so they drop the bouquet from their own
 		// data — keeps core bouquet deletion free of module-owned tables.
-		\XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Bouquet\BouquetDeletedEvent((int) $rID));
+		EventDispatcher::dispatch(new BouquetDeletedEvent((int) $rID));
 		self::scan();
 
 		return true;

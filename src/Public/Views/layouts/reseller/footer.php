@@ -78,6 +78,7 @@ if (count(get_included_files()) == 1) {
     window.XC_VM = window.XC_VM || {};
     window.XC_VM.Config = {
         jsNavigate: <?= !empty($rSettings['js_navigate']) ? 'true' : 'false'; ?>,
+        disableTableResponsive: <?= !empty($rSettings['disable_table_responsive']) ? 'true' : 'false'; ?>,
         i18n: {
             error_occured: <?= json_encode($language::get('error_occured')); ?>
         }
@@ -109,9 +110,35 @@ if (count(get_included_files()) == 1) {
         // Header cell alignment should follow the column's data (DataTables does
         // not propagate a body-cell class like text-center to the <th>). Copy each
         // column's body text-align onto its header on init.
+        var xcNoResponsive = !!(window.XC_VM && XC_VM.Config && XC_VM.Config.disableTableResponsive);
         if (window.jQuery && jQuery.fn && jQuery.fn.dataTable) {
+            // Panel-wide "disable responsive tables" (settings -> disable_table_responsive):
+            // wrap the DataTables constructor so every table inits with responsive:false, so
+            // columns scroll horizontally (.table-responsive) instead of collapsing into an
+            // expandable child row. Installed before pages initialise their own tables.
+            if (xcNoResponsive) {
+                ['DataTable', 'dataTable'].forEach(function(name) {
+                    var orig = jQuery.fn[name];
+                    if (typeof orig !== 'function' || orig.xcNoResponsive) {
+                        return;
+                    }
+                    var wrapped = function(options) {
+                        if (options && typeof options === 'object') {
+                            options.responsive = false;
+                        }
+                        return orig.apply(this, arguments);
+                    };
+                    jQuery.extend(wrapped, orig);
+                    wrapped.xcNoResponsive = true;
+                    jQuery.fn[name] = wrapped;
+                });
+            }
             jQuery(document).on('init.dt', function(e, settings) {
                 var api = new jQuery.fn.dataTable.Api(settings);
+                if (xcNoResponsive) {
+                    // With responsive off the control (+/-) column is dead weight — hide it.
+                    api.columns('.control').visible(false);
+                }
                 api.columns().every(function() {
                     var cells = this.nodes(),
                         header = this.header();

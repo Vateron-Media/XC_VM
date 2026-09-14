@@ -4,6 +4,7 @@ namespace XcVm\Cli\Commands;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\ConfigReader;
+use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Fanout\IngestFeeder;
 
@@ -45,8 +46,8 @@ class LoopbackCommand implements CommandInterface {
 
 		if (!defined('MAIN_HOME')) define('MAIN_HOME', '/home/xc_vm/');
 		if (!defined('STREAMS_PATH')) define('STREAMS_PATH', MAIN_HOME . 'content/streams/');
-		if (!defined('FFMPEG')) define('FFMPEG', \XcVm\Streaming\Codec\FfmpegPaths::cpu() ?: FFMPEG_BIN_40);
-		if (!defined('FFPROBE')) define('FFPROBE', \XcVm\Streaming\Codec\FfmpegPaths::probe() ?: FFPROBE_BIN_40);
+		if (!defined('FFMPEG')) define('FFMPEG', FfmpegPaths::cpu() ?: FFMPEG_BIN_40);
+		if (!defined('FFPROBE')) define('FFPROBE', FfmpegPaths::probe() ?: FFPROBE_BIN_40);
 		if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
 		if (!defined('CONFIG_PATH')) define('CONFIG_PATH', MAIN_HOME . 'config/');
 		// PAT_HEADER restored to the real PAT header bytes (0xB0 0x0D) derived from the stream.
@@ -148,7 +149,6 @@ class LoopbackCommand implements CommandInterface {
 		$rLastPacket = time();
 		$rResyncCount = 0;
 		$rLastResyncLog = 0;
-		$rLastSegment = round(microtime(true) * 1000);
 		$rSegment = 0;
 		$rSegmentFile = fopen(STREAMS_PATH . $rStreamID . '_' . $rSegment . '.ts', 'wb');
 		$rSegmentStatus[$rSegment] = true;
@@ -271,7 +271,6 @@ class LoopbackCommand implements CommandInterface {
 					}
 				}
 				if ($rNewSegment) {
-					$rLastSegment = round(microtime(true) * 1000);
 					$rPosition = strpos($rBuffer, $rPrebuffer);
 					if (0 < $rPosition) {
 						$rLastBuffer = substr($rBuffer, 0, $rPosition);

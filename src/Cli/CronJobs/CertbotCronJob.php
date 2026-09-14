@@ -6,7 +6,7 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * CertbotCronJob — certbot cron job
@@ -19,6 +19,7 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  */
 
 class CertbotCronJob implements CommandInterface {
+    use DatabaseAware;
     use CronTrait;
 
     public function getName(): string {
@@ -31,22 +32,18 @@ class CertbotCronJob implements CommandInterface {
 
     public function execute(array $rArgs): int {
         $this->registerShutdown();
-
-        global $db;
-
         $rCheck = !empty($rArgs[0]);
-
-        $this->loadCron($db, $rCheck);
-
+        $this->loadCron($rCheck);
         return 0;
     }
 
-    private function loadCron($db, bool $rCheck): void {
+    private function loadCron(bool $rCheck): void {
+        $db = self::db();
         $rCertInfo = null;
 
         if (!$rCheck) {
             if (!PHP_ERRORS) {
-                DiagnosticsService::submitPanelLogs(DatabaseFactory::get());
+                DiagnosticsService::submitPanelLogs();
             }
             $rCertInfo = DiagnosticsService::getCertificateInfo();
             if (ServerRepository::getAll()[SERVER_ID]['enable_https'] && $rCertInfo) {

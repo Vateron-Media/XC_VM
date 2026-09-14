@@ -68,16 +68,48 @@ final class FanoutConfigTest extends TestCase {
 		$this->assertSame(0.5, $c['idle_buffer_ratio']);
 	}
 
-	public function testPrebufferMaxSecIsDerivedAndFloored(): void {
-		// client 30, restreamer 0, hls_window*seg = 6*6 = 36 → floor 40.
+	public function testPrebufferMaxSecIsDerivedFromWhatTheRingMustHold(): void {
+		// client 30 + one 6 s segment of headroom = 36; HLS 6 x 6 = 36.
 		$this->assertTrue(FanoutConfig::sync($this->baseSettings()));
-		$this->assertSame(40, $this->read()['prebuffer_max_sec']);
+		$this->assertSame(36, $this->read()['prebuffer_max_sec']);
 
 		// A larger HLS window pushes the ring up (12*6 = 72).
 		$s = $this->baseSettings();
 		$s['fanout_hls_window'] = 12;
 		FanoutConfig::sync($s);
 		$this->assertSame(72, $this->read()['prebuffer_max_sec']);
+
+		// So does any prebuffer a viewer can ask for, with its headroom.
+		foreach (array('client_prebuffer' => 50, 'restreamer_prebuffer' => 50, 'fanout_default_prebuffer_sec' => 50) as $rKey => $rValue) {
+			$s = $this->baseSettings();
+			$s[$rKey] = $rValue;
+			FanoutConfig::sync($s);
+			$this->assertSame(56, $this->read()['prebuffer_max_sec'], $rKey);
+		}
+
+		// Capped at the daemon's clamp.
+		$s = $this->baseSettings();
+		$s['client_prebuffer'] = 300;
+		FanoutConfig::sync($s);
+		$this->assertSame(120, $this->read()['prebuffer_max_sec']);
+	}
+
+	/**
+	 * The ring is the daemon's memory. A fixed 40 s floor kept every channel at
+	 * 40 s however far the operator lowered the prebuffer and the HLS window, so
+	 * no panel setting could shrink it.
+	 */
+	public function testLoweringThePrebufferAndHlsWindowShrinksTheRing(): void {
+		$s = $this->baseSettings();
+		$s['client_prebuffer'] = 10;
+		$s['fanout_hls_window'] = 3;
+		FanoutConfig::sync($s);
+		$this->assertSame(18, $this->read()['prebuffer_max_sec']); // 3 x 6 = 18 > 10 + 6
+
+		$s['client_prebuffer'] = 0;
+		$s['fanout_hls_window'] = 1;
+		FanoutConfig::sync($s);
+		$this->assertSame(12, $this->read()['prebuffer_max_sec']); // never under two segments
 	}
 
 	public function testClampsOutOfRangeValues(): void {

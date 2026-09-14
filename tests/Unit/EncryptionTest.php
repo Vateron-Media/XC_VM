@@ -70,4 +70,49 @@ final class EncryptionTest extends TestCase {
 		$this->assertSame($code, Encryption::generateUniqueCode('pass'));
 		$this->assertNotSame($code, Encryption::generateUniqueCode('other'));
 	}
+
+	public function testSealOpenRoundTrip() {
+		$plain = json_encode(array('stream_id' => 7, 'user_info' => array('id' => 3, 'max_connections' => 1)));
+		$token = Encryption::seal($plain, 'secret-key', 'device-1');
+
+		$this->assertSame($plain, Encryption::open($token, 'secret-key', 'device-1'));
+		$this->assertMatchesRegularExpression('/^[A-Za-z0-9_-]+$/', $token, 'the same URL-safe alphabet as the legacy format');
+	}
+
+	public function testSealedTokensDoNotRepeat() {
+		$this->assertTrue(Encryption::seal('data', 'k', 'd') !== Encryption::seal('data', 'k', 'd'));
+	}
+
+	/** A sealed token is authenticated: change any byte and it opens to nothing. */
+	public function testAnAlteredSealedTokenDoesNotOpen() {
+		$raw = Encryption::base64urlDecode(Encryption::seal('live/user/pass/1/ts', 'k', 'd'));
+		for ($i = 0; $i < strlen($raw); $i++) {
+			$bad = $raw;
+			$bad[$i] = chr(ord($bad[$i]) ^ 0x01);
+			$this->assertFalse(Encryption::open(Encryption::base64urlEncode($bad), 'k', 'd'), "byte {$i}");
+		}
+		$this->assertFalse(Encryption::open(Encryption::seal('x', 'k', 'd'), 'other-key', 'd'));
+		$this->assertFalse(Encryption::open(Encryption::seal('x', 'k', 'd'), 'k', 'other-device'));
+		$this->assertFalse(Encryption::open('', 'k', 'd'));
+		$this->assertFalse(Encryption::open('short', 'k', 'd'));
+		$this->assertFalse(Encryption::open(array('x'), 'k', 'd'));
+	}
+
+	/** A legacy token is read only where the caller still accepts the old format. */
+	public function testReadTokenTakesLegacyTokensOnlyWhenAccepted() {
+		$legacy = Encryption::encrypt('live/user/pass/1/ts', 'k', 'd');
+		$this->assertFalse(Encryption::open($legacy, 'k', 'd'));
+		$this->assertFalse(Encryption::readToken($legacy, 'k', 'd', false));
+		$this->assertSame('live/user/pass/1/ts', Encryption::readToken($legacy, 'k', 'd', true));
+
+		$sealed = Encryption::seal('live/user/pass/1/ts', 'k', 'd');
+		$this->assertSame('live/user/pass/1/ts', Encryption::readToken($sealed, 'k', 'd', false));
+		$this->assertSame('live/user/pass/1/ts', Encryption::readToken($sealed, 'k', 'd', true));
+		$this->assertFalse(Encryption::readToken(null, 'k', 'd', true));
+	}
+
+	public function testMintTokenFollowsTheSetting() {
+		$this->assertSame(Encryption::encrypt('p', 'k', 'd'), Encryption::mintToken('p', 'k', 'd', false));
+		$this->assertSame('p', Encryption::open(Encryption::mintToken('p', 'k', 'd', true), 'k', 'd'));
+	}
 }

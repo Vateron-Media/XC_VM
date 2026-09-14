@@ -154,9 +154,27 @@ Token contents:
 
 Validation:
 
-1. Decrypt token using `live_streaming_pass`.
+1. Read the token with `Encryption::readToken()` under `live_streaming_pass`.
 2. Check expiration: `$rTokenData['expires'] < time() - $rServers[SERVER_ID]['time_offset']`.
 3. Return parsed token data or trigger error.
+
+### Token format
+
+Stream-link tokens are made with `Encryption::mintToken()` and read with `Encryption::readToken()`; nothing else calls the legacy `encrypt()`/`decrypt()` for a token (`StreamTokenCallSitesTest` enforces it).
+
+| `secure_stream_tokens` | Tokens minted | Legacy tokens read |
+| --- | --- | --- |
+| `1` (default on a new install) | Sealed: AES-256-GCM, random nonce, `base64url(nonce ‖ ciphertext ‖ tag)` | Only where the token carries credentials that are checked against the database again |
+| `0` | Legacy AES-CBC | Everywhere |
+
+The legacy format is AES-CBC with a fixed IV and no MAC: a modified token decrypts to modified bytes, and a padding error answers differently from a bad credential, which is enough to read a token or to forge one. Sealed tokens cannot be read or altered without the key, and keep the same URL-safe alphabet, so no route or pattern changes.
+
+Where legacy tokens are still read with the setting on, and why:
+
+- `auth.php` `/play/` links, `rtmp.php` tokens and `probe.php` `/play/` links carry a username and password that are looked up again, so a forged one gains nothing. Saved playlists and portal links hold the old format. Every token `auth.php` cannot read counts against the address through `BruteforceGuard`, which stops reading an old token through the error responses.
+- Everything whose contents are trusted as they stand — the live/vod/timeshift JSON (`user_info`, `channel_info`), HLS segment and key tokens, thumbnail and subtitle tokens, the admin player's `uitoken`, the web player's proxy URL and the MAG portal's verify token — refuses the legacy format.
+
+Servers on an older version cannot read sealed tokens. Migration `021_add_secure_stream_tokens.sql` therefore turns the setting off on a panel that has other servers; turn it on in **Settings → Tamper-proof Stream Tokens** once every server runs this version.
 
 Response headers are set via `StreamAuthMiddleware::sendStreamHeaders()`:
 

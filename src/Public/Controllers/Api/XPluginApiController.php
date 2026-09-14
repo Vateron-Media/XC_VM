@@ -7,6 +7,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
@@ -20,6 +21,8 @@ use XcVm\Infrastructure\Database\DatabaseFactory;
  */
 
 class XPluginApiController {
+	use DatabaseAware;
+
 	private $deny = true;
 
 	public function shutdown() {
@@ -85,7 +88,7 @@ class XPluginApiController {
 		$rPage = isset($rRequest['page']) ? $rRequest['page'] : '';
 
 		if (empty($rPage)) {
-			$this->checkCommands($db, $rDeviceInfo, $rRequest);
+			$this->checkCommands($rDeviceInfo, $rRequest);
 		}
 
 		if ($rPage == 'file') {
@@ -137,7 +140,8 @@ class XPluginApiController {
 		exit();
 	}
 
-	private function checkCommands($db, $rDeviceInfo, $rRequest) {
+	private function checkCommands($rDeviceInfo, $rRequest) {
+		$db = self::db();
 		$db->query('UPDATE `enigma2_devices` SET `last_updated` = ?,`rc` = ? WHERE `device_id` = ?;', time(), $rRequest['rc'], $rDeviceInfo['device_id']);
 		$db->query('SELECT * FROM `enigma2_actions` WHERE `device_id` = ?;', $rDeviceInfo['device_id']);
 		$rResult = array();

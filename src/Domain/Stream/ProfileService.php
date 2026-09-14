@@ -4,6 +4,7 @@ namespace XcVm\Domain\Stream;
 
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Validation\InputValidator;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ProfileService — profile service
@@ -16,7 +17,7 @@ use XcVm\Core\Validation\InputValidator;
  */
 
 class ProfileService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Create or update a transcode profile from admin form data.
 	 *

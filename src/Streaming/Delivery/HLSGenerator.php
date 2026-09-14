@@ -41,7 +41,7 @@ class HLSGenerator {
 				} else {
 					$rPayload = $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rStreamID . '/' . $rSegName . '/' . $rUUID . '/' . SERVER_ID . '/' . $rVideoCodec . '/' . $rOnDemand;
 				}
-				return $rPrefix . '/hls/' . Encryption::encrypt($rPayload, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+				return $rPrefix . '/hls/' . Encryption::mintToken($rPayload, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
 			},
 			$rPlaylist
 		);
@@ -68,7 +68,7 @@ class HLSGenerator {
 		if (!empty($rSettings['encrypt_hls'])) {
 			$rIVFile = STREAMS_PATH . intval($rStreamID) . '_.iv';
 			if (is_file($rIVFile)) {
-				$rKeyToken = Encryption::encrypt($rIP . '/' . $rStreamID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
+				$rKeyToken = Encryption::mintToken($rIP . '/' . $rStreamID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
 				$rKeyLine = '#EXT-X-KEY:METHOD=AES-128,URI="' . $rPrefix . '/key/' . $rKeyToken . '",IV=0x' . bin2hex((string) file_get_contents($rIVFile));
 				$rSource = preg_replace('/(#EXTM3U\r?\n)/', '$1' . $rKeyLine . "\n", $rSource, 1);
 			}

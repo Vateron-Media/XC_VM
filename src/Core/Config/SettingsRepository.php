@@ -2,6 +2,8 @@
 
 namespace XcVm\Core\Config;
 
+use XcVm\Core\Cache\FileCache;
+
 /**
  * SettingsRepository — settings repository
  *
@@ -22,7 +24,7 @@ class SettingsRepository {
 	public static function getAll($rForce = false) {
 		global $db;
 		if (!$rForce) {
-			$rCache = \XcVm\Core\Cache\FileCache::getCache('settings', 20);
+			$rCache = FileCache::getCache('settings', 20);
 			if (!empty($rCache)) {
 				return $rCache;
 			}
@@ -63,7 +65,7 @@ class SettingsRepository {
 		}
 		$rOutput['shared_mount_prefixes'] = array_values(array_filter(array_map('trim', $rDecodedPrefixes)));
 
-		\XcVm\Core\Cache\FileCache::setCache('settings', $rOutput);
+		FileCache::setCache('settings', $rOutput);
 
 		return $rOutput;
 	}

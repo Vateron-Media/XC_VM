@@ -47,7 +47,7 @@ if (RequestManager::has('id')) {
         }
 
         if ($rServerID) {
-            $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
+            $rUIToken = Encryption::mintToken(json_encode($rTokenData), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA, (bool) SettingsManager::get('secure_stream_tokens'));
 
             if ($rOnDemand) {
                 $rStartURL = 'http://' . $rServers[$rServerID]['server_ip'] . ':' . $rServers[$rServerID]['http_broadcast_port'] . '/admin/live?password=' . SettingsManager::get('live_streaming_pass') . '&stream=' . intval(RequestManager::get('id')) . '&extension=.m3u8&odstart=1';

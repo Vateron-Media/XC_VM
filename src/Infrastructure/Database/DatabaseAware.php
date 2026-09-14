@@ -2,6 +2,8 @@
 
 namespace XcVm\Infrastructure\Database;
 
+use XcVm\Core\Database\DatabaseHandler;
+
 /**
  * DatabaseAware — shared static database-access pattern for domain/module classes.
  *
@@ -34,7 +36,7 @@ namespace XcVm\Infrastructure\Database;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 trait DatabaseAware {
-	/** @var \XcVm\Core\Database\DatabaseHandler|null Explicitly injected handler (optional). */
+	/** @var DatabaseHandler|null Explicitly injected handler (optional). */
 	private static $db = null;
 
 	/**
@@ -43,7 +45,7 @@ trait DatabaseAware {
 	 * Optional — when omitted, db() falls back to DatabaseFactory. Kept for
 	 * tests/mocks and backward compatibility with DomainDatabaseWiring.
 	 *
-	 * @param \XcVm\Core\Database\DatabaseHandler $db Database handler.
+	 * @param DatabaseHandler $db Database handler.
 	 * @return void
 	 */
 	public static function setDb($db): void {

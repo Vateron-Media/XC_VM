@@ -9,7 +9,7 @@ namespace XcVm\Core\Module;
  * set of Run buttons; each posts its key to `post.php?action=quick_tools`, whose
  * handler runs the matching action. Both halves are core lists. A module adds
  * its OWN tool — the button AND the action — through
- * {@see \XcVm\Core\Module\Contract\QuickToolsProviderInterface}, so the tool
+ * {@see QuickToolsProviderInterface}, so the tool
  * lives in the module instead of being hard-coded in core.
  *
  * add($group, $key, $label, $handler):

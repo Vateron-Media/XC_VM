@@ -7,8 +7,12 @@ use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
+use XcVm\Infrastructure\Database\DatabaseAware;
+use XcVm\Streaming\Codec\FfmpegPaths;
+use XcVm\Streaming\Codec\FFprobeRunner;
 use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Fanout\IngestFeeder;
+use XcVm\Streaming\Health\ProcessChecker;
 
 /**
  * StreamProcess — stream process
@@ -21,7 +25,7 @@ use XcVm\Streaming\Fanout\IngestFeeder;
  */
 
 class StreamProcess {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Write stream action log to file
 	 *
@@ -101,6 +105,46 @@ class StreamProcess {
 			return true;
 		}
 		return FanoutClient::isSupervised(intval($rStreamID)) === true;
+	}
+
+	/**
+	 * Take the start of a stopped on-demand stream for this viewer alone.
+	 *
+	 * Viewers who reach a stopped on-demand stream together each found it
+	 * unwatched — a new monitor takes a few hundred milliseconds to show up — and
+	 * each started one: the later viewer deleted the pid files the earlier
+	 * monitor had just written, both monitors missed each other, and each
+	 * launched a producer. Two connections to a source that often allows one, so
+	 * they kicked each other off. Held around the check and the start, the others
+	 * wait here and then find the stream started. A viewer that dies releases it.
+	 *
+	 * @param int $rStreamID Stream id.
+	 * @return resource|null The held lock, for unlockOnDemandStart(); null when
+	 *                       it cannot be taken (the caller goes on unserialised).
+	 */
+	public static function lockOnDemandStart($rStreamID) {
+		$rLock = @fopen(STREAMS_PATH . intval($rStreamID) . '_.start', 'c');
+		if ($rLock === false) {
+			return null;
+		}
+		if (!flock($rLock, LOCK_EX)) {
+			fclose($rLock);
+			return null;
+		}
+		return $rLock;
+	}
+
+	/**
+	 * Release what lockOnDemandStart() took.
+	 *
+	 * @param resource|null $rLock The lock, or null.
+	 * @return void
+	 */
+	public static function unlockOnDemandStart($rLock) {
+		if (is_resource($rLock)) {
+			flock($rLock, LOCK_UN);
+			fclose($rLock);
+		}
 	}
 
 	/** startMonitor(): the stream was handed to the fanout daemon's supervisor. */
@@ -245,7 +289,7 @@ class StreamProcess {
 		if (empty($rGpuOptions)) {
 			return '';
 		}
-		$rFFProbeOutput = \XcVm\Streaming\Codec\FFprobeRunner::probeStream($rSourcePath);
+		$rFFProbeOutput = FFprobeRunner::probeStream($rSourcePath);
 		if (in_array($rFFProbeOutput['codecs']['video']['codec_name'], array('h264', 'hevc', 'mjpeg', 'mpeg1', 'mpeg2', 'mpeg4', 'vc1', 'vp8', 'vp9'))) {
 			return '-c:v ' . $rFFProbeOutput['codecs']['video']['codec_name'] . '_cuvid';
 		}
@@ -825,7 +869,6 @@ class StreamProcess {
 		$rMap = '';
 		$rGenPTS = '';
 		$rReadNative = '';
-		$rSleepTime = 0;
 		if (empty($rStream['stream_info']['custom_ffmpeg'])) {
 			if ($rLoopback) {
 				$rOptions = '{FETCH_OPTIONS}';
@@ -1207,9 +1250,9 @@ class StreamProcess {
 	public static function buildSupervisorSpec(int $rStreamID): ?array {
 		global $rSettings, $rServers, $rFFMPEG_CPU, $rFFMPEG_GPU, $rFFPROBE;
 		$db = self::db();
-		$rFFMPEGCpu = $rFFMPEG_CPU ?: \XcVm\Streaming\Codec\FfmpegPaths::cpu();
-		$rFFMPEGGpu = $rFFMPEG_GPU ?: \XcVm\Streaming\Codec\FfmpegPaths::gpu();
-		$rFFProbeBin = $rFFPROBE ?: \XcVm\Streaming\Codec\FfmpegPaths::probe();
+		$rFFMPEGCpu = $rFFMPEG_CPU ?: FfmpegPaths::cpu();
+		$rFFMPEGGpu = $rFFMPEG_GPU ?: FfmpegPaths::gpu();
+		$rFFProbeBin = $rFFPROBE ?: FfmpegPaths::probe();
 
 		$db->query('SELECT * FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type AND t2.live = 1 LEFT JOIN `profiles` t4 ON t1.transcode_profile_id = t4.profile_id WHERE t1.direct_source = 0 AND t1.id = ?', $rStreamID);
 		if ($db->num_rows() <= 0) {
@@ -1367,7 +1410,7 @@ class StreamProcess {
 		if (file_exists($rCache)) {
 			$rProbe = @igbinary_unserialize((string) @file_get_contents($rCache));
 			if (is_array($rProbe) && !isset($rProbe['codecs']) && isset($rProbe['streams'])) {
-				$rProbe = \XcVm\Streaming\Codec\FFprobeRunner::parseFFProbe($rProbe);
+				$rProbe = FFprobeRunner::parseFFProbe($rProbe);
 			}
 			if (is_array($rProbe) && isset($rProbe['codecs'])) {
 				return $rProbe;
@@ -1530,7 +1573,7 @@ class StreamProcess {
 	 */
 	private static function killProducer(int $rStreamID, bool $rKeepAdoptable): bool {
 		$rPID = self::pidFromFileOrColumn($rStreamID, 'pid', '_.pid');
-		if ($rPID <= 0 || !\XcVm\Streaming\Health\ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']'))) {
+		if ($rPID <= 0 || !ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']'))) {
 			return false;
 		}
 		if ($rKeepAdoptable && strpos((string) @file_get_contents('/proc/' . $rPID . '/cmdline'), STREAMS_PATH . $rStreamID . '_.m3u8') !== false) {
@@ -1772,13 +1815,13 @@ class StreamProcess {
 
 		$rMonitor = self::pidFromFileOrColumn($rStreamID, 'monitor_pid', '_.monitor');
 
-		if (0 < $rMonitor && \XcVm\Streaming\Health\ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
+		if (0 < $rMonitor && ProcessChecker::checkPID($rMonitor, array('XC_VM[' . $rStreamID . ']')) && is_numeric($rMonitor)) {
 			posix_kill($rMonitor, 9);
 		}
 
 		$rPID = self::pidFromFileOrColumn($rStreamID, 'pid', '_.pid');
 
-		if (0 < $rPID && \XcVm\Streaming\Health\ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID)) {
+		if (0 < $rPID && ProcessChecker::checkPID($rPID, array($rStreamID . '_.m3u8', $rStreamID . '_%d.ts', 'LLOD[' . $rStreamID . ']', 'Loopback[' . $rStreamID . ']')) && is_numeric($rPID)) {
 			posix_kill($rPID, 9);
 		}
 
@@ -2250,7 +2293,7 @@ class StreamProcess {
 				}
 				if (!($rStream['server_info']['on_demand'] && $rLLOD)) {
 					if (!isset($rFFProbeOutput['codecs'])) {
-						$rFFProbeOutput = \XcVm\Streaming\Codec\FFprobeRunner::parseFFProbe($rFFProbeOutput);
+						$rFFProbeOutput = FFprobeRunner::parseFFProbe($rFFProbeOutput);
 					}
 
 					if (empty($rFFProbeOutput)) {

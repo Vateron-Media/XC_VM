@@ -2,6 +2,9 @@
 
 namespace XcVm\Core\Config;
 
+use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Infrastructure\Cache\CacheReader;
+
 /**
  * DomainResolver — domain resolver
  *
@@ -39,9 +42,9 @@ class DomainResolver {
 
 		$rProxied = $rServers[$rServerID]['enable_proxy'];
 		if ($rProxied) {
-			$rProxyIDs = array_keys(\XcVm\Domain\Stream\ConnectionTracker::getProxies($rServerID, true));
+			$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServerID, true));
 			if (count($rProxyIDs) == 0) {
-				$rProxyIDs = array_keys(\XcVm\Domain\Stream\ConnectionTracker::getProxies($rServerID, false));
+				$rProxyIDs = array_keys(ConnectionTracker::getProxies($rServerID, false));
 			}
 			if (count($rProxyIDs) != 0) {
 				$rOriginatorID = $rServerID;
@@ -59,7 +62,7 @@ class DomainResolver {
 		}
 
 		if ($rProxied || $rSettings['use_mdomain_in_lists'] == 1) {
-			$rResellerDomains = \XcVm\Infrastructure\Cache\CacheReader::get('reseller_domains') ?: array();
+			$rResellerDomains = CacheReader::get('reseller_domains') ?: array();
 			if (!(strlen($rDomain) > 0 && in_array(strtolower($rDomain), $rResellerDomains))) {
 				if (empty($rServers[$rServerID]['domain_name'])) {
 					$rDomain = escapeshellcmd($rServers[$rServerID]['server_ip']);

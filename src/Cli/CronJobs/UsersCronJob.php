@@ -325,7 +325,7 @@ class UsersCronJob implements CommandInterface {
                 $rMaxConnections = $rMaxConnectionsArray[$rUserID] ?? 0;
                 $rIsRestreamer = !empty($rRestreamerArray[$rUserID]);
 
-                foreach ($rConnections as $rKey => $rConnection) {
+                foreach ($rConnections as $rConnection) {
                     if ($rConnection['server_id'] == SERVER_ID || $rRedis) {
                         if (!isset($rConnection['exp_date']) || is_null($rConnection['exp_date']) || $rConnection['exp_date'] >= $rStartTime) {
                             $rTotalTime = $rStartTime - $rConnection['date_start'];

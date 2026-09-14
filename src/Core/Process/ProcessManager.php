@@ -212,7 +212,7 @@ class ProcessManager {
      * of encoders: what they actually hold in RAM.
      *
      * @param int $pid Process ID
-     * @return array{ticks:int,rss:int,at:float}|null Null when the process is gone.
+     * @return array{ticks:int,rss:int,at:float,start:int}|null Null when the process is gone.
      */
     public static function resourceSample($pid) {
         $pid = (int)$pid;
@@ -238,12 +238,41 @@ class ProcessManager {
             return null;
         }
 
-        // $rFields[$i] is /proc/PID/stat field $i + 3: utime 14, stime 15, rss 24.
+        // $rFields[$i] is /proc/PID/stat field $i + 3: utime 14, stime 15,
+        // starttime 22 (ticks after boot), rss 24.
         return [
             'ticks' => (int) $rFields[11] + (int) $rFields[12],
             'rss'   => (int) $rFields[21] * self::pageSize(),
             'at'    => microtime(true),
+            'start' => (int) $rFields[19],
         ];
+    }
+
+    /**
+     * CPU use averaged over the process's whole life, in percent of one core —
+     * what `ps` reports. The fallback when there is no earlier sample to take a
+     * difference against (the first reading of a producer), so a stream shows a
+     * figure at once rather than a dash for a whole pass.
+     *
+     * The age comes from the process's own start time in /proc/PID/stat against
+     * /proc/uptime, not from the mtime of /proc/PID: that inode is created when
+     * something first looks at the directory, which for a long-running process
+     * can be much later than its start.
+     *
+     * @param array $sample A resourceSample() reading.
+     * @return float|null Null when the age cannot be read.
+     */
+    public static function cpuPercentSinceStart(array $sample) {
+        if (!isset($sample['ticks'], $sample['start'])) {
+            return null;
+        }
+        $rUptime = (float) strtok((string) @file_get_contents('/proc/uptime'), ' ');
+        $rAge = $rUptime - ((int) $sample['start'] / 100);
+        if ($rUptime <= 0 || $rAge < 1) {
+            return null; // a process younger than a second says nothing yet
+        }
+
+        return round(((int) $sample['ticks'] / 100) / $rAge * 100, 1);
     }
 
     /**

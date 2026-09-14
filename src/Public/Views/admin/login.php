@@ -27,19 +27,10 @@ if (!isset($_SESSION['hash'])) {
 
     $rIP = NetworkUtils::getUserIP();
 
-    if (0 >= intval($rSettings['login_flood'])) {
-    } else {
-        $db->query("SELECT COUNT(`id`) AS `count` FROM `login_logs` WHERE `status` = 'INVALID_LOGIN' AND `login_ip` = ? AND TIME_TO_SEC(TIMEDIFF(NOW(), `date`)) <= 86400;", $rIP);
+    if (Authenticator::loginFloodExceeded($rIP, intval($rSettings['login_flood']))) {
+        BlocklistService::blockIP(array('ip' => $rIP, 'notes' => 'LOGIN FLOOD ATTACK'));
 
-        if ($db->num_rows() != 1) {
-        } else {
-            if (intval($rSettings['login_flood']) > intval($db->get_row()['count'])) {
-            } else {
-                BlocklistService::blockIP(array('ip' => $rIP, 'notes' => 'LOGIN FLOOD ATTACK'));
-
-                exit();
-            }
-        }
+        exit();
     }
 
     if (!RequestManager::has('login')) {

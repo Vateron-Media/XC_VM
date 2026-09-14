@@ -782,7 +782,7 @@ class PortalHandler {
 					];
 				}
 
-				foreach ($rCategories as $rCategoryID => $rCategory) {
+				foreach ($rCategories as $rCategory) {
 					if (
 						$rCategory["category_type"] == "movie" &&
 						in_array($rCategory["id"], $ctx["device"]["category_ids"])
@@ -837,10 +837,11 @@ class PortalHandler {
 						$rSettings["mag_container"] .
 						"/" .
 						$ctx["device"]["token"];
-					$rToken = Encryption::encrypt(
+					$rToken = Encryption::mintToken(
 						$rEncData,
 						$rSettings["live_streaming_pass"],
 						OPENSSL_EXTRA,
+						!empty($rSettings["secure_stream_tokens"]),
 					);
 					$rURL =
 						$ctx["player"] .
@@ -1033,7 +1034,7 @@ class PortalHandler {
 					];
 				}
 
-				foreach ($rCategories as $rCategoryID => $rCategory) {
+				foreach ($rCategories as $rCategory) {
 					if (
 						$rCategory["category_type"] == "live" &&
 						in_array($rCategory["id"], $rCategoryIDs)
@@ -1144,7 +1145,7 @@ class PortalHandler {
 					];
 				}
 
-				foreach ($rCategories as $rCategoryID => $rCategory) {
+				foreach ($rCategories as $rCategory) {
 					if (
 						$rCategory["category_type"] == "movie" &&
 						in_array($rCategory["id"], $rCategoryIDs)
@@ -1164,7 +1165,7 @@ class PortalHandler {
 				$rOutput = [];
 				$rOutput["js"][] = ["id" => "*", "title" => "*"];
 
-				foreach ($rCategories as $rCategoryID => $rCategory) {
+				foreach ($rCategories as $rCategory) {
 					if (
 						$rCategory["category_type"] == "movie" &&
 						in_array($rCategory["id"], $rCategoryIDs)
@@ -1262,10 +1263,11 @@ class PortalHandler {
 					$rCommand["target_container"] .
 					"/" .
 					$ctx["device"]["token"];
-				$rToken = Encryption::encrypt(
+				$rToken = Encryption::mintToken(
 					$rEncData,
 					$rSettings["live_streaming_pass"],
 					OPENSSL_EXTRA,
+					!empty($rSettings["secure_stream_tokens"]),
 				);
 				$rURL =
 					($rSettings["mag_disable_ssl"]
@@ -1553,10 +1555,11 @@ class PortalHandler {
 							$rStreamID .
 							"/" .
 							$ctx["device"]["token"];
-						$rToken = Encryption::encrypt(
+						$rToken = Encryption::mintToken(
 							$rEncData,
 							$rSettings["live_streaming_pass"],
 							OPENSSL_EXTRA,
+							!empty($rSettings["secure_stream_tokens"]),
 						);
 						$rURL =
 							($rSettings["mag_disable_ssl"]
@@ -1602,10 +1605,11 @@ class PortalHandler {
 					$rStreamID .
 					"/" .
 					$ctx["device"]["token"];
-				$rToken = Encryption::encrypt(
+				$rToken = Encryption::mintToken(
 					$rEncData,
 					$rSettings["live_streaming_pass"],
 					OPENSSL_EXTRA,
+					!empty($rSettings["secure_stream_tokens"]),
 				);
 				$rURL =
 					($rSettings["mag_disable_ssl"]
@@ -1646,10 +1650,11 @@ class PortalHandler {
 					$rChannelID .
 					"/" .
 					$ctx["device"]["token"];
-				$rToken = Encryption::encrypt(
+				$rToken = Encryption::mintToken(
 					$rEncData,
 					$rSettings["live_streaming_pass"],
 					OPENSSL_EXTRA,
+					!empty($rSettings["secure_stream_tokens"]),
 				);
 				$rURL =
 					($rSettings["mag_disable_ssl"]
@@ -1935,10 +1940,11 @@ class PortalHandler {
 
 		if ($rDevice) {
 			$rDevice["token"] = strtoupper(md5(uniqid((string) rand(), true)));
-			$rVerifyToken = Encryption::encrypt(
+			$rVerifyToken = Encryption::mintToken(
 				igbinary_serialize(["id" => $rDevice["mag_id"], "token" => $rDevice["token"]]),
 				$rSettings["live_streaming_pass"],
 				OPENSSL_EXTRA,
+				!empty($rSettings["secure_stream_tokens"]),
 			);
 			$rDevice["authenticated"] = false;
 			$db->query(

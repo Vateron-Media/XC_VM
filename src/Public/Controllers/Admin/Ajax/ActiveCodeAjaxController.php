@@ -2,20 +2,19 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
-use XcVm\Core\Auth\AuthRepository;
-use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\ActiveCodeService;
-use XcVm\Domain\Line\PackageService;
 
 /**
  * ActiveCodeAjaxController — Admin-ajax controller for Activation Codes.
  *
  * Endpoints:
- * - action=active_code_details
  * - action=generate_active_codes
  * - action=active_codes_batch_action
  * - action=active_codes_export_txt
+ *
+ * (action=active_code_details renders an HTML fragment, so it lives in its own
+ * {@see ActiveCodeDetailsController}.)
  *
  * @package XC_VM_Public_Controllers_Admin
  */

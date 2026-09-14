@@ -7,6 +7,7 @@ use XcVm\Cli\CronJobs\ServersCronJob;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Util\Encryption;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * Diagnose why a proxy/LB node has gone silent to the main server.
@@ -37,6 +38,7 @@ use XcVm\Domain\Server\ServerRepository;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class ServerDiagnoseCommand implements CommandInterface {
+	use DatabaseAware;
 
 	/** Skew (seconds) beyond which the node clock is flagged. */
 	private const CLOCK_SKEW_LIMIT = 30;
@@ -83,7 +85,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 	//  Mode A — remote probe from the MAIN
 	// ─────────────────────────────────────────────────────────────────────────
 	private function diagnoseFromMain(array $rServer, int $rServerID): int {
-		global $db;
+		$db = self::db();
 
 		$rIP   = (string) $rServer['server_ip'];
 		$rPort = intval($rServer['http_broadcast_port']);
@@ -115,7 +117,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 		}
 
 		$this->clockSection($rServer, $rProblems);
-		$this->signalSection($db, $rServerID, $rNow, $rProblems);
+		$this->signalSection($rServerID, $rNow, $rProblems);
 		return $this->summary($rProblems);
 	}
 
@@ -254,7 +256,8 @@ class ServerDiagnoseCommand implements CommandInterface {
 		}
 	}
 
-	private function signalSection($db, int $rServerID, int $rNow, array &$rProblems): void {
+	private function signalSection(int $rServerID, int $rNow, array &$rProblems): void {
+		$db = self::db();
 		$db->query('SELECT COUNT(*) AS `c`, MIN(`time`) AS `oldest` FROM `signals` WHERE `server_id` = ?;', $rServerID);
 		$rRows    = $db->get_rows() ?: array();
 		$rSig     = $rRows[0] ?? array();

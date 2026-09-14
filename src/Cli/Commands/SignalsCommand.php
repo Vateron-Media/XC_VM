@@ -100,7 +100,7 @@ class SignalsCommand implements CommandInterface {
 				// ── Cache-сигналы из БД ─────────────────────────
 				if ($db->query('SELECT `signal_id`, `custom_data` FROM `signals` WHERE `server_id` = ? AND `cache` = 1 ORDER BY `signal_id` ASC LIMIT 1000;', SERVER_ID)) {
 					if ($db->num_rows() > 0) {
-						$rDeletedLines = $rUpdatedStreams = $rUpdatedLines = $rIDs = array();
+						$rUpdatedStreams = $rUpdatedLines = $rIDs = array();
 						foreach ($db->get_rows() as $rRow) {
 							$rCustomData = json_decode($rRow['custom_data'], true);
 							$rIDs[] = $rRow['signal_id'];

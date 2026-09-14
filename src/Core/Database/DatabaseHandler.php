@@ -174,11 +174,13 @@ class DatabaseHandler extends Database {
     /**
      * Execute a callback within a transaction
      *
-     * Automatically commits on success, rolls back on exception.
+     * Automatically commits on success, rolls back on anything thrown — an Error
+     * (a TypeError, an undefined method) as well as an Exception, or the
+     * transaction would stay open on the connection.
      *
      * @param callable $callback function(DatabaseHandler $db)
      * @return mixed The return value of the callback
-     * @throws \Exception Re-throws after rollback
+     * @throws \Throwable Re-throws after rollback
      */
     public function transactional($callback) {
         $this->beginTransaction();
@@ -187,7 +189,7 @@ class DatabaseHandler extends Database {
             $result = $callback($this);
             $this->commit();
             return $result;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->rollback();
             throw $e;
         }

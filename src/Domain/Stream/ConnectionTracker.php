@@ -5,6 +5,8 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Server\ServerRepository;
+use XcVm\Infrastructure\Database\DatabaseAware;
+use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Fanout\FanoutClient;
 
 /**
@@ -23,7 +25,7 @@ use XcVm\Streaming\Fanout\FanoutClient;
  */
 
 class ConnectionTracker {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 	/**
 	 * Calculate server/proxy load capacity.
 	 *
@@ -37,7 +39,7 @@ class ConnectionTracker {
 	public static function getCapacity(bool $rProxy = false): array {
 		global $rSettings, $rServers;
 		$db = self::db();
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		$rFile = ($rProxy ? 'proxy_capacity' : 'servers_capacity');
 		if ($rSettings['redis_handler'] && $rProxy && $rSettings['split_by'] == 'maxclients') {
 			$rSettings['split_by'] = 'guar_band';
@@ -66,7 +68,7 @@ class ConnectionTracker {
 					$rResults = $rMulti->exec();
 					break;
 				} catch (\RedisException $e) {
-					$rRedis = \XcVm\Infrastructure\Redis\RedisManager::reconnect();
+					$rRedis = RedisManager::reconnect();
 				}
 			}
 			if (!is_array($rResults)) {
@@ -146,7 +148,7 @@ class ConnectionTracker {
 	public static function getConnections(?int $rServerID = null, ?int $rUserID = null, ?int $rStreamID = null): array {
 		global $rSettings;
 		$db = self::db();
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if ($rSettings['redis_handler'] && $rRedis) {
 			if ($rServerID) {
 				$rKeys = $rRedis->zRangeByScore('SERVER#' . $rServerID, '-inf', '+inf');
@@ -271,7 +273,7 @@ class ConnectionTracker {
 	 * @return array|null Updated connection data, or null on exec failure.
 	 */
 	public static function updateConnection(array $rData, array $rChanges = [], ?string $rOption = null): ?array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return null;
 		}
@@ -333,7 +335,7 @@ class ConnectionTracker {
 	 * @return array|false MULTI/EXEC result.
 	 */
 	public static function redisSignal(int $rPID, int $rServerID, int $rRTMP, $rCustomData = null) {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return false;
 		}
@@ -356,7 +358,7 @@ class ConnectionTracker {
 	 * @return array Map of userID => connections[] (or count, or keys).
 	 */
 	public static function getUserConnections(array $rUserIDs, bool $rCount = false, bool $rKeysOnly = false): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return [];
 		}
@@ -403,7 +405,7 @@ class ConnectionTracker {
 	 * @return array Map of serverID => connections[] (or count, or keys).
 	 */
 	public static function getServerConnections(array $rServerIDs, bool $rProxy = false, bool $rCount = false, bool $rKeysOnly = false): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return [];
 		}
@@ -447,7 +449,7 @@ class ConnectionTracker {
 	 * @return array<int, array> Map of userID => connection data.
 	 */
 	public static function getFirstConnection(array $rUserIDs): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return [];
 		}
@@ -486,7 +488,7 @@ class ConnectionTracker {
 	 * @return array Map of streamID => connections[] (or count).
 	 */
 	public static function getStreamConnections(array $rStreamIDs, bool $rGroup = true, bool $rCount = false): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return [];
 		}
@@ -597,7 +599,7 @@ class ConnectionTracker {
 	 * @return array Connections grouped by identity, or [count, unique].
 	 */
 	public static function getRedisConnections(?int $rUserID = null, ?int $rServerID = null, ?int $rStreamID = null, bool $rOpenOnly = false, bool $rCountOnly = false, bool $rGroup = true, bool $rHLSOnly = false): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return ($rCountOnly ? array(0, 0) : array());
 		}
@@ -656,7 +658,7 @@ class ConnectionTracker {
 	 * @return array|null Deserialized connection data, or null if not found.
 	 */
 	public static function getConnection(string $rUUID): ?array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return null;
 		}
@@ -704,7 +706,7 @@ class ConnectionTracker {
 	 * @return array|false MULTI/EXEC result.
 	 */
 	public static function createConnection(array $rData) {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return false;
 		}
@@ -879,7 +881,7 @@ class ConnectionTracker {
 	 * @return array UUID keys or deserialized connection data.
 	 */
 	public static function getLineConnections(int $rUserID, bool $rActive = false, bool $rKeys = false): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return [];
 		}
@@ -899,7 +901,7 @@ class ConnectionTracker {
 	 * @return array Array of deserialized ended connection data.
 	 */
 	public static function getEnded(): array {
-		$rRedis = \XcVm\Infrastructure\Redis\RedisManager::instance();
+		$rRedis = RedisManager::instance();
 		if (!$rRedis) {
 			return [];
 		}
@@ -980,11 +982,11 @@ class ConnectionTracker {
 		if (!empty($rActivityInfo)) {
 			global $rSettings, $rServers;
 			$db = self::db();
-			if (!$rSettings['redis_handler'] || is_object(\XcVm\Infrastructure\Redis\RedisManager::instance())) {
+			if (!$rSettings['redis_handler'] || is_object(RedisManager::instance())) {
 			} else {
-				\XcVm\Infrastructure\Redis\RedisManager::ensureConnected();
+				RedisManager::ensureConnected();
 			}
-			$rRedisObj = \XcVm\Infrastructure\Redis\RedisManager::instance();
+			$rRedisObj = RedisManager::instance();
 			if (!$rRedisObj && $rSettings['redis_handler']) {
 				return false;
 			}

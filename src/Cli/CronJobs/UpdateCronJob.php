@@ -4,7 +4,6 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
-use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\UpdateChannels;
@@ -50,10 +49,6 @@ class UpdateCronJob implements CommandInterface {
         if (!$gitRelease) {
             FileLogger::log('cron', 'GitRelease service not initialized', 'cron:update');
             return 1;
-        }
-
-        if (!ConfigReader::get('is_lb')) {
-            $rPort = (intval(explode(';', explode(' ', trim(explode('listen ', file_get_contents('/home/xc_vm/bin/nginx/conf/ports/http.conf'))[1]))[0])[0]) ?: 80);
         }
 
         $rUpdate = $gitRelease->getUpdate(XC_VM_VERSION);
