@@ -107,6 +107,7 @@ if (!function_exists('_xc_nav_label')) {
 
     <!-- Helpers + template customizer must precede config.js -->
     <script src="assets/vendor/js/helpers.js"></script>
+    <script src="assets/vendor/libs/pickr/pickr.js"></script>
     <script src="assets/vendor/js/template-customizer.js"></script>
     <!-- Per-user customizer state (server-authoritative) consumed by config.js -->
     <script>

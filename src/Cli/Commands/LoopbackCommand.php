@@ -180,6 +180,7 @@ class LoopbackCommand implements CommandInterface {
 		$rLastPacket = time();
 		$rResyncCount = 0;
 		$rLastResyncLog = 0;
+		$rLastSegment = round(microtime(true) * 1000);
 		$rSegment = 0;
 		$rSegmentFile = fopen(STREAMS_PATH . $rStreamID . '_' . $rSegment . '.ts', 'wb');
 		$rSegmentStatus[$rSegment] = true;
@@ -302,6 +303,7 @@ class LoopbackCommand implements CommandInterface {
 					}
 				}
 				if ($rNewSegment) {
+					$rLastSegment = round(microtime(true) * 1000);
 					$rPosition = strpos($rBuffer, $rPrebuffer);
 					if (0 < $rPosition) {
 						$rLastBuffer = substr($rBuffer, 0, $rPosition);

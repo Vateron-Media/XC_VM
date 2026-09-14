@@ -62,20 +62,6 @@ class SettingsService {
 			}
 		}
 
-		// "Responsive Tables" is presented as a positive toggle (on = columns collapse
-		// on narrow screens) but stored in the inverse `disable_table_responsive` column:
-		// checked → responsive on → 0; unchecked → full-width tables → 1.
-		$rArray['disable_table_responsive'] = empty($rData['responsive_tables']) ? 1 : 0;
-
-		if (array_key_exists('fanout_idle_buffer_ratio', $rArray)) {
-			$rRatio = self::normalizeIdleBufferRatio($rArray['fanout_idle_buffer_ratio']);
-			if ($rRatio === null) {
-				unset($rArray['fanout_idle_buffer_ratio']); // not a number: keep the stored value
-			} else {
-				$rArray['fanout_idle_buffer_ratio'] = $rRatio;
-			}
-		}
-
 		if (!isset($rData['allowed_stb_types_for_local_recording'])) {
 			$rArray['allowed_stb_types_for_local_recording'] = [];
 		}

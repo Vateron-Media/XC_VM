@@ -311,6 +311,11 @@ class PlaylistGenerator {
 					$rPattern = '{URL}';
 				}
 
+				$rCustomLiveCfg   = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'live');
+				$rCustomVodCfg    = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'movie');
+				$rCustomSeriesCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'series');
+				$rCustomRadioCfg  = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'radio');
+
 				foreach (array_chunk($rChannelIDs, 1000) as $rBlockIDs) {
 					if ($rSettings['playlist_from_mysql'] || !$rCached) {
 						$rOrder = 'FIELD(`t1`.`id`,' . implode(',', $rBlockIDs) . ')';
@@ -370,6 +375,16 @@ class PlaylistGenerator {
 							$rChannel['category_id'] = $rSeriesInfo[$rSeriesID]['category_id'] ?? null;
 						} else {
 							$rChannel['stream_display_name'] = StreamSorter::formatTitle($rChannel['stream_display_name'], $rChannel['year']);
+						}
+
+						if ($rChannel['type_key'] == 'series') {
+							$rCurrentCustomCfg = $rCustomSeriesCfg;
+						} elseif ($rChannel['type_key'] == 'radio' || $rChannel['type_output'] == 'radio') {
+							$rCurrentCustomCfg = $rCustomRadioCfg;
+						} elseif ($rChannel['live'] == 1) {
+							$rCurrentCustomCfg = $rCustomLiveCfg;
+						} else {
+							$rCurrentCustomCfg = $rCustomVodCfg;
 						}
 
 						$rIcon = '';
@@ -436,8 +451,15 @@ class PlaylistGenerator {
 							$rCategoryIDs = [0];
 						}
 						foreach ($rCategoryIDs as $rCategoryID) {
+							if (!empty($rCurrentCustomCfg['hide_ids']) && in_array((int) $rCategoryID, $rCurrentCustomCfg['hide_ids'], true)) {
+								continue;
+							}
 							if (isset($rCategories[$rCategoryID])) {
-								$rData = str_replace(['&lt;', '&gt;'], ['<', '>'], str_replace([$rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'], array_map('strval', [str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCategories[$rCategoryID]['category_name'], ImageUtils::validateURL($rIcon)]), $rConfig)) . "\r\n";
+								$rCatDisplayName = $rCategories[$rCategoryID]['category_name'];
+								if (isset($rCurrentCustomCfg['renamed'][(string) $rCategoryID]) && strlen(trim((string) $rCurrentCustomCfg['renamed'][(string) $rCategoryID])) > 0) {
+									$rCatDisplayName = (string) $rCurrentCustomCfg['renamed'][(string) $rCategoryID];
+								}
+								$rData = str_replace(['&lt;', '&gt;'], ['<', '>'], str_replace([$rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'], array_map('strval', [str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCatDisplayName, ImageUtils::validateURL($rIcon)]), $rConfig)) . "\r\n";
 							} else {
 								$rData = str_replace(['&lt;', '&gt;'], ['<', '>'], str_replace([$rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CHANNEL_ICON}'], array_map('strval', [str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rIcon]), $rConfig)) . "\r\n";
 								$rData = str_replace(' group-title="{CATEGORY}"', '', $rData);

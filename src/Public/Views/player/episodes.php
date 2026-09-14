@@ -8,9 +8,27 @@
 						<?php 
 use XcVm\Domain\Stream\CategoryService;
 
-foreach (json_decode($rSeries['category_id'], true) as $rCategoryID): ?>
-						<li><?= CategoryService::getFromDatabase()[$rCategoryID]['category_name'] ?></li>
-						<?php endforeach; ?>
+$categories = CategoryService::getFromDatabase();
+$rawCats = $rSeries['category_id'] ?? null;
+$categoryIds = [];
+if (is_string($rawCats)) {
+    $decoded = json_decode($rawCats, true);
+    if (is_array($decoded)) {
+        $categoryIds = $decoded;
+    } elseif (is_numeric($rawCats)) {
+        $categoryIds = [(int)$rawCats];
+    }
+} elseif (is_array($rawCats)) {
+    $categoryIds = $rawCats;
+} elseif (is_numeric($rawCats)) {
+    $categoryIds = [(int)$rawCats];
+}
+
+foreach ($categoryIds as $rCategoryID): 
+    if (isset($categories[$rCategoryID]['category_name'])): ?>
+						<li><?= htmlspecialchars($categories[$rCategoryID]['category_name']) ?></li>
+						<?php endif;
+endforeach; ?>
 					</ul>
 				</h1>
 			</div>

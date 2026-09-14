@@ -176,7 +176,7 @@ class Database {
 		}
 
 		try {
-			$this->dbh->exec('SET SESSION wait_timeout=60, interactive_timeout=60');
+			$this->dbh->exec('SET NAMES utf8mb4; SET SESSION wait_timeout=60, interactive_timeout=60');
 		} catch (\Exception $e) {
 			// Non-fatal: a missing idle cap is a degradation, not a failure.
 		}

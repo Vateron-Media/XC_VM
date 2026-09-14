@@ -11,7 +11,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  *
  * downloadPanelLogs, submitPanelLogs.
  *
- * Panel-log methods resolve the DB via the DatabaseAware trait; other methods are stateless.
+ * Panel-log methods accept a $db parameter; other methods are stateless.
  *
  * @package XC_VM_Core_Diagnostics
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -107,11 +107,11 @@ class DiagnosticsService {
 	/**
 	 * Download panel logs from database, format them and clear the logs table
 	 *
+	 * @param \XcVm\Core\Database\DatabaseHandler $db  Database handler (must have ->query(), ->get_rows())
 	 * @return array ['errors' => [...], 'version' => string]
 	 * @throws \Exception
 	 */
-	public static function downloadPanelLogs(): array {
-		$db = self::db();
+	public static function downloadPanelLogs($db): array {
 		ini_set('default_socket_timeout', 60);
 		$errors = [];
 

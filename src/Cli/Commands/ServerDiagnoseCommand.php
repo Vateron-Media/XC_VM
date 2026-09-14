@@ -85,7 +85,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 	//  Mode A — remote probe from the MAIN
 	// ─────────────────────────────────────────────────────────────────────────
 	private function diagnoseFromMain(array $rServer, int $rServerID): int {
-		self::db();
+		$db = self::db();
 
 		$rIP   = (string) $rServer['server_ip'];
 		$rPort = intval($rServer['http_broadcast_port']);
@@ -117,7 +117,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 		}
 
 		$this->clockSection($rServer, $rProblems);
-		$this->signalSection($rServerID, $rNow, $rProblems);
+		$this->signalSection($db, $rServerID, $rNow, $rProblems);
 		return $this->summary($rProblems);
 	}
 
@@ -256,8 +256,7 @@ class ServerDiagnoseCommand implements CommandInterface {
 		}
 	}
 
-	private function signalSection(int $rServerID, int $rNow, array &$rProblems): void {
-		$db = self::db();
+	private function signalSection($db, int $rServerID, int $rNow, array &$rProblems): void {
 		$db->query('SELECT COUNT(*) AS `c`, MIN(`time`) AS `oldest` FROM `signals` WHERE `server_id` = ?;', $rServerID);
 		$rRows    = $db->get_rows() ?: [];
 		$rSig     = $rRows[0] ?? [];

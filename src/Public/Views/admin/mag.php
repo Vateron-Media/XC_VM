@@ -250,6 +250,35 @@ $rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegis
                 </div>
 
                 <div class="tab-pane fade" id="tab-bouquets" role="tabpanel">
+                    <div class="card mb-4 bg-light-subtle border">
+                        <div class="card-body py-3">
+                            <div class="row align-items-center">
+                                <div class="col-md-5">
+                                    <label class="form-label fw-bold mb-1" for="category_template_id">
+                                        <i class="icon-base ti tabler-layout-grid me-1 text-primary"></i> <?= $language::get('category_template'); ?>
+                                    </label>
+                                    <div class="text-muted small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
+                                </div>
+                                <div class="col-md-7">
+                                    <select name="category_template_id" id="category_template_id" class="form-select">
+                                        <option value=""><?= ($rIsEdit && !empty($rUser['custom_data'])) ? '-- ' . $language::get('keep_current_custom_layout') . ' --' : '-- ' . $language::get('none_default') . ' --'; ?></option>
+                                        <option value="0"><?= $language::get('reset_to_default_no_template'); ?></option>
+                                        <?php foreach ($categoryTemplates ?? [] as $tpl): ?>
+                                            <option value="<?= (int) $tpl['id']; ?>">
+                                                <?= htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? ''); ?><?= !empty($tpl['is_system']) ? ' (' . $language::get('system') . ')' : ''; ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <?php if ($rIsEdit && !empty($rUser['custom_data'])): ?>
+                                        <div class="badge bg-label-info mt-2">
+                                            <i class="icon-base ti tabler-check me-1"></i> <?= $language::get('custom_categories_applied_to_device'); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="alert alert-warning d-none" role="alert" id="bouquet_warning"><?= $language::get('this_device_is_linked_to_a_user_the_bouquets_for_that_user_will_be_used') ?: 'This device is linked to a user, the bouquets for that user will be used.'; ?></div>
                     <div id="bouquets_info">
                         <div class="d-flex justify-content-end mb-4">

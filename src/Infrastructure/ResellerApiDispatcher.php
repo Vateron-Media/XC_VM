@@ -48,6 +48,7 @@ class ResellerApiDispatcher {
 	 * @param array      $rPermissions Reseller permissions
 	 */
 	public static function dispatch(string $action, ?array $rUserInfo, array $rPermissions): void {
+		global $db;
 		switch ($action) {
 			case 'dashboard':
 				self::handleDashboard($rUserInfo);
@@ -121,6 +122,12 @@ class ResellerApiDispatcher {
 			case 'generate_active_codes':
 				self::handleGenerateActiveCodes($rUserInfo);
 				break;
+			case 'active_code_edit':
+				self::handleActiveCodeEdit($rUserInfo, $rPermissions, $db);
+				break;
+			case 'active_code_delete':
+				self::handleActiveCodeDelete($rUserInfo, $rPermissions, $db);
+				break;
 		}
 	}
 
@@ -140,7 +147,7 @@ class ResellerApiDispatcher {
 				$rReports[] = $rRow['id'];
 			}
 			if (0 < count($rReports)) {
-				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rConnections) {
+				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
 					$rReturn['open_connections'] += $rConnections;
 					if (0 < $rConnections) {
 						$rReturn['online_users']++;
@@ -695,7 +702,7 @@ class ResellerApiDispatcher {
 				$rReports[] = $rRow['id'];
 			}
 			if (0 < count($rReports)) {
-				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rConnections) {
+				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
 					$rReturn['total_connections'] += $rConnections;
 					if (0 < $rConnections) {
 						$rReturn['total_users']++;
@@ -729,7 +736,7 @@ class ResellerApiDispatcher {
 				$rReports[] = $rRow['id'];
 			}
 			if (0 < count($rReports)) {
-				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rConnections) {
+				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
 					$rReturn['open_connections'] += $rConnections;
 					if (0 < $rConnections) {
 						$rReturn['online_users']++;
@@ -1036,7 +1043,7 @@ class ResellerApiDispatcher {
 		$db = self::db();
 		$codeId = intval(RequestManager::get('id') ?? 0);
 		if (!$codeId) {
-			http_response_code(404);
+			echo json_encode(['result' => false, 'message' => 'Missing code ID.']);
 			exit();
 		}
 
@@ -1051,7 +1058,7 @@ class ResellerApiDispatcher {
 		);
 
 		if (!$code) {
-			http_response_code(404);
+			echo json_encode(['result' => false, 'message' => 'Code not found or access denied.']);
 			exit();
 		}
 
@@ -1115,11 +1122,22 @@ class ResellerApiDispatcher {
 	}
 
 	/**
-	 * Public base URL for the subscriber portal / credential links.
-	 *
-	 * Honours a well-formed per-code dns_base (one that carries an http(s)://
-	 * scheme); otherwise falls back to this panel's own request origin, which is
-	 * where the portal is served. Returns no trailing slash.
+	 * Handle Active Code Edit AJAX (Reseller)
+	 */
+	private static function handleActiveCodeEdit(?array $rUserInfo, array $rPermissions, $db): void {
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		$data = RequestManager::getAll();
+		$res = ActiveCodeService::updateCode($codeId, $data, $rUserInfo ?? [], false);
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? ''
+		]);
+		exit();
+	}
+
+	/**
+	 * Resolve the public base URL for subscriber portal links (dns_base override,
+	 * request host, or a plain scheme://host fallback).
 	 */
 	private static function resolveBaseUrl(string $dnsBase): string {
 		$dnsBase = trim($dnsBase);
@@ -1129,8 +1147,27 @@ class ResellerApiDispatcher {
 
 		$scheme = (!empty($_SERVER['HTTPS']) && strtolower((string) $_SERVER['HTTPS']) !== 'off') ? 'https' : 'http';
 		$host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+		if ($dnsBase !== '') {
+			return "{$scheme}://" . rtrim($dnsBase, '/');
+		}
+		if ($host !== '') {
+			return "{$scheme}://{$host}";
+		}
+		return "{$scheme}://localhost";
+	}
 
-		return $host !== '' ? $scheme . '://' . $host : '';
+	/**
+	 * Handle Single Active Code Delete AJAX (Reseller)
+	 */
+	private static function handleActiveCodeDelete(?array $rUserInfo, array $rPermissions, $db): void {
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		$refund = !empty(RequestManager::get('refund_credits'));
+		$res = ActiveCodeService::deleteCode($codeId, $rUserInfo ?? [], false, $refund);
+		echo json_encode([
+			'result' => ($res['status'] === 'SUCCESS'),
+			'message' => $res['message'] ?? ''
+		]);
+		exit();
 	}
 
 	/**

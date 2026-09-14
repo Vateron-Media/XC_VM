@@ -430,7 +430,7 @@ class ServerRepository {
 		} elseif (isset($rServers[SERVER_ID]['server_ip']) && !empty($rServers[SERVER_ID]['server_ip'])) {
 			$rIPs[] = $rServers[SERVER_ID]['server_ip'];
 		}
-		foreach ($rServers as $rServerInfo) {
+		foreach ($rServers as $rServerID => $rServerInfo) {
 			if (!empty($rServerInfo['whitelist_ips'])) {
 				$rIPs = array_merge($rIPs, json_decode($rServerInfo['whitelist_ips'], true));
 			}

@@ -73,7 +73,7 @@ class GeoIPService {
 	public static function matchCIDR(string $rASN, string $rIP) {
 		if (file_exists(CIDR_TMP_PATH . $rASN)) {
 			$rCIDRs = json_decode(file_get_contents(CIDR_TMP_PATH . $rASN), true);
-			foreach ($rCIDRs as $rData) {
+			foreach ($rCIDRs as $rCIDR => $rData) {
 				if (ip2long($rData[1]) <= ip2long($rIP) && ip2long($rIP) <= ip2long($rData[2])) {
 					return $rData;
 				}

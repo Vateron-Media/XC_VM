@@ -39,7 +39,8 @@ class ResellerTableRenderer {
 	 * @param array|null $rUserInfo    Authenticated reseller user (or null).
 	 * @param array      $rPermissions Effective permissions.
 	 */
-	public static function render(array $rReturn, bool $rIsAPI, ?array $rUserInfo, array $rPermissions): void {
+	public static function render(array $rReturn, bool $rIsAPI, ?array $rUserInfo, array $rPermissions, array $rSettings): void {
+		global $db;
 
 		if (!isset($rUserInfo['reports'])) {
 			echo json_encode($rReturn);
@@ -55,37 +56,37 @@ class ResellerTableRenderer {
 
 		switch ($rType) {
 			case 'lines':
-				self::handleLines($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleLines($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'mags':
-				self::handleMags($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleMags($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'enigmas':
-				self::handleEnigmas($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleEnigmas($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'streams':
-				self::handleStreams($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleStreams($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'radios':
-				self::handleRadios($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleRadios($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'movies':
-				self::handleMovies($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleMovies($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'episodes':
-				self::handleEpisodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleEpisodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'line_activity':
-				self::handleLineActivity($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleLineActivity($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'live_connections':
-				self::handleLiveConnections($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleLiveConnections($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'reg_user_logs':
-				self::handleRegUserLogs($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleRegUserLogs($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'reg_users':
-				self::handleRegUsers($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleRegUsers($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'active_codes':
 				self::handleActiveCodes($rReturn, $rUserInfo, $rStart, $rLimit);
@@ -100,11 +101,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleLines(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleLines(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_line']) {
 			exit();
@@ -264,9 +266,9 @@ class ResellerTableRenderer {
 							$rStatus = 'expired';
 						}
 						$rExpUnix = $rRow['exp_date'] ? (int) $rRow['exp_date'] : 0;
-						$rExpStr = $rExpUnix ? date(SettingsManager::getString('date_format'), $rExpUnix) . ' ' . date('H:i:s', $rExpUnix) : '';
+						$rExpStr = $rExpUnix ? date($rSettings['date_format'], $rExpUnix) . ' ' . date('H:i:s', $rExpUnix) : '';
 						$rLastUnix = !empty($rRow['last_active']) ? (int) $rRow['last_active'] : 0;
-						$rLastStr = $rLastUnix ? date(SettingsManager::getString('date_format'), $rLastUnix) . ' ' . date('H:i:s', $rLastUnix) : '';
+						$rLastStr = $rLastUnix ? date($rSettings['date_format'], $rLastUnix) . ' ' . date('H:i:s', $rLastUnix) : '';
 						// Direct reports (and the reseller itself) are "owned" lines;
 						// anything deeper in the tree is an indirect report.
 						$rIndirect = !in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], [$rUserInfo['id']]));
@@ -312,11 +314,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleMags(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleMags(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_mag']) {
 			exit();
@@ -440,11 +443,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleEnigmas(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleEnigmas(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_enigma']) {
 			exit();
@@ -568,11 +572,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleStreams(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleStreams(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -688,11 +693,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleRadios(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleRadios(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -802,11 +808,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleMovies(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleMovies(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -917,11 +924,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleEpisodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleEpisodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -1043,11 +1051,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleLineActivity(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleLineActivity(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
 		}
@@ -1166,11 +1175,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleLiveConnections(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleLiveConnections(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
@@ -1378,11 +1388,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderBy = '';
 		// Column index -> SQL order expression. Leading false = the Bootstrap 5
 		// Responsive control column (client index 0); mirrors the keyed reseller
@@ -1546,11 +1557,12 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 */
-	private static function handleRegUsers(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleRegUsers(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['create_sub_resellers']) {
 			exit();
 		}
@@ -1675,7 +1687,6 @@ class ResellerTableRenderer {
 		$db = self::db();
 		$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir'] ?? '') === 'desc' ? 'desc' : 'asc');
 		$rOrder = [
-			false, // control
 			false, // checkbox
 			'`activation_codes`.`activation_code`',
 			'`activation_codes`.`batch_name`',
@@ -1690,7 +1701,7 @@ class ResellerTableRenderer {
 
 		$rOrderRow = (RequestManager::has('order') && (string) (RequestManager::get('order')[0]['column'] ?? '') !== '')
 			? intval(RequestManager::get('order')[0]['column'])
-			: 9;
+			: 8;
 
 		$rOrderBy = (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow] !== false)
 			? "ORDER BY {$rOrder[$rOrderRow]} {$rOrderDirection}"
@@ -1747,9 +1758,10 @@ class ResellerTableRenderer {
 		$db->query($countSql, ...$rWhereV);
 		$rReturn['recordsTotal'] = $rReturn['recordsFiltered'] = (int) ($db->get_row()['total'] ?? 0);
 
-		$sql = "SELECT
+		$sql = "SELECT 
 					`activation_codes`.*,
 					`lines`.`username` as `sub_username`,
+					`lines`.`password` as `sub_password`,
 					`lines`.`exp_date` as `sub_exp_date`,
 					`lines`.`enabled` as `line_enabled`,
 					`users`.`username` as `creator_username`
@@ -1765,7 +1777,6 @@ class ResellerTableRenderer {
 
 		$data = [];
 		$packagesCache = [];
-		$now = time();
 
 		foreach ($rows as $row) {
 			$pkgId = (int) $row['package_id'];
@@ -1773,29 +1784,88 @@ class ResellerTableRenderer {
 				$pkg = PackageService::getById($pkgId);
 				$packagesCache[$pkgId] = $pkg['package_name'] ?? 'Package #' . $pkgId;
 			}
+			$pkgName = $packagesCache[$pkgId];
 
+			$rowId = (int) $row['id'];
+			$code = htmlspecialchars((string) $row['activation_code'], ENT_QUOTES);
+			$batch = htmlspecialchars((string) ($row['batch_name'] ?: 'None'), ENT_QUOTES);
+			$isTrial = !empty($row['is_trial']);
+
+			// Status computation
 			$status = (int) $row['status'];
-			$expUnix = $row['sub_exp_date'] ? (int) $row['sub_exp_date'] : 0;
-			$expExpired = ($status === 2 && $expUnix && $expUnix < $now);
-			$createdUnix = $row['created_at'] ? (int) $row['created_at'] : 0;
+			$expDate = $row['sub_exp_date'] ? (int) $row['sub_exp_date'] : null;
+			$now = time();
 
-			// Clean, keyed row payload; the Bootstrap 5 view renders every badge /
-			// status / action button client-side. Mirrors the admin active_codes
-			// handler. The subscriber password is intentionally NOT exposed here.
+			if ($status === 0) {
+				$statusBadge = '<span class="badge bg-label-danger"><i class="ti tabler-ban me-1"></i>Disabled</span>';
+				$expiryHtml = '<span class="text-muted fst-italic">Suspended</span>';
+			} elseif ($status === 1) {
+				$statusBadge = '<span class="badge bg-label-success badge-pulse"><i class="ti tabler-sparkles me-1"></i>Ready (Stock)</span>';
+				$expiryHtml = '<span class="text-muted"><i class="ti tabler-snowflake me-1"></i>Frozen</span>';
+			} elseif ($status === 2 && $expDate && $expDate < $now) {
+				$statusBadge = '<span class="badge bg-label-secondary"><i class="ti tabler-clock-off me-1"></i>Expired</span>';
+				$expiryHtml = '<span class="text-danger fw-semibold">' . date('Y-m-d H:i', $expDate) . '</span>';
+			} else {
+				$statusBadge = '<span class="badge bg-label-primary"><i class="ti tabler-player-play me-1"></i>Active</span>';
+				$remainingDays = $expDate ? ceil(($expDate - $now) / 86400) : 0;
+				$expiryHtml = '<span class="text-primary">' . ($expDate ? date('Y-m-d H:i', $expDate) : 'Never') . '</span> <small class="text-muted">(' . $remainingDays . 'd)</small>';
+			}
+
+			$packageBadge = '<span class="badge bg-label-info">' . htmlspecialchars($pkgName, ENT_QUOTES) . '</span>';
+			if ($isTrial) {
+				$packageBadge .= ' <span class="badge bg-label-warning ms-1">Trial</span>';
+			}
+
+			$subUsername = $row['sub_username']
+				? '<span class="fw-semibold">' . htmlspecialchars((string) $row['sub_username'], ENT_QUOTES) . '</span>'
+				: '<span class="text-muted fst-italic">Auto-assigned</span>';
+
+			$macBadge = !empty($row['mac'])
+				? '<span class="badge bg-label-dark font-monospace">' . htmlspecialchars((string) $row['mac'], ENT_QUOTES) . '</span>'
+				: '<span class="text-muted">-</span>';
+
+			$createdFormatted = $row['created_at'] ? date('Y-m-d H:i', (int) $row['created_at']) : '-';
+
+			$actions = '
+			<div class="d-inline-block text-nowrap">
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-view-code" data-id="' . $rowId . '" title="View Details">
+					<i class="ti tabler-eye"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-edit-code" data-id="' . $rowId . '" title="Edit Active Code">
+					<i class="ti tabler-pencil"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-toggle-code" data-id="' . $rowId . '" data-status="' . $status . '" title="' . ($status == 0 ? 'Enable' : 'Disable') . '">
+					<i class="ti ' . ($status == 0 ? 'tabler-check text-success' : 'tabler-ban text-warning') . '"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-reset-code-device" data-id="' . $rowId . '" title="Reset Device Lock">
+					<i class="ti tabler-device-desktop-off"></i>
+				</button>
+				<button class="btn btn-sm btn-icon btn-text-secondary rounded-pill btn-delete-code" data-id="' . $rowId . '" title="Delete Code">
+					<i class="ti tabler-trash text-danger"></i>
+				</button>
+			</div>';
+
+			$codeCol = '
+			<div class="d-flex align-items-center gap-2">
+				<code class="fw-bold font-monospace text-primary fs-6 user-select-all">' . $code . '</code>
+				<button type="button" class="btn btn-sm btn-icon btn-outline-secondary btn-copy-code" data-code="' . $code . '" title="Copy Code">
+					<i class="ti tabler-copy"></i>
+				</button>
+			</div>';
+
+			$batchCol = '<span class="badge bg-label-secondary font-monospace">' . $batch . '</span>';
+
 			$data[] = [
-				'id' => (int) $row['id'],
-				'code' => (string) $row['activation_code'],
-				'batch' => (string) ($row['batch_name'] ?: 'None'),
-				'package_name' => $packagesCache[$pkgId],
-				'is_trial' => !empty($row['is_trial']),
-				'status' => $status,
-				'exp_unix' => $expUnix,
-				'exp_str' => $expUnix ? date('Y-m-d H:i', $expUnix) : '',
-				'exp_expired' => $expExpired,
-				'remaining_days' => ($expUnix && !$expExpired && $status !== 0 && $status !== 1) ? (int) ceil(($expUnix - $now) / 86400) : 0,
-				'sub_username' => $row['sub_username'] !== null ? (string) $row['sub_username'] : null,
-				'mac' => !empty($row['mac']) ? (string) $row['mac'] : null,
-				'created_str' => $createdUnix ? date('Y-m-d H:i', $createdUnix) : '-',
+				'<input type="checkbox" class="form-check-input row-select" value="' . $rowId . '" data-code="' . $code . '">',
+				$codeCol,
+				$batchCol,
+				$packageBadge,
+				$statusBadge,
+				$expiryHtml,
+				$subUsername,
+				$macBadge,
+				$createdFormatted,
+				$actions
 			];
 		}
 

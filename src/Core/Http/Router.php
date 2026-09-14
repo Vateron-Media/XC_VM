@@ -10,42 +10,42 @@ use XcVm\Core\Util\AdminHelpers;
 /**
  * HTTP Router
  *
- * Request router. Replaces the switch($rAction) pattern in admin/api.php and
- * the direct includes in admin pages. Supports module-provided routes.
+ * Маршрутизатор запросов. Заменяет паттерн switch($rAction) в admin/api.php
+ * и прямые include в admin-страницах. Поддерживает модульные маршруты.
  *
  * ──────────────────────────────────────────────────────────────────
- * Usage:
+ * Использование:
  * ──────────────────────────────────────────────────────────────────
  *
  *   $router = new Router();
  *
- *   // Direct route registration
+ *   // Регистрация маршрутов напрямую
  *   $router->get('watch', [WatchController::class, 'index']);
  *   $router->get('watch/add', [WatchController::class, 'add']);
  *   $router->post('watch/save', [WatchController::class, 'save']);
  *
- *   // Grouping with a shared prefix
- *   $router->group('plex', function (Router $r) {
+ *   // Группировка с префиксом
+ *   $router->group('plex', function(Router $r) {
  *       $r->get('', [PlexController::class, 'index']);
  *       $r->get('add', [PlexController::class, 'add']);
  *       $r->post('save', [PlexController::class, 'save']);
  *   });
  *
- *   // API routes (JSON)
+ *   // API-маршруты (JSON)
  *   $router->api('watch/enable', [WatchController::class, 'apiEnable']);
  *   $router->api('watch/disable', [WatchController::class, 'apiDisable']);
  *
- *   // Dispatch (resolves the route from the URL and invokes the handler)
+ *   // Dispatch (определяет маршрут по URL и вызывает handler)
  *   $router->dispatch($page, $method);
  *
  * ──────────────────────────────────────────────────────────────────
- * Module registration:
+ * Модульная регистрация:
  * ──────────────────────────────────────────────────────────────────
  *
- *   // Inside a module (ModuleInterface::registerRoutes implementation):
+ *   // В модуле (реализация ModuleInterface::registerRoutes):
  *   class WatchModule implements ModuleInterface {
  *       public function registerRoutes(Router $router): void {
- *           $router->group('watch', function (Router $r) {
+ *           $router->group('watch', function(Router $r) {
  *               $r->get('', [WatchController::class, 'index']);
  *               $r->get('add', [WatchController::class, 'add']);
  *               $r->post('settings', [WatchController::class, 'saveSettings']);
@@ -55,15 +55,15 @@ use XcVm\Core\Util\AdminHelpers;
  *   }
  *
  * ──────────────────────────────────────────────────────────────────
- * Backward compatibility:
+ * Обратная совместимость:
  * ──────────────────────────────────────────────────────────────────
  *
- *   While admin/api.php still uses switch($rAction), modules register API
- *   routes here and the legacy code calls $router->dispatchApi($action) as a
- *   fallback at the end of the switch chain.
+ *   Пока admin/api.php использует switch($rAction), модули могут
+ *   регистрировать API-маршруты через Router, а legacy-код вызывает
+ *   $router->dispatchApi($action) как fallback в конце switch-цепочки.
  *
- * @see Request
- * @see Response
+ * @see core/Http/Request.php
+ * @see core/Http/Response.php
  * @see ModuleInterface::registerRoutes()
  *
  * @package XC_VM_Core_Http
@@ -72,6 +72,7 @@ use XcVm\Core\Util\AdminHelpers;
  * @link    https://github.com/Vateron-Media/XC_VM
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
+
 class Router {
 	/**
 	 * Registered GET (page) routes.
@@ -347,6 +348,38 @@ class Router {
 
 		$this->callHandler($entry['handler']);
 		return true;
+	}
+
+	/**
+	 * Check whether a page route is registered.
+	 *
+	 * @param string $page Page name
+	 */
+	public function hasRoute(string $page): bool {
+		$route = $this->normalizePage($page);
+		return isset($this->getRoutes[$route]) || isset($this->postRoutes[$route]);
+	}
+
+	/**
+	 * Check whether an API route is registered.
+	 *
+	 * @param string $action Action name
+	 */
+	public function hasApiRoute(string $action): bool {
+		return isset($this->apiRoutes[$action]);
+	}
+
+	/**
+	 * Return all registered routes (for debugging).
+	 *
+	 * @return array{get:string[],post:string[],api:string[]}
+	 */
+	public function getRoutes(): array {
+		return [
+			'get'  => array_keys($this->getRoutes),
+			'post' => array_keys($this->postRoutes),
+			'api'  => array_keys($this->apiRoutes),
+		];
 	}
 
 	// ───────────────────────────────────────────────────────────

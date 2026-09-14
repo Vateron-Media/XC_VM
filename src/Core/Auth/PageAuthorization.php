@@ -332,7 +332,9 @@ class PageAuthorization {
 				return Authorization::check('adv', 'edit_stream');
 
 			case 'stream_categories':
-				return Authorization::check('adv', 'categories');
+			case 'category_templates':
+			case 'category_template':
+				return Authorization::check('adv', 'categories') || (isset($GLOBALS['rAdminUserInfo']['is_admin']) && $GLOBALS['rAdminUserInfo']['is_admin'] == 1);
 
 			case 'stream_category':
 				return Authorization::check('adv', 'add_cat');

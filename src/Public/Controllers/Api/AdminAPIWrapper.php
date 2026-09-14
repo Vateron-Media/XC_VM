@@ -11,6 +11,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Epg\EpgService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Security\BlocklistService;
@@ -1510,9 +1511,173 @@ class AdminAPIWrapper {
 		}
 		return ['status' => 'STATUS_SUCCESS', 'data' => $db->get_rows(), 'insert_id' => $db->last_insert_id()];
 	}
+
+	// Active Codes API Handlers
+
+	public static function getActiveCodes($rStart = 0, $rLimit = 50, $rData = [], $rShowColumns = null, $rHideColumns = null) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::listCodes($rData, $user, true, (int) $rStart, (int) $rLimit);
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'total' => $res['total'],
+			'count' => $res['count'],
+			'start' => $res['start'],
+			'limit' => $res['limit'],
+			'data' => self::filterRows(['data' => $res['data']], $rShowColumns, $rHideColumns),
+		];
+	}
+
+	public static function getActiveCode($rID) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$code = ActiveCodeService::getCodeDetails($rID, $user, true);
+		if (!$code) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Active code not found.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'data' => $code];
+	}
+
+	public static function generateActiveCodes($rData) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::generateCodes($rData, $user, true);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to generate active codes.'];
+		}
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'message' => $res['message'],
+			'batch_name' => $res['batch_name'],
+			'qty' => $res['qty'],
+			'data' => $res['codes'],
+		];
+	}
+
+	public static function editActiveCode($rID, $rData) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::updateCode((int) $rID, $rData, $user, true);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to update active code.'];
+		}
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'message' => $res['message'],
+			'data' => ActiveCodeService::getCodeDetails((int) $rID, $user, true),
+		];
+	}
+
+	public static function deleteActiveCode($rID) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::deleteCode((int) $rID, $user, true, false);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to delete active code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function enableActiveCode($rID) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::massAction('enable', [(int) $rID], $user, true);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to enable active code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function disableActiveCode($rID) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::massAction('disable', [(int) $rID], $user, true);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to disable active code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function resetActiveCodeDevice($rID) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$res = ActiveCodeService::resetDevice($rID, $user, true);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to reset device lock.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function massActiveCodes($rAction, $rIDs, $rExtra = []) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		if (is_string($rIDs)) {
+			$rIDs = explode(',', $rIDs);
+		}
+		$rIDs = array_filter(array_map('intval', (array) $rIDs));
+		if (empty($rIDs)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'No active code IDs provided.'];
+		}
+		$res = ActiveCodeService::massAction((string) $rAction, $rIDs, $user, true, (array) $rExtra);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Mass action failed.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function getActiveCodesBatches($rBatchName = null) {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		$batches = ActiveCodeService::getBatchSummary($user, true, $rBatchName);
+		return ['status' => 'STATUS_SUCCESS', 'data' => $batches];
+	}
+
+	public static function exportActiveCodeBatch($rBatchName, $rFormat = 'json') {
+		if (empty($GLOBALS['rAdminUserInfo']['id'])) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Unauthenticated'];
+		}
+		$user = $GLOBALS['rAdminUserInfo'];
+		if (empty($rBatchName)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Batch name is required.'];
+		}
+		if (strtolower((string) $rFormat) === 'txt' || strtolower((string) $rFormat) === 'text') {
+			$txt = ActiveCodeService::exportBatchTxt((string) $rBatchName, $user, true);
+			return ['status' => 'STATUS_SUCCESS', 'format' => 'txt', 'content' => $txt];
+		}
+		$json = ActiveCodeService::exportBatchJson((string) $rBatchName, $user, true);
+		return ['status' => 'STATUS_SUCCESS', 'format' => 'json', 'data' => $json];
+	}
+
+	public static function checkActiveCode($rCode) {
+		$details = ActiveCodeService::checkCode((string) $rCode);
+		if (!$details) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Invalid or inactive code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'data' => $details];
+	}
 }
 
-if (!function_exists('parseError')) {
+if (!function_exists(__NAMESPACE__ . '\\parseError') && !function_exists('parseError')) {
 	function parseError($rArray) {
 		global $_ERRORS;
 		if (isset($rArray['status']) && is_numeric($rArray['status'])) {

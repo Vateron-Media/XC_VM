@@ -63,15 +63,18 @@ class UserRepository {
 				$rKey = $rSettings['case_sensitive_line'] ? ($rUsername . '_' . $rPassword) : (strtolower($rUsername) . '_' . strtolower($rPassword));
 				$rCachePath = LINES_TMP_PATH . 'line_c_' . $rKey;
 				$rUserID = file_exists($rCachePath) ? intval(file_get_contents($rCachePath)) : 0;
-			} elseif (empty($rUserID)) {
-				return false;
 			}
 
-			if (!$rUserID) {
-				return false;
+			if ($rUserID) {
+				$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
+				if (file_exists($rInfoPath)) {
+					$cachedData = @igbinary_unserialize(file_get_contents($rInfoPath));
+					if (is_array($cachedData)) {
+						return $cachedData;
+					}
+				}
 			}
-			$rInfoPath = LINES_TMP_PATH . 'line_i_' . $rUserID;
-			return file_exists($rInfoPath) ? igbinary_unserialize(file_get_contents($rInfoPath)) : false;
+			// Cache miss: fall through to database lookup below
 		}
 
 		if (empty($rPassword) && empty($rUserID) && strlen($rUsername) == 32) {
@@ -84,7 +87,23 @@ class UserRepository {
 			return false;
 		}
 
-		return 0 < $db->num_rows() ? $db->get_row() : false;
+		if (0 < $db->num_rows()) {
+			$row = $db->get_row();
+			$rUserID = (int) ($row['id'] ?? 0);
+			if ($rCached && $rUserID > 0) {
+				@file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserID, igbinary_serialize($row));
+				if (!empty($row['username']) && !empty($row['password'])) {
+					$rKey = !empty($rSettings['case_sensitive_line']) ? ($row['username'] . '_' . $row['password']) : (strtolower($row['username']) . '_' . strtolower($row['password']));
+					@file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserID);
+				}
+				if (!empty($row['access_token'])) {
+					@file_put_contents(LINES_TMP_PATH . 'line_t_' . $row['access_token'], (string) $rUserID);
+				}
+			}
+			return $row;
+		}
+
+		return false;
 	}
 
 	/**
@@ -134,16 +153,32 @@ class UserRepository {
 	 * @return array<int,string> Output keys.
 	 */
 	private static function resolveOutputFormats(mixed $db, bool $rCached, array $rAllowedOutputs): array {
-		if ($rCached) {
-			$rRows = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'output_formats'));
-		} else {
+		$rRows = null;
+		if ($rCached && defined('CACHE_TMP_PATH') && is_file(CACHE_TMP_PATH . 'output_formats')) {
+			$cachedContent = @file_get_contents(CACHE_TMP_PATH . 'output_formats');
+			if ($cachedContent !== false && $cachedContent !== '') {
+				$unserialized = @igbinary_unserialize($cachedContent);
+				if (is_array($unserialized)) {
+					$rRows = $unserialized;
+				}
+			}
+		}
+
+		if (!is_array($rRows)) {
 			$db->query('SELECT `access_output_id`, `output_key` FROM `output_formats`;');
-			$rRows = $db->get_rows();
+			$rRows = $db->get_rows() ?: [];
+			if (defined('CACHE_TMP_PATH') && is_dir(CACHE_TMP_PATH)) {
+				$cacheFile = CACHE_TMP_PATH . 'output_formats';
+				$tmpFile = $cacheFile . '.' . getmypid() . '.tmp';
+				if (@file_put_contents($tmpFile, igbinary_serialize($rRows), LOCK_EX) !== false) {
+					@rename($tmpFile, $cacheFile);
+				}
+			}
 		}
 
 		$rFormats = [];
 		foreach ($rRows as $rRow) {
-			if (in_array(intval($rRow['access_output_id']), $rAllowedOutputs)) {
+			if (empty($rAllowedOutputs) || in_array(intval($rRow['access_output_id']), $rAllowedOutputs, true)) {
 				$rFormats[] = $rRow['output_key'];
 			}
 		}
@@ -361,15 +396,25 @@ class UserRepository {
 	 * @param int $rUser User id.
 	 * @return array Sub-user rows keyed by id.
 	 */
-	public static function getSubUsers(int $rUser) {
+	public static function getSubUsers(int $rUser, array &$visited = []) {
 		$db = self::db();
 		$rReturn = [];
-		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ?;', $rUser);
+		$rUserInt = (int) $rUser;
+		if (in_array($rUserInt, $visited, true)) {
+			return $rReturn;
+		}
+		$visited[] = $rUserInt;
+
+		$db->query('SELECT `id`, `username` FROM `users` WHERE `owner_id` = ? AND `id` != ?;', $rUserInt, $rUserInt);
 
 		foreach ($db->get_rows() as $rRow) {
-			$rReturn[$rRow['id']] = ['username' => $rRow['username'], 'parent' => $rUser];
+			$subId = (int) $rRow['id'];
+			if (in_array($subId, $visited, true)) {
+				continue;
+			}
+			$rReturn[$subId] = ['username' => $rRow['username'], 'parent' => $rUserInt];
 
-			foreach (self::getSubUsers($rRow['id']) as $rUserID => $rUserData) {
+			foreach (self::getSubUsers($subId, $visited) as $rUserID => $rUserData) {
 				$rReturn[$rUserID] = $rUserData;
 			}
 		}
@@ -501,7 +546,16 @@ class UserRepository {
 			$rUserInfo = array_merge($rUserInfo, self::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets));
 		}
 
-		$rCategoryMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'category_map'));
+		$rCategoryMap = null;
+		if (defined('CACHE_TMP_PATH') && is_file(CACHE_TMP_PATH . 'category_map')) {
+			$catContent = @file_get_contents(CACHE_TMP_PATH . 'category_map');
+			if ($catContent !== false && $catContent !== '') {
+				$rCategoryMap = @igbinary_unserialize($catContent);
+			}
+		}
+		if (!is_array($rCategoryMap)) {
+			$rCategoryMap = [];
+		}
 		$rUserInfo['category_ids'] = self::resolveCategoryIds($rUserInfo['bouquet'], $rCategoryMap);
 		return $rUserInfo;
 	}

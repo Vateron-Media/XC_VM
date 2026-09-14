@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Api;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Domain\Device\EnigmaService;
 use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\Server\ServerRepository;
@@ -89,6 +90,10 @@ class ResellerAPIWrapper {
 		unset(ResellerAPI::$rUserInfo['password']);
 		$rUserInfo = ResellerAPI::$rUserInfo;
 		$rPermissions = ResellerAPI::$rPermissions;
+		if (empty($rUserInfo['reports'])) {
+			$rUserInfo['reports'] = array_values(array_unique(array_merge([(int) $rUserInfo['id']], (array) ($rPermissions['all_reports'] ?? []))));
+			ResellerAPI::$rUserInfo['reports'] = $rUserInfo['reports'];
+		}
 		if ((string) $rUserInfo['timezone'] !== '') {
 			date_default_timezone_set($rUserInfo['timezone']);
 		}
@@ -390,9 +395,252 @@ class ResellerAPIWrapper {
 		}
 		return ['status' => 'STATUS_FAILURE'];
 	}
+
+	// Active Codes Reseller API Handlers
+
+	public static function getActiveCodes($rStart = 0, $rLimit = 50, $rData = [], $rShowColumns = null, $rHideColumns = null) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		$res = ActiveCodeService::listCodes($rData, $user, false, (int) $rStart, (int) $rLimit);
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'total' => $res['total'],
+			'count' => $res['count'],
+			'start' => $res['start'],
+			'limit' => $res['limit'],
+			'data' => self::filterRows(['data' => $res['data']], $rShowColumns, $rHideColumns),
+		];
+	}
+
+	public static function getActiveCode($rID) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		$code = ActiveCodeService::getCodeDetails($rID, $user, false);
+		if (!$code) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Active code not found or access denied.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'data' => $code];
+	}
+
+	public static function generateActiveCodes($rData) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+
+		// Verify that package is permitted for this reseller group
+		$packageId = (int) ($rData['package_id'] ?? 0);
+		$allowedPackages = array_map('intval', array_column(PackageService::getAll($user['member_group_id']), 'id'));
+		if (!in_array($packageId, $allowedPackages, true)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'The selected package is not allowed for your account group.'];
+		}
+
+		// Force target owner to this reseller or allowed sub-reseller
+		if (!empty($rData['created_by'])) {
+			$targetOwner = (int) $rData['created_by'];
+			$reports = (array) ($user['reports'] ?? [$user['id']]);
+			if (!in_array($targetOwner, array_map('intval', $reports), true)) {
+				$rData['created_by'] = $user['id'];
+			}
+		} else {
+			$rData['created_by'] = $user['id'];
+		}
+
+		$res = ActiveCodeService::generateCodes($rData, $user, false);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to generate active codes.'];
+		}
+
+		// Refresh reseller credits
+		$freshUser = UserRepository::getUserById($user['id']);
+		if ($freshUser) {
+			$user['credits'] = $freshUser['credits'];
+			ResellerAPI::$rUserInfo['credits'] = $freshUser['credits'];
+		}
+
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'message' => $res['message'],
+			'batch_name' => $res['batch_name'],
+			'qty' => $res['qty'],
+			'total_cost' => $res['total_cost'] ?? 0,
+			'remaining_credits' => (float) ($freshUser['credits'] ?? $user['credits']),
+			'data' => $res['codes'],
+		];
+	}
+
+	public static function editActiveCode($rID, $rData) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+
+		// If package changed, check permission
+		if (!empty($rData['package_id'])) {
+			$newPkgId = (int) $rData['package_id'];
+			$allowedPackages = array_map('intval', array_column(PackageService::getAll($user['member_group_id']), 'id'));
+			if (!in_array($newPkgId, $allowedPackages, true)) {
+				return ['status' => 'STATUS_FAILURE', 'error' => 'Package not permitted for your reseller group.'];
+			}
+		}
+
+		$res = ActiveCodeService::updateCode((int) $rID, $rData, $user, false);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to update active code.'];
+		}
+
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'message' => $res['message'],
+			'data' => ActiveCodeService::getCodeDetails((int) $rID, $user, false),
+		];
+	}
+
+	public static function deleteActiveCode($rID) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+
+		// Deleting unused code will automatically refund credits to reseller
+		$res = ActiveCodeService::deleteCode((int) $rID, $user, false, true);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to delete active code.'];
+		}
+
+		// Refresh reseller credits in session
+		$freshUser = UserRepository::getUserById($user['id']);
+		if ($freshUser) {
+			$user['credits'] = $freshUser['credits'];
+			ResellerAPI::$rUserInfo['credits'] = $freshUser['credits'];
+		}
+
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'message' => $res['message'],
+			'remaining_credits' => (float) ($freshUser['credits'] ?? $user['credits']),
+		];
+	}
+
+	public static function enableActiveCode($rID) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		$res = ActiveCodeService::massAction('enable', [(int) $rID], $user, false);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to enable active code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function disableActiveCode($rID) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		$res = ActiveCodeService::massAction('disable', [(int) $rID], $user, false);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to disable active code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function resetActiveCodeDevice($rID) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		$res = ActiveCodeService::resetDevice($rID, $user, false);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Failed to reset device lock.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'message' => $res['message']];
+	}
+
+	public static function massActiveCodes($rAction, $rIDs, $rExtra = []) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+
+		if (is_string($rIDs)) {
+			$rIDs = explode(',', $rIDs);
+		}
+		$rIDs = array_filter(array_map('intval', (array) $rIDs));
+		if (empty($rIDs)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'No active code IDs provided.'];
+		}
+
+		$res = ActiveCodeService::massAction((string) $rAction, $rIDs, $user, false, (array) $rExtra);
+		if ($res['status'] !== 'SUCCESS') {
+			return ['status' => 'STATUS_FAILURE', 'error' => $res['message'] ?? 'Mass action failed.'];
+		}
+
+		// Refresh reseller credits
+		$freshUser = UserRepository::getUserById($user['id']);
+		if ($freshUser) {
+			$user['credits'] = $freshUser['credits'];
+			ResellerAPI::$rUserInfo['credits'] = $freshUser['credits'];
+		}
+
+		return [
+			'status' => 'STATUS_SUCCESS',
+			'message' => $res['message'],
+			'remaining_credits' => (float) ($freshUser['credits'] ?? $user['credits']),
+		];
+	}
+
+	public static function getActiveCodesBatches($rBatchName = null) {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		$batches = ActiveCodeService::getBatchSummary($user, false, $rBatchName);
+		return ['status' => 'STATUS_SUCCESS', 'data' => $batches];
+	}
+
+	public static function exportActiveCodeBatch($rBatchName, $rFormat = 'json') {
+		global $rUserInfo;
+		$user = ResellerAPI::$rUserInfo ?? $rUserInfo;
+		if (empty($user)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Reseller session not found.'];
+		}
+		if (empty($rBatchName)) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Batch name is required.'];
+		}
+		if (strtolower((string) $rFormat) === 'txt' || strtolower((string) $rFormat) === 'text') {
+			$txt = ActiveCodeService::exportBatchTxt((string) $rBatchName, $user, false);
+			return ['status' => 'STATUS_SUCCESS', 'format' => 'txt', 'content' => $txt];
+		}
+		$json = ActiveCodeService::exportBatchJson((string) $rBatchName, $user, false);
+		return ['status' => 'STATUS_SUCCESS', 'format' => 'json', 'data' => $json];
+	}
+
+	public static function checkActiveCode($rCode) {
+		$details = ActiveCodeService::checkCode((string) $rCode);
+		if (!$details) {
+			return ['status' => 'STATUS_FAILURE', 'error' => 'Invalid or inactive code.'];
+		}
+		return ['status' => 'STATUS_SUCCESS', 'data' => $details];
+	}
 }
 
-if (!function_exists('parseError')) {
+if (!function_exists(__NAMESPACE__ . '\\parseError') && !function_exists('parseError')) {
 	function parseError($rArray) {
 		global $_ERRORS;
 		if (isset($rArray['status']) && is_numeric($rArray['status'])) {

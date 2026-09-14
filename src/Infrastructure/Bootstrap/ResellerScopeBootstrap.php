@@ -127,11 +127,9 @@ final class ResellerScopeBootstrap implements ScopeBootstrap {
 		}
 
 		if (RequestManager::has('status')) {
-			// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy reseller view templates
 			$_STATUS = intval(RequestManager::get('status'));
 			$rArgs = RequestManager::getAll();
 			unset($rArgs['status']);
-			// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global consumed by legacy reseller view templates
 			$customScript = AdminHelpers::setArgs($rArgs);
 		}
 	}

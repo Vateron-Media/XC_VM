@@ -56,7 +56,17 @@ class ListingsController extends BasePlayerController {
 			$rChannels = [];
 			$rHideEmpty = (intval(RequestManager::get('hideempty')));
 
-			foreach (array_map('intval', explode(',', RequestManager::get('channels'))) as $rChannelID) {
+			$rawChannels = RequestManager::get('channels')
+				?? RequestManager::get('stream_ids')
+				?? RequestManager::get('stream_id')
+				?? ($_GET['channels'] ?? null)
+				?? ($_GET['stream_ids'] ?? null)
+				?? ($_GET['stream_id'] ?? null)
+				?? ($_REQUEST['channels'] ?? null)
+				?? ($_REQUEST['stream_ids'] ?? null)
+				?? '';
+
+			foreach (array_filter(array_map('intval', explode(',', (string) $rawChannels))) as $rChannelID) {
 				if ($rChannelID && isset($rFlip[$rChannelID])) {
 					$rChannels[] = $rChannelID;
 				}
@@ -82,7 +92,7 @@ class ListingsController extends BasePlayerController {
 					}
 					$rEPGs = EpgService::getStreamsEpg($rChannels, $rStartDate, $rFinishDate);
 					foreach ($rEPGs as $rChannelID => $rEPGData) {
-							$rFullSize = 0;
+						$rFullSize = 0;
 
 						foreach ($rEPGData as $rEPGItem) {
 							$rCapStart = ($rEPGItem['start'] < $rStartDate ? $rStartDate : $rEPGItem['start']);
@@ -131,6 +141,8 @@ class ListingsController extends BasePlayerController {
 							if (1 < count($rCategoryIDs)) {
 								$rCategory .= ' (+' . (count($rCategoryIDs) - 1) . ' others)';
 							}
+							$rFirstProg = ($rListings[$rStream['id']][0] ?? $rDefaultArray);
+							$rReturn[$rStream['id']] = ['id' => $rStream['id'], 'now' => ['title' => $rFirstProg['Title'] ?? 'Live Broadcast', 'start' => $rFirstProg['StartTime'] ?? '', 'end' => $rFirstProg['EndTime'] ?? '', 'percentage' => $rFirstProg['RelativeSize'] ?? 0]];
 							$rReturn['Channels'][] = ['Id' => $rStream['id'], 'DisplayName' => $rStream['stream_display_name'], 'CategoryName' => $rCategory, 'Archive' => $rArchive, 'Image' => (ImageUtils::validateURL($rStream['stream_icon']) ?: ''), 'TvListings' => ($rListings[$rStream['id']] ?? [$rDefaultArray])];
 						}
 					}

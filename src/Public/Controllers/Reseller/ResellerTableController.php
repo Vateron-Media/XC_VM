@@ -3,6 +3,7 @@
 namespace XcVm\Public\Controllers\Reseller;
 
 use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\ResellerTableRenderer;
@@ -29,6 +30,7 @@ class ResellerTableController extends BaseResellerController {
 
 		$rUserInfo = $GLOBALS['rUserInfo'] ?? null;
 		$rPermissions = $GLOBALS['rPermissions'] ?? [];
+		$rSettings = $GLOBALS['rSettings'] ?? SettingsManager::getAll();
 		global $db;
 
 		if (!PHP_ERRORS) {
@@ -81,6 +83,6 @@ class ResellerTableController extends BaseResellerController {
 		}
 
 		// Delegate to the legacy table renderer
-		ResellerTableRenderer::render($rReturn, $rIsAPI, $rUserInfo, $rPermissions);
+		ResellerTableRenderer::render($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings);
 	}
 }

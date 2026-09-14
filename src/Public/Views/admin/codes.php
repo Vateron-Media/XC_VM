@@ -20,7 +20,7 @@ if (!Authorization::check('adv', 'add_code')):
 endif;
 
 // Access-code type labels (matches the code form's type select).
-$rCodeTypes = [0 => 'Admin', 1 => 'Reseller', 2 => 'Ministra', 3 => 'Admin API', 4 => 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal'];
+$rCodeTypes = [0 => 'Admin', 1 => 'Reseller', 2 => 'Ministra', 3 => 'Admin API', 4 => 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal', 8 => 'Web Player V2'];
 $rTypeBadges = [
     0 => 'bg-label-primary',
     1 => 'bg-label-warning',
@@ -29,6 +29,7 @@ $rTypeBadges = [
     4 => 'bg-label-dark',
     6 => 'bg-label-success',
     7 => 'bg-label-info',
+    8 => 'bg-label-danger',
 ];
 ?>
 

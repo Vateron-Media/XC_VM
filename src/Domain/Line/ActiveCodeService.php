@@ -3,6 +3,7 @@
 namespace XcVm\Domain\Line;
 
 use XcVm\Core\Config\DomainResolver;
+use XcVm\Domain\Stream\CategoryTemplateService;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -116,10 +117,36 @@ class ActiveCodeService {
 		$bouquetsJson = '[' . implode(',', array_map('intval', $selectedBouquets)) . ']';
 
 		$dnsBase = trim($data['dns_base'] ?? '') ?: null;
-		$forcedCountry = trim($data['forced_country'] ?? '') ?: ($package['forced_country'] ?? null);
+		$forcedCountry = array_key_exists('forced_country', $data)
+			? (trim((string) $data['forced_country']) ?: null)
+			: (trim((string) ($package['forced_country'] ?? '')) ?: null);
 		$maxConnections = intval($data['max_connections'] ?? ($package['max_connections'] ?: 1));
 		$isAdult = !empty($data['is_adult']) ? 1 : 0;
 		$outputFormats = $package['output_formats'] ?? '[]';
+
+		$customDataJson = null;
+		if (!empty($data['category_template_id']) && intval($data['category_template_id']) > 0) {
+			$tplId = intval($data['category_template_id']);
+			$customDataObj = CategoryTemplateService::buildCustomData($tplId);
+			$customDataJson = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
+		} elseif (!empty($data['custom_data'])) {
+			$customDataJson = is_array($data['custom_data']) ? json_encode($data['custom_data'], JSON_UNESCAPED_UNICODE) : (string) $data['custom_data'];
+		}
+
+		$customUsername = trim((string) ($data['streaming_username'] ?? $data['username'] ?? ''));
+		$customPassword = trim((string) ($data['streaming_password'] ?? $data['password'] ?? ''));
+
+		if ($qty === 1 && $customUsername !== '') {
+			if (strlen($customUsername) < 3) {
+				return ['status' => 'ERROR', 'message' => 'Streaming username must be at least 3 characters.'];
+			}
+			if (!preg_match('/^[a-zA-Z0-9_\-\.]+$/', $customUsername)) {
+				return ['status' => 'ERROR', 'message' => 'Streaming username contains invalid characters. Use letters, numbers, dots, hyphens, or underscores.'];
+			}
+			if (UserRepository::getLineByUsername($customUsername)) {
+				return ['status' => 'ERROR', 'message' => "The streaming username '{$customUsername}' already exists. Please choose a different username."];
+			}
+		}
 
 		$generatedCodes = [];
 
@@ -155,22 +182,27 @@ class ActiveCodeService {
 			for ($i = 0; $i < $qty; $i++) {
 				$code = self::generateCodeString($length, $format);
 
-				// Auto-create companion line with frozen countdown (exp_date = NULL)
-				$lineUsername = 'ac_' . strtolower(substr(bin2hex(random_bytes(5)), 0, 9));
-				$linePassword = substr(bin2hex(random_bytes(6)), 0, 10);
-
-				// Ensure username collision-free
-				while (UserRepository::getLineByUsername($lineUsername)) {
+				if ($qty === 1 && $customUsername !== '') {
+					$lineUsername = $customUsername;
+					$linePassword = ($customPassword !== '') ? $customPassword : substr(bin2hex(random_bytes(6)), 0, 10);
+				} else {
+					// Auto-create companion line with frozen countdown (exp_date = NULL)
 					$lineUsername = 'ac_' . strtolower(substr(bin2hex(random_bytes(5)), 0, 9));
+					$linePassword = substr(bin2hex(random_bytes(6)), 0, 10);
+
+					// Ensure username collision-free
+					while (UserRepository::getLineByUsername($lineUsername)) {
+						$lineUsername = 'ac_' . strtolower(substr(bin2hex(random_bytes(5)), 0, 9));
+					}
 				}
 
-				$db->query(
+				$insertResult = $db->query(
 					"INSERT INTO `lines` (
                         `member_id`, `username`, `password`, `exp_date`, `admin_enabled`, `enabled`,
                         `bouquet`, `allowed_outputs`, `max_connections`, `is_restreamer`, `is_trial`,
                         `is_mag`, `is_e2`, `forced_country`, `package_id`, `is_activecode`, `created_at`,
-                        `reseller_notes`
-                    ) VALUES (?, ?, ?, NULL, 1, 1, ?, ?, ?, 0, ?, 0, 0, ?, ?, 1, ?, ?);",
+                        `reseller_notes`, `custom_data`
+                    ) VALUES (?, ?, ?, NULL, 1, 1, ?, ?, ?, 0, ?, 0, 0, ?, ?, 1, ?, ?, ?);",
 					$targetOwnerId,
 					$lineUsername,
 					$linePassword,
@@ -181,13 +213,18 @@ class ActiveCodeService {
 					$forcedCountry,
 					$packageId,
 					time(),
-					"Active Code: {$code} (Batch: {$batchName})"
+					"Active Code: {$code} (Batch: {$batchName})",
+					$customDataJson
 				);
 
 				$lineId = (int) $db->last_insert_id();
+				if (!$insertResult || $lineId <= 0) {
+					$lastErr = (isset($db->lastError) && $db->lastError) ? $db->lastError : 'Database error';
+					throw new \RuntimeException("Failed to create subscriber line for code {$code}: {$lastErr}");
+				}
 
 				// Insert into activation_codes table
-				$db->query(
+				$acInsertResult = $db->query(
 					"INSERT INTO `activation_codes` (
                         `activation_code`, `batch_name`, `subscriber_id`, `status`, `created_by`,
                         `package_id`, `bouquets`, `is_adult`, `is_trial`, `purchase_cost`,
@@ -207,6 +244,12 @@ class ActiveCodeService {
 					$maxConnections,
 					time()
 				);
+
+				$acId = (int) $db->last_insert_id();
+				if (!$acInsertResult || $acId <= 0) {
+					$lastErr = (isset($db->lastError) && $db->lastError) ? $db->lastError : 'Database error';
+					throw new \RuntimeException("Failed to register activation code {$code}: {$lastErr}");
+				}
 
 				$generatedCodes[] = [
 					'code' => $code,
@@ -458,6 +501,8 @@ class ActiveCodeService {
 	 */
 	public static function massAction(string $action, array $codeIds, array $user, bool $isAdmin, array $extra = []): array {
 		$db = self::db();
+		// Accept both prefixed (`mass_delete`) and short (`delete`) action names.
+		$action = 'mass_' . preg_replace('/^mass_/', '', $action);
 		if ($codeIds === []) {
 			return ['status' => 'ERROR', 'message' => 'No codes selected.'];
 		}
@@ -568,6 +613,179 @@ class ActiveCodeService {
 	}
 
 	/**
+	 * Delete a single active code with optional refund.
+	 */
+	public static function deleteCode(int $codeId, array $user, bool $isAdmin, bool $refund = true): array {
+		return self::massAction('delete', [$codeId], $user, $isAdmin, ['refund_credits' => $refund]);
+	}
+
+	/**
+	 * Update an existing active code voucher and its companion subscriber line.
+	 */
+	public static function updateCode(int $codeId, array $data, array $user, bool $isAdmin): array {
+		$db = self::db();
+		if ($codeId <= 0) {
+			return ['status' => 'ERROR', 'message' => 'Invalid code ID.'];
+		}
+
+		// Scope check: restrict non-admins to their report hierarchy
+		$whereScope = '';
+		if (!$isAdmin) {
+			$allowedReports = (array) ($user['reports'] ?? [$user['id']]);
+			$reportsList = implode(',', array_map('intval', $allowedReports));
+			$whereScope = " AND `created_by` IN ({$reportsList})";
+		}
+
+		$code = $db->fetchOne("SELECT * FROM `activation_codes` WHERE `id` = ? {$whereScope} LIMIT 1;", $codeId);
+		if (!$code) {
+			return ['status' => 'ERROR', 'message' => 'Activation code not found or access denied.'];
+		}
+
+		// 1. Activation code string validation
+		$newCode = trim((string) ($data['activation_code'] ?? $code['activation_code']));
+		if (empty($newCode)) {
+			return ['status' => 'ERROR', 'message' => 'Activation code cannot be empty.'];
+		}
+
+		// Check uniqueness if changed
+		if (strcasecmp($newCode, (string) $code['activation_code']) !== 0) {
+			$exists = $db->fetchOne("SELECT `id` FROM `activation_codes` WHERE `activation_code` = ? AND `id` != ? LIMIT 1;", $newCode, $codeId);
+			if ($exists) {
+				return ['status' => 'ERROR', 'message' => 'Activation code "' . $newCode . '" is already taken. Please choose another.'];
+			}
+		}
+
+		// 2. Package update
+		$packageId = isset($data['package_id']) ? (int) $data['package_id'] : (int) $code['package_id'];
+		$bouquets = $code['bouquets'];
+		if ($packageId > 0 && $packageId !== (int) $code['package_id']) {
+			$pkg = PackageService::getById($packageId);
+			if (!$pkg) {
+				return ['status' => 'ERROR', 'message' => 'Selected package does not exist.'];
+			}
+			$bouquets = $pkg['bouquets'] ?? $code['bouquets'];
+		}
+
+		// 3. Status
+		$status = isset($data['status']) ? (int) $data['status'] : (int) $code['status'];
+		if (!in_array($status, [0, 1, 2], true)) {
+			$status = (int) $code['status'];
+		}
+
+		// 4. Device lock / MAC & Device ID
+		$mac = isset($data['mac']) ? trim((string) $data['mac']) : (string) $code['mac'];
+		$mac = (strlen($mac) > 0 && $mac !== 'None') ? $mac : null;
+
+		$deviceId = isset($data['device_id']) ? trim((string) $data['device_id']) : (string) $code['device_id'];
+		$deviceId = (strlen($deviceId) > 0 && $deviceId !== 'None') ? $deviceId : null;
+
+		// 5. Batch name
+		$batchName = isset($data['batch_name']) ? trim((string) $data['batch_name']) : (string) $code['batch_name'];
+		$batchName = strlen($batchName) > 0 ? $batchName : null;
+
+		// 6. Max connections
+		$maxConn = isset($data['max_connections']) ? max(1, (int) $data['max_connections']) : max(1, (int) $code['max_connections']);
+
+		// 7. Expiration date
+		$subId = (int) $code['subscriber_id'];
+		$expDate = null;
+		$hasExpDateInput = false;
+		if (isset($data['exp_date'])) {
+			$expInput = trim((string) $data['exp_date']);
+			if (!empty($expInput)) {
+				$hasExpDateInput = true;
+				$parsed = is_numeric($expInput) ? (int) $expInput : strtotime($expInput);
+				if ($parsed !== false && $parsed > 0) {
+					$expDate = $parsed;
+				}
+			}
+		}
+
+		$db->beginTransaction();
+		try {
+			// Update activation_codes table
+			$db->query(
+				"UPDATE `activation_codes` SET
+                    `activation_code` = ?,
+                    `batch_name` = ?,
+                    `package_id` = ?,
+                    `bouquets` = ?,
+                    `status` = ?,
+                    `mac` = ?,
+                    `device_id` = ?,
+                    `max_connections` = ?
+                 WHERE `id` = ?;",
+				$newCode,
+				$batchName,
+				$packageId,
+				$bouquets,
+				$status,
+				$mac,
+				$deviceId,
+				$maxConn,
+				$codeId
+			);
+
+			// If companion subscriber line exists, synchronize line details
+			if ($subId > 0) {
+				$lineUpdates = [];
+				$lineParams = [];
+
+				// Sync line username with code if it was matching or prefixed with ac_
+				if (strcasecmp($newCode, (string) $code['activation_code']) !== 0) {
+					$line = $db->fetchOne("SELECT `username` FROM `lines` WHERE `id` = ? LIMIT 1;", $subId);
+					if ($line && (strcasecmp((string) $line['username'], (string) $code['activation_code']) === 0 || str_starts_with((string) $line['username'], 'ac_'))) {
+						$lineUpdates[] = "`username` = ?";
+						$lineParams[] = $newCode;
+					}
+				}
+
+				// Streaming password
+				if (!empty($data['password'])) {
+					$lineUpdates[] = "`password` = ?";
+					$lineParams[] = trim((string) $data['password']);
+				}
+
+				// Expiration date
+				if ($hasExpDateInput && $expDate !== null) {
+					$lineUpdates[] = "`exp_date` = ?";
+					$lineParams[] = $expDate;
+				}
+
+				// Max connections
+				$lineUpdates[] = "`max_connections` = ?";
+				$lineParams[] = $maxConn;
+
+				// Package & bouquet
+				if ($packageId > 0) {
+					$lineUpdates[] = "`package_id` = ?";
+					$lineParams[] = $packageId;
+					$lineUpdates[] = "`bouquet` = ?";
+					$lineParams[] = $bouquets;
+				}
+
+				// Enabled flag based on status
+				if ($status === 0) {
+					$lineUpdates[] = "`enabled` = 0";
+				} elseif ($status === 1 || $status === 2) {
+					$lineUpdates[] = "`enabled` = 1";
+				}
+
+				$lineParams[] = $subId;
+				$db->query("UPDATE `lines` SET " . implode(', ', $lineUpdates) . " WHERE `id` = ?;", ...$lineParams);
+
+				LineService::updateLinesSignal([$subId]);
+			}
+
+			$db->commit();
+			return ['status' => 'SUCCESS', 'message' => 'Active code updated successfully.'];
+		} catch (\Throwable $e) {
+			$db->rollback();
+			return ['status' => 'ERROR', 'message' => 'Failed to update code: ' . $e->getMessage()];
+		}
+	}
+
+	/**
 	 * Get grouped summary metrics by batch.
 	 */
 	public static function getBatchSummary(array $user, bool $isAdmin, ?string $batchName = null): array {
@@ -587,7 +805,7 @@ class ActiveCodeService {
 
 		$whereClause = $where !== [] ? ('WHERE ' . implode(' AND ', $where)) : '';
 
-		$sql = "SELECT 
+		$sql = "SELECT
                     `batch_name`,
                     `created_by`,
                     `package_id`,
@@ -675,5 +893,462 @@ class ActiveCodeService {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * List active codes with filtering, pagination, and role-based scoping.
+	 *
+	 * @param array $filters Query filters (status, batch_name, package_id, created_by, search)
+	 * @param array $user Authenticated user details
+	 * @param bool $isAdmin True if super administrator
+	 * @param int $start Offset
+	 * @param int $limit Max records
+	 * @return array Paginated result payload
+	 */
+	public static function listCodes(array $filters, array $user, bool $isAdmin, int $start = 0, int $limit = 50): array {
+		$db = self::db();
+		$where = [];
+		$params = [];
+
+		// Role-based scoping for resellers
+		if (!$isAdmin) {
+			$allowedReports = (array) ($user['reports'] ?? [$user['id']]);
+			$reportsList = implode(',', array_map('intval', $allowedReports));
+			$where[] = "`ac`.`created_by` IN ({$reportsList})";
+		} elseif (!empty($filters['created_by']) || !empty($filters['reseller_id'])) {
+			$targetOwner = (int) ($filters['created_by'] ?? $filters['reseller_id']);
+			if ($targetOwner > 0) {
+				$where[] = "`ac`.`created_by` = ?";
+				$params[] = $targetOwner;
+			}
+		}
+
+		// Filter by batch
+		if (!empty($filters['batch_name']) || !empty($filters['batch'])) {
+			$batchName = trim((string) ($filters['batch_name'] ?? $filters['batch']));
+			$where[] = "`ac`.`batch_name` = ?";
+			$params[] = $batchName;
+		}
+
+		// Filter by package
+		if (!empty($filters['package_id']) || !empty($filters['package'])) {
+			$packageId = (int) ($filters['package_id'] ?? $filters['package']);
+			if ($packageId > 0) {
+				$where[] = "`ac`.`package_id` = ?";
+				$params[] = $packageId;
+			}
+		}
+
+		// Filter by status: 0=Disabled, 1=Stock/Ready, 2=Active, 3=Expired
+		if (isset($filters['status']) && strlen((string) $filters['status']) > 0) {
+			$statusVal = (string) $filters['status'];
+			if ($statusVal === '1' || strtolower($statusVal) === 'stock' || strtolower($statusVal) === 'ready') {
+				$where[] = "`ac`.`status` = 1";
+			} elseif ($statusVal === '2' || strtolower($statusVal) === 'active') {
+				$where[] = "(`ac`.`status` = 2 AND (`l`.`exp_date` IS NULL OR `l`.`exp_date` > UNIX_TIMESTAMP()))";
+			} elseif ($statusVal === '3' || strtolower($statusVal) === 'expired') {
+				$where[] = "(`ac`.`status` = 2 AND `l`.`exp_date` IS NOT NULL AND `l`.`exp_date` <= UNIX_TIMESTAMP())";
+			} elseif ($statusVal === '0' || strtolower($statusVal) === 'disabled' || strtolower($statusVal) === 'suspended') {
+				$where[] = "`ac`.`status` = 0";
+			}
+		}
+
+		// Search text filter
+		if (!empty($filters['search'])) {
+			$searchVal = trim((string) $filters['search']);
+			if ($searchVal !== '') {
+				$searchLike = "%{$searchVal}%";
+				$where[] = "(`ac`.`activation_code` LIKE ? OR `ac`.`batch_name` LIKE ? OR `l`.`username` LIKE ? OR `ac`.`mac` LIKE ? OR `ac`.`device_id` LIKE ?)";
+				array_push($params, $searchLike, $searchLike, $searchLike, $searchLike, $searchLike);
+			}
+		}
+
+		$whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+		// Count total
+		$countSql = "SELECT COUNT(*) as `total` FROM `activation_codes` `ac` LEFT JOIN `lines` `l` ON `l`.`id` = `ac`.`subscriber_id` {$whereSql};";
+		$db->query($countSql, ...$params);
+		$totalRecords = (int) ($db->get_row()['total'] ?? 0);
+
+		// Fetch records
+		$safeStart = max(0, $start);
+		$safeLimit = max(1, min(500, $limit));
+
+		$sql = "SELECT
+                    `ac`.*,
+                    `l`.`username` as `line_username`,
+                    `l`.`password` as `line_password`,
+                    `l`.`exp_date` as `line_exp_date`,
+                    `l`.`enabled` as `line_enabled`,
+                    `l`.`admin_enabled` as `line_admin_enabled`,
+                    `u`.`username` as `creator_username`
+                FROM `activation_codes` `ac`
+                LEFT JOIN `lines` `l` ON `l`.`id` = `ac`.`subscriber_id`
+                LEFT JOIN `users` `u` ON `u`.`id` = `ac`.`created_by`
+                {$whereSql}
+                ORDER BY `ac`.`id` DESC
+                LIMIT {$safeStart}, {$safeLimit};";
+
+		$db->query($sql, ...$params);
+		$rows = $db->get_rows() ?: [];
+
+		$packagesCache = [];
+		$data = [];
+		$now = time();
+
+		foreach ($rows as $r) {
+			$pkgId = (int) $r['package_id'];
+			if (!isset($packagesCache[$pkgId])) {
+				$pkg = PackageService::getById($pkgId);
+				$packagesCache[$pkgId] = $pkg['package_name'] ?? ('Package #' . $pkgId);
+			}
+
+			$rawStatus = (int) $r['status'];
+			$expDate = $r['line_exp_date'] ? (int) $r['line_exp_date'] : null;
+
+			if ($rawStatus === 0) {
+				$statusKey = 'disabled';
+				$statusLabel = 'Disabled';
+			} elseif ($rawStatus === 1) {
+				$statusKey = 'stock';
+				$statusLabel = 'Ready (Stock)';
+			} elseif ($rawStatus === 2 && $expDate && $expDate < $now) {
+				$statusKey = 'expired';
+				$statusLabel = 'Expired';
+			} else {
+				$statusKey = 'active';
+				$statusLabel = 'Active';
+			}
+
+			$remainingDays = ($expDate && $expDate > $now) ? (int) ceil(($expDate - $now) / 86400) : 0;
+
+			$data[] = [
+				'id' => (int) $r['id'],
+				'activation_code' => $r['activation_code'],
+				'batch_name' => $r['batch_name'] ?: 'None',
+				'status' => $rawStatus,
+				'status_key' => $statusKey,
+				'status_label' => $statusLabel,
+				'package_id' => $pkgId,
+				'package_name' => $packagesCache[$pkgId],
+				'subscriber_id' => (int) $r['subscriber_id'],
+				'line_username' => $r['line_username'] ?? '',
+				'line_password' => $r['line_password'] ?? '',
+				'exp_date' => $expDate,
+				'exp_date_formatted' => $expDate ? date('Y-m-d H:i:s', $expDate) : null,
+				'remaining_days' => $remainingDays,
+				'mac' => $r['mac'] ?: null,
+				'device_id' => $r['device_id'] ?: null,
+				'max_connections' => (int) $r['max_connections'],
+				'is_trial' => (int) $r['is_trial'],
+				'is_adult' => (int) $r['is_adult'],
+				'purchase_cost' => (float) $r['purchase_cost'],
+				'created_by' => (int) $r['created_by'],
+				'creator_username' => $r['creator_username'] ?? ('User #' . $r['created_by']),
+				'created_at' => (int) $r['created_at'],
+				'created_at_formatted' => date('Y-m-d H:i:s', (int) $r['created_at']),
+				'activated_at' => $r['activated_at'] ? (int) $r['activated_at'] : null,
+				'activated_at_formatted' => $r['activated_at'] ? date('Y-m-d H:i:s', (int) $r['activated_at']) : null,
+			];
+		}
+
+		return [
+			'status' => 'SUCCESS',
+			'total' => $totalRecords,
+			'count' => count($data),
+			'start' => $safeStart,
+			'limit' => $safeLimit,
+			'data' => $data,
+		];
+	}
+
+	/**
+	 * Retrieve full details of a single active code by ID or code string with permission verification.
+	 *
+	 * @param int|string $codeOrId Numeric ID or activation code string
+	 * @param array $user Authenticated user
+	 * @param bool $isAdmin True if admin
+	 * @return array|null Detailed record or null if not found/denied
+	 */
+	public static function getCodeDetails($codeOrId, array $user, bool $isAdmin): ?array {
+		$db = self::db();
+		$isNumeric = is_numeric($codeOrId) && (int) $codeOrId > 0;
+
+		if ($isNumeric) {
+			$codeRow = self::getById((int) $codeOrId);
+		} else {
+			$codeRow = self::getByCode((string) $codeOrId);
+		}
+
+		if (!$codeRow) {
+			return null;
+		}
+
+		// Permission check for non-admin
+		if (!$isAdmin) {
+			$allowedReports = (array) ($user['reports'] ?? [$user['id']]);
+			if (!in_array((int) $codeRow['created_by'], array_map('intval', $allowedReports), true)) {
+				return null;
+			}
+		}
+
+		$line = UserRepository::getLineById((int) $codeRow['subscriber_id']);
+		$package = PackageService::getById((int) $codeRow['package_id']);
+		$creator = UserRepository::getUserById((int) $codeRow['created_by']);
+
+		$now = time();
+		$expDate = $line['exp_date'] ? (int) $line['exp_date'] : null;
+
+		$rawStatus = (int) $codeRow['status'];
+		if ($rawStatus === 0) {
+			$statusKey = 'disabled';
+			$statusLabel = 'Disabled';
+		} elseif ($rawStatus === 1) {
+			$statusKey = 'stock';
+			$statusLabel = 'Ready (Stock)';
+		} elseif ($rawStatus === 2 && $expDate && $expDate < $now) {
+			$statusKey = 'expired';
+			$statusLabel = 'Expired';
+		} else {
+			$statusKey = 'active';
+			$statusLabel = 'Active';
+		}
+
+		// Resolve portal & streaming URLs
+		$portalHost = DomainResolver::resolve(defined('SERVER_ID') ? constant('SERVER_ID') : 1);
+		if (!empty($codeRow['dns_base'])) {
+			$portalHost = rtrim($codeRow['dns_base'], '/');
+		} elseif (!empty($_SERVER['HTTP_HOST'])) {
+			$scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+			$portalHost = "{$scheme}://{$_SERVER['HTTP_HOST']}";
+		}
+
+		$lineUser = $line['username'] ?? '';
+		$linePass = $line['password'] ?? '';
+
+		$m3uHls = "{$portalHost}/get.php?username={$lineUser}&password={$linePass}&type=m3u_plus&output=hls";
+		$m3uTs = "{$portalHost}/get.php?username={$lineUser}&password={$linePass}&type=m3u_plus&output=ts";
+
+		return [
+			'id' => (int) $codeRow['id'],
+			'activation_code' => $codeRow['activation_code'],
+			'batch_name' => $codeRow['batch_name'] ?: 'None',
+			'status' => $rawStatus,
+			'status_key' => $statusKey,
+			'status_label' => $statusLabel,
+			'package' => [
+				'id' => (int) $codeRow['package_id'],
+				'name' => $package['package_name'] ?? ('Package #' . $codeRow['package_id']),
+				'is_trial' => (bool) $codeRow['is_trial'],
+				'official_duration' => $package['official_duration'] ?? 1,
+				'official_duration_in' => $package['official_duration_in'] ?? 'months',
+			],
+			'subscriber_line' => [
+				'id' => (int) $codeRow['subscriber_id'],
+				'username' => $lineUser,
+				'password' => $linePass,
+				'exp_date' => $expDate,
+				'exp_date_formatted' => $expDate ? date('Y-m-d H:i:s', $expDate) : null,
+				'enabled' => (bool) ($line['enabled'] ?? true),
+				'admin_enabled' => (bool) ($line['admin_enabled'] ?? true),
+				'last_ip' => $line['last_ip'] ?? null,
+				'last_activity' => !empty($line['last_activity']) ? date('Y-m-d H:i:s', (int) $line['last_activity']) : null,
+			],
+			'device_binding' => [
+				'mac' => $codeRow['mac'] ?: null,
+				'device_id' => $codeRow['device_id'] ?: null,
+				'is_locked' => (!empty($codeRow['mac']) || !empty($codeRow['device_id'])),
+			],
+			'connection_limits' => [
+				'max_connections' => (int) $codeRow['max_connections'],
+				'active_connections' => 0,
+			],
+			'playlists' => [
+				'm3u_hls' => $m3uHls,
+				'm3u_ts' => $m3uTs,
+			],
+			'credentials' => [
+				'server_url' => $portalHost,
+				'username' => $lineUser,
+				'password' => $linePass,
+			],
+			'created_by' => [
+				'id' => (int) $codeRow['created_by'],
+				'username' => $creator['username'] ?? ('User #' . $codeRow['created_by']),
+			],
+			'created_at' => (int) $codeRow['created_at'],
+			'created_at_formatted' => date('Y-m-d H:i:s', (int) $codeRow['created_at']),
+			'activated_at' => $codeRow['activated_at'] ? (int) $codeRow['activated_at'] : null,
+			'activated_at_formatted' => $codeRow['activated_at'] ? date('Y-m-d H:i:s', (int) $codeRow['activated_at']) : null,
+		];
+	}
+
+	/**
+	 * Non-destructive status check for activation codes.
+	 * Useful for player apps and activation portals to inspect code status without starting countdown.
+	 *
+	 * @param string $code Activation code
+	 * @return array Status assessment
+	 */
+	public static function checkCode(string $code): array {
+		$cleanCode = strtoupper(trim($code));
+		$codeRow = self::getByCode($cleanCode);
+
+		if (!$codeRow) {
+			return [
+				'status' => 'INVALID_CODE',
+				'valid' => false,
+				'message' => 'Invalid or unknown activation code.',
+			];
+		}
+
+		$line = UserRepository::getLineById((int) $codeRow['subscriber_id']);
+		$package = PackageService::getById((int) $codeRow['package_id']);
+		$now = time();
+
+		$rawStatus = (int) $codeRow['status'];
+		if ($rawStatus === 0) {
+			return [
+				'status' => 'DISABLED',
+				'valid' => false,
+				'code_status' => 0,
+				'message' => 'This activation code is suspended or revoked.',
+			];
+		}
+
+		$expDate = ($line && !empty($line['exp_date'])) ? (int) $line['exp_date'] : null;
+		if ($rawStatus === 2 && $expDate && $expDate < $now) {
+			return [
+				'status' => 'EXPIRED',
+				'valid' => false,
+				'code_status' => 3,
+				'exp_date' => $expDate,
+				'exp_date_formatted' => date('Y-m-d H:i:s', $expDate),
+				'message' => 'This activation code has expired.',
+			];
+		}
+
+		$isReady = ($rawStatus === 1 || empty($codeRow['activated_at']));
+
+		return [
+			'status' => 'SUCCESS',
+			'valid' => true,
+			'code' => $cleanCode,
+			'code_status' => $isReady ? 1 : 2,
+			'status_label' => $isReady ? 'Ready (Stock)' : 'Active',
+			'package_name' => $package['package_name'] ?? 'Premium IPTV',
+			'is_trial' => (bool) $codeRow['is_trial'],
+			'max_connections' => (int) $codeRow['max_connections'],
+			'is_activated' => !$isReady,
+			'activated_at' => $codeRow['activated_at'] ? date('Y-m-d H:i:s', (int) $codeRow['activated_at']) : null,
+			'exp_date' => $expDate,
+			'exp_date_formatted' => $expDate ? date('Y-m-d H:i:s', $expDate) : null,
+			'is_device_locked' => (!empty($codeRow['mac']) || !empty($codeRow['device_id'])),
+			'locked_mac' => $codeRow['mac'] ?: null,
+		];
+	}
+
+	/**
+	 * Reset hardware lock (MAC address and Device ID) on an activation code.
+	 *
+	 * @param int|string $codeOrId ID or code string
+	 * @param array $user Authenticated user
+	 * @param bool $isAdmin True if admin
+	 * @return array Result
+	 */
+	public static function resetDevice($codeOrId, array $user, bool $isAdmin): array {
+		$db = self::db();
+		$isNumeric = is_numeric($codeOrId) && (int) $codeOrId > 0;
+
+		if ($isNumeric) {
+			$codeRow = self::getById((int) $codeOrId);
+		} else {
+			$codeRow = self::getByCode((string) $codeOrId);
+		}
+
+		if (!$codeRow) {
+			return ['status' => 'ERROR', 'message' => 'Activation code not found.'];
+		}
+
+		if (!$isAdmin) {
+			$allowedReports = (array) ($user['reports'] ?? [$user['id']]);
+			if (!in_array((int) $codeRow['created_by'], array_map('intval', $allowedReports), true)) {
+				return ['status' => 'ERROR', 'message' => 'Access denied to this activation code.'];
+			}
+		}
+
+		$db->query("UPDATE `activation_codes` SET `mac` = NULL, `device_id` = NULL WHERE `id` = ?;", $codeRow['id']);
+
+		return [
+			'status' => 'SUCCESS',
+			'message' => 'Hardware and MAC address lock reset successfully.',
+			'code_id' => (int) $codeRow['id'],
+			'code' => $codeRow['activation_code'],
+		];
+	}
+
+	/**
+	 * Export batch vouchers as structured JSON array.
+	 *
+	 * @param string $batchName Batch name
+	 * @param array $user Authenticated user
+	 * @param bool $isAdmin True if admin
+	 * @return array Vouchers list
+	 */
+	public static function exportBatchJson(string $batchName, array $user, bool $isAdmin): array {
+		$db = self::db();
+		$where = ["`ac`.`batch_name` = ?"];
+		$params = [$batchName];
+
+		if (!$isAdmin) {
+			$allowedReports = (array) ($user['reports'] ?? [$user['id']]);
+			$where[] = "`ac`.`created_by` IN (" . implode(',', array_map('intval', $allowedReports)) . ")";
+		}
+
+		$whereSql = 'WHERE ' . implode(' AND ', $where);
+		$sql = "SELECT `ac`.*, `l`.`username` as `line_username`, `l`.`password` as `line_password`
+                FROM `activation_codes` `ac`
+                LEFT JOIN `lines` `l` ON `l`.`id` = `ac`.`subscriber_id`
+                {$whereSql}
+                ORDER BY `ac`.`id` ASC;";
+
+		$codes = $db->fetchAll($sql, ...$params) ?: [];
+		if (empty($codes)) {
+			return [];
+		}
+
+		$pkgId = (int) $codes[0]['package_id'];
+		$pkg = PackageService::getById($pkgId);
+		$pkgName = $pkg['package_name'] ?? 'Premium IPTV';
+
+		$portalUrl = DomainResolver::resolve(defined('SERVER_ID') ? constant('SERVER_ID') : 1);
+		if (!empty($codes[0]['dns_base'])) {
+			$portalUrl = rtrim($codes[0]['dns_base'], '/');
+		}
+
+		$vouchers = [];
+		$i = 1;
+		foreach ($codes as $c) {
+			$rawStatus = (int) $c['status'];
+			$statusText = ($rawStatus === 1) ? 'READY' : (($rawStatus === 2) ? 'ACTIVE' : 'DISABLED');
+
+			$vouchers[] = [
+				'voucher_no' => $i++,
+				'activation_code' => $c['activation_code'],
+				'batch_name' => $c['batch_name'],
+				'package_name' => $pkgName,
+				'status' => $statusText,
+				'max_connections' => (int) $c['max_connections'],
+				'portal_url' => "{$portalUrl}/portal",
+				'credentials' => [
+					'username' => $c['line_username'] ?? '',
+					'password' => $c['line_password'] ?? '',
+				],
+				'created_at' => (int) $c['created_at'],
+				'created_at_formatted' => date('Y-m-d H:i:s', (int) $c['created_at']),
+			];
+		}
+
+		return $vouchers;
 	}
 }

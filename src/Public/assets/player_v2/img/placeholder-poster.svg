@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="50%" stop-color="#1e1b4b" />
+      <stop offset="100%" stop-color="#090d16" />
+    </linearGradient>
+    <linearGradient id="glowGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0.05" />
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="600" height="900" fill="url(#bgGrad)" />
+
+  <!-- Subtle grid pattern -->
+  <g stroke="rgba(255,255,255,0.03)" stroke-width="1">
+    <line x1="0" y1="150" x2="600" y2="150" />
+    <line x1="0" y1="300" x2="600" y2="300" />
+    <line x1="0" y1="450" x2="600" y2="450" />
+    <line x1="0" y1="600" x2="600" y2="600" />
+    <line x1="0" y1="750" x2="600" y2="750" />
+    <line x1="150" y1="0" x2="150" y2="900" />
+    <line x1="300" y1="0" x2="300" y2="900" />
+    <line x1="450" y1="0" x2="450" y2="900" />
+  </g>
+
+  <!-- Cinema Reel & Clapper Icon Box -->
+  <g transform="translate(300, 410)">
+    <!-- Glow Backdrop Circle -->
+    <circle r="110" fill="url(#glowGrad)" />
+    
+    <!-- Outer Icon Card -->
+    <rect x="-80" y="-80" width="160" height="160" rx="32" fill="#1e293b" stroke="rgba(99, 102, 241, 0.4)" stroke-width="2" filter="url(#cardShadow)" />
+    
+    <!-- Clapperboard Icon -->
+    <path d="M-40,-35 L40,-35 C45,-35 48,-32 48,-27 L48,-15 L-48,-15 L-48,-27 C-48,-32 -45,-35 -40,-35 Z" fill="#6366f1" />
+    <!-- Clapper Stripes -->
+    <line x1="-30" y1="-35" x2="-20" y2="-15" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+    <line x1="-5" y1="-35" x2="5" y2="-15" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+    <line x1="20" y1="-35" x2="30" y2="-15" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+    
+    <!-- Slate Body -->
+    <rect x="-48" y="-12" width="96" height="52" rx="4" fill="#0f172a" stroke="rgba(255,255,255,0.1)" stroke-width="1.5" />
+    
+    <!-- Film Play Triangle in center -->
+    <polygon points="-8,-2 -8,22 16,10" fill="#a5b4fc" />
+  </g>
+
+  <!-- Typography -->
+  <text x="300" y="580" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="22" font-weight="700" fill="#f8fafc" letter-spacing="2">
+    XC CINEMA
+  </text>
+  <text x="300" y="612" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="14" font-weight="500" fill="#94a3b8" letter-spacing="1">
+    PREVIEW UNAVAILABLE
+  </text>
+
+  <!-- Border Frame -->
+  <rect x="24" y="24" width="552" height="852" rx="20" fill="none" stroke="rgba(255, 255, 255, 0.08)" stroke-width="1.5" />
+</svg>

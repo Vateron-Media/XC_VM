@@ -296,6 +296,7 @@ class StreamRepository {
 
 			$db->query('DELETE FROM `streams_servers` WHERE `stream_id` = ?;', $rID);
 		} else {
+			$rServerIDs = [$rServerID];
 			$db->query('DELETE FROM `streams_servers` WHERE `stream_id` = ? AND `server_id` = ?;', $rID, $rServerID);
 
 			if ($rDeleteFiles && in_array($rType, [2, 5])) {

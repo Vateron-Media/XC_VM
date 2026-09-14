@@ -82,13 +82,9 @@ class FanoutConfig {
 	 *
 	 * Derived (not raw settings):
 	 *   hls_target_sec    ← seg_time (HLS segment duration, seconds; 1…30).
-	 *   prebuffer_max_sec ← the ring must cover the HLS window (hls_window · seg_time)
-	 *                       and every prebuffer a viewer can ask for — client,
-	 *                       restreamer, the daemon default — each with one segment
-	 *                       of headroom; at least 2 · seg_time, at most the daemon's
-	 *                       clamp (120). There is no fixed floor: the ring is the
-	 *                       daemon's memory, and a flat 40 s kept every channel at
-	 *                       40 s whatever the operator lowered.
+	 *   prebuffer_max_sec ← the ring must cover the largest per-viewer prebuffer AND
+	 *                       the HLS window (hls_window · hls_target); floored at the
+	 *                       daemon default 40, capped at its clamp (120).
 	 * Direct panel-owned tuning (the `fanout_*` settings columns):
 	 *   hls_window, grace_sec, write_timeout_sec, chunk_bytes, max_gop_bytes,
 	 *   source_insecure, default_prebuffer_sec, idle_buffer_grace_sec,

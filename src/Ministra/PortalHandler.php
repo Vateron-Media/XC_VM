@@ -995,7 +995,7 @@ class PortalHandler {
 					];
 				}
 
-				foreach ($rCategories as $rCategory) {
+				foreach ($rCategories as $rCategoryID => $rCategory) {
 					if (
 						$rCategory["category_type"] == "live" &&
 						in_array($rCategory["id"], $rCategoryIDs)
@@ -1096,7 +1096,7 @@ class PortalHandler {
 					];
 				}
 
-				foreach ($rCategories as $rCategory) {
+				foreach ($rCategories as $rCategoryID => $rCategory) {
 					if (
 						$rCategory["category_type"] == "movie" &&
 						in_array($rCategory["id"], $rCategoryIDs)
@@ -1116,7 +1116,7 @@ class PortalHandler {
 				$rOutput = [];
 				$rOutput["js"][] = ["id" => "*", "title" => "*"];
 
-				foreach ($rCategories as $rCategory) {
+				foreach ($rCategories as $rCategoryID => $rCategory) {
 					if (
 						$rCategory["category_type"] == "movie" &&
 						in_array($rCategory["id"], $rCategoryIDs)

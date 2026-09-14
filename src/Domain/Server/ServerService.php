@@ -401,6 +401,7 @@ class ServerService {
 	 * @return mixed Result.
 	 */
 	public static function restoreImages() {
+		$db = self::db();
 		global $rServers;
 		foreach (array_keys($rServers) as $rServerID) {
 			if ($rServers[$rServerID]['server_online']) {
