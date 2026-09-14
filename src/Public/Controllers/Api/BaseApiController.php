@@ -45,28 +45,47 @@ class BaseApiController {
 	}
 
 	protected function authenticate($rIP, $rFullLoad = false) {
-		if (RequestManager::has('username') && RequestManager::has('password')) {
-			$rUsername = RequestManager::get('username');
-			$rPassword = RequestManager::get('password');
+		$rUserInfo = null;
+		$rUsername = trim((string) (RequestManager::get('username') ?? ''));
+		$rPassword = (string) (RequestManager::get('password') ?? '');
+		$rToken = trim((string) (RequestManager::get('token') ?? ''));
 
-			if (empty($rUsername) || empty($rPassword)) {
-				generateError('NO_CREDENTIALS');
-			}
-
-			return UserRepository::getUserInfo(null, $rUsername, $rPassword, $rFullLoad, false, $rIP);
+		if (!empty($rUsername) && !empty($rPassword)) {
+			$rUserInfo = UserRepository::getUserInfo(null, $rUsername, $rPassword, $rFullLoad, false, $rIP);
+		} elseif (!empty($rToken)) {
+			$rUserInfo = UserRepository::getUserInfo(null, $rToken, null, $rFullLoad, false, $rIP);
 		}
 
-		if (RequestManager::has('token')) {
-			$rToken = RequestManager::get('token');
-
-			if (empty($rToken)) {
-				generateError('NO_CREDENTIALS');
+		// Active Code transparent auto-activation fallback (e.g. for get.php / playlist / epg)
+		if (!$rUserInfo && class_exists(ActiveCodeService::class)) {
+			$candidateCode = strtoupper(!empty($rUsername) ? $rUsername : $rToken);
+			if (!empty($candidateCode)) {
+				$codeRow = ActiveCodeService::getByCode($candidateCode);
+				if ($codeRow) {
+					$deviceInfo = [
+						'mac' => RequestManager::get('mac') ?? '',
+						'device_id' => RequestManager::get('device_id') ?? '',
+						'ip' => $rIP,
+						'user_agent' => trim($_SERVER['HTTP_USER_AGENT'] ?? '')
+					];
+					$actRes = ActiveCodeService::activateCode($candidateCode, $deviceInfo);
+					if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
+						$lineUser = $actRes['line']['username'];
+						$linePass = $actRes['line']['password'];
+						$rUserInfo = UserRepository::getUserInfo(null, $lineUser, $linePass, $rFullLoad, false, $rIP);
+						if ($rUserInfo && !empty($actRes['line']['exp_date'])) {
+							$rUserInfo['exp_date'] = $actRes['line']['exp_date'];
+						}
+					}
+				}
 			}
-
-			return UserRepository::getUserInfo(null, $rToken, null, $rFullLoad, false, $rIP);
 		}
 
-		generateError('NO_CREDENTIALS');
+		if (!$rUserInfo && empty($rUsername) && empty($rToken)) {
+			generateError('NO_CREDENTIALS');
+		}
+
+		return $rUserInfo;
 	}
 
 	protected function validateUser($rUserInfo, $rUserAgent, $rIP, $rCountryCode) {

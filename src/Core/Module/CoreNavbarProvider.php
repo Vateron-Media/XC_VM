@@ -37,6 +37,7 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 		self::_content();
 		self::_vod();
 		self::_distribution();
+		self::_categoryTemplates();
 		self::_logs();
 		self::_management();
 		self::_profile();
@@ -349,6 +350,30 @@ class CoreNavbarProvider implements NavbarProviderInterface {
 			->parent('distribution')->url('epg_view')
 			->label('tv_guide')->permissions(['streams'])
 			->desktopOnly()->order(40));
+	}
+
+	// ── Category Templates ─────────────────────────────────────────
+
+	/**
+	 * Register Category Templates navigation items.
+	 *
+	 * Provides template management and visual builder for Live, Movies,
+	 * and Series category layouts.
+	 */
+	private static function _categoryTemplates(): void {
+		NavbarRegistry::add((new NavbarItem('category_templates'))
+			->url('#')->label('category_templates')
+			->icon('ti tabler-layout-grid')
+			->permissions(['categories'])
+			->order(450));
+
+		NavbarRegistry::add((new NavbarItem('category_templates.manage'))
+			->parent('category_templates')->url('category_templates')
+			->label('manage_category_templates')->permissions(['categories'])->order(10));
+
+		NavbarRegistry::add((new NavbarItem('category_templates.add'))
+			->parent('category_templates')->url('category_template')
+			->label('create_category_template')->permissions(['categories'])->order(20));
 	}
 
 	// ── Logs ──────────────────────────────────────────────────────

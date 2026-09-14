@@ -14,7 +14,7 @@ use XcVm\Domain\User\GroupService;
 $rIsEdit = isset($rCode);
 $rCodeGroups = ($rIsEdit && !empty($rCode['groups'])) ? (json_decode((string) $rCode['groups'], true) ?: []) : [];
 $rWhitelist = ($rIsEdit && !empty($rCode['whitelist'])) ? (json_decode((string) $rCode['whitelist'], true) ?: []) : [];
-$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal'];
+$rTypes = ['Admin', 'Reseller', 'Ministra', 'Admin API', 'Reseller API', 6 => 'Web Player', 7 => 'Active Code Portal', 8 => 'Web Player V2'];
 ?>
 
 <div class="d-flex align-items-center mb-4">
@@ -187,6 +187,16 @@ renderUnifiedLayoutFooter('admin');
                 previewTitle.textContent = 'Web Player Direct Access';
                 previewDesc.textContent = 'Subscribers open this URL to stream channels and VOD directly in their web browser.';
                 previewIcon.className = 'icon-base ti tabler-device-tv fs-5';
+                previewUrl.textContent = fullUrl;
+                if (tabGroupsBtn) {
+                    tabGroupsBtn.classList.add('disabled', 'opacity-50');
+                    tabGroupsBtn.title = 'Groups do not apply to web players';
+                }
+            } else if (typeVal === 8) {
+                previewBox.classList.remove('d-none');
+                previewTitle.textContent = 'Web Player V2 Direct Access';
+                previewDesc.textContent = 'Subscribers open this URL to stream channels, movies, and series with the Next-Gen V2 interface.';
+                previewIcon.className = 'icon-base ti tabler-player-play fs-5';
                 previewUrl.textContent = fullUrl;
                 if (tabGroupsBtn) {
                     tabGroupsBtn.classList.add('disabled', 'opacity-50');

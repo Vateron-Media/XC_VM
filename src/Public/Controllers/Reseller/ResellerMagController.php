@@ -6,6 +6,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Stream\CategoryTemplateService;
 
 /**
  * ResellerMagController — MAG device edit/create.
@@ -40,13 +41,18 @@ class ResellerMagController extends BaseResellerController {
 		}
 
 		$rPackages = PackageService::getAll($GLOBALS['rUserInfo']['member_group_id'], 'mag') ?: [];
+		$categoryTemplates = CategoryTemplateService::getTemplatesForUser(
+			$GLOBALS['rUserInfo'] ?? [],
+			false
+		);
 
 		$this->setTitle('MAG Device');
 		$this->render('mag', [
-			'rDevice'      => $rDevice,
-			'rLine'        => $rLine,
+			'rDevice' => $rDevice,
+			'rLine' => $rLine,
 			'rOrigPackage' => $rOrigPackage,
-			'rPackages'    => $rPackages,
+			'rPackages' => $rPackages,
+			'categoryTemplates' => $categoryTemplates,
 		]);
 	}
 }

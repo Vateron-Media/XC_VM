@@ -310,7 +310,7 @@ function getUserStreams(array $rUserInfo, array $rTypes = [], ?int $rCategoryID 
 
 		return $rStreams;
 	}
-	return $rStreams;
+	return $rIDs ? [] : $rStreams;
 }
 
 /**

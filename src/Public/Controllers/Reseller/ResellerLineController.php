@@ -6,6 +6,7 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Line\PackageService;
+use XcVm\Domain\Stream\CategoryTemplateService;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -40,11 +41,16 @@ class ResellerLineController extends BaseResellerController {
 		}
 
 		$rPackages = PackageService::getAll($rUserInfo['member_group_id'], 'line') ?: [];
+		$categoryTemplates = CategoryTemplateService::getTemplatesForUser(
+			$rUserInfo,
+			false
+		);
 
 		$this->render('line', [
-			'rLine'        => $rLine,
+			'rLine' => $rLine,
 			'rOrigPackage' => $rOrigPackage,
-			'rPackages'    => $rPackages,
+			'rPackages' => $rPackages,
+			'categoryTemplates' => $categoryTemplates,
 		]);
 	}
 }

@@ -24,8 +24,11 @@ $rFlag = fn($v) => '<i class="icon-base ti tabler-square-filled ' . ($v ? 'text-
 ?>
 
 <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="card-title mb-0"><?= $language::get('packages'); ?></h5>
+        <?php if ($rCanEdit): ?>
+            <a href="package" class="btn btn-sm btn-primary"><i class="icon-base ti tabler-plus me-1"></i><?= $language::get('add_package'); ?></a>
+        <?php endif; ?>
     </div>
     <div class="card-datatable table-responsive">
         <table id="packages-table" class="table" style="width:100%">

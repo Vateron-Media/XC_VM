@@ -222,17 +222,6 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="responsive_tables">
-									<?= $language::get('responsive_tables') ?: 'Responsive Tables'; ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('responsive_tables_tooltip') ?: 'On: table columns collapse into an expandable row on narrow screens. Off: tables keep full width with a horizontal scrollbar.'; ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="responsive_tables" id="responsive_tables" type="checkbox" <?= empty($rSettings["disable_table_responsive"]) ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="show_tickets">
 									<?= $language::get('show_tickets_icon') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('show_tickets_icon_in_the_tooltip') ?>"></i>
@@ -1422,17 +1411,6 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 							</div>
 
 							<div class="form-group row mb-4">
-								<label class="col-md-4 col-form-label" for="secure_stream_tokens">
-									<?= $language::get('secure_stream_tokens') ?>
-									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('secure_stream_tokens_help') ?>"></i>
-								</label>
-
-								<div class="col-md-2">
-									<div class="form-check form-switch"><input name="secure_stream_tokens" id="secure_stream_tokens" type="checkbox" <?= ($rSettings["secure_stream_tokens"] ?? 0) == 1 ? ' checked' : '' ?> class="form-check-input"></div>
-								</div>
-							</div>
-
-							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="restrict_playlists">
 									<?= $language::get('restrictions_on_playlists_epg') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('verify_useragent_ip_restrictions_isp_tooltip') ?>"></i>
@@ -1519,7 +1497,7 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="xc_fanout: fraction of the buffer kept while a stream is unwatched (0.1-1)."></i>
 								</label>
 								<div class="col-md-2">
-									<input type="text" inputmode="decimal" class="form-control text-center" id="fanout_idle_buffer_ratio" name="fanout_idle_buffer_ratio" value="<?= htmlspecialchars($rSettings["fanout_idle_buffer_ratio"] ?? '') ?>">
+									<input type="text" class="form-control text-center" id="fanout_idle_buffer_ratio" name="fanout_idle_buffer_ratio" value="<?= htmlspecialchars($rSettings["fanout_idle_buffer_ratio"] ?? '') ?>">
 								</div>
 							</div>
 
@@ -2946,28 +2924,11 @@ renderUnifiedLayoutFooter('admin');
 		}
 
 		// numeric-only inputs
-		['log_clear', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'connection_sync_timer', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill', 'threshold_cpu', 'threshold_mem', 'threshold_disk', 'threshold_network', 'threshold_clients'].forEach(function(id) {
+		['log_clear', 'vod_bitrate_plus', 'vod_limit_perc', 'user_auto_kick_hours', 'flood_limit', 'flood_seconds', 'auth_flood_seconds', 'auth_flood_limit', 'auth_flood_sleep', 'bruteforce_mac_attempts', 'bruteforce_username_attempts', 'bruteforce_frequency', 'login_flood', 'client_prebuffer', 'restreamer_prebuffer', 'fanout_hls_window', 'fanout_grace_sec', 'fanout_write_timeout_sec', 'fanout_chunk_bytes', 'fanout_max_gop_bytes', 'fanout_default_prebuffer_sec', 'fanout_idle_buffer_grace_sec', 'fanout_idle_buffer_ratio', 'read_buffer_size', 'stream_max_analyze', 'probesize', 'stream_start_delay', 'online_capacity_interval', 'on_demand_wait_time', 'seg_time', 'stream_fail_sleep', 'probe_extra_wait', 'seg_list_size', 'cpu_limit', 'mem_limit', 'playback_limit', 'connection_loop_per', 'connection_loop_count', 'max_simultaneous_downloads', 'cache_playlists', 'seg_delete_threshold', 'fails_per_time', 'create_expiration', 'max_encode_movies', 'max_encode_cc', 'queue_loop', 'player_blur', 'player_opacity', 'disallow_2nd_ip_max', 'probesize_ondemand', 'connection_sync_timer', 'segment_wait_time', 'on_demand_scan_time', 'on_demand_max_probe', 'on_demand_scan_keep', 'stop_failures', 'mysql_sleep_kill', 'threshold_cpu', 'threshold_mem', 'threshold_disk', 'threshold_network', 'threshold_clients'].forEach(function(id) {
 			var el = document.getElementById(id);
 			if (el) {
 				el.addEventListener('input', function() {
 					this.value = this.value.replace(/[^0-9]/g, '');
-				});
-			}
-		});
-
-		// decimal inputs: digits and one decimal point, a comma taken as one. The
-		// idle buffer ratio sat in the digits-only list above, which turned 0.25
-		// into 025 as it was typed.
-		['fanout_idle_buffer_ratio'].forEach(function(id) {
-			var el = document.getElementById(id);
-			if (el) {
-				el.addEventListener('input', function() {
-					var v = this.value.replace(',', '.').replace(/[^0-9.]/g, '');
-					var dot = v.indexOf('.');
-					if (dot !== -1) {
-						v = v.slice(0, dot + 1) + v.slice(dot + 1).replace(/\./g, '');
-					}
-					this.value = v;
 				});
 			}
 		});

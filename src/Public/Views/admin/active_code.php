@@ -6,6 +6,8 @@
  * Provision active codes for any reseller without credit restrictions.
  */
 
+use XcVm\Core\Reference\GeoReference;
+
 $rPackages = $rPackages ?? [];
 $rBouquets = $rBouquets ?? [];
 $rResellers = $rResellers ?? [];
@@ -52,11 +54,11 @@ $rResellers = $rResellers ?? [];
         <div class="card shadow-sm border-0">
             <div class="card-header border-bottom d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="card-title mb-1"><i class="ti tabler-sparkles text-primary me-2"></i><?= $language::get('ac_generate_active_codes_admin') ?></h5>
-                    <p class="text-muted small mb-0"><?= $language::get('ac_help_admin_provision') ?></p>
+                    <h5 class="card-title mb-1"><i class="ti tabler-sparkles text-primary me-2"></i>Generate Active Codes (Admin)</h5>
+                    <p class="text-muted small mb-0">Admins can provision active vouchers for any reseller or system inventory with 0 credit deduction.</p>
                 </div>
                 <a href="active_codes" class="btn btn-sm btn-label-secondary">
-                    <i class="ti tabler-arrow-left me-1"></i><?= $language::get('ac_back_to_codes') ?>
+                    <i class="ti tabler-arrow-left me-1"></i>Back to Codes
                 </a>
             </div>
 
@@ -64,24 +66,24 @@ $rResellers = $rResellers ?? [];
                 <form id="admin-active-code-form">
                     <!-- Reseller Assignment -->
                     <div class="mb-4 p-3 bg-light-subtle rounded-3 border">
-                        <label class="form-label fw-semibold" for="created_by"><?= $language::get('ac_assign_ownership_to_reseller') ?></label>
+                        <label class="form-label fw-semibold" for="created_by">Assign Ownership to Reseller</label>
                         <select id="created_by" name="created_by" class="form-select select2">
-                            <option value="1"><?= $language::get('ac_system_administrator_admin_inventory') ?></option>
+                            <option value="1">System Administrator (Admin Inventory)</option>
                             <?php foreach ($rResellers as $res):
                                 if ((int)$res['id'] === 1) continue;
                             ?>
                                 <option value="<?= (int)$res['id']; ?>">
-                                    <?= htmlspecialchars((string)$res['username'], ENT_QUOTES); ?> (<?= number_format((float)$res['credits'], 2); ?> <?= $language::get('ac_credits') ?>)
+                                    <?= htmlspecialchars((string)$res['username'], ENT_QUOTES); ?> (<?= number_format((float)$res['credits'], 2); ?> Credits)
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <div class="form-text small"><?= $language::get('ac_help_admin_exempt') ?></div>
+                        <div class="form-text small">Admin generations are exempt from credit costs. Selected reseller will be designated as the creator.</div>
                     </div>
 
                     <!-- Batch Information -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-8">
-                            <label class="form-label fw-semibold" for="batch_name"><?= $language::get('ac_batch_name_voucher_label') ?></label>
+                            <label class="form-label fw-semibold" for="batch_name">Batch Name / Voucher Label</label>
                             <div class="input-group">
                                 <span class="input-group-text"><i class="ti tabler-tag"></i></span>
                                 <input type="text" id="batch_name" name="batch_name" class="form-control font-monospace" placeholder="BATCH-202609-XXXX" value="BATCH-<?= date('Ymd'); ?>-<?= strtoupper(substr(bin2hex(random_bytes(2)), 0, 4)); ?>">
@@ -92,10 +94,10 @@ $rResellers = $rResellers ?? [];
                         </div>
 
                         <div class="col-12 col-md-4">
-                            <label class="form-label fw-semibold" for="code_format"><?= $language::get('ac_format') ?></label>
+                            <label class="form-label fw-semibold" for="code_format">Format</label>
                             <select id="code_format" name="code_format" class="form-select">
-                                <option value="alphanumeric" selected><?= $language::get('ac_format_alphanumeric') ?></option>
-                                <option value="numeric"><?= $language::get('ac_format_numeric_pin') ?></option>
+                                <option value="alphanumeric" selected>Alphanumeric (8X7K9P2M)</option>
+                                <option value="numeric">Numeric PIN (87219430)</option>
                             </select>
                         </div>
                     </div>
@@ -103,7 +105,7 @@ $rResellers = $rResellers ?? [];
                     <!-- Quantity & Length -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-7">
-                            <label class="form-label fw-semibold" for="num_codes"><?= $language::get('ac_quantity_of_codes') ?></label>
+                            <label class="form-label fw-semibold" for="num_codes">Quantity of Codes</label>
                             <div class="input-group">
                                 <input type="number" id="num_codes" name="num_codes" class="form-control fs-5 fw-bold text-center" value="5" min="1" max="500">
                                 <button type="button" class="btn btn-outline-secondary qty-pill" data-qty="5">5</button>
@@ -115,28 +117,95 @@ $rResellers = $rResellers ?? [];
                         </div>
 
                         <div class="col-12 col-md-5">
-                            <label class="form-label fw-semibold" for="code_length"><?= $language::get('ac_code_length') ?></label>
+                            <label class="form-label fw-semibold" for="code_length">Code Length</label>
                             <select id="code_length" name="code_length" class="form-select">
-                                <option value="8"><?= $language::get('ac_8_characters') ?></option>
-                                <option value="10" selected><?= $language::get('ac_10_characters_standard') ?></option>
-                                <option value="12"><?= $language::get('ac_12_characters') ?></option>
-                                <option value="16"><?= $language::get('ac_16_characters') ?></option>
+                                <option value="8">8 Characters</option>
+                                <option value="10" selected>10 Characters (Standard)</option>
+                                <option value="12">12 Characters</option>
+                                <option value="16">16 Characters</option>
                             </select>
                         </div>
                     </div>
 
                     <!-- Target Package -->
                     <div class="mb-4">
-                        <label class="form-label fw-semibold" for="package_id"><?= $language::get('ac_subscription_package') ?> <span class="text-danger">*</span></label>
+                        <label class="form-label fw-semibold" for="package_id">Subscription Package <span class="text-danger">*</span></label>
                         <select id="package_id" name="package_id" class="form-select form-select-lg" required>
-                            <option value="" disabled selected><?= $language::get('ac_select_a_package') ?></option>
+                            <option value="" disabled selected>-- Select a Package --</option>
                             <?php foreach ($rPackages as $pkg): ?>
-                                <option value="<?= (int)$pkg['id']; ?>" data-trial="<?= !empty($pkg['is_trial']) ? 1 : 0; ?>">
+                                <option value="<?= (int)$pkg['id']; ?>" data-trial="<?= !empty($pkg['is_trial']) ? 1 : 0; ?>" data-bouquets="<?= htmlspecialchars((string)($pkg['bouquets'] ?? '[]'), ENT_QUOTES); ?>" data-country="<?= htmlspecialchars((string)($pkg['forced_country'] ?? ''), ENT_QUOTES); ?>">
                                     <?= htmlspecialchars((string)$pkg['package_name'], ENT_QUOTES); ?>
-                                    <?= !empty($pkg['is_trial']) ? ' - ' . $language::get('ac_trial_tag') : ''; ?>
+                                    <?= !empty($pkg['is_trial']) ? ' - [TRIAL]' : ''; ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+
+                    <!-- Category Template -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" for="category_template_id">
+                            <i class="ti tabler-layout-grid text-primary me-1"></i> <?= $language::get('category_template'); ?>
+                        </label>
+                        <select id="category_template_id" name="category_template_id" class="form-select select2">
+                            <option value="">-- <?= $language::get('none_default'); ?> --</option>
+                            <?php foreach ($categoryTemplates ?? [] as $tpl): ?>
+                                <option value="<?= (int)$tpl['id']; ?>">
+                                    <?= htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? ''); ?><?= !empty($tpl['is_system']) ? ' (' . $language::get('system') . ')' : ''; ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
+                    </div>
+
+                    <!-- Companion Streaming Credentials -->
+                    <div class="card bg-light-subtle border mb-4 shadow-none" id="streaming-credentials-card">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <div class="d-flex align-items-center gap-2">
+                                    <div class="avatar avatar-xs bg-label-info rounded-2 d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                        <i class="ti tabler-user-check fs-5 text-info"></i>
+                                    </div>
+                                    <div>
+                                        <h6 class="mb-0 fw-semibold">Streaming Account Credentials</h6>
+                                        <div class="small text-muted" id="streaming-cred-hint">Custom streaming credentials for 1 voucher, or leave blank to auto-generate.</div>
+                                    </div>
+                                </div>
+                                <span class="badge bg-label-primary" id="streaming-mode-badge">
+                                    <i class="ti tabler-sparkles me-1"></i>Auto-Generated
+                                </span>
+                            </div>
+
+                            <div class="row g-3" id="streaming-cred-fields">
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-semibold" for="streaming_username">Streaming Username <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ti tabler-user"></i></span>
+                                        <input type="text" id="streaming_username" name="streaming_username" class="form-control font-monospace" placeholder="Leave blank to auto-generate (ac_...)" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-rand-username" title="Generate Random Username">
+                                            <i class="ti tabler-refresh"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small">Leave blank to auto-generate a unique <code>ac_xxxxxxxx</code> subscriber username.</div>
+                                </div>
+
+                                <div class="col-12 col-md-6">
+                                    <label class="form-label fw-semibold" for="streaming_password">Streaming Password <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="ti tabler-key"></i></span>
+                                        <input type="text" id="streaming_password" name="streaming_password" class="form-control font-monospace" placeholder="Leave blank to auto-generate" autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary" id="btn-rand-password" title="Generate Random Password">
+                                            <i class="ti tabler-refresh"></i>
+                                        </button>
+                                    </div>
+                                    <div class="form-text small">Leave blank to automatically create a strong cryptographic password.</div>
+                                </div>
+                            </div>
+
+                            <div id="bulk-cred-notice" class="d-none alert alert-light mb-0 py-2 border d-flex align-items-center gap-2">
+                                <i class="ti tabler-info-circle text-info fs-5"></i>
+                                <span class="small text-body"><strong>Bulk Generation Active:</strong> Each activation code in this batch will automatically generate a dedicated, unique companion line account with collision-free credentials (e.g. <code>ac_xxxxxxxx</code>).</span>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Bouquets Customization -->
@@ -149,13 +218,13 @@ $rResellers = $rResellers ?? [];
                                         <i class="ti tabler-category-2 fs-5 text-primary"></i>
                                     </div>
                                     <div>
-                                        <label class="form-label fw-bold mb-0 fs-6"><?= $language::get('ac_bouquets_included') ?></label>
-                                        <div class="small text-muted"><?= $language::get('ac_help_bouquets') ?></div>
+                                        <label class="form-label fw-bold mb-0 fs-6">Bouquets Included</label>
+                                        <div class="small text-muted">Select streaming content categories for this voucher</div>
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="badge bg-label-primary px-3 py-2 fs-6" id="bq-selected-count">
-                                        <?= count($rBouquets); ?> / <?= count($rBouquets); ?> <?= $language::get('selected') ?>
+                                        <?= count($rBouquets); ?> / <?= count($rBouquets); ?> Selected
                                     </span>
                                 </div>
                             </div>
@@ -165,7 +234,7 @@ $rResellers = $rResellers ?? [];
                                 <!-- Search -->
                                 <div class="input-group input-group-sm" style="max-width: 260px;">
                                     <span class="input-group-text bg-transparent"><i class="ti tabler-search"></i></span>
-                                    <input type="text" id="filter-bq-input" class="form-control" placeholder="<?= $language::get('ac_search_bouquets') ?>">
+                                    <input type="text" id="filter-bq-input" class="form-control" placeholder="Search bouquets...">
                                     <button type="button" class="btn btn-outline-secondary d-none" id="btn-clear-bq-search">
                                         <i class="ti tabler-x"></i>
                                     </button>
@@ -173,17 +242,17 @@ $rResellers = $rResellers ?? [];
 
                                 <!-- Action Buttons -->
                                 <div class="d-flex flex-wrap gap-1">
-                                    <button type="button" class="btn btn-sm btn-label-primary" id="btn-select-all-bq" title="<?= $language::get('ac_select_all_bouquets') ?>">
-                                        <i class="ti tabler-checks me-1"></i><?= $language::get('ac_select_all') ?>
+                                    <button type="button" class="btn btn-sm btn-label-primary" id="btn-select-all-bq" title="Select all bouquets">
+                                        <i class="ti tabler-checks me-1"></i>Select All
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-label-secondary" id="btn-deselect-all-bq" title="<?= $language::get('ac_deselect_all') ?>">
-                                        <i class="ti tabler-x me-1"></i><?= $language::get('ac_clear_all') ?>
+                                    <button type="button" class="btn btn-sm btn-label-secondary" id="btn-deselect-all-bq" title="Deselect all">
+                                        <i class="ti tabler-x me-1"></i>Clear All
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-label-info" id="btn-invert-bq" title="<?= $language::get('ac_invert_selection') ?>">
-                                        <i class="ti tabler-arrows-shuffle me-1"></i><?= $language::get('ac_invert') ?>
+                                    <button type="button" class="btn btn-sm btn-label-info" id="btn-invert-bq" title="Invert selection">
+                                        <i class="ti tabler-arrows-shuffle me-1"></i>Invert
                                     </button>
-                                    <button type="button" class="btn btn-sm btn-label-danger" id="btn-filter-adult" title="<?= $language::get('ac_exclude_adult_content') ?>">
-                                        <i class="ti tabler-shield-lock me-1"></i><?= $language::get('ac_exclude_18') ?>
+                                    <button type="button" class="btn btn-sm btn-label-danger" id="btn-filter-adult" title="Exclude adult 18+ content">
+                                        <i class="ti tabler-shield-lock me-1"></i>Exclude 18+
                                     </button>
                                 </div>
                             </div>
@@ -191,15 +260,15 @@ $rResellers = $rResellers ?? [];
                             <!-- Filter Tabs: All | Selected | Unselected | 18+ -->
                             <div class="d-flex flex-wrap gap-1 mb-3">
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab active" data-filter="all">
-                                    <?= $language::get('all') ?> (<span class="tab-count-all"><?= count($rBouquets); ?></span>)
+                                    All (<span class="tab-count-all"><?= count($rBouquets); ?></span>)
                                 </button>
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab" data-filter="selected">
-                                    <?= $language::get('selected') ?> (<span class="tab-count-sel"><?= count($rBouquets); ?></span>)
+                                    Selected (<span class="tab-count-sel"><?= count($rBouquets); ?></span>)
                                 </button>
                                 <button type="button" class="btn btn-xs btn-label-secondary bq-filter-tab" data-filter="unselected">
-                                    <?= $language::get('ac_unselected') ?> (<span class="tab-count-unsel">0</span>)
+                                    Unselected (<span class="tab-count-unsel">0</span>)
                                 </button>
-                                <?php 
+                                <?php
                                     $adultCount = 0;
                                     foreach ($rBouquets as $b) {
                                         $bn = (string)$b['bouquet_name'];
@@ -210,7 +279,7 @@ $rResellers = $rResellers ?? [];
                                     if ($adultCount > 0):
                                 ?>
                                 <button type="button" class="btn btn-xs btn-label-danger bq-filter-tab" data-filter="adult">
-                                    <i class="ti tabler-lock me-1"></i><?= $language::get('ac_18_adult') ?> (<?= $adultCount; ?>)
+                                    <i class="ti tabler-lock me-1"></i>18+ Adult (<?= $adultCount; ?>)
                                 </button>
                                 <?php endif; ?>
                             </div>
@@ -218,14 +287,16 @@ $rResellers = $rResellers ?? [];
                             <!-- Bouquets Grid with Custom Scroll -->
                             <div class="bq-scroll-area p-1">
                                 <div class="row g-2" id="bouquets-grid">
-                                    <?php foreach ($rBouquets as $bq): 
-                                        $bqName = (string)$bq['bouquet_name'];
+                                    <?php foreach ($rBouquets as $bq):
+                                        $bqId = (int)($bq['id'] ?? 0);
+                                        $bqName = (string)($bq['bouquet_name'] ?? '');
+                                        if ($bqId <= 0) continue;
                                         $isAdult = (stripos($bqName, 'adult') !== false || stripos($bqName, 'xxx') !== false || stripos($bqName, '+18') !== false || stripos($bqName, '18+') !== false);
                                     ?>
-                                        <div class="col-12 col-md-6 bouquet-item" data-name="<?= strtolower(htmlspecialchars($bqName, ENT_QUOTES)); ?>" data-adult="<?= $isAdult ? 1 : 0; ?>">
-                                            <label class="bq-tile is-checked d-flex align-items-center justify-content-between p-2 px-3 w-100 mb-0" for="abq_<?= (int)$bq['id']; ?>">
+                                        <div class="col-12 col-md-6 bouquet-item" data-id="<?= $bqId; ?>" data-name="<?= strtolower(htmlspecialchars($bqName, ENT_QUOTES)); ?>" data-adult="<?= $isAdult ? 1 : 0; ?>">
+                                            <label class="bq-tile is-checked d-flex align-items-center justify-content-between p-2 px-3 w-100 mb-0 user-select-none" for="abq_<?= $bqId; ?>" style="cursor: pointer;">
                                                 <div class="d-flex align-items-center gap-2 text-truncate me-2">
-                                                    <input class="form-check-input bq-checkbox m-0 flex-shrink-0" type="checkbox" name="bouquets_selected[]" value="<?= (int)$bq['id']; ?>" id="abq_<?= (int)$bq['id']; ?>" checked>
+                                                    <input class="form-check-input bq-checkbox m-0 flex-shrink-0" type="checkbox" name="bouquets_selected[]" value="<?= $bqId; ?>" id="abq_<?= $bqId; ?>" checked>
                                                     <span class="bq-name small fw-semibold text-truncate text-body"><?= htmlspecialchars($bqName, ENT_QUOTES); ?></span>
                                                 </div>
                                                 <?php if ($isAdult): ?>
@@ -242,7 +313,7 @@ $rResellers = $rResellers ?? [];
                                     <?php endforeach; ?>
                                     <div id="bq-no-results" class="col-12 text-center py-4 text-muted d-none">
                                         <i class="ti tabler-folder-off fs-1 mb-1 d-block text-secondary"></i>
-                                        <div><?= $language::get('ac_no_bouquets_found') ?></div>
+                                        <div>No bouquets found matching your filter.</div>
                                     </div>
                                 </div>
                             </div>
@@ -252,19 +323,23 @@ $rResellers = $rResellers ?? [];
                     <!-- Routing & Geo -->
                     <div class="row g-3 mb-4">
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="dns_base"><?= $language::get('ac_portal_base_dns') ?></label>
+                            <label class="form-label fw-semibold" for="dns_base">Portal Base DNS (Optional)</label>
                             <input type="text" id="dns_base" name="dns_base" class="form-control" placeholder="http://domain.com:port">
                         </div>
                         <div class="col-12 col-md-6">
-                            <label class="form-label fw-semibold" for="forced_country"><?= $language::get('ac_forced_geo_lock_country') ?></label>
-                            <input type="text" id="forced_country" name="forced_country" class="form-control text-uppercase" maxlength="2" placeholder="<?= $language::get('ac_country_example') ?>">
+                            <label class="form-label fw-semibold" for="forced_country">Forced Geo-Lock Country <i title="<?= $language::get('force_user_to_connect_to_tooltip'); ?>" class="icon-base ti tabler-help-circle text-secondary"></i></label>
+                            <select name="forced_country" id="forced_country" class="form-select select2">
+                                <?php foreach (GeoReference::countries() as $rCountry): ?>
+                                    <option value="<?= htmlspecialchars((string) $rCountry['id'], ENT_QUOTES); ?>"><?= htmlspecialchars((string) $rCountry['name'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
                     <div class="d-flex justify-content-end gap-3 pt-3 border-top">
-                        <button type="reset" class="btn btn-label-secondary"><?= $language::get('ac_reset') ?></button>
+                        <button type="reset" class="btn btn-label-secondary">Reset</button>
                         <button type="submit" class="btn btn-primary px-4" id="btn-admin-generate">
-                            <i class="ti tabler-sparkles me-1"></i><?= $language::get('ac_generate_now') ?>
+                            <i class="ti tabler-sparkles me-1"></i>Generate Now
                         </button>
                     </div>
                 </form>
@@ -282,12 +357,12 @@ $rResellers = $rResellers ?? [];
                         <i class="ti tabler-crown fs-4 text-warning"></i>
                     </div>
                     <div>
-                        <h6 class="card-title mb-0 fw-bold"><?= $language::get('ac_admin_privileges_active') ?></h6>
-                        <small class="text-muted"><?= $language::get('ac_unrestricted_system_authority') ?></small>
+                        <h6 class="card-title mb-0 fw-bold">Admin Privileges Active</h6>
+                        <small class="text-muted">Unrestricted System Authority</small>
                     </div>
                 </div>
                 <span class="badge bg-label-warning fw-bold px-2 py-1">
-                    <i class="ti tabler-shield-check me-1"></i><?= $language::get('ac_root_authority') ?>
+                    <i class="ti tabler-shield-check me-1"></i>Root Authority
                 </span>
             </div>
 
@@ -298,40 +373,40 @@ $rResellers = $rResellers ?? [];
                         <div class="p-3 bg-light-subtle rounded-3 border h-100">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="ti tabler-coins text-warning fs-5"></i>
-                                <span class="small text-muted fw-semibold"><?= $language::get('ac_credit_cost') ?></span>
+                                <span class="small text-muted fw-semibold">Credit Cost</span>
                             </div>
-                            <div class="fs-6 fw-bold text-success"><?= $language::get('ac_free_000') ?></div>
-                            <small class="text-muted d-block" style="font-size: 0.72rem;"><?= $language::get('ac_no_credit_deduction') ?></small>
+                            <div class="fs-6 fw-bold text-success">FREE (0.00)</div>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">No credit deduction</small>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="p-3 bg-light-subtle rounded-3 border h-100">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="ti tabler-hourglass-empty text-primary fs-5"></i>
-                                <span class="small text-muted fw-semibold"><?= $language::get('ac_delayed_timer') ?></span>
+                                <span class="small text-muted fw-semibold">Delayed Timer</span>
                             </div>
-                            <div class="fs-6 fw-bold text-primary"><?= $language::get('ac_on_1st_stream') ?></div>
-                            <small class="text-muted d-block" style="font-size: 0.72rem;"><?= $language::get('ac_starts_upon_activation') ?></small>
+                            <div class="fs-6 fw-bold text-primary">On 1st Stream</div>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">Starts upon activation</small>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="p-3 bg-light-subtle rounded-3 border h-100">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="ti tabler-users text-info fs-5"></i>
-                                <span class="small text-muted fw-semibold"><?= $language::get('ac_assignment') ?></span>
+                                <span class="small text-muted fw-semibold">Assignment</span>
                             </div>
-                            <div class="fs-6 fw-bold text-info"><?= $language::get('ac_any_reseller') ?></div>
-                            <small class="text-muted d-block" style="font-size: 0.72rem;"><?= $language::get('ac_direct_stock_transfer') ?></small>
+                            <div class="fs-6 fw-bold text-info">Any Reseller</div>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">Direct stock transfer</small>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="p-3 bg-light-subtle rounded-3 border h-100">
                             <div class="d-flex align-items-center gap-2 mb-1">
                                 <i class="ti tabler-shield-check text-success fs-5"></i>
-                                <span class="small text-muted fw-semibold"><?= $language::get('ac_stock_protection') ?></span>
+                                <span class="small text-muted fw-semibold">Stock Protection</span>
                             </div>
-                            <div class="fs-6 fw-bold text-success"><?= $language::get('ac_protected') ?></div>
-                            <small class="text-muted d-block" style="font-size: 0.72rem;"><?= $language::get('ac_never_expires_in_stock') ?></small>
+                            <div class="fs-6 fw-bold text-success">Protected</div>
+                            <small class="text-muted d-block" style="font-size: 0.72rem;">Never expires in stock</small>
                         </div>
                     </div>
                 </div>
@@ -340,26 +415,34 @@ $rResellers = $rResellers ?? [];
                 <div class="p-3 rounded-3 border mb-3" style="background: rgba(115, 103, 240, 0.05); border-color: rgba(115, 103, 240, 0.25) !important;">
                     <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom border-secondary border-opacity-10">
                         <span class="small fw-semibold text-uppercase d-flex align-items-center" style="color: #7367f0;">
-                            <i class="ti tabler-eye me-1 fs-5"></i><?= $language::get('ac_live_batch_preview') ?>
+                            <i class="ti tabler-eye me-1 fs-5"></i>Live Batch Preview
                         </span>
-                        <span class="badge bg-label-primary fs-6 px-2 py-1" id="preview-qty-pill">5 <?= $language::get('ac_vouchers') ?></span>
+                        <span class="badge bg-label-primary fs-6 px-2 py-1" id="preview-qty-pill">5 Vouchers</span>
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center py-1 small">
-                        <span class="text-muted"><?= $language::get('ac_target_owner') ?>:</span>
-                        <span class="fw-semibold text-body text-truncate ms-2" id="preview-owner-name"><?= $language::get('ac_system_administrator') ?></span>
+                        <span class="text-muted">Target Owner:</span>
+                        <span class="fw-semibold text-body text-truncate ms-2" id="preview-owner-name">System Administrator</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-1 small">
-                        <span class="text-muted"><?= $language::get('ac_target_package') ?>:</span>
-                        <span class="fw-semibold text-body text-truncate ms-2" id="preview-package-name"><?= $language::get('ac_not_selected') ?></span>
+                        <span class="text-muted">Target Package:</span>
+                        <span class="fw-semibold text-body text-truncate ms-2" id="preview-package-name">-- Not Selected --</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center py-1 small">
-                        <span class="text-muted"><?= $language::get('ac_code_format') ?>:</span>
-                        <span class="font-monospace text-body" id="preview-format-val"><?= $language::get('ac_alphanumeric_10_chars') ?></span>
+                        <span class="text-muted">Streaming User:</span>
+                        <span class="font-monospace text-body text-truncate ms-2" id="preview-username-val">Auto-Generated</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 small">
+                        <span class="text-muted">Geo-Lock Country:</span>
+                        <span class="fw-semibold text-body text-truncate ms-2" id="preview-country-val">Off</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center py-1 small">
+                        <span class="text-muted">Code Format:</span>
+                        <span class="font-monospace text-body" id="preview-format-val">Alphanumeric (10 chars)</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center pt-2 mt-1 border-top border-secondary border-opacity-10 small">
-                        <span class="text-muted"><?= $language::get('ac_total_admin_cost') ?>:</span>
-                        <span class="fw-bold text-success fs-6"><?= $language::get('ac_cost_exempt') ?></span>
+                        <span class="text-muted">Total Admin Cost:</span>
+                        <span class="fw-bold text-success fs-6">0.00 Credits (Exempt)</span>
                     </div>
                 </div>
 
@@ -367,7 +450,7 @@ $rResellers = $rResellers ?? [];
                 <div class="d-flex align-items-start gap-2 p-2 px-3 rounded-2 bg-light-subtle border small text-muted">
                     <i class="ti tabler-info-circle text-primary fs-5 mt-1 flex-shrink-0"></i>
                     <div style="font-size: 0.82rem; line-height: 1.45;">
-                        <?= $language::get('ac_help_guidance_1') ?> <strong><?= $language::get('ac_ready_stock') ?></strong> <?= $language::get('ac_help_guidance_2') ?>
+                        Admin vouchers bypass all balance checks. Created codes remain in <strong>Ready (Stock)</strong> status indefinitely until redeemed by end-users in the Activation Portal.
                     </div>
                 </div>
             </div>
@@ -378,29 +461,29 @@ $rResellers = $rResellers ?? [];
 <!-- Results Card -->
 <div id="admin-results-card" class="card shadow-sm border-0 d-none mt-4">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-3">
-        <h5 class="text-white mb-0"><i class="ti tabler-circle-check me-2"></i><?= $language::get('ac_active_codes_generated') ?></h5>
+        <h5 class="text-white mb-0"><i class="ti tabler-circle-check me-2"></i>Active Codes Generated!</h5>
         <button type="button" class="btn btn-sm btn-light" id="btn-copy-all-admin">
-            <i class="ti tabler-copy me-1"></i><?= $language::get('ac_copy_all_codes') ?>
+            <i class="ti tabler-copy me-1"></i>Copy All Codes
         </button>
     </div>
     <div class="card-body p-4">
         <div class="alert alert-primary d-flex align-items-center justify-content-between mb-4">
             <div>
-                <strong><?= $language::get('ac_batch') ?>:</strong> <span class="font-monospace fw-bold" id="admin-res-batch"></span>
+                <strong>Batch:</strong> <span class="font-monospace fw-bold" id="admin-res-batch"></span>
                 <span class="mx-2">•</span>
-                <strong><?= $language::get('ac_count') ?>:</strong> <span class="fw-bold" id="admin-res-count"></span>
+                <strong>Count:</strong> <span class="fw-bold" id="admin-res-count"></span>
             </div>
-            <a href="active_codes_batch" class="btn btn-sm btn-primary"><?= $language::get('ac_open_batch_manager') ?></a>
+            <a href="active_codes_batch" class="btn btn-sm btn-primary">Open Batch Manager</a>
         </div>
         <div class="table-responsive">
             <table class="table table-bordered table-hover">
                 <thead class="table-light">
                     <tr>
                         <th style="width: 50px;">#</th>
-                        <th><?= $language::get('ac_activation_code') ?></th>
-                        <th><?= $language::get('username') ?></th>
-                        <th><?= $language::get('password') ?></th>
-                        <th><?= $language::get('status') ?></th>
+                        <th>Activation Code</th>
+                        <th>Username</th>
+                        <th>Password</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody id="admin-res-table"></tbody>
@@ -416,11 +499,25 @@ renderUnifiedLayoutFooter('admin');
 <script>
 (function($) {
     'use strict';
+
+    function escHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"']/g, function(c) {
+            return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[c];
+        });
+    }
+
     $(function() {
         let generatedAdminCodes = [];
 
+        if ($.fn.select2) {
+            $('#created_by, #category_template_id, #forced_country').select2({
+                width: '100%'
+            });
+        }
+
     function updateLivePreview() {
-        const qty = jQuery('#num_codes').val() || 1;
+        const qty = parseInt(jQuery('#num_codes').val(), 10) || 1;
         jQuery('#preview-qty-pill').text(`${qty} Voucher${qty > 1 ? 's' : ''}`);
 
         const ownerText = jQuery('#created_by option:selected').text().split('(')[0].trim();
@@ -429,17 +526,65 @@ renderUnifiedLayoutFooter('admin');
         const pkgText = jQuery('#package_id option:selected').text().trim();
         jQuery('#preview-package-name').text(pkgText && !pkgText.startsWith('--') ? pkgText : '-- Not Selected --');
 
+        const customUser = (jQuery('#streaming_username').val() || '').trim();
+
+        if (qty === 1) {
+            jQuery('#streaming-cred-fields').removeClass('d-none');
+            jQuery('#bulk-cred-notice').addClass('d-none');
+            jQuery('#streaming_username, #streaming_password').prop('disabled', false);
+            if (customUser) {
+                jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-success').html('<i class="ti tabler-check me-1"></i>Custom Credentials');
+                jQuery('#preview-username-val').text(customUser);
+            } else {
+                jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-primary').html('<i class="ti tabler-sparkles me-1"></i>Auto-Generated');
+                jQuery('#preview-username-val').text('Auto-Generated (ac_...)');
+            }
+        } else {
+            jQuery('#streaming-cred-fields').addClass('d-none');
+            jQuery('#bulk-cred-notice').removeClass('d-none');
+            jQuery('#streaming_username, #streaming_password').prop('disabled', true);
+            jQuery('#streaming-mode-badge').attr('class', 'badge bg-label-secondary').html('<i class="ti tabler-layers-linked me-1"></i>Bulk Auto-Provision');
+            jQuery('#preview-username-val').text(`Unique per voucher (${qty} accounts)`);
+        }
+
+        const countryText = jQuery('#forced_country option:selected').text().trim();
+        jQuery('#preview-country-val').text(countryText || 'Off');
+
         const format = jQuery('#code_format').val();
         const length = jQuery('#code_length').val() || 10;
         const fmtTitle = format === 'numeric' ? 'Numeric PIN' : 'Alphanumeric';
         jQuery('#preview-format-val').text(`${fmtTitle} (${length} chars)`);
     }
 
-    jQuery('#num_codes, #created_by, #package_id, #code_format, #code_length').on('change input', updateLivePreview);
+    jQuery('#num_codes, #created_by, #package_id, #code_format, #code_length, #forced_country, #streaming_username').on('change input', updateLivePreview);
+
+    jQuery('#btn-rand-username').on('click', function() {
+        const rand = Math.random().toString(36).substring(2, 9);
+        jQuery('#streaming_username').val('ac_' + rand).trigger('input');
+    });
+
+    jQuery('#btn-rand-password').on('click', function() {
+        const chars = '23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz!@#$%';
+        let pass = '';
+        for (let i = 0; i < 10; i++) {
+            pass += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        jQuery('#streaming_password').val(pass);
+    });
 
     jQuery('.qty-pill').on('click', function() {
         jQuery('#num_codes').val(jQuery(this).data('qty'));
         updateLivePreview();
+    });
+
+    jQuery('#admin-active-code-form').on('reset', function() {
+        setTimeout(function() {
+            if ($.fn.select2) {
+                $('#created_by, #category_template_id, #forced_country').trigger('change');
+            }
+            updateLivePreview();
+            updateBouquetCounts();
+        }, 10);
     });
 
     updateLivePreview();
@@ -476,6 +621,33 @@ renderUnifiedLayoutFooter('admin');
     jQuery(document).on('change', '.bq-checkbox', function() {
         updateBouquetCounts();
         applyBouquetFilter();
+    });
+
+    // Auto-select bouquets & forced country based on chosen package
+    jQuery('#package_id').on('change', function() {
+        const opt = jQuery(this).find('option:selected');
+        const bqRaw = opt.data('bouquets');
+        if (bqRaw !== undefined && bqRaw !== null && bqRaw !== '') {
+            let pkgBqs = [];
+            try {
+                pkgBqs = typeof bqRaw === 'string' ? JSON.parse(bqRaw) : bqRaw;
+            } catch (e) {
+                pkgBqs = [];
+            }
+            if (Array.isArray(pkgBqs) && pkgBqs.length > 0) {
+                const bqIds = pkgBqs.map(Number);
+                jQuery('.bq-checkbox').each(function() {
+                    const cid = parseInt(this.value, 10);
+                    this.checked = bqIds.includes(cid);
+                });
+                updateBouquetCounts();
+                applyBouquetFilter();
+            }
+        }
+        const pkgCountry = opt.data('country');
+        if (pkgCountry !== undefined) {
+            jQuery('#forced_country').val(pkgCountry || '').trigger('change');
+        }
     });
 
     // Select All
@@ -597,9 +769,9 @@ renderUnifiedLayoutFooter('admin');
                 html += `
                     <tr>
                         <td>${idx + 1}</td>
-                        <td><code class="fw-bold font-monospace text-primary fs-6">${c.code}</code></td>
-                        <td class="font-monospace">${c.username}</td>
-                        <td class="font-monospace">${c.password}</td>
+                        <td><code class="fw-bold font-monospace text-primary fs-6">${escHtml(c.code)}</code></td>
+                        <td class="font-monospace">${escHtml(c.username)}</td>
+                        <td class="font-monospace">${escHtml(c.password)}</td>
                         <td><span class="badge bg-label-success badge-pulse">Ready (Stock)</span></td>
                     </tr>
                 `;

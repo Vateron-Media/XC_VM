@@ -11,6 +11,7 @@ use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Stream\ConnectionTracker;
+use XcVm\Domain\Stream\CategoryTemplateService;
 use XcVm\Domain\User\UserRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
 
@@ -249,6 +250,19 @@ class LineService {
 			}
 
 			$rArray['allowed_outputs'] = '[' . implode(',', array_map('intval', $rOutputs)) . ']';
+
+			if (isset($rData['category_template_id'])) {
+				if ($rData['category_template_id'] === '0' || $rData['category_template_id'] === 'none') {
+					$rArray['custom_data'] = null;
+				} elseif (intval($rData['category_template_id']) > 0) {
+					$customDataObj = CategoryTemplateService::buildCustomData(intval($rData['category_template_id']));
+					$rArray['custom_data'] = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
+				}
+			} elseif (isset($rData['custom_data'])) {
+				$rArray['custom_data'] = ((string) $rData['custom_data'] !== '')
+					? (is_array($rData['custom_data']) ? json_encode($rData['custom_data'], JSON_UNESCAPED_UNICODE) : $rData['custom_data'])
+					: null;
+			}
 
 			$rEditID = (isset($rData['edit']) ? intval($rData['edit']) : null);
 

@@ -163,12 +163,58 @@ class ResellerRestApiController {
 				case 'adjust_credits':
 					echo json_encode(ResellerAPIWrapper::adjustCredits($rData['id'], $rData['credits'], ($rData['note'] ?: '')));
 					break;
+				case 'get_active_codes':
+					echo json_encode(ResellerAPIWrapper::getActiveCodes($rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
+					break;
+				case 'get_active_code':
+					echo json_encode(ResellerAPIWrapper::getActiveCode($rData['id'] ?? RequestManager::get('code') ?? 0));
+					break;
+				case 'generate_active_codes':
+				case 'create_active_code':
+					echo json_encode(ResellerAPIWrapper::generateActiveCodes(RequestManager::getAll()));
+					break;
+				case 'edit_active_code':
+					$rID = $rData['id'] ?? 0;
+					unset($rData['id']);
+					echo json_encode(ResellerAPIWrapper::editActiveCode($rID, $rData));
+					break;
+				case 'delete_active_code':
+					echo json_encode(ResellerAPIWrapper::deleteActiveCode($rData['id'] ?? 0));
+					break;
+				case 'disable_active_code':
+					echo json_encode(ResellerAPIWrapper::disableActiveCode($rData['id'] ?? 0));
+					break;
+				case 'enable_active_code':
+					echo json_encode(ResellerAPIWrapper::enableActiveCode($rData['id'] ?? 0));
+					break;
+				case 'reset_active_code_device':
+					echo json_encode(ResellerAPIWrapper::resetActiveCodeDevice($rData['id'] ?? RequestManager::get('code') ?? 0));
+					break;
+				case 'mass_active_codes':
+					echo json_encode(ResellerAPIWrapper::massActiveCodes($rData['sub_action'] ?? $rData['action_type'] ?? '', $rData['ids'] ?? [], $rData));
+					break;
+				case 'get_active_codes_batches':
+					echo json_encode(ResellerAPIWrapper::getActiveCodesBatches($rData['batch_name'] ?? null));
+					break;
+				case 'export_active_code_batch':
+					echo json_encode(ResellerAPIWrapper::exportActiveCodeBatch($rData['batch_name'] ?? '', $rData['format'] ?? 'json'));
+					break;
+				case 'check_active_code':
+					echo json_encode(ResellerAPIWrapper::checkActiveCode($rData['code'] ?? RequestManager::get('code') ?? ''));
+					break;
 				default:
 					echo json_encode(['status' => 'STATUS_FAILURE', 'error' => 'Invalid action.']);
 					break;
 			}
 		} else {
 			echo json_encode(['status' => 'STATUS_FAILURE', 'error' => 'Invalid API key.']);
+		}
+	}
+
+	public function shutdown() {
+		global $db;
+		if (is_object($db)) {
+			$db->close_mysql();
 		}
 	}
 }

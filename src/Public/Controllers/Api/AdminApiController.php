@@ -622,6 +622,45 @@ class AdminApiController {
 				case 'reload_cache':
 					echo json_encode(AdminAPIWrapper::reloadCache());
 					break;
+				case 'get_active_codes':
+					echo json_encode(AdminAPIWrapper::getActiveCodes($rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
+					break;
+				case 'get_active_code':
+					echo json_encode(AdminAPIWrapper::getActiveCode($rData['id'] ?? $rData['code'] ?? 0));
+					break;
+				case 'generate_active_codes':
+				case 'create_active_code':
+					echo json_encode(AdminAPIWrapper::generateActiveCodes($rData));
+					break;
+				case 'edit_active_code':
+					$rID = $rData['id'] ?? 0;
+					unset($rData['id']);
+					echo json_encode(AdminAPIWrapper::editActiveCode($rID, $rData));
+					break;
+				case 'delete_active_code':
+					echo json_encode(AdminAPIWrapper::deleteActiveCode($rData['id'] ?? 0));
+					break;
+				case 'disable_active_code':
+					echo json_encode(AdminAPIWrapper::disableActiveCode($rData['id'] ?? 0));
+					break;
+				case 'enable_active_code':
+					echo json_encode(AdminAPIWrapper::enableActiveCode($rData['id'] ?? 0));
+					break;
+				case 'reset_active_code_device':
+					echo json_encode(AdminAPIWrapper::resetActiveCodeDevice($rData['id'] ?? $rData['code'] ?? 0));
+					break;
+				case 'mass_active_codes':
+					echo json_encode(AdminAPIWrapper::massActiveCodes($rData['sub_action'] ?? $rData['action_type'] ?? '', $rData['ids'] ?? [], $rData));
+					break;
+				case 'get_active_codes_batches':
+					echo json_encode(AdminAPIWrapper::getActiveCodesBatches($rData['batch_name'] ?? null));
+					break;
+				case 'export_active_code_batch':
+					echo json_encode(AdminAPIWrapper::exportActiveCodeBatch($rData['batch_name'] ?? '', $rData['format'] ?? 'json'));
+					break;
+				case 'check_active_code':
+					echo json_encode(AdminAPIWrapper::checkActiveCode($rData['code'] ?? ''));
+					break;
 				default:
 					// Module-owned serverSide tables (TableRegistry) are exposed generically
 					// by their id, so a module table needs no hard-coded case here.
@@ -634,6 +673,13 @@ class AdminApiController {
 			}
 		} else {
 			echo json_encode(['status' => 'STATUS_FAILURE', 'error' => 'Invalid API key.']);
+		}
+	}
+
+	public function shutdown() {
+		global $db;
+		if (is_object($db)) {
+			$db->close_mysql();
 		}
 	}
 }

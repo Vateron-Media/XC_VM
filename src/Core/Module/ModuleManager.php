@@ -74,7 +74,7 @@ class ModuleManager {
 
 	/** @return object|null Database instance from the container, or null if unavailable. */
 	private function getDb(): ?object {
-		if ($this->container instanceof \XcVm\Core\Container\ServiceContainer && $this->container->has('db')) {
+		if ($this->container instanceof ServiceContainer && $this->container->has('db')) {
 			return $this->container->get('db');
 		}
 		return null;
@@ -745,7 +745,7 @@ class ModuleManager {
 		if ($dependents !== []) {
 			throw new \RuntimeException(
 				"Cannot uninstall '{$name}': still required by " . implode(', ', $dependents)
-				. '. Uninstall ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
+					. '. Uninstall ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
 			);
 		}
 
@@ -790,7 +790,7 @@ class ModuleManager {
 		if ($dependents !== []) {
 			throw new \RuntimeException(
 				"Cannot delete '{$name}': still required by " . implode(', ', $dependents)
-				. '. Delete ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
+					. '. Delete ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
 			);
 		}
 
@@ -1137,7 +1137,7 @@ class ModuleManager {
 			if ($dependents !== []) {
 				throw new \RuntimeException(
 					"Cannot disable '{$name}': still required by " . implode(', ', $dependents)
-					. '. Disable ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
+						. '. Disable ' . (count($dependents) === 1 ? 'it' : 'them') . ' first.'
 				);
 			}
 		}
@@ -1419,9 +1419,9 @@ class ModuleManager {
 			$this->installModule($slug, $resolvedVersion);
 
 			EventDispatcher::dispatch(new PackageInstalledEvent(
-				slug:        $result['module'],
-				version:     $resolvedVersion,
-				path:        $modulePath,
+				slug: $result['module'],
+				version: $resolvedVersion,
+				path: $modulePath,
 				installedAt: time(),
 			));
 
@@ -1446,10 +1446,10 @@ class ModuleManager {
 			$restored = $this->restoreModuleBackup($slug, $targetDir, $backupDir, $prevVersion);
 			throw new \RuntimeException(
 				"Platform install of '{$slug}' failed"
-				. ($restored
-					? ' — rolled back to previous version' . ($prevVersion ? " {$prevVersion}" : '')
-					: '')
-				. ': ' . $e->getMessage(),
+					. ($restored
+						? ' — rolled back to previous version' . ($prevVersion ? " {$prevVersion}" : '')
+						: '')
+					. ': ' . $e->getMessage(),
 				0,
 				$e
 			);
@@ -1663,9 +1663,9 @@ class ModuleManager {
 		$result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
 
 		EventDispatcher::dispatch(new PackageInstalledEvent(
-			slug:        $result['module'],
-			version:     $result['version'],
-			path:        $result['path'],
+			slug: $result['module'],
+			version: $result['version'],
+			path: $result['path'],
 			installedAt: time(),
 		));
 
@@ -1880,7 +1880,7 @@ class ModuleManager {
 		}
 
 		$module = $loader->getModule($name);
-		if (!$module instanceof \XcVm\Core\Module\ModuleInterface) {
+		if (!$module instanceof ModuleInterface) {
 			throw new ModuleNotFoundException('Module instance is not available: ' . $name);
 		}
 

@@ -2,23 +2,114 @@
 
 namespace XcVm\Public\Controllers\Admin\Ajax;
 
+use XcVm\Core\Auth\AuthRepository;
+use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Line\ActiveCodeService;
+use XcVm\Domain\Line\PackageService;
 
 /**
  * ActiveCodeAjaxController — Admin-ajax controller for Activation Codes.
  *
  * Endpoints:
+ * - action=active_code_details
  * - action=generate_active_codes
  * - action=active_codes_batch_action
  * - action=active_codes_export_txt
  *
- * (action=active_code_details renders an HTML fragment, so it lives in its own
- * {@see ActiveCodeDetailsController}.)
- *
  * @package XC_VM_Public_Controllers_Admin
  */
 class ActiveCodeAjaxController extends BaseAjaxController {
+	/**
+	 * action=active_code_details — Get full voucher & companion line details for modal.
+	 */
+	public function details(): never {
+		$this->requireXhr();
+
+		global $db;
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		if (!$codeId) {
+			$this->fail(['message' => 'Missing code ID.']);
+		}
+
+		$code = $db->fetchOne(
+			"SELECT `activation_codes`.*, `lines`.`username` as `sub_username`, `lines`.`password` as `sub_password`,
+                    `lines`.`exp_date` as `sub_exp_date`, `lines`.`max_connections` as `line_max_conn`
+             FROM `activation_codes`
+             LEFT JOIN `lines` ON `lines`.`id` = `activation_codes`.`subscriber_id`
+             WHERE `activation_codes`.`id` = ? LIMIT 1;",
+			$codeId
+		);
+
+		if (!$code) {
+			$this->fail(['message' => 'Activation code not found.']);
+		}
+
+		$package = PackageService::getById((int) $code['package_id']);
+
+		$isHttps = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+			|| (!empty($_SERVER['REQUEST_SCHEME']) && strtolower($_SERVER['REQUEST_SCHEME']) === 'https')
+			|| (isset($_SERVER['SERVER_PORT']) && in_array((int) $_SERVER['SERVER_PORT'], [443, 3434], true))
+			|| (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
+			|| (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on');
+		$currentScheme = $isHttps ? 'https' : 'http';
+
+		if (!empty($code['dns_base'])) {
+			$portalUrl = rtrim($code['dns_base'], '/');
+			if (!preg_match('#^https?://#i', $portalUrl)) {
+				$portalUrl = "{$currentScheme}://{$portalUrl}";
+			}
+		} elseif (!empty($_SERVER['HTTP_HOST'])) {
+			$portalUrl = "{$currentScheme}://{$_SERVER['HTTP_HOST']}";
+		} else {
+			$portalUrl = rtrim(DomainResolver::resolve(SERVER_ID, $isHttps), '/');
+		}
+		$portalParsed = parse_url($portalUrl);
+
+		$m3uHls = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=hls";
+		$m3uTs  = "{$portalUrl}/get.php?username={$code['sub_username']}&password={$code['sub_password']}&type=m3u_plus&output=ts";
+
+		$portalCode = AuthRepository::getActiveCodePortalCode();
+		$playerCode = AuthRepository::getWebPlayerCode();
+
+		$subscriberPortalUrl = $portalCode ? "{$portalUrl}/{$portalCode}/" : "{$portalUrl}/portal";
+		$directActivateUrl   = "{$subscriberPortalUrl}?code=" . urlencode((string) $code['activation_code']);
+		$webPlayerUrl        = $playerCode ? "{$portalUrl}/{$playerCode}/" : null;
+
+		$this->ok([
+			'data' => [
+				'id' => (int) $code['id'],
+				'code' => $code['activation_code'],
+				'batch_name' => $code['batch_name'],
+				'status' => (int) $code['status'],
+				'status_text' => ($code['status'] == 1) ? 'Ready (Stock)' : (($code['status'] == 2) ? 'Active' : 'Disabled'),
+				'package_id' => (int) $code['package_id'],
+				'package_name' => $package['package_name'] ?? 'Custom Package',
+				'is_trial' => (bool) $code['is_trial'],
+				'max_connections' => (int) ($code['line_max_conn'] ?: $code['max_connections']),
+				'exp_date' => $code['sub_exp_date'] ? date('Y-m-d H:i:s', (int) $code['sub_exp_date']) : 'Frozen (Stock)',
+				'exp_date_input' => $code['sub_exp_date'] ? date('Y-m-d\TH:i', (int) $code['sub_exp_date']) : '',
+				'has_line' => !empty($code['subscriber_id']),
+				'activated_at' => $code['activated_at'] ? date('Y-m-d H:i:s', (int) $code['activated_at']) : 'Never',
+				'created_at' => $code['created_at'] ? date('Y-m-d H:i:s', (int) $code['created_at']) : '-',
+				'mac' => $code['mac'] ?: 'None',
+				'raw_mac' => $code['mac'] ?? '',
+				'device_id' => $code['device_id'] ?: 'None',
+				'raw_device_id' => $code['device_id'] ?? '',
+				'username' => $code['sub_username'],
+				'password' => $code['sub_password'],
+				'server' => $portalParsed['host'] ?? 'localhost',
+				'port' => $portalParsed['port'] ?? (isset($_SERVER['SERVER_PORT']) ? (int) $_SERVER['SERVER_PORT'] : 80),
+				'portal_url' => $portalUrl,
+				'activation_portal_url' => $subscriberPortalUrl,
+				'direct_activate_url' => $directActivateUrl,
+				'web_player_url' => $webPlayerUrl,
+				'm3u_hls' => $m3uHls,
+				'm3u_ts' => $m3uTs,
+			]
+		]);
+	}
+
 	/**
 	 * action=generate_active_codes — Generate active codes batch (Admin).
 	 */
@@ -96,5 +187,35 @@ class ActiveCodeAjaxController extends BaseAjaxController {
 		header('Content-Length: ' . strlen($content));
 		echo $content;
 		exit();
+	}
+
+	/**
+	 * action=active_code_edit — Update active code and companion line.
+	 */
+	public function edit(): never {
+		$this->requireXhr();
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		$data = RequestManager::getAll();
+		$res = ActiveCodeService::updateCode($codeId, $data, $GLOBALS['rUserInfo'] ?? [], true);
+		if ($res['status'] === 'SUCCESS') {
+			$this->ok(['message' => $res['message']]);
+		}
+
+		$this->fail(['message' => $res['message'] ?? 'Failed to update active code.']);
+	}
+
+	/**
+	 * action=active_code_delete — Delete single active code.
+	 */
+	public function delete(): never {
+		$this->requireXhr();
+		$codeId = intval(RequestManager::get('id') ?? 0);
+		$refund = !empty(RequestManager::get('refund_credits'));
+		$res = ActiveCodeService::deleteCode($codeId, $GLOBALS['rUserInfo'] ?? [], true, $refund);
+		if ($res['status'] === 'SUCCESS') {
+			$this->ok(['message' => $res['message']]);
+		}
+
+		$this->fail(['message' => $res['message'] ?? 'Failed to delete active code.']);
 	}
 }

@@ -15,8 +15,11 @@ $rCount = static fn($rJson): string => number_format(count(json_decode((string) 
 ?>
 
 <div class="card">
-    <div class="card-header">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="card-title mb-0"><?= $language::get('bouquets'); ?></h5>
+        <?php if ($rCanEdit): ?>
+            <a href="bouquet" class="btn btn-sm btn-primary"><i class="icon-base ti tabler-plus me-1"></i><?= $language::get('add_bouquet'); ?></a>
+        <?php endif; ?>
     </div>
     <div class="card-datatable table-responsive">
         <table id="bouquets-table" class="table" style="width:100%">

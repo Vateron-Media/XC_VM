@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Device\MagService;
+use XcVm\Domain\Stream\CategoryTemplateService;
 
 /**
  * Контроллер редактирования MAG-устройства (admin/mag.php)
@@ -33,7 +34,12 @@ class MagController extends BaseAdminController {
 			$rDevice['user'] = ['bouquet' => []];
 		}
 
+		$categoryTemplates = CategoryTemplateService::getTemplatesForUser(
+			$GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []),
+			true
+		);
+
 		$this->setTitle('MAG Device');
-		$this->render('mag', ['rDevice' => $rDevice]);
+		$this->render('mag', ['rDevice' => $rDevice, 'categoryTemplates' => $categoryTemplates]);
 	}
 }

@@ -25,7 +25,10 @@ $rTabs = [
     <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
         <h5 class="card-title mb-0"><?= $language::get('categories'); ?></h5>
         <?php if ($rCanEdit): ?>
-            <button type="button" class="btn btn-sm btn-label-primary" id="import-tmdb"><i class="icon-base ti tabler-download me-1"></i>Import TMDB Categories</button>
+            <div class="d-flex gap-2">
+                <a href="stream_category" class="btn btn-sm btn-primary"><i class="icon-base ti tabler-plus me-1"></i><?= $language::get('add_category'); ?></a>
+                <button type="button" class="btn btn-sm btn-label-primary" id="import-tmdb"><i class="icon-base ti tabler-download me-1"></i>Import TMDB Categories</button>
+            </div>
         <?php endif; ?>
     </div>
     <div class="card-body">
@@ -38,7 +41,7 @@ $rTabs = [
                 </li>
             <?php endforeach; ?>
         </ul>
-        <div class="tab-content p-0">
+        <div class="tab-content p-0 border-0">
             <?php foreach ($rTabs as $tabID => $rTab): ?>
                 <div class="tab-pane fade <?= $tabID === 1 ? 'show active' : ''; ?>" id="category-order-<?= $tabID; ?>" role="tabpanel">
                     <form method="POST" id="stream_categories_form-<?= $tabID; ?>">

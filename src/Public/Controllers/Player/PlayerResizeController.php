@@ -20,18 +20,27 @@ use XcVm\Core\Util\ImageResizeService;
 
 class PlayerResizeController extends BasePlayerController {
 	public function index() {
-		session_write_close();
+		if (session_status() === PHP_SESSION_ACTIVE) {
+			session_write_close();
+		}
 
 		if (!isset($GLOBALS['rUserInfo']) || !$GLOBALS['rUserInfo']['id']) {
 			exit();
 		}
 
-		if (!defined('IMAGES_PATH')) {
-			define('IMAGES_PATH', MAIN_HOME . 'Public/assets/player/images/thumbs/');
+		$cacheDir = defined('IMAGES_PATH')
+			? IMAGES_PATH . 'player/'
+			: (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'storage/images/player/';
+
+		if (!is_dir($cacheDir)) {
+			@mkdir($cacheDir, 0775, true);
 		}
+
+		$placeholder = (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player/images/placeholder.png';
+
 		ImageResizeService::serve([
-			'cacheDir'    => IMAGES_PATH,
-			'placeholder' => MAIN_HOME . 'Public/assets/player/images/placeholder.png',
+			'cacheDir'    => $cacheDir,
+			'placeholder' => file_exists($placeholder) ? $placeholder : null,
 			'extraParams' => true,
 		]);
 	}

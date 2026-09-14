@@ -105,6 +105,8 @@ if (!class_exists('XcNewuiMenuBuilder')) {
             'useragent'       => 'useragents',
             'ticket'          => 'tickets',
             'ticket_view'     => 'tickets',
+            'line_activity'   => 'lines',
+            'line_ips'        => 'lines',
         ];
 
         public function __construct(
@@ -174,8 +176,16 @@ if (!class_exists('XcNewuiMenuBuilder')) {
             if ($title === '') {
                 return '';
             }
+            $displayTitle = $title;
+            if ($this->language !== '' && class_exists($this->language)) {
+                $langKey = strtolower(str_replace(' ', '_', $title));
+                $trans = ($this->language)::get($langKey);
+                if ($trans !== $langKey && !empty($trans)) {
+                    $displayTitle = $trans;
+                }
+            }
             return '<li class="menu-header small"><span class="menu-header-text">'
-                . htmlspecialchars($title, ENT_QUOTES) . '</span></li>';
+                . htmlspecialchars($displayTitle, ENT_QUOTES) . '</span></li>';
         }
 
         /**
@@ -254,9 +264,11 @@ $_menu = new XcNewuiMenuBuilder($rMobile, $rSettings, (string) $language, AdminH
  * automatically lands in a trailing "More" section, so nothing is lost.
  */
 $_menuSections = [
-    ['title' => '',               'keys' => ['dashboard']],
-    ['title' => 'Catalog',        'keys' => ['users', 'content', 'vod', 'distribution']],
-    ['title' => 'Infrastructure', 'keys' => ['servers', 'logs', 'management.service_setup', 'management.access_codes', 'management.security', 'management.tools', 'management.tickets']],
+    ['title' => '',                   'keys' => ['dashboard']],
+    ['title' => 'Users',              'keys' => ['lines', 'active_codes', 'mag', 'e2', 'reseller']],
+    ['title' => 'Catalog',            'keys' => ['content', 'vod', 'distribution']],
+    ['title' => 'Category Templates', 'keys' => ['category_templates']],
+    ['title' => 'Infrastructure',     'keys' => ['servers', 'logs', 'management.service_setup', 'management.access_codes', 'management.security', 'management.tools', 'management.tickets']],
 ];
 ?>
 <!-- Vertical menu -->

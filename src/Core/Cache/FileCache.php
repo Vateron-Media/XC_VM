@@ -305,4 +305,24 @@ class FileCache implements CacheInterface {
 	public static function getCache(string $key, ?int $maxAge = null) {
 		return self::getDefault()->get($key, $maxAge);
 	}
+
+	/**
+	 * Static delete — drop-in for deleting cached entries.
+	 *
+	 * @param string $key Cache key
+	 * @return bool
+	 */
+	public static function delCache(string $key) {
+		return self::getDefault()->delete($key);
+	}
+
+	/**
+	 * Alias for delCache.
+	 *
+	 * @param string $key Cache key
+	 * @return bool
+	 */
+	public static function deleteCache(string $key) {
+		return self::getDefault()->delete($key);
+	}
 }

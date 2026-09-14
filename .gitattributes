@@ -11,3 +11,4 @@ src/bin/redis/redis-server                     -text -diff
 src/bin/guess                                  -text -diff
 src/bin/yt-dlp                                 -text -diff
 src/Public/assets/admin/videos/login-bg.mp4    -text -diff
+src/Public/assets/player_v2/vendor/**          -text -diff -merge linguist-vendored

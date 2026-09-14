@@ -256,11 +256,11 @@ class ModuleLoader {
 				$this->registerEventSubscribers($module, $container);
 			}
 
-			if ($pipeline instanceof \XcVm\Core\Http\Pipeline\StreamPipeline) {
+			if ($pipeline instanceof StreamPipeline) {
 				$this->registerStreamMiddleware($module, $pipeline);
 			}
 
-			if ($router instanceof \XcVm\Core\Http\Router) {
+			if ($router instanceof Router) {
 				$module->registerRoutes($router);
 			}
 
@@ -701,7 +701,7 @@ class ModuleLoader {
 					if (!isset($discovered[$dependency])) {
 						error_log(
 							"ModuleLoader: skipping module '{$name}' — required dependency "
-							. "'{$dependency}' is not available (missing, disabled, or wrong environment)"
+								. "'{$dependency}' is not available (missing, disabled, or wrong environment)"
 						);
 						unset($discovered[$name]);
 						$removed = true;

@@ -5,6 +5,7 @@ namespace XcVm\Public\Controllers\Admin;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Stream\CategoryTemplateService;
 use XcVm\Domain\User\UserRepository;
 
 /**
@@ -57,8 +58,15 @@ class LineController extends BaseAdminController {
 		}
 
 		$rRegisteredUsers = UserRepository::getRegisteredUsers();
+		$categoryTemplates = CategoryTemplateService::getTemplatesForUser(
+			$GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []),
+			true
+		);
 
-		$data = ['rRegisteredUsers' => $rRegisteredUsers];
+		$data = [
+			'rRegisteredUsers' => $rRegisteredUsers,
+			'categoryTemplates' => $categoryTemplates,
+		];
 		if ($rLine) {
 			$data['rLine'] = $rLine;
 		}

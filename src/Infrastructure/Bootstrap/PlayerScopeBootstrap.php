@@ -72,7 +72,6 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 		}
 
 		// $_PAGE is used by header.php and footer.php for active nav highlighting
-		// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- global $_PAGE consumed by header.php/footer.php templates
 		$_PAGE = defined('PAGE_NAME') ? PAGE_NAME : 'index';
 
 		$rServers = ServerRepository::getAll();
@@ -86,22 +85,64 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 
 		// Player auth verification
 		if (isset($_SESSION['phash'])) {
-			$rUserInfo = UserRepository::getUserInfo($_SESSION['phash'], null, null, true);
+			if (!empty($_SESSION['is_external_xc']) && !empty($_SESSION['external_xc'])) {
+				$ext = $_SESSION['external_xc'];
+				$uInfo = $ext['user_info'] ?? [];
+				$expDate = !empty($uInfo['exp_date']) ? (int) $uInfo['exp_date'] : null;
 
-			if (
-				!$rUserInfo
-				|| $_SESSION['pverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])
-				|| (!is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time())
-				|| $rUserInfo['admin_enabled'] == 0
-				|| $rUserInfo['enabled'] == 0
-			) {
-				SessionManager::clearContext('player');
-				$code = $_SERVER['XC_CODE'] ?? '';
-				header('Location: ' . ($code ? '/' . $code . '/login' : 'login'));
-				exit();
+				if (!is_null($expDate) && $expDate > 0 && $expDate <= time()) {
+					if (class_exists(PlayerLogoutController::class)) {
+						PlayerLogoutController::purgePlayerSession();
+					} else {
+						SessionManager::clearContext('player');
+						unset($_SESSION['is_external_xc'], $_SESSION['external_xc']);
+					}
+					$code = $_SERVER['XC_CODE'] ?? '';
+					header('Location: ' . ($code ? '/' . $code . '/login' : 'login'));
+					exit();
+				}
+
+				$rUserInfo = [
+					'id' => 999999,
+					'username' => $ext['username'],
+					'password' => $ext['password'],
+					'exp_date' => $expDate,
+					'admin_enabled' => 1,
+					'enabled' => 1,
+					'is_external_xc' => true,
+					'external_server' => $ext['server'],
+					'user_info' => $uInfo,
+					'server_info' => $ext['server_info'] ?? [],
+					'allowed_outputs' => [1, 2, 3],
+					'bouquet' => [],
+					'category_ids' => [],
+					'live_ids' => [],
+					'vod_ids' => [],
+					'series_ids' => [],
+					'radio_ids' => [],
+				];
+			} else {
+				$rUserInfo = UserRepository::getUserInfo($_SESSION['phash'], null, null, true);
+
+				if (
+					!$rUserInfo
+					|| $_SESSION['pverify'] != md5($rUserInfo['username'] . '||' . $rUserInfo['password'])
+					|| (!is_null($rUserInfo['exp_date']) && $rUserInfo['exp_date'] <= time())
+					|| $rUserInfo['admin_enabled'] == 0
+					|| $rUserInfo['enabled'] == 0
+				) {
+					if (class_exists(PlayerLogoutController::class)) {
+						PlayerLogoutController::purgePlayerSession();
+					} else {
+						SessionManager::clearContext('player');
+					}
+					$code = $_SERVER['XC_CODE'] ?? '';
+					header('Location: ' . ($code ? '/' . $code . '/login' : 'login'));
+					exit();
+				}
+
+				sort($rUserInfo['bouquet']);
 			}
-
-			sort($rUserInfo['bouquet']);
 		} else {
 			$code = $_SERVER['XC_CODE'] ?? '';
 			header('Location: ' . ($code ? '/' . $code . '/login' : 'login'));

@@ -66,7 +66,7 @@ class MaxMindCronJob implements CommandInterface {
 		$updater   = MaxMindUpdater::fromSettings($rSettings);
 		$rReleaseUpdater = new GeoLiteReleaseUpdater();
 
-		if ($updater instanceof \XcVm\Core\GeoIP\MaxMindUpdater) {
+		if ($updater instanceof MaxMindUpdater) {
 			echo 'Updating MaxMind databases...' . "\n";
 			$results = $updater->update($force);
 
@@ -92,7 +92,7 @@ class MaxMindCronJob implements CommandInterface {
 		// ASN lookups work without a licence. Runs on every node (each needs the mmdb
 		// locally); records geoisp_version in version.json.
 		$rEditions = json_decode((string) ($rSettings['maxmind_editions'] ?? '[]'), true) ?: [];
-		if (!$updater instanceof \XcVm\Core\GeoIP\MaxMindUpdater || !in_array('GeoIP2-ISP', $rEditions, true)) {
+		if (!$updater instanceof MaxMindUpdater || !in_array('GeoIP2-ISP', $rEditions, true)) {
 			$rReleaseUpdater->updateIsp($force);
 		}
 
