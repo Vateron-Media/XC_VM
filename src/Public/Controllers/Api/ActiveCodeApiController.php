@@ -51,15 +51,20 @@ class ActiveCodeApiController extends BaseApiController {
 
 		$allData = array_merge($_GET, $_POST, $jsonInput);
 
-		// Extract API Key from query, body, or HTTP Authorization header
-		$apiKey = trim((string) ($allData['api_key'] ?? ''));
-		if (empty($apiKey)) {
-			$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
-			if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $m)) {
-				$apiKey = trim($m[1]);
-			} elseif (!empty($_SERVER['HTTP_X_API_KEY'])) {
-				$apiKey = trim($_SERVER['HTTP_X_API_KEY']);
-			}
+		// Extract the API key from the Authorization header, the X-Api-Key header
+		// or the request body only. It is a long-lived secret, so it is never read
+		// from the query string, where it would leak into access logs, the Referer
+		// header and browser history.
+		$apiKey = '';
+		$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+		if (preg_match('/Bearer\s+(\S+)/i', $authHeader, $m)) {
+			$apiKey = trim($m[1]);
+		} elseif (!empty($_SERVER['HTTP_X_API_KEY'])) {
+			$apiKey = trim((string) $_SERVER['HTTP_X_API_KEY']);
+		} elseif (!empty($_POST['api_key'])) {
+			$apiKey = trim((string) $_POST['api_key']);
+		} elseif (!empty($jsonInput['api_key'])) {
+			$apiKey = trim((string) $jsonInput['api_key']);
 		}
 
 		$action = trim((string) ($allData['action'] ?? 'auth'));
