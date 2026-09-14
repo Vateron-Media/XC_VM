@@ -594,7 +594,7 @@ $heroBackdrop = $backdropUrl ?: $posterUrl;
             <div class="card h-100 border shadow-sm channel-card">
               <div class="position-relative overflow-hidden">
                 <img
-                  src="<?= $sim['cover'] ? $baseUrl . 'resize?url=' . urlencode($sim['cover']) . '&w=300&h=450' : $baseUrl . 'assets/img/pages/profile-banner.png' ?>"
+                  src="<?= $sim['cover'] ? htmlspecialchars($sim['cover']) : $baseUrl . 'assets/img/pages/profile-banner.png' ?>"
                   alt="<?= htmlspecialchars($sim['title']) ?>"
                   class="card-img-top object-fit-cover media-poster-ratio"
                   loading="lazy"

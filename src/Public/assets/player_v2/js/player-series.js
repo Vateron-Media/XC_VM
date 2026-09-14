@@ -411,9 +411,7 @@ window.SeriesApp = (function () {
     let html = '';
     items.forEach((s) => {
       const fav = isFavorite(s.id);
-      const posterSrc = s.cover
-        ? `${state.baseUrl}resize?url=${encodeURIComponent(s.cover)}&w=300&h=450`
-        : `${state.baseUrl}assets/img/placeholder-poster.png`;
+      const posterSrc = s.cover || `${state.baseUrl}assets/img/placeholder-poster.png`;
 
       html += `
         <div class="${colClass}">

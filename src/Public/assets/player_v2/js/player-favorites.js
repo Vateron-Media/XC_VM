@@ -285,9 +285,7 @@ window.PlayerFavorites = (function () {
 
     // Helper for movie card HTML
     const createMovieCardHtml = (item) => {
-      const posterSrc = item.cover
-        ? buildUrl(`resize?url=${encodeURIComponent(item.cover)}&w=300&h=450`)
-        : buildUrl('assets/img/pages/profile-banner.png');
+      const posterSrc = item.cover || buildUrl('assets/img/pages/profile-banner.png');
       const detailUrl = buildUrl(item.details_url || item.play_url || 'movies');
 
       return `
@@ -343,9 +341,7 @@ window.PlayerFavorites = (function () {
 
     // Helper for series card HTML
     const createSeriesCardHtml = (item) => {
-      const posterSrc = item.cover
-        ? buildUrl(`resize?url=${encodeURIComponent(item.cover)}&w=300&h=450`)
-        : buildUrl('assets/img/pages/profile-banner.png');
+      const posterSrc = item.cover || buildUrl('assets/img/pages/profile-banner.png');
       const detailUrl = buildUrl(item.details_url || 'series');
       const seasons = item.seasons_count || 1;
 

@@ -237,8 +237,8 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
         $isSeries = $item['type'] === 'series';
         $detailLink = $isSeries ? $baseUrl . 'series?id=' . (int)$item['id'] : $baseUrl . 'movie?id=' . (int)$item['id'];
         $posterUrl = !empty($item['cover'])
-            ? $baseUrl . 'resize?url=' . urlencode($item['cover']) . '&w=300&h=450'
-            : (!empty($item['backdrop']) ? $baseUrl . 'resize?url=' . urlencode($item['backdrop']) . '&w=300&h=450' : $assetsPath . 'img/pages/profile-banner.png');
+            ? $item['cover']
+            : (!empty($item['backdrop']) ? $item['backdrop'] : $assetsPath . 'img/pages/profile-banner.png');
         $rating = !empty($item['rating']) ? number_format((float)$item['rating'], 1) : null;
         $itemGenre = !empty($item['genre']) ? (is_array($item['genre']) ? implode(', ', $item['genre']) : $item['genre']) : '';
         $firstGenre = $itemGenre ? explode(',', $itemGenre)[0] : ($isSeries ? 'Series' : 'Feature');
@@ -341,7 +341,7 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
         $props = json_decode($m['movie_properties'] ?? '', true) ?: [];
         $cover = ImageUtils::validateURL($props['movie_image'] ?? '') ?: '';
         $rating = !empty($props['rating']) ? number_format((float)$props['rating'], 1) : (!empty($m['rating']) ? number_format((float)$m['rating'], 1) : null);
-        $posterUrl = $cover ? $baseUrl . 'resize?url=' . urlencode($cover) . '&w=300&h=450' : $assetsPath . 'img/pages/profile-banner.png';
+        $posterUrl = $cover ?: ($assetsPath . 'img/pages/profile-banner.png');
         $genre = !empty($props['genre']) ? (is_array($props['genre']) ? implode(', ', $props['genre']) : $props['genre']) : '';
         $primaryGenre = $genre ? explode(',', $genre)[0] : 'Feature';
         $detailUrl = $baseUrl . 'movie?id=' . (int)$m['id'];
@@ -440,7 +440,7 @@ $heroPlayUrl = $primaryHero['type'] === 'series'
       <?php foreach (array_slice($rSeries['streams'], 0, 18) as $s):
         $cover = ImageUtils::validateURL($s['cover'] ?? '') ?: '';
         $rating = !empty($s['rating']) ? number_format((float)$s['rating'], 1) : null;
-        $posterUrl = $cover ? $baseUrl . 'resize?url=' . urlencode($cover) . '&w=300&h=450' : $assetsPath . 'img/pages/profile-banner.png';
+        $posterUrl = $cover ?: ($assetsPath . 'img/pages/profile-banner.png');
         $genre = !empty($s['genre']) ? (is_array($s['genre']) ? implode(', ', $s['genre']) : $s['genre']) : '';
         $primaryGenre = $genre ? explode(',', $genre)[0] : 'Drama';
         $sData = !empty($s['seasons']) ? json_decode($s['seasons'], true) : null;

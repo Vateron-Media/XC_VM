@@ -416,9 +416,7 @@ window.MoviesApp = (function () {
     let html = '';
     items.forEach((m) => {
       const fav = isFavorite(m.id);
-      const posterSrc = m.cover
-        ? `${state.baseUrl}resize?url=${encodeURIComponent(m.cover)}&w=300&h=450`
-        : `${state.baseUrl}assets/img/placeholder-poster.png`;
+      const posterSrc = m.cover || `${state.baseUrl}assets/img/placeholder-poster.png`;
 
       html += `
         <div class="${colClass}">

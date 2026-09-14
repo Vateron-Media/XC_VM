@@ -26,14 +26,18 @@ class PlayerResizeController extends BasePlayerController
 			session_write_close();
 		}
 
-		if (!defined('IMAGES_PATH')) {
-			define('IMAGES_PATH', (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player/images/thumbs/');
+		$cacheDir = defined('IMAGES_PATH')
+			? IMAGES_PATH . 'player/'
+			: (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'storage/images/player/';
+
+		if (!is_dir($cacheDir)) {
+			@mkdir($cacheDir, 0775, true);
 		}
 
 		$placeholder = (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player/images/placeholder.png';
 
 		ImageResizeService::serve([
-			'cacheDir'    => IMAGES_PATH,
+			'cacheDir'    => $cacheDir,
 			'placeholder' => file_exists($placeholder) ? $placeholder : null,
 			'extraParams' => true,
 		]);
