@@ -12,7 +12,6 @@ use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Redis\RedisManager;
 
 /**
@@ -28,7 +27,6 @@ use XcVm\Infrastructure\Redis\RedisManager;
  */
 
 class ResellerTableRenderer {
-	use DatabaseAware;
 
 	/**
 	 * Render a reseller DataTables view for the requested type.
@@ -39,9 +37,11 @@ class ResellerTableRenderer {
 	 * @param bool       $rIsAPI       Whether the request came via the API.
 	 * @param array|null $rUserInfo    Authenticated reseller user (or null).
 	 * @param array      $rPermissions Effective permissions.
+	 * @param array      $rSettings    Panel settings.
 	 * @return void
 	 */
-	public static function render(array $rReturn, bool $rIsAPI, ?array $rUserInfo, array $rPermissions): void {
+	public static function render(array $rReturn, bool $rIsAPI, ?array $rUserInfo, array $rPermissions, array $rSettings): void {
+		global $db;
 
 		if (!isset($rUserInfo['reports'])) {
 			echo json_encode($rReturn);
@@ -57,40 +57,40 @@ class ResellerTableRenderer {
 
 		switch ($rType) {
 			case 'lines':
-				self::handleLines($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleLines($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'mags':
-				self::handleMags($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleMags($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'enigmas':
-				self::handleEnigmas($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleEnigmas($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'streams':
-				self::handleStreams($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleStreams($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'radios':
-				self::handleRadios($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleRadios($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'movies':
-				self::handleMovies($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleMovies($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'episodes':
-				self::handleEpisodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleEpisodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'line_activity':
-				self::handleLineActivity($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleLineActivity($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'live_connections':
-				self::handleLiveConnections($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleLiveConnections($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'reg_user_logs':
-				self::handleRegUserLogs($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleRegUserLogs($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'reg_users':
-				self::handleRegUsers($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleRegUsers($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 			case 'active_codes':
-				self::handleActiveCodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rStart, $rLimit);
+				self::handleActiveCodes($rReturn, $rIsAPI, $rUserInfo, $rPermissions, $rSettings, $db, $rStart, $rLimit);
 				break;
 		}
 	}
@@ -102,12 +102,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleLines(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleLines(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_line']) {
 			exit();
@@ -281,9 +282,9 @@ class ResellerTableRenderer {
 							$rStatus = 'expired';
 						}
 						$rExpUnix = $rRow['exp_date'] ? (int) $rRow['exp_date'] : 0;
-						$rExpStr = $rExpUnix ? date(SettingsManager::getString('date_format'), $rExpUnix) . ' ' . date('H:i:s', $rExpUnix) : '';
+						$rExpStr = $rExpUnix ? date($rSettings['date_format'], $rExpUnix) . ' ' . date('H:i:s', $rExpUnix) : '';
 						$rLastUnix = !empty($rRow['last_active']) ? (int) $rRow['last_active'] : 0;
-						$rLastStr = $rLastUnix ? date(SettingsManager::getString('date_format'), $rLastUnix) . ' ' . date('H:i:s', $rLastUnix) : '';
+						$rLastStr = $rLastUnix ? date($rSettings['date_format'], $rLastUnix) . ' ' . date('H:i:s', $rLastUnix) : '';
 						// Direct reports (and the reseller itself) are "owned" lines;
 						// anything deeper in the tree is an indirect report.
 						$rIndirect = !in_array($rRow['member_id'], array_merge($rPermissions['direct_reports'], array($rUserInfo['id'])));
@@ -329,12 +330,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleMags(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleMags(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_mag']) {
 			exit();
@@ -469,12 +471,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleEnigmas(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleEnigmas(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['create_enigma']) {
 			exit();
@@ -609,12 +612,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleStreams(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleStreams(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -683,7 +687,7 @@ class ResellerTableRenderer {
 						}
 						if (0 >= count($rReports)) {
 						} else {
-							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
+							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rUserID => $rConnections) {
 								foreach ($rConnections as $rConnection) {
 									$rConnectionCount[$rConnection['stream_id']]++;
 								}
@@ -736,12 +740,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleRadios(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleRadios(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -757,6 +762,7 @@ class ResellerTableRenderer {
 		} else {
 			$rOrderRow = 0;
 		}
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
@@ -807,7 +813,7 @@ class ResellerTableRenderer {
 						}
 						if (0 >= count($rReports)) {
 						} else {
-							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
+							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rUserID => $rConnections) {
 								foreach ($rConnections as $rConnection) {
 									$rConnectionCount[$rConnection['stream_id']]++;
 								}
@@ -859,12 +865,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleMovies(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleMovies(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -880,6 +887,7 @@ class ResellerTableRenderer {
 		} else {
 			$rOrderRow = 0;
 		}
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
@@ -930,7 +938,7 @@ class ResellerTableRenderer {
 						}
 						if (0 >= count($rReports)) {
 						} else {
-							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
+							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rUserID => $rConnections) {
 								foreach ($rConnections as $rConnection) {
 									$rConnectionCount[$rConnection['stream_id']]++;
 								}
@@ -983,12 +991,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleEpisodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleEpisodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['can_view_vod']) {
 			exit();
@@ -1006,6 +1015,7 @@ class ResellerTableRenderer {
 		} else {
 			$rOrderRow = 0;
 		}
+		$rCreated = RequestManager::has('created');
 		$rWhere = $rWhereV = array();
 		if (0 < count($rPermissions['stream_ids'])) {
 			$rWhere[] = '`streams`.`id` IN (' . implode(',', array_map('intval', $rPermissions['stream_ids'])) . ')';
@@ -1062,7 +1072,7 @@ class ResellerTableRenderer {
 						}
 						if (0 >= count($rReports)) {
 						} else {
-							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rConnections) {
+							foreach (ConnectionTracker::getUserConnections($rReports, false) as $rUserID => $rConnections) {
 								foreach ($rConnections as $rConnection) {
 									$rConnectionCount[$rConnection['stream_id']]++;
 								}
@@ -1118,12 +1128,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleLineActivity(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleLineActivity(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
 		}
@@ -1252,12 +1263,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleLiveConnections(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleLiveConnections(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rRedis = SettingsManager::getBool('redis_handler');
 		if (!$rPermissions['reseller_client_connection_logs']) {
 			exit();
@@ -1482,12 +1494,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleRegUserLogs(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderBy = '';
 		// Column index -> SQL order expression. Leading false = the Bootstrap 5
 		// Responsive control column (client index 0); mirrors the keyed reseller
@@ -1659,12 +1672,13 @@ class ResellerTableRenderer {
 	 * @param bool   $rIsAPI       Whether the request came via the API.
 	 * @param array  $rUserInfo    Authenticated reseller user.
 	 * @param array  $rPermissions Effective permissions.
+	 * @param array  $rSettings    Panel settings.
+	 * @param \XcVm\Core\Database\DatabaseHandler $db           Database handler.
 	 * @param int    $rStart       Pagination offset.
 	 * @param int    $rLimit       Page size.
 	 * @return void
 	 */
-	private static function handleRegUsers(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleRegUsers(array &$rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		if (!$rPermissions['create_sub_resellers']) {
 			exit();
 		}
@@ -1795,11 +1809,9 @@ class ResellerTableRenderer {
 	/**
 	 * Render the reseller "active_codes" table.
 	 */
-	private static function handleActiveCodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, int $rStart, int $rLimit): void {
-		$db = self::db();
+	private static function handleActiveCodes(array $rReturn, bool $rIsAPI, array $rUserInfo, array $rPermissions, array $rSettings, $db, int $rStart, int $rLimit): void {
 		$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir'] ?? '') === 'desc' ? 'desc' : 'asc');
 		$rOrder = [
-			false, // control
 			false, // checkbox
 			'`activation_codes`.`activation_code`',
 			'`activation_codes`.`batch_name`',
@@ -1814,7 +1826,7 @@ class ResellerTableRenderer {
 
 		$rOrderRow = (RequestManager::has('order') && strlen(RequestManager::get('order')[0]['column'] ?? '') > 0)
 			? intval(RequestManager::get('order')[0]['column'])
-			: 9;
+			: 8;
 
 		$rOrderBy = (isset($rOrder[$rOrderRow]) && $rOrder[$rOrderRow] !== false)
 			? "ORDER BY {$rOrder[$rOrderRow]} {$rOrderDirection}"

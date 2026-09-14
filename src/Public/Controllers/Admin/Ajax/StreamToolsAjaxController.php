@@ -147,7 +147,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
                 $rGroups[$rRow['provider_id']][] = $rRow;
             }
 
-            foreach ($rGroups as $rRows) {
+            foreach ($rGroups as $rGroupID => $rRows) {
                 $rGroup = array('text' => $rRows[0]['name'], 'children' => array());
 
                 foreach ($rRows as $rRow) {
@@ -191,7 +191,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
                 if ($rAPIInfo = json_decode(CurlClient::getURL($rProbeURL), true)) {
                     $rStreamInfo = array();
 
-                    foreach (($rAPIInfo['codecs'] ?? array()) as $rCodec) {
+                    foreach (($rAPIInfo['codecs'] ?? array()) as $rType => $rCodec) {
                         $rStreamInfo['streams'][] = $rCodec;
                     }
 
@@ -284,7 +284,7 @@ class StreamToolsAjaxController extends BaseAjaxController {
                 if ($rAPIInfo = json_decode(CurlClient::getURL($rProbeURL), true)) {
                     $rStreamInfo = array();
 
-                    foreach (($rAPIInfo['codecs'] ?? array()) as $rCodec) {
+                    foreach (($rAPIInfo['codecs'] ?? array()) as $rType => $rCodec) {
                         $rStreamInfo['streams'][] = $rCodec;
                     }
                 }

@@ -3,9 +3,7 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\Line\PackageService;
-use XcVm\Domain\Stream\CategoryTemplateService;
 
 /**
  * ActiveCodeController — Admin Generate Active Codes Wizard
@@ -19,17 +17,24 @@ class ActiveCodeController extends BaseAdminController
         $this->requirePermission();
         $this->setTitle('Generate Active Codes');
 
-        $categoryTemplates = CategoryTemplateService::getTemplatesForUser(
+        global $db;
+        $rPackages = PackageService::getAll(1, 'line') ?: [];
+        $rBouquets = BouquetService::getAllSimple() ?: [];
+
+        // Fetch all resellers for creator assignment
+        $db->query('SELECT `id`, `username`, `credits` FROM `users` ORDER BY `username` ASC;');
+        $rResellers = $db->get_rows() ?: [];
+
+        $categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
             $GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []),
             true
         );
 
         $this->render('active_code', [
-            'rPackages'         => PackageService::getAll(null, 'line') ?: [],
-            'rBouquets'         => BouquetService::getAllSimple() ?: [],
-            'rResellers'        => ActiveCodeService::getResellersForAssignment(),
+            'rPackages'         => $rPackages,
+            'rBouquets'         => $rBouquets,
+            'rResellers'        => $rResellers,
             'categoryTemplates' => $categoryTemplates,
         ]);
     }
 }
-

@@ -28,7 +28,7 @@ if (isset($rRequest['data'])) {
 			preg_match($rQuery, $rPath, $rMatches);
 
 			if (count($rMatches) == 2) {
-				$rData = json_decode((string) Encryption::readToken($rMatches[1], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])), true);
+				$rData = json_decode(Encryption::decrypt($rMatches[1], $rSettings['live_streaming_pass'], OPENSSL_EXTRA), true);
 				$rStreamID = intval($rData['stream_id']);
 				$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rData['username'], $rData['password'], true);
 			}
@@ -39,7 +39,7 @@ if (isset($rRequest['data'])) {
 			preg_match($rQuery, $rPath, $rMatches);
 
 			if (count($rMatches) == 2) {
-				$rData = explode('/', (string) Encryption::readToken($rMatches[1], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, true));
+				$rData = explode('/', Encryption::decrypt($rMatches[1], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 				if ($rData[0] == 'live') {
 					$rStreamID = intval($rData[3]);
@@ -54,7 +54,7 @@ if (isset($rRequest['data'])) {
 				preg_match($rQuery, $rPath, $rMatches);
 
 				if (count($rMatches) == 3) {
-					$rData = explode('/', (string) Encryption::readToken($rMatches[1], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, true));
+					$rData = explode('/', Encryption::decrypt($rMatches[1], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 					if ($rData[0] == 'live') {
 						$rStreamID = intval($rData[3]);

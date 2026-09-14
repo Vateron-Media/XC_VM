@@ -53,8 +53,8 @@ final class AdminStreamToken {
      * @param string $key      Decryption key (live_streaming_pass).
      * @return self|null
      */
-    public static function decode(string $rawToken, string $key, bool $rAcceptLegacy): ?self {
-        $rDecrypted = Encryption::readToken($rawToken, $key, OPENSSL_EXTRA, $rAcceptLegacy);
+    public static function decode(string $rawToken, string $key): ?self {
+        $rDecrypted = Encryption::decrypt($rawToken, $key, OPENSSL_EXTRA);
 
         if (!is_string($rDecrypted)) {
             return null;

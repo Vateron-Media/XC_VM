@@ -202,8 +202,10 @@ class ServersCronJob implements CommandInterface {
 
         $rSysCtl = file_get_contents('/etc/sysctl.conf');
         $rGovernors = array();
+        $rGovernor = null;
         if (shell_exec('which cpufreq-info')) {
             $rGovernors = array_filter(explode(' ', trim(shell_exec('cpufreq-info -g') ?? '')));
+            $rGovernor = explode(' ', trim(shell_exec('cpufreq-info -p') ?? ''));
         }
 
         $rAddresses = array_values(array_unique(array_map('trim', explode("\n", shell_exec("ip -4 addr | grep -oP '(?<=inet\\s)\\d+(\\.\\d+){3}'")))));

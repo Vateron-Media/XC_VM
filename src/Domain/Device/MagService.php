@@ -11,7 +11,6 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Line\LineRepository;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * MagService — mag service
@@ -24,7 +23,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class MagService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Bulk delete selected MAG devices.
 	 *

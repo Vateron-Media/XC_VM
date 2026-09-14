@@ -208,7 +208,7 @@ if ($rUserInfo) {
 
 			for ($i = 0; $i < count($rQueue); $i++) {
 				$rOutput .= "#EXTINF:60.0,\n";
-				$rOutput .= (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . Encryption::mintToken('TS/' . $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rDuration . '/' . $rStartDate . '/' . $rStreamID . '_' . basename($rQueue[$i]['filename']) . '_' . (($i == 0 ? $rOffset : 0)) . '/' . $rTokenData['uuid'] . '/' . $rServerID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens'])) . "\n";
+				$rOutput .= (($rProxyID ? '/' . md5($rProxyID . '_' . $rServerID . '_' . OPENSSL_EXTRA) : '')) . '/hls/' . Encryption::encrypt('TS/' . $rUsername . '/' . $rPassword . '/' . $rIP . '/' . $rDuration . '/' . $rStartDate . '/' . $rStreamID . '_' . basename($rQueue[$i]['filename']) . '_' . (($i == 0 ? $rOffset : 0)) . '/' . $rTokenData['uuid'] . '/' . $rServerID, $rSettings['live_streaming_pass'], OPENSSL_EXTRA) . "\n";
 			}
 			$rOutput .= '#EXT-X-ENDLIST';
 			touch(CONS_TMP_PATH . $rTokenData['uuid']);

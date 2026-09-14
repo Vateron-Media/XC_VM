@@ -7,7 +7,6 @@ use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ServerRepository — server repository
@@ -20,7 +19,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class ServerRepository {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Fetch all servers (cached unless forced).
 	 *
@@ -432,7 +431,7 @@ class ServerRepository {
 		} elseif (isset($rServers[SERVER_ID]['server_ip']) && !empty($rServers[SERVER_ID]['server_ip'])) {
 			$rIPs[] = $rServers[SERVER_ID]['server_ip'];
 		}
-		foreach ($rServers as $rServerInfo) {
+		foreach ($rServers as $rServerID => $rServerInfo) {
 			if (!empty($rServerInfo['whitelist_ips'])) {
 				$rIPs = array_merge($rIPs, json_decode($rServerInfo['whitelist_ips'], true));
 			}

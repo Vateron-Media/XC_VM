@@ -3,7 +3,6 @@
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Http\ApiClient;
-use XcVm\Domain\User\UserRepository;
 
 /**
  * Консолидированный репозиторий аутентификации.
@@ -273,8 +272,9 @@ class AuthRepository {
 	 */
 	public static function getGroupPermissions($rUserID, $rStreams = true, $rUsers = true) {
 		global $db;
+		$rStart = round(microtime(true) * 1000);
 		$rReturn = array('create_line' => false, 'create_mag' => false, 'create_enigma' => false, 'stream_ids' => array(), 'series_ids' => array(), 'category_ids' => array(), 'users' => array(), 'direct_reports' => array(), 'all_reports' => array(), 'report_map' => array());
-		$rUser = UserRepository::getRegisteredUserById($rUserID);
+		$rUser = \XcVm\Domain\User\UserRepository::getRegisteredUserById($rUserID);
 
 		if (!$rUser) {
 		} else {
@@ -307,7 +307,7 @@ class AuthRepository {
 
 			if (!$rUsers) {
 			} else {
-				$rReturn['users'] = UserRepository::getSubUsers($rUser['id']);
+				$rReturn['users'] = \XcVm\Domain\User\UserRepository::getSubUsers($rUser['id']);
 
 				foreach ($rReturn['users'] as $rUserID => $rUserData) {
 					if ($rUser['id'] != $rUserData['parent']) {

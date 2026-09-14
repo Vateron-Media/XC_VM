@@ -9,7 +9,6 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ActiveCodeService — Native Smart Activation Codes System
@@ -23,7 +22,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class ActiveCodeService {
-    use DatabaseAware;
+    use \XcVm\Infrastructure\Database\DatabaseAware;
 
     /**
      * Generate unique collision-free code string.
@@ -74,23 +73,8 @@ class ActiveCodeService {
             return ['status' => 'ERROR', 'message' => 'Invalid package selected.'];
         }
 
-        // Calculate credit cost per code — enforce package trial rules
-        $packageSupportsTrial = !empty($package['is_trial']);
-        $packageSupportsOfficial = !empty($package['is_official']);
-
-        $isTrial = false;
-        if ($packageSupportsTrial) {
-            if (!$packageSupportsOfficial) {
-                $isTrial = true;
-            } elseif (!empty($data['is_trial'])) {
-                $isTrial = true;
-            }
-        }
-
-        if ($isTrial && !$isAdmin && !LineService::canGenerateTrials($user['id'])) {
-            return ['status' => 'NO_TRIALS', 'message' => 'Trial generation limit reached or not allowed.'];
-        }
-
+        // Calculate credit cost per code
+        $isTrial = !empty($package['is_trial']) || !empty($data['is_trial']);
         if ($isTrial) {
             $costPerCode = floatval($package['trial_credits'] ?? 0);
         } else {
@@ -171,25 +155,10 @@ class ActiveCodeService {
 
         $db->beginTransaction();
         try {
-            // 1. Deduct reseller credits atomically if non-admin
+            // 1. Deduct reseller credits if non-admin
             if (!$isAdmin && $totalCost > 0) {
-                $db->query(
-                    'UPDATE `users` SET `credits` = `credits` - ? WHERE `id` = ? AND `credits` >= ?;',
-                    $totalCost,
-                    $user['id'],
-                    $totalCost
-                );
-                if ($db->num_rows() === 0) {
-                    $db->rollBack();
-                    return [
-                        'status' => 'INSUFFICIENT_CREDITS',
-                        'message' => "Insufficient balance. Required: {$totalCost} credits."
-                    ];
-                }
-
-                // Fetch fresh balance after atomic decrement
-                $db->query('SELECT `credits` FROM `users` WHERE `id` = ?;', $user['id']);
-                $newCredits = floatval($db->get_row()['credits'] ?? 0);
+                $newCredits = floatval($user['credits']) - $totalCost;
+                $db->query('UPDATE `users` SET `credits` = ? WHERE `id` = ?;', $newCredits, $user['id']);
 
                 // Audit logging
                 $db->query(
@@ -357,7 +326,6 @@ class ActiveCodeService {
         }
 
         // ─── First-Time Activation (Countdown starts now) ───
-        $claimed = false;
         if ($codeRow['status'] == 1 || empty($codeRow['activated_at'])) {
             $duration = intval($codeRow['is_trial'] ? ($package['trial_duration'] ?? 1) : ($package['official_duration'] ?? 1));
             $unit = (string)($codeRow['is_trial'] ? ($package['trial_duration_in'] ?? 'days') : ($package['official_duration_in'] ?? 'months'));
@@ -368,57 +336,39 @@ class ActiveCodeService {
 
             $expDate = strtotime("+{$duration} {$unit}", $now);
 
-            // Claim the code. The WHERE repeats the check above in SQL, so of two
-            // requests that read the code while it was still fresh only one binds
-            // its device and starts the countdown; the other finds it taken.
+            // Update activation_codes with bound device credentials (only explicit hardware IDs are permanently locked)
             $db->query(
                 "UPDATE `activation_codes` SET
                     `status` = 2,
                     `activated_at` = ?,
                     `mac` = COALESCE(?, `mac`),
                     `device_id` = COALESCE(?, `device_id`)
-                WHERE `id` = ? AND (`status` = 1 OR `activated_at` IS NULL);",
+                WHERE `id` = ?;",
                 $now,
                 $mac,
                 $explicitDeviceId,
                 $codeRow['id']
             );
-            $claimed = $db->num_rows() > 0;
 
-            if ($claimed) {
-                // Update companion line
-                $db->query(
-                    "UPDATE `lines` SET
-                        `exp_date` = ?,
-                        `last_ip` = ?,
-                        `last_activity` = ?
-                    WHERE `id` = ?;",
-                    $expDate,
-                    $clientIp,
-                    $now,
-                    $line['id']
-                );
+            // Update companion line
+            $db->query(
+                "UPDATE `lines` SET
+                    `exp_date` = ?,
+                    `last_ip` = ?,
+                    `last_activity` = ?
+                WHERE `id` = ?;",
+                $expDate,
+                $clientIp,
+                $now,
+                $line['id']
+            );
 
-                $line['exp_date'] = $expDate;
-                $codeRow['status'] = 2;
-                $codeRow['activated_at'] = $now;
-                if (!empty($mac)) $codeRow['mac'] = $mac;
-                if (!empty($explicitDeviceId)) $codeRow['device_id'] = $explicitDeviceId;
-            } else {
-                // Another request activated it first: from here it is an activated
-                // code like any other, device lock included.
-                $codeRow = self::getByCode($cleanCode);
-                $line = $codeRow ? UserRepository::getLineById($codeRow['subscriber_id']) : null;
-                if (!$codeRow || !$line) {
-                    return ['status' => 'INVALID_CODE', 'message' => 'Invalid or unknown activation code.'];
-                }
-                if ($codeRow['status'] == 0) {
-                    return ['status' => 'DISABLED', 'message' => 'This activation code has been suspended or revoked.'];
-                }
-            }
-        }
-
-        if (!$claimed) {
+            $line['exp_date'] = $expDate;
+            $codeRow['status'] = 2;
+            $codeRow['activated_at'] = $now;
+            if (!empty($mac)) $codeRow['mac'] = $mac;
+            if (!empty($explicitDeviceId)) $codeRow['device_id'] = $explicitDeviceId;
+        } else {
             // Already activated: check if expired
             if (!empty($line['exp_date']) && $line['exp_date'] < $now) {
                 return [
@@ -459,13 +409,11 @@ class ActiveCodeService {
                 );
             }
 
-            // A code bound to a device answers that device only. A request naming
-            // no device is not that device: skipping the check when `mac` was absent
-            // let any client read a locked code's credentials by leaving it out.
-            if (!empty($codeRow['mac']) && strcasecmp($codeRow['mac'], trim((string) ($deviceInfo['mac'] ?? ''))) !== 0) {
-                return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device.'];
+            // Check device lock if enforced (ignore synthetic web fingerprints)
+            if (!empty($codeRow['mac']) && !empty($mac) && strcasecmp(trim($codeRow['mac']), trim($mac)) !== 0) {
+                return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device (MAC: ' . htmlspecialchars($codeRow['mac']) . ').'];
             }
-            if (!empty($codeRow['device_id']) && !str_starts_with($codeRow['device_id'], 'DEV-') && strcasecmp(trim($codeRow['device_id']), trim((string) ($explicitDeviceId ?? ''))) !== 0) {
+            if (!empty($codeRow['device_id']) && !str_starts_with($codeRow['device_id'], 'DEV-') && !empty($explicitDeviceId) && !str_starts_with($explicitDeviceId, 'DEV-') && strcasecmp(trim($codeRow['device_id']), trim($explicitDeviceId)) !== 0) {
                 return ['status' => 'DEVICE_MISMATCH', 'message' => 'Code is locked to another hardware device.'];
             }
         }
@@ -505,7 +453,7 @@ class ActiveCodeService {
         return [
             'status' => 'SUCCESS',
             'code' => $cleanCode,
-            'is_new_activation' => $claimed,
+            'is_new_activation' => ($codeRow['status'] == 2 && ($codeRow['activated_at'] >= ($now - 5))),
             'package_name' => $package['package_name'] ?? 'Premium IPTV',
             'exp_date' => (int)$line['exp_date'],
             'exp_date_formatted' => date('Y-m-d H:i:s', (int)$line['exp_date']),
@@ -547,45 +495,6 @@ class ActiveCodeService {
         $db = self::db();
         $db->query('SELECT * FROM `activation_codes` WHERE `id` = ? LIMIT 1;', $id);
         return $db->num_rows() > 0 ? $db->get_row() : null;
-    }
-
-    /**
-     * Distinct resellers who have created activation codes (reseller filter).
-     */
-    public static function getResellersWithCodes(): array {
-        $db = self::db();
-        return $db->fetchAll(
-            'SELECT DISTINCT `users`.`id`, `users`.`username`
-             FROM `activation_codes`
-             INNER JOIN `users` ON `users`.`id` = `activation_codes`.`created_by`
-             ORDER BY `users`.`username` ASC;'
-        );
-    }
-
-    /**
-     * Recent distinct batch names (batch filter). Pass a list of creator ids to
-     * scope it (reseller view); empty = all batches (admin view).
-     */
-    public static function getRecentBatchNames(array $createdBy = [], int $limit = 100): array {
-        $db = self::db();
-        $where = '`batch_name` IS NOT NULL';
-        if (!empty($createdBy)) {
-            $where = '`created_by` IN (' . implode(',', array_map('intval', $createdBy)) . ') AND ' . $where;
-        }
-        return $db->fetchAll(
-            'SELECT DISTINCT `batch_name` FROM `activation_codes`
-             WHERE ' . $where . '
-             ORDER BY `created_at` DESC LIMIT ' . (int) $limit . ';'
-        );
-    }
-
-    /**
-     * All resellers with their credit balance, for the creator-assignment
-     * dropdown on the admin generate-codes wizard.
-     */
-    public static function getResellersForAssignment(): array {
-        $db = self::db();
-        return $db->fetchAll('SELECT `id`, `username`, `credits` FROM `users` ORDER BY `username` ASC;') ?: [];
     }
 
     /**

@@ -69,7 +69,7 @@ endforeach; ?>
 								<video controls width="100%" autoplay>
 									<source src="<?= htmlspecialchars($rURLs[0] ?? '') ?>" type="video/mp4" />
 									<?php foreach (($rSubtitles[0] ?? []) as $rSubtitle): ?>
-									<track label="<?= htmlspecialchars($rSubtitle['label'] ?? '') ?>" kind="subtitles" src="proxy.php?url=<?= Encryption::mintToken($rSubtitle['file'] ?? '', SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33', (bool) SettingsManager::get('secure_stream_tokens')) ?>">
+									<track label="<?= htmlspecialchars($rSubtitle['label'] ?? '') ?>" kind="subtitles" src="proxy.php?url=<?= Encryption::encrypt($rSubtitle['file'] ?? '', SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33') ?>">
 									<?php endforeach; ?>
 								</video>
 								<?php else: ?>

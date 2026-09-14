@@ -27,6 +27,49 @@ window.RadioApp = (function () {
     hls: null
   };
 
+  let eventsBound = false;
+
+  const savePersistedState = () => {
+    try {
+      if (state.currentStation) {
+        localStorage.setItem('xc_player_v2_radio_current', JSON.stringify(state.currentStation));
+      } else {
+        localStorage.removeItem('xc_player_v2_radio_current');
+      }
+      if (state.allStations && state.allStations.length) {
+        localStorage.setItem('xc_player_v2_radio_stations', JSON.stringify(state.allStations));
+      }
+    } catch (e) {}
+  };
+
+  const loadPersistedState = () => {
+    try {
+      if (!state.currentStation) {
+        const storedStation = localStorage.getItem('xc_player_v2_radio_current');
+        if (storedStation) {
+          state.currentStation = JSON.parse(storedStation);
+        }
+      }
+      if (!state.allStations || !state.allStations.length) {
+        const storedStations = localStorage.getItem('xc_player_v2_radio_stations');
+        if (storedStations) {
+          state.allStations = JSON.parse(storedStations);
+        }
+      }
+    } catch (e) {}
+  };
+
+  const getAudio = () => {
+    if (!els.audio || !document.body.contains(els.audio)) {
+      els.audio = document.getElementById('radio-audio');
+    }
+    return els.audio;
+  };
+
+  const isStudioOpen = () => {
+    return !!(els.playerView && !els.playerView.classList.contains('d-none'));
+  };
+
   // Cache DOM Elements
   const els = {};
 
@@ -169,7 +212,9 @@ window.RadioApp = (function () {
   };
 
   /* ─────────────────────────────────────────────────────────────────
-   * Category Sidebar Pagination
+  /* ─────────────────────────────────────────────────────────────────
+   * Category Sidebar Display & Search Filter
+   * Displays all categories dynamically inside scrollable container
    * ───────────────────────────────────────────────────────────────── */
   const renderCategoriesPagination = () => {
     if (!els.categoriesList) return;
@@ -178,7 +223,6 @@ window.RadioApp = (function () {
     const val = els.categorySearch ? els.categorySearch.value.trim().toLowerCase() : '';
 
     // Filter matching items (pinned "all" stays visible at top)
-    const contentCategories = [];
     allCatItems.forEach((item) => {
       const catId = item.getAttribute('data-radio-category-id');
       if (catId === 'all') {
@@ -188,77 +232,23 @@ window.RadioApp = (function () {
         const raw = (item.getAttribute('data-category-raw') || '').toLowerCase();
         const matches = !val || text.includes(val) || raw.includes(val);
         if (matches) {
-          contentCategories.push(item);
+          item.classList.remove('d-none');
         } else {
           item.classList.add('d-none');
         }
       }
     });
 
-    const totalCats = contentCategories.length;
-    const totalPages = Math.ceil(totalCats / state.catPageLimit);
-
-    if (state.catCurrentPage > totalPages) {
-      state.catCurrentPage = Math.max(1, totalPages);
-    }
-
-    const startIdx = (state.catCurrentPage - 1) * state.catPageLimit;
-    const endIdx = state.catCurrentPage * state.catPageLimit;
-
-    contentCategories.forEach((item, idx) => {
-      if (idx >= startIdx && idx < endIdx) {
-        item.classList.remove('d-none');
-      } else {
-        item.classList.add('d-none');
-      }
-    });
-
-    if (!els.categoriesPagination) return;
-
-    if (totalPages <= 1) {
+    // All categories displayed directly in scrollable sidebar
+    if (els.categoriesPagination) {
       els.categoriesPagination.classList.add('d-none');
       els.categoriesPagination.innerHTML = '';
-      return;
     }
 
-    els.categoriesPagination.classList.remove('d-none');
-    const startNum = startIdx + 1;
-    const endNum = Math.min(endIdx, totalCats);
-
-    els.categoriesPagination.innerHTML = `
-      <span class="text-body-secondary small fw-medium">${startNum}–${endNum} of ${totalCats}</span>
-      <div class="d-flex align-items-center gap-1">
-        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-radio-cat-prev" ${state.catCurrentPage === 1 ? 'disabled' : ''} title="Previous Categories">
-          <i class="icon-base bx bx-chevron-left"></i>
-        </button>
-        <span class="badge bg-label-primary px-2 py-1">${state.catCurrentPage} / ${totalPages}</span>
-        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-radio-cat-next" ${state.catCurrentPage === totalPages ? 'disabled' : ''} title="Next Categories">
-          <i class="icon-base bx bx-chevron-right"></i>
-        </button>
-      </div>
-    `;
-
-    const prevBtn = document.getElementById('btn-radio-cat-prev');
-    const nextBtn = document.getElementById('btn-radio-cat-next');
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.catCurrentPage > 1) {
-          state.catCurrentPage--;
-          renderCategoriesPagination();
-        }
-      });
-    }
-
-    if (nextBtn) {
-      nextBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.catCurrentPage < totalPages) {
-          state.catCurrentPage++;
-          renderCategoriesPagination();
-        }
-      });
+    // Smoothly scroll active category into view if present
+    const activeItem = els.categoriesList.querySelector('.category-list-item.active');
+    if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+      activeItem.scrollIntoView({ block: 'nearest' });
     }
   };
 
@@ -285,6 +275,7 @@ window.RadioApp = (function () {
 
       if (json.status === 'success' && Array.isArray(json.stations)) {
         state.allStations = json.stations;
+        savePersistedState();
       } else {
         state.allStations = [];
       }
@@ -577,21 +568,35 @@ window.RadioApp = (function () {
   };
 
   /**
-   * Keep radio bottom bar strictly bounded to the Content container (.container-xxl)
-   * so it stays within the content area width and never stretches across the whole screen.
+   * Keep radio bottom bar strictly bounded to the Content container (#main-content-container)
+   * so it stays within the content area width and aligns with the container-fluid layout.
    */
   const updateBottomBarPosition = () => {
     initBottomBarElements();
     if (!els.bottomBar) return;
 
-    const contentContainer = document.getElementById('main-content-container') || document.querySelector('.container-xxl');
+    const contentContainer =
+      document.getElementById('main-content-container') ||
+      document.querySelector('.container-fluid') ||
+      document.querySelector('.container-xxl');
+
     if (contentContainer) {
       const rect = contentContainer.getBoundingClientRect();
+      const style = window.getComputedStyle(contentContainer);
+      const paddingLeft = parseFloat(style.paddingLeft) || 0;
+      const paddingRight = parseFloat(style.paddingRight) || 0;
+
+      // Match the exact inner dimensions of <div class="flex-grow-1 container-p-y position-relative container-fluid" id="main-content-container">
+      const targetLeft = Math.round(rect.left + paddingLeft);
+      const targetWidth = Math.round(rect.width - paddingLeft - paddingRight);
+
       els.bottomBar.style.position = 'fixed';
       els.bottomBar.style.bottom = '16px';
-      els.bottomBar.style.left = Math.round(rect.left) + 'px';
-      els.bottomBar.style.width = Math.round(rect.width) + 'px';
+      els.bottomBar.style.left = targetLeft + 'px';
+      els.bottomBar.style.width = targetWidth + 'px';
+      els.bottomBar.style.maxWidth = targetWidth + 'px';
       els.bottomBar.style.right = 'auto';
+      els.bottomBar.style.boxSizing = 'border-box';
       els.bottomBar.style.zIndex = '1030';
     }
   };
@@ -729,39 +734,17 @@ window.RadioApp = (function () {
     }
   };
 
-  const playPrevStation = () => {
-    if (!state.currentStation || !state.allStations.length) return;
-    const idx = state.allStations.findIndex((s) => Number(s.id) === Number(state.currentStation.id));
-    const prevIdx = idx > 0 ? idx - 1 : state.allStations.length - 1;
-    playStation(state.allStations[prevIdx], false);
-  };
-
-  const playNextStation = () => {
-    if (!state.currentStation || !state.allStations.length) return;
-    const idx = state.allStations.findIndex((s) => Number(s.id) === Number(state.currentStation.id));
-    const nextIdx = idx < state.allStations.length - 1 ? idx + 1 : 0;
-    playStation(state.allStations[nextIdx], false);
-  };
-
   const updateMuteIcons = (muted) => {
-    if (els.btnMute) {
-      const icon = els.btnMute.querySelector('i');
-      if (icon) {
-        icon.className = muted ? 'icon-base bx bx-volume-mute text-danger' : 'icon-base bx bx-volume-full';
-      }
-    }
-    if (els.barMute) {
-      const icon = els.barMute.querySelector('i');
-      if (icon) {
-        icon.className = muted ? 'icon-base bx bx-volume-mute text-danger' : 'icon-base bx bx-volume-full';
-      }
-    }
+    document.querySelectorAll('#btn-radio-mute i, #btn-radio-bar-mute i').forEach((icon) => {
+      icon.className = muted ? 'icon-base bx bx-volume-mute text-danger' : 'icon-base bx bx-volume-full';
+    });
   };
 
   const toggleMute = () => {
-    if (!els.audio) return;
-    els.audio.muted = !els.audio.muted;
-    updateMuteIcons(els.audio.muted);
+    const audio = getAudio();
+    if (!audio) return;
+    audio.muted = !audio.muted;
+    updateMuteIcons(audio.muted);
   };
 
   const highlightActiveStationInGrid = () => {
@@ -772,14 +755,166 @@ window.RadioApp = (function () {
     });
   };
 
+  const startAudio = (station) => {
+    const audio = getAudio();
+    if (!audio || !station) return;
+
+    if (state.hls) {
+      try {
+        state.hls.destroy();
+      } catch (e) {}
+      state.hls = null;
+    }
+
+    try {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.load();
+    } catch (e) {}
+
+    const streamUrl = station.url || station.direct_source || '';
+    if (!streamUrl) {
+      console.warn('Radio station has no stream URL:', station);
+      setPlayingState(false);
+      return;
+    }
+
+    const isHls = streamUrl.includes('.m3u8') || (station.container && station.container.includes('m3u8'));
+
+    if (isHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: true
+      });
+      hls.loadSource(streamUrl);
+      hls.attachMedia(audio);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => setPlayingState(true))
+            .catch((err) => {
+              console.warn('HLS Audio play prevented:', err);
+              setPlayingState(false);
+            });
+        }
+      });
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        if (data && data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              hls.recoverMediaError();
+              break;
+            default:
+              try { hls.destroy(); } catch (e) {}
+              state.hls = null;
+              setPlayingState(false);
+              break;
+          }
+        }
+      });
+      state.hls = hls;
+    } else {
+      audio.src = streamUrl;
+      audio.load();
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setPlayingState(true);
+          })
+          .catch((err) => {
+            console.warn('Audio play prevented:', err);
+            setPlayingState(false);
+          });
+      }
+    }
+
+    // MediaSession hardware keys support
+    if ('mediaSession' in navigator) {
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: station.name || 'Radio Broadcast',
+          artist: 'XC_VM Web Player',
+          artwork: station.logo ? [{ src: station.logo }] : []
+        });
+        navigator.mediaSession.setActionHandler('play', () => togglePlayPause());
+        navigator.mediaSession.setActionHandler('pause', () => togglePlayPause());
+        navigator.mediaSession.setActionHandler('previoustrack', () => playPrevStation());
+        navigator.mediaSession.setActionHandler('nexttrack', () => playNextStation());
+        navigator.mediaSession.setActionHandler('stop', () => stopPlayer());
+      } catch (e) {}
+    }
+  };
+
+  const togglePlayPause = () => {
+    const audio = getAudio();
+    if (!audio) return;
+
+    if (state.isPlaying) {
+      try {
+        audio.pause();
+      } catch (e) {}
+      setPlayingState(false);
+    } else {
+      if (!state.currentStation) {
+        loadPersistedState();
+        if (state.allStations && state.allStations.length) {
+          playStation(state.allStations[0], false);
+          return;
+        }
+      }
+      if (state.currentStation) {
+        startAudio(state.currentStation);
+      }
+    }
+  };
+
+  const playPrevStation = () => {
+    loadPersistedState();
+    if (!state.allStations || !state.allStations.length) return;
+    let idx = -1;
+    if (state.currentStation) {
+      idx = state.allStations.findIndex((s) => Number(s.id) === Number(state.currentStation.id));
+    }
+    const prevIdx = idx > 0 ? idx - 1 : state.allStations.length - 1;
+    const target = state.allStations[prevIdx];
+    if (target) {
+      playStation(target, isStudioOpen());
+    }
+  };
+
+  const playNextStation = () => {
+    loadPersistedState();
+    if (!state.allStations || !state.allStations.length) return;
+    let idx = -1;
+    if (state.currentStation) {
+      idx = state.allStations.findIndex((s) => Number(s.id) === Number(state.currentStation.id));
+    }
+    const nextIdx = (idx >= 0 && idx < state.allStations.length - 1) ? idx + 1 : 0;
+    const target = state.allStations[nextIdx];
+    if (target) {
+      playStation(target, isStudioOpen());
+    }
+  };
+
   const playStation = (station, openStudio = true) => {
+    if (!station) return;
     state.currentStation = station;
+    savePersistedState();
+
+    initElements();
 
     // Switch Views based on openStudio parameter
     if (openStudio) {
       if (els.bottomBar) {
         els.bottomBar.classList.add('d-none');
         els.bottomBar.classList.remove('d-flex');
+        els.bottomBar.style.display = 'none';
       }
       if (els.browserView) {
         els.browserView.classList.add('d-none');
@@ -796,9 +931,9 @@ window.RadioApp = (function () {
     }
 
     // Update Header Metadata
-    if (els.stationName) els.stationName.textContent = station.name;
+    if (els.stationName) els.stationName.textContent = station.name || 'Radio Broadcast';
     if (els.stationLogo) {
-      if (station.logo) {
+      if (station.logo && station.logo.trim()) {
         els.stationLogo.src = station.logo;
         els.stationLogo.classList.remove('d-none');
       } else {
@@ -808,7 +943,7 @@ window.RadioApp = (function () {
 
     // Update Turntable Center Spindle Logo
     if (els.centerLogo) {
-      if (station.logo) {
+      if (station.logo && station.logo.trim()) {
         els.centerLogo.src = station.logo;
         els.centerLogo.classList.remove('d-none');
       } else {
@@ -824,106 +959,49 @@ window.RadioApp = (function () {
     highlightActiveStationInGrid();
 
     // Start Audio
-    if (els.audio) {
-      if (state.hls) {
-        try {
-          state.hls.destroy();
-        } catch (e) {}
-        state.hls = null;
-      }
-
-      els.audio.pause();
-      els.audio.removeAttribute('src');
-      els.audio.load();
-
-      const streamUrl = station.url || station.direct_source || '';
-      const isHls = streamUrl && (streamUrl.includes('.m3u8') || (station.container && station.container.includes('m3u8')));
-
-      if (isHls && typeof Hls !== 'undefined' && Hls.isSupported()) {
-        const hls = new Hls({
-          enableWorker: true,
-          lowLatencyMode: true
-        });
-        hls.loadSource(streamUrl);
-        hls.attachMedia(els.audio);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          const playPromise = els.audio.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => setPlayingState(true))
-              .catch((err) => {
-                console.warn('HLS Audio play prevented:', err);
-                setPlayingState(false);
-              });
-          }
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                hls.recoverMediaError();
-                break;
-              default:
-                hls.destroy();
-                setPlayingState(false);
-                break;
-            }
-          }
-        });
-        state.hls = hls;
-      } else if (streamUrl) {
-        els.audio.src = streamUrl;
-        els.audio.load();
-
-        const playPromise = els.audio.play();
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setPlayingState(true);
-            })
-            .catch((err) => {
-              console.warn('Audio play prevented:', err);
-              setPlayingState(false);
-            });
-        }
-      }
-    }
+    startAudio(station);
   };
 
   const setPlayingState = (playing) => {
-    state.isPlaying = playing;
+    state.isPlaying = !!playing;
+    initBottomBarElements();
 
-    if (els.btnPlayPause) {
-      const icon = els.btnPlayPause.querySelector('i');
-      if (icon) {
-        icon.className = playing ? 'icon-base bx bx-pause fs-4' : 'icon-base bx bx-play fs-4';
-      }
+    const playIconClass = playing ? 'icon-base bx bx-pause fs-4' : 'icon-base bx bx-play fs-4';
+
+    // Studio play/pause button
+    const studioBtn = els.btnPlayPause || document.getElementById('btn-radio-play-pause');
+    if (studioBtn) {
+      const icon = studioBtn.querySelector('i');
+      if (icon) icon.className = playIconClass;
     }
 
-    if (els.barPlay) {
-      const barIcon = els.barPlay.querySelector('i');
-      if (barIcon) {
-        barIcon.className = playing ? 'icon-base bx bx-pause fs-4' : 'icon-base bx bx-play fs-4';
-      }
+    // Bottom bar play/pause button
+    const barBtn = els.barPlay || document.getElementById('btn-radio-bar-play');
+    if (barBtn) {
+      const icon = barBtn.querySelector('i');
+      if (icon) icon.className = playIconClass;
     }
 
-    if (els.barStatusText) {
-      els.barStatusText.textContent = playing ? 'Playing Live Stream' : 'Paused';
+    // Status text
+    const statusText = els.barStatusText || document.getElementById('radio-bar-status-text');
+    if (statusText) {
+      statusText.textContent = playing ? 'Playing Live Stream' : 'Paused';
     }
 
-    if (els.barIndicatorDot) {
-      els.barIndicatorDot.className = playing ? 'badge-dot bg-success' : 'badge-dot bg-warning';
+    // Indicator dot
+    const dot = els.barIndicatorDot || document.getElementById('radio-bar-indicator-dot');
+    if (dot) {
+      dot.className = playing ? 'badge-dot bg-success me-1' : 'badge-dot bg-warning me-1';
     }
 
-    if (els.turntableDisc) {
-      els.turntableDisc.classList.toggle('playing', playing);
+    // Turntable and equalizer animations
+    const disc = els.turntableDisc || document.getElementById('radio-turntable-disc');
+    if (disc) {
+      disc.classList.toggle('playing', playing);
     }
-
-    if (els.equalizer) {
-      els.equalizer.classList.toggle('playing', playing);
+    const eq = els.equalizer || document.getElementById('radio-equalizer');
+    if (eq) {
+      eq.classList.toggle('playing', playing);
     }
   };
 
@@ -935,13 +1013,17 @@ window.RadioApp = (function () {
       } catch (e) {}
       state.hls = null;
     }
-    if (els.audio) {
-      els.audio.pause();
-      els.audio.removeAttribute('src');
-      els.audio.load();
+    const audio = getAudio();
+    if (audio) {
+      try {
+        audio.pause();
+        audio.removeAttribute('src');
+        audio.load();
+      } catch (e) {}
     }
     setPlayingState(false);
     state.currentStation = null;
+    savePersistedState();
 
     if (els.bottomBar) {
       els.bottomBar.classList.add('d-none');
@@ -957,8 +1039,95 @@ window.RadioApp = (function () {
   };
 
   const bindEvents = () => {
-    // Category Click
+    if (eventsBound) return;
+    eventsBound = true;
+
+    // 1. Delegated Click Handler for all controls
     document.addEventListener('click', (e) => {
+      // Bottom Bar Play/Pause
+      const barPlayBtn = e.target.closest('#btn-radio-bar-play');
+      if (barPlayBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePlayPause();
+        return;
+      }
+
+      // Studio Play/Pause
+      const studioPlayBtn = e.target.closest('#btn-radio-play-pause');
+      if (studioPlayBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        togglePlayPause();
+        return;
+      }
+
+      // Bottom Bar Previous Station
+      const barPrevBtn = e.target.closest('#btn-radio-bar-prev');
+      if (barPrevBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        playPrevStation();
+        return;
+      }
+
+      // Bottom Bar Next Station
+      const barNextBtn = e.target.closest('#btn-radio-bar-next');
+      if (barNextBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        playNextStation();
+        return;
+      }
+
+      // Mute Buttons
+      const muteBtn = e.target.closest('#btn-radio-bar-mute, #btn-radio-mute');
+      if (muteBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        toggleMute();
+        return;
+      }
+
+      // Favorite Buttons
+      const favBtn = e.target.closest('#btn-radio-bar-fav, #btn-radio-player-fav');
+      if (favBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (state.currentStation) {
+          toggleFavorite(state.currentStation.id);
+        }
+        return;
+      }
+
+      // Bottom Bar Expand to Studio
+      const expandBtn = e.target.closest('#btn-radio-bar-expand');
+      if (expandBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        expandToStudio();
+        return;
+      }
+
+      // Bottom Bar Close
+      const closeBtn = e.target.closest('#btn-radio-bar-close');
+      if (closeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeBottomBar();
+        return;
+      }
+
+      // Studio Minimize / Back
+      const minBtn = e.target.closest('#btn-back-radio, #btn-radio-minimize');
+      if (minBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        minimizeToBottomBar();
+        return;
+      }
+
+      // Category Click
       const catBtn = e.target.closest('[data-radio-category-id]');
       if (catBtn) {
         e.preventDefault();
@@ -969,77 +1138,52 @@ window.RadioApp = (function () {
 
         const catId = catBtn.getAttribute('data-radio-category-id');
         fetchStationsForCategory(catId === 'all' ? null : catId);
+        return;
       }
-    });
 
-    // Favorite Filter in Toolbar
-    if (els.favBtn) {
-      els.favBtn.addEventListener('click', (e) => {
+      // Favorite Filter in Toolbar
+      const toolbarFavBtn = e.target.closest('#btn-radio-favorites');
+      if (toolbarFavBtn) {
         e.preventDefault();
         state.favFilterActive = !state.favFilterActive;
         state.currentPage = 1;
-        els.favBtn.classList.toggle('active', state.favFilterActive);
+        toolbarFavBtn.classList.toggle('active', state.favFilterActive);
         renderStations();
-      });
-    }
+        return;
+      }
 
-    // Category Search Filter (with category pagination update)
-    if (els.categorySearch) {
-      els.categorySearch.addEventListener('input', () => {
-        state.catCurrentPage = 1;
-        renderCategoriesPagination();
-      });
-    }
-
-    // Radio Search
-    if (els.radioSearch) {
-      els.radioSearch.addEventListener('input', () => {
-        state.currentPage = 1;
-        renderStations();
-      });
-    }
-
-    // Sort Dropdown
-    if (els.sortSelect) {
-      els.sortSelect.addEventListener('change', (e) => {
-        state.currentSort = e.target.value;
-        state.currentPage = 1;
-        renderStations();
-      });
-    }
-
-    // Column Density Selector
-    document.querySelectorAll('[data-radio-grid-cols]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      // Column Density Selector
+      const colBtn = e.target.closest('[data-radio-grid-cols]');
+      if (colBtn) {
         e.preventDefault();
         document.querySelectorAll('[data-radio-grid-cols]').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.gridCols = Number(btn.getAttribute('data-radio-grid-cols'));
+        colBtn.classList.add('active');
+        state.gridCols = Number(colBtn.getAttribute('data-radio-grid-cols'));
         renderStations();
-      });
-    });
+        return;
+      }
 
-    // Show Limit Buttons
-    document.querySelectorAll('[data-radio-show-limit]').forEach((btn) => {
-      btn.addEventListener('click', (e) => {
+      // Show Limit Buttons
+      const limitBtn = e.target.closest('[data-radio-show-limit]');
+      if (limitBtn) {
         e.preventDefault();
         document.querySelectorAll('[data-radio-show-limit]').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.showLimit = btn.getAttribute('data-radio-show-limit');
+        limitBtn.classList.add('active');
+        state.showLimit = limitBtn.getAttribute('data-radio-show-limit');
         state.currentPage = 1;
         renderStations();
-      });
-    });
+        return;
+      }
 
-    // Toggle Categories Sidebar
-    if (els.sidebarToggle && els.sidebar) {
-      els.sidebarToggle.addEventListener('click', () => {
+      // Categories Sidebar Toggle
+      const sideToggle = e.target.closest('#btn-toggle-radio-categories');
+      if (sideToggle && els.sidebar) {
+        e.preventDefault();
         els.sidebar.classList.toggle('d-none');
-      });
-    }
+        return;
+      }
 
-    // Play Station Triggers (Card or Button Click)
-    document.addEventListener('click', (e) => {
+      // Station Play Trigger (Card / List Button)
       const trigger = e.target.closest('.station-play-trigger');
       if (trigger) {
         e.preventDefault();
@@ -1048,154 +1192,20 @@ window.RadioApp = (function () {
         if (station) {
           playStation(station);
         }
+        return;
       }
-    });
 
-    // Toggle Favorite on Card
-    document.addEventListener('click', (e) => {
-      const favBtn = e.target.closest('[data-fav-radio-id]');
-      if (favBtn) {
+      // Toggle Favorite on Station Card
+      const cardFavBtn = e.target.closest('[data-fav-radio-id]');
+      if (cardFavBtn) {
         e.preventDefault();
         e.stopPropagation();
-        const id = favBtn.getAttribute('data-fav-radio-id');
+        const id = cardFavBtn.getAttribute('data-fav-radio-id');
         toggleFavorite(id);
+        return;
       }
-    });
 
-    // Back Button (Minimize from Studio Player to Grid with slide-down effect)
-    if (els.btnBack) {
-      els.btnBack.addEventListener('click', (e) => {
-        e.preventDefault();
-        minimizeToBottomBar();
-      });
-    }
-
-    // Topbar Minimize Button
-    if (els.btnMinimize) {
-      els.btnMinimize.addEventListener('click', (e) => {
-        e.preventDefault();
-        minimizeToBottomBar();
-      });
-    }
-
-    // Bottom Bar Play/Pause Button
-    if (els.barPlay && els.audio) {
-      els.barPlay.addEventListener('click', () => {
-        if (state.isPlaying) {
-          els.audio.pause();
-          setPlayingState(false);
-        } else if (state.currentStation) {
-          els.audio.play()
-            .then(() => setPlayingState(true))
-            .catch(() => setPlayingState(false));
-        }
-      });
-    }
-
-    // Bottom Bar Previous Station Button
-    if (els.barPrev) {
-      els.barPrev.addEventListener('click', (e) => {
-        e.preventDefault();
-        playPrevStation();
-      });
-    }
-
-    // Bottom Bar Next Station Button
-    if (els.barNext) {
-      els.barNext.addEventListener('click', (e) => {
-        e.preventDefault();
-        playNextStation();
-      });
-    }
-
-    // Bottom Bar Mute Button
-    if (els.barMute) {
-      els.barMute.addEventListener('click', (e) => {
-        e.preventDefault();
-        toggleMute();
-      });
-    }
-
-    // Bottom Bar Volume Slider
-    if (els.barVolume && els.audio) {
-      els.barVolume.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        els.audio.volume = val;
-        els.audio.muted = (val === 0);
-        if (els.volumeSlider) els.volumeSlider.value = val;
-        updateMuteIcons(val === 0);
-      });
-    }
-
-    // Bottom Bar Favorite Button
-    if (els.barFav) {
-      els.barFav.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.currentStation) {
-          toggleFavorite(state.currentStation.id);
-        }
-      });
-    }
-
-    // Bottom Bar Expand to Studio Button
-    if (els.barExpand) {
-      els.barExpand.addEventListener('click', (e) => {
-        e.preventDefault();
-        expandToStudio();
-      });
-    }
-
-    // Bottom Bar Close / Stop Button
-    if (els.barClose) {
-      els.barClose.addEventListener('click', (e) => {
-        e.preventDefault();
-        closeBottomBar();
-      });
-    }
-
-    // Player Play/Pause Button
-    if (els.btnPlayPause && els.audio) {
-      els.btnPlayPause.addEventListener('click', () => {
-        if (state.isPlaying) {
-          els.audio.pause();
-          setPlayingState(false);
-        } else if (state.currentStation) {
-          els.audio.play()
-            .then(() => setPlayingState(true))
-            .catch(() => setPlayingState(false));
-        }
-      });
-    }
-
-    // Player Mute Button
-    if (els.btnMute && els.audio) {
-      els.btnMute.addEventListener('click', () => {
-        toggleMute();
-      });
-    }
-
-    // Player Volume Slider
-    if (els.volumeSlider && els.audio) {
-      els.volumeSlider.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        els.audio.volume = val;
-        els.audio.muted = (val === 0);
-        if (els.barVolume) els.barVolume.value = val;
-        updateMuteIcons(val === 0);
-      });
-    }
-
-    // Player Favorite Button
-    if (els.btnPlayerFav) {
-      els.btnPlayerFav.addEventListener('click', () => {
-        if (state.currentStation) {
-          toggleFavorite(state.currentStation.id);
-        }
-      });
-    }
-
-    // Zap Item Click in Player View
-    document.addEventListener('click', (e) => {
+      // Zap Item in Studio Mini-Sidebar
       const zapItem = e.target.closest('[data-zap-station-id]');
       if (zapItem) {
         e.preventDefault();
@@ -1204,25 +1214,68 @@ window.RadioApp = (function () {
         if (station) {
           playStation(station, true);
         }
+        return;
       }
     });
 
-    // Zap Search Input
-    if (els.miniZapSearch) {
-      els.miniZapSearch.addEventListener('input', () => {
+    // 2. Inputs for Sliders & Searches
+    document.addEventListener('input', (e) => {
+      // Volume sliders (both mini bar & studio player)
+      if (e.target && (e.target.id === 'radio-bar-volume' || e.target.id === 'radio-volume-slider')) {
+        const val = parseFloat(e.target.value);
+        const audio = getAudio();
+        if (audio) {
+          audio.volume = val;
+          audio.muted = (val === 0);
+        }
+        const barVol = document.getElementById('radio-bar-volume');
+        const studioVol = document.getElementById('radio-volume-slider');
+        if (barVol && barVol !== e.target) barVol.value = val;
+        if (studioVol && studioVol !== e.target) studioVol.value = val;
+        updateMuteIcons(val === 0);
+      }
+
+      // Category search
+      if (e.target && e.target.id === 'radio-category-search') {
+        state.catCurrentPage = 1;
+        renderCategoriesPagination();
+      }
+
+      // Radio search
+      if (e.target && e.target.id === 'radio-search') {
+        state.currentPage = 1;
+        renderStations();
+      }
+
+      // Mini zap search
+      if (e.target && e.target.id === 'radio-mini-zap-search') {
         renderMiniZapList();
+      }
+    });
+
+    // 3. Change handlers (Sort dropdown)
+    document.addEventListener('change', (e) => {
+      if (e.target && e.target.id === 'radio-sort-select') {
+        state.currentSort = e.target.value;
+        state.currentPage = 1;
+        renderStations();
+      }
+    });
+
+    // 4. Audio native events for status and disc synchronization
+    const audio = getAudio();
+    if (audio && !audio.dataset.eventsBound) {
+      audio.dataset.eventsBound = '1';
+      audio.addEventListener('play', () => setPlayingState(true));
+      audio.addEventListener('pause', () => setPlayingState(false));
+      audio.addEventListener('ended', () => setPlayingState(false));
+      audio.addEventListener('error', (err) => {
+        console.warn('Radio audio error event:', err);
+        setPlayingState(false);
       });
     }
 
-    // Audio native events for turntable synchronization
-    if (els.audio) {
-      els.audio.addEventListener('play', () => setPlayingState(true));
-      els.audio.addEventListener('pause', () => setPlayingState(false));
-      els.audio.addEventListener('ended', () => setPlayingState(false));
-      els.audio.addEventListener('error', () => setPlayingState(false));
-    }
-
-    // Auto-stop radio when ANY video plays anywhere on the site (movie, series, live TV)
+    // 5. Auto-stop radio when ANY video plays anywhere on the site (movie, series, live TV)
     document.addEventListener('play', (e) => {
       if (e.target && e.target.tagName === 'VIDEO') {
         if (state.isPlaying || state.currentStation) {
@@ -1231,7 +1284,7 @@ window.RadioApp = (function () {
       }
     }, true);
 
-    // Reposition bottom bar on window resize or menu toggle
+    // 6. Reposition bottom bar on window resize or menu toggle
     window.addEventListener('resize', () => {
       if (els.bottomBar && !els.bottomBar.classList.contains('d-none')) {
         updateBottomBarPosition();
@@ -1249,7 +1302,12 @@ window.RadioApp = (function () {
 
   const start = (config = {}) => {
     state.baseUrl = config.baseUrl || state.baseUrl || '/';
-    state.allStations = config.initialStations || [];
+    if (config.initialStations && config.initialStations.length) {
+      state.allStations = config.initialStations;
+      savePersistedState();
+    } else {
+      loadPersistedState();
+    }
     state.activeCategory = config.selectedCategoryId || null;
 
     initElements();
@@ -1262,6 +1320,7 @@ window.RadioApp = (function () {
       highlightActiveStationInGrid();
       updatePlayerFavButton();
       renderMiniZapList();
+      updateBottomBarContent();
     }
   };
 
@@ -1269,7 +1328,11 @@ window.RadioApp = (function () {
     state.baseUrl = document.documentElement.getAttribute('data-base-url') || '/';
     initElements();
     loadFavorites();
+    loadPersistedState();
     bindEvents();
+    if (state.currentStation) {
+      updateBottomBarContent();
+    }
   };
 
   if (document.readyState === 'loading') {
@@ -1283,6 +1346,9 @@ window.RadioApp = (function () {
     initGlobal,
     playStation,
     stopPlayer,
+    togglePlayPause,
+    playPrevStation,
+    playNextStation,
     minimizeToBottomBar,
     expandToStudio,
     updateBottomBarPosition

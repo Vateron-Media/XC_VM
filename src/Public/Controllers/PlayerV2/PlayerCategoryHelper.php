@@ -34,6 +34,37 @@ class PlayerCategoryHelper
             $type = is_string($typeOrUserInfo) ? $typeOrUserInfo : 'movie';
         }
 
+        // Support External Xtream Codes Account Categories
+        if (!empty($userInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            if ($extService) {
+                $rawCats = match ($type) {
+                    'live' => $extService->getLiveCategories(),
+                    'series' => $extService->getSeriesCategories(),
+                    default => $extService->getVodCategories(),
+                };
+
+                $formatted = [];
+                foreach ($rawCats as $cat) {
+                    $catId = (int)$cat['id'];
+                    $rawName = $cat['category_name'] ?? ('Category #' . $catId);
+                    $parsed = self::parseCategoryDisplay($rawName, $type);
+                    $formatted[] = [
+                        'id' => $catId,
+                        'category_id' => $catId,
+                        'name' => $rawName,
+                        'clean_name' => $parsed['clean_name'],
+                        'emoji' => $parsed['emoji'],
+                        'tag' => $parsed['tag'],
+                        'color' => $parsed['color'],
+                        'icon' => $parsed['icon'],
+                        'count' => 0,
+                    ];
+                }
+                return $formatted;
+            }
+        }
+
         $allowedIds = !empty($userInfo['category_ids']) ? array_map('intval', $userInfo['category_ids']) : [];
 
         // 1. Fetch raw categories from database

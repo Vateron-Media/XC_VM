@@ -245,7 +245,7 @@ $assetsPath = $baseUrl . 'assets/';
               id="live-video"
               class="video-js vjs-big-play-centered w-100 h-100"
               controls
-              preload="auto"
+              preload="none"
               playsinline>
             </video>
 
@@ -256,6 +256,21 @@ $assetsPath = $baseUrl . 'assets/';
               </div>
               <h5 class="text-white mb-1">Select a channel to start watching</h5>
               <p class="text-white-50 mb-0">Choose from the quick list on the left or return to the grid.</p>
+            </div>
+
+            <!-- Stream Status / Auto-Recovery Overlay -->
+            <div id="live-stream-status" class="position-absolute top-0 start-0 w-100 h-100 d-none flex-column align-items-center justify-content-center text-center p-4 bg-black bg-opacity-75" style="z-index: 10;">
+              <div id="live-status-spinner" class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">Loading...</span>
+              </div>
+              <div id="live-status-icon" class="avatar avatar-xl rounded-circle bg-label-danger mb-3 d-none">
+                <i class="icon-base bx bx-wifi-off fs-1"></i>
+              </div>
+              <h5 class="text-white mb-2" id="live-status-title">Reconnecting Stream...</h5>
+              <p class="text-white-50 mb-3 small" id="live-status-desc" style="max-width: 420px;">The external server temporarily closed the connection. Restoring playback automatically...</p>
+              <button type="button" class="btn btn-primary d-none shadow-sm" id="btn-live-retry-stream">
+                <i class="icon-base bx bx-refresh me-1"></i> Retry Connection
+              </button>
             </div>
           </div>
 

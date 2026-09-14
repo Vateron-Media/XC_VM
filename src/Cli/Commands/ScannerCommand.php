@@ -6,10 +6,10 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Cli\DaemonTrait;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Database\Database;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Util\StreamUtils;
 use XcVm\Domain\Stream\StreamSorter;
-use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Codec\FFprobeRunner;
 
@@ -24,7 +24,6 @@ use XcVm\Streaming\Codec\FFprobeRunner;
  */
 
 class ScannerCommand implements CommandInterface {
-	use DatabaseAware;
 	use DaemonTrait;
 
 	public function getName(): string {
@@ -40,7 +39,7 @@ class ScannerCommand implements CommandInterface {
 			return 1;
 		}
 
-		$db = self::db();
+		global $db;
 
 		$this->setProcessTitle('XC_VM[Scanner]');
 		$this->killStaleProcesses('console.php scanner');
@@ -53,7 +52,7 @@ class ScannerCommand implements CommandInterface {
 
 		$this->rRefreshInterval = 60;
 
-		while ($db->ping()) {
+		while ($db && $db->ping()) {
 			if (!$this->shouldRefreshSettings()) {
 				// skip
 			} else {
@@ -65,19 +64,20 @@ class ScannerCommand implements CommandInterface {
 				$this->rLastCheck = time();
 			}
 
-			$this->scanOnDemandStreams();
+			$this->scanOnDemandStreams($db);
 			sleep(60);
 			break;
 		}
 
-		$db->close_mysql();
+		if (is_object($db)) {
+			$db->close_mysql();
+		}
 
 		$this->restartDaemon('scanner');
 		return 0;
 	}
 
-	private function scanOnDemandStreams(): void {
-		$db = self::db();
+	private function scanOnDemandStreams(Database $db): void {
 		$rScanTime = SettingsManager::get('on_demand_scan_time') ?: 3600;
 
 		if (!$db->query('SELECT `streams`.* FROM `streams` LEFT JOIN `streams_servers` ON `streams_servers`.`stream_id` = `streams`.`id` WHERE `streams_servers`.`pid` IS NULL AND `streams_servers`.`on_demand` = 1 AND `streams_servers`.`parent_id` IS NULL AND `streams`.`type` = 1 AND `streams`.`direct_source` = 0 AND `streams_servers`.`server_id` = ? AND (UNIX_TIMESTAMP() - (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) > ? OR (SELECT MAX(`date`) FROM `ondemand_check` WHERE `stream_id` = `streams`.`id` AND `server_id` = `streams_servers`.`server_id`) IS NULL);', SERVER_ID, $rScanTime)) {
@@ -109,6 +109,7 @@ class ScannerCommand implements CommandInterface {
 
 			foreach ($rSources as $rSource) {
 				$rProcessed = false;
+				$rRealSource = $rSource;
 				$rStreamSource = StreamUtils::parseStreamURL($rSource);
 				echo 'Checking source: ' . $rSource . "\n";
 				$rURLInfo = parse_url($rStreamSource);
@@ -184,6 +185,8 @@ class ScannerCommand implements CommandInterface {
 				$rAudioCodec = ($rFFProbeOutput['codecs']['audio']['codec_name'] ?: null);
 				$rVideoCodec = ($rFFProbeOutput['codecs']['video']['codec_name'] ?: null);
 				$rResolution = ($rFFProbeOutput['codecs']['video']['height'] ?: null);
+				$rVideoBitrate = ($rFFProbeOutput['codecs']['video']['bit_rate'] ?: 0);
+				$rAudioBitrate = ($rFFProbeOutput['codecs']['audio']['bit_rate'] ?: 0);
 				$rFPS = (intval(explode('/', $rFFProbeOutput['codecs']['video']['r_frame_rate'])[0]) ?: 0);
 				if ($rFPS == 0) {
 					$rFPS = (intval(explode('/', $rFFProbeOutput['codecs']['video']['avg_frame_rate'])[0]) ?: 0);

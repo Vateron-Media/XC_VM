@@ -45,6 +45,34 @@ class SeriesController extends BasePlayerV2Controller
             $sortBy = RequestManager::get('sort') ?: 'number';
             $searchBy = RequestManager::get('search') ?: null;
 
+            // Support External Xtream Codes
+            if (!empty($rUserInfo['is_external_xc'])) {
+                $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+                $extSeries = $extService ? $extService->getSeries($catId) : [];
+                if ($searchBy) {
+                    $extSeries = array_filter($extSeries, fn($s) => stripos($s['title'], $searchBy) !== false);
+                    $extSeries = array_values($extSeries);
+                }
+                $seriesItems = [];
+                foreach ($extSeries as $s) {
+                    $seriesItems[] = [
+                        'id'            => (int)$s['id'],
+                        'title'         => $s['title'],
+                        'year'          => $s['year'],
+                        'rating'        => $s['rating'] ?: 'N/A',
+                        'cover'         => $s['cover'],
+                        'category_id'   => (int)$s['category_id'],
+                        'seasons_count' => 1,
+                    ];
+                }
+                echo json_encode([
+                    'status' => 'success',
+                    'count'  => count($seriesItems),
+                    'series' => $seriesItems,
+                ]);
+                exit;
+            }
+
             if (empty($rUserInfo['series_ids'])) {
                 $where = [];
                 $whereV = [];
@@ -109,6 +137,37 @@ class SeriesController extends BasePlayerV2Controller
         // ─── Mode C: Standard Series Catalog Load ───────────────────────────
         $rCategories = PlayerCategoryHelper::getCategories($rUserInfo, 'series');
         $firstCatId = !empty($rCategories[0]['id']) ? (int)$rCategories[0]['id'] : null;
+
+        // Support External Xtream Standard Load
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $extSeries = $extService ? $extService->getSeries($firstCatId) : [];
+
+            $initialSeries = [];
+            foreach ($extSeries as $s) {
+                $initialSeries[] = [
+                    'id'            => (int)$s['id'],
+                    'title'         => $s['title'],
+                    'year'          => $s['year'],
+                    'rating'        => $s['rating'] ?: 'N/A',
+                    'cover'         => $s['cover'],
+                    'category_id'   => (int)$s['category_id'],
+                    'seasons_count' => 1,
+                ];
+            }
+
+            $GLOBALS['_TITLE'] = 'TV Series';
+            $GLOBALS['_PAGE']  = 'series';
+
+            $this->render('series', [
+                'rCategories'        => $rCategories,
+                'initialSeries'      => $initialSeries,
+                'selectedCategoryId' => $firstCatId,
+                'totalSeriesCount'   => count($initialSeries),
+                'baseUrl'            => $baseUrl,
+            ]);
+            return;
+        }
 
         if (empty($rUserInfo['series_ids'])) {
             $where = [];
@@ -181,6 +240,101 @@ class SeriesController extends BasePlayerV2Controller
     private function renderSeriesDetails(int $seriesId, string $baseUrl)
     {
         global $db, $rUserInfo;
+
+        // Support External Xtream Series Details
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $seriesInfoData = $extService ? $extService->getSeriesInfo($seriesId) : [];
+            $info = $seriesInfoData['info'] ?? [];
+            $episodesRaw = $seriesInfoData['episodes'] ?? [];
+
+            $title = $info['name'] ?? ('Series #' . $seriesId);
+            $posterUrl = $info['cover'] ?? '';
+            $backdropUrl = !empty($info['backdrop_path']) ? (is_array($info['backdrop_path']) ? ($info['backdrop_path'][0] ?? '') : $info['backdrop_path']) : $posterUrl;
+
+            $castRaw = $info['cast'] ?? '';
+            $castList = [];
+            if (is_string($castRaw) && trim($castRaw) !== '') {
+                $castList = array_slice(array_filter(array_map('trim', explode(',', $castRaw))), 0, 12);
+            }
+
+            $catId = (int)($info['category_id'] ?? 0);
+            $catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'series');
+
+            $episodesMap = [];
+            $totalEpisodes = 0;
+            $firstEpisode = null;
+
+            foreach ($episodesRaw as $seasonKey => $seasonEpisodes) {
+                $sNum = (int)$seasonKey;
+                if (!isset($episodesMap[$sNum])) {
+                    $episodesMap[$sNum] = [];
+                }
+
+                foreach ($seasonEpisodes as $ep) {
+                    $totalEpisodes++;
+                    $epNum = (int)($ep['episode_num'] ?? 1);
+                    $epStreamId = (int)($ep['id'] ?? 0);
+                    $epTitle = $ep['title'] ?? ('Episode ' . $epNum);
+                    $epExt = $ep['container_extension'] ?? 'mp4';
+                    $epStreamUrl = $extService ? $extService->buildSeriesUrl($epStreamId, $epExt) : '';
+                    $epCover = !empty($ep['info']['movie_image']) ? $ep['info']['movie_image'] : $posterUrl;
+                    $epDuration = $ep['info']['duration'] ?? '';
+
+                    $epObj = [
+                        'season_num'           => $sNum,
+                        'episode_num'          => $epNum,
+                        'stream_id'            => $epStreamId,
+                        'episode_id'           => $epStreamId,
+                        'title'                => $epTitle,
+                        'cover'                => $epCover,
+                        'duration'             => $epDuration,
+                        'quality_badge'        => 'HD',
+                        'quality_color'        => 'primary',
+                        'stream_url'           => $epStreamUrl,
+                    ];
+
+                    $episodesMap[$sNum][] = $epObj;
+
+                    if ($firstEpisode === null) {
+                        $firstEpisode = $epObj;
+                    }
+                }
+            }
+
+            ksort($episodesMap);
+            $seasonsList = array_keys($episodesMap);
+
+            $GLOBALS['_TITLE'] = $title;
+            $GLOBALS['_PAGE']  = 'series';
+
+            $this->render('series_detail', [
+                'series'         => [
+                    'id' => $seriesId,
+                    'title' => $title,
+                    'year' => !empty($info['releaseDate']) ? substr((string)$info['releaseDate'], 0, 4) : null,
+                    'rating' => $info['rating'] ?? 'N/A',
+                    'plot' => $info['plot'] ?? '',
+                    'genre' => $info['genre'] ?? '',
+                    'director' => $info['director'] ?? '',
+                    'cast' => $info['cast'] ?? '',
+                    'cover' => $posterUrl,
+                ],
+                'posterUrl'      => $posterUrl,
+                'backdropUrl'    => $backdropUrl,
+                'backdrops'      => $backdropUrl ? [$backdropUrl] : [],
+                'trailerId'      => '',
+                'castList'       => $castList,
+                'categoryNames'  => [$catName],
+                'episodesMap'    => $episodesMap,
+                'seasonsList'    => $seasonsList,
+                'totalEpisodes'  => $totalEpisodes,
+                'firstEpisode'   => $firstEpisode,
+                'similarSeries'  => [],
+                'baseUrl'        => $baseUrl,
+            ]);
+            return;
+        }
 
         // Access check
         if (!empty($rUserInfo['series_ids']) && !in_array($seriesId, $rUserInfo['series_ids'], true)) {

@@ -2,8 +2,7 @@
 
 namespace XcVm\Public\Controllers\Reseller;
 
-use XcVm\Domain\Device\EnigmaService;
-use XcVm\Domain\Device\MagService;
+use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Line\LineService;
 use XcVm\Domain\Line\PackageService;
 use XcVm\Domain\User\GroupService;
@@ -27,6 +26,7 @@ class ResellerDashboardController extends BaseResellerController
 
         $rUserInfo = $GLOBALS['rUserInfo'];
         $rPermissions = $GLOBALS['rPermissions'];
+        $rSettings = SettingsManager::getAll();
 
         $rRegisteredUsers = UserRepository::getResellers($rUserInfo['id'], true);
         $rGroups = GroupService::getAll();
@@ -102,13 +102,13 @@ class ResellerDashboardController extends BaseResellerController
                     }
                     break;
                 case 'mag':
-                    $rTarget = MagService::getById($rTargetId);
+                    $rTarget = \XcVm\Domain\Device\MagService::getById($rTargetId);
                     if ($rTarget) {
                         $rTargetHtml = "<a class='text-dark' href='mag?id=" . $rTargetId . "'>" . htmlspecialchars((string) $rTarget['mac'], ENT_QUOTES, 'UTF-8') . '</a>';
                     }
                     break;
                 case 'enigma':
-                    $rTarget = EnigmaService::getById($rTargetId);
+                    $rTarget = \XcVm\Domain\Device\EnigmaService::getById($rTargetId);
                     if ($rTarget) {
                         $rTargetHtml = "<a class='text-dark' href='enigma?id=" . $rTargetId . "'>" . htmlspecialchars((string) $rTarget['mac'], ENT_QUOTES, 'UTF-8') . '</a>';
                     }

@@ -9,7 +9,6 @@
  */
 
 use XcVm\Core\Http\RequestManager;
-use XcVm\Domain\Server\ServerRepository;
 
 $rServerId = (int) RequestManager::get('server');
 ?>
@@ -67,7 +66,7 @@ $rServerId = (int) RequestManager::get('server');
         <div class="alert alert-danger text-center" role="alert"><strong>You are running out of space on one or more of your mount points. You should resolve this before issues occur.</strong></div>
     <?php endif; ?>
     <?php
-    $ramdiskUsage = ServerRepository::getStreamsRamdisk($rServerId);
+    $ramdiskUsage = \XcVm\Domain\Server\ServerRepository::getStreamsRamdisk($rServerId);
     $db->query('SELECT `stream_id`, `stream_display_name`, `bitrate` FROM `streams_servers` LEFT JOIN `streams` ON `streams`.`id` = `streams_servers`.`stream_id` WHERE `server_id` = ? AND `pid` > 0;', $rServerId);
     $rStreamNames = $db->get_rows(true, 'stream_id');
     $streamUsage = [];

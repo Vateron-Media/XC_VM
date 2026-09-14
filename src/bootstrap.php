@@ -70,7 +70,6 @@ use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\User\ResellerAPI;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\Bootstrap\DomainDatabaseWiring;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Infrastructure\Redis\RedisManager;
 
@@ -425,13 +424,7 @@ class XC_Bootstrap {
         if (session_status() === PHP_SESSION_NONE) {
             $rParams = session_get_cookie_params() ?: [];
             $rParams['samesite'] = 'Strict';
-            // The panel's scripts never read the session cookie, so an XSS must
-            // not be able to either.
-            $rParams['httponly'] = true;
             session_set_cookie_params($rParams);
-            // Refuse session ids this server never issued, so a visitor cannot
-            // arrive carrying one an attacker chose.
-            ini_set('session.use_strict_mode', '1');
             session_start();
         }
 
@@ -590,7 +583,7 @@ class XC_Bootstrap {
         }
 
         // Translator
-        if (class_exists(Translator::class, false) && Translator::available()) {
+        if (class_exists(\XcVm\Core\Localization\Translator::class, false) && Translator::available()) {
             $container->set('translator', Translator::class);
         }
 
@@ -608,10 +601,10 @@ class XC_Bootstrap {
      * the injected instance; db() returns it. Calling this method removes the
      * need for the global $db fallback inside each db() helper.
      *
-     * @param DatabaseHandler $db DatabaseHandler instance
+     * @param \XcVm\Core\Database\DatabaseHandler $db DatabaseHandler instance
      */
     private static function wireDomainDatabase(object $db): void {
-        DomainDatabaseWiring::wire($db);
+        \XcVm\Infrastructure\Bootstrap\DomainDatabaseWiring::wire($db);
     }
 
     /**

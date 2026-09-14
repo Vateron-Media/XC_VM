@@ -151,14 +151,6 @@ if ($rChannelInfo) {
         $rChannelInfo["pid"] = NULL;
 
         if ($rChannelInfo["on_demand"] == 1) {
-            // One viewer starts a stopped stream; others arriving meanwhile wait
-            // here, then read the monitor it started (see lockOnDemandStart).
-            $rStartLock = StreamProcess::lockOnDemandStart($rStreamID);
-            if ($rStartLock) {
-                AsyncFileOperations::clearFileCache();
-                $rChannelInfo["monitor_pid"] = (intval(AsyncFileOperations::readFile(STREAMS_PATH . $rStreamID . "_.monitor", false)) ?: $rChannelInfo["monitor_pid"]);
-            }
-
             // Watched = a live PHP monitor, or the fanout supervisor (whose pid
             // the PHP check rightly rejects). Either way, do not start another.
             if (!StreamProcess::isWatched($rStreamID, $rChannelInfo["monitor_pid"])) {
@@ -186,9 +178,6 @@ if ($rChannelInfo) {
             } elseif (!$rChannelInfo["monitor_pid"]) {
                 $rChannelInfo["monitor_pid"] = -1; // supervised; its pid is the daemon's
             }
-            // The monitor is up (or known to be failing): the viewers waiting
-            // behind this one can see it now.
-            StreamProcess::unlockOnDemandStart($rStartLock);
 
             if (!$rChannelInfo["monitor_pid"]) {
                 OffAirHandler::showNotOnAir($rExtension, $rUserInfo, $rIP, $rCountryCode, $rServerID, $rProxyID);

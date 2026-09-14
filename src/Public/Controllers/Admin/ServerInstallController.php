@@ -2,8 +2,6 @@
 
 namespace XcVm\Public\Controllers\Admin;
 
-use XcVm\Core\Http\RequestManager;
-
 /**
  * ServerInstallController — установка/переустановка сервера (admin/server_install.php).
  *
@@ -26,7 +24,7 @@ class ServerInstallController extends BaseAdminController {
 
         global $allServers, $rProxyServers;
 
-        $rType = RequestManager::has('proxy') ? 1 : 2;
+        $rType = \XcVm\Core\Http\RequestManager::has('proxy') ? 1 : 2;
         $rServerArr = null;
 
         if ($this->input('id')) {

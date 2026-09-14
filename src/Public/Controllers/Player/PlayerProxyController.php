@@ -25,12 +25,10 @@ class PlayerProxyController extends BasePlayerController
 	{
 		ini_set('default_socket_timeout', 10);
 
-		// The URL is fetched from this server: it must be one this panel sealed.
-		$rURL = (string) Encryption::readToken(
+		$rURL = Encryption::decrypt(
 			$_GET['url'] ?? '',
 			SettingsManager::get('live_streaming_pass'),
-			'd8de497ebccf4f4697a1da20219c7c33',
-			!SettingsManager::get('secure_stream_tokens')
+			'd8de497ebccf4f4697a1da20219c7c33'
 		);
 
 		if (substr($rURL, 0, 4) === 'http') {

@@ -3,19 +3,12 @@
 namespace XcVm\Core\Parsing;
 
 class File implements StreamInterface {
-	/** @var resource */
 	private $handle;
-	private int $readBytes = 0;
-	private int $chunkSize;
-	/** @var callable|null */
+	private $readBytes = 0;
+	private $chunkSize;
 	private $chunkCallback;
 
-	/**
-	 * @param string|resource $mixed A filename or an open stream handle
-	 * @param int $chunkSize Bytes to read per getChunk() call
-	 * @param callable|null $chunkCallback Invoked as ($buffer, $readBytes) after each chunk
-	 */
-	public function __construct($mixed, int $chunkSize = 16384, ?callable $chunkCallback = null) {
+	public function __construct($mixed, $chunkSize = 16384, $chunkCallback = null) {
 		if (is_string($mixed)) {
 			if (!file_exists($mixed)) {
 				throw new \Exception('File \'' . $mixed . '\' doesn\'t exist');

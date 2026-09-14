@@ -158,7 +158,7 @@ class PlayerLoginController
 
 		// Success — set session and redirect
 		$_SESSION['phash'] = $rUserInfo['id'];
-		$_SESSION['pverify'] = hash('sha256', $rUserInfo['username'] . '||' . $rUserInfo['password']);
+		$_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);
 		header('Location: index');
 		exit();
 	}

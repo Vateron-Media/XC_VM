@@ -2,7 +2,6 @@
 
 namespace XcVm\Public\Controllers\Api;
 
-use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
@@ -45,7 +44,7 @@ class InternalApiController {
 		$rRequest = RequestManager::getAll();
 		$rSettings = SettingsManager::getAll();
 
-		if (!AuthService::secretMatches($rSettings['live_streaming_pass'], $rRequest['password'] ?? null)) {
+		if (empty($rRequest['password']) || $rRequest['password'] != $rSettings['live_streaming_pass']) {
 			generateError('INVALID_API_PASSWORD');
 		}
 
@@ -300,7 +299,7 @@ class InternalApiController {
 				$rReturn = array('result' => true, 'dirs' => array(), 'files' => array());
 				$rFiles = scanDir($rDirectory);
 
-				foreach ($rFiles as $rValue) {
+				foreach ($rFiles as $rKey => $rValue) {
 					if (in_array($rValue, array('.', '..'))) {
 						continue;
 					}

@@ -24,11 +24,10 @@ if (empty($rSettings['live_streaming_pass'])) {
 
 if (isset($_GET['token'])) {
 	$rIP = getuserip();
-	$rTokenArray = explode('/', (string) Encryption::readToken($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])));
+	$rTokenArray = explode('/', Encryption::decrypt($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 	$rIPMatch = ($rSettings['ip_subnet_match'] ? implode('.', array_slice(explode('.', $rTokenArray[0]), 0, -1)) == implode('.', array_slice(explode('.', $rIP), 0, -1)) : $rTokenArray[0] == $rIP);
 
-	// An unreadable token splits into one empty piece: no stream, no key.
-	if (count($rTokenArray) >= 2 && ($rIPMatch || !$rSettings['restrict_same_ip'])) {
+	if (is_array($rTokenArray) && ($rIPMatch || !$rSettings['restrict_same_ip'])) {
 		header('Content-Type: application/octet-stream');
 		header('X-Content-Type-Options: nosniff');
 		echo file_get_contents(STREAMS_PATH . intval($rTokenArray[1]) . '_.key');

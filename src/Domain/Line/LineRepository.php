@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Line;
 
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * LineRepository — line repository
@@ -16,7 +15,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class LineRepository {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Bulk delete lines by id.
 	 *

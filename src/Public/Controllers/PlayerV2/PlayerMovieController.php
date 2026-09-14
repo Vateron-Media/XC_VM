@@ -23,6 +23,53 @@ class PlayerMovieController extends BasePlayerV2Controller
 
         $id = (int)RequestManager::get('id');
 
+        $code = $_SERVER['XC_CODE'] ?? '';
+        $baseUrl = $code ? '/' . $code . '/' : '/';
+
+        // Support External Xtream Movie View
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $infoData = $extService ? $extService->getVodInfo($id) : [];
+            $info = $infoData['info'] ?? [];
+            $movieData = $infoData['movie_data'] ?? [];
+
+            $title = $info['name'] ?? ($movieData['name'] ?? ('Movie #' . $id));
+            $posterUrl = $info['movie_image'] ?? ($info['cover_big'] ?? '');
+            $backdropUrl = !empty($info['backdrop_path']) ? (is_array($info['backdrop_path']) ? ($info['backdrop_path'][0] ?? '') : $info['backdrop_path']) : $posterUrl;
+            $ext = $movieData['container_extension'] ?? ($info['container_extension'] ?? 'mp4');
+            $streamUrl = $extService ? $extService->buildVodUrl($id, $ext) : '';
+            $catId = (int)($movieData['category_id'] ?? ($info['category_id'] ?? 0));
+            $catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'movie');
+
+            $GLOBALS['_TITLE'] = $title;
+            $GLOBALS['_PAGE']  = 'movies';
+
+            $this->render('movie', [
+                'movie'          => [
+                    'id' => $id,
+                    'stream_display_name' => $title,
+                    'year' => !empty($info['releasedate']) ? substr((string)$info['releasedate'], 0, 4) : null,
+                    'rating' => $info['rating'] ?? 'N/A',
+                ],
+                'props'          => [
+                    'plot' => $info['plot'] ?? ($info['description'] ?? ''),
+                    'genre' => $info['genre'] ?? '',
+                    'cast' => $info['cast'] ?? '',
+                    'director' => $info['director'] ?? '',
+                    'duration' => !empty($info['duration_secs']) ? (int)($info['duration_secs'] / 60) . ' min' : ($info['duration'] ?? ''),
+                    'release_date' => $info['releasedate'] ?? '',
+                ],
+                'posterUrl'      => $posterUrl,
+                'backdropUrl'    => $backdropUrl,
+                'backdrops'      => $backdropUrl ? [$backdropUrl] : [],
+                'streamUrl'      => $streamUrl,
+                'categoryNames'  => [$catName],
+                'similarMovies'  => [],
+                'baseUrl'        => $baseUrl,
+            ]);
+            return;
+        }
+
         if ($id <= 0 || !in_array($id, $rUserInfo['vod_ids'] ?? [], true) || !($rStream = getStream($id))) {
             header('Location: movies');
             exit;

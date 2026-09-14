@@ -38,6 +38,34 @@ class MoviesController extends BasePlayerV2Controller
             $searchBy = RequestManager::get('search') ?: null;
             $isPopular = RequestManager::get('filter') === 'popular' || $sortBy === 'popular';
 
+            // Support External Xtream Codes
+            if (!empty($rUserInfo['is_external_xc'])) {
+                $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+                $extVod = $extService ? $extService->getVodStreams($catId) : [];
+                if ($searchBy) {
+                    $extVod = array_filter($extVod, fn($m) => stripos($m['title'], $searchBy) !== false);
+                    $extVod = array_values($extVod);
+                }
+                $movies = [];
+                foreach ($extVod as $m) {
+                    $movies[] = [
+                        'id' => (int)$m['id'],
+                        'title' => $m['title'],
+                        'year' => $m['year'],
+                        'rating' => $m['rating'] ?: 'N/A',
+                        'cover' => $m['poster'],
+                        'category_id' => (int)$m['category_id'],
+                        'duration' => 0,
+                    ];
+                }
+                echo json_encode([
+                    'status' => 'success',
+                    'count' => count($movies),
+                    'movies' => $movies,
+                ]);
+                exit;
+            }
+
             if ($isPopular && file_exists(CONTENT_PATH . 'tmdb_popular')) {
                 $popularData = @igbinary_unserialize(file_get_contents(CONTENT_PATH . 'tmdb_popular'));
                 $popularIds = is_array($popularData) && !empty($popularData['movies']) ? $popularData['movies'] : [];
@@ -117,6 +145,37 @@ class MoviesController extends BasePlayerV2Controller
         // Standard Page Load
         $rCategories = PlayerCategoryHelper::getCategories($rUserInfo, 'movie');
         $firstCatId = !empty($rCategories[0]['id']) ? (int)$rCategories[0]['id'] : null;
+
+        // Support External Xtream Standard Load
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $extVod = $extService ? $extService->getVodStreams($firstCatId) : [];
+
+            $initialMovies = [];
+            foreach ($extVod as $m) {
+                $initialMovies[] = [
+                    'id' => (int)$m['id'],
+                    'title' => $m['title'],
+                    'year' => $m['year'],
+                    'rating' => $m['rating'] ?: 'N/A',
+                    'cover' => $m['poster'],
+                    'category_id' => (int)$m['category_id'],
+                    'duration' => 0,
+                ];
+            }
+
+            $GLOBALS['_TITLE'] = 'Movies';
+            $GLOBALS['_PAGE'] = 'movies';
+
+            $this->render('movies', [
+                'rCategories' => $rCategories,
+                'initialMovies' => $initialMovies,
+                'selectedCategoryId' => $firstCatId,
+                'totalMoviesCount' => count($initialMovies),
+                'baseUrl' => $baseUrl,
+            ]);
+            return;
+        }
 
         if (empty($rUserInfo['vod_ids'])) {
             $where = ['`type` = 2'];

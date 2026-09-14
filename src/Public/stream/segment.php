@@ -48,7 +48,7 @@ $rIsHMAC = null;
 
 if (isset($_GET['token'])) {
 	$rOffset = 0;
-	$rTokenArray = explode('/', (string) Encryption::readToken($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])));
+	$rTokenArray = explode('/', Encryption::decrypt($_GET['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 
 	if (6 > count($rTokenArray)) {
 	} else {

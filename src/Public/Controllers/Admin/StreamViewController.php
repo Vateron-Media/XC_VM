@@ -53,7 +53,7 @@ class StreamViewController extends BaseAdminController {
             } else {
                 $rExpires = time() + 3600;
                 $rTokenData = array('session_id' => session_id(), 'expires' => $rExpires, 'stream_id' => intval(RequestManager::get('id')), 'ip' => NetworkUtils::getUserIP());
-                $rUIToken = Encryption::mintToken(json_encode($rTokenData), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA, (bool) SettingsManager::get('secure_stream_tokens'));
+                $rUIToken = Encryption::encrypt(json_encode($rTokenData), SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
 
                 if (AdminHelpers::issecure()) {
                     $rVServer = ServerRepository::getAll()[$rStream['vframes_server_id']];

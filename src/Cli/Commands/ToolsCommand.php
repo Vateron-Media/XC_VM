@@ -6,12 +6,9 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Backup\BackupService;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Events\EventDispatcher;
-use XcVm\Core\Events\Stream\StreamsDeletedEvent;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ToolsCommand — tools command
@@ -25,8 +22,6 @@ use XcVm\Infrastructure\Database\DatabaseAware;
 
 class ToolsCommand implements CommandInterface {
 
-	use DatabaseAware;
-
 	public function getName(): string {
 		return 'tools';
 	}
@@ -37,8 +32,13 @@ class ToolsCommand implements CommandInterface {
 
 	public function execute(array $rArgs): int {
 		register_shutdown_function(function () {
-			self::db()->close_mysql();
+			global $db;
+			if (is_object($db)) {
+				$db->close_mysql();
+			}
 		});
+
+		global $db;
 
 		$rMethod = (!empty($rArgs[0]) ? $rArgs[0] : null);
 		$rUser = posix_getpwuid(posix_geteuid())['name'];
@@ -63,23 +63,23 @@ class ToolsCommand implements CommandInterface {
 
 			switch ($rMethod) {
 				case 'rescue':
-					return $this->processRescue($rServers);
+					return $this->processRescue($db, $rServers);
 				case 'recaptcha':
-					return $this->processRecaptcha();
+					return $this->processRecaptcha($db);
 				case 'access':
-					return $this->processAccess($rServers);
+					return $this->processAccess($db, $rServers);
 				case 'ports':
-					return $this->processPorts($rServers);
+					return $this->processPorts($db, $rServers);
 				case 'migration':
-					return $this->processMigration($rArgs, $rServers);
+					return $this->processMigration($db, $rArgs, $rServers);
 				case 'user':
-					return $this->processUser();
+					return $this->processUser($db);
 				case 'mysql':
-					return $this->processMysql($rServers);
+					return $this->processMysql($db, $rServers);
 				case 'database':
-					return $this->processDatabase($rArgs);
+					return $this->processDatabase($db, $rArgs);
 				case 'flush':
-					return $this->processFlush();
+					return $this->processFlush($db);
 			}
 		}
 
@@ -91,13 +91,13 @@ class ToolsCommand implements CommandInterface {
 
 		switch ($rMethod) {
 			case 'images':
-				$this->processImages();
+				$this->processImages($db);
 				break;
 			case 'duplicates':
-				$this->processDuplicates();
+				$this->processDuplicates($db);
 				break;
 			case 'bouquets':
-				$this->processBouquets();
+				$this->processBouquets($db);
 				break;
 			default:
 				$this->printUsage();
@@ -107,8 +107,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processMigration(array $rArgs, array $rServers): int {
-		$db = self::db();
+	private function processMigration($db, array $rArgs, array $rServers): int {
 		// Re-join the argument tail so an unquoted path with spaces still resolves
 		$database = (count($rArgs) > 1 ? implode(' ', array_slice($rArgs, 1)) : null);
 
@@ -148,17 +147,13 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processUser(): int {
-		$db = self::db();
+	private function processUser($db): int {
 		$rUsername = 'admin_' . bin2hex(random_bytes(4));
 		$rPassword = bin2hex(random_bytes(8));
 		$rHash = crypt($rPassword, sprintf('$6$rounds=%d$%s$', 20000, 'xc_vm'));
 		$db->query(
 			"INSERT INTO `users`(`username`, `password`, `email`, `ip`, `date_registered`, `last_login`, `member_group_id`, `status`) VALUES(?, ?, '', '', ?, ?, 1, 1);",
-			$rUsername,
-			$rHash,
-			time(),
-			time()
+			$rUsername, $rHash, time(), time()
 		);
 		echo "Rescue admin user created:\n";
 		echo "  Username: {$rUsername}\n";
@@ -167,7 +162,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processMysql(array $rServers): int {
+	private function processMysql($db, array $rServers): int {
 		foreach ($rServers as $rServerID => $rServer) {
 			echo 'Granting privileges to: ' . $rServer['server_ip'] . " (ID: {$rServerID})\n";
 			BackupService::grantPrivileges($rServer['server_ip']);
@@ -176,7 +171,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processDatabase(array $rArgs): int {
+	private function processDatabase($db, array $rArgs): int {
 		if (empty($rArgs[1]) || $rArgs[1] !== '--confirm') {
 			echo "WARNING: This will erase ALL data and restore a blank database!\n";
 			echo "To confirm, run: sudo console.php tools database --confirm\n";
@@ -193,8 +188,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processFlush(): int {
-		$db = self::db();
+	private function processFlush($db): int {
 		echo "Flushing iptables rules...\n";
 		exec('sudo iptables -F && sudo ip6tables -F');
 		shell_exec('sudo rm -f ' . escapeshellarg(FLOOD_TMP_PATH) . 'block_*');
@@ -222,8 +216,7 @@ class ToolsCommand implements CommandInterface {
 		echo "  flush       Flush all blocked IPs (iptables + database)\n";
 	}
 
-	private function processRecaptcha(): int {
-		$db = self::db();
+	private function processRecaptcha($db): int {
 		$db->query('UPDATE `settings` SET `recaptcha_enable` = 0;');
 		// SettingsManager is always autoloadable (Composer PSR-4).
 		SettingsManager::clearCache();
@@ -232,8 +225,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processRescue(array $rServers): int {
-		$db = self::db();
+	private function processRescue($db, array $rServers): int {
 		$db->query("DELETE FROM `access_codes` WHERE `code` = 'rescue';");
 		$db->query("INSERT INTO `access_codes`(`code`, `type`, `enabled`, `groups`) VALUES('rescue', 0, 1, '[1]');");
 		echo "A rescue access code has been created.\nPlease ensure you delete this after you're done with it.\n";
@@ -243,7 +235,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processAccess(array $rServers): int {
+	private function processAccess($db, array $rServers): int {
 		echo "Generating access code configuration...\n\n";
 		AuthRepository::updateCodes();
 		shell_exec('sudo ' . MAIN_HOME . 'service reload 2>/dev/null');
@@ -255,7 +247,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processPorts(array $rServers): int {
+	private function processPorts($db, array $rServers): int {
 		echo "Generating port configuration...\n\n";
 		$rConfig = array(
 			'http' => array_unique(array_merge(
@@ -307,8 +299,7 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
-	private function processImages(): void {
-		$db = self::db();
+	private function processImages($db): void {
 		$rImages = array();
 		$db->query('SELECT COUNT(*) AS `count` FROM `streams`;');
 		$rCount = $db->get_row()['count'];
@@ -387,14 +378,13 @@ class ToolsCommand implements CommandInterface {
 		}
 	}
 
-	private function processDuplicates(): void {
-		$db = self::db();
+	private function processDuplicates($db): void {
 		$rGroups = $rStreamIDs = array();
 		$db->query('SELECT `a`.`id`, `a`.`stream_source` FROM `streams` `a` INNER JOIN (SELECT  `stream_source`, COUNT(*) `totalCount` FROM `streams` WHERE `type` IN (2,5) GROUP BY `stream_source`) `b` ON `a`.`stream_source` = `b`.`stream_source` WHERE `b`.`totalCount` > 1;');
 		foreach ($db->get_rows() as $rRow) {
 			$rGroups[md5($rRow['stream_source'])][] = $rRow['id'];
 		}
-		foreach ($rGroups as $rGroupIDs) {
+		foreach ($rGroups as $rID => $rGroupIDs) {
 			array_shift($rGroupIDs);
 			foreach ($rGroupIDs as $rStreamID) {
 				$rStreamIDs[] = intval($rStreamID);
@@ -402,13 +392,12 @@ class ToolsCommand implements CommandInterface {
 		}
 		if (count($rStreamIDs) > 0) {
 			foreach (array_chunk($rStreamIDs, 100) as $rChunk) {
-				$this->deleteStreams($rChunk);
+				$this->deleteStreams($db, $rChunk);
 			}
 		}
 	}
 
-	private function processBouquets(): void {
-		$db = self::db();
+	private function processBouquets($db): void {
 		$rStreamIDs = array(array(), array());
 		$db->query('SELECT `id` FROM `streams`;');
 		if ($db->num_rows() > 0) {
@@ -446,13 +435,12 @@ class ToolsCommand implements CommandInterface {
 						$UpdateData[3][] = intval($rID);
 					}
 				}
-				$db->query('UPDATE `bouquets` SET `bouquet_channels` = ?, `bouquet_movies` = ?, `bouquet_radios` = ?, `bouquet_series` = ? WHERE `id` = ?;', json_encode(array_map('intval', $UpdateData[0])), json_encode(array_map('intval', $UpdateData[1])), json_encode(array_map('intval', $UpdateData[2])), json_encode(array_map('intval', $UpdateData[3])), $rBouquet['id']);
+				$db->query("UPDATE `bouquets` SET `bouquet_channels` = '[" . implode(',', array_map('intval', $UpdateData[0])) . "]', `bouquet_movies` = '[" . implode(',', array_map('intval', $UpdateData[1])) . "]', `bouquet_radios` = '[" . implode(',', array_map('intval', $UpdateData[2])) . "]', `bouquet_series` = '[" . implode(',', array_map('intval', $UpdateData[3])) . "]' WHERE `id` = ?;", $rBouquet['id']);
 			}
 		}
 	}
 
-	private function deleteStreams($rIDs): bool {
-		$db = self::db();
+	private function deleteStreams($db, $rIDs): bool {
 		$db->query('DELETE FROM `lines_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `mag_claims` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `streams` WHERE `id` IN (' . implode(',', $rIDs) . ');');
@@ -461,7 +449,7 @@ class ToolsCommand implements CommandInterface {
 		$db->query('DELETE FROM `streams_logs` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `streams_options` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `streams_stats` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
-		EventDispatcher::dispatch(new StreamsDeletedEvent($rIDs));
+		\XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Stream\StreamsDeletedEvent($rIDs));
 		$db->query('DELETE FROM `lines_live` WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('DELETE FROM `recordings` WHERE `created_id` IN (' . implode(',', $rIDs) . ') OR `stream_id` IN (' . implode(',', $rIDs) . ');');
 		$db->query('UPDATE `lines_activity` SET `stream_id` = 0 WHERE `stream_id` IN (' . implode(',', $rIDs) . ');');

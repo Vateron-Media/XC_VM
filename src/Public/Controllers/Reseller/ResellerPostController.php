@@ -43,6 +43,7 @@ class ResellerPostController extends BaseResellerController
             exit();
         }
 
+        $rUserInfo = $GLOBALS['rUserInfo'];
         $language = Translator::class;
 
         switch ($rAction) {

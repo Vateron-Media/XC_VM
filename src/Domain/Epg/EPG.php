@@ -4,10 +4,9 @@ namespace XcVm\Domain\Epg;
 
 use XcVm\Core\Logging\FileLogger;
 use XcVm\Core\Parsing\XmlStringStreamer;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
- * EPG
+ * EPG — e p g
  *
  * @package XC_VM_Domain_Epg
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -17,7 +16,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class EPG {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	public $rValid = false;
 	public $rEPGSource;
 	public $rFilename;
@@ -236,7 +235,7 @@ class EPG {
 		}
 
 		$rCommand = 'wget -U "Mozilla/5.0" --connect-timeout=30 --read-timeout=120 --tries=2 -O - ' . escapeshellarg($rSource) . $rDecompress . ' > ' . escapeshellarg($rFilename);
-		shell_exec($rCommand);
+		$rResult = shell_exec($rCommand);
 
 		if (file_exists($rFilename) && filesize($rFilename) > 0) {
 			$this->log("[EPG] Download successful: " . filesize($rFilename) . " bytes");

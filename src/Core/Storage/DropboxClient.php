@@ -903,6 +903,7 @@ class DropboxClient {
 		static $BLOCK_SIZE = 4194304;
 		$streamhasher = hash_init('sha256');
 		$blockhasher = hash_init('sha256');
+		$current_block = 1;
 		$current_blocksize = 0;
 
 		while (!feof($stream)) {
@@ -920,6 +921,7 @@ class DropboxClient {
 				$blockhash = hash_final($blockhasher, true);
 				hash_update($streamhasher, $blockhash);
 				$blockhasher = hash_init('sha256');
+				++$current_block;
 				$current_blocksize = 0;
 			}
 		}

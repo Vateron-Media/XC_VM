@@ -431,9 +431,6 @@ class TableController extends BaseAdminController {
 			$batchCol = '<span class="badge bg-label-secondary font-monospace">' . $batch . '</span>';
 			$creatorCol = '<span class="badge bg-label-dark"><i class="ti tabler-user me-1"></i>' . $creator . '</span>';
 
-			// Clean, keyed row payload; the Bootstrap 5 view renders every badge /
-			// status / action button client-side. The subscriber password is
-			// intentionally NOT exposed here.
 			$data[] = [
 				"", // control
 				'<input type="checkbox" class="form-check-input row-select" value="' . $rowId . '" data-code="' . $code . '">',

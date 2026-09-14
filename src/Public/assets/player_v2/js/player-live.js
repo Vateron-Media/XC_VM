@@ -24,7 +24,12 @@ window.LiveApp = window.LivePlayerApp = (function () {
     favFilterActive: false,
     hls: null,
     vjsPlayer: null,
-    baseUrl: ''
+    baseUrl: '',
+    switchTimer: null,
+    retryTimer: null,
+    retryCount: 0,
+    maxRetries: 3,
+    currentReqId: 0
   };
 
   // Cache DOM Elements
@@ -58,6 +63,12 @@ window.LiveApp = window.LivePlayerApp = (function () {
     els.playerSearchInput = document.getElementById('live-player-search');
     els.channelCountBadge = document.getElementById('live-channel-count-badge');
     els.toolbar = document.querySelector('.bg-body-tertiary');
+    els.streamStatus = document.getElementById('live-stream-status');
+    els.statusSpinner = document.getElementById('live-status-spinner');
+    els.statusIcon = document.getElementById('live-status-icon');
+    els.statusTitle = document.getElementById('live-status-title');
+    els.statusDesc = document.getElementById('live-status-desc');
+    els.retryBtn = document.getElementById('btn-live-retry-stream');
   };
 
   const loadFavorites = () => {
@@ -128,7 +139,8 @@ window.LiveApp = window.LivePlayerApp = (function () {
   };
 
   /* ─────────────────────────────────────────────────────────────────
-   * Category Sidebar Pagination
+   * Category Sidebar Display & Search Filter
+   * Displays all categories dynamically inside scrollable container
    * ───────────────────────────────────────────────────────────────── */
   const renderCategoriesPagination = () => {
     if (!els.categoriesList) return;
@@ -137,7 +149,6 @@ window.LiveApp = window.LivePlayerApp = (function () {
     const val = els.categorySearch ? els.categorySearch.value.trim().toLowerCase() : '';
 
     // Filter matching items (pinned "all" stays visible at top)
-    const contentCategories = [];
     allCatItems.forEach((item) => {
       const catId = item.getAttribute('data-category-id');
       if (catId === 'all') {
@@ -147,77 +158,23 @@ window.LiveApp = window.LivePlayerApp = (function () {
         const raw = (item.getAttribute('data-category-raw') || '').toLowerCase();
         const matches = !val || text.includes(val) || raw.includes(val);
         if (matches) {
-          contentCategories.push(item);
+          item.classList.remove('d-none');
         } else {
           item.classList.add('d-none');
         }
       }
     });
 
-    const totalCats = contentCategories.length;
-    const totalPages = Math.ceil(totalCats / state.catPageLimit);
-
-    if (state.catCurrentPage > totalPages) {
-      state.catCurrentPage = Math.max(1, totalPages);
-    }
-
-    const startIdx = (state.catCurrentPage - 1) * state.catPageLimit;
-    const endIdx = state.catCurrentPage * state.catPageLimit;
-
-    contentCategories.forEach((item, idx) => {
-      if (idx >= startIdx && idx < endIdx) {
-        item.classList.remove('d-none');
-      } else {
-        item.classList.add('d-none');
-      }
-    });
-
-    if (!els.categoriesPagination) return;
-
-    if (totalPages <= 1) {
+    // All categories displayed directly in scrollable sidebar
+    if (els.categoriesPagination) {
       els.categoriesPagination.classList.add('d-none');
       els.categoriesPagination.innerHTML = '';
-      return;
     }
 
-    els.categoriesPagination.classList.remove('d-none');
-    const startNum = startIdx + 1;
-    const endNum = Math.min(endIdx, totalCats);
-
-    els.categoriesPagination.innerHTML = `
-      <span class="text-body-secondary small fw-medium">${startNum}–${endNum} of ${totalCats}</span>
-      <div class="d-flex align-items-center gap-1">
-        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-live-cat-prev" ${state.catCurrentPage === 1 ? 'disabled' : ''} title="Previous Categories">
-          <i class="icon-base bx bx-chevron-left"></i>
-        </button>
-        <span class="badge bg-label-primary px-2 py-1">${state.catCurrentPage} / ${totalPages}</span>
-        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-live-cat-next" ${state.catCurrentPage === totalPages ? 'disabled' : ''} title="Next Categories">
-          <i class="icon-base bx bx-chevron-right"></i>
-        </button>
-      </div>
-    `;
-
-    const prevBtn = document.getElementById('btn-live-cat-prev');
-    const nextBtn = document.getElementById('btn-live-cat-next');
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.catCurrentPage > 1) {
-          state.catCurrentPage--;
-          renderCategoriesPagination();
-        }
-      });
-    }
-
-    if (nextBtn) {
-      nextBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.catCurrentPage < totalPages) {
-          state.catCurrentPage++;
-          renderCategoriesPagination();
-        }
-      });
+    // Smoothly scroll active category into view if present
+    const activeItem = els.categoriesList.querySelector('.category-list-item.active');
+    if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+      activeItem.scrollIntoView({ block: 'nearest' });
     }
   };
 
@@ -571,55 +528,184 @@ window.LiveApp = window.LivePlayerApp = (function () {
       });
   };
 
-  const playChannel = (channel) => {
-    state.activeChannel = channel;
+  // Stream Status Overlay Handlers
+  const showStreamStatus = (title, desc, isError = false, onRetry = null) => {
+    if (!els.streamStatus) return;
+    els.streamStatus.classList.remove('d-none');
+    els.streamStatus.classList.add('d-flex');
 
-    if (els.browserView) els.browserView.classList.add('d-none');
-    if (els.playerView) els.playerView.classList.remove('d-none');
-    if (els.videoOverlay) els.videoOverlay.classList.add('d-none');
+    if (els.statusSpinner) els.statusSpinner.classList.toggle('d-none', isError);
+    if (els.statusIcon) els.statusIcon.classList.toggle('d-none', !isError);
+    if (els.statusTitle) els.statusTitle.textContent = title;
+    if (els.statusDesc) els.statusDesc.textContent = desc;
 
-    if (els.currentChName) els.currentChName.textContent = channel.name;
-    if (els.currentChLogo) {
-      els.currentChLogo.src = channel.logo || '';
-      els.currentChLogo.classList.toggle('d-none', !channel.logo);
-    }
-
-    updateFavoriteButtons();
-    populatePlayerSidebar(state.displayedChannels.length > 0 ? state.displayedChannels : state.allChannels, channel.id);
-    updatePlayerEPG(channel.id);
-
-    // Prefer Video.js (same as admin stream player)
-    if (typeof videojs !== 'undefined') {
-      if (!state.vjsPlayer) {
-        try {
-          state.vjsPlayer = videojs.getPlayer('live-video') || videojs('live-video', {
-            autoplay: true,
-            fill: true,
-            liveui: true,
-            controls: true,
-            preload: 'auto',
-            responsive: true,
-            html5: {
-              vhs: {
-                overrideNative: !videojs.browser.IS_ANY_SAFARI
-              }
-            }
-          });
-        } catch (e) {
-          console.warn('VideoJS init fallback:', e);
-          try {
-            state.vjsPlayer = videojs('live-video');
-          } catch (err) {}
-        }
+    if (els.retryBtn) {
+      if (onRetry) {
+        els.retryBtn.classList.remove('d-none');
+        els.retryBtn.onclick = () => {
+          hideStreamStatus();
+          onRetry();
+        };
+      } else {
+        els.retryBtn.classList.add('d-none');
+        els.retryBtn.onclick = null;
       }
+    }
+  };
 
-      if (state.vjsPlayer) {
-        state.vjsPlayer.src({
+  const hideStreamStatus = () => {
+    if (!els.streamStatus) return;
+    els.streamStatus.classList.remove('d-flex');
+    els.streamStatus.classList.add('d-none');
+  };
+
+  // Clean Teardown to prevent 509 Max Connections Exceeded on external servers
+  const teardownPlayer = (cleanMedia = true) => {
+    if (state.retryTimer) {
+      clearTimeout(state.retryTimer);
+      state.retryTimer = null;
+    }
+    if (state.switchTimer) {
+      clearTimeout(state.switchTimer);
+      state.switchTimer = null;
+    }
+    if (state.vjsPlayer) {
+      try {
+        state.vjsPlayer.pause();
+        if (cleanMedia) {
+          state.vjsPlayer.reset();
+        }
+      } catch (e) {}
+    }
+    if (state.hls) {
+      try {
+        state.hls.destroy();
+      } catch (e) {}
+      state.hls = null;
+    }
+    if (els.video) {
+      try {
+        els.video.pause();
+        if (cleanMedia && !state.vjsPlayer) {
+          els.video.removeAttribute('src');
+          els.video.load();
+        }
+      } catch (e) {}
+    }
+  };
+
+  // MIME Resolution
+  const resolveStreamMime = (url) => {
+    if (!url) return 'application/x-mpegURL';
+    const clean = url.split('?')[0].toLowerCase();
+    if (clean.endsWith('.mp4')) return 'video/mp4';
+    if (clean.endsWith('.webm')) return 'video/webm';
+    if (clean.endsWith('.ts')) return 'video/mp2t';
+    return 'application/x-mpegURL';
+  };
+
+  // Ensure VideoJS Player Instance with VHS error hooks
+  const ensureVjsPlayer = () => {
+    if (typeof videojs === 'undefined') return null;
+    if (state.vjsPlayer) return state.vjsPlayer;
+
+    try {
+      state.vjsPlayer = videojs.getPlayer('live-video') || videojs('live-video', {
+        autoplay: true,
+        fill: true,
+        liveui: true,
+        controls: true,
+        preload: 'none',
+        responsive: true,
+        html5: {
+          vhs: {
+            overrideNative: !videojs.browser.IS_ANY_SAFARI,
+            handlePartialData: true,
+            maxPlaylistRetries: 5,
+            reloadSourceOnError: false,
+            limitRenditionByPlayerDimensions: false,
+            experimentalBufferClipping: true
+          }
+        }
+      });
+
+      // Clear retry counters when playback successfully starts
+      state.vjsPlayer.on('playing', () => {
+        state.retryCount = 0;
+        if (state.retryTimer) {
+          clearTimeout(state.retryTimer);
+          state.retryTimer = null;
+        }
+        hideStreamStatus();
+      });
+
+      // Handle stream errors (e.g. 509 concurrent connections, 206 mismatch, network hiccup)
+      state.vjsPlayer.on('error', () => {
+        const err = state.vjsPlayer.error();
+        console.warn('[LivePlayer] VideoJS Error:', err);
+
+        if (!state.activeChannel) return;
+
+        if (state.retryCount < state.maxRetries) {
+          state.retryCount++;
+          showStreamStatus(
+            'Reconnecting Stream...',
+            `The external IPTV server closed the connection (Limit/Network drop). Restoring automatically (${state.retryCount}/${state.maxRetries})...`,
+            false
+          );
+
+          // Force release socket on external server
+          try {
+            state.vjsPlayer.pause();
+            state.vjsPlayer.reset();
+          } catch (e) {}
+
+          const activeReq = state.currentReqId;
+          state.retryTimer = setTimeout(() => {
+            if (activeReq !== state.currentReqId || !state.activeChannel) return;
+            loadChannelSource(state.activeChannel, activeReq);
+          }, 2000);
+        } else {
+          showStreamStatus(
+            'Stream Disconnected',
+            'Unable to sustain playback from the external server (Max connections limit or temporary source outage). Click Retry to connect again.',
+            true,
+            () => {
+              state.retryCount = 0;
+              playChannel(state.activeChannel);
+            }
+          );
+        }
+      });
+    } catch (e) {
+      console.warn('VideoJS init fallback:', e);
+      try {
+        state.vjsPlayer = videojs('live-video');
+      } catch (err) {}
+    }
+    return state.vjsPlayer;
+  };
+
+  // Load Channel Stream Source
+  const loadChannelSource = (channel, reqId) => {
+    if (reqId !== state.currentReqId || !channel || !channel.url) return;
+
+    if (typeof videojs !== 'undefined') {
+      const player = ensureVjsPlayer();
+      if (player) {
+        try {
+          player.error(null);
+        } catch (e) {}
+
+        const mime = resolveStreamMime(channel.url);
+        player.src({
           src: channel.url,
-          type: 'application/x-mpegURL'
+          type: mime
         });
-        state.vjsPlayer.ready(() => {
-          const playPromise = state.vjsPlayer.play();
+
+        player.ready(() => {
+          if (reqId !== state.currentReqId) return;
+          const playPromise = player.play();
           if (playPromise !== undefined) {
             playPromise.catch(() => {});
           }
@@ -642,13 +728,33 @@ window.LiveApp = window.LivePlayerApp = (function () {
           hls.loadSource(channel.url);
           hls.attachMedia(els.video);
           hls.on(Hls.Events.MANIFEST_PARSED, () => {
+            if (reqId !== state.currentReqId) return;
             els.video.play().catch(() => {});
+            hideStreamStatus();
           });
           hls.on(Hls.Events.ERROR, (event, data) => {
             if (data.fatal) {
               switch (data.type) {
                 case Hls.ErrorTypes.NETWORK_ERROR:
-                  hls.startLoad();
+                  if (state.retryCount < state.maxRetries) {
+                    state.retryCount++;
+                    showStreamStatus(
+                      'Reconnecting...',
+                      `Re-establishing network connection (${state.retryCount}/${state.maxRetries})...`,
+                      false
+                    );
+                    setTimeout(() => hls.startLoad(), 2000);
+                  } else {
+                    showStreamStatus(
+                      'Stream Failed',
+                      'Network connection lost. Click Retry to reconnect.',
+                      true,
+                      () => {
+                        state.retryCount = 0;
+                        playChannel(channel);
+                      }
+                    );
+                  }
                   break;
                 case Hls.ErrorTypes.MEDIA_ERROR:
                   hls.recoverMediaError();
@@ -663,6 +769,7 @@ window.LiveApp = window.LivePlayerApp = (function () {
         } else if (els.video.canPlayType('application/vnd.apple.mpegurl')) {
           els.video.src = channel.url;
           els.video.addEventListener('loadedmetadata', () => {
+            if (reqId !== state.currentReqId) return;
             els.video.play().catch(() => {});
           });
         }
@@ -670,22 +777,42 @@ window.LiveApp = window.LivePlayerApp = (function () {
     }
   };
 
+  const playChannel = (channel) => {
+    if (!channel) return;
+
+    // Teardown previous stream to cleanly release external server's connection
+    teardownPlayer(true);
+
+    const reqId = ++state.currentReqId;
+    state.retryCount = 0;
+    state.activeChannel = channel;
+
+    if (els.browserView) els.browserView.classList.add('d-none');
+    if (els.playerView) els.playerView.classList.remove('d-none');
+    if (els.videoOverlay) els.videoOverlay.classList.add('d-none');
+
+    if (els.currentChName) els.currentChName.textContent = channel.name;
+    if (els.currentChLogo) {
+      els.currentChLogo.src = channel.logo || '';
+      els.currentChLogo.classList.toggle('d-none', !channel.logo);
+    }
+
+    updateFavoriteButtons();
+    populatePlayerSidebar(state.displayedChannels.length > 0 ? state.displayedChannels : state.allChannels, channel.id);
+    updatePlayerEPG(channel.id);
+    hideStreamStatus();
+
+    // 200ms debounce allows the external server TCP socket to close and reset active_cons
+    state.switchTimer = setTimeout(() => {
+      if (reqId !== state.currentReqId) return;
+      loadChannelSource(channel, reqId);
+    }, 200);
+  };
+
   const stopPlayer = () => {
-    if (state.vjsPlayer) {
-      try {
-        state.vjsPlayer.pause();
-        state.vjsPlayer.reset();
-      } catch (e) {}
-    }
-    if (state.hls) {
-      state.hls.destroy();
-      state.hls = null;
-    }
-    if (els.video && !state.vjsPlayer) {
-      els.video.pause();
-      els.video.removeAttribute('src');
-      els.video.load();
-    }
+    teardownPlayer(true);
+    hideStreamStatus();
+
     if (els.videoOverlay) {
       els.videoOverlay.classList.remove('d-none');
     }

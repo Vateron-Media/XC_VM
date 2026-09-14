@@ -5,7 +5,6 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * CategoryService — category service
@@ -18,7 +17,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class CategoryService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Persist the display order of categories from posted data.
 	 *

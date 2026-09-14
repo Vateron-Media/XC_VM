@@ -6,7 +6,6 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Validation\InputValidator;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * GroupService — group service
@@ -19,7 +18,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class GroupService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a user group from admin form data.
 	 *

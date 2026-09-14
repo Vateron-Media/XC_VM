@@ -12,6 +12,11 @@ EXTENSION.md
 src/tmp/**
 !src/tmp/**/
 !src/tmp/**/.gitkeep
+src/content/**
+src/Public/assets/player/images/thumbs/*.png
+src/Public/assets/player/images/thumbs/*.jpg
+src/Public/assets/player/images/thumbs/*.jpeg
+src/Public/assets/player/images/thumbs/*.webp
 tests/.cache/
 # Runtime test scratch dir created by tests/bootstrap.php (bin/, vod/, fake_bin)
 tests/.tmp/

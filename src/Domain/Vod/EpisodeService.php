@@ -9,7 +9,6 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * EpisodeService — episode service
@@ -22,7 +21,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class EpisodeService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a series episode from admin form data.
 	 *

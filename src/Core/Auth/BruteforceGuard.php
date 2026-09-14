@@ -5,11 +5,6 @@ declare(strict_types=1);
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Domain\Security\BlocklistService;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Infrastructure\Database\DatabaseFactory;
-use XcVm\Infrastructure\Signal\SignalQueue;
 
 /**
  * Bruteforce / Flood Guard
@@ -46,8 +41,8 @@ class BruteforceGuard {
      * @return string
      */
     private static function getUserIP(): string {
-        if (class_exists(NetworkUtils::class, false)) {
-            return NetworkUtils::getUserIP();
+        if (class_exists(\XcVm\Core\Util\NetworkUtils::class, false)) {
+            return \XcVm\Core\Util\NetworkUtils::getUserIP();
         }
         return $_SERVER['REMOTE_ADDR'] ?? '';
     }
@@ -58,8 +53,8 @@ class BruteforceGuard {
      * @return array
      */
     private static function getAllowedIPs(): array {
-        if (class_exists(ServerRepository::class, false)) {
-            return ServerRepository::getAllowedIPs();
+        if (class_exists(\XcVm\Domain\Server\ServerRepository::class, false)) {
+            return \XcVm\Domain\Server\ServerRepository::getAllowedIPs();
         }
         if (isset($GLOBALS['rAllowedIPs'])) {
             return $GLOBALS['rAllowedIPs'];
@@ -73,8 +68,8 @@ class BruteforceGuard {
      * @return array
      */
     private static function getBlockedIPs(): array {
-        if (class_exists(BlocklistService::class, false)) {
-            return BlocklistService::getBlockedIPs();
+        if (class_exists(\XcVm\Domain\Security\BlocklistService::class, false)) {
+            return \XcVm\Domain\Security\BlocklistService::getBlockedIPs();
         }
         if (isset($GLOBALS['rBlockedIPs'])) {
             return $GLOBALS['rBlockedIPs'];
@@ -88,8 +83,8 @@ class BruteforceGuard {
      * @return object|null
      */
     private static function getDB(): ?object {
-        if (class_exists(DatabaseFactory::class, false) && DatabaseFactory::get() !== null) {
-            return DatabaseFactory::get();
+        if (class_exists(\XcVm\Infrastructure\Database\DatabaseFactory::class, false) && \XcVm\Infrastructure\Database\DatabaseFactory::get() !== null) {
+            return \XcVm\Infrastructure\Database\DatabaseFactory::get();
         }
         global $db;
         if (is_object($db)) {
@@ -108,15 +103,15 @@ class BruteforceGuard {
     private static function blockIP(string $ip, string $reason, bool $useCachedMode = false): void {
         if ($useCachedMode && !empty($GLOBALS['rCached'])) {
             $signalKey = (stripos($reason, 'BRUTEFORCE') !== false ? 'bruteforce_attack' : 'flood_attack');
-            SignalQueue::push($signalKey . '/' . $ip, 1);
+            \XcVm\Infrastructure\Signal\SignalQueue::push($signalKey . '/' . $ip, 1);
         } else {
             $db = self::getDB();
             if ($db) {
                 $db->query('INSERT INTO `blocked_ips` (`ip`,`notes`,`date`) VALUES(?,?,?)', $ip, $reason, time());
             }
             // Force-refresh blocked IPs cache
-            if (class_exists(BlocklistService::class, false)) {
-                BlocklistService::getBlockedIPs(true);
+            if (class_exists(\XcVm\Domain\Security\BlocklistService::class, false)) {
+                \XcVm\Domain\Security\BlocklistService::getBlockedIPs(true);
             }
         }
         touch(FLOOD_TMP_PATH . 'block_' . $ip);

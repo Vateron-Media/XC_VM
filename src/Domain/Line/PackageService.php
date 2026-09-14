@@ -6,7 +6,6 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * PackageService — package service
@@ -19,7 +18,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class PackageService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a package from admin form data.
 	 *

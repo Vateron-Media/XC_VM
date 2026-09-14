@@ -65,7 +65,7 @@ class StreamAuthMiddleware {
      */
     public static function decryptToken($rToken, $rSettings, $rServers, $rIP) {
         $rTokenData = json_decode(
-            Encryption::readToken($rToken, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, empty($rSettings['secure_stream_tokens'])),
+            Encryption::decrypt($rToken, $rSettings['live_streaming_pass'], OPENSSL_EXTRA),
             true
         );
 

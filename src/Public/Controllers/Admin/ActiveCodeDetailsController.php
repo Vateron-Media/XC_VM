@@ -88,25 +88,6 @@ class ActiveCodeDetailsController
             'm3u_ts' => $m3uTs,
         ];
 
-        if (
-            RequestManager::get('format') === 'json'
-            || !empty($_GET['json'])
-            || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json') && !str_contains($_SERVER['HTTP_ACCEPT'], 'text/html'))
-        ) {
-            header('Content-Type: application/json; charset=utf-8');
-            echo json_encode([
-                'result' => true,
-                'data' => array_merge($d, [
-                    'package_id' => (int) $code['package_id'],
-                    'exp_date_input' => $code['sub_exp_date'] ? date('Y-m-d\TH:i', (int) $code['sub_exp_date']) : '',
-                    'raw_mac' => $code['mac'] ?? '',
-                    'raw_device_id' => $code['device_id'] ?? '',
-                    'has_line' => !empty($code['subscriber_id']),
-                ])
-            ]);
-            exit();
-        }
-
         // Expose the translator to the view the same way BaseAdminController does,
         // so the fragment can use $language::get(...) like every other view.
         $language = Translator::class;

@@ -12,8 +12,6 @@ use XcVm\Core\Validation\InputValidator;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
-use XcVm\Module\Watch\WatchService;
 
 /**
  * SeriesService — series service
@@ -26,7 +24,7 @@ use XcVm\Module\Watch\WatchService;
  */
 
 class SeriesService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a series from admin form data.
 	 *
@@ -135,11 +133,11 @@ class SeriesService {
 
 				return array('status' => STATUS_SUCCESS, 'data' => array('insert_id' => $rInsertID));
 			} else {
-				foreach ($rBouquetCreate as $rID) {
+				foreach ($rBouquetCreate as $rBouquet => $rID) {
 					$db->query('DELETE FROM `bouquets` WHERE `id` = ?;', $rID);
 				}
 
-				foreach ($rCategoryCreate as $rID) {
+				foreach ($rCategoryCreate as $rCategory => $rID) {
 					$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
 				}
 
@@ -323,8 +321,8 @@ class SeriesService {
 					}
 					// watch is an optional module (fetched from its own repo). When it is
 					// not installed there are no watch categories — degrade to empty.
-					$rWatchCategories = class_exists(WatchService::class)
-						? array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2))
+					$rWatchCategories = class_exists(\XcVm\Module\Watch\WatchService::class)
+						? array(1 => \XcVm\Module\Watch\WatchService::getWatchCategories(1), 2 => \XcVm\Module\Watch\WatchService::getWatchCategories(2))
 						: array();
 
 					foreach ($rImportStreams as $rImportStream) {

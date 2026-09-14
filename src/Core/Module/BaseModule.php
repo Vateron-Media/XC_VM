@@ -2,8 +2,6 @@
 
 namespace XcVm\Core\Module;
 
-use XcVm\Cli\CommandRegistry;
-use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Module\Contract\CronProviderInterface;
 use XcVm\Core\Module\Contract\PermissionProviderInterface;
@@ -45,10 +43,10 @@ abstract class BaseModule implements ModuleInterface, MigratableInterface, CronP
     /**
      * Boot hook: register services/bindings into the container. No-op by default.
      *
-     * @param ServiceContainer $container The DI container.
+     * @param \XcVm\Core\Container\ServiceContainer $container The DI container.
      * @return void
      */
-    public function boot(ServiceContainer $container): void {}
+    public function boot(\XcVm\Core\Container\ServiceContainer $container): void {}
 
     /**
      * Event subscribers provided by the module. Empty by default.
@@ -70,10 +68,10 @@ abstract class BaseModule implements ModuleInterface, MigratableInterface, CronP
     /**
      * Register the module's CLI commands. No-op by default.
      *
-     * @param CommandRegistry $registry The CLI command registry.
+     * @param \XcVm\Cli\CommandRegistry $registry The CLI command registry.
      * @return void
      */
-    public function registerCommands(CommandRegistry $registry): void {}
+    public function registerCommands(\XcVm\Cli\CommandRegistry $registry): void {}
 
     /**
      * Register the module's navbar entries. No-op by default.

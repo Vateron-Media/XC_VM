@@ -1,0 +1,184 @@
+/**
+ * Web Player V2 — Cinema & Series Player Styles
+ * Matches the split layout and distinctive aesthetics of Live TV player
+ * Uses the clean, high-performance Video.js engine from the Admin player
+ */
+
+.cinema-app-wrapper {
+  margin-bottom: 2rem;
+}
+
+.cinema-sidebar-pane {
+  background-color: var(--bs-card-bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 520px;
+}
+
+.cinema-items-scroll {
+  max-height: calc(100vh - 280px);
+  min-height: 460px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--bs-primary-rgb), 0.3) transparent;
+}
+
+.cinema-items-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cinema-items-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.cinema-items-scroll::-webkit-scrollbar-thumb {
+  background: rgba(var(--bs-primary-rgb), 0.3);
+  border-radius: 4px;
+}
+
+.cinema-items-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--bs-primary);
+}
+
+/* Episode & Movie List Item Cards */
+.cinema-item-card {
+  transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-left: 3px solid transparent !important;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.cinema-item-card:hover {
+  border-left-color: var(--bs-primary) !important;
+  background-color: var(--bs-secondary-bg);
+  transform: translateX(3px);
+  color: inherit;
+}
+
+.cinema-item-card.active {
+  border-left-color: var(--bs-primary) !important;
+  background-color: rgba(var(--bs-primary-rgb), 0.12) !important;
+  font-weight: 600;
+}
+
+.cinema-item-thumb-wrap {
+  width: 72px;
+  height: 48px;
+  border-radius: 0.375rem;
+  overflow: hidden;
+  background-color: #000;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.cinema-item-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.cinema-item-card:hover .cinema-item-thumb {
+  transform: scale(1.08);
+}
+
+.cinema-thumb-duration {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  font-size: 0.65rem;
+  padding: 0.1rem 0.25rem;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  border-radius: 2px;
+  line-height: 1;
+}
+
+/* Playing Equalizer Animation */
+.playing-bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+
+.playing-bars span {
+  display: block;
+  width: 2.5px;
+  background-color: var(--bs-primary);
+  border-radius: 1px;
+  animation: barWave 1.2s infinite ease-in-out;
+}
+
+.playing-bars span:nth-child(1) { height: 6px; animation-delay: 0.1s; }
+.playing-bars span:nth-child(2) { height: 12px; animation-delay: 0.3s; }
+.playing-bars span:nth-child(3) { height: 8px; animation-delay: 0.2s; }
+
+@keyframes barWave {
+  0%, 100% { transform: scaleY(0.4); }
+  50% { transform: scaleY(1); }
+}
+
+/* ========================================================================= */
+/* Video Stage & Video.js (Clean integration matching Admin Player)          */
+/* ========================================================================= */
+.cinema-video-stage {
+  width: 100%;
+  height: 60vh;
+  min-height: 480px;
+  max-height: calc(100vh - 220px);
+  background-color: #000;
+  position: relative;
+  overflow: hidden;
+}
+
+.cinema-video-stage .video-js {
+  width: 100% !important;
+  height: 100% !important;
+  font-family: inherit;
+}
+
+/* Big Play Button styling */
+.cinema-video-stage .vjs-big-play-button {
+  background-color: rgba(var(--bs-primary-rgb), 0.85) !important;
+  border: none !important;
+  border-radius: 50% !important;
+  width: 72px !important;
+  height: 72px !important;
+  line-height: 72px !important;
+  margin-top: -36px !important;
+  margin-left: -36px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  transition: transform 0.2s ease, background-color 0.2s ease !important;
+}
+
+.cinema-video-stage .vjs-big-play-button:hover {
+  background-color: var(--bs-primary) !important;
+  transform: scale(1.1);
+}
+
+/* Play Progress Bar Color Accent */
+.cinema-video-stage .video-js .vjs-play-progress {
+  background-color: var(--bs-primary) !important;
+}
+
+/* Poster in Topbar */
+.cinema-poster-sm {
+  width: 44px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 0.375rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Aspect Ratio Modifiers */
+.aspect-contain video {
+  object-fit: contain !important;
+}
+.aspect-cover video {
+  object-fit: cover !important;
+}
+.aspect-fill video {
+  object-fit: fill !important;
+}

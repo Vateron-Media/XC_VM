@@ -112,7 +112,7 @@ class BlocklistAjaxController extends BaseAjaxController {
             if (file_exists(CIDR_TMP_PATH . $rASN)) {
                 $rCIDRs = json_decode(file_get_contents(CIDR_TMP_PATH . $rASN), true);
 
-                foreach ($rCIDRs as $rData) {
+                foreach ($rCIDRs as $rCIDR => $rData) {
                     if (ip2long($rData[1]) <= ip2long($rIP) && ip2long($rIP) <= ip2long($rData[2])) {
                         $rTypes = array();
 
@@ -190,7 +190,7 @@ class BlocklistAjaxController extends BaseAjaxController {
 
                     if (!empty($rDecoded)) {
                         try {
-                            $rDecrypted = Encryption::readToken($rPiece, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA, true);
+                            $rDecrypted = Encryption::decrypt($rPiece, SettingsManager::get('live_streaming_pass'), OPENSSL_EXTRA);
                         } catch (\Exception) {
                             $rDecrypted = null;
                         }

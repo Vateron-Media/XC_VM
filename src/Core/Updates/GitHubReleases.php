@@ -17,11 +17,10 @@ namespace XcVm\Core\Updates;
  */
 
 class GitHubReleases {
-    private string $owner;
-    private string $repo;
-    private string $api_url;
-    /** @var list<string> */
-    private array $headers;
+    private $owner;
+    private $repo;
+    private $api_url;
+    private $headers;
     private $timeout = 30; // Total transfer timeout in seconds (the /releases list ships changelogs and is tens of KB; 5s was too tight during installs when the link is saturated by apt/wget)
     private $connect_timeout = 10; // Connection-phase timeout in seconds — fail fast on an unreachable host without capping slow transfers
     private $cache_file = '/home/xc_vm/tmp/gitapi'; // Cache file path

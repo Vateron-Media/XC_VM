@@ -101,6 +101,34 @@ $assetsPath = $baseUrl . 'assets/';
       })();
     </script>
 
+    <?php if (!empty($_SESSION['saved_account_sync'])): ?>
+    <script>
+      (function () {
+        try {
+          var acc = <?= json_encode($_SESSION['saved_account_sync']) ?>;
+          if (acc) {
+            var STORAGE_KEY = 'xc_player_v2_accounts';
+            var list = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+            if (!Array.isArray(list)) list = [];
+            list = list.filter(function (a) {
+              if (acc.activation_code && a.activation_code) {
+                if (a.activation_code.toUpperCase() === acc.activation_code.toUpperCase()) return false;
+              }
+              if (acc.username && a.username) {
+                if (a.username.toLowerCase() === acc.username.toLowerCase()) return false;
+              }
+              return true;
+            });
+            list.unshift(acc);
+            if (list.length > 20) list = list.slice(0, 20);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <?php unset($_SESSION['saved_account_sync']); ?>
+    <?php endif; ?>
+
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="<?= $assetsPath ?>img/favicon/favicon.ico" />
 
@@ -250,7 +278,7 @@ $assetsPath = $baseUrl . 'assets/';
             </li>
 
             <li class="menu-item">
-              <a href="<?= $baseUrl ?>logout" class="menu-link text-danger">
+              <a href="<?= $baseUrl ?>logout" class="menu-link text-danger" onclick="if(window.clearUserClientData){window.clearUserClientData();}">
                 <i class="menu-icon icon-base bx bx-log-out text-danger"></i>
                 <div>Sign Out</div>
               </a>
@@ -427,7 +455,7 @@ $assetsPath = $baseUrl . 'assets/';
                       <div class="dropdown-divider my-1"></div>
                     </li>
                     <li>
-                      <a class="dropdown-item text-danger" href="<?= $baseUrl ?>logout">
+                      <a class="dropdown-item text-danger" href="<?= $baseUrl ?>logout" onclick="if(window.clearUserClientData){window.clearUserClientData();}">
                         <i class="icon-base bx bx-power-off icon-md me-3"></i><span>Sign Out</span>
                       </a>
                     </li>
@@ -457,5 +485,5 @@ $assetsPath = $baseUrl . 'assets/';
           <!-- Content wrapper -->
           <div class="content-wrapper">
             <!-- Content -->
-            <div class="container-xxl flex-grow-1 container-p-y position-relative" id="main-content-container">
+            <div class="flex-grow-1 container-p-y position-relative container-fluid" id="main-content-container">
               <div id="spa-content-target">

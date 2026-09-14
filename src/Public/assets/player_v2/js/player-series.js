@@ -99,7 +99,8 @@ window.SeriesApp = (function () {
   };
 
   /* ─────────────────────────────────────────────────────────────────
-   * Category Sidebar Pagination
+   * Category Sidebar Display & Search Filter
+   * Displays all categories dynamically inside scrollable container
    * ───────────────────────────────────────────────────────────────── */
   const renderCategoriesPagination = () => {
     if (!els.categoriesList) return;
@@ -108,7 +109,6 @@ window.SeriesApp = (function () {
     const val = els.categorySearch ? els.categorySearch.value.trim().toLowerCase() : '';
 
     // Filter matching items (pinned "all" stays visible at top)
-    const contentCategories = [];
     allCatItems.forEach((item) => {
       const catId = item.getAttribute('data-series-category-id');
       if (catId === 'all') {
@@ -118,77 +118,23 @@ window.SeriesApp = (function () {
         const raw = (item.getAttribute('data-category-raw') || '').toLowerCase();
         const matches = !val || text.includes(val) || raw.includes(val);
         if (matches) {
-          contentCategories.push(item);
+          item.classList.remove('d-none');
         } else {
           item.classList.add('d-none');
         }
       }
     });
 
-    const totalCats = contentCategories.length;
-    const totalPages = Math.ceil(totalCats / state.catPageLimit);
-
-    if (state.catCurrentPage > totalPages) {
-      state.catCurrentPage = Math.max(1, totalPages);
-    }
-
-    const startIdx = (state.catCurrentPage - 1) * state.catPageLimit;
-    const endIdx = state.catCurrentPage * state.catPageLimit;
-
-    contentCategories.forEach((item, idx) => {
-      if (idx >= startIdx && idx < endIdx) {
-        item.classList.remove('d-none');
-      } else {
-        item.classList.add('d-none');
-      }
-    });
-
-    if (!els.categoriesPagination) return;
-
-    if (totalPages <= 1) {
+    // All categories displayed directly in scrollable sidebar
+    if (els.categoriesPagination) {
       els.categoriesPagination.classList.add('d-none');
       els.categoriesPagination.innerHTML = '';
-      return;
     }
 
-    els.categoriesPagination.classList.remove('d-none');
-    const startNum = startIdx + 1;
-    const endNum = Math.min(endIdx, totalCats);
-
-    els.categoriesPagination.innerHTML = `
-      <span class="text-body-secondary small fw-medium">${startNum}–${endNum} of ${totalCats}</span>
-      <div class="d-flex align-items-center gap-1">
-        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-series-cat-prev" ${state.catCurrentPage === 1 ? 'disabled' : ''} title="Previous Categories">
-          <i class="icon-base bx bx-chevron-left"></i>
-        </button>
-        <span class="badge bg-label-primary px-2 py-1">${state.catCurrentPage} / ${totalPages}</span>
-        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-series-cat-next" ${state.catCurrentPage === totalPages ? 'disabled' : ''} title="Next Categories">
-          <i class="icon-base bx bx-chevron-right"></i>
-        </button>
-      </div>
-    `;
-
-    const prevBtn = document.getElementById('btn-series-cat-prev');
-    const nextBtn = document.getElementById('btn-series-cat-next');
-
-    if (prevBtn) {
-      prevBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.catCurrentPage > 1) {
-          state.catCurrentPage--;
-          renderCategoriesPagination();
-        }
-      });
-    }
-
-    if (nextBtn) {
-      nextBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        if (state.catCurrentPage < totalPages) {
-          state.catCurrentPage++;
-          renderCategoriesPagination();
-        }
-      });
+    // Smoothly scroll active category into view if present
+    const activeItem = els.categoriesList.querySelector('.category-list-item.active');
+    if (activeItem && typeof activeItem.scrollIntoView === 'function') {
+      activeItem.scrollIntoView({ block: 'nearest' });
     }
   };
 
@@ -387,7 +333,7 @@ window.SeriesApp = (function () {
       const fav = isFavorite(s.id);
       const posterSrc = s.cover
         ? `${state.baseUrl}resize?url=${encodeURIComponent(s.cover)}&w=300&h=450`
-        : `${state.baseUrl}assets/img/illustrations/page-pricing-standard.png`;
+        : `${state.baseUrl}assets/img/placeholder-poster.png`;
 
       html += `
         <div class="${colClass}">
@@ -398,7 +344,7 @@ window.SeriesApp = (function () {
                 alt="${s.title}"
                 class="card-img-top object-fit-cover media-poster-ratio"
                 loading="lazy"
-                onerror="this.src='${state.baseUrl}assets/img/illustrations/page-pricing-standard.png';" />
+                onerror="this.src='${state.baseUrl}assets/img/placeholder-poster.png';" />
               <a href="${state.baseUrl}series?id=${s.id}" class="play-hover-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center text-white text-decoration-none z-2" title="View Series">
                 <div class="avatar avatar-md rounded-circle bg-info d-flex align-items-center justify-content-center shadow-lg">
                   <i class="icon-base bx bx-show fs-4 text-white"></i>

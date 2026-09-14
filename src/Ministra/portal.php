@@ -111,7 +111,7 @@ if (!$rSettings["disable_ministra"]) {
 		if (!$rAuthToken) {
 		} else {
 			$rVerify = igbinary_unserialize(
-				Encryption::readToken($rAuthToken, $rSettings["live_streaming_pass"], OPENSSL_EXTRA, empty($rSettings["secure_stream_tokens"])),
+				Encryption::decrypt($rAuthToken, $rSettings["live_streaming_pass"], OPENSSL_EXTRA),
 			);
 
 			if (is_array($rVerify) && isset($rVerify["id"]) && isset($rVerify["token"])) {
@@ -2063,11 +2063,10 @@ function getStations($rCategoryID = null, $rFav = null, $rOrderBy = null)
 				$rSettings["mag_container"] .
 				"/" .
 				$rDevice["token"];
-			$rToken = Encryption::mintToken(
+			$rToken = Encryption::encrypt(
 				$rEncData,
 				$rSettings["live_streaming_pass"],
 				OPENSSL_EXTRA,
-				!empty($rSettings["secure_stream_tokens"]),
 			);
 			$rStreamURL =
 				($rSettings["mag_disable_ssl"]
@@ -2233,11 +2232,10 @@ function getStreams(
 				$rSettings["mag_container"] .
 				"/" .
 				$rDevice["token"];
-			$rToken = Encryption::mintToken(
+			$rToken = Encryption::encrypt(
 				$rEncData,
 				$rSettings["live_streaming_pass"],
 				OPENSSL_EXTRA,
-				!empty($rSettings["secure_stream_tokens"]),
 			);
 			$rStreamURL =
 				($rSettings["mag_disable_ssl"]

@@ -39,6 +39,22 @@ class LiveController extends BasePlayerV2Controller
             $sortBy = RequestManager::get('sort') ?: 'number';
             $searchBy = RequestManager::get('search') ?: null;
 
+            // Support External Xtream Codes
+            if (!empty($rUserInfo['is_external_xc'])) {
+                $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+                $channels = $extService ? $extService->getLiveStreams($catId) : [];
+                if ($searchBy) {
+                    $channels = array_filter($channels, fn($c) => stripos($c['name'], $searchBy) !== false);
+                    $channels = array_values($channels);
+                }
+                echo json_encode([
+                    'status' => 'success',
+                    'count' => count($channels),
+                    'channels' => $channels,
+                ]);
+                exit;
+            }
+
             $rStreams = getUserStreams(
                 $rUserInfo,
                 ['live', 'created_live'],
@@ -86,6 +102,24 @@ class LiveController extends BasePlayerV2Controller
         // Standard Page Load
         $rCategories = PlayerCategoryHelper::getCategories($rUserInfo, 'live');
         $firstCatId = !empty($rCategories[0]['id']) ? (int)$rCategories[0]['id'] : null;
+
+        // Support External Xtream Standard Load
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $initialChannels = $extService ? $extService->getLiveStreams($firstCatId) : [];
+
+            $GLOBALS['_TITLE'] = 'Live TV';
+            $GLOBALS['_PAGE'] = 'live';
+
+            $this->render('live', [
+                'rCategories' => $rCategories,
+                'initialChannels' => $initialChannels,
+                'selectedCategoryId' => $firstCatId,
+                'totalLiveCount' => count($initialChannels),
+                'baseUrl' => $baseUrl,
+            ]);
+            return;
+        }
 
         $rStreams = getUserStreams(
             $rUserInfo,

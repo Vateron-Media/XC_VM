@@ -15,8 +15,6 @@
  *   renderUnifiedLayoutFooter('admin');
  */
 
-use XcVm\Core\Localization\Translator;
-
 if (!function_exists('renderUnifiedLayoutFooter')) {
     function renderUnifiedLayoutFooter($scope = 'admin', array $vars = []) {
         foreach ($vars as $key => $value) {
@@ -48,7 +46,7 @@ if (!function_exists('renderUnifiedLayoutFooter')) {
         unset($_g);
 
         // Translator FQCN for the legacy footer's $language::get(...) calls.
-        $language = Translator::class;
+        $language = \XcVm\Core\Localization\Translator::class;
 
         $rootPath = dirname(__DIR__, 3);
 

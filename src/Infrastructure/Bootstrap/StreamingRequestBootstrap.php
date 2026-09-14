@@ -3,7 +3,6 @@
 namespace XcVm\Infrastructure\Bootstrap;
 
 use XcVm\Core\Logging\Logger;
-use XcVm\Streaming\StreamingBootstrap;
 
 /**
  * StreamingRequestBootstrap — bootstrap для streaming HTTP endpoint'ов
@@ -95,10 +94,10 @@ class StreamingRequestBootstrap {
 			generate404();
 		}
 
-		// ── 7. Передача в StreamingBootstrap ────────────────────
+		// ── 7. Передача в \XcVm\Streaming\StreamingBootstrap ────────────────────
 		$rStreamingEndpoints = ['probe', 'player_api', 'live', 'thumb', 'subtitle', 'timeshift', 'vod', 'status', 'rtmp', 'portal'];
 		if (in_array($rFilename, $rStreamingEndpoints, true)) {
-			StreamingBootstrap::bootstrap($rFilename, $rSettings);
+			\XcVm\Streaming\StreamingBootstrap::bootstrap($rFilename, $rSettings);
 		}
 
 		// Merge raw JSON input (if any) into $GLOBALS['rRequest'] for modern mobile/TV apps

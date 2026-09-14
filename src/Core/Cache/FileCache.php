@@ -282,7 +282,8 @@ class FileCache implements CacheInterface {
      */
     private static function getDefault() {
         if (!self::$defaultInstance) {
-            self::$defaultInstance = new self(CACHE_TMP_PATH);
+            $tmpPath = defined('CACHE_TMP_PATH') ? CACHE_TMP_PATH : (defined('MAIN_HOME') ? MAIN_HOME . 'tmp/' : '/home/xc_vm/tmp/');
+            self::$defaultInstance = new self($tmpPath);
         }
         return self::$defaultInstance;
     }

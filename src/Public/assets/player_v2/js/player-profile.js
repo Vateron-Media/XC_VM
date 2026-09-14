@@ -372,67 +372,101 @@ window.PlayerProfile = (function () {
 
       let html = '';
       accounts.forEach((acc) => {
-        const isCurrent = acc.username.toLowerCase() === currentUsername;
-        const initials = (acc.name || acc.username).substring(0, 2).toUpperCase();
+        const isCurrent = (acc.username || '').toLowerCase() === currentUsername;
+        const initials = (acc.name || acc.username || 'XC').substring(0, 2).toUpperCase();
         const isExpired = acc.exp_date > 0 && acc.exp_date <= nowSec;
         const isCode = acc.type === 'code' || !!acc.activation_code;
+        const isExternalXc = acc.type === 'external_xc' || !!acc.server;
 
         let statusBadge = '';
         if (isCurrent) {
-          statusBadge = '<span class="badge bg-label-success rounded-pill"><span class="badge-dot bg-success me-1"></span>Active Now</span>';
+          statusBadge = '<span class="badge bg-label-success rounded-pill px-2 py-1"><span class="badge-dot bg-success me-1"></span>Active Now</span>';
         } else if (isExpired) {
-          statusBadge = '<span class="badge bg-label-danger rounded-pill">Expired</span>';
+          statusBadge = '<span class="badge bg-label-danger rounded-pill px-2 py-1">Expired</span>';
+        } else if (isExternalXc) {
+          statusBadge = '<span class="badge bg-label-info rounded-pill px-2 py-1"><i class="icon-base bx bx-server me-1"></i>Xtream API</span>';
         } else if (isCode) {
-          statusBadge = '<span class="badge bg-label-info rounded-pill"><i class="icon-base bx bx-key me-1"></i>Code</span>';
+          statusBadge = '<span class="badge bg-label-warning rounded-pill px-2 py-1"><i class="icon-base bx bx-key me-1"></i>Code</span>';
         } else {
-          statusBadge = '<span class="badge bg-label-primary rounded-pill">Saved</span>';
+          statusBadge = '<span class="badge bg-label-primary rounded-pill px-2 py-1">Subscriber</span>';
         }
 
+        let avatarHtml = '';
+        if (isExternalXc) {
+          avatarHtml = `<div class="saved-account-avatar bg-label-info text-info"><i class="icon-base bx bx-server fs-4"></i></div>`;
+        } else if (isCode) {
+          avatarHtml = `<div class="saved-account-avatar bg-label-warning text-warning"><i class="icon-base bx bx-key fs-4"></i></div>`;
+        } else {
+          avatarHtml = `<div class="saved-account-avatar ${isCurrent ? 'bg-primary text-white shadow-sm' : 'bg-label-primary text-primary'}">${escapeHtml(initials)}</div>`;
+        }
+
+        const titleText = isCode
+          ? (acc.activation_code || acc.name || acc.username)
+          : isExternalXc
+            ? (acc.name || acc.server || acc.username)
+            : (acc.name || acc.username);
+
+        const typeSubtitle = isExternalXc
+          ? (acc.server ? escapeHtml(acc.server) : 'External Xtream Server')
+          : isCode
+            ? (acc.package_name ? escapeHtml(acc.package_name) : 'Smart Activation Code')
+            : 'Subscriber Line';
+
         html += `
-          <div class="col-12 col-md-6 col-xl-4">
-            <div class="saved-account-card h-100 ${isCurrent ? 'is-active-account' : ''}">
-              <div class="d-flex align-items-start justify-content-between mb-3">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="saved-account-avatar ${isCurrent ? 'bg-primary text-white' : 'bg-label-primary text-primary'}">
-                    ${escapeHtml(initials)}
-                  </div>
-                  <div>
-                    <h6 class="mb-0 fw-bold text-heading text-truncate" style="max-width: 150px;">
-                      ${escapeHtml(acc.name || acc.username)}
+          <div class="col-12 col-md-6 col-xl-4 d-flex">
+            <div class="saved-account-card saved-account-grid-card ${isCurrent ? 'is-active-account shadow-sm' : ''}">
+              <!-- Top Row: Avatar, Title, Status Badge -->
+              <div class="d-flex align-items-start justify-content-between mb-3 gap-2">
+                <div class="d-flex align-items-center gap-3 min-w-0">
+                  ${avatarHtml}
+                  <div class="min-w-0">
+                    <h6 class="mb-0 fw-bold text-heading text-truncate ${isCode ? 'font-monospace' : ''}" title="${escapeHtml(titleText)}">
+                      ${escapeHtml(titleText)}
                     </h6>
-                    <small class="text-body-secondary">${isCode ? 'Smart Code' : 'Subscriber'}</small>
+                    <small class="text-body-secondary text-truncate d-block" title="${escapeHtml(typeSubtitle)}">${escapeHtml(typeSubtitle)}</small>
                   </div>
                 </div>
-                ${statusBadge}
+                <div class="flex-shrink-0">
+                  ${statusBadge}
+                </div>
               </div>
 
-              <div class="mb-3 small text-body-secondary">
+              <!-- Middle: Subscription Details -->
+              <div class="my-auto py-2 small text-body-secondary">
                 <div class="d-flex align-items-center justify-content-between py-1 border-bottom">
-                  <span>Expires:</span>
+                  <span class="text-muted">Expires:</span>
                   <span class="fw-medium text-heading">${acc.exp_date_formatted ? escapeHtml(acc.exp_date_formatted) : 'Unlimited'}</span>
                 </div>
                 <div class="d-flex align-items-center justify-content-between py-1">
-                  <span>Username:</span>
-                  <span class="fw-medium text-heading font-monospace text-truncate" style="max-width: 140px;">${escapeHtml(acc.username)}</span>
+                  <span class="text-muted">${isCode ? 'Code ID:' : 'Username:'}</span>
+                  <span class="fw-medium text-heading font-monospace text-truncate ms-2">${escapeHtml(acc.username || acc.activation_code)}</span>
                 </div>
+                ${isExternalXc && acc.server ? `
+                <div class="d-flex align-items-center justify-content-between py-1 border-top">
+                  <span class="text-muted">Host:</span>
+                  <span class="fw-medium text-heading text-truncate ms-2 font-monospace" style="max-width: 170px;" title="${escapeHtml(acc.server)}">${escapeHtml(acc.server)}</span>
+                </div>` : ''}
               </div>
 
-              <div class="d-flex align-items-center justify-content-between pt-2 border-top gap-2">
+              <!-- Bottom Action Buttons (Always pinned to bottom) -->
+              <div class="d-flex align-items-center justify-content-between pt-3 border-top gap-2 mt-3">
                 ${
                   isCurrent
-                    ? `<span class="badge bg-label-success py-2 w-100 text-center"><i class="icon-base bx bx-check me-1"></i> Currently Active</span>`
+                    ? `<span class="badge bg-label-success py-2 w-100 text-center d-flex align-items-center justify-content-center"><i class="icon-base bx bx-check me-1"></i> Currently Active</span>`
                     : `<button
                         type="button"
-                        class="btn btn-sm btn-primary w-100 btn-switch-account"
-                        data-username="${escapeHtml(acc.username)}"
-                        data-password="${escapeHtml(acc.password)}"
-                        data-code="${escapeHtml(acc.activation_code || '')}">
+                        class="btn btn-sm btn-primary w-100 btn-switch-account d-flex align-items-center justify-content-center shadow-sm"
+                        data-username="${escapeHtml(acc.username || '')}"
+                        data-password="${escapeHtml(acc.password || '')}"
+                        data-code="${escapeHtml(acc.activation_code || '')}"
+                        data-server="${escapeHtml(acc.server || '')}"
+                        data-type="${escapeHtml(acc.type || 'credentials')}">
                         <i class="icon-base bx bx-sync me-1"></i> Switch Account
                       </button>
                       <button
                         type="button"
-                        class="btn btn-sm btn-icon btn-label-secondary btn-remove-profile-account"
-                        data-username="${escapeHtml(acc.username)}"
+                        class="btn btn-sm btn-icon btn-label-secondary btn-remove-profile-account flex-shrink-0"
+                        data-identifier="${escapeHtml(acc.activation_code || acc.username || acc.server)}"
                         title="Remove from device">
                         <i class="icon-base bx bx-trash icon-xs"></i>
                       </button>`
@@ -451,16 +485,18 @@ window.PlayerProfile = (function () {
           const u = btn.getAttribute('data-username');
           const p = btn.getAttribute('data-password');
           const c = btn.getAttribute('data-code');
-          performAccountSwitch(btn, u, p, c);
+          const s = btn.getAttribute('data-server');
+          const t = btn.getAttribute('data-type');
+          performAccountSwitch(btn, u, p, c, s, t);
         });
       });
 
       // Attach Remove Button handlers
       container.querySelectorAll('.btn-remove-profile-account').forEach((btn) => {
         btn.addEventListener('click', () => {
-          const u = btn.getAttribute('data-username');
-          if (confirm(`Remove account "${u}" from this device?`)) {
-            removeAccount(u);
+          const id = btn.getAttribute('data-identifier');
+          if (confirm(`Remove "${id}" from this device?`)) {
+            removeAccount(id);
           }
         });
       });
@@ -469,16 +505,21 @@ window.PlayerProfile = (function () {
     /**
      * Perform switch by logging into target account via AJAX and reloading.
      */
-    const performAccountSwitch = async (btn, username, password, code) => {
+    const performAccountSwitch = async (btn, username, password, code, server, type) => {
       const origHtml = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Switching...';
 
       const loginEndpoint = 'login';
       const payload = {};
-      if (code && !password) {
+      if (type === 'external_xc' || (server && server.trim())) {
+        payload.action = 'login_external_xc';
+        payload.server = server.trim();
+        payload.username = username;
+        payload.password = password;
+      } else if (type === 'code' || (code && code.trim())) {
         payload.action = 'activate_code';
-        payload.activation_code = code;
+        payload.activation_code = code.trim();
       } else {
         payload.username = username;
         payload.password = password;
@@ -497,6 +538,9 @@ window.PlayerProfile = (function () {
 
         const data = await res.json();
         if (res.ok && data.success) {
+          if (window.clearUserClientData) {
+            window.clearUserClientData();
+          }
           if (data.account) {
             saveAccount(data.account);
           }
@@ -504,8 +548,8 @@ window.PlayerProfile = (function () {
           btn.classList.remove('btn-primary');
           btn.classList.add('btn-success');
           setTimeout(() => {
-            window.location.reload();
-          }, 400);
+            window.location.href = data.redirect || 'index';
+          }, 350);
         } else {
           alert(data.message || 'Failed to switch account. Line credentials may have expired or changed.');
           btn.disabled = false;

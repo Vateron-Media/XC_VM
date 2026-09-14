@@ -2,8 +2,6 @@
 
 namespace XcVm\Infrastructure\Redis;
 
-use XcVm\Infrastructure\Signal\SignalQueue;
-
 /**
  * RedisManager — \Redis connection lifecycle management.
  *
@@ -102,7 +100,7 @@ class RedisManager {
 
 
 	/**
-	 * @deprecated Signals now live in {@see SignalQueue}.
+	 * @deprecated Signals now live in {@see \XcVm\Infrastructure\Signal\SignalQueue}.
 	 * Kept as a thin back-compat alias; call SignalQueue::push() directly.
 	 *
 	 * @param string $rKey  Signal key.
@@ -110,7 +108,7 @@ class RedisManager {
 	 * @return void
 	 */
 	public static function setSignal(string $rKey, $rData): void {
-		SignalQueue::push($rKey, $rData);
+		\XcVm\Infrastructure\Signal\SignalQueue::push($rKey, $rData);
 	}
 
 	/**

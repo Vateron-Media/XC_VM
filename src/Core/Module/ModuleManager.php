@@ -4,16 +4,9 @@ namespace XcVm\Core\Module;
 
 use XcVm\Core\Config\ConfigReader;
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Core\Container\ServiceContainer;
-use XcVm\Core\Enum\ModuleState;
-use XcVm\Core\Events\EventDispatcher;
-use XcVm\Core\Events\Module\PackageInstalledEvent;
-use XcVm\Core\Exception\Module\ModuleException;
-use XcVm\Core\Exception\Module\ModuleNotFoundException;
 use XcVm\Core\Http\CurlClient;
 use XcVm\Core\Http\Router;
 use XcVm\Core\Updates\GitHubReleases;
-use XcVm\Infrastructure\Database\DatabaseFactory;
 
 /**
  * ModuleManager — administrative operations with modules.
@@ -34,19 +27,19 @@ class ModuleManager {
     private string $modulesPath;
     private string $overridesPath;
     private string $archivesPath;
-    private ?ServiceContainer $container;
+    private ?\XcVm\Core\Container\ServiceContainer $container;
 
     /**
      * Initialize the module manager.
      *
      * @param string|null $modulesPath   Path to the modules directory.
      * @param string|null $overridesPath Path to the config/modules.php overrides file.
-     * @param ServiceContainer|null $container Service container for DB access and DI.
+     * @param \XcVm\Core\Container\ServiceContainer|null $container Service container for DB access and DI.
      */
     public function __construct(
         ?string $modulesPath = null,
         ?string $overridesPath = null,
-        ?ServiceContainer $container = null
+        ?\XcVm\Core\Container\ServiceContainer $container = null
     ) {
         $this->modulesPath   = $modulesPath   ?: (defined('MAIN_HOME')   ? MAIN_HOME   . 'Modules'      : dirname(__DIR__, 2) . '/Modules');
         $this->overridesPath = $overridesPath ?: (defined('CONFIG_PATH') ? CONFIG_PATH . 'modules.php'  : dirname(__DIR__, 2) . '/config/modules.php');
@@ -313,7 +306,7 @@ class ModuleManager {
                 continue; // not installed — its requirements don't apply
             }
             $state = $module['state'] ?? null;
-            if (!($state instanceof ModuleState) || !$state->isLoadable()) {
+            if (!($state instanceof \XcVm\Core\Enum\ModuleState) || !$state->isLoadable()) {
                 continue; // already disabled/failed — disabling its dep won't break it
             }
             if (in_array($name, $module['dependencies'] ?? [], true)) {
@@ -373,7 +366,7 @@ class ModuleManager {
             if (isset($installed[$name])) {
                 continue;
             }
-            if (($module['state'] ?? null) === ModuleState::Disabled) {
+            if (($module['state'] ?? null) === \XcVm\Core\Enum\ModuleState::Disabled) {
                 continue;
             }
             $pending[$name] = $module;
@@ -609,7 +602,7 @@ class ModuleManager {
      * Scans the modules directory for module.json files, merges with
      * config/modules.php overrides, and returns sorted results.
      *
-     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: ModuleState, path: string, installed_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
+     * @return array<int, array{name: string, description: string, version: string, requires_core: string, environment: string, priority: int, dependencies: array, optional_dependencies: array, has_navbar: bool, has_settings: bool, enabled: bool, state: \XcVm\Core\Enum\ModuleState, path: string, installed_version: string, source: string, previous_version: string, dependency_warnings: string[]}> Module list.
      */
     public function listModules(): array {
         $overrides = $this->readOverrides();
@@ -625,7 +618,7 @@ class ModuleManager {
             // Key by the CANONICAL manifest name, not the `{name}_{hash5}` directory —
             // config/modules.php and `dependencies` both reference the logical name.
             $depName = (string) ($meta['name'] ?? basename(dirname($jsonFile)));
-            $stateByName[$depName] = ModuleState::fromRaw(
+            $stateByName[$depName] = \XcVm\Core\Enum\ModuleState::fromRaw(
                 $overrides[$depName]['state'] ?? ($overrides[$depName]['enabled'] ?? null)
             );
         }
@@ -633,7 +626,7 @@ class ModuleManager {
         foreach ($jsonFiles as $jsonFile) {
             $meta  = json_decode((string) @file_get_contents($jsonFile), true) ?: [];
             $name  = (string) ($meta['name'] ?? basename(dirname($jsonFile))); // canonical name
-            $state = $stateByName[$name] ?? ModuleState::fromRaw(null);
+            $state = $stateByName[$name] ?? \XcVm\Core\Enum\ModuleState::fromRaw(null);
 
             $dependencies = ModuleLoader::filterCoreProvidedDependencies(
                 is_array($meta['dependencies'] ?? null) ? $meta['dependencies'] : []
@@ -703,10 +696,10 @@ class ModuleManager {
         $targetVersion = $version ?? $this->manifestVersion($name) ?? $module->getVersion();
         $modulePath = $this->modulePathFor($name);
 
-        $this->setState($name, ModuleState::Installing);
+        $this->setState($name, \XcVm\Core\Enum\ModuleState::Installing);
 
         try {
-            $db = $this->getDb() ?? DatabaseFactory::get();
+            $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
             // Apply the module's master schema, then its own install() hook for any
             // non-SQL setup. NB: schema files are DDL (CREATE/ALTER), which
             // MySQL/MariaDB implicitly commit — a wrapping transaction gives no
@@ -719,11 +712,11 @@ class ModuleManager {
             }
             $module->install();
         } catch (\Throwable $e) {
-            $this->setState($name, ModuleState::Failed);
+            $this->setState($name, \XcVm\Core\Enum\ModuleState::Failed);
             throw $e;
         }
 
-        $this->setState($name, ModuleState::Enabled);
+        $this->setState($name, \XcVm\Core\Enum\ModuleState::Enabled);
         $this->recordInstalledVersion($name, $targetVersion);
     }
 
@@ -755,13 +748,13 @@ class ModuleManager {
         // it created), then the module's schema is torn down via its single
         // teardown file (database_drop.sql).
         $module->uninstall();
-        $db = $this->getDb() ?? DatabaseFactory::get();
+        $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
         if ($db !== null) {
             ModuleMigrator::uninstall($this->modulePathFor($name), $db);
         }
 
         $this->clearInstalledVersion($name);
-        $this->setState($name, ModuleState::Disabled);
+        $this->setState($name, \XcVm\Core\Enum\ModuleState::Disabled);
     }
 
     /**
@@ -921,7 +914,7 @@ class ModuleManager {
         }
 
         // File-based schema migrations: every up file in (fromVersion, toVersion].
-        $db = $this->getDb() ?? DatabaseFactory::get();
+        $db = $this->getDb() ?? \XcVm\Infrastructure\Database\DatabaseFactory::get();
         if ($db !== null) {
             ModuleMigrator::up($this->modulePathFor($name), $db, $fromVersion, (string) $toVersion);
         }
@@ -1125,10 +1118,10 @@ class ModuleManager {
      * When state is anything else the string value is persisted as 'state'.
      *
      * @param string      $name  Module name.
-     * @param ModuleState $state Target lifecycle state.
+     * @param \XcVm\Core\Enum\ModuleState $state Target lifecycle state.
      * @return void
      */
-    public function setState(string $name, ModuleState $state): void {
+    public function setState(string $name, \XcVm\Core\Enum\ModuleState $state): void {
         $name      = $this->sanitizeModuleName($name);
 
         // Refuse to disable a module that still-enabled dependents rely on
@@ -1137,7 +1130,7 @@ class ModuleManager {
         // uninstallModule(). Scoped strictly to a deliberate Disabled transition:
         // the internal lifecycle states (Installing, Failed) are also non-loadable
         // but are set by installModule() itself and must never be blocked.
-        if ($state === ModuleState::Disabled) {
+        if ($state === \XcVm\Core\Enum\ModuleState::Disabled) {
             $dependents = $this->enabledDependentsOf($name);
             if (!empty($dependents)) {
                 throw new \RuntimeException(
@@ -1156,7 +1149,7 @@ class ModuleManager {
         // Remove any legacy bool 'enabled' key — we use 'state' now.
         unset($overrides[$name]['enabled']);
 
-        if ($state === ModuleState::Enabled) {
+        if ($state === \XcVm\Core\Enum\ModuleState::Enabled) {
             // Enabled is the default: clean up the key so the file stays minimal.
             unset($overrides[$name]['state']);
             if (empty($overrides[$name])) {
@@ -1172,14 +1165,14 @@ class ModuleManager {
     /**
      * Enable or disable a module in config/modules.php.
      *
-     * @deprecated Use setState(name, ModuleState::Enabled / ModuleState::Disabled) instead.
+     * @deprecated Use setState(name, \XcVm\Core\Enum\ModuleState::Enabled / \XcVm\Core\Enum\ModuleState::Disabled) instead.
      *
      * @param string $name    Module name.
      * @param bool   $enabled True to enable, false to disable.
      * @return void
      */
     public function setEnabled(string $name, bool $enabled): void {
-        $this->setState($name, $enabled ? ModuleState::Enabled : ModuleState::Disabled);
+        $this->setState($name, $enabled ? \XcVm\Core\Enum\ModuleState::Enabled : \XcVm\Core\Enum\ModuleState::Disabled);
     }
 
     /**
@@ -1260,7 +1253,7 @@ class ModuleManager {
             $this->storeModuleArchive($zipFilePath, $moduleName, $version);
 
             $this->recordInstalledVersion($moduleName, $version);
-            $this->setState($moduleName, ModuleState::Enabled);
+            $this->setState($moduleName, \XcVm\Core\Enum\ModuleState::Enabled);
             $this->hotReloadSafe($moduleName, $targetDir);
 
             return $moduleName;
@@ -1391,8 +1384,8 @@ class ModuleManager {
      *
      * Delegates the full download → key-unwrap → extract flow to the
      * XC_VM C extension, then runs installModule() to register it.
-     * Fires PackageInstalledEvent and hot-reloads the module into the
-     * current ServiceContainer without requiring a PHP-FPM restart.
+     * Fires \XcVm\Core\Events\Module\PackageInstalledEvent and hot-reloads the module into the
+     * current \XcVm\Core\Container\ServiceContainer without requiring a PHP-FPM restart.
      *
      * @param string      $slug    Module slug as listed on the platform.
      * @param string      $version Exact version string (e.g. "1.2.0"), or '' for the latest.
@@ -1426,7 +1419,7 @@ class ModuleManager {
             // installs); the module's module.json/getVersion() may lag behind.
             $this->installModule($slug, $resolvedVersion);
 
-            EventDispatcher::dispatch(new PackageInstalledEvent(
+            \XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Module\PackageInstalledEvent(
                 slug:        $result['module'],
                 version:     $resolvedVersion,
                 path:        $modulePath,
@@ -1650,7 +1643,7 @@ class ModuleManager {
         if ($prevVersion !== null) {
             $this->recordInstalledVersion($slug, $prevVersion);
         }
-        $this->setState($slug, ModuleState::Enabled);
+        $this->setState($slug, \XcVm\Core\Enum\ModuleState::Enabled);
         return true;
     }
 
@@ -1671,7 +1664,7 @@ class ModuleManager {
     public function deployFromPlatformFilesOnly(string $slug, string $version, ?string $apiKey = null): void {
         $result = $this->pullFilesFromPlatform($slug, $version, $apiKey);
 
-        EventDispatcher::dispatch(new PackageInstalledEvent(
+        \XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Module\PackageInstalledEvent(
             slug:        $result['module'],
             version:     $result['version'],
             path:        $result['path'],
@@ -1679,7 +1672,7 @@ class ModuleManager {
         ));
 
         $this->recordInstalledVersion($slug, (string) ($result['version'] ?: $version));
-        $this->setState($slug, ModuleState::Enabled);
+        $this->setState($slug, \XcVm\Core\Enum\ModuleState::Enabled);
         $this->hotReloadSafe($slug, $result['path']);
     }
 
@@ -1727,7 +1720,7 @@ class ModuleManager {
     }
 
     /**
-     * Hot-reload a newly installed module into the running ServiceContainer.
+     * Hot-reload a newly installed module into the running \XcVm\Core\Container\ServiceContainer.
      *
      * Loads and boots the module within the current request so it becomes
      * immediately usable without a PHP-FPM restart.
@@ -1765,7 +1758,7 @@ class ModuleManager {
      * @return void
      */
     private function hotReload(string $slug, string $modulePath): void {
-        $container = ServiceContainer::getInstance();
+        $container = \XcVm\Core\Container\ServiceContainer::getInstance();
 
         $loader = new ModuleLoader();
         if (!$loader->load($slug, $modulePath)) {
@@ -1886,12 +1879,12 @@ class ModuleManager {
         // the class file for a freshly-uploaded module and abort its install.
         $ok = $loader->load($name, $this->modulePathFor($name));
         if (!$ok) {
-            throw new ModuleNotFoundException('Cannot load module: ' . $name);
+            throw new \XcVm\Core\Exception\Module\ModuleNotFoundException('Cannot load module: ' . $name);
         }
 
         $module = $loader->getModule($name);
         if (!$module) {
-            throw new ModuleNotFoundException('Module instance is not available: ' . $name);
+            throw new \XcVm\Core\Exception\Module\ModuleNotFoundException('Module instance is not available: ' . $name);
         }
 
         return $module;
@@ -1907,7 +1900,7 @@ class ModuleManager {
     private function sanitizeModuleName(string $name): string {
         $name = trim((string) $name);
         if (!preg_match('/^[a-z0-9][a-z0-9\-]*$/', $name)) {
-            throw new ModuleException('Invalid module name.');
+            throw new \XcVm\Core\Exception\Module\ModuleException('Invalid module name.');
         }
         return $name;
     }

@@ -5,7 +5,6 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Config\DomainResolver;
 use XcVm\Core\Util\Encryption;
 use XcVm\Core\Util\ImageUtils;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * PlaylistGenerator — playlist generator
@@ -18,7 +17,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class PlaylistGenerator {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Generate a playlist (M3U) for a user/device.
 	 *
@@ -262,7 +261,7 @@ class PlaylistGenerator {
 								} else {
 									$rEncData .= ($rSettings['cloudflare'] && $rOutputExt == 'ts') ? $rChannelInfo['id'] : ($rChannelInfo['id'] . '/' . $rOutputExt);
 								}
-								$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								$rURL = $rDomainName . 'play/' . $rToken;
 								if ($rChannelInfo['live'] == 0) {
 									$rURL .= '#.' . $rChannelInfo['target_container'];
@@ -392,7 +391,7 @@ class PlaylistGenerator {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['access_token'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
 							} else if ($rEncryptPlaylist) {
 								$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
-								$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
+								$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 								$rURL = $rDomainName . 'play/' . $rToken . '#.' . $rChannel['target_container'];
 							} else {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
@@ -410,7 +409,7 @@ class PlaylistGenerator {
 									}
 								} else if ($rEncryptPlaylist) {
 									$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'];
-									$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
+									$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 									if ($rSettings['cloudflare'] && $rOutputExt == 'ts') {
 										$rURL = $rDomainName . 'play/' . $rToken;
 									} else {
@@ -434,7 +433,7 @@ class PlaylistGenerator {
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rUserInfo['access_token'];
 								} else if ($rEncryptPlaylist) {
 									$rEncData = $rUserInfo['username'] . '/' . $rUserInfo['password'];
-									$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
+									$rToken = Encryption::encrypt($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA);
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?token=' . $rToken;
 								} else {
 									$rURL = $rServers[$rServerID]['rtmp_server'] . $rChannel['id'] . '?username=' . $rUserInfo['username'] . '&password=' . $rUserInfo['password'];

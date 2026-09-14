@@ -4,7 +4,6 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ActivityCronJob — activity cron job
@@ -17,7 +16,6 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class ActivityCronJob implements CommandInterface {
-    use DatabaseAware;
     use CronTrait;
 
     public function getName(): string {
@@ -40,7 +38,7 @@ class ActivityCronJob implements CommandInterface {
     }
 
     private function loadCron(): void {
-        $db = self::db();
+        global $db;
 
         $rLogFile = LOGS_TMP_PATH . 'activity';
         $rUpdateQuery = $rQuery = '';
@@ -51,7 +49,7 @@ class ActivityCronJob implements CommandInterface {
             return;
         }
 
-        list($rQuery, $rUpdates, $rCount) = $this->parseLog($rLogFile);
+        list($rQuery, $rUpdates, $rCount) = $this->parseLog($rLogFile, $db);
         unlink($rLogFile);
 
         if (0 >= $rCount) {
@@ -80,8 +78,7 @@ class ActivityCronJob implements CommandInterface {
         }
     }
 
-    private function parseLog(string $rFile): array {
-        $db = self::db();
+    private function parseLog(string $rFile, $db): array {
         $rQuery = '';
         $rUpdates = array();
         $rCount = 0;

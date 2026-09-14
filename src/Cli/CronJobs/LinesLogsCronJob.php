@@ -4,7 +4,6 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * LinesLogsCronJob — lines logs cron job
@@ -17,7 +16,6 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class LinesLogsCronJob implements CommandInterface {
-    use DatabaseAware;
     use CronTrait;
 
     public function getName(): string {
@@ -40,22 +38,21 @@ class LinesLogsCronJob implements CommandInterface {
     }
 
     private function loadCron(): void {
-        $db = self::db();
+        global $db;
 
         $rLog = LOGS_TMP_PATH . 'client_request.log';
         if (!file_exists($rLog)) {
             return;
         }
 
-        $rQuery = rtrim($this->parseLog($rLog), ',');
+        $rQuery = rtrim($this->parseLog($rLog, $db), ',');
         if (!empty($rQuery)) {
             $db->query('INSERT INTO `lines_logs` (`stream_id`,`user_id`,`client_status`,`query_string`,`user_agent`,`ip`,`extra_data`,`date`) VALUES ' . $rQuery . ';');
         }
         unlink($rLog);
     }
 
-    private function parseLog(string $rLog): string {
-        $db = self::db();
+    private function parseLog(string $rLog, $db): string {
         $rQuery = '';
         $rFP = fopen($rLog, 'r');
         while (!feof($rFP)) {

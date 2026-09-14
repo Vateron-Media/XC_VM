@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Logging\Logger;
-use XcVm\Core\Util\NetworkUtils;
-use XcVm\Domain\User\UserRepository;
 
 /**
  * Authenticator — authenticator
@@ -97,14 +95,14 @@ class Authenticator {
 			}
 		}
 
-		$rIP = NetworkUtils::getUserIP();
-		$rUserInfo = UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rIP = \XcVm\Core\Util\NetworkUtils::getUserIP();
+		$rUserInfo = \XcVm\Domain\User\UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
 		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {
-			// Always recorded, whatever save_login_logs says: these rows are what
-			// the login flood limit counts (loginFloodExceeded).
-			$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('ADMIN', ?, 0, ?, ?, ?);", $rAccessCode['id'] ?? null, 'INVALID_LOGIN', $rIP, time());
+			if (!empty($rSettings['save_login_logs'])) {
+				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('ADMIN', ?, 0, ?, ?, ?);", $rAccessCode['id'], 'INVALID_LOGIN', $rIP, time());
+			}
 			return array('status' => STATUS_FAILURE);
 		}
 
@@ -134,7 +132,6 @@ class Authenticator {
 			$rCrypt = self::hashPassword($rData['password']);
 			$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
 
-			self::renewSessionId();
 			$_SESSION['hash'] = $rUserInfo['id'];
 			$_SESSION['ip'] = $rIP;
 			$_SESSION['code'] = AuthRepository::getCurrentCode();
@@ -170,13 +167,14 @@ class Authenticator {
 			}
 		}
 
-		$rIP = NetworkUtils::getUserIP();
-		$rUserInfo = UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rIP = \XcVm\Core\Util\NetworkUtils::getUserIP();
+		$rUserInfo = \XcVm\Domain\User\UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
 		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {
-			// Always recorded: the login flood limit counts these (see login()).
-			$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, 0, ?, ?, ?);", $rAccessCode['id'] ?? null, 'INVALID_LOGIN', $rIP, time());
+			if (!empty($rSettings['save_login_logs'])) {
+				$db->query("INSERT INTO `login_logs`(`type`, `access_code`, `user_id`, `status`, `login_ip`, `date`) VALUES('RESELLER', ?, 0, ?, ?, ?);", $rAccessCode['id'], 'INVALID_LOGIN', $rIP, time());
+			}
 			return array('status' => STATUS_FAILURE);
 		}
 
@@ -199,7 +197,6 @@ class Authenticator {
 			$rCrypt = self::hashPassword($rData['password']);
 			$db->query('UPDATE `users` SET `password` = ?, `last_login` = UNIX_TIMESTAMP(), `ip` = ? WHERE `id` = ?;', $rCrypt, $rIP, $rUserInfo['id']);
 
-			self::renewSessionId();
 			$_SESSION['reseller'] = $rUserInfo['id'];
 			$_SESSION['rip'] = $rIP;
 			$_SESSION['rcode'] = AuthRepository::getCurrentCode();
@@ -219,41 +216,6 @@ class Authenticator {
 		}
 
 		return array('status' => STATUS_FAILURE);
-	}
-
-	/**
-	 * Whether an address has failed to sign in $rLimit times in the last day —
-	 * the admin and reseller login pages block it when it has (login_flood).
-	 *
-	 * `login_logs.date` is a Unix time. The pages filtered it with
-	 * TIME_TO_SEC(TIMEDIFF(NOW(), `date`)), which is NULL for an integer column,
-	 * so the count was always 0 and no address was ever blocked.
-	 *
-	 * @param string $rIP    The address trying to sign in.
-	 * @param int    $rLimit login_flood; 0 or less turns the limit off.
-	 * @return bool
-	 */
-	public static function loginFloodExceeded(string $rIP, int $rLimit): bool {
-		global $db;
-		if ($rLimit <= 0) {
-			return false;
-		}
-		$db->query("SELECT COUNT(`id`) AS `count` FROM `login_logs` WHERE `status` = 'INVALID_LOGIN' AND `login_ip` = ? AND `date` >= ?;", $rIP, time() - 86400);
-		return $db->num_rows() === 1 && intval($db->get_row()['count']) >= $rLimit;
-	}
-
-	/**
-	 * Move a session that has just signed in onto a fresh id, discarding the old
-	 * one. The id the visitor arrived with is one someone else may know — a cookie
-	 * planted from a sibling subdomain, a shared machine — and keeping it would
-	 * sign them in too (session fixation).
-	 *
-	 * @return void
-	 */
-	private static function renewSessionId(): void {
-		if (session_status() === PHP_SESSION_ACTIVE) {
-			session_regenerate_id(true);
-		}
 	}
 
 	/**

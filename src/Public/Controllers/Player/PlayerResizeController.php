@@ -22,18 +22,19 @@ class PlayerResizeController extends BasePlayerController
 {
 	public function index()
 	{
-		session_write_close();
-
-		if (!isset($GLOBALS['rUserInfo']) || !$GLOBALS['rUserInfo']['id']) {
-			exit();
+		if (session_status() === PHP_SESSION_ACTIVE) {
+			session_write_close();
 		}
 
 		if (!defined('IMAGES_PATH')) {
-			define('IMAGES_PATH', MAIN_HOME . 'Public/assets/player/images/thumbs/');
+			define('IMAGES_PATH', (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player/images/thumbs/');
 		}
+
+		$placeholder = (defined('MAIN_HOME') ? MAIN_HOME : '/home/xc_vm/') . 'Public/assets/player/images/placeholder.png';
+
 		ImageResizeService::serve([
 			'cacheDir'    => IMAGES_PATH,
-			'placeholder' => MAIN_HOME . 'Public/assets/player/images/placeholder.png',
+			'placeholder' => file_exists($placeholder) ? $placeholder : null,
 			'extraParams' => true,
 		]);
 	}

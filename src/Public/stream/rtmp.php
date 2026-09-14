@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\BruteforceGuard;
 use XcVm\Core\GeoIP\GeoIPService;
 use XcVm\Core\Logging\DatabaseLogger;
@@ -51,11 +50,11 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 
 	if ($rRequest['call'] != 'publish') {
 		if ($rRequest['call'] != 'play_done') {
-			if (!(AuthService::secretMatches($rSettings['live_streaming_pass'], $rRequest['password'] ?? null) || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && (!$rAllowed[$rIP]['password'] || AuthService::secretMatches($rAllowed[$rIP]['password'], $rRequest['password'] ?? null)))) {
+			if (!($rRequest['password'] == $rSettings['live_streaming_pass'] || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && ($rAllowed[$rIP]['password'] == $rRequest['password'] || !$rAllowed[$rIP]['password']))) {
 				if (isset($rRequest['tcurl']) && isset($rRequest['app'])) {
 					if (isset($rRequest['token'])) {
 						if (!ctype_xdigit($rRequest['token'])) {
-							$rTokenData = explode('/', (string) Encryption::readToken($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, true));
+							$rTokenData = explode('/', Encryption::decrypt($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA));
 							list($rUsername, $rPassword) = $rTokenData;
 							$rUserInfo = UserRepository::getStreamingUserInfo($rSettings, $rCached, $rBouquets, null, $rUsername, $rPassword, true, false, $rIP);
 						} else {
@@ -276,7 +275,7 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		exit();
 	}
 
-	if (AuthService::secretMatches($rSettings['live_streaming_pass'], $rRequest['password'] ?? null) || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['push'] && (!$rAllowed[$rIP]['password'] || AuthService::secretMatches($rAllowed[$rIP]['password'], $rRequest['password'] ?? null))) {
+	if ($rRequest['password'] == $rSettings['live_streaming_pass'] || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['push'] && ($rAllowed[$rIP]['password'] == $rRequest['password'] || !$rAllowed[$rIP]['password'])) {
 		$rDeny = false;
 		http_response_code(200);
 

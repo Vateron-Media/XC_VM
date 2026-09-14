@@ -1075,11 +1075,10 @@ class PortalHelpers
 					$rSettings["mag_container"] .
 					"/" .
 					$rDevice["token"];
-				$rToken = Encryption::mintToken(
+				$rToken = Encryption::encrypt(
 					$rEncData,
 					$rSettings["live_streaming_pass"],
 					OPENSSL_EXTRA,
-					!empty($rSettings["secure_stream_tokens"]),
 				);
 				$rStreamURL =
 					($rSettings["mag_disable_ssl"]
@@ -1252,11 +1251,10 @@ class PortalHelpers
 					$rSettings["mag_container"] .
 					"/" .
 					$rDevice["token"];
-				$rToken = Encryption::mintToken(
+				$rToken = Encryption::encrypt(
 					$rEncData,
 					$rSettings["live_streaming_pass"],
 					OPENSSL_EXTRA,
-					!empty($rSettings["secure_stream_tokens"]),
 				);
 				$rStreamURL =
 					($rSettings["mag_disable_ssl"]

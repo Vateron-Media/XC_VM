@@ -12,7 +12,6 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\MagService;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\User\UserRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * LineService — line service
@@ -25,7 +24,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class LineService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Bulk delete selected lines.
 	 *

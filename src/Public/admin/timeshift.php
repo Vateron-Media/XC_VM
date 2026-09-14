@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
@@ -32,7 +31,7 @@ if (SettingsManager::get('use_buffer') == 0) {
 
 
 if (!empty($rRequestData['uitoken'])) {
-	$rToken = AdminStreamToken::decode($rRequestData['uitoken'], SettingsManager::get('live_streaming_pass'), !SettingsManager::get('secure_stream_tokens'));
+	$rToken = AdminStreamToken::decode($rRequestData['uitoken'], SettingsManager::get('live_streaming_pass'));
 
 	if ($rToken === null || !$rToken->isValid((bool) SettingsManager::get('ip_subnet_match'), $rIP)) {
 		generate404();
@@ -50,7 +49,7 @@ if (!empty($rRequestData['uitoken'])) {
 	}
 } elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 	generate404();
-} elseif (!AuthService::secretMatches(SettingsManager::get('live_streaming_pass'), $rRequestData['password'] ?? null)) {
+} elseif (empty($rRequestData['password']) || SettingsManager::get('live_streaming_pass') != $rRequestData['password']) {
 	generate404();
 }
 

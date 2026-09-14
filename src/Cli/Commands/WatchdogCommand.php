@@ -10,7 +10,6 @@ use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\ConnectionTracker;
-use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Fanout\FanoutClient;
 
@@ -25,7 +24,6 @@ use XcVm\Streaming\Fanout\FanoutClient;
  */
 
 class WatchdogCommand implements CommandInterface {
-	use DatabaseAware;
 	use DaemonTrait;
 
 	public function getName(): string {
@@ -44,7 +42,7 @@ class WatchdogCommand implements CommandInterface {
 			return 0;
 		}
 
-		$db = self::db();
+		global $db;
 
 		echo "Start watchdog\n";
 		$this->setProcessTitle('XC_VM[Watchdog]');
@@ -66,8 +64,8 @@ class WatchdogCommand implements CommandInterface {
 			// exiting. A respawned process dies in bootstrap while the DB is
 			// down, which used to break the heartbeat chain on every node
 			// simultaneously until cron:servers revived it a minute later.
-			if (!$db->ping()) {
-				$this->waitForDatabase();
+			if (!$db || !$db->ping()) {
+				$this->waitForDatabase($db);
 				break; // respawn with a fresh process now that the DB is back
 			}
 
@@ -193,7 +191,7 @@ class WatchdogCommand implements CommandInterface {
 				sleep(2);
 			} else {
 				echo "DB write failed - waiting for database...\n";
-				$this->waitForDatabase();
+				$this->waitForDatabase($db);
 			}
 			break;
 		}
@@ -211,9 +209,13 @@ class WatchdogCommand implements CommandInterface {
 	 * back, instead of dying and leaving the node "offline" until cron:servers
 	 * revives it. (migrate=true would probe `xc_vm_migrate` and, worse, leave the
 	 * global $db pointing at it.)
+	 *
+	 * @param object|null $db The global Database wrapper.
 	 */
-	private function waitForDatabase(): void {
-		$db = self::db();
+	private function waitForDatabase($db): void {
+		if (!is_object($db)) {
+			return;
+		}
 		echo "Database unavailable - waiting for it to come back...\n";
 		$rAttempt = 0;
 		while (!$db->db_connect(false, true)) {

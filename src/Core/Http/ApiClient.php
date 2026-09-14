@@ -3,7 +3,6 @@
 namespace XcVm\Core\Http;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Domain\Server\ServerRepository;
 
 /**
  * ApiClient — internal API communication
@@ -25,7 +24,7 @@ class ApiClient {
 	 */
 	public static function request($rData, $rTimeout = 5) {
 		ini_set('default_socket_timeout', $rTimeout);
-		$rAPI = 'http://127.0.0.1:' . intval(ServerRepository::getAll()[SERVER_ID]['http_broadcast_port']) . '/admin/api';
+		$rAPI = 'http://127.0.0.1:' . intval(\XcVm\Domain\Server\ServerRepository::getAll()[SERVER_ID]['http_broadcast_port']) . '/admin/api';
 
 		if (!empty(SettingsManager::get('api_pass'))) {
 			$rData['api_pass'] = SettingsManager::get('api_pass');

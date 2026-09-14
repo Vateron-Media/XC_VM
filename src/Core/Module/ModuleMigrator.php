@@ -25,7 +25,7 @@ namespace XcVm\Core\Module;
  * panels installed on an older version. There is a fallback: a module that ships
  * no master (delta-only) still installs by replaying every delta ≤ target.
  *
- * Statement splitting mirrors {@see MigrationRunner}: the
+ * Statement splitting mirrors {@see \XcVm\Core\Database\MigrationRunner}: the
  * file is split on `;`, lines beginning with `--` are stripped, and each
  * remaining statement is executed individually. A failing statement throws.
  *

@@ -82,13 +82,9 @@ class FanoutConfig {
 	 *
 	 * Derived (not raw settings):
 	 *   hls_target_sec    ← seg_time (HLS segment duration, seconds; 1…30).
-	 *   prebuffer_max_sec ← the ring must cover the HLS window (hls_window · seg_time)
-	 *                       and every prebuffer a viewer can ask for — client,
-	 *                       restreamer, the daemon default — each with one segment
-	 *                       of headroom; at least 2 · seg_time, at most the daemon's
-	 *                       clamp (120). There is no fixed floor: the ring is the
-	 *                       daemon's memory, and a flat 40 s kept every channel at
-	 *                       40 s whatever the operator lowered.
+	 *   prebuffer_max_sec ← the ring must cover the largest per-viewer prebuffer AND
+	 *                       the HLS window (hls_window · hls_target); floored at the
+	 *                       daemon default 40, capped at its clamp (120).
 	 * Direct panel-owned tuning (the `fanout_*` settings columns):
 	 *   hls_window, grace_sec, write_timeout_sec, chunk_bytes, max_gop_bytes,
 	 *   source_insecure, default_prebuffer_sec, idle_buffer_grace_sec,
@@ -101,17 +97,9 @@ class FanoutConfig {
 		$rSegTime = self::clampInt((int) ($rSettings['seg_time'] ?? SettingsManager::get('seg_time', 6)), 1, 30);
 		$rHlsWindow = self::clampInt((int) ($rSettings['fanout_hls_window'] ?? 6), 1, 20);
 
-		// A join that asks for as much as the ring holds starts in the block the next
-		// keyframe prunes, and a viewer slower than one GOP there is dropped: a
-		// prebuffer gets a segment of headroom on top.
-		$rNeeds = array(2 * $rSegTime, $rHlsWindow * $rSegTime);
-		foreach (array('client_prebuffer', 'restreamer_prebuffer', 'fanout_default_prebuffer_sec') as $rKey) {
-			$rPrebuffer = max(0, (int) ($rSettings[$rKey] ?? 0));
-			if ($rPrebuffer > 0) {
-				$rNeeds[] = $rPrebuffer + $rSegTime;
-			}
-		}
-		$rRing = min(120, max($rNeeds));
+		$rClientPre = max(0, (int) ($rSettings['client_prebuffer'] ?? 0));
+		$rRestrPre = max(0, (int) ($rSettings['restreamer_prebuffer'] ?? 0));
+		$rRing = min(120, max(40, $rClientPre, $rRestrPre, $rHlsWindow * $rSegTime));
 
 		$rRatio = (float) ($rSettings['fanout_idle_buffer_ratio'] ?? 0.5);
 		if ($rRatio < 0.1) {

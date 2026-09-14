@@ -46,6 +46,16 @@ $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
 $urlPath    = parse_url($requestUri, PHP_URL_PATH);
 $urlPath    = '/' . ltrim($urlPath, '/');
 
+if (empty($_GET) && !empty($requestUri)) {
+    $queryString = $_SERVER['QUERY_STRING'] ?? '';
+    if ($queryString === '') {
+        $queryString = (string)parse_url($requestUri, PHP_URL_QUERY);
+    }
+    if ($queryString !== '') {
+        parse_str($queryString, $_GET);
+    }
+}
+
 $scope      = 'admin';
 $pageName   = '';
 $accessCode = null;
@@ -219,7 +229,7 @@ $adminDir = ($scope === 'admin') ? MAIN_HOME . 'Public/Views/admin/' : MAIN_HOME
 @chdir(is_dir($adminDir) ? $adminDir : MAIN_HOME);
 
 if (in_array($scope, ['player', 'player_v2'], true)) {
-    $noBootstrapPages = ['login'];
+    $noBootstrapPages = ['login', 'logout', 'resize'];
 } else {
     $noBootstrapPages = ['login', 'setup', 'database', 'index', 'session'];
 }

@@ -26,6 +26,72 @@ class ProfileController extends BasePlayerV2Controller
     {
         global $db, $rUserInfo, $rSettings;
 
+        // Support External Xtream Profile
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $ext = $_SESSION['external_xc'] ?? [];
+            $uInfo = $ext['user_info'] ?? [];
+            $sInfo = $ext['server_info'] ?? [];
+
+            $expTimestamp = !empty($uInfo['exp_date']) ? (int)$uInfo['exp_date'] : null;
+            $now = time();
+            $isExpired = $expTimestamp !== null && $expTimestamp <= $now;
+            $isExpiringSoon = $expTimestamp !== null && !$isExpired && ($expTimestamp - $now < 7 * 86400);
+            $daysRemaining = $expTimestamp !== null ? (int)ceil(($expTimestamp - $now) / 86400) : null;
+
+            $maxCons = !empty($uInfo['max_connections']) ? (int)$uInfo['max_connections'] : 1;
+            $activeConsCount = !empty($uInfo['active_cons']) ? (int)$uInfo['active_cons'] : 0;
+
+            $lineData = [
+                'id' => 0,
+                'username' => $ext['username'] ?? '',
+                'password' => $ext['password'] ?? '',
+                'created_at' => !empty($uInfo['created_at']) ? (int)$uInfo['created_at'] : time(),
+                'max_connections' => $maxCons,
+                'is_trial' => !empty($uInfo['is_trial']) ? 1 : 0,
+                'status' => $uInfo['status'] ?? 'Active',
+                'bouquet' => [],
+                'exp_date' => $expTimestamp,
+            ];
+
+            $allLive = $extService ? $extService->getLiveStreams(null) : [];
+            $allVod = $extService ? $extService->getVodStreams(null) : [];
+            $allSeries = $extService ? $extService->getSeries(null) : [];
+
+            $totalLive = count($allLive);
+            $totalVod = count($allVod);
+            $totalSeries = count($allSeries);
+            $totalRadio = 0;
+
+            $serverPublicUrl = $ext['server'] ?? '';
+
+            $GLOBALS['_TITLE'] = 'Xtream Server Profile';
+            $GLOBALS['_PAGE'] = 'profile';
+
+            $this->render('profile', [
+                'lineData'           => $lineData,
+                'activationCode'     => '',
+                'activeConsCount'    => $activeConsCount,
+                'activeSessions'     => [],
+                'userBouquets'       => [],
+                'outputDevices'      => [],
+                'serverPublicUrl'    => $serverPublicUrl,
+                'expTimestamp'       => $expTimestamp,
+                'isExpired'          => $isExpired,
+                'isExpiringSoon'     => $isExpiringSoon,
+                'daysRemaining'      => $daysRemaining,
+                'totalLive'          => $totalLive,
+                'totalVod'           => $totalVod,
+                'totalSeries'        => $totalSeries,
+                'totalRadio'         => $totalRadio,
+                'isExternalXc'       => true,
+                'externalServer'     => $serverPublicUrl,
+                'externalServerInfo' => $sInfo,
+                'externalUserInfo'   => $uInfo,
+            ]);
+            return;
+        }
+
         if (empty($rUserInfo) || empty($rUserInfo['id'])) {
             header('Location: login');
             exit;
@@ -36,6 +102,11 @@ class ProfileController extends BasePlayerV2Controller
         // Fresh line data from database
         $db->query('SELECT * FROM `lines` WHERE `id` = ? LIMIT 1', $userId);
         $lineData = $db->get_row() ?: $rUserInfo;
+
+        // Check if this line is linked to an activation code
+        $db->query('SELECT `activation_code` FROM `activation_codes` WHERE `subscriber_id` = ? LIMIT 1', $userId);
+        $actCodeRow = $db->get_row();
+        $activationCode = $actCodeRow['activation_code'] ?? '';
 
         // Active connection sessions for this subscriber
         $db->query(
@@ -108,6 +179,7 @@ class ProfileController extends BasePlayerV2Controller
 
         $this->render('profile', [
             'lineData'           => $lineData,
+            'activationCode'     => $activationCode,
             'activeConsCount'    => $activeConsCount,
             'activeSessions'     => $activeSessions,
             'userBouquets'       => $userBouquets,

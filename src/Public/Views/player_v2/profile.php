@@ -31,6 +31,11 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
             <div class="user-profile-info">
               <div class="d-flex align-items-center justify-content-sm-start justify-content-center gap-2 mb-1 flex-wrap">
                 <h4 class="mb-0 fw-bold"><?= $username ?></h4>
+                <?php if (!empty($activationCode)): ?>
+                  <span class="badge bg-label-info rounded-pill px-2">
+                    <i class="icon-base bx bx-key me-1"></i><?= htmlspecialchars($activationCode) ?>
+                  </span>
+                <?php endif; ?>
                 <?php if ($isExpired): ?>
                   <span class="badge bg-label-danger rounded-pill px-2">Expired</span>
                 <?php elseif (!empty($lineData['is_trial'])): ?>
@@ -65,7 +70,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
               <button type="button" class="btn btn-primary" id="btn-profile-sync">
                 <i class="icon-base bx bx-refresh icon-sm me-1"></i> Sync Catalog
               </button>
-              <a href="<?= $baseUrl ?>logout" class="btn btn-outline-danger">
+              <a href="<?= $baseUrl ?>logout" class="btn btn-outline-danger" onclick="if(window.clearUserClientData){window.clearUserClientData();}">
                 <i class="icon-base bx bx-log-out icon-sm me-1"></i> Sign Out
               </a>
             </div>
@@ -842,7 +847,7 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
       </div>
       <div class="card-body pt-0">
         <!-- Dynamic list rendered by player-profile.js -->
-        <div id="profile-saved-accounts-list"></div>
+        <div id="profile-saved-accounts-list" class="row g-4"></div>
       </div>
     </div>
 
@@ -946,11 +951,11 @@ $connProgressColor = $connPercent >= 100 ? 'bg-danger' : ($connPercent >= 75 ? '
     id: <?= (int)$lineData['id'] ?>,
     username: <?= json_encode($lineData['username'] ?? '') ?>,
     password: <?= json_encode($lineData['password'] ?? '') ?>,
-    name: <?= json_encode($lineData['username'] ?? '') ?>,
-    activation_code: '',
+    name: <?= json_encode(!empty($activationCode) ? 'Code: ' . $activationCode : ($lineData['username'] ?? '')) ?>,
+    activation_code: <?= json_encode($activationCode ?? '') ?>,
     exp_date: <?= (int)($expTimestamp ?? 0) ?>,
     exp_date_formatted: <?= json_encode($expTimestamp ? date('Y-m-d H:i:s', $expTimestamp) : 'Unlimited') ?>,
-    type: 'credentials',
+    type: <?= json_encode(!empty($activationCode) ? 'code' : 'credentials') ?>,
     added_at: <?= (int)($lineData['created_at'] ?? time()) ?>
   };
 </script>

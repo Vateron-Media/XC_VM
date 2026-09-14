@@ -5,7 +5,6 @@ namespace XcVm\Cli\Commands;
 use XcVm\Cli\CommandInterface;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Core\Util\StreamUtils;
-use XcVm\Streaming\Codec\FfmpegPaths;
 use XcVm\Streaming\Fanout\FanoutClient;
 use XcVm\Streaming\Fanout\IngestFeeder;
 
@@ -60,8 +59,8 @@ class LlodCommand implements CommandInterface {
 		if (!defined('STREAMS_PATH')) define('STREAMS_PATH', MAIN_HOME . 'content/streams/');
 		if (!defined('CACHE_TMP_PATH')) define('CACHE_TMP_PATH', MAIN_HOME . 'tmp/cache/');
 		if (!defined('CONS_TMP_PATH')) define('CONS_TMP_PATH', MAIN_HOME . 'tmp/opened_cons/');
-		if (!defined('FFMPEG')) define('FFMPEG', FfmpegPaths::cpu() ?: FFMPEG_BIN_40);
-		if (!defined('FFPROBE')) define('FFPROBE', FfmpegPaths::probe() ?: FFPROBE_BIN_40);
+		if (!defined('FFMPEG')) define('FFMPEG', \XcVm\Streaming\Codec\FfmpegPaths::cpu() ?: FFMPEG_BIN_40);
+		if (!defined('FFPROBE')) define('FFPROBE', \XcVm\Streaming\Codec\FfmpegPaths::probe() ?: FFPROBE_BIN_40);
 		if (!defined('PACKET_SIZE')) define('PACKET_SIZE', 188);
 		if (!defined('BUFFER_SIZE')) define('BUFFER_SIZE', 12032);
 		if (!defined('TIMEOUT')) define('TIMEOUT', 20);

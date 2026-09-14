@@ -5,8 +5,6 @@ namespace XcVm\Domain\Vod;
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\QueryHelper;
-use XcVm\Core\Events\EventDispatcher;
-use XcVm\Core\Events\Vod\VodImportedEvent;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
@@ -15,8 +13,6 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
-use XcVm\Module\Watch\WatchService;
 
 /**
  * MovieService — movie service
@@ -29,7 +25,7 @@ use XcVm\Module\Watch\WatchService;
  */
 
 class MovieService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a movie from admin form data.
 	 *
@@ -429,7 +425,7 @@ class MovieService {
 
 						// Notify modules (e.g. watch) that a VOD item was imported from this path,
 						// instead of core touching the module-owned watch_logs table directly.
-						EventDispatcher::dispatch(new VodImportedEvent((int) $rInsertID, (string) $rPath, 1));
+						\XcVm\Core\Events\EventDispatcher::dispatch(new \XcVm\Core\Events\Vod\VodImportedEvent((int) $rInsertID, (string) $rPath, 1));
 						$rStreamsAdded = array();
 						$rServerTree = json_decode($rData['server_tree_data'], true);
 
@@ -705,8 +701,8 @@ class MovieService {
 					}
 					// watch is an optional module (fetched from its own repo). When it is
 					// not installed there are no watch categories — degrade to empty.
-					$rWatchCategories = class_exists(WatchService::class)
-						? array(1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2))
+					$rWatchCategories = class_exists(\XcVm\Module\Watch\WatchService::class)
+						? array(1 => \XcVm\Module\Watch\WatchService::getWatchCategories(1), 2 => \XcVm\Module\Watch\WatchService::getWatchCategories(2))
 						: array();
 
 					foreach ($rImportStreams as $rImportStream) {

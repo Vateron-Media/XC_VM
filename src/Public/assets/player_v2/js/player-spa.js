@@ -332,26 +332,6 @@ window.SPA = (function () {
   };
 
   /**
-   * Strictly validated same-origin navigation fallback to prevent Open Redirect.
-   */
-  const safeRedirect = (destinationUrl) => {
-    try {
-      const parsed = new URL(destinationUrl, window.location.origin);
-      if (parsed.origin === window.location.origin) {
-        const safePath = (parsed.pathname.startsWith('/') ? parsed.pathname : '/' + parsed.pathname) + parsed.search + parsed.hash;
-        if (!safePath.startsWith('//')) {
-          // nosemgrep: javascript.browser.tainted-redirect.tainted-redirect
-          window.location.assign(window.location.origin + safePath);
-          return;
-        }
-      }
-    } catch (e) {}
-    const fallbackBase = state.baseUrl || '/';
-    // nosemgrep: javascript.browser.tainted-redirect.tainted-redirect
-    window.location.assign(window.location.origin + (fallbackBase.startsWith('/') ? fallbackBase : '/' + fallbackBase));
-  };
-
-  /**
    * Main SPA Navigation Router.
    */
   const navigate = async (url, pushState = true) => {
@@ -360,7 +340,7 @@ window.SPA = (function () {
     const targetUrl = new URL(url, window.location.origin).href;
     const container = document.querySelector(config.contentSelector);
     if (!container) {
-      safeRedirect(targetUrl);
+      window.location.href = targetUrl;
       return;
     }
 
@@ -388,14 +368,14 @@ window.SPA = (function () {
 
       // Check if server redirected (e.g., to login)
       if (response.redirected || response.status === 401 || response.status === 403) {
-        safeRedirect(response.url || targetUrl);
+        window.location.href = response.url || targetUrl;
         return;
       }
 
       const contentType = response.headers.get('content-type') || '';
       if (!contentType.includes('application/json')) {
         // Fallback to standard navigation if non-JSON received
-        safeRedirect(targetUrl);
+        window.location.href = targetUrl;
         return;
       }
 
@@ -418,11 +398,12 @@ window.SPA = (function () {
       // Update Sidebar Menu Active Item
       updateActiveMenuItem(data.page, targetUrl);
 
-      // Parse incoming HTML cleanly using standard DOMParser in text/html mode (no innerHTML assignment)
-      const doc = new DOMParser().parseFromString(data.html || '', 'text/html');
+      // Parse incoming HTML
+      const temp = document.createElement('div');
+      temp.innerHTML = data.html || '';
 
       // 1. Extract and append new stylesheets
-      const links = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
+      const links = Array.from(temp.querySelectorAll('link[rel="stylesheet"]'));
       links.forEach((link) => {
         const href = link.getAttribute('href');
         if (href && !document.querySelector(`link[href="${href}"]`)) {
@@ -435,8 +416,8 @@ window.SPA = (function () {
         link.remove();
       });
 
-      // 2. Extract scripts from incoming parsed document
-      const scriptElements = Array.from(doc.querySelectorAll('script'));
+      // 2. Extract scripts from incoming HTML
+      const scriptElements = Array.from(temp.querySelectorAll('script'));
       const externalScriptUrls = [];
       const inlineScriptContents = [];
 
@@ -452,15 +433,15 @@ window.SPA = (function () {
         s.remove();
       });
 
-      // 3. Smooth View Swap: Replace container children directly using DOM nodes (no innerHTML)
+      // 3. Smooth View Swap: INSERT CLEAN HTML INTO LIVE DOM FIRST!
       container.style.transition = 'opacity 0.15s ease, transform 0.15s ease';
       container.style.opacity = '0.3';
       container.style.transform = 'translateY(-4px)';
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // Swap view nodes natively into live document
-      container.replaceChildren(...Array.from(doc.body.childNodes));
+      // Inset HTML into live document so all elements are found by scripts!
+      container.innerHTML = temp.innerHTML;
 
       // Scroll window to top
       window.scrollTo({ top: 0, behavior: 'instant' });
@@ -486,14 +467,12 @@ window.SPA = (function () {
         return originalAddEventListener.call(document, type, listener, options);
       };
 
-      // Execute each inline script safely via native script DOM elements without eval or new Function
+      // Execute each inline script
       inlineScriptContents.forEach((code) => {
         if (!code.trim()) return;
         try {
-          const s = document.createElement('script');
-          s.textContent = code;
-          document.body.appendChild(s);
-          s.remove();
+          const fn = new Function(code);
+          fn();
         } catch (err) {
           console.warn('SPA inline script execution error:', err);
         }
@@ -519,7 +498,7 @@ window.SPA = (function () {
       console.error('SPA Navigation error:', err);
       Progress.fail();
       if (err.name !== 'AbortError') {
-        safeRedirect(targetUrl);
+        window.location.href = targetUrl;
       }
     } finally {
       state.isNavigating = false;

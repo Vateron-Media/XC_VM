@@ -3,7 +3,6 @@
 namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Domain\Server\ServerRepository;
 use XcVm\Streaming\Health\ProcessChecker;
 
 /**
@@ -37,7 +36,7 @@ class ServerViewController extends BaseAdminController {
         // Read the server fresh (bypass the 10s file cache) so this detail page always
         // reflects the true current status — otherwise a just-started install (status 3)
         // or a failure (status 4) can be hidden behind a stale cached status.
-        $rFreshServers = ServerRepository::getAll(true);
+        $rFreshServers = \XcVm\Domain\Server\ServerRepository::getAll(true);
         if (isset($rFreshServers[$id])) {
             $rServer = $rFreshServers[$id];
         } elseif (isset($allServers[$id])) {

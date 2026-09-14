@@ -21,7 +21,7 @@ use XcVm\Domain\User\GroupService;
  * carries structured `data` that the client renders into a card (see
  * docs/adr/search-json-contract.md); permission checks, status resolution and
  * category/server lookups stay server-side. Status badges resolve via
- * {@see StatusBadge}; `$language`, `$db` and `$rServers`
+ * {@see \XcVm\Core\Reference\StatusBadge}; `$language`, `$db` and `$rServers`
  * remain bootstrap globals it relies on.
  *
  * @package XC_VM_Public_Controllers_Admin

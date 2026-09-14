@@ -7,8 +7,6 @@
  * isset($_POST[<action>])). Reached full-page in the new-UI shell.
  */
 
-use XcVm\Core\Module\QuickToolsRegistry;
-
 $rTabs = [
     'streams' => ['tabler-player-play', 'streams', [
         ['restart_all_streams', 'restart_all_streams'],
@@ -100,11 +98,11 @@ $rTabs = [
 
 // Module-contributed Quick Tools (QuickToolsProviderInterface): append each
 // module tool to its group (creating the group with a generic icon if new).
-foreach (QuickToolsRegistry::groups() as $rQtGroup) {
+foreach (\XcVm\Core\Module\QuickToolsRegistry::groups() as $rQtGroup) {
     if (!isset($rTabs[$rQtGroup])) {
         $rTabs[$rQtGroup] = ['tabler-tool', $rQtGroup, []];
     }
-    foreach (QuickToolsRegistry::forGroup($rQtGroup) as $rQtTool) {
+    foreach (\XcVm\Core\Module\QuickToolsRegistry::forGroup($rQtGroup) as $rQtTool) {
         $rTabs[$rQtGroup][2][] = $rQtTool;
     }
 }

@@ -3,7 +3,6 @@
 namespace XcVm\Domain\Vod;
 
 use XcVm\Core\Config\SettingsManager;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * TmdbPopularCron
@@ -25,7 +24,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class TmdbPopularCron {
-    use DatabaseAware;
+    use \XcVm\Infrastructure\Database\DatabaseAware;
 
 
     /**

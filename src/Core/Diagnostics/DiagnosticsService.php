@@ -3,15 +3,13 @@
 namespace XcVm\Core\Diagnostics;
 
 use XcVm\Core\Http\ApiClient;
-use XcVm\Domain\Server\ServerRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * Diagnostics Service
  *
  * downloadPanelLogs, submitPanelLogs.
  *
- * Panel-log methods resolve the DB via the DatabaseAware trait; other methods are stateless.
+ * Panel-log methods accept a $db parameter; other methods are stateless.
  *
  * @package XC_VM_Core_Diagnostics
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -21,8 +19,6 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class DiagnosticsService {
-
-	use DatabaseAware;
 
 	/**
 	 * Parse SSL certificate info from nginx config or a specific file
@@ -113,11 +109,11 @@ class DiagnosticsService {
 	/**
 	 * Download panel logs from database, format them and clear the logs table
 	 *
+	 * @param \XcVm\Core\Database\DatabaseHandler $db  Database handler (must have ->query(), ->get_rows())
 	 * @return array ['errors' => [...], 'version' => string]
 	 * @throws \Exception
 	 */
-	public static function downloadPanelLogs(): array {
-		$db = self::db();
+	public static function downloadPanelLogs($db): array {
 		ini_set('default_socket_timeout', 60);
 		$errors = [];
 
@@ -179,10 +175,10 @@ class DiagnosticsService {
 	/**
 	 * Submit panel logs to the central API server
 	 *
+	 * @param \XcVm\Core\Database\DatabaseHandler $db  Database handler
 	 * @return string|false  API response or false on failure
 	 */
-	public static function submitPanelLogs() {
-		$db = self::db();
+	public static function submitPanelLogs($db) {
 		ini_set('default_socket_timeout', 60);
 
 		// Select only logs not yet marked as sent
@@ -336,9 +332,9 @@ class DiagnosticsService {
 	 * @return array NVENC process details.
 	 */
 	public static function getNVENCProcesses($rServerID) {
-		$db = self::db();
+		global $db;
 		$rProcesses = array();
-		$rServer = ServerRepository::getById($rServerID);
+		$rServer = \XcVm\Domain\Server\ServerRepository::getById($rServerID);
 		$rGPUInfo = json_decode($rServer['gpu_info'], true);
 
 		if (!is_array($rGPUInfo)) {

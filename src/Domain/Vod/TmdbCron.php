@@ -6,7 +6,6 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * TmdbCron
@@ -26,7 +25,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class TmdbCron {
-    use DatabaseAware;
+    use \XcVm\Infrastructure\Database\DatabaseAware;
 
 
     /**

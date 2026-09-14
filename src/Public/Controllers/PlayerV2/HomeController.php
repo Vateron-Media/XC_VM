@@ -25,6 +25,74 @@ class HomeController extends BasePlayerV2Controller
             }
         }
 
+        // Support External Xtream Codes Account
+        if (!empty($rUserInfo['is_external_xc'])) {
+            $extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+            $extMovies = $extService ? $extService->getVodStreams(null) : [];
+            $extSeries = $extService ? $extService->getSeries(null) : [];
+            $extLive = $extService ? $extService->getLiveStreams(null) : [];
+
+            $rPopularNow = [];
+            foreach (array_slice($extMovies, 0, 10) as $m) {
+                $rPopularNow[] = [
+                    'type'     => 'movie',
+                    'id'       => (int)$m['id'],
+                    'title'    => $m['title'] ?? $m['stream_display_name'],
+                    'year'     => $m['year'] ?? null,
+                    'rating'   => $m['rating'] ?? null,
+                    'cover'    => $m['poster'] ?? '',
+                    'backdrop' => $m['poster'] ?? '',
+                    'plot'     => '',
+                    'genre'    => 'Movie',
+                    'duration' => 'Feature Film',
+                ];
+            }
+            foreach (array_slice($extSeries, 0, 5) as $s) {
+                $rPopularNow[] = [
+                    'type'     => 'series',
+                    'id'       => (int)$s['id'],
+                    'title'    => $s['title'] ?? $s['stream_display_name'],
+                    'year'     => $s['year'] ?? null,
+                    'rating'   => $s['rating'] ?? null,
+                    'cover'    => $s['cover'] ?? '',
+                    'backdrop' => $s['cover'] ?? '',
+                    'plot'     => $s['plot'] ?? '',
+                    'genre'    => $s['genre'] ?: 'Series',
+                    'duration' => 'TV Series',
+                ];
+            }
+
+            $heroSlides = array_slice($rPopularNow, 0, 5);
+            $top10Items = array_slice($rPopularNow, 0, 10);
+
+            $rMovies = ['streams' => array_slice($extMovies, 0, 18)];
+            $rSeries = ['streams' => array_slice($extSeries, 0, 18)];
+            $rLiveChannels = ['streams' => array_slice($extLive, 0, 8)];
+            $rRadioStreams = ['streams' => []];
+
+            $totalLive = count($extLive);
+            $totalVod = count($extMovies);
+            $totalSeries = count($extSeries);
+            $totalRadio = 0;
+
+            $GLOBALS['_TITLE'] = 'Dashboard';
+            $GLOBALS['_PAGE']  = 'index';
+
+            $this->render('index', [
+                'heroSlides'     => $heroSlides,
+                'top10Items'     => $top10Items,
+                'rMovies'        => $rMovies,
+                'rSeries'        => $rSeries,
+                'rLiveChannels'  => $rLiveChannels,
+                'rRadioStreams'  => $rRadioStreams,
+                'totalLive'      => $totalLive,
+                'totalVod'       => $totalVod,
+                'totalSeries'    => $totalSeries,
+                'totalRadio'     => $totalRadio,
+            ]);
+            return;
+        }
+
         $rPopularNow = [];
         $rPopular = ['movies' => [], 'series' => []];
         $rPopularFile = CONTENT_PATH . 'tmdb_popular';

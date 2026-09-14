@@ -1,0 +1,20 @@
+{
+  "version": "2.5.2",
+  "changes": [
+    "Ground-up redesign of Web Player V2 featuring a cinematic dark UI, high-performance Single Page Application (SPA) architecture, HLS.js/VideoJS streaming engine, live EPG, favorites synchronization, and real-time search across Live TV, Movies, Series, and Radio.",
+    "Added a dedicated Active Codes REST API with full administrative and reseller actions, including batch generation, status checks, verification, toggling, editing, and deletion with strict permission scoping.",
+    "Integrated check_active_code endpoint into both Admin and Reseller API wrappers, enabling external portals and applications to validate voucher codes and subscription statuses programmatically.",
+    "Published comprehensive Active Codes API documentation guide (ACTIVE_CODES_API_GUIDE.md) detailing authentication, endpoints, request/response formats, and full multi-language code examples (cURL, PHP, Python, JavaScript).",
+    "Overhauled Active Codes management with advanced DataTables, status filters, date range pickers, server-side AJAX pagination, and redesigned batch generator supporting custom prefixes and mass exports.",
+    "Decoupled Telegram bot integration completely from XC_VM core into a standalone modular extension (Modules/telegram_3b6df), migrating all notifications to typed PSR-14 MediaAnalyzedEvent listeners.",
+    "Expanded Category Templates to Resellers and Sub-Resellers with scoped ownership, shared templates, and added complete support for Radio categories across Admin and Reseller dashboards.",
+    "Completely redesigned Category Templates breakdown widget with modern micro-KPI cards (Total, Live, VOD, Series, Radio) and visual proportion distribution bars.",
+    "Redesigned Reseller Panel navigation and credit accounting workflows, separating device management into dedicated menus (MAG, Enigma2, m3u/Xtream, Active Codes) with luminous gradient section dividers.",
+    "Separated Users from Catalog into standalone sidebar navigation sections in the Admin dashboard for enhanced workflow clarity.",
+    "Standardized country selection across Active Code generation and editing forms using normalized GeoReference country dropdowns.",
+    "Resolved Web Portal infinite reload loop on missing device info and implemented automatic device credential binding upon login with active code fallback support.",
+    "Fixed white screen issues during VOD movie playback by hardening PlayerApiController, get.php media routing, and JSON payload handling.",
+    "Standardized AI agent operational guidelines, review personas (backend, db, devops, php, qa, security), and enforced architectural quality gates banning global database access in modules.",
+    "Refreshed master installation database (database.sql) to a clean, empty schema containing zero sample/dummy data, synchronized with all database migrations (001-024) and pre-configured for version 2.5.2."
+  ]
+}

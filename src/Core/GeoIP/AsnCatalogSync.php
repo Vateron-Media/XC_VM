@@ -4,7 +4,6 @@ namespace XcVm\Core\GeoIP;
 
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\UpdateChannels;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * AsnCatalogSync — keeps the `blocked_asns` reference catalog current from the
@@ -27,7 +26,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class AsnCatalogSync {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 
 	/** Rows per multi-value INSERT batch (kept well under the bind-param limit). */
 	private const BATCH = 1000;

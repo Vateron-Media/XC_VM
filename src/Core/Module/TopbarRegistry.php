@@ -6,12 +6,12 @@ namespace XcVm\Core\Module;
  * TopbarRegistry — per-page action-bar contributions from modules.
  *
  * The admin per-page topbar (primary button + related-tools dropdown) is built
- * by {@see Topbar}. Core pages come from Topbar's own literal;
+ * by {@see \XcVm\Core\Util\Topbar}. Core pages come from Topbar's own literal;
  * modules contribute their own buttons — for their own pages AND for existing
  * core pages — through this registry, so a module owns its topbar entries
  * instead of them being hard-coded in the core panel.
  *
- * A module implements {@see TopbarProviderInterface}
+ * A module implements {@see \XcVm\Core\Module\Contract\TopbarProviderInterface}
  * and, in registerTopbar(), calls add() once per button. Topbar::config() then
  * merges these on top of the core literal (module entries are appended after a
  * page's core entries, ordered among themselves by the `order` argument).

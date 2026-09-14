@@ -5,7 +5,7 @@ namespace XcVm\Core\Module;
 /**
  * PermissionRegistry — reseller sub-permission keys contributed by modules.
  *
- * The group editor's permission catalogue ({@see PermissionReference})
+ * The group editor's permission catalogue ({@see \XcVm\Core\Reference\PermissionReference})
  * is a core list; a module adds its OWN permission keys here instead of them
  * being hard-coded in core, so the module owns the permissions it gates on.
  * Keys are appended after the core list, in registration order, de-duplicated.
@@ -14,7 +14,7 @@ namespace XcVm\Core\Module;
  * (`permission_<key>` / `permission_<key>_text`), so a module only needs those
  * language entries.
  *
- * A module implements {@see PermissionProviderInterface}
+ * A module implements {@see \XcVm\Core\Module\Contract\PermissionProviderInterface}
  * and calls add() in registerPermissions() (same boot phase as the others).
  *
  * @package XC_VM_Core_Module

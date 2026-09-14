@@ -6,7 +6,7 @@ namespace XcVm\Public\Controllers\Admin;
  * AjaxController — legacy admin-ajax fallback.
  *
  * Every real `?action=` endpoint is now handled by a dedicated controller under
- * {@see Ajax}, reached via `Router::dispatchApi()`
+ * {@see \XcVm\Public\Controllers\Admin\Ajax}, reached via `Router::dispatchApi()`
  * before this fallback (see `routes/admin.php` and `Public/index.php`). Only an
  * unknown or removed action — or a bare `/api` request — reaches here, and it
  * answers `{"result":false}`. Admin authentication is already enforced by

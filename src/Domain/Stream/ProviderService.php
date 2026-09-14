@@ -6,7 +6,6 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Validation\InputValidator;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ProviderService — provider service
@@ -19,7 +18,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class ProviderService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a provider from admin form data.
 	 *

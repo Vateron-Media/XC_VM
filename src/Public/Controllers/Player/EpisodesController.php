@@ -84,7 +84,7 @@ class EpisodesController extends BasePlayerController
                     $rProxySubtitles = array();
 
                     foreach ($rSubtitles[$rEpisodes[$i]['id']] as $rSubtitle) {
-                        $rSubtitle['file'] = 'proxy.php?url=' . Encryption::mintToken($rSubtitle['file'], SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33', (bool) SettingsManager::get('secure_stream_tokens'));
+                        $rSubtitle['file'] = 'proxy.php?url=' . Encryption::encrypt($rSubtitle['file'], SettingsManager::get('live_streaming_pass'), 'd8de497ebccf4f4697a1da20219c7c33');
                         $rProxySubtitles[] = $rSubtitle;
                     }
                     $rSubtitles[$rEpisodes[$i]['id']] = $rProxySubtitles;

@@ -6,7 +6,6 @@ use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Database\QueryHelper;
 use XcVm\Core\Util\AdminHelpers;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * BlocklistService — blocklist service
@@ -19,7 +18,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class BlocklistService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Add an IP (or CIDR) to the blocklist.
 	 *

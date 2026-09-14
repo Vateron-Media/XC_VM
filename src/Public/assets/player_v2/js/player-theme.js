@@ -156,3 +156,42 @@ window.PlayerTheme = (function () {
     resolveTheme
   };
 })();
+
+/**
+ * Global User Client Cache Purge
+ * Removes session-specific user data (favorites, continue watching, playback positions)
+ * while safely preserving saved accounts and theme settings.
+ */
+window.clearUserClientData = function () {
+  const preservedKeys = ['xc_player_v2_saved_accounts', 'xc_player_v2_theme'];
+  try {
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(function (k) {
+      if (k.startsWith('xc_player_v2_') && preservedKeys.indexOf(k) === -1) {
+        localStorage.removeItem(k);
+      }
+    });
+  } catch (e) {}
+
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.clear();
+    }
+  } catch (e) {}
+};
+
+// If URL has ?logged_out=1, wipe previous client data automatically
+(function () {
+  try {
+    if (typeof window !== 'undefined' && window.location && window.location.search) {
+      const params = new URLSearchParams(window.location.search);
+      if (params.has('logged_out')) {
+        window.clearUserClientData();
+        params.delete('logged_out');
+        const cleanQuery = params.toString() ? '?' + params.toString() : '';
+        window.history.replaceState({}, '', window.location.pathname + cleanQuery);
+      }
+    }
+  } catch (e) {}
+})();
+

@@ -9,7 +9,6 @@ use XcVm\Core\Util\AdminHelpers;
 use XcVm\Core\Util\ImageUtils;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Vod\SeriesService;
-use XcVm\Infrastructure\Database\DatabaseAware;
 
 /**
  * ChannelService — channel service
@@ -22,7 +21,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class ChannelService {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Create or update a live channel from admin form data.
 	 *
@@ -291,7 +290,7 @@ class ChannelService {
 				$rProcessServers[intval($rRow['stream_id'])][] = intval($rRow['server_id']);
 			}
 			$rBouquets = BouquetService::getAllSimple();
-			$rAddBouquet = $rDelBouquet = array();
+			$rDelOptions = $rAddBouquet = $rDelBouquet = array();
 			$rEncQuery = $rAddQuery = '';
 
 			foreach ($rStreamIDs as $rStreamID) {

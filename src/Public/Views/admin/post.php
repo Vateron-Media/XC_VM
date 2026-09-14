@@ -8,8 +8,6 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
-use XcVm\Core\Module\ModuleLoader;
-use XcVm\Core\Module\QuickToolsRegistry;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Device\EnigmaService;
@@ -48,8 +46,8 @@ include 'functions.php';
 // RecordingService) would be unresolved. Load them here. Gated to the standalone
 // POST case only: the FC path (PostController) sets __forcePostMode and has
 // already booted modules, and the footer-render include has $rICount > 1.
-if ($rICount === 1 && empty($GLOBALS['__forcePostMode']) && class_exists(ModuleLoader::class)) {
-	$rModuleLoader = new ModuleLoader();
+if ($rICount === 1 && empty($GLOBALS['__forcePostMode']) && class_exists(\XcVm\Core\Module\ModuleLoader::class)) {
+	$rModuleLoader = new \XcVm\Core\Module\ModuleLoader();
 	$rModuleLoader->loadAll();
 	$rModuleLoader->bootAll(\XC_Bootstrap::getContainer());
 }
@@ -1173,9 +1171,9 @@ if (1 < $rICount) { ?>
 				}
 
 				// Module-contributed Quick Tools (QuickToolsProviderInterface).
-				foreach (QuickToolsRegistry::keys() as $rQtKey) {
+				foreach (\XcVm\Core\Module\QuickToolsRegistry::keys() as $rQtKey) {
 					if (isset($rData[$rQtKey])) {
-						(QuickToolsRegistry::handler($rQtKey))();
+						(\XcVm\Core\Module\QuickToolsRegistry::handler($rQtKey))();
 						echo json_encode(array('result' => true, 'status' => STATUS_SUCCESS));
 						exit();
 					}

@@ -4,6 +4,7 @@ namespace XcVm\Public\Controllers\PlayerV2;
 
 use XcVm\Core\Http\RequestManager;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Domain\External\ExternalXtreamService;
 
 /**
  * SearchController — Comprehensive Global Search Engine for Web Player V2.
@@ -71,6 +72,11 @@ class SearchController extends BasePlayerV2Controller
                 'counts'      => ['all' => 0, 'live' => 0, 'movies' => 0, 'series' => 0, 'episodes' => 0, 'radio' => 0],
                 'results'     => ['live' => [], 'movies' => [], 'series' => [], 'episodes' => [], 'radio' => []],
             ]);
+            return;
+        }
+
+        if (!empty($_SESSION['is_external_xc'])) {
+            $this->handleExternalSearch($query, $typeFilter, $isAjax);
             return;
         }
 
@@ -331,4 +337,143 @@ class SearchController extends BasePlayerV2Controller
         }
         return 0;
     }
+
+    /**
+     * Handle global search across Live, VOD, and Series when connected to an external Xtream server.
+     */
+    private function handleExternalSearch(string $query, string $typeFilter, bool $isAjax): void
+    {
+        $extService = ExternalXtreamService::createFromSession();
+        $results = [
+            'live'     => [],
+            'movies'   => [],
+            'series'   => [],
+            'episodes' => [],
+            'radio'    => [],
+        ];
+
+        if ($extService) {
+            // Build category map for external server
+            $categoryMap = [];
+            if ($typeFilter === 'all' || $typeFilter === 'live') {
+                $liveCats = $extService->getLiveCategories();
+                foreach ($liveCats as $c) {
+                    $categoryMap['live_' . ($c['category_id'] ?? 0)] = $c['category_name'] ?? 'Live Broadcast';
+                }
+                $liveStreams = $extService->getLiveStreams();
+                $matchedLive = 0;
+                foreach ($liveStreams as $stream) {
+                    $name = $stream['name'] ?? '';
+                    if ($query === '' || stripos($name, $query) !== false) {
+                        $catId = (int)($stream['category_id'] ?? 0);
+                        $results['live'][] = [
+                            'type'        => 'live',
+                            'id'          => (int)($stream['stream_id'] ?? 0),
+                            'title'       => $name,
+                            'icon'        => ImageUtils::validateURL($stream['stream_icon'] ?? '') ?: '',
+                            'category'    => $categoryMap['live_' . $catId] ?? 'Live Broadcast',
+                            'category_id' => $catId,
+                            'play_url'    => 'live?channel=' . (int)($stream['stream_id'] ?? 0),
+                        ];
+                        $matchedLive++;
+                        if ($matchedLive >= 40) break;
+                    }
+                }
+            }
+
+            if ($typeFilter === 'all' || $typeFilter === 'movies') {
+                $vodCats = $extService->getVodCategories();
+                foreach ($vodCats as $c) {
+                    $categoryMap['vod_' . ($c['category_id'] ?? 0)] = $c['category_name'] ?? 'Cinema';
+                }
+                $vodStreams = $extService->getVodStreams();
+                $matchedVod = 0;
+                foreach ($vodStreams as $stream) {
+                    $name = $stream['name'] ?? '';
+                    if ($query === '' || stripos($name, $query) !== false) {
+                        $catId = (int)($stream['category_id'] ?? 0);
+                        $cover = ImageUtils::validateURL($stream['stream_icon'] ?? '') ?: '';
+                        $results['movies'][] = [
+                            'type'        => 'movie',
+                            'id'          => (int)($stream['stream_id'] ?? 0),
+                            'title'       => $name,
+                            'cover'       => $cover,
+                            'rating'      => $stream['rating'] ?? null,
+                            'year'        => $stream['year'] ?? null,
+                            'genre'       => $categoryMap['vod_' . $catId] ?? 'Cinema',
+                            'category'    => $categoryMap['vod_' . $catId] ?? 'VOD Cinema',
+                            'plot'        => '',
+                            'details_url' => 'movie?id=' . (int)($stream['stream_id'] ?? 0),
+                            'play_url'    => 'watch?type=movie&id=' . (int)($stream['stream_id'] ?? 0),
+                        ];
+                        $matchedVod++;
+                        if ($matchedVod >= 40) break;
+                    }
+                }
+            }
+
+            if ($typeFilter === 'all' || $typeFilter === 'series') {
+                $seriesCats = $extService->getSeriesCategories();
+                foreach ($seriesCats as $c) {
+                    $categoryMap['series_' . ($c['category_id'] ?? 0)] = $c['category_name'] ?? 'TV Series';
+                }
+                $seriesList = $extService->getSeries();
+                $matchedSeries = 0;
+                foreach ($seriesList as $series) {
+                    $name = $series['name'] ?? '';
+                    $genre = $series['genre'] ?? '';
+                    if ($query === '' || stripos($name, $query) !== false || stripos($genre, $query) !== false) {
+                        $catId = (int)($series['category_id'] ?? 0);
+                        $results['series'][] = [
+                            'type'          => 'series',
+                            'id'            => (int)($series['series_id'] ?? 0),
+                            'title'         => $name,
+                            'cover'         => ImageUtils::validateURL($series['cover'] ?? '') ?: '',
+                            'rating'        => $series['rating'] ?? null,
+                            'year'          => $series['year'] ?? null,
+                            'genre'         => $genre ?: ($categoryMap['series_' . $catId] ?? 'Drama, Series'),
+                            'category'      => $categoryMap['series_' . $catId] ?? 'TV Series',
+                            'seasons_count' => 1,
+                            'plot'          => $series['plot'] ?? '',
+                            'details_url'   => 'series?id=' . (int)($series['series_id'] ?? 0),
+                        ];
+                        $matchedSeries++;
+                        if ($matchedSeries >= 40) break;
+                    }
+                }
+            }
+        }
+
+        $counts = [
+            'all'      => count($results['live']) + count($results['movies']) + count($results['series']) + count($results['episodes']) + count($results['radio']),
+            'live'     => count($results['live']),
+            'movies'   => count($results['movies']),
+            'series'   => count($results['series']),
+            'episodes' => 0,
+            'radio'    => 0,
+        ];
+
+        if ($isAjax) {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([
+                'status'  => 'success',
+                'query'   => $query,
+                'total'   => $counts['all'],
+                'counts'  => $counts,
+                'results' => $results,
+            ]);
+            exit;
+        }
+
+        $this->render('search', [
+            '_PAGE'       => 'search',
+            '_TITLE'      => 'Search: ' . $query,
+            'query'       => $query,
+            'typeFilter'  => $typeFilter,
+            'total'       => $counts['all'],
+            'counts'      => $counts,
+            'results'     => $results,
+        ]);
+    }
 }
+

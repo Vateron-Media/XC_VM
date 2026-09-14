@@ -1,6 +1,5 @@
 <?php
 
-use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Http\RequestManager;
@@ -35,7 +34,7 @@ if (SettingsManager::get('use_buffer') == 0) {
 }
 
 if (!empty(RequestManager::get('uitoken'))) {
-	$rToken = AdminStreamToken::decode(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'), !SettingsManager::get('secure_stream_tokens'));
+	$rToken = AdminStreamToken::decode(RequestManager::get('uitoken'), SettingsManager::get('live_streaming_pass'));
 
 	if ($rToken === null || !$rToken->isValid((bool) SettingsManager::get('ip_subnet_match'), $rIP)) {
 		generate404();
@@ -44,7 +43,7 @@ if (!empty(RequestManager::get('uitoken'))) {
 	RequestManager::update('stream', $rToken->streamId);
 	RequestManager::update('extension', 'm3u8');
 	$rPrebuffer = $rSegmentSettings['seg_time'];
-} elseif (!AuthService::secretMatches(SettingsManager::get('live_streaming_pass'), RequestManager::get('password'))) {
+} elseif (empty(RequestManager::get('password')) || SettingsManager::get('live_streaming_pass') != RequestManager::get('password')) {
 	generate404();
 } elseif (!in_array($rIP, ServerRepository::getAllowedIPs())) {
 	generate404();

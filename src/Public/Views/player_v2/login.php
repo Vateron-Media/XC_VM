@@ -294,6 +294,30 @@ $assetsPath = $baseUrl . 'assets/';
                   class="nav-link"
                   role="tab"
                   data-bs-toggle="tab"
+                  data-bs-target="#tab-xtream"
+                  aria-controls="tab-xtream"
+                  aria-selected="false">
+                  <i class="icon-base bx bx-server icon-sm me-1"></i> Xtream API
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  type="button"
+                  class="nav-link"
+                  role="tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#tab-playlist"
+                  aria-controls="tab-playlist"
+                  aria-selected="false">
+                  <i class="icon-base bx bx-link-alt icon-sm me-1"></i> Playlist URL
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  type="button"
+                  class="nav-link"
+                  role="tab"
+                  data-bs-toggle="tab"
                   data-bs-target="#tab-saved"
                   aria-controls="tab-saved"
                   aria-selected="false">
@@ -397,6 +421,15 @@ $assetsPath = $baseUrl . 'assets/';
                     </div>
                   </div>
 
+                  <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="remember-code" checked />
+                      <label class="form-check-label text-body-secondary small" for="remember-code">
+                        Remember & save activation code on this device
+                      </label>
+                    </div>
+                  </div>
+
                   <div class="mb-3">
                     <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-code">
                       <i class="icon-base bx bx-zap me-1"></i> Activate & Launch Stream
@@ -406,7 +439,143 @@ $assetsPath = $baseUrl . 'assets/';
               </div>
 
               <!-- ═════════════════════════════════════════════════════
-                   TAB 3: SAVED ACCOUNTS ON THIS DEVICE
+                   TAB 3: CUSTOM XTREAM CODES SERVER (HOST:PORT)
+              ══════════════════════════════════════════════════════ -->
+              <div class="tab-pane fade" id="tab-xtream" role="tabpanel">
+                <form id="formXtreamServer" novalidate>
+                  <div class="mb-3">
+                    <label for="xtream-server" class="form-label fw-semibold">Server Host & Port</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="icon-base bx bx-server"></i></span>
+                      <input
+                        type="text"
+                        class="form-control font-monospace"
+                        id="xtream-server"
+                        name="server"
+                        placeholder="http://domain.com:8080"
+                        autocomplete="off"
+                        required />
+                    </div>
+                    <div class="form-text small text-body-secondary mt-1">
+                      Enter server address with port (e.g. <code>http://domain.com:8080</code> or <code>104.243.37.202:80</code>).
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="xtream-username" class="form-label fw-semibold">Xtream Username</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="icon-base bx bx-user"></i></span>
+                      <input
+                        type="text"
+                        class="form-control"
+                        id="xtream-username"
+                        name="username"
+                        placeholder="Enter xtream username"
+                        autocomplete="username"
+                        required />
+                    </div>
+                  </div>
+
+                  <div class="mb-4 form-password-toggle">
+                    <label class="form-label fw-semibold" for="xtream-password">Xtream Password</label>
+                    <div class="input-group input-group-merge">
+                      <span class="input-group-text"><i class="icon-base bx bx-lock-alt"></i></span>
+                      <input
+                        type="password"
+                        id="xtream-password"
+                        class="form-control"
+                        name="password"
+                        placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;"
+                        autocomplete="current-password"
+                        required />
+                      <span class="input-group-text cursor-pointer"><i class="icon-base bx bx-hide"></i></span>
+                    </div>
+                  </div>
+
+                  <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="remember-xtream" checked />
+                      <label class="form-check-label text-body-secondary small" for="remember-xtream">
+                        Remember & save server profile on this device
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-xtream">
+                      <i class="icon-base bx bx-link-external me-1"></i> Connect & Launch Player
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- ═════════════════════════════════════════════════════
+                   TAB 4: PLAYLIST / M3U URL EXTRACTION & LOGIN
+              ══════════════════════════════════════════════════════ -->
+              <div class="tab-pane fade" id="tab-playlist" role="tabpanel">
+                <form id="formPlaylistUrl" novalidate>
+                  <div class="mb-3">
+                    <label for="playlist-url" class="form-label fw-semibold">M3U / Playlist URL</label>
+                    <div class="input-group">
+                      <span class="input-group-text"><i class="icon-base bx bx-link-alt"></i></span>
+                      <input
+                        type="text"
+                        class="form-control font-monospace"
+                        id="playlist-url"
+                        name="playlist_url"
+                        placeholder="http://domain:port/get.php?username=...&password=..."
+                        autocomplete="off"
+                        required />
+                      <button class="btn btn-outline-secondary" type="button" id="btn-paste-playlist" title="Paste from clipboard">
+                        <i class="icon-base bx bx-paste me-1"></i> Paste
+                      </button>
+                    </div>
+                    <div class="form-text small text-body-secondary mt-1">
+                      Paste your M3U Plus or Xtream playlist URL (e.g. <code>104.243.37.202/player_api.php?username=...&password=...</code>).
+                    </div>
+                  </div>
+
+                  <!-- Live Extracted Credentials Indicator Box -->
+                  <div id="playlist-parsed-box" class="alert alert-label-primary p-3 rounded mb-3" style="display: none;">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <i class="icon-base bx bx-check-circle text-success fs-5"></i>
+                      <strong class="text-heading small">Extracted Credentials</strong>
+                    </div>
+                    <div class="small font-monospace">
+                      <div class="d-flex justify-content-between py-1 border-bottom border-primary-subtle">
+                        <span class="text-muted">Server:</span>
+                        <span class="fw-semibold text-truncate ms-2" id="parsed-server" style="max-width: 240px;">-</span>
+                      </div>
+                      <div class="d-flex justify-content-between py-1 border-bottom border-primary-subtle">
+                        <span class="text-muted">Username:</span>
+                        <span class="fw-semibold text-truncate ms-2" id="parsed-username">-</span>
+                      </div>
+                      <div class="d-flex justify-content-between py-1">
+                        <span class="text-muted">Password:</span>
+                        <span class="fw-semibold text-truncate ms-2" id="parsed-password">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-4 d-flex justify-content-between align-items-center">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox" id="remember-playlist" checked />
+                      <label class="form-check-label text-body-secondary small" for="remember-playlist">
+                        Remember & save server profile on this device
+                      </label>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <button class="btn btn-primary d-grid w-100 py-2 fw-semibold shadow-sm" type="submit" id="btn-submit-playlist">
+                      <i class="icon-base bx bx-log-in-circle me-1"></i> Parse & Launch Player
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- ═════════════════════════════════════════════════════
+                   TAB 5: SAVED ACCOUNTS ON THIS DEVICE
               ══════════════════════════════════════════════════════ -->
               <div class="tab-pane fade" id="tab-saved" role="tabpanel">
                 <div class="d-flex align-items-center justify-content-between mb-3">

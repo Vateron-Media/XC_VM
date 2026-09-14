@@ -2,8 +2,6 @@
 
 namespace XcVm\Domain\User;
 
-use XcVm\Infrastructure\Database\DatabaseAware;
-
 /**
  * TicketRepository — ticket repository
  *
@@ -15,7 +13,7 @@ use XcVm\Infrastructure\Database\DatabaseAware;
  */
 
 class TicketRepository {
-	use DatabaseAware;
+	use \XcVm\Infrastructure\Database\DatabaseAware;
 	/**
 	 * Fetch a single ticket (with its messages) by id.
 	 *

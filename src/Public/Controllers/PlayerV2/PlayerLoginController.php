@@ -10,6 +10,7 @@ use XcVm\Core\Util\GeoIP;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Line\ActiveCodeService;
 use XcVm\Domain\User\UserRepository;
+use XcVm\Public\Controllers\PlayerV2\PlayerLogoutController;
 
 /**
  * PlayerLoginController — Handles multi-mode login for Web Player V2.
@@ -77,9 +78,87 @@ class PlayerLoginController
             || !empty($req['is_ajax']);
 
         $_STATUS = null;
-        $_ERROR_MSG = null;
 
-        // 1. Check for Activation Code submission
+        // 1. Check for M3U / Playlist URL submission
+        $playlistUrl = trim($req['playlist_url'] ?? $req['m3u_url'] ?? $req['url'] ?? '');
+        $isPlaylistAction = (!empty($req['action']) && in_array($req['action'], ['login_playlist_url', 'parse_playlist', 'login_m3u'], true));
+
+        if ($isPlaylistAction || (!empty($playlistUrl) && empty($req['server']) && empty($req['username']))) {
+            $parsed = \XcVm\Domain\External\ExternalXtreamService::parsePlaylistUrl($playlistUrl);
+            if (!$parsed) {
+                $err = 'Could not extract Server, Username, or Password from this URL. Please verify the URL format.';
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode(['success' => false, 'message' => $err]);
+                    exit;
+                }
+                $_ERROR_MSG = $err;
+            } else {
+                $extResult = $this->processExternalXtreamLogin($parsed['server'], $parsed['username'], $parsed['password'], $playlistUrl);
+                if ($isAjax) {
+                    header('Content-Type: application/json; charset=utf-8');
+                    echo json_encode($extResult);
+                    exit;
+                }
+
+                if ($extResult['success']) {
+                    if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+                        @session_start();
+                    }
+                    $_SESSION['saved_account_sync'] = $extResult['account'];
+                    header('Location: ' . $extResult['redirect']);
+                    exit;
+                }
+
+                $_ERROR_MSG = $extResult['message'] ?? 'Connection to external server failed.';
+            }
+        }
+
+        // 2. Check for External Xtream Codes submission
+        $serverUrl = trim($req['server'] ?? $req['server_url'] ?? $req['host'] ?? '');
+        $isExternalAction = (!empty($req['action']) && $req['action'] === 'login_external_xc') || !empty($serverUrl);
+
+        if ($isExternalAction && !empty($serverUrl)) {
+            $extUsername = trim($req['username'] ?? '');
+            $extPassword = trim($req['password'] ?? '');
+
+            // Fallback: If serverUrl itself is a playlist URL, parse it automatically
+            $parsedFromUrl = \XcVm\Domain\External\ExternalXtreamService::parsePlaylistUrl($serverUrl);
+            if ($parsedFromUrl) {
+                $serverUrl = $parsedFromUrl['server'];
+                if (empty($extUsername)) $extUsername = $parsedFromUrl['username'];
+                if (empty($extPassword)) $extPassword = $parsedFromUrl['password'];
+                if (empty($playlistUrl)) $playlistUrl = $req['server'];
+            }
+
+            $extResult = $this->processExternalXtreamLogin($serverUrl, $extUsername, $extPassword, $playlistUrl);
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode($extResult);
+                exit;
+            }
+
+            if ($extResult['success']) {
+                if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+                    @session_start();
+                }
+                $_SESSION['saved_account_sync'] = $extResult['account'];
+                header('Location: ' . $extResult['redirect']);
+                exit;
+            }
+
+            $_ERROR_MSG = $extResult['message'] ?? 'Connection to external server failed.';
+        } elseif ($isExternalAction && empty($serverUrl)) {
+            $err = 'Please enter a valid server URL (Host:Port).';
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                echo json_encode(['success' => false, 'message' => $err]);
+                exit;
+            }
+            $_ERROR_MSG = $err;
+        }
+
+        // 2. Check for Activation Code submission
         $activationCode = trim($req['activation_code'] ?? $req['code'] ?? '');
         $isCodeAction = (!empty($req['action']) && $req['action'] === 'activate_code') || !empty($activationCode);
 
@@ -92,6 +171,10 @@ class PlayerLoginController
             }
 
             if ($codeResult['success']) {
+                if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+                    @session_start();
+                }
+                $_SESSION['saved_account_sync'] = $codeResult['account'];
                 header('Location: ' . $codeResult['redirect']);
                 exit;
             }
@@ -120,6 +203,10 @@ class PlayerLoginController
             }
 
             if ($credResult['success']) {
+                if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+                    @session_start();
+                }
+                $_SESSION['saved_account_sync'] = $credResult['account'];
                 header('Location: ' . $credResult['redirect']);
                 exit;
             }
@@ -217,9 +304,17 @@ class PlayerLoginController
             return ['success' => false, 'status' => self::CLIENT_DISALLOWED, 'message' => $rErrors[self::CLIENT_DISALLOWED]];
         }
 
-        // Success - Set session and return payload
+        // Success - Purge any previous session and regenerate session ID
+        PlayerLogoutController::purgePlayerSession();
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            @session_start();
+        }
+        @session_regenerate_id(true);
+
         $_SESSION['phash'] = (int)$rUserInfo['id'];
-        $_SESSION['pverify'] = hash('sha256', $rUserInfo['username'] . '||' . $rUserInfo['password']);
+        $_SESSION['pverify'] = md5($rUserInfo['username'] . '||' . $rUserInfo['password']);
+        $_SESSION['is_external_xc'] = false;
+        unset($_SESSION['external_xc']);
 
         $xcCode = $_SERVER['XC_CODE'] ?? '';
         $redirectUrl = $xcCode ? '/' . $xcCode . '/' : 'index';
@@ -227,6 +322,7 @@ class PlayerLoginController
         return [
             'success' => true,
             'redirect' => $redirectUrl,
+            'clear_client_cache' => true,
             'message' => 'Signed in successfully! Launching player...',
             'account' => [
                 'id' => (int)$rUserInfo['id'],
@@ -284,9 +380,17 @@ class PlayerLoginController
             return ['success' => false, 'message' => 'This activation subscription has expired.'];
         }
 
-        // Authenticate session
+        // Authenticate session - Purge any previous session and regenerate session ID
+        PlayerLogoutController::purgePlayerSession();
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            @session_start();
+        }
+        @session_regenerate_id(true);
+
         $_SESSION['phash'] = (int)$line['id'];
-        $_SESSION['pverify'] = hash('sha256', $line['username'] . '||' . $line['password']);
+        $_SESSION['pverify'] = md5($line['username'] . '||' . $line['password']);
+        $_SESSION['is_external_xc'] = false;
+        unset($_SESSION['external_xc']);
 
         $xcCode = $_SERVER['XC_CODE'] ?? '';
         $redirectUrl = $xcCode ? '/' . $xcCode . '/' : 'index';
@@ -294,6 +398,7 @@ class PlayerLoginController
         return [
             'success' => true,
             'redirect' => $redirectUrl,
+            'clear_client_cache' => true,
             'message' => 'Activation successful! Enjoy streaming...',
             'account' => [
                 'id' => (int)$line['id'],
@@ -309,4 +414,81 @@ class PlayerLoginController
             ]
         ];
     }
+
+    /**
+     * Process External Xtream Codes server authentication.
+     */
+    private function processExternalXtreamLogin(string $serverUrl, string $username, string $password, string $playlistUrl = ''): array
+    {
+        // Auto-extract if serverUrl is actually a full playlist URL
+        $parsed = \XcVm\Domain\External\ExternalXtreamService::parsePlaylistUrl($serverUrl);
+        if ($parsed) {
+            $serverUrl = $parsed['server'];
+            if (empty($username)) $username = $parsed['username'];
+            if (empty($password)) $password = $parsed['password'];
+            if (empty($playlistUrl)) $playlistUrl = $serverUrl;
+        }
+
+        $authRes = \XcVm\Domain\External\ExternalXtreamService::testAndAuthenticate($serverUrl, $username, $password);
+
+        if (!$authRes['success']) {
+            return $authRes;
+        }
+
+        $cleanServer = $authRes['clean_server'];
+        $userInfo = $authRes['user_info'];
+        $serverInfo = $authRes['server_info'] ?? [];
+
+        // Purge old session before establishing external session
+        PlayerLogoutController::purgePlayerSession();
+        if (session_status() === PHP_SESSION_NONE && !headers_sent()) {
+            @session_start();
+        }
+        @session_regenerate_id(true);
+
+        // Setup session
+        $_SESSION['is_external_xc'] = true;
+        $_SESSION['external_xc'] = [
+            'server' => $cleanServer,
+            'username' => $username,
+            'password' => $password,
+            'playlist_url' => $playlistUrl,
+            'user_info' => $userInfo,
+            'server_info' => $serverInfo,
+            'auth_time' => time(),
+        ];
+        $_SESSION['phash'] = 'ext_' . md5($cleanServer . ':' . $username);
+        $_SESSION['pverify'] = md5($username . '||' . $password);
+
+        $xcCode = $_SERVER['XC_CODE'] ?? '';
+        $redirectUrl = $xcCode ? '/' . $xcCode . '/' : 'index';
+
+        $serverHost = parse_url($cleanServer, PHP_URL_HOST) ?: $cleanServer;
+        $serverPort = parse_url($cleanServer, PHP_URL_PORT);
+        $displayName = $serverHost . ($serverPort ? ':' . $serverPort : '') . ' (' . $username . ')';
+
+        $expTimestamp = !empty($userInfo['exp_date']) ? (int)$userInfo['exp_date'] : 0;
+        $expFormatted = $expTimestamp ? date('Y-m-d H:i:s', $expTimestamp) : 'Unlimited';
+
+        return [
+            'success' => true,
+            'redirect' => $redirectUrl,
+            'clear_client_cache' => true,
+            'message' => 'Connected to Xtream server successfully! Loading player...',
+            'account' => [
+                'id' => 'ext_' . md5($cleanServer . ':' . $username),
+                'server' => $cleanServer,
+                'username' => $username,
+                'password' => $password,
+                'playlist_url' => $playlistUrl,
+                'name' => $displayName,
+                'type' => 'external_xc',
+                'package_name' => 'Xtream Codes Server',
+                'exp_date' => $expTimestamp,
+                'exp_date_formatted' => $expFormatted,
+                'added_at' => time(),
+            ],
+        ];
+    }
 }
+

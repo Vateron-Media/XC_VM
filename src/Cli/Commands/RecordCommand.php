@@ -6,8 +6,6 @@ use XcVm\Cli\CommandInterface;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Server\ServerRepository;
-use XcVm\Infrastructure\Database\DatabaseAware;
-use XcVm\Streaming\Codec\FfmpegPaths;
 
 /**
  * RecordCommand — record command
@@ -20,8 +18,6 @@ use XcVm\Streaming\Codec\FfmpegPaths;
  */
 
 class RecordCommand implements CommandInterface {
-
-	use DatabaseAware;
 
 	public function getName(): string {
 		return 'record';
@@ -44,17 +40,20 @@ class RecordCommand implements CommandInterface {
 		$recordingID = intval($rArgs[0]);
 
 		register_shutdown_function(function () use ($recordingID) {
+			global $db;
 			if (file_exists(ARCHIVE_PATH . $recordingID . '_.record')) {
 				unlink(ARCHIVE_PATH . $recordingID . '_.record');
 			}
-			self::db()->close_mysql();
+			if (is_object($db)) {
+				$db->close_mysql();
+			}
 		});
 
 		$this->checkRunning($recordingID);
 		set_time_limit(0);
 		cli_set_process_title('Record[' . $recordingID . ']');
 
-		$db = self::db();
+		global $db;
 
 		$db->query('SELECT * FROM `recordings` WHERE `id` = ?;', $recordingID);
 		if ($db->num_rows() <= 0) {
@@ -78,7 +77,7 @@ class RecordCommand implements CommandInterface {
 
 		if ($rPID <= 0 || !file_exists($rPlaylist)) {
 			echo "Channel is not running.\n";
-			$this->finishRecording($recordingID, false);
+			$this->finishRecording($db, $recordingID, false);
 			return 0;
 		}
 
@@ -143,19 +142,18 @@ class RecordCommand implements CommandInterface {
 		}
 
 		if ($isComplete) {
-			$this->processRecording($recordingID, $recordingData);
+			$this->processRecording($db, $recordingID, $recordingData);
 		} else {
-			$this->finishRecording($recordingID, false);
+			$this->finishRecording($db, $recordingID, false);
 		}
 
 		return 0;
 	}
 
-	private function processRecording($recordingID, $recordingData): void {
-		$db = self::db();
+	private function processRecording($db, $recordingID, $recordingData): void {
 		if (!file_exists(ARCHIVE_PATH . $recordingID . '.ts') || filesize(ARCHIVE_PATH . $recordingID . '.ts') <= 0) {
 			echo "Recording size is 0 bytes.\n";
-			$this->finishRecording($recordingID, false);
+			$this->finishRecording($db, $recordingID, false);
 			return;
 		}
 
@@ -164,7 +162,7 @@ class RecordCommand implements CommandInterface {
 			$recordingData['stream_icon'] = $this->downloadAndSaveImage($recordingData['stream_icon']);
 		}
 		$rSeconds = intval($recordingData['end'] - $recordingData['start']);
-		$rImportArray = $this->verifyPostTable('streams');
+		$rImportArray = $this->verifyPostTable($db, 'streams');
 		$rImportArray['type'] = 2;
 		$rImportArray['stream_source'] = '[]';
 		$rImportArray['target_container'] = 'mp4';
@@ -176,37 +174,36 @@ class RecordCommand implements CommandInterface {
 		$rImportArray['movie_symlink'] = 0;
 		$rImportArray['remove_subtitles'] = 0;
 		$rImportArray['transcode_profile_id'] = 0;
-		$rImportArray['order'] = $this->getNextOrder();
+		$rImportArray['order'] = $this->getNextOrder($db);
 		$rImportArray['added'] = time();
 		$rImportArray['category_id'] = '[' . implode(',', array_map('intval', json_decode($recordingData['category_id'], true))) . ']';
 		$rPrepare = $this->prepareArray($rImportArray);
 		$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 		if (!$db->query($rQuery, ...$rPrepare['data'])) {
 			echo "Failed to insert into database!\n";
-			$this->finishRecording($recordingID, false);
+			$this->finishRecording($db, $recordingID, false);
 			return;
 		}
 
 		$rInsertID = $db->last_insert_id();
-		shell_exec((FfmpegPaths::cpu() ?: FFMPEG_BIN_40) . " -i '" . ARCHIVE_PATH . $recordingID . '.ts' . "' -c:v copy -c:a copy '" . VOD_PATH . $rInsertID . '.mp4' . "'");
+		shell_exec((\XcVm\Streaming\Codec\FfmpegPaths::cpu() ?: FFMPEG_BIN_40) . " -i '" . ARCHIVE_PATH . $recordingID . '.ts' . "' -c:v copy -c:a copy '" . VOD_PATH . $rInsertID . '.mp4' . "'");
 		@unlink(ARCHIVE_PATH . $recordingID . '.ts');
 
 		if (!file_exists(VOD_PATH . $rInsertID . '.mp4')) {
 			echo "Couldn't convert to MP4\n";
-			$this->finishRecording($recordingID, false);
+			$this->finishRecording($db, $recordingID, false);
 			return;
 		}
 
 		foreach (json_decode($recordingData['bouquets'], true) as $rBouquet) {
-			$this->addToBouquet($rBouquet, $rInsertID);
+			$this->addToBouquet($db, $rBouquet, $rInsertID);
 		}
 		$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode(array(VOD_PATH . $rInsertID . '.mp4')), $rInsertID);
 		$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `pid`, `to_analyze`) VALUES(?, ?, NULL, 1, 1);', $rInsertID, SERVER_ID);
 		$db->query('UPDATE `recordings` SET `status` = 2, `created_id` = ? WHERE `id` = ?;', $rInsertID, $recordingID);
 	}
 
-	private function finishRecording($recordingID, $success): void {
-		$db = self::db();
+	private function finishRecording($db, $recordingID, $success): void {
 		if (!$success) {
 			echo "Recording incomplete!\n";
 			$db->query('UPDATE `recordings` SET `status` = 3 WHERE `id` = ?;', $recordingID);
@@ -241,8 +238,7 @@ class RecordCommand implements CommandInterface {
 		return null;
 	}
 
-	private function getNextOrder(): int {
-		$db = self::db();
+	private function getNextOrder($db): int {
 		$db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
 		if ($db->num_rows() != 1) {
 			return 0;
@@ -250,8 +246,7 @@ class RecordCommand implements CommandInterface {
 		return intval($db->get_row()['order']) + 1;
 	}
 
-	private function getBouquet($rID) {
-		$db = self::db();
+	private function getBouquet($db, $rID) {
 		$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
 		if ($db->num_rows() != 1) {
 			return null;
@@ -259,9 +254,8 @@ class RecordCommand implements CommandInterface {
 		return $db->get_row();
 	}
 
-	private function addToBouquet($rBouquetID, $rID): void {
-		$db = self::db();
-		$rBouquet = $this->getBouquet($rBouquetID);
+	private function addToBouquet($db, $rBouquetID, $rID): void {
+		$rBouquet = $this->getBouquet($db, $rBouquetID);
 		if (!$rBouquet) {
 			return;
 		}
@@ -293,8 +287,7 @@ class RecordCommand implements CommandInterface {
 		return array('placeholder' => implode(',', $rPlaceholder), 'columns' => implode(',', $rColumns), 'data' => $rData, 'update' => implode(',', $UpdateData));
 	}
 
-	private function verifyPostTable($rTable, $rData = array(), $rOnlyExisting = false): array {
-		$db = self::db();
+	private function verifyPostTable($db, $rTable, $rData = array(), $rOnlyExisting = false): array {
 		$rReturn = array();
 		$db->query('SELECT `column_name`, `column_default`, `is_nullable`, `data_type` FROM `information_schema`.`columns` WHERE `table_schema` = (SELECT DATABASE()) AND `table_name` = ? ORDER BY `ordinal_position`;', $rTable);
 		foreach ($db->get_rows() as $rRow) {
