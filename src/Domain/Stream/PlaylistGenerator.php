@@ -311,10 +311,10 @@ class PlaylistGenerator {
 					$rPattern = '{URL}';
 				}
 
-				$rCustomLiveCfg   = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'live');
-				$rCustomVodCfg    = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'movie');
-				$rCustomSeriesCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'series');
-				$rCustomRadioCfg  = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'radio');
+				$rCustomLiveCfg   = CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'live');
+				$rCustomVodCfg    = CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'movie');
+				$rCustomSeriesCfg = CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'series');
+				$rCustomRadioCfg  = CategoryTemplateService::getCustomCategoryConfig($rUserInfo['custom_data'] ?? null, 'radio');
 
 				foreach (array_chunk($rChannelIDs, 1000) as $rBlockIDs) {
 					if ($rSettings['playlist_from_mysql'] || !$rCached) {

@@ -38,7 +38,7 @@ class RefreshController extends BasePlayerV2Controller {
 				if (file_exists(CACHE_TMP_PATH . 'bouquets')) {
 					@unlink(CACHE_TMP_PATH . 'bouquets');
 				}
-				\XcVm\Domain\Bouquet\BouquetService::getAll(true);
+				BouquetService::getAll(true);
 			}
 
 			// 3. Re-fetch fresh user info directly from database without cache

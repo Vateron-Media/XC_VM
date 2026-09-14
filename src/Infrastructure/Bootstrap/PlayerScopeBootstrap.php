@@ -91,8 +91,8 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 				$expDate = !empty($uInfo['exp_date']) ? (int) $uInfo['exp_date'] : null;
 
 				if (!is_null($expDate) && $expDate > 0 && $expDate <= time()) {
-					if (class_exists(\XcVm\Public\Controllers\PlayerV2\PlayerLogoutController::class)) {
-						\XcVm\Public\Controllers\PlayerV2\PlayerLogoutController::purgePlayerSession();
+					if (class_exists(PlayerLogoutController::class)) {
+						PlayerLogoutController::purgePlayerSession();
 					} else {
 						SessionManager::clearContext('player');
 						unset($_SESSION['is_external_xc'], $_SESSION['external_xc']);
@@ -131,8 +131,8 @@ final class PlayerScopeBootstrap implements ScopeBootstrap {
 					|| $rUserInfo['admin_enabled'] == 0
 					|| $rUserInfo['enabled'] == 0
 				) {
-					if (class_exists(\XcVm\Public\Controllers\PlayerV2\PlayerLogoutController::class)) {
-						\XcVm\Public\Controllers\PlayerV2\PlayerLogoutController::purgePlayerSession();
+					if (class_exists(PlayerLogoutController::class)) {
+						PlayerLogoutController::purgePlayerSession();
 					} else {
 						SessionManager::clearContext('player');
 					}

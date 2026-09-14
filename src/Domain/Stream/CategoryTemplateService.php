@@ -2,8 +2,9 @@
 
 namespace XcVm\Domain\Stream;
 
-use XcVm\Core\Database\DatabaseHandler;
+use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Domain\Line\LineService;
+use XcVm\Domain\User\UserRepository;
 
 /**
  * CategoryTemplateService — Category Templates Business Logic.
@@ -19,7 +20,7 @@ use XcVm\Domain\Line\LineService;
  * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
  */
 class CategoryTemplateService {
-	use \XcVm\Infrastructure\Database\DatabaseAware;
+	use DatabaseAware;
 
 	/**
 	 * Get accessible category templates for a user based on RBAC permissions.
@@ -60,7 +61,7 @@ class CategoryTemplateService {
 			$params[] = $userId;
 
 			// 2. All sub-resellers' templates (all recursive generations)
-			$subUsers = \XcVm\Domain\User\UserRepository::getSubUsers($userId);
+			$subUsers = UserRepository::getSubUsers($userId);
 			$subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
 			if ($subResellerIds !== []) {
 				$orConditions[] = "t.owner_id IN (" . implode(',', $subResellerIds) . ")";
@@ -367,7 +368,7 @@ class CategoryTemplateService {
 		$isOwner = ((int) $template['owner_id'] === (int) $user['id']);
 		$isSubReseller = false;
 		if (!$isAdmin && !$isOwner) {
-			$subUsers = \XcVm\Domain\User\UserRepository::getSubUsers((int) $user['id']);
+			$subUsers = UserRepository::getSubUsers((int) $user['id']);
 			$subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
 			$isSubReseller = in_array((int) $template['owner_id'], $subResellerIds, true);
 		}
@@ -507,7 +508,7 @@ class CategoryTemplateService {
 			$isOwner = ((int) $template['owner_id'] === (int) $user['id']);
 			$isSubReseller = false;
 			if (!$isOwner) {
-				$subUsers = \XcVm\Domain\User\UserRepository::getSubUsers((int) $user['id']);
+				$subUsers = UserRepository::getSubUsers((int) $user['id']);
 				$subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
 				$isSubReseller = in_array((int) $template['owner_id'], $subResellerIds, true);
 			}

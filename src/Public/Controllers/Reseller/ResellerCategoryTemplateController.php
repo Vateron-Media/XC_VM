@@ -35,7 +35,7 @@ class ResellerCategoryTemplateController extends BaseResellerController {
 		$isOwner = ((int) $template['owner_id'] === $userId);
 		$isSystem = ((int) $template['is_system'] === 1);
 
-		$subUsers = \XcVm\Domain\User\UserRepository::getSubUsers($userId);
+		$subUsers = UserRepository::getSubUsers($userId);
 		$subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
 		$isSubReseller = in_array((int) $template['owner_id'], $subResellerIds, true);
 

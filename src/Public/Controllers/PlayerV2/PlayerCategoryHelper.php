@@ -34,8 +34,8 @@ class PlayerCategoryHelper {
 
 		// Support External Xtream Codes Account Categories
 		if (!empty($userInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			if ($extService instanceof \XcVm\Domain\External\ExternalXtreamService) {
+			$extService = ExternalXtreamService::fromSession();
+			if ($extService instanceof ExternalXtreamService) {
 				$rawCats = match ($type) {
 					'live' => $extService->getLiveCategories(),
 					'series' => $extService->getSeriesCategories(),

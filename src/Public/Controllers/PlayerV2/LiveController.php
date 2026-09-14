@@ -39,8 +39,8 @@ class LiveController extends BasePlayerV2Controller {
 
 			// Support External Xtream Codes
 			if (!empty($rUserInfo['is_external_xc'])) {
-				$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-				$channels = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getLiveStreams($catId) : [];
+				$extService = ExternalXtreamService::fromSession();
+				$channels = $extService instanceof ExternalXtreamService ? $extService->getLiveStreams($catId) : [];
 				if ($searchBy) {
 					$channels = array_filter($channels, fn($c) => stripos($c['name'], $searchBy) !== false);
 					$channels = array_values($channels);
@@ -103,8 +103,8 @@ class LiveController extends BasePlayerV2Controller {
 
 		// Support External Xtream Standard Load
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$initialChannels = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getLiveStreams($firstCatId) : [];
+			$extService = ExternalXtreamService::fromSession();
+			$initialChannels = $extService instanceof ExternalXtreamService ? $extService->getLiveStreams($firstCatId) : [];
 
 			$GLOBALS['_TITLE'] = 'Live TV';
 			$GLOBALS['_PAGE'] = 'live';

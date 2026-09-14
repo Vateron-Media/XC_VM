@@ -70,7 +70,7 @@ class EventDispatcher {
 	 * In tests: call setInstance() with a fresh instance per-test.
 	 */
 	public static function getInstance(): self {
-		if (!self::$instance instanceof \XcVm\Core\Events\EventDispatcher) {
+		if (!self::$instance instanceof EventDispatcher) {
 			self::$instance = new self();
 		}
 		return self::$instance;

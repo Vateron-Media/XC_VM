@@ -291,7 +291,7 @@ class PlayerApiController {
 					continue;
 				}
 
-					$rRows = igbinary_unserialize(file_get_contents(EPG_PATH . 'stream_' . $rStreamID));
+				$rRows = igbinary_unserialize(file_get_contents(EPG_PATH . 'stream_' . $rStreamID));
 
 				foreach ($rRows as $rRow) {
 					if ($rFromNow && $rRow['end'] < time()) {
@@ -446,7 +446,7 @@ class PlayerApiController {
 		$rMovieNum = 0;
 		$output = [];
 
-		$seriesCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'series');
+		$seriesCfg = CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'series');
 		if (!empty($rCategoryIDSearch) && in_array((int) $rCategoryIDSearch, $seriesCfg['hide_ids'], true)) {
 			return $output;
 		}
@@ -544,7 +544,7 @@ class PlayerApiController {
 			}
 		}
 
-		return \XcVm\Domain\Stream\CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'vod_cat');
+		return CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'vod_cat');
 	}
 
 	private function getSeriesCategories($rCategories) {
@@ -557,7 +557,7 @@ class PlayerApiController {
 			}
 		}
 
-		return \XcVm\Domain\Stream\CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'series_cat');
+		return CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'series_cat');
 	}
 
 	private function getLiveCategories($rCategories) {
@@ -570,7 +570,7 @@ class PlayerApiController {
 			}
 		}
 
-		return \XcVm\Domain\Stream\CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'live_cat');
+		return CategoryTemplateService::applyCustomDataToCategories($output, $this->userInfo['custom_data'] ?? null, 'live_cat');
 	}
 
 	private function getSimpleDataTable() {
@@ -721,7 +721,7 @@ class PlayerApiController {
 		$rLiveNum = 0;
 		$output = [];
 
-		$liveCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'live');
+		$liveCfg = CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'live');
 		if (!empty($rCategoryIDSearch) && in_array((int) $rCategoryIDSearch, $liveCfg['hide_ids'], true)) {
 			return $output;
 		}
@@ -893,7 +893,7 @@ class PlayerApiController {
 		$rMovieNum = 0;
 		$output = [];
 
-		$vodCfg = \XcVm\Domain\Stream\CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'movie');
+		$vodCfg = CategoryTemplateService::getCustomCategoryConfig($this->userInfo['custom_data'] ?? null, 'movie');
 		if (!empty($rCategoryIDSearch) && in_array((int) $rCategoryIDSearch, $vodCfg['hide_ids'], true)) {
 			return $output;
 		}

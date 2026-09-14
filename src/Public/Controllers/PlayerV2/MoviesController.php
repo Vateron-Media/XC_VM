@@ -38,8 +38,8 @@ class MoviesController extends BasePlayerV2Controller {
 
 			// Support External Xtream Codes
 			if (!empty($rUserInfo['is_external_xc'])) {
-				$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-				$extVod = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams($catId) : [];
+				$extService = ExternalXtreamService::fromSession();
+				$extVod = $extService instanceof ExternalXtreamService ? $extService->getVodStreams($catId) : [];
 				if ($searchBy) {
 					$extVod = array_filter($extVod, fn($m) => stripos($m['title'], $searchBy) !== false);
 					$extVod = array_values($extVod);
@@ -146,8 +146,8 @@ class MoviesController extends BasePlayerV2Controller {
 
 		// Support External Xtream Standard Load
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$extVod = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams($firstCatId) : [];
+			$extService = ExternalXtreamService::fromSession();
+			$extVod = $extService instanceof ExternalXtreamService ? $extService->getVodStreams($firstCatId) : [];
 
 			$initialMovies = [];
 			foreach ($extVod as $m) {

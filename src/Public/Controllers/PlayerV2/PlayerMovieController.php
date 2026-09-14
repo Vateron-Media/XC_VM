@@ -26,8 +26,8 @@ class PlayerMovieController extends BasePlayerV2Controller {
 
 		// Support External Xtream Movie View
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$infoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodInfo($id) : [];
+			$extService = ExternalXtreamService::fromSession();
+			$infoData = $extService instanceof ExternalXtreamService ? $extService->getVodInfo($id) : [];
 			$info = $infoData['info'] ?? [];
 			$movieData = $infoData['movie_data'] ?? [];
 
@@ -35,7 +35,7 @@ class PlayerMovieController extends BasePlayerV2Controller {
 			$posterUrl = $info['movie_image'] ?? ($info['cover_big'] ?? '');
 			$backdropUrl = !empty($info['backdrop_path']) ? (is_array($info['backdrop_path']) ? ($info['backdrop_path'][0] ?? '') : $info['backdrop_path']) : $posterUrl;
 			$ext = $movieData['container_extension'] ?? ($info['container_extension'] ?? 'mp4');
-			$streamUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildVodUrl($id, $ext) : '';
+			$streamUrl = $extService instanceof ExternalXtreamService ? $extService->buildVodUrl($id, $ext) : '';
 			$catId = (int) ($movieData['category_id'] ?? ($info['category_id'] ?? 0));
 			$catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'movie');
 

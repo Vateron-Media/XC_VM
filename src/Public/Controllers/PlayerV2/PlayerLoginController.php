@@ -82,7 +82,7 @@ class PlayerLoginController {
 		$isPlaylistAction = (!empty($req['action']) && in_array($req['action'], ['login_playlist_url', 'parse_playlist', 'login_m3u'], true));
 
 		if ($isPlaylistAction || (!empty($playlistUrl) && empty($req['server']) && empty($req['username']))) {
-			$parsed = \XcVm\Domain\External\ExternalXtreamService::parsePlaylistUrl($playlistUrl);
+			$parsed = ExternalXtreamService::parsePlaylistUrl($playlistUrl);
 			if (!$parsed) {
 				$err = 'Could not extract Server, Username, or Password from this URL. Please verify the URL format.';
 				if ($isAjax) {
@@ -121,7 +121,7 @@ class PlayerLoginController {
 			$extPassword = trim($req['password'] ?? '');
 
 			// Fallback: If serverUrl itself is a playlist URL, parse it automatically
-			$parsedFromUrl = \XcVm\Domain\External\ExternalXtreamService::parsePlaylistUrl($serverUrl);
+			$parsedFromUrl = ExternalXtreamService::parsePlaylistUrl($serverUrl);
 			if ($parsedFromUrl) {
 				$serverUrl = $parsedFromUrl['server'];
 				if (empty($extUsername)) {
@@ -422,7 +422,7 @@ class PlayerLoginController {
 	 */
 	private function processExternalXtreamLogin(string $serverUrl, string $username, string $password, string $playlistUrl = ''): array {
 		// Auto-extract if serverUrl is actually a full playlist URL
-		$parsed = \XcVm\Domain\External\ExternalXtreamService::parsePlaylistUrl($serverUrl);
+		$parsed = ExternalXtreamService::parsePlaylistUrl($serverUrl);
 		if ($parsed) {
 			$serverUrl = $parsed['server'];
 			if (empty($username)) {
@@ -436,7 +436,7 @@ class PlayerLoginController {
 			}
 		}
 
-		$authRes = \XcVm\Domain\External\ExternalXtreamService::testAndAuthenticate($serverUrl, $username, $password);
+		$authRes = ExternalXtreamService::testAndAuthenticate($serverUrl, $username, $password);
 
 		if (!$authRes['success']) {
 			return $authRes;

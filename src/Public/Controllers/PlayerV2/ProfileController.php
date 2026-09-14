@@ -26,7 +26,7 @@ class ProfileController extends BasePlayerV2Controller {
 
 		// Support External Xtream Profile
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+			$extService = ExternalXtreamService::fromSession();
 			$ext = $_SESSION['external_xc'] ?? [];
 			$uInfo = $ext['user_info'] ?? [];
 			$sInfo = $ext['server_info'] ?? [];
@@ -52,9 +52,9 @@ class ProfileController extends BasePlayerV2Controller {
 				'exp_date' => $expTimestamp,
 			];
 
-			$allLive = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getLiveStreams() : [];
-			$allVod = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams() : [];
-			$allSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries() : [];
+			$allLive = $extService instanceof ExternalXtreamService ? $extService->getLiveStreams() : [];
+			$allVod = $extService instanceof ExternalXtreamService ? $extService->getVodStreams() : [];
+			$allSeries = $extService instanceof ExternalXtreamService ? $extService->getSeries() : [];
 
 			$totalLive = count($allLive);
 			$totalVod = count($allVod);

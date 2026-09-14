@@ -45,8 +45,8 @@ class SeriesController extends BasePlayerV2Controller {
 
 			// Support External Xtream Codes
 			if (!empty($rUserInfo['is_external_xc'])) {
-				$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-				$extSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries($catId) : [];
+				$extService = ExternalXtreamService::fromSession();
+				$extSeries = $extService instanceof ExternalXtreamService ? $extService->getSeries($catId) : [];
 				if ($searchBy) {
 					$extSeries = array_filter($extSeries, fn($s) => stripos($s['title'], $searchBy) !== false);
 					$extSeries = array_values($extSeries);
@@ -138,8 +138,8 @@ class SeriesController extends BasePlayerV2Controller {
 
 		// Support External Xtream Standard Load
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$extSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries($firstCatId) : [];
+			$extService = ExternalXtreamService::fromSession();
+			$extSeries = $extService instanceof ExternalXtreamService ? $extService->getSeries($firstCatId) : [];
 
 			$initialSeries = [];
 			foreach ($extSeries as $s) {
@@ -237,8 +237,8 @@ class SeriesController extends BasePlayerV2Controller {
 
 		// Support External Xtream Series Details
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$seriesInfoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeriesInfo($seriesId) : [];
+			$extService = ExternalXtreamService::fromSession();
+			$seriesInfoData = $extService instanceof ExternalXtreamService ? $extService->getSeriesInfo($seriesId) : [];
 			$info = $seriesInfoData['info'] ?? [];
 			$episodesRaw = $seriesInfoData['episodes'] ?? [];
 
@@ -271,7 +271,7 @@ class SeriesController extends BasePlayerV2Controller {
 					$epStreamId = (int) ($ep['id'] ?? 0);
 					$epTitle = $ep['title'] ?? ('Episode ' . $epNum);
 					$epExt = $ep['container_extension'] ?? 'mp4';
-					$epStreamUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildSeriesUrl($epStreamId, $epExt) : '';
+					$epStreamUrl = $extService instanceof ExternalXtreamService ? $extService->buildSeriesUrl($epStreamId, $epExt) : '';
 					$epCover = !empty($ep['info']['movie_image']) ? $ep['info']['movie_image'] : $posterUrl;
 					$epDuration = $ep['info']['duration'] ?? '';
 
@@ -405,10 +405,10 @@ class SeriesController extends BasePlayerV2Controller {
 		// Query Episodes grouped by season
 		$db->query(
 			'SELECT t1.season_num, t1.episode_num, t1.stream_id, t2.id as episode_id, t2.stream_display_name, t2.target_container, t2.movie_properties, t2.added ' .
-			'FROM `streams_episodes` t1 ' .
-			'INNER JOIN `streams` t2 ON t2.id = t1.stream_id ' .
-			'WHERE t1.series_id = ? ' .
-			'ORDER BY t1.season_num ASC, t1.episode_num ASC',
+				'FROM `streams_episodes` t1 ' .
+				'INNER JOIN `streams` t2 ON t2.id = t1.stream_id ' .
+				'WHERE t1.series_id = ? ' .
+				'ORDER BY t1.season_num ASC, t1.episode_num ASC',
 			$seriesId
 		);
 		$episodeRows = $db->get_rows() ?: [];

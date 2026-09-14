@@ -126,7 +126,7 @@ class Router {
 	 * Get the singleton instance.
 	 */
 	public static function getInstance(): self {
-		if (!self::$instance instanceof \XcVm\Core\Http\Router) {
+		if (!self::$instance instanceof Router) {
 			self::$instance = new self();
 		}
 		return self::$instance;

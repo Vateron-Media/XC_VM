@@ -57,10 +57,10 @@ class BaseApiController {
 		}
 
 		// Active Code transparent auto-activation fallback (e.g. for get.php / playlist / epg)
-		if (!$rUserInfo && class_exists(\XcVm\Domain\Line\ActiveCodeService::class)) {
+		if (!$rUserInfo && class_exists(ActiveCodeService::class)) {
 			$candidateCode = strtoupper(!empty($rUsername) ? $rUsername : $rToken);
 			if (!empty($candidateCode)) {
-				$codeRow = \XcVm\Domain\Line\ActiveCodeService::getByCode($candidateCode);
+				$codeRow = ActiveCodeService::getByCode($candidateCode);
 				if ($codeRow) {
 					$deviceInfo = [
 						'mac' => RequestManager::get('mac') ?? '',
@@ -68,7 +68,7 @@ class BaseApiController {
 						'ip' => $rIP,
 						'user_agent' => trim($_SERVER['HTTP_USER_AGENT'] ?? '')
 					];
-					$actRes = \XcVm\Domain\Line\ActiveCodeService::activateCode($candidateCode, $deviceInfo);
+					$actRes = ActiveCodeService::activateCode($candidateCode, $deviceInfo);
 					if ($actRes['status'] === 'SUCCESS' && !empty($actRes['line'])) {
 						$lineUser = $actRes['line']['username'];
 						$linePass = $actRes['line']['password'];

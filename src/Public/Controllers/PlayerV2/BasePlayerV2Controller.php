@@ -27,10 +27,24 @@ class BasePlayerV2Controller extends BasePlayerController {
 
 		// Player globals for header & footer
 		$viewGlobals = [
-			'db', 'rSettings', 'rUserInfo', '_TITLE', '_PAGE',
-			'rStreamIDs', 'rFilterBy', 'rSortArray', 'rFilterArray',
-			'rSearchBy', 'rURLs', 'rSubtitles', 'rLegacy', 'rSeries',
-			'rYearStart', 'rYearEnd', 'rRatingStart', 'rRatingEnd',
+			'db',
+			'rSettings',
+			'rUserInfo',
+			'_TITLE',
+			'_PAGE',
+			'rStreamIDs',
+			'rFilterBy',
+			'rSortArray',
+			'rFilterArray',
+			'rSearchBy',
+			'rURLs',
+			'rSubtitles',
+			'rLegacy',
+			'rSeries',
+			'rYearStart',
+			'rYearEnd',
+			'rRatingStart',
+			'rRatingEnd',
 		];
 		foreach ($viewGlobals as $_g) {
 			if (array_key_exists($_g, $GLOBALS) && !array_key_exists($_g, $data)) {
@@ -62,7 +76,7 @@ class BasePlayerV2Controller extends BasePlayerController {
 				$html = ob_get_clean();
 			}
 
-			$serverName = \XcVm\Core\Config\SettingsManager::get('server_name') ?: 'XC_VM';
+			$serverName = SettingsManager::get('server_name') ?: 'XC_VM';
 			$title = ($GLOBALS['_TITLE'] ?? 'Dashboard') . ' - ' . htmlspecialchars($serverName);
 			$page = defined('PAGE_NAME') ? PAGE_NAME : ($GLOBALS['_PAGE'] ?? $view);
 

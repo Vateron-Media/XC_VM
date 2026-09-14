@@ -25,10 +25,10 @@ class HomeController extends BasePlayerV2Controller {
 
 		// Support External Xtream Codes Account
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$extMovies = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams() : [];
-			$extSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries() : [];
-			$extLive = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getLiveStreams() : [];
+			$extService = ExternalXtreamService::fromSession();
+			$extMovies = $extService instanceof ExternalXtreamService ? $extService->getVodStreams() : [];
+			$extSeries = $extService instanceof ExternalXtreamService ? $extService->getSeries() : [];
+			$extLive = $extService instanceof ExternalXtreamService ? $extService->getLiveStreams() : [];
 
 			$rPopularNow = [];
 			foreach (array_slice($extMovies, 0, 10) as $m) {
@@ -120,11 +120,11 @@ class HomeController extends BasePlayerV2Controller {
 
 			$db->query(
 				'SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` ' .
-				'FROM `streams` ' .
-				'WHERE `id` IN (' . implode(',', $popMoviesSafe) . ') ' .
-				'AND `id` IN (' . implode(',', $vodIdsSafe) . ')' .
-				$compatClause . ' ' .
-				'ORDER BY FIELD(id, ' . implode(',', $popMoviesSafe) . ') ASC LIMIT 30;'
+					'FROM `streams` ' .
+					'WHERE `id` IN (' . implode(',', $popMoviesSafe) . ') ' .
+					'AND `id` IN (' . implode(',', $vodIdsSafe) . ')' .
+					$compatClause . ' ' .
+					'ORDER BY FIELD(id, ' . implode(',', $popMoviesSafe) . ') ASC LIMIT 30;'
 			);
 
 			$rStreams = $db->get_rows() ?: [];
@@ -158,11 +158,11 @@ class HomeController extends BasePlayerV2Controller {
 
 			$db->query(
 				'SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path`, `plot`, `genre` ' .
-				'FROM `streams_series` ' .
-				'WHERE `id` IN (' . implode(',', $popSeriesSafe) . ') ' .
-				'AND `id` IN (' . implode(',', $seriesIdsSafe) . ')' .
-				$compatClause . ' ' .
-				'ORDER BY FIELD(id, ' . implode(',', $popSeriesSafe) . ') ASC LIMIT 30;'
+					'FROM `streams_series` ' .
+					'WHERE `id` IN (' . implode(',', $popSeriesSafe) . ') ' .
+					'AND `id` IN (' . implode(',', $seriesIdsSafe) . ')' .
+					$compatClause . ' ' .
+					'ORDER BY FIELD(id, ' . implode(',', $popSeriesSafe) . ') ASC LIMIT 30;'
 			);
 
 			$rStreams = $db->get_rows() ?: [];

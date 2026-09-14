@@ -3,6 +3,7 @@
 namespace XcVm\Core\Auth;
 
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Domain\Server\ServerRepository;
@@ -78,7 +79,7 @@ class BruteforceGuard {
 	 * Get database instance.
 	 */
 	private static function getDB(): ?object {
-		if (class_exists(DatabaseFactory::class, false) && DatabaseFactory::get() instanceof \XcVm\Core\Database\DatabaseHandler) {
+		if (class_exists(DatabaseFactory::class, false) && DatabaseFactory::get() instanceof DatabaseHandler) {
 			return DatabaseFactory::get();
 		}
 		global $db;

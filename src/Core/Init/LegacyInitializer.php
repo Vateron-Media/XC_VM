@@ -73,10 +73,10 @@ class LegacyInitializer {
 			SettingsManager::update('on_demand_wait_time', 15);
 		}
 
-		\XcVm\Streaming\Codec\FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'), SettingsManager::get('ffmpeg_gpu'));
+		FfmpegPaths::resolve(SettingsManager::get('ffmpeg_cpu'), SettingsManager::get('ffmpeg_gpu'));
 
 		if (!$rUseCache) {
-			\XcVm\Domain\Server\ServerRepository::getAll();
+			ServerRepository::getAll();
 			self::generateCron();
 		}
 
@@ -157,7 +157,7 @@ class LegacyInitializer {
 			$GLOBALS['rSettings']['on_demand_wait_time'] = 15;
 		}
 
-		\XcVm\Streaming\Codec\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu'], $GLOBALS['rSettings']['ffmpeg_gpu'] ?? null);
+		FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu'], $GLOBALS['rSettings']['ffmpeg_gpu'] ?? null);
 
 		$GLOBALS['rCached'] = CacheReader::isReady($GLOBALS['rSettings']);
 		$GLOBALS['rServers'] = CacheReader::get('servers') ?: [];
@@ -172,16 +172,16 @@ class LegacyInitializer {
 			'seg_time' => intval($GLOBALS['rSettings']['seg_time']),
 			'seg_list_size' => intval($GLOBALS['rSettings']['seg_list_size'])
 		];
-		\XcVm\Infrastructure\Database\DatabaseFactory::connect();
+		DatabaseFactory::connect();
 
 		// Синхронизация singleton-менеджеров для классов, мигрированных с CU
 		SettingsManager::set($GLOBALS['rSettings']);
 		RequestManager::set($GLOBALS['rRequest']);
 
 		// FFmpeg paths — export to globals (streaming context)
-		$GLOBALS['rFFPROBE']    = \XcVm\Streaming\Codec\FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG_CPU']     = \XcVm\Streaming\Codec\FfmpegPaths::cpu();
-		$GLOBALS['rFFMPEG_GPU'] = \XcVm\Streaming\Codec\FfmpegPaths::gpu();
+		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
 
 		self::syncStreamingContainer();
 	}
@@ -192,10 +192,10 @@ class LegacyInitializer {
 	public static function exportGlobals(): void {
 		$GLOBALS['rSettings']   = SettingsManager::getAll();
 		$GLOBALS['rRequest']    = RequestManager::getAll();
-		$GLOBALS['rServers']    = \XcVm\Domain\Server\ServerRepository::getAll();
-		$GLOBALS['rFFPROBE']    = \XcVm\Streaming\Codec\FfmpegPaths::probe();
-		$GLOBALS['rFFMPEG_CPU']     = \XcVm\Streaming\Codec\FfmpegPaths::cpu();
-		$GLOBALS['rFFMPEG_GPU'] = \XcVm\Streaming\Codec\FfmpegPaths::gpu();
+		$GLOBALS['rServers']    = ServerRepository::getAll();
+		$GLOBALS['rFFPROBE']    = FfmpegPaths::probe();
+		$GLOBALS['rFFMPEG_CPU']     = FfmpegPaths::cpu();
+		$GLOBALS['rFFMPEG_GPU'] = FfmpegPaths::gpu();
 	}
 
 	/**
@@ -208,9 +208,9 @@ class LegacyInitializer {
 		$rContainer->set('core.request', RequestManager::getAll());
 		$rContainer->set('core.config', ConfigReader::getAll());
 		$rContainer->set('core.settings', SettingsManager::getAll());
-		$rContainer->set('core.servers', \XcVm\Domain\Server\ServerRepository::getAll());
-		$rContainer->set('core.bouquets', \XcVm\Domain\Bouquet\BouquetService::getAll());
-		$rContainer->set('core.categories', \XcVm\Domain\Stream\CategoryService::getFromDatabase());
+		$rContainer->set('core.servers', ServerRepository::getAll());
+		$rContainer->set('core.bouquets', BouquetService::getAll());
+		$rContainer->set('core.categories', CategoryService::getFromDatabase());
 	}
 
 	/**

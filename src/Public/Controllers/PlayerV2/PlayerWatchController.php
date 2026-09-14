@@ -24,11 +24,11 @@ class PlayerWatchController extends BasePlayerV2Controller {
 
 		// Support External Xtream Playback
 		if (!empty($rUserInfo['is_external_xc'])) {
-			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
+			$extService = ExternalXtreamService::fromSession();
 
 			if ($type === 'series') {
 				$seriesId = (int) RequestManager::get('series_id');
-				$seriesInfoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeriesInfo($seriesId) : [];
+				$seriesInfoData = $extService instanceof ExternalXtreamService ? $extService->getSeriesInfo($seriesId) : [];
 				$info = $seriesInfoData['info'] ?? [];
 				$episodesRaw = $seriesInfoData['episodes'] ?? [];
 
@@ -46,7 +46,7 @@ class PlayerWatchController extends BasePlayerV2Controller {
 						$eId = (int) ($ep['id'] ?? 0);
 						$eN = (int) ($ep['episode_num'] ?? 1);
 						$epExt = $ep['container_extension'] ?? 'mp4';
-						$epUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildSeriesUrl($eId, $epExt) : '';
+						$epUrl = $extService instanceof ExternalXtreamService ? $extService->buildSeriesUrl($eId, $epExt) : '';
 						$epItem = [
 							'stream_id'           => $eId,
 							'season_num'          => $sN,
@@ -131,12 +131,12 @@ class PlayerWatchController extends BasePlayerV2Controller {
 				return;
 			}
 			// Movie Playback
-			$vodInfoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodInfo($id) : [];
+			$vodInfoData = $extService instanceof ExternalXtreamService ? $extService->getVodInfo($id) : [];
 			$info = $vodInfoData['info'] ?? [];
 			$movieData = $vodInfoData['movie_data'] ?? [];
 			$title = $info['name'] ?? ($movieData['name'] ?? ('Movie #' . $id));
 			$ext = $movieData['container_extension'] ?? ($info['container_extension'] ?? 'mp4');
-			$streamUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildVodUrl($id, $ext) : '';
+			$streamUrl = $extService instanceof ExternalXtreamService ? $extService->buildVodUrl($id, $ext) : '';
 			$posterUrl = $info['movie_image'] ?? ($info['cover_big'] ?? '');
 			$catId = $movieData['category_id'] ?? ($info['category_id'] ?? 0);
 			$catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'movie');

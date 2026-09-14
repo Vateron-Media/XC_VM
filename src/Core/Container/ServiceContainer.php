@@ -125,7 +125,7 @@ class ServiceContainer implements ContainerInterface {
 	 * @internal Bootstrap only. Modules receive ServiceContainer via boot(ServiceContainer $c).
 	 */
 	public static function getInstance(): self {
-		if (!self::$instance instanceof \XcVm\Core\Container\ServiceContainer) {
+		if (!self::$instance instanceof ServiceContainer) {
 			self::$instance = new self();
 		}
 		return self::$instance;
@@ -135,7 +135,7 @@ class ServiceContainer implements ContainerInterface {
 	 * Сбросить контейнер (для тестов).
 	 */
 	public static function resetInstance(): void {
-		if (self::$instance instanceof \XcVm\Core\Container\ServiceContainer) {
+		if (self::$instance instanceof ServiceContainer) {
 			self::$instance->factories = [];
 			self::$instance->resolved  = [];
 			self::$instance->isFactory = [];
@@ -481,7 +481,7 @@ class ServiceContainer implements ContainerInterface {
 	private function throwCircularDependency(string $id): never {
 		throw new CircularDependencyException(
 			"ServiceContainer: циклическая зависимость при создании сервиса '{$id}'. "
-			. "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
+				. "Цепочка: " . implode(' → ', array_keys($this->creating)) . " → {$id}"
 		);
 	}
 

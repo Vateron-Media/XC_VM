@@ -104,9 +104,9 @@ class ImageResizeService {
 		// Resolve server-prefixed URL (s:<id>:<path>) only when needed
 		if (substr($rURL, 0, 2) === 's:') {
 			$rServers = $GLOBALS['rServers'] ?? null;
-			if ($rServers === null && class_exists(\XcVm\Domain\Server\ServerRepository::class)) {
+			if ($rServers === null && class_exists(ServerRepository::class)) {
 				try {
-					$rServers = \XcVm\Domain\Server\ServerRepository::getAll();
+					$rServers = ServerRepository::getAll();
 				} catch (\Throwable $e) {
 					$rServers = [];
 				}

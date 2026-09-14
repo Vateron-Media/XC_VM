@@ -67,7 +67,8 @@ class StreamingRequestBootstrap {
 			if (is_array($rSettings) && !empty($rSettings['verify_host'])) {
 				$rAllowedDomains = (igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'allowed_domains')) ?: []);
 
-				if (is_array($rAllowedDomains)
+				if (
+					is_array($rAllowedDomains)
 					&& count($rAllowedDomains) > 0
 					&& !in_array(HOST, $rAllowedDomains, true)
 					&& HOST !== 'xc_vm'
@@ -95,10 +96,10 @@ class StreamingRequestBootstrap {
 			generate404();
 		}
 
-		// ── 7. Передача в \XcVm\Streaming\StreamingBootstrap ────────────────────
+		// ── 7. Передача в StreamingBootstrap ────────────────────
 		$rStreamingEndpoints = ['probe', 'player_api', 'live', 'thumb', 'subtitle', 'timeshift', 'vod', 'status', 'rtmp', 'portal'];
 		if (in_array($rFilename, $rStreamingEndpoints, true)) {
-			\XcVm\Streaming\StreamingBootstrap::bootstrap($rFilename, $rSettings);
+			StreamingBootstrap::bootstrap($rFilename, $rSettings);
 		}
 
 		// Merge raw JSON input (if any) into $GLOBALS['rRequest'] for modern mobile/TV apps
