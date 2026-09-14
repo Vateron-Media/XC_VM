@@ -143,42 +143,19 @@ html.theme-transition *::after {
 }
 
 .live-sidebar-pane {
+  width: 280px;
+  min-width: 280px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
-  width: 100%;
 }
 
-@media (min-width: 992px) {
-  .live-sidebar-pane {
-    position: sticky;
-    top: 80px;
-    align-self: flex-start;
-    height: calc(100vh - 105px);
-    max-height: calc(100vh - 105px);
-  }
-}
-
-.live-sidebar-pane .sidebar-categories-scroll,
-.sidebar-categories-scroll {
-  flex: 1 1 auto;
+.live-sidebar-pane .sidebar-categories-scroll {
+  flex-grow: 1;
   overflow-y: auto;
-  overflow-x: hidden;
   min-height: 0;
-  max-height: calc(100vh - 215px);
+  max-height: calc(100vh - 250px);
   scrollbar-width: thin;
-  scrollbar-color: rgba(var(--bs-primary-rgb), 0.35) transparent;
-}
-
-@media (max-width: 991.98px) {
-  .live-sidebar-pane {
-    width: 100% !important;
-    max-width: 100% !important;
-    min-width: 100% !important;
-  }
-  .live-sidebar-pane .sidebar-categories-scroll,
-  .sidebar-categories-scroll {
-    max-height: 340px;
-  }
 }
 
 .sidebar-categories-scroll::-webkit-scrollbar {
@@ -196,13 +173,6 @@ html.theme-transition *::after {
 
 .sidebar-categories-scroll::-webkit-scrollbar-thumb:hover {
   background: var(--bs-primary);
-}
-
-.live-app-wrapper .card,
-.movies-app-wrapper .card,
-.series-app-wrapper .card,
-.radio-app-wrapper .card {
-  overflow: visible !important;
 }
 
 .sidebar-category-pagination {
