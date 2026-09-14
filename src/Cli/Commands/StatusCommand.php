@@ -67,7 +67,7 @@ class StatusCommand implements CommandInterface {
 
 		echo "Database\n------------------------------\n";
 
-		global $db;
+		$db = self::db();
 		DatabaseFactory::connect();
 
 		if (!$db->connected) {
@@ -110,7 +110,7 @@ class StatusCommand implements CommandInterface {
 		$this->removeInitScript();
 
 		if ($rServers[SERVER_ID]['is_main']) {
-			$this->broadcastUpdateBinaries($db, $rServers);
+			$this->broadcastUpdateBinaries($rServers);
 			$this->configureRedis();
 		} else {
 			// LB nodes run no local Redis (bin/redis is stripped from the LB build)
@@ -119,11 +119,11 @@ class StatusCommand implements CommandInterface {
 			// live.php then fails with LINE_CREATE_FAIL under redis_handler. Point
 			// the extension at the MAIN server's Redis (same host as MySQL) using the
 			// shared password, without touching MAIN's own config.
-			$this->configureRedisLb($db, $rServers);
+			$this->configureRedisLb($rServers);
 		}
 
 		if (!$rFirstRun && $rServers[SERVER_ID]['is_main']) {
-			$this->printStatusReport($db, $rServers);
+			$this->printStatusReport($rServers);
 		}
 
 		$db->query('UPDATE `servers` SET `xc_vm_version` = ? WHERE `id` = ?;', XC_VM_VERSION, SERVER_ID);
@@ -146,7 +146,7 @@ class StatusCommand implements CommandInterface {
 	}
 
 	private function getServers(): array {
-		global $db;
+		$db = self::db();
 		$db->query('SELECT * FROM `servers`');
 		$rServers = [];
 		$rOnlineStatus = [1];
@@ -282,7 +282,8 @@ class StatusCommand implements CommandInterface {
 		}
 	}
 
-	private function broadcastUpdateBinaries($db, array $rServers): void {
+	private function broadcastUpdateBinaries(array $rServers): void {
+		$db = self::db();
 		foreach ($rServers as $rServerID => $rServerArray) {
 			$db->query('DELETE FROM `signals` WHERE `custom_data` = ?;', json_encode(['action' => 'update_binaries']));
 			$db->query('INSERT INTO `signals`(`server_id`, `time`, `custom_data`) VALUES(?, ?, ?);', $rServerID, time(), json_encode(['action' => 'update_binaries']));
@@ -344,10 +345,10 @@ class StatusCommand implements CommandInterface {
 	 * host/password into the local config.enc so `\XC_VM::redis_connect()` reaches
 	 * the right server instead of refusing on 127.0.0.1.
 	 *
-	 * @param mixed                        $db       Database handle.
 	 * @param array<int,array<string,mixed>> $rServers Servers keyed by id.
 	 */
-	private function configureRedisLb($db, array $rServers): void {
+	private function configureRedisLb(array $rServers): void {
+		$db = self::db();
 		if (!method_exists('XC_VM', 'config_set_redis')) {
 			return;
 		}
@@ -379,7 +380,8 @@ class StatusCommand implements CommandInterface {
 		}
 	}
 
-	private function printStatusReport($db, array $rServers): void {
+	private function printStatusReport(array $rServers): void {
+		$db = self::db();
 		global $rSettings;
 
 		$db->query('UPDATE `servers` SET `is_main` = 0 WHERE `id` <> ?;', SERVER_ID);

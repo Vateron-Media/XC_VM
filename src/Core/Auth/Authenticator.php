@@ -95,8 +95,8 @@ class Authenticator {
 			}
 		}
 
-		$rIP = \XcVm\Core\Util\NetworkUtils::getUserIP();
-		$rUserInfo = \XcVm\Domain\User\UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rIP = NetworkUtils::getUserIP();
+		$rUserInfo = UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
 		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {
@@ -168,8 +168,8 @@ class Authenticator {
 			}
 		}
 
-		$rIP = \XcVm\Core\Util\NetworkUtils::getUserIP();
-		$rUserInfo = \XcVm\Domain\User\UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
+		$rIP = NetworkUtils::getUserIP();
+		$rUserInfo = UserRepository::getAuthUserByCredentials($rData['username'], $rData['password']);
 		$rAccessCode = AuthRepository::getCurrentCode(true);
 
 		if (!isset($rUserInfo)) {

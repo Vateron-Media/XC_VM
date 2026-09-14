@@ -40,7 +40,7 @@ class ScannerCommand implements CommandInterface {
 			return 1;
 		}
 
-		global $db;
+		$db = self::db();
 
 		$this->setProcessTitle('XC_VM[Scanner]');
 		$this->killStaleProcesses('console.php scanner');
@@ -53,7 +53,7 @@ class ScannerCommand implements CommandInterface {
 
 		$this->rRefreshInterval = 60;
 
-		while ($db && $db->ping()) {
+		while ($db->ping()) {
 			if (!$this->shouldRefreshSettings()) {
 				// skip
 			} else {
@@ -70,9 +70,7 @@ class ScannerCommand implements CommandInterface {
 			break;
 		}
 
-		if (is_object($db)) {
-			$db->close_mysql();
-		}
+		$db->close_mysql();
 
 		$this->restartDaemon('scanner');
 		return 0;
@@ -111,7 +109,6 @@ class ScannerCommand implements CommandInterface {
 
 			foreach ($rSources as $rSource) {
 				$rProcessed = false;
-				$rRealSource = $rSource;
 				$rStreamSource = StreamUtils::parseStreamURL($rSource);
 				echo 'Checking source: ' . $rSource . "\n";
 				$rURLInfo = parse_url($rStreamSource);

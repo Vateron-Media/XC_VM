@@ -43,20 +43,17 @@ class RecordCommand implements CommandInterface {
 		$recordingID = intval($rArgs[0]);
 
 		register_shutdown_function(function () use ($recordingID) {
-			global $db;
 			if (file_exists(ARCHIVE_PATH . $recordingID . '_.record')) {
 				unlink(ARCHIVE_PATH . $recordingID . '_.record');
 			}
-			if (is_object($db)) {
-				$db->close_mysql();
-			}
+			self::db()->close_mysql();
 		});
 
 		$this->checkRunning($recordingID);
 		set_time_limit(0);
 		cli_set_process_title('Record[' . $recordingID . ']');
 
-		global $db;
+		$db = self::db();
 
 		$db->query('SELECT * FROM `recordings` WHERE `id` = ?;', $recordingID);
 		if ($db->num_rows() <= 0) {
@@ -80,7 +77,7 @@ class RecordCommand implements CommandInterface {
 
 		if ($rPID <= 0 || !file_exists($rPlaylist)) {
 			echo "Channel is not running.\n";
-			$this->finishRecording($db, $recordingID, false);
+			$this->finishRecording($recordingID, false);
 			return 0;
 		}
 
@@ -145,18 +142,19 @@ class RecordCommand implements CommandInterface {
 		}
 
 		if ($isComplete) {
-			$this->processRecording($db, $recordingID, $recordingData);
+			$this->processRecording($recordingID, $recordingData);
 		} else {
-			$this->finishRecording($db, $recordingID, false);
+			$this->finishRecording($recordingID, false);
 		}
 
 		return 0;
 	}
 
-	private function processRecording($db, $recordingID, $recordingData): void {
+	private function processRecording($recordingID, $recordingData): void {
+		$db = self::db();
 		if (!file_exists(ARCHIVE_PATH . $recordingID . '.ts') || filesize(ARCHIVE_PATH . $recordingID . '.ts') <= 0) {
 			echo "Recording size is 0 bytes.\n";
-			$this->finishRecording($db, $recordingID, false);
+			$this->finishRecording($recordingID, false);
 			return;
 		}
 
@@ -177,36 +175,37 @@ class RecordCommand implements CommandInterface {
 		$rImportArray['movie_symlink'] = 0;
 		$rImportArray['remove_subtitles'] = 0;
 		$rImportArray['transcode_profile_id'] = 0;
-		$rImportArray['order'] = $this->getNextOrder($db);
+		$rImportArray['order'] = $this->getNextOrder();
 		$rImportArray['added'] = time();
 		$rImportArray['category_id'] = '[' . implode(',', array_map('intval', json_decode($recordingData['category_id'], true))) . ']';
 		$rPrepare = $this->prepareArray($rImportArray);
 		$rQuery = 'REPLACE INTO `streams`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 		if (!$db->query($rQuery, ...$rPrepare['data'])) {
 			echo "Failed to insert into database!\n";
-			$this->finishRecording($db, $recordingID, false);
+			$this->finishRecording($recordingID, false);
 			return;
 		}
 
 		$rInsertID = $db->last_insert_id();
-		shell_exec((\XcVm\Streaming\Codec\FfmpegPaths::cpu() ?: FFMPEG_BIN_40) . " -i '" . ARCHIVE_PATH . $recordingID . '.ts' . "' -c:v copy -c:a copy '" . VOD_PATH . $rInsertID . '.mp4' . "'");
+		shell_exec((FfmpegPaths::cpu() ?: FFMPEG_BIN_40) . " -i '" . ARCHIVE_PATH . $recordingID . '.ts' . "' -c:v copy -c:a copy '" . VOD_PATH . $rInsertID . '.mp4' . "'");
 		@unlink(ARCHIVE_PATH . $recordingID . '.ts');
 
 		if (!file_exists(VOD_PATH . $rInsertID . '.mp4')) {
 			echo "Couldn't convert to MP4\n";
-			$this->finishRecording($db, $recordingID, false);
+			$this->finishRecording($recordingID, false);
 			return;
 		}
 
 		foreach (json_decode($recordingData['bouquets'], true) as $rBouquet) {
-			$this->addToBouquet($db, $rBouquet, $rInsertID);
+			$this->addToBouquet($rBouquet, $rInsertID);
 		}
 		$db->query('UPDATE `streams` SET `stream_source` = ? WHERE `id` = ?;', json_encode([VOD_PATH . $rInsertID . '.mp4']), $rInsertID);
 		$db->query('INSERT INTO `streams_servers`(`stream_id`, `server_id`, `parent_id`, `pid`, `to_analyze`) VALUES(?, ?, NULL, 1, 1);', $rInsertID, SERVER_ID);
 		$db->query('UPDATE `recordings` SET `status` = 2, `created_id` = ? WHERE `id` = ?;', $rInsertID, $recordingID);
 	}
 
-	private function finishRecording($db, $recordingID, $success): void {
+	private function finishRecording($recordingID, $success): void {
+		$db = self::db();
 		if (!$success) {
 			echo "Recording incomplete!\n";
 			$db->query('UPDATE `recordings` SET `status` = 3 WHERE `id` = ?;', $recordingID);
@@ -241,7 +240,8 @@ class RecordCommand implements CommandInterface {
 		return null;
 	}
 
-	private function getNextOrder($db): int {
+	private function getNextOrder(): int {
+		$db = self::db();
 		$db->query('SELECT MAX(`order`) AS `order` FROM `streams`;');
 		if ($db->num_rows() != 1) {
 			return 0;
@@ -249,7 +249,8 @@ class RecordCommand implements CommandInterface {
 		return intval($db->get_row()['order']) + 1;
 	}
 
-	private function getBouquet($db, $rID) {
+	private function getBouquet($rID) {
+		$db = self::db();
 		$db->query('SELECT * FROM `bouquets` WHERE `id` = ?;', $rID);
 		if ($db->num_rows() != 1) {
 			return null;
@@ -257,8 +258,9 @@ class RecordCommand implements CommandInterface {
 		return $db->get_row();
 	}
 
-	private function addToBouquet($db, $rBouquetID, $rID): void {
-		$rBouquet = $this->getBouquet($db, $rBouquetID);
+	private function addToBouquet($rBouquetID, $rID): void {
+		$db = self::db();
+		$rBouquet = $this->getBouquet($rBouquetID);
 		if (!$rBouquet) {
 			return;
 		}

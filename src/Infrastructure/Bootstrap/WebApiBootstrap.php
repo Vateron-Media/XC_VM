@@ -69,6 +69,7 @@ class WebApiBootstrap {
 		}
 
 		// ── 6. GithubReleases ────────────────────────────────────
+		// phpcs:ignore SlevomatCodingStandard.Variables.UnusedVariable.UnusedVariable -- declared global $gitRelease (see top of method); consumed by legacy update code
 		$gitRelease = new GitHubReleases(GIT_OWNER, GIT_REPO_MAIN, UpdateChannels::main());
 	}
 }
