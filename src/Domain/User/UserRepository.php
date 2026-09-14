@@ -178,7 +178,7 @@ class UserRepository {
 
 		$rFormats = [];
 		foreach ($rRows as $rRow) {
-			if (empty($rAllowedOutputs) || in_array(intval($rRow['access_output_id']), $rAllowedOutputs, true)) {
+			if ($rAllowedOutputs === [] || in_array(intval($rRow['access_output_id']), $rAllowedOutputs, true)) {
 				$rFormats[] = $rRow['output_key'];
 			}
 		}
@@ -399,7 +399,7 @@ class UserRepository {
 	public static function getSubUsers(int $rUser, array &$visited = []) {
 		$db = self::db();
 		$rReturn = [];
-		$rUserInt = (int) $rUser;
+		$rUserInt = $rUser;
 		if (in_array($rUserInt, $visited, true)) {
 			return $rReturn;
 		}

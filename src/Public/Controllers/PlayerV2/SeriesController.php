@@ -46,7 +46,7 @@ class SeriesController extends BasePlayerV2Controller {
 			// Support External Xtream Codes
 			if (!empty($rUserInfo['is_external_xc'])) {
 				$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-				$extSeries = $extService ? $extService->getSeries($catId) : [];
+				$extSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries($catId) : [];
 				if ($searchBy) {
 					$extSeries = array_filter($extSeries, fn($s) => stripos($s['title'], $searchBy) !== false);
 					$extSeries = array_values($extSeries);
@@ -82,7 +82,7 @@ class SeriesController extends BasePlayerV2Controller {
 					$where[] = '`title` LIKE ?';
 					$whereV[] = '%' . $searchBy . '%';
 				}
-				$whereStr = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+				$whereStr = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
 				$db->query("SELECT * FROM `streams_series` {$whereStr} ORDER BY `id` DESC LIMIT 1000", ...$whereV);
 				$seriesList = $db->get_rows() ?: [];
 			} else {
@@ -111,7 +111,7 @@ class SeriesController extends BasePlayerV2Controller {
 
 				// Calculate seasons count
 				$seasonsArr = json_decode($series['seasons'] ?? '', true) ?: [];
-				$seasonsCount = is_array($seasonsArr) && !empty($seasonsArr) ? count($seasonsArr) : 1;
+				$seasonsCount = is_array($seasonsArr) && $seasonsArr !== [] ? count($seasonsArr) : 1;
 
 				$seriesItems[] = [
 					'id'            => (int) $series['id'],
@@ -139,7 +139,7 @@ class SeriesController extends BasePlayerV2Controller {
 		// Support External Xtream Standard Load
 		if (!empty($rUserInfo['is_external_xc'])) {
 			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$extSeries = $extService ? $extService->getSeries($firstCatId) : [];
+			$extSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries($firstCatId) : [];
 
 			$initialSeries = [];
 			foreach ($extSeries as $s) {
@@ -174,7 +174,7 @@ class SeriesController extends BasePlayerV2Controller {
 				$where[] = "JSON_CONTAINS(`category_id`, ?, '$')";
 				$whereV[] = (string) $firstCatId;
 			}
-			$whereStr = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+			$whereStr = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
 			$db->query("SELECT * FROM `streams_series` {$whereStr} ORDER BY `id` DESC LIMIT 100", ...$whereV);
 			$initialSeriesRaw = $db->get_rows() ?: [];
 			$db->query('SELECT count(*) as c FROM `streams_series`;');
@@ -204,7 +204,7 @@ class SeriesController extends BasePlayerV2Controller {
 			$coverUrl = !empty($series['cover']) ? ImageUtils::validateURL($series['cover']) : '';
 			$rating = !empty($series['rating']) ? (float) $series['rating'] : 0;
 			$seasonsArr = json_decode($series['seasons'] ?? '', true) ?: [];
-			$seasonsCount = is_array($seasonsArr) && !empty($seasonsArr) ? count($seasonsArr) : 1;
+			$seasonsCount = is_array($seasonsArr) && $seasonsArr !== [] ? count($seasonsArr) : 1;
 
 			$initialSeries[] = [
 				'id'            => (int) $series['id'],
@@ -231,9 +231,6 @@ class SeriesController extends BasePlayerV2Controller {
 
 	/**
 	 * Render the detailed cinematic series page with seasons and episodes navigator.
-	 *
-	 * @param int    $seriesId
-	 * @param string $baseUrl
 	 */
 	private function renderSeriesDetails(int $seriesId, string $baseUrl) {
 		global $db, $rUserInfo;
@@ -241,7 +238,7 @@ class SeriesController extends BasePlayerV2Controller {
 		// Support External Xtream Series Details
 		if (!empty($rUserInfo['is_external_xc'])) {
 			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$seriesInfoData = $extService ? $extService->getSeriesInfo($seriesId) : [];
+			$seriesInfoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeriesInfo($seriesId) : [];
 			$info = $seriesInfoData['info'] ?? [];
 			$episodesRaw = $seriesInfoData['episodes'] ?? [];
 
@@ -274,7 +271,7 @@ class SeriesController extends BasePlayerV2Controller {
 					$epStreamId = (int) ($ep['id'] ?? 0);
 					$epTitle = $ep['title'] ?? ('Episode ' . $epNum);
 					$epExt = $ep['container_extension'] ?? 'mp4';
-					$epStreamUrl = $extService ? $extService->buildSeriesUrl($epStreamId, $epExt) : '';
+					$epStreamUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildSeriesUrl($epStreamId, $epExt) : '';
 					$epCover = !empty($ep['info']['movie_image']) ? $ep['info']['movie_image'] : $posterUrl;
 					$epDuration = $ep['info']['duration'] ?? '';
 
@@ -485,7 +482,7 @@ class SeriesController extends BasePlayerV2Controller {
 		$seasonsRaw = json_decode($series['seasons'] ?? '', true) ?: [];
 		$seasons = [];
 
-		if (is_array($seasonsRaw) && !empty($seasonsRaw)) {
+		if (is_array($seasonsRaw) && $seasonsRaw !== []) {
 			foreach ($seasonsRaw as $sKey => $sVal) {
 				$sNum = (int) ($sVal['season_number'] ?? $sKey);
 				if ($sNum <= 0 && is_numeric($sKey)) {

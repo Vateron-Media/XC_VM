@@ -52,9 +52,9 @@ class ProfileController extends BasePlayerV2Controller {
 				'exp_date' => $expTimestamp,
 			];
 
-			$allLive = $extService ? $extService->getLiveStreams(null) : [];
-			$allVod = $extService ? $extService->getVodStreams(null) : [];
-			$allSeries = $extService ? $extService->getSeries(null) : [];
+			$allLive = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getLiveStreams() : [];
+			$allVod = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams() : [];
+			$allSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries() : [];
 
 			$totalLive = count($allLive);
 			$totalVod = count($allVod);

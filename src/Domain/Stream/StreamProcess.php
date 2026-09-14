@@ -861,7 +861,6 @@ class StreamProcess {
 		$rMap = '';
 		$rGenPTS = '';
 		$rReadNative = '';
-		$rSleepTime = 0;
 		if (empty($rStream['stream_info']['custom_ffmpeg'])) {
 			if ($rLoopback) {
 				$rOptions = '{FETCH_OPTIONS}';

@@ -26,9 +26,9 @@ class HomeController extends BasePlayerV2Controller {
 		// Support External Xtream Codes Account
 		if (!empty($rUserInfo['is_external_xc'])) {
 			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$extMovies = $extService ? $extService->getVodStreams(null) : [];
-			$extSeries = $extService ? $extService->getSeries(null) : [];
-			$extLive = $extService ? $extService->getLiveStreams(null) : [];
+			$extMovies = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams() : [];
+			$extSeries = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeries() : [];
+			$extLive = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getLiveStreams() : [];
 
 			$rPopularNow = [];
 			foreach (array_slice($extMovies, 0, 10) as $m) {
@@ -187,7 +187,7 @@ class HomeController extends BasePlayerV2Controller {
 		// 3. Fallback to direct catalog items if popular file has no matches
 		if (empty($rPopularNow)) {
 			// Pick up to 5 movies
-			if (!empty($vodIdsSafe)) {
+			if ($vodIdsSafe !== []) {
 				$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . implode(',', array_slice($vodIdsSafe, 0, 10)) . ') LIMIT 5;');
 				foreach ($db->get_rows() ?: [] as $rStream) {
 					$rProperties = json_decode($rStream['movie_properties'] ?? '', true) ?: [];
@@ -211,7 +211,7 @@ class HomeController extends BasePlayerV2Controller {
 			}
 
 			// Pick up to 5 series
-			if (!empty($seriesIdsSafe)) {
+			if ($seriesIdsSafe !== []) {
 				$db->query('SELECT `id`, `title`, `year`, `rating`, `cover`, `backdrop_path`, `plot`, `genre` FROM `streams_series` WHERE `id` IN (' . implode(',', array_slice($seriesIdsSafe, 0, 10)) . ') LIMIT 5;');
 				foreach ($db->get_rows() ?: [] as $rStream) {
 					$rBackdrop = json_decode($rStream['backdrop_path'] ?? '', true);

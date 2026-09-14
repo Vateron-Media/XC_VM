@@ -25,7 +25,7 @@ class RadioController extends BasePlayerV2Controller {
 		$code = $_SERVER['XC_CODE'] ?? '';
 		$baseUrl = $code ? '/' . $code . '/' : '/';
 
-		$domainName = DomainResolver::resolve(
+		DomainResolver::resolve(
 			SERVER_ID,
 			(!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || (isset($_SERVER['SERVER_PORT']) && (int) $_SERVER['SERVER_PORT'] === 443)
 		);

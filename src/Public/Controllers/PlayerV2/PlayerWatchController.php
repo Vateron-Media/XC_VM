@@ -28,7 +28,7 @@ class PlayerWatchController extends BasePlayerV2Controller {
 
 			if ($type === 'series') {
 				$seriesId = (int) RequestManager::get('series_id');
-				$seriesInfoData = $extService ? $extService->getSeriesInfo($seriesId) : [];
+				$seriesInfoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getSeriesInfo($seriesId) : [];
 				$info = $seriesInfoData['info'] ?? [];
 				$episodesRaw = $seriesInfoData['episodes'] ?? [];
 
@@ -46,7 +46,7 @@ class PlayerWatchController extends BasePlayerV2Controller {
 						$eId = (int) ($ep['id'] ?? 0);
 						$eN = (int) ($ep['episode_num'] ?? 1);
 						$epExt = $ep['container_extension'] ?? 'mp4';
-						$epUrl = $extService ? $extService->buildSeriesUrl($eId, $epExt) : '';
+						$epUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildSeriesUrl($eId, $epExt) : '';
 						$epItem = [
 							'stream_id'           => $eId,
 							'season_num'          => $sN,
@@ -129,50 +129,46 @@ class PlayerWatchController extends BasePlayerV2Controller {
 					'baseUrl'       => $baseUrl,
 				]);
 				return;
-			} else {
-				// Movie Playback
-				$vodInfoData = $extService ? $extService->getVodInfo($id) : [];
-				$info = $vodInfoData['info'] ?? [];
-				$movieData = $vodInfoData['movie_data'] ?? [];
-
-				$title = $info['name'] ?? ($movieData['name'] ?? ('Movie #' . $id));
-				$ext = $movieData['container_extension'] ?? ($info['container_extension'] ?? 'mp4');
-				$streamUrl = $extService ? $extService->buildVodUrl($id, $ext) : '';
-				$posterUrl = $info['movie_image'] ?? ($info['cover_big'] ?? '');
-				$catId = (int) ($movieData['category_id'] ?? ($info['category_id'] ?? 0));
-				$catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'movie');
-				$backUrl = $baseUrl . 'movie?id=' . $id;
-
-				$GLOBALS['_TITLE'] = 'Playing: ' . $title;
-				$GLOBALS['_PAGE'] = 'movies';
-
-				$this->render('player', [
-					'type'          => 'movie',
-					'movie'         => [
-						'id' => $id,
-						'stream_display_name' => $title,
-						'stream_icon' => $posterUrl,
-						'year' => !empty($info['releasedate']) ? substr((string) $info['releasedate'], 0, 4) : null,
-						'rating' => $info['rating'] ?? '',
-					],
-					'relatedMovies' => [],
-					'playbackTitle' => $title,
-					'backUrl'       => $backUrl,
-					'props'         => [
-						'plot' => $info['plot'] ?? ($info['description'] ?? ''),
-						'genre' => $info['genre'] ?? '',
-						'cast' => $info['cast'] ?? '',
-						'director' => $info['director'] ?? '',
-						'duration' => !empty($info['duration_secs']) ? (int) ($info['duration_secs'] / 60) . ' min' : ($info['duration'] ?? ''),
-					],
-					'streamUrl'     => $streamUrl,
-					'qualityBadge'  => 'HD',
-					'qualityColor'  => 'primary',
-					'categoryName'  => $catName,
-					'baseUrl'       => $baseUrl,
-				]);
-				return;
 			}
+			// Movie Playback
+			$vodInfoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodInfo($id) : [];
+			$info = $vodInfoData['info'] ?? [];
+			$movieData = $vodInfoData['movie_data'] ?? [];
+			$title = $info['name'] ?? ($movieData['name'] ?? ('Movie #' . $id));
+			$ext = $movieData['container_extension'] ?? ($info['container_extension'] ?? 'mp4');
+			$streamUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildVodUrl($id, $ext) : '';
+			$posterUrl = $info['movie_image'] ?? ($info['cover_big'] ?? '');
+			$catId = $movieData['category_id'] ?? ($info['category_id'] ?? 0);
+			$catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'movie');
+			$backUrl = $baseUrl . 'movie?id=' . $id;
+			$GLOBALS['_TITLE'] = 'Playing: ' . $title;
+			$GLOBALS['_PAGE'] = 'movies';
+			$this->render('player', [
+				'type'          => 'movie',
+				'movie'         => [
+					'id' => $id,
+					'stream_display_name' => $title,
+					'stream_icon' => $posterUrl,
+					'year' => !empty($info['releasedate']) ? substr((string) $info['releasedate'], 0, 4) : null,
+					'rating' => $info['rating'] ?? '',
+				],
+				'relatedMovies' => [],
+				'playbackTitle' => $title,
+				'backUrl'       => $backUrl,
+				'props'         => [
+					'plot' => $info['plot'] ?? ($info['description'] ?? ''),
+					'genre' => $info['genre'] ?? '',
+					'cast' => $info['cast'] ?? '',
+					'director' => $info['director'] ?? '',
+					'duration' => !empty($info['duration_secs']) ? (int) ($info['duration_secs'] / 60) . ' min' : ($info['duration'] ?? ''),
+				],
+				'streamUrl'     => $streamUrl,
+				'qualityBadge'  => 'HD',
+				'qualityColor'  => 'primary',
+				'categoryName'  => $catName,
+				'baseUrl'       => $baseUrl,
+			]);
+			return;
 		}
 
 		$domainName = DomainResolver::resolve(

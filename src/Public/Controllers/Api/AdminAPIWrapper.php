@@ -1633,7 +1633,7 @@ class AdminAPIWrapper {
 			$rIDs = explode(',', $rIDs);
 		}
 		$rIDs = array_filter(array_map('intval', (array) $rIDs));
-		if (empty($rIDs)) {
+		if ($rIDs === []) {
 			return ['status' => 'STATUS_FAILURE', 'error' => 'No active code IDs provided.'];
 		}
 		$res = ActiveCodeService::massAction((string) $rAction, $rIDs, $user, true, (array) $rExtra);
@@ -1670,7 +1670,7 @@ class AdminAPIWrapper {
 
 	public static function checkActiveCode($rCode) {
 		$details = ActiveCodeService::checkCode((string) $rCode);
-		if (!$details) {
+		if ($details === []) {
 			return ['status' => 'STATUS_FAILURE', 'error' => 'Invalid or inactive code.'];
 		}
 		return ['status' => 'STATUS_SUCCESS', 'data' => $details];

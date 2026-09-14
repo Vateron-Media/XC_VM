@@ -90,8 +90,6 @@ class AuthRepository {
 
 	/**
 	 * Get the active code string for Web Player V2 (type 8), if configured and enabled.
-	 *
-	 * @return string|null
 	 */
 	public static function getWebPlayerV2Code(): ?string {
 		foreach (self::getAllCodes(8) as $code) {

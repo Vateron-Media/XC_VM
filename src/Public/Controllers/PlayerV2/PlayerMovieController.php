@@ -27,7 +27,7 @@ class PlayerMovieController extends BasePlayerV2Controller {
 		// Support External Xtream Movie View
 		if (!empty($rUserInfo['is_external_xc'])) {
 			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$infoData = $extService ? $extService->getVodInfo($id) : [];
+			$infoData = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodInfo($id) : [];
 			$info = $infoData['info'] ?? [];
 			$movieData = $infoData['movie_data'] ?? [];
 
@@ -35,7 +35,7 @@ class PlayerMovieController extends BasePlayerV2Controller {
 			$posterUrl = $info['movie_image'] ?? ($info['cover_big'] ?? '');
 			$backdropUrl = !empty($info['backdrop_path']) ? (is_array($info['backdrop_path']) ? ($info['backdrop_path'][0] ?? '') : $info['backdrop_path']) : $posterUrl;
 			$ext = $movieData['container_extension'] ?? ($info['container_extension'] ?? 'mp4');
-			$streamUrl = $extService ? $extService->buildVodUrl($id, $ext) : '';
+			$streamUrl = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->buildVodUrl($id, $ext) : '';
 			$catId = (int) ($movieData['category_id'] ?? ($info['category_id'] ?? 0));
 			$catName = PlayerCategoryHelper::resolveCategoryName($catId, $rUserInfo, 'movie');
 
@@ -123,7 +123,7 @@ class PlayerMovieController extends BasePlayerV2Controller {
 		$similarMovies = [];
 		$similarArray = json_decode($rStream['similar'] ?? '', true);
 
-		if (is_array($similarArray) && !empty($similarArray)) {
+		if (is_array($similarArray) && $similarArray !== []) {
 			$cleanSimilar = implode(',', array_map('intval', $similarArray));
 			$cleanVodIds = implode(',', array_map('intval', $rUserInfo['vod_ids']));
 			$db->query('SELECT `id`, `stream_display_name`, `year`, `movie_properties` FROM `streams` WHERE `tmdb_id` IN (' . $cleanSimilar . ') AND `id` IN (' . $cleanVodIds . ') LIMIT 6;');

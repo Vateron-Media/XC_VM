@@ -35,7 +35,7 @@ class PlayerCategoryHelper {
 		// Support External Xtream Codes Account Categories
 		if (!empty($userInfo['is_external_xc'])) {
 			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			if ($extService) {
+			if ($extService instanceof \XcVm\Domain\External\ExternalXtreamService) {
 				$rawCats = match ($type) {
 					'live' => $extService->getLiveCategories(),
 					'series' => $extService->getSeriesCategories(),
@@ -73,7 +73,7 @@ class PlayerCategoryHelper {
 
 		// Check if allowedIds has any category matching this type
 		$hasTypeInAllowed = false;
-		if (!empty($allowedIds)) {
+		if ($allowedIds !== []) {
 			foreach ($rawCategories as $cat) {
 				if (in_array((int) $cat['id'], $allowedIds, true)) {
 					$hasTypeInAllowed = true;
@@ -170,7 +170,6 @@ class PlayerCategoryHelper {
 	 *
 	 * @param string $name Raw category name
 	 * @param string $type 'live', 'movie', 'series'
-	 * @return array
 	 */
 	public static function parseCategoryDisplay(string $name, string $type = 'movie'): array {
 		$name = trim($name);
@@ -247,8 +246,6 @@ class PlayerCategoryHelper {
 	/**
 	 * Calculate streams per category map for authorized subscriber streams.
 	 *
-	 * @param array  $userInfo
-	 * @param string $type
 	 * @return array<int, int> Map of [categoryId => streamCount]
 	 */
 	private static function calculateStreamCounts(array $userInfo, string $type): array {

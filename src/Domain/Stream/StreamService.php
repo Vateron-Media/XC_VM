@@ -478,7 +478,7 @@ class StreamService {
 			if (isset($rData['days_to_restart']) && preg_match('/^(?:2[0-3]|[01][0-9]):[0-5][0-9]$/', $rData['time_to_restart'])) {
 				$rTimeArray = ['days' => [], 'at' => $rData['time_to_restart']];
 
-				foreach ($rData['days_to_restart'] as $rID => $rDay) {
+				foreach ($rData['days_to_restart'] as $rDay) {
 					$rTimeArray['days'][] = $rDay;
 				}
 				$rArray['auto_restart'] = json_encode($rTimeArray);

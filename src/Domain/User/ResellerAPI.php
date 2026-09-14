@@ -336,7 +336,7 @@ class ResellerAPI {
 							$rUserArray['custom_data'] = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
 						}
 					} elseif (isset($rData['custom_data'])) {
-						$rUserArray['custom_data'] = (strlen((string) $rData['custom_data']) > 0)
+						$rUserArray['custom_data'] = ((string) $rData['custom_data'] !== '')
 							? (is_array($rData['custom_data']) ? json_encode($rData['custom_data'], JSON_UNESCAPED_UNICODE) : $rData['custom_data'])
 							: null;
 					}
@@ -1069,7 +1069,7 @@ class ResellerAPI {
 						$rArray['custom_data'] = json_encode($customDataObj, JSON_UNESCAPED_UNICODE);
 					}
 				} elseif (isset($rData['custom_data'])) {
-					$rArray['custom_data'] = (strlen((string) $rData['custom_data']) > 0)
+					$rArray['custom_data'] = ((string) $rData['custom_data'] !== '')
 						? (is_array($rData['custom_data']) ? json_encode($rData['custom_data'], JSON_UNESCAPED_UNICODE) : $rData['custom_data'])
 						: null;
 				}

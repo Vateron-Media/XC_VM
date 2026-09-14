@@ -79,7 +79,7 @@ class TableController extends BaseAdminController {
 				date_default_timezone_set($rUserInfo["timezone"]);
 			}
 		} elseif (isset($_SESSION["hash"])) {
-			include "functions.php";
+			include __DIR__ . "/functions.php";
 		} else {
 			echo json_encode($rReturn);
 			exit;

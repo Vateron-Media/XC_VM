@@ -62,7 +62,7 @@ class CategoryTemplateService {
 			// 2. All sub-resellers' templates (all recursive generations)
 			$subUsers = \XcVm\Domain\User\UserRepository::getSubUsers($userId);
 			$subResellerIds = !empty($subUsers) ? array_map('intval', array_keys($subUsers)) : [];
-			if (!empty($subResellerIds)) {
+			if ($subResellerIds !== []) {
 				$orConditions[] = "t.owner_id IN (" . implode(',', $subResellerIds) . ")";
 			}
 
@@ -86,7 +86,7 @@ class CategoryTemplateService {
 			$params[] = '%' . trim($search) . '%';
 		}
 
-		$whereClause = !empty($where) ? 'WHERE ' . implode(' AND ', $where) : '';
+		$whereClause = $where !== [] ? 'WHERE ' . implode(' AND ', $where) : '';
 
 		$sql = "SELECT t.*, u.username AS owner_name, u.member_group_id AS owner_group_id
                 FROM `category_templates` t
@@ -128,7 +128,6 @@ class CategoryTemplateService {
 	 * Get template data by ID with owner information.
 	 *
 	 * @param int $id Template ID
-	 * @return array|null
 	 */
 	public static function getTemplateById(int $id): ?array {
 		$db = self::db();
@@ -148,9 +147,6 @@ class CategoryTemplateService {
 
 	/**
 	 * Get template items joined with streams_categories.
-	 *
-	 * @param int $templateId
-	 * @return array
 	 */
 	public static function getTemplateItems(int $templateId): array {
 		$db = self::db();
@@ -169,7 +165,6 @@ class CategoryTemplateService {
 	 * Get all available categories on the server merged with template settings for the editor.
 	 * Ensures any new categories added after template creation are included.
 	 *
-	 * @param int $templateId
 	 * @return array ['live' => [...], 'movie' => [...], 'series' => [...]]
 	 */
 	public static function getEditorCategories(int $templateId): array {
@@ -245,7 +240,7 @@ class CategoryTemplateService {
 		}
 
 		// Reorder each section by sort_order
-		foreach ($grouped as $sec => &$list) {
+		foreach ($grouped as &$list) {
 			usort($list, function ($a, $b) {
 				return $a['sort_order'] <=> $b['sort_order'];
 			});
@@ -355,7 +350,6 @@ class CategoryTemplateService {
 	/**
 	 * Save template modifications and category items.
 	 *
-	 * @param int   $templateId
 	 * @param array $data       [name, is_shared, is_system, categories: [...]]
 	 * @param array $user       Current user
 	 * @param bool  $isAdmin    Is admin
@@ -499,9 +493,6 @@ class CategoryTemplateService {
 	/**
 	 * Delete a template with authorization check.
 	 *
-	 * @param int   $templateId
-	 * @param array $user
-	 * @param bool  $isAdmin
 	 * @return array ['success' => bool, 'message' => string]
 	 */
 	public static function deleteTemplate(int $templateId, array $user, bool $isAdmin): array {
@@ -602,11 +593,6 @@ class CategoryTemplateService {
 
 	/**
 	 * Toggle system status of a template (Super Admin Only).
-	 *
-	 * @param int  $templateId
-	 * @param bool $isSystem
-	 * @param bool $isAdmin
-	 * @return array
 	 */
 	public static function toggleSystem(int $templateId, bool $isSystem, bool $isAdmin): array {
 		if (!$isAdmin) {
@@ -620,9 +606,6 @@ class CategoryTemplateService {
 
 	/**
 	 * Build standard XC custom_data structure from a template.
-	 *
-	 * @param int $templateId
-	 * @return array
 	 */
 	public static function buildCustomData(int $templateId): array {
 		$db = self::db();
@@ -669,7 +652,7 @@ class CategoryTemplateService {
 
 			$customData[$key] = [
 				'hide_ids' => implode(',', $hideIds),
-				'renamed'  => empty($renamed) ? (object) [] : $renamed,
+				'renamed'  => $renamed === [] ? (object) [] : $renamed,
 				'order'    => implode(',', $order)
 			];
 		}
@@ -679,9 +662,6 @@ class CategoryTemplateService {
 
 	/**
 	 * Count active subscriber lines attached to a specific template.
-	 *
-	 * @param int $templateId
-	 * @return int
 	 */
 	public static function getSubscriberCount(int $templateId): int {
 		$db = self::db();
@@ -701,7 +681,6 @@ class CategoryTemplateService {
 	 * Synchronize a template layout to all subscriber lines bound to it,
 	 * and broadcast cache update signals to live connections.
 	 *
-	 * @param int $templateId
 	 * @return int Number of updated lines
 	 */
 	public static function syncTemplateToLines(int $templateId): int {
@@ -744,7 +723,6 @@ class CategoryTemplateService {
 	 * Synchronize all templates containing a specific category ID,
 	 * and update all attached lines in real time.
 	 *
-	 * @param int $categoryId
 	 * @return int Total lines synchronized
 	 */
 	public static function syncTemplatesForCategory(int $categoryId): int {
@@ -764,7 +742,6 @@ class CategoryTemplateService {
 	/**
 	 * Apply template layout to all lines belonging to the reseller or admin in bulk.
 	 *
-	 * @param int      $templateId
 	 * @param array    $user             Current user
 	 * @param bool     $isAdmin          Is super admin
 	 * @param int|null $targetResellerId Target reseller lines (for admin)
@@ -845,7 +822,6 @@ class CategoryTemplateService {
 	 * Parse custom_data field into array or null.
 	 *
 	 * @param mixed $customData
-	 * @return array|null
 	 */
 	public static function parseCustomData($customData): ?array {
 		if (empty($customData)) {
@@ -864,7 +840,6 @@ class CategoryTemplateService {
 	 * @param array             $outputCategories Raw list: [['category_id' => '...', 'category_name' => '...', 'parent_id' => 0], ...]
 	 * @param string|array|null $customData       User line custom_data
 	 * @param string            $section          'live_cat', 'vod_cat', or 'series_cat'
-	 * @return array
 	 */
 	public static function applyCustomDataToCategories(array $outputCategories, $customData, string $section): array {
 		$parsed = self::parseCustomData($customData);
@@ -927,14 +902,14 @@ class CategoryTemplateService {
 			if (in_array($cid, $hideIds, true)) {
 				continue;
 			}
-			if (isset($renamed[(string) $cid]) && strlen(trim((string) $renamed[(string) $cid])) > 0) {
+			if (isset($renamed[(string) $cid]) && trim((string) $renamed[(string) $cid]) !== '') {
 				$cat['category_name'] = (string) $renamed[(string) $cid];
 			}
 			$filtered[] = $cat;
 		}
 
 		// 2. Reorder according to sort order if provided
-		if (!empty($order)) {
+		if ($order !== []) {
 			$orderMap = array_flip($order);
 			usort($filtered, function ($a, $b) use ($orderMap) {
 				$idA = (int) ($a['category_id'] ?? 0);

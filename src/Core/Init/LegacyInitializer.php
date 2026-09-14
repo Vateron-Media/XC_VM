@@ -146,7 +146,7 @@ class LegacyInitializer {
 		}
 
 		if (!$GLOBALS['rSettings']) {
-			$GLOBALS['rSettings'] = \XcVm\Infrastructure\Cache\CacheReader::get('settings');
+			$GLOBALS['rSettings'] = CacheReader::get('settings');
 		}
 
 		if (!empty($GLOBALS['rSettings']['default_timezone'])) {
@@ -159,15 +159,15 @@ class LegacyInitializer {
 
 		\XcVm\Streaming\Codec\FfmpegPaths::resolve($GLOBALS['rSettings']['ffmpeg_cpu'], $GLOBALS['rSettings']['ffmpeg_gpu'] ?? null);
 
-		$GLOBALS['rCached'] = \XcVm\Infrastructure\Cache\CacheReader::isReady($GLOBALS['rSettings']);
-		$GLOBALS['rServers'] = \XcVm\Infrastructure\Cache\CacheReader::get('servers') ?: [];
-		$GLOBALS['rBlockedUA'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_ua') ?: [];
-		$GLOBALS['rBlockedISP'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_isp') ?: [];
-		$GLOBALS['rBlockedIPs'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_ips') ?: [];
-		$GLOBALS['rBlockedServers'] = \XcVm\Infrastructure\Cache\CacheReader::get('blocked_servers') ?: [];
-		$GLOBALS['rAllowedIPs'] = \XcVm\Infrastructure\Cache\CacheReader::get('allowed_ips') ?: [];
-		$GLOBALS['rProxies'] = \XcVm\Infrastructure\Cache\CacheReader::get('proxy_servers') ?: [];
-		$GLOBALS['rBouquets'] = \XcVm\Infrastructure\Cache\CacheReader::get('bouquets') ?: [];
+		$GLOBALS['rCached'] = CacheReader::isReady($GLOBALS['rSettings']);
+		$GLOBALS['rServers'] = CacheReader::get('servers') ?: [];
+		$GLOBALS['rBlockedUA'] = CacheReader::get('blocked_ua') ?: [];
+		$GLOBALS['rBlockedISP'] = CacheReader::get('blocked_isp') ?: [];
+		$GLOBALS['rBlockedIPs'] = CacheReader::get('blocked_ips') ?: [];
+		$GLOBALS['rBlockedServers'] = CacheReader::get('blocked_servers') ?: [];
+		$GLOBALS['rAllowedIPs'] = CacheReader::get('allowed_ips') ?: [];
+		$GLOBALS['rProxies'] = CacheReader::get('proxy_servers') ?: [];
+		$GLOBALS['rBouquets'] = CacheReader::get('bouquets') ?: [];
 		$GLOBALS['rSegmentSettings'] = [
 			'seg_time' => intval($GLOBALS['rSettings']['seg_time']),
 			'seg_list_size' => intval($GLOBALS['rSettings']['seg_list_size'])

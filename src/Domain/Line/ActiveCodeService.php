@@ -674,14 +674,14 @@ class ActiveCodeService {
 
 		// 4. Device lock / MAC & Device ID
 		$mac = isset($data['mac']) ? trim((string) $data['mac']) : (string) $code['mac'];
-		$mac = (strlen($mac) > 0 && $mac !== 'None') ? $mac : null;
+		$mac = ($mac !== '' && $mac !== 'None') ? $mac : null;
 
 		$deviceId = isset($data['device_id']) ? trim((string) $data['device_id']) : (string) $code['device_id'];
-		$deviceId = (strlen($deviceId) > 0 && $deviceId !== 'None') ? $deviceId : null;
+		$deviceId = ($deviceId !== '' && $deviceId !== 'None') ? $deviceId : null;
 
 		// 5. Batch name
 		$batchName = isset($data['batch_name']) ? trim((string) $data['batch_name']) : (string) $code['batch_name'];
-		$batchName = strlen($batchName) > 0 ? $batchName : null;
+		$batchName = $batchName !== '' ? $batchName : null;
 
 		// 6. Max connections
 		$maxConn = isset($data['max_connections']) ? max(1, (int) $data['max_connections']) : max(1, (int) $code['max_connections']);
@@ -940,7 +940,7 @@ class ActiveCodeService {
 		}
 
 		// Filter by status: 0=Disabled, 1=Stock/Ready, 2=Active, 3=Expired
-		if (isset($filters['status']) && strlen((string) $filters['status']) > 0) {
+		if (isset($filters['status']) && (string) $filters['status'] !== '') {
 			$statusVal = (string) $filters['status'];
 			if ($statusVal === '1' || strtolower($statusVal) === 'stock' || strtolower($statusVal) === 'ready') {
 				$where[] = "`ac`.`status` = 1";
@@ -959,11 +959,15 @@ class ActiveCodeService {
 			if ($searchVal !== '') {
 				$searchLike = "%{$searchVal}%";
 				$where[] = "(`ac`.`activation_code` LIKE ? OR `ac`.`batch_name` LIKE ? OR `l`.`username` LIKE ? OR `ac`.`mac` LIKE ? OR `ac`.`device_id` LIKE ?)";
-				array_push($params, $searchLike, $searchLike, $searchLike, $searchLike, $searchLike);
+				$params[] = $searchLike;
+				$params[] = $searchLike;
+				$params[] = $searchLike;
+				$params[] = $searchLike;
+				$params[] = $searchLike;
 			}
 		}
 
-		$whereSql = !empty($where) ? ('WHERE ' . implode(' AND ', $where)) : '';
+		$whereSql = $where !== [] ? ('WHERE ' . implode(' AND ', $where)) : '';
 
 		// Count total
 		$countSql = "SELECT COUNT(*) as `total` FROM `activation_codes` `ac` LEFT JOIN `lines` `l` ON `l`.`id` = `ac`.`subscriber_id` {$whereSql};";
@@ -1071,7 +1075,7 @@ class ActiveCodeService {
 	 * @return array|null Detailed record or null if not found/denied
 	 */
 	public static function getCodeDetails($codeOrId, array $user, bool $isAdmin): ?array {
-		$db = self::db();
+		self::db();
 		$isNumeric = is_numeric($codeOrId) && (int) $codeOrId > 0;
 
 		if ($isNumeric) {

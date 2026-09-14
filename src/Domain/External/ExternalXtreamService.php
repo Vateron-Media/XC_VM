@@ -77,7 +77,6 @@ class ExternalXtreamService {
 	 * - http(s)://user:pass@domain:port/...
 	 * - URLs without scheme (e.g. 104.243.37.202/player_api.php?...)
 	 *
-	 * @param string $rawUrl
 	 * @return array{server: string, username: string, password: string}|null
 	 */
 	public static function parsePlaylistUrl(string $rawUrl): ?array {
@@ -299,7 +298,7 @@ class ExternalXtreamService {
 
 		$rawResponse = curl_exec($ch);
 		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-		$curlError = curl_error($ch);
+		curl_error($ch);
 		curl_close($ch);
 
 		if ($rawResponse === false || $httpCode < 200 || $httpCode >= 400) {

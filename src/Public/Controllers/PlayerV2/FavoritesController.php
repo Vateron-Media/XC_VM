@@ -78,7 +78,7 @@ class FavoritesController extends BasePlayerV2Controller {
 		];
 
 		// 1. Fetch Live Channels
-		if (!empty($liveIds)) {
+		if ($liveIds !== []) {
 			$liveIdList = implode(',', $liveIds);
 			$db->query("SELECT `id`, `stream_display_name`, `stream_icon`, `category_id` FROM `streams` WHERE `type` = 1 AND `id` IN ({$liveIdList});");
 			$rows = $db->get_rows() ?: [];
@@ -96,7 +96,7 @@ class FavoritesController extends BasePlayerV2Controller {
 		}
 
 		// 2. Fetch Movies
-		if (!empty($movieIds)) {
+		if ($movieIds !== []) {
 			$movieIdList = implode(',', $movieIds);
 			$db->query("SELECT `id`, `stream_display_name`, `stream_icon`, `movie_properties`, `rating`, `year`, `category_id` FROM `streams` WHERE `type` = 2 AND `id` IN ({$movieIdList});");
 			$rows = $db->get_rows() ?: [];
@@ -119,7 +119,7 @@ class FavoritesController extends BasePlayerV2Controller {
 		}
 
 		// 3. Fetch Series
-		if (!empty($seriesIds)) {
+		if ($seriesIds !== []) {
 			$seriesIdList = implode(',', $seriesIds);
 			$db->query("SELECT `id`, `title`, `cover`, `rating`, `year`, `category_id`, `genre`, `seasons` FROM `streams_series` WHERE `id` IN ({$seriesIdList});");
 			$rows = $db->get_rows() ?: [];
@@ -148,7 +148,7 @@ class FavoritesController extends BasePlayerV2Controller {
 		}
 
 		// 4. Fetch Radio Stations
-		if (!empty($radioIds)) {
+		if ($radioIds !== []) {
 			$radioIdList = implode(',', $radioIds);
 			$db->query("SELECT `id`, `stream_display_name`, `stream_icon`, `category_id` FROM `streams` WHERE `type` = 4 AND `id` IN ({$radioIdList});");
 			$rows = $db->get_rows() ?: [];
@@ -204,7 +204,7 @@ class FavoritesController extends BasePlayerV2Controller {
 		}
 		if (is_string($raw)) {
 			$decoded = json_decode($raw, true);
-			if (is_array($decoded) && !empty($decoded)) {
+			if (is_array($decoded) && $decoded !== []) {
 				return (int) $decoded[0];
 			}
 		}

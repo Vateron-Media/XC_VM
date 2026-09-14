@@ -123,10 +123,10 @@ class ResellerApiDispatcher {
 				self::handleGenerateActiveCodes($rUserInfo);
 				break;
 			case 'active_code_edit':
-				self::handleActiveCodeEdit($rUserInfo, $rPermissions, $db);
+				self::handleActiveCodeEdit($rUserInfo);
 				break;
 			case 'active_code_delete':
-				self::handleActiveCodeDelete($rUserInfo, $rPermissions, $db);
+				self::handleActiveCodeDelete($rUserInfo);
 				break;
 		}
 	}
@@ -147,7 +147,7 @@ class ResellerApiDispatcher {
 				$rReports[] = $rRow['id'];
 			}
 			if (0 < count($rReports)) {
-				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
+				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rConnections) {
 					$rReturn['open_connections'] += $rConnections;
 					if (0 < $rConnections) {
 						$rReturn['online_users']++;
@@ -702,7 +702,7 @@ class ResellerApiDispatcher {
 				$rReports[] = $rRow['id'];
 			}
 			if (0 < count($rReports)) {
-				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
+				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rConnections) {
 					$rReturn['total_connections'] += $rConnections;
 					if (0 < $rConnections) {
 						$rReturn['total_users']++;
@@ -736,7 +736,7 @@ class ResellerApiDispatcher {
 				$rReports[] = $rRow['id'];
 			}
 			if (0 < count($rReports)) {
-				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rUserID => $rConnections) {
+				foreach (ConnectionTracker::getUserConnections($rReports, true) as $rConnections) {
 					$rReturn['open_connections'] += $rConnections;
 					if (0 < $rConnections) {
 						$rReturn['online_users']++;
@@ -1124,7 +1124,7 @@ class ResellerApiDispatcher {
 	/**
 	 * Handle Active Code Edit AJAX (Reseller)
 	 */
-	private static function handleActiveCodeEdit(?array $rUserInfo, array $rPermissions, $db): void {
+	private static function handleActiveCodeEdit(?array $rUserInfo): void {
 		$codeId = intval(RequestManager::get('id') ?? 0);
 		$data = RequestManager::getAll();
 		$res = ActiveCodeService::updateCode($codeId, $data, $rUserInfo ?? [], false);
@@ -1159,7 +1159,7 @@ class ResellerApiDispatcher {
 	/**
 	 * Handle Single Active Code Delete AJAX (Reseller)
 	 */
-	private static function handleActiveCodeDelete(?array $rUserInfo, array $rPermissions, $db): void {
+	private static function handleActiveCodeDelete(?array $rUserInfo): void {
 		$codeId = intval(RequestManager::get('id') ?? 0);
 		$refund = !empty(RequestManager::get('refund_credits'));
 		$res = ActiveCodeService::deleteCode($codeId, $rUserInfo ?? [], false, $refund);

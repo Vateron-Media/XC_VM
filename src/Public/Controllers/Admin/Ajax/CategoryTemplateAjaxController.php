@@ -50,8 +50,8 @@ class CategoryTemplateAjaxController extends BaseAjaxController {
 			$this->fail(['message' => 'Template name is required.']);
 		}
 
-		$isShared = !empty(RequestManager::get('is_shared')) ? true : false;
-		$isSystem = ($isAdmin && !empty(RequestManager::get('is_system'))) ? true : false;
+		$isShared = !empty(RequestManager::get('is_shared'));
+		$isSystem = $isAdmin && !empty(RequestManager::get('is_system'));
 
 		$res = CategoryTemplateService::createTemplate((int) $user['id'], $name, $isSystem, $isShared);
 		if (!$res['success']) {

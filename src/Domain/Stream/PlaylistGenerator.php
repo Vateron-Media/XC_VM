@@ -456,7 +456,7 @@ class PlaylistGenerator {
 							}
 							if (isset($rCategories[$rCategoryID])) {
 								$rCatDisplayName = $rCategories[$rCategoryID]['category_name'];
-								if (isset($rCurrentCustomCfg['renamed'][(string) $rCategoryID]) && strlen(trim((string) $rCurrentCustomCfg['renamed'][(string) $rCategoryID])) > 0) {
+								if (isset($rCurrentCustomCfg['renamed'][(string) $rCategoryID]) && trim((string) $rCurrentCustomCfg['renamed'][(string) $rCategoryID]) !== '') {
 									$rCatDisplayName = (string) $rCurrentCustomCfg['renamed'][(string) $rCategoryID];
 								}
 								$rData = str_replace(['&lt;', '&gt;'], ['<', '>'], str_replace([$rPattern, '{ESR_ID}', '{SID}', '{CHANNEL_NAME}', '{CHANNEL_ID}', '{XC_VM_ID}', '{CATEGORY}', '{CHANNEL_ICON}'], array_map('strval', [str_replace($rCharts, array_map('urlencode', $rCharts), $rURL), $rESRID, $rSID, $rChannel['stream_display_name'], $rChannel['channel_id'], $rChannel['id'], $rCatDisplayName, ImageUtils::validateURL($rIcon)]), $rConfig)) . "\r\n";

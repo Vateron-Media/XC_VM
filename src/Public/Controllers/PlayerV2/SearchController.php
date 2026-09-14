@@ -99,7 +99,7 @@ class SearchController extends BasePlayerV2Controller {
 		$liveClause = '';
 		if (!empty($rUserInfo['live_ids']) && is_array($rUserInfo['live_ids'])) {
 			$liveSafe = array_map('intval', $rUserInfo['live_ids']);
-			if (!empty($liveSafe)) {
+			if ($liveSafe !== []) {
 				$liveClause = ' AND s.id IN (' . implode(',', $liveSafe) . ')';
 			}
 		}
@@ -128,7 +128,7 @@ class SearchController extends BasePlayerV2Controller {
 		$vodClause = '';
 		if (!empty($rUserInfo['vod_ids']) && is_array($rUserInfo['vod_ids'])) {
 			$vodSafe = array_map('intval', $rUserInfo['vod_ids']);
-			if (!empty($vodSafe)) {
+			if ($vodSafe !== []) {
 				$vodClause = ' AND s.id IN (' . implode(',', $vodSafe) . ')';
 			}
 		}
@@ -164,7 +164,7 @@ class SearchController extends BasePlayerV2Controller {
 		$seriesClause = '';
 		if (!empty($rUserInfo['series_ids']) && is_array($rUserInfo['series_ids'])) {
 			$seriesSafe = array_map('intval', $rUserInfo['series_ids']);
-			if (!empty($seriesSafe)) {
+			if ($seriesSafe !== []) {
 				$seriesClause = ' AND ss.id IN (' . implode(',', $seriesSafe) . ')';
 			}
 		}
@@ -206,7 +206,7 @@ class SearchController extends BasePlayerV2Controller {
 		$epSeriesClause = '';
 		if (!empty($rUserInfo['series_ids']) && is_array($rUserInfo['series_ids'])) {
 			$seriesSafe = array_map('intval', $rUserInfo['series_ids']);
-			if (!empty($seriesSafe)) {
+			if ($seriesSafe !== []) {
 				$epSeriesClause = ' AND se.series_id IN (' . implode(',', $seriesSafe) . ')';
 			}
 		}
@@ -260,7 +260,7 @@ class SearchController extends BasePlayerV2Controller {
 		$radioClause = '';
 		if (!empty($rUserInfo['radio_ids']) && is_array($rUserInfo['radio_ids'])) {
 			$radioSafe = array_map('intval', $rUserInfo['radio_ids']);
-			if (!empty($radioSafe)) {
+			if ($radioSafe !== []) {
 				$radioClause = ' AND s.id IN (' . implode(',', $radioSafe) . ')';
 			}
 		}
@@ -328,7 +328,7 @@ class SearchController extends BasePlayerV2Controller {
 		}
 		if (is_string($rawCategory)) {
 			$decoded = json_decode($rawCategory, true);
-			if (is_array($decoded) && !empty($decoded)) {
+			if (is_array($decoded) && $decoded !== []) {
 				return (int) $decoded[0];
 			}
 		}

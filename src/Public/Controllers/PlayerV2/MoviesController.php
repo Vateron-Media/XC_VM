@@ -39,7 +39,7 @@ class MoviesController extends BasePlayerV2Controller {
 			// Support External Xtream Codes
 			if (!empty($rUserInfo['is_external_xc'])) {
 				$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-				$extVod = $extService ? $extService->getVodStreams($catId) : [];
+				$extVod = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams($catId) : [];
 				if ($searchBy) {
 					$extVod = array_filter($extVod, fn($m) => stripos($m['title'], $searchBy) !== false);
 					$extVod = array_values($extVod);
@@ -69,7 +69,7 @@ class MoviesController extends BasePlayerV2Controller {
 				$popularIds = is_array($popularData) && !empty($popularData['movies']) ? $popularData['movies'] : [];
 				$validVodIds = array_intersect(array_map('intval', $popularIds), array_map('intval', $rUserInfo['vod_ids']));
 
-				if (!empty($validVodIds)) {
+				if ($validVodIds !== []) {
 					$cleanIds = implode(',', $validVodIds);
 					$db->query('SELECT `id`, `stream_display_name`, `year`, `rating`, `movie_properties` FROM `streams` WHERE `id` IN (' . $cleanIds . ') ORDER BY FIELD(id, ' . $cleanIds . ') LIMIT 100;');
 					$streamList = $db->get_rows();
@@ -147,7 +147,7 @@ class MoviesController extends BasePlayerV2Controller {
 		// Support External Xtream Standard Load
 		if (!empty($rUserInfo['is_external_xc'])) {
 			$extService = \XcVm\Domain\External\ExternalXtreamService::fromSession();
-			$extVod = $extService ? $extService->getVodStreams($firstCatId) : [];
+			$extVod = $extService instanceof \XcVm\Domain\External\ExternalXtreamService ? $extService->getVodStreams($firstCatId) : [];
 
 			$initialMovies = [];
 			foreach ($extVod as $m) {

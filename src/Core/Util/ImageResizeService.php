@@ -159,13 +159,13 @@ class ImageResizeService {
 						]
 					]);
 					$rawImageData = @file_get_contents($rActURL, false, $ctx);
-					if ($rawImageData !== false && strlen($rawImageData) > 0) {
+					if ($rawImageData !== false && $rawImageData !== '') {
 						$rImage = @imagecreatefromstring($rawImageData);
 					}
 				} else {
 					if (file_exists($rActURL)) {
 						$rawImageData = @file_get_contents($rActURL);
-						if ($rawImageData !== false && strlen($rawImageData) > 0) {
+						if ($rawImageData !== false && $rawImageData !== '') {
 							$rImage = @imagecreatefromstring($rawImageData);
 						}
 					}

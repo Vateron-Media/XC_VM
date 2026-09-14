@@ -1421,17 +1421,17 @@ if (isset($rUserInfo['reports'])) {
 		exit();
 	}
 	if ($rType == 'reg_user_logs') {
-			$rOrder = ['`users_logs`.`id`', '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`'];
+		$rOrder = ['`users_logs`.`id`', '`users`.`username`', '`users_logs`.`log_id`', '`users_logs`.`type`, `users_logs`.`action`', '`users_logs`.`cost`', '`users_logs`.`credits_after`', '`users_logs`.`date`'];
 		if (RequestManager::has('order') && (string) RequestManager::get('order')[0]['column'] !== '') {
 			$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 		} else {
 			$rOrderRow = 0;
 		}
-			$rWhere = $rWhereV = [];
-			$rWhere[] = '`users_logs`.`owner` IN (' . implode(',', $rUserInfo['reports']) . ')';
+		$rWhere = $rWhereV = [];
+		$rWhere[] = '`users_logs`.`owner` IN (' . implode(',', $rUserInfo['reports']) . ')';
 		if ((string) RequestManager::get('search')['value'] !== '') {
 			foreach (range(1, 3) as $rInt) {
-					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
+				$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 			}
 			$rWhere[] = '(`users`.`username` LIKE ? OR `users_logs`.`type` LIKE ? OR `users_logs`.`action` LIKE ?)';
 		}
@@ -1463,14 +1463,14 @@ if (isset($rUserInfo['reports'])) {
 			$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 			$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 		}
-			$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` ' . $rWhereString . ';';
-			$db->query($rCountQuery, ...$rWhereV);
+		$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` ' . $rWhereString . ';';
+		$db->query($rCountQuery, ...$rWhereV);
 		if ($db->num_rows() == 1) {
 			$rReturn['recordsTotal'] = $db->get_row()['count'];
 		} else {
 			$rReturn['recordsTotal'] = 0;
 		}
-			$rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
+		$rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
 		if (0 < $rReturn['recordsTotal']) {
 			$rPackages = PackageService::getAll();
 			$rQuery = 'SELECT `users`.`username`, `users_logs`.`id`, `users_logs`.`owner`, `users_logs`.`type`, `users_logs`.`action`, `users_logs`.`log_id`, `users_logs`.`package_id`, `users_logs`.`cost`, `users_logs`.`credits_after`, `users_logs`.`date`, `users_logs`.`deleted_info` FROM `users_logs` LEFT JOIN `users` ON `users`.`id` = `users_logs`.`owner` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
@@ -1565,28 +1565,28 @@ if (isset($rUserInfo['reports'])) {
 				}
 			}
 		}
-			echo json_encode($rReturn);
-			exit();
+		echo json_encode($rReturn);
+		exit();
 	}
 	if ($rType == 'reg_users') {
 		if ($rPermissions['create_sub_resellers']) {
-				$rOrder = ['`users`.`id`', '`users`.`username`', '`r`.`username`', '`users`.`ip`', '`users`.`status`', '`users`.`credits`', '`user_count`', '`users`.`last_login`', false];
+			$rOrder = ['`users`.`id`', '`users`.`username`', '`r`.`username`', '`users`.`ip`', '`users`.`status`', '`users`.`credits`', '`user_count`', '`users`.`last_login`', false];
 			if (RequestManager::has('order') && (string) RequestManager::get('order')[0]['column'] !== '') {
 				$rOrderRow = intval(RequestManager::get('order')[0]['column']);
 			} else {
 				$rOrderRow = 0;
 			}
-				$rWhere = $rWhereV = [];
-				$rWhere[] = '`users`.`owner_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
+			$rWhere = $rWhereV = [];
+			$rWhere[] = '`users`.`owner_id` IN (' . implode(',', $rUserInfo['reports']) . ')';
 			if ((string) RequestManager::get('search')['value'] !== '') {
 				foreach (range(1, 9) as $rInt) {
-						$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
+					$rWhereV[] = '%' . RequestManager::get('search')['value'] . '%';
 				}
 				$rWhere[] = '(`users`.`id` LIKE ? OR `users`.`username` LIKE ? OR `users`.`notes` LIKE ? OR `r`.`username` LIKE ? OR FROM_UNIXTIME(`users`.`date_registered`) LIKE ? OR FROM_UNIXTIME(`users`.`last_login`) LIKE ? OR `users`.`email` LIKE ? OR `users`.`ip` LIKE ? OR `users_groups`.`group_name` LIKE ?)';
 			}
 			if ((string) RequestManager::get('filter') !== '') {
 				if (RequestManager::get('filter') == 1) {
-						$rWhere[] = '`users`.`status` = 1';
+					$rWhere[] = '`users`.`status` = 1';
 				} else {
 					if (RequestManager::get('filter') == 2) {
 						$rWhere[] = '`users`.`status` = 0';
@@ -1606,14 +1606,14 @@ if (isset($rUserInfo['reports'])) {
 				$rOrderDirection = (strtolower(RequestManager::get('order')[0]['dir']) === 'desc' ? 'desc' : 'asc');
 				$rOrderBy = 'ORDER BY ' . $rOrder[$rOrderRow] . ' ' . $rOrderDirection;
 			}
-				$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` LEFT JOIN `users` AS `r` on `r`.`id` = `users`.`owner_id` ' . $rWhereString . ';';
-				$db->query($rCountQuery, ...$rWhereV);
+			$rCountQuery = 'SELECT COUNT(*) AS `count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` LEFT JOIN `users` AS `r` on `r`.`id` = `users`.`owner_id` ' . $rWhereString . ';';
+			$db->query($rCountQuery, ...$rWhereV);
 			if ($db->num_rows() == 1) {
 				$rReturn['recordsTotal'] = $db->get_row()['count'];
 			} else {
 				$rReturn['recordsTotal'] = 0;
 			}
-				$rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
+			$rReturn['recordsFiltered'] = $rReturn['recordsTotal'];
 			if (0 < $rReturn['recordsTotal']) {
 				$rQuery = 'SELECT `users`.`id`, `users`.`status`, `users_groups`.`is_reseller`, `users`.`notes`, `users`.`owner_id`, `users`.`credits`, `users`.`username`, `users`.`email`, `users`.`ip`, FROM_UNIXTIME(`users`.`date_registered`) AS `date_registered`, FROM_UNIXTIME(`users`.`last_login`) AS `last_login`, `r`.`username` as `owner_username`, `users_groups`.`group_name`, `users`.`status`, (SELECT COUNT(`id`) FROM `lines` WHERE `member_id` = `users`.`id`) AS `user_count` FROM `users` LEFT JOIN `users_groups` ON `users_groups`.`group_id` = `users`.`member_group_id` LEFT JOIN `users` AS `r` on `r`.`id` = `users`.`owner_id` ' . $rWhereString . ' ' . $rOrderBy . ' LIMIT ' . $rStart . ', ' . $rLimit . ';';
 				$db->query($rQuery, ...$rWhereV);
@@ -1678,8 +1678,8 @@ if (isset($rUserInfo['reports'])) {
 					}
 				}
 			}
-				echo json_encode($rReturn);
-				exit();
+			echo json_encode($rReturn);
+			exit();
 		}
 		exit();
 	}
