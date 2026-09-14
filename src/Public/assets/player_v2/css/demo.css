@@ -133,13 +133,20 @@ html.theme-transition *::after {
 }
 
 /*
-* Web Player V2 Live TV App Layout Helpers
+* Web Player V2 Live TV, Movies, Series & Radio App Layout Helpers
 ******************************************************************************/
 .live-app-wrapper,
 .movies-app-wrapper,
 .series-app-wrapper,
 .radio-app-wrapper {
   min-height: calc(100vh - 170px);
+}
+
+.live-app-wrapper .card,
+.movies-app-wrapper .card,
+.series-app-wrapper .card,
+.radio-app-wrapper .card {
+  overflow: visible !important;
 }
 
 .live-sidebar-pane {
@@ -150,52 +157,84 @@ html.theme-transition *::after {
   flex-direction: column;
 }
 
+@media (min-width: 992px) {
+  .live-sidebar-pane {
+    position: sticky;
+    top: 80px;
+    height: calc(100vh - 96px);
+    max-height: calc(100vh - 96px);
+    align-self: flex-start;
+  }
+}
+
 .live-sidebar-pane .sidebar-categories-scroll {
   flex-grow: 1;
-  overflow-y: auto;
+  overflow: hidden !important;
   min-height: 0;
-  max-height: calc(100vh - 250px);
-  scrollbar-width: thin;
+  display: flex;
+  flex-direction: column;
 }
 
-.sidebar-categories-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-
-.sidebar-categories-scroll::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.sidebar-categories-scroll::-webkit-scrollbar-thumb {
-  background: rgba(var(--bs-primary-rgb), 0.25);
-  border-radius: 4px;
-}
-
-.sidebar-categories-scroll::-webkit-scrollbar-thumb:hover {
-  background: var(--bs-primary);
+.live-sidebar-pane .sidebar-categories-scroll .list-group {
+  overflow: hidden;
 }
 
 .sidebar-category-pagination {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
   margin-top: auto;
   flex-shrink: 0;
   border-top: 1px solid var(--bs-border-color);
   background-color: var(--bs-body-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
 }
 
 .items-pagination-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 1020;
   border-top: 1px solid var(--bs-border-color);
   background-color: var(--bs-body-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.12), 0 -1px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.25s ease-in-out;
+  border-bottom-right-radius: var(--bs-card-border-radius, 0.5rem);
+}
+
+@media (max-width: 991.98px) {
+  .items-pagination-bar {
+    border-bottom-left-radius: var(--bs-card-border-radius, 0.5rem);
+  }
 }
 
 .pagination-page-btn {
-  min-width: 34px;
-  height: 34px;
-  padding: 0 6px;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 8px;
   font-size: 0.8125rem;
   font-weight: 600;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pagination-page-btn:hover:not(:disabled):not(.btn-primary) {
+  background-color: var(--bs-secondary-bg);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.pagination-page-btn.btn-primary {
+  background: linear-gradient(135deg, var(--bs-primary) 0%, rgba(var(--bs-primary-rgb), 0.82) 100%);
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(var(--bs-primary-rgb), 0.4);
+  color: #fff;
 }
 
 .live-player-mini-sidebar,

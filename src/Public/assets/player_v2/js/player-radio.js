@@ -212,43 +212,120 @@ window.RadioApp = (function () {
   };
 
   /* ─────────────────────────────────────────────────────────────────
-  /* ─────────────────────────────────────────────────────────────────
-   * Category Sidebar Display & Search Filter
-   * Displays all categories dynamically inside scrollable container
+   * Dynamic Dimension-based Category Pagination & Filter
+   * Calculates slots dynamically based on available height without scrollbar
    * ───────────────────────────────────────────────────────────────── */
+  const getCategoryPageLimit = (pinnedCount = 1) => {
+    if (els.categoriesList) {
+      const scrollParent = els.categoriesList.closest('.sidebar-categories-scroll');
+      if (scrollParent && scrollParent.clientHeight > 100) {
+        const firstItem = els.categoriesList.querySelector('[data-radio-category-id]');
+        const itemHeight = firstItem ? Math.max(36, firstItem.offsetHeight + 4) : 40;
+        const availableHeight = scrollParent.clientHeight;
+        const totalSlots = Math.floor(availableHeight / itemHeight);
+        return Math.max(3, totalSlots - pinnedCount);
+      }
+    }
+    const available = Math.max(260, window.innerHeight - 240);
+    const totalSlots = Math.floor(available / 40);
+    return Math.max(3, totalSlots - pinnedCount);
+  };
+
   const renderCategoriesPagination = () => {
     if (!els.categoriesList) return;
 
     const allCatItems = Array.from(els.categoriesList.querySelectorAll('[data-radio-category-id]'));
     const val = els.categorySearch ? els.categorySearch.value.trim().toLowerCase() : '';
 
+    const pinnedCategories = [];
+    const contentCategories = [];
+
     // Filter matching items (pinned "all" stays visible at top)
     allCatItems.forEach((item) => {
       const catId = item.getAttribute('data-radio-category-id');
       if (catId === 'all') {
         item.classList.remove('d-none');
+        pinnedCategories.push(item);
       } else {
         const text = item.textContent.toLowerCase();
         const raw = (item.getAttribute('data-category-raw') || '').toLowerCase();
         const matches = !val || text.includes(val) || raw.includes(val);
         if (matches) {
-          item.classList.remove('d-none');
+          contentCategories.push(item);
         } else {
           item.classList.add('d-none');
         }
       }
     });
 
-    // All categories displayed directly in scrollable sidebar
-    if (els.categoriesPagination) {
-      els.categoriesPagination.classList.add('d-none');
-      els.categoriesPagination.innerHTML = '';
+    state.catPageLimit = getCategoryPageLimit(pinnedCategories.length);
+    const totalCats = contentCategories.length;
+    const totalPages = Math.max(1, Math.ceil(totalCats / state.catPageLimit));
+
+    if (state.catCurrentPage > totalPages) {
+      state.catCurrentPage = totalPages;
+    }
+    if (state.catCurrentPage < 1) {
+      state.catCurrentPage = 1;
     }
 
-    // Smoothly scroll active category into view if present
-    const activeItem = els.categoriesList.querySelector('.category-list-item.active');
-    if (activeItem && typeof activeItem.scrollIntoView === 'function') {
-      activeItem.scrollIntoView({ block: 'nearest' });
+    const startIdx = (state.catCurrentPage - 1) * state.catPageLimit;
+    const endIdx = state.catCurrentPage * state.catPageLimit;
+
+    contentCategories.forEach((item, idx) => {
+      if (idx >= startIdx && idx < endIdx) {
+        item.classList.remove('d-none');
+      } else {
+        item.classList.add('d-none');
+      }
+    });
+
+    if (!els.categoriesPagination) return;
+
+    if (totalCats === 0) {
+      els.categoriesPagination.classList.add('d-none');
+      els.categoriesPagination.innerHTML = '';
+      return;
+    }
+
+    els.categoriesPagination.classList.remove('d-none');
+    const startNum = totalCats > 0 ? startIdx + 1 : 0;
+    const endNum = Math.min(endIdx, totalCats);
+
+    els.categoriesPagination.innerHTML = `
+      <span class="text-body-secondary small fw-medium">${startNum}–${endNum} of ${totalCats}</span>
+      <div class="d-flex align-items-center gap-1">
+        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-radio-cat-prev" ${state.catCurrentPage === 1 ? 'disabled' : ''} title="Previous Categories">
+          <i class="icon-base bx bx-chevron-left"></i>
+        </button>
+        <span class="badge bg-label-primary px-2 py-1">${state.catCurrentPage} / ${totalPages}</span>
+        <button type="button" class="btn btn-xs btn-icon btn-label-secondary" id="btn-radio-cat-next" ${state.catCurrentPage === totalPages ? 'disabled' : ''} title="Next Categories">
+          <i class="icon-base bx bx-chevron-right"></i>
+        </button>
+      </div>
+    `;
+
+    const prevBtn = document.getElementById('btn-radio-cat-prev');
+    const nextBtn = document.getElementById('btn-radio-cat-next');
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (state.catCurrentPage > 1) {
+          state.catCurrentPage--;
+          renderCategoriesPagination();
+        }
+      });
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (state.catCurrentPage < totalPages) {
+          state.catCurrentPage++;
+          renderCategoriesPagination();
+        }
+      });
     }
   };
 
@@ -344,9 +421,11 @@ window.RadioApp = (function () {
 
     els.pagination.innerHTML = `
       <div class="d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 w-100">
-        <span class="text-body-secondary small order-2 order-sm-1">
-          Showing ${startIdx + 1}–${endIdx} of ${total} Stations
-        </span>
+        <div class="d-flex align-items-center gap-2 order-2 order-sm-1">
+          <span class="badge bg-label-secondary text-body fw-normal px-3 py-2 rounded-pill">
+            Showing <strong class="text-heading fw-semibold">${startIdx + 1}–${endIdx}</strong> of <strong class="text-heading fw-semibold">${total}</strong> Stations
+          </span>
+        </div>
         <div class="d-flex align-items-center gap-1 order-1 order-sm-2">
           ${buttonsHtml}
         </div>
@@ -1284,11 +1363,12 @@ window.RadioApp = (function () {
       }
     }, true);
 
-    // 6. Reposition bottom bar on window resize or menu toggle
+    // 6. Reposition bottom bar and recalculate categories on window resize or menu toggle
     window.addEventListener('resize', () => {
       if (els.bottomBar && !els.bottomBar.classList.contains('d-none')) {
         updateBottomBarPosition();
       }
+      renderCategoriesPagination();
     });
 
     if (window.Helpers && typeof window.Helpers.on === 'function') {
@@ -1313,6 +1393,17 @@ window.RadioApp = (function () {
     initElements();
     loadFavorites();
     bindEvents();
+
+    // Align category page with active category if preset
+    if (state.activeCategory && state.activeCategory !== 'all' && els.categoriesList) {
+      const contentItems = Array.from(els.categoriesList.querySelectorAll('[data-radio-category-id]:not([data-radio-category-id="all"])'));
+      const activeIdx = contentItems.findIndex(item => item.getAttribute('data-radio-category-id') === String(state.activeCategory));
+      if (activeIdx !== -1) {
+        const limit = getCategoryPageLimit(1);
+        state.catCurrentPage = Math.floor(activeIdx / limit) + 1;
+      }
+    }
+
     renderCategoriesPagination();
     renderStations();
 

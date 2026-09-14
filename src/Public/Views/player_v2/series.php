@@ -10,7 +10,7 @@ $assetsPath = $baseUrl . 'assets/';
 
 <div class="row g-4 series-app-wrapper">
   <div class="col-12">
-    <div class="card overflow-hidden shadow-sm border-0">
+    <div class="card shadow-sm border-0">
       <div class="row g-0">
         <!-- ─── Categories Sidebar ───────────────────────────────────── -->
         <div class="col-12 col-lg-3 border-end live-sidebar-pane" id="series-categories-sidebar">

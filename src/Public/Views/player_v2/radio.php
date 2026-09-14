@@ -13,7 +13,7 @@ $assetsPath = $baseUrl . 'assets/';
   <!-- VIEW 1: RADIO STATION BROWSER GRID VIEW                           -->
   <!-- ================================================================= -->
   <div class="col-12" id="radio-browser-view">
-    <div class="card overflow-hidden shadow-sm border-0">
+    <div class="card shadow-sm border-0">
       <div class="row g-0">
         <!-- ─── Categories Sidebar ───────────────────────────────────── -->
         <div class="col-12 col-lg-3 border-end live-sidebar-pane" id="radio-categories-sidebar">
