@@ -97,4 +97,11 @@ class ActiveCodeAjaxController extends BaseAjaxController {
 		echo $content;
 		exit();
 	}
+
+	/**
+	 * action=active_code_details — voucher details modal fragment fallback.
+	 */
+	public function details(): never {
+		(new \XcVm\Public\Controllers\Admin\ActiveCodeDetailsController())->index();
+	}
 }

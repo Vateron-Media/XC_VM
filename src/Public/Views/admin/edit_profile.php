@@ -8,6 +8,7 @@
 
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Enum\Theme;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\UiReference;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Server\ServerRepository;
@@ -67,7 +68,11 @@ foreach (AuthRepository::getAllCodes() as $rCode) {
                 <label class="col-md-3 col-form-label" for="lang"><?= $language::get('language'); ?></label>
                 <div class="col-md-9">
                     <select name="lang" id="lang" class="form-select">
-                        <?php foreach ((is_array($allowedLangs ?? null) ? $allowedLangs : []) as $rText): ?><option value="<?= htmlspecialchars((string) $rText, ENT_QUOTES); ?>" <?= $rUserInfo['lang'] == $rText ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rText, ENT_QUOTES); ?></option><?php endforeach; ?>
+                        <?php foreach (Translator::getLanguagesWithMeta() as $rCode => $rMeta): ?>
+                            <option value="<?= htmlspecialchars((string) $rCode, ENT_QUOTES); ?>" <?= ($rUserInfo['lang'] ?? 'en') === $rCode ? 'selected' : ''; ?>>
+                                <?= $rMeta['flag']; ?> <?= htmlspecialchars($rMeta['native'], ENT_QUOTES); ?> (<?= htmlspecialchars($rMeta['name'], ENT_QUOTES); ?>)
+                            </option>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -173,6 +178,15 @@ renderUnifiedLayoutFooter('admin');
             });
         }
 
+        // Auto-toggle RTL switch when language is changed to/from Arabic
+        $('#lang').on('change select2:select', function() {
+            var isAr = ($(this).val() === 'ar');
+            var rtlSwitch = document.getElementById('ui-rtl');
+            if (rtlSwitch) {
+                rtlSwitch.checked = isAr;
+            }
+        });
+
         // Appearance (design) controls — prefill from the effective customizer prefs
         // (server-authoritative, computed in config.js). These map to users.ui_prefs and
         // are saved via save_ui_prefs on submit, so mobile users can change the design the
@@ -220,6 +234,12 @@ renderUnifiedLayoutFooter('admin');
                 var key = el.getAttribute('data-ui-pref');
                 uiPayload[key] = el.type === 'checkbox' ? !!el.checked : el.value;
             });
+            var selectedLang = $('#lang').val();
+            if (selectedLang === 'ar') {
+                uiPayload['rtl'] = true;
+            } else if (selectedLang && !document.getElementById('ui-rtl')) {
+                uiPayload['rtl'] = false;
+            }
             var uiUrl = (window.XC_VM && window.XC_VM.uiPrefsUrl) || 'api?action=save_ui_prefs';
             var uiFetch = fetch(uiUrl, {
                 method: 'POST',

@@ -30,6 +30,7 @@ class ResellerCategoryTemplatesController extends BaseResellerController {
 			'mine'        => count(array_filter($allTemplates, static fn($t) => !empty($t['is_mine']))),
 			'subreseller' => count(array_filter($allTemplates, static fn($t) => !empty($t['is_subreseller']))),
 			'admin'       => count(array_filter($allTemplates, static fn($t) => !empty($t['is_system']) || !empty($t['is_admin_shared']))),
+			'shared'      => count(array_filter($allTemplates, static fn($t) => !empty($t['scope_type']) && $t['scope_type'] === 'shared')),
 		];
 
 		$templates = $allTemplates;
@@ -39,6 +40,8 @@ class ResellerCategoryTemplatesController extends BaseResellerController {
 			$templates = array_values(array_filter($allTemplates, static fn($t) => !empty($t['is_subreseller'])));
 		} elseif ($scope === 'admin') {
 			$templates = array_values(array_filter($allTemplates, static fn($t) => !empty($t['is_system']) || !empty($t['is_admin_shared'])));
+		} elseif ($scope === 'shared') {
+			$templates = array_values(array_filter($allTemplates, static fn($t) => !empty($t['scope_type']) && $t['scope_type'] === 'shared'));
 		}
 
 		$this->render('category_templates', [

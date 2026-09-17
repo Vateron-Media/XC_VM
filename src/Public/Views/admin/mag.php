@@ -16,6 +16,7 @@
 
 use XcVm\Core\Reference\GeoReference;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\CategoryTemplateService;
 use XcVm\Domain\User\UserRepository;
 
 $rIsEdit      = isset($rDevice['mag_id']);
@@ -28,6 +29,26 @@ $rDeviceIPs   = (isset($rUser['allowed_ips']) && $rUser['allowed_ips'] !== '')
     ? (json_decode((string) $rUser['allowed_ips'], true) ?: [])
     : [];
 $rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegisteredUserById((int) $rUser['member_id']))) ? $rTmp : null;
+
+$categoryTemplates = $categoryTemplates ?? (class_exists(CategoryTemplateService::class) ? CategoryTemplateService::getTemplatesForUser(
+    $GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []),
+    true
+) : []);
+
+$rCurrentTemplateId = null;
+$rCurrentTemplateName = null;
+if ($rIsEdit && !empty($rUser['custom_data'])) {
+    $rCustomDataArr = is_array($rUser['custom_data']) ? $rUser['custom_data'] : json_decode((string) $rUser['custom_data'], true);
+    if (!empty($rCustomDataArr['template_id'])) {
+        $rCurrentTemplateId = (int) $rCustomDataArr['template_id'];
+        foreach ($categoryTemplates as $tpl) {
+            if ((int) ($tpl['id'] ?? 0) === $rCurrentTemplateId) {
+                $rCurrentTemplateName = $tpl['name'] ?? $tpl['template_name'] ?? null;
+                break;
+            }
+        }
+    }
+}
 ?>
 
 <?php if (!isset($_GET['modal'])): ?>
@@ -252,6 +273,40 @@ $rOwnerRow    = (isset($rUser['member_id']) && ($rTmp = UserRepository::getRegis
                 <div class="tab-pane fade" id="tab-bouquets" role="tabpanel">
                     <div class="alert alert-warning d-none" role="alert" id="bouquet_warning"><?= $language::get('this_device_is_linked_to_a_user_the_bouquets_for_that_user_will_be_used') ?: 'This device is linked to a user, the bouquets for that user will be used.'; ?></div>
                     <div id="bouquets_info">
+                        <!-- Category Template Assignment -->
+                        <div class="card mb-4 shadow-none">
+                            <div class="card-body py-4 shadow-none">
+                                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+                                    <label class="form-label fw-semibold mb-0" for="category_template_id">
+                                        <i class="icon-base ti tabler-layout-grid me-1 text-primary"></i> <?= $language::get('category_template'); ?>
+                                    </label>
+                                    <?php if ($rIsEdit && !empty($rUser['custom_data'])): ?>
+                                        <span class="badge bg-label-info">
+                                            <i class="icon-base ti tabler-check me-1"></i> <?= $language::get('custom_categories_applied_to_device') ?: ($language::get('custom_categories_applied_to_line') ?: 'Custom categories applied to device'); ?><?= $rCurrentTemplateName ? ': ' . htmlspecialchars($rCurrentTemplateName, ENT_QUOTES) : ''; ?>
+                                        </span>
+                                    <?php endif; ?>
+                                </div>
+                                <select name="category_template_id" id="category_template_id" class="form-select select2">
+                                    <option value=""><?= ($rIsEdit && !empty($rUser['custom_data'])) ? '-- ' . $language::get('keep_current_custom_layout') . ' --' : '-- ' . $language::get('none_default') . ' --'; ?></option>
+                                    <option value="0"><?= $language::get('reset_to_default_no_template'); ?></option>
+                                    <?php foreach ($categoryTemplates as $tpl): ?>
+                                        <?php
+                                            $tplId = (int) $tpl['id'];
+                                            $isSys = !empty($tpl['is_system']);
+                                            $tName = htmlspecialchars($tpl['name'] ?? $tpl['template_name'] ?? '');
+                                            $isSysStr = $isSys ? ' (' . $language::get('system') . ')' : '';
+                                            $ownerStr = (!empty($tpl['owner_name']) && !$isSys) ? ' [' . htmlspecialchars($tpl['owner_name'], ENT_QUOTES) . ']' : '';
+                                            $activeStr = ($rCurrentTemplateId === $tplId) ? ' (' . ($language::get('active') ?: 'Active') . ')' : '';
+                                        ?>
+                                        <option value="<?= $tplId; ?>">
+                                            <?= $tName . $isSysStr . $ownerStr . $activeStr; ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="form-text small mt-1"><?= $language::get('apply_template_to_reorder_categories'); ?></div>
+                            </div>
+                        </div>
+
                         <div class="d-flex justify-content-end mb-4">
                             <button type="button" class="btn btn-label-secondary btn-sm" id="bqt-toggle"><?= $language::get('toggle_all'); ?></button>
                         </div>
@@ -361,6 +416,22 @@ renderUnifiedLayoutFooter('admin');
                     }
                 }
             });
+            $('#category_template_id').select2({
+                width: '100%',
+                dropdownParent: $('#category_template_id').closest('.tab-pane')
+            });
+        }
+
+        // Re-align select2 width when switching to bouquets tab
+        if ($) {
+            $('button[data-bs-toggle="tab"][data-bs-target="#tab-bouquets"]').on('shown.bs.tab', function() {
+                if ($.fn.select2) {
+                    $('#category_template_id').select2({
+                        width: '100%',
+                        dropdownParent: $('#category_template_id').closest('.tab-pane')
+                    });
+                }
+            });
         }
 
         var pairEl = document.getElementById('pair_id');
@@ -370,7 +441,7 @@ renderUnifiedLayoutFooter('admin');
 
         // Pairing a user takes over the owner/expiry/advanced/bouquet inputs, so hide
         // and disable them while paired (legacy evaluatePair()).
-        var pairedFields = ['exp_date', 'is_trial', 'no_expire', 'is_isplock', 'force_server_id', 'forced_country', 'ip_field', 'allowed_ips', 'member_id'];
+        var pairedFields = ['exp_date', 'is_trial', 'no_expire', 'is_isplock', 'force_server_id', 'forced_country', 'ip_field', 'allowed_ips', 'member_id', 'category_template_id'];
         var applyPair = function() {
             var paired = isPaired();
             document.getElementById('linked_info').classList.toggle('d-none', paired);

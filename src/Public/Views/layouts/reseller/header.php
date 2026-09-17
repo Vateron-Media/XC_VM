@@ -15,6 +15,7 @@
  */
 
 use XcVm\Core\Enum\Theme;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
 use XcVm\Domain\Line\LineService;
 
@@ -29,10 +30,20 @@ $GLOBALS['rGenTrials'] = $rGenTrials;
 
 $xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
 
+$xmCurrentLang = Translator::current();
+$xmIsRtl       = Translator::isRtl($xmCurrentLang);
+$xmDir         = $xmIsRtl ? 'rtl' : 'ltr';
+$xmAllLangs    = Translator::getLanguagesWithMeta();
+
 // Per-user Bootstrap 5 customizer state (shared config.js contract). The stored
 // theme wins for the initial data-bs-theme paint; 'system'/unset falls back to
 // the legacy per-user theme column so there is no flash.
 $xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
+if ($xmIsRtl) {
+    $xmUiPrefs['rtl'] = true;
+} else {
+    $xmUiPrefs['rtl'] = false;
+}
 $xmThemePref = $xmUiPrefs['theme'] ?? null;
 $xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
 
@@ -112,6 +123,12 @@ $xmMenu = [
         ],
     ],
     [
+        'label' => 'category_templates',
+        'icon'  => 'ti tabler-layout-grid',
+        'url'   => 'category_templates',
+        'show'  => true,
+    ],
+    [
         'label' => 'content',
         'icon'  => 'ti tabler-player-play',
         'url'   => '#',
@@ -123,6 +140,7 @@ $xmMenu = [
             ['label' => 'episodes',         'url' => 'episodes',         'show' => true],
             ['label' => 'radios',           'url' => 'radios',           'show' => true],
             ['label' => 'tv_guide',         'url' => 'epg_view',         'show' => !$rMobile],
+            ['label' => 'category_templates', 'url' => 'category_templates', 'show' => true],
         ],
     ],
     [
@@ -196,9 +214,9 @@ if (!function_exists('_xc_reseller_menu_node')) {
 ?>
 <!doctype html>
 <html
-    lang="en"
+    lang="<?= htmlspecialchars($xmCurrentLang, ENT_QUOTES); ?>"
     class="layout-navbar-fixed layout-menu-fixed layout-compact"
-    dir="ltr"
+    dir="<?= $xmDir; ?>"
     data-skin="default"
     data-bs-theme="<?= $xmBsTheme ?>"
     data-assets-path="assets/"
@@ -216,6 +234,9 @@ if (!function_exists('_xc_reseller_menu_node')) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
+    <?php if ($xmIsRtl): ?>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap">
+    <?php endif; ?>
 
     <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
     <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css">
@@ -232,6 +253,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
     <?php require_once dirname(__DIR__, 2) . '/admin/vendors.php'; ?>
     <?php xc_newui_vendor_css(xc_newui_vendors_wanted()); ?>
     <link rel="stylesheet" href="assets/xcvm/custom.css">
+    <link rel="stylesheet" href="assets/xcvm/rtl.css">
 
     <!-- Helpers + template customizer must precede config.js -->
     <script src="assets/vendor/js/helpers.js"></script>
@@ -243,6 +265,26 @@ if (!function_exists('_xc_reseller_menu_node')) {
         window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
     </script>
     <script src="assets/js/config.js"></script>
+    <script>
+        window.xcSwitchLanguage = function(lang) {
+            if (!lang) return;
+            var fd = new FormData();
+            fd.append('action', 'set_language');
+            fd.append('language', lang);
+            fetch('post?action=set_language', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function(r) { return r.json(); })
+            .then(function(res) {
+                document.cookie = 'lang=' + encodeURIComponent(lang) + '; path=/; max-age=' + (365*24*3600);
+                window.location.reload();
+            }).catch(function() {
+                document.cookie = 'lang=' + encodeURIComponent(lang) + '; path=/; max-age=' + (365*24*3600);
+                window.location.reload();
+            });
+        };
+    </script>
 </head>
 
 <?php if (isset($_GET['modal'])): /* iframe modal shell — no sidebar / navbar / topbar */ ?>
@@ -326,6 +368,31 @@ if (!function_exists('_xc_reseller_menu_node')) {
                                             <a class="nav-link btn btn-icon btn-text-secondary rounded-pill" href="tickets" title="<?= htmlspecialchars($language::get('tickets'), ENT_QUOTES); ?>">
                                                 <i class="icon-base ti tabler-ticket icon-22px"></i>
                                             </a>
+                                        </li>
+
+                                        <!-- Language switcher (Distinctive Navbar Feature) -->
+                                        <li class="nav-item dropdown me-2 me-xl-0">
+                                            <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
+                                                id="nav-language" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="false" title="<?= htmlspecialchars($language::get('interface_language') ?: 'Language', ENT_QUOTES); ?>">
+                                                <i class="icon-base ti tabler-language icon-22px text-heading"></i>
+                                            </a>
+                                            <ul class="dropdown-menu dropdown-menu-end xc-lang-dropdown shadow" aria-labelledby="nav-language">
+                                                <?php foreach ($xmAllLangs as $_code => $_info): ?>
+                                                    <li>
+                                                        <button type="button" class="dropdown-item d-flex align-items-center justify-content-between <?= $_code === $xmCurrentLang ? 'active' : ''; ?>"
+                                                            onclick="xcSwitchLanguage('<?= htmlspecialchars($_code, ENT_QUOTES); ?>')">
+                                                            <span class="d-flex align-items-center">
+                                                                <span class="xc-lang-flag me-2"><?= $_info['flag']; ?></span>
+                                                                <span class="fw-medium"><?= htmlspecialchars($_info['native'], ENT_QUOTES); ?></span>
+                                                                <small class="text-body-secondary ms-2">(<?= htmlspecialchars($_info['name'], ENT_QUOTES); ?>)</small>
+                                                            </span>
+                                                            <?php if ($_code === $xmCurrentLang): ?>
+                                                                <i class="icon-base ti tabler-check text-primary ms-2"></i>
+                                                            <?php endif; ?>
+                                                        </button>
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
                                         </li>
 
                                         <!-- Theme switcher (light / dark / system) -->

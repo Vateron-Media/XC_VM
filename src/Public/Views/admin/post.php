@@ -1,5 +1,6 @@
 <?php
 
+use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Auth\AuthService;
 use XcVm\Core\Auth\PageAuthorization;
@@ -8,6 +9,8 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Diagnostics\DiagnosticsService;
 use XcVm\Core\Http\ApiClient;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
+use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Core\Module\ModuleLoader;
 use XcVm\Core\Module\QuickToolsRegistry;
 use XcVm\Core\Util\AdminHelpers;
@@ -29,6 +32,7 @@ use XcVm\Domain\Stream\RadioService;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamService;
 use XcVm\Domain\User\GroupService;
+use XcVm\Domain\User\UserRepository;
 use XcVm\Domain\User\UserService;
 use XcVm\Domain\Vod\EpisodeService;
 use XcVm\Domain\Vod\MovieService;
@@ -1380,12 +1384,36 @@ if (1 < $rICount) { ?>
 
 			case 'edit_profile':
 				global $allowedLangs;
-				$rReturn = UserService::editAdminProfile($rData, $GLOBALS['rAdminUserInfo'], $allowedLangs);
-				setcookie('hue', $rData['hue'], time() + 315360000);
-				setcookie('theme', $rData['theme'], time() + 315360000);
-				$language::setLanguage($rData['lang']);
+				$rAdminUser = $rUserInfo ?? (isset($_SESSION['hash']) ? UserRepository::getRegisteredUserById((int) $_SESSION['hash']) : null) ?? [];
+				$rReturn = UserService::editAdminProfile($rData, $rAdminUser, $allowedLangs);
+				setcookie('hue', $rData['hue'] ?? '', time() + 315360000);
+				setcookie('theme', (string) ($rData['theme'] ?? 0), time() + 315360000);
+				$selectedLang = $rData['lang'] ?? 'en';
+				$language::setLanguage($selectedLang);
+				setcookie('lang', $selectedLang, time() + (365 * 86400), '/');
+				$_COOKIE['lang'] = $selectedLang;
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
+					$adminUserId = (int) ($rAdminUser['id'] ?? ($_SESSION['hash'] ?? 0));
+					if ($adminUserId > 0) {
+						$db = DatabaseFactory::get();
+						$isRtl = Translator::isRtl($selectedLang);
+						$db->query('SELECT `ui_prefs` FROM `users` WHERE `id` = ?;', $adminUserId);
+						$userRow = $db->get_row();
+						$uiPrefs = [];
+						if (!empty($userRow['ui_prefs'])) {
+							$decoded = json_decode((string) $userRow['ui_prefs'], true);
+							if (is_array($decoded)) {
+								$uiPrefs = $decoded;
+							}
+						}
+						$uiPrefs['rtl'] = $isRtl;
+						$db->query('UPDATE `users` SET `ui_prefs` = ? WHERE `id` = ?;', json_encode($uiPrefs), $adminUserId);
+						if (isset($rUserInfo) && is_array($rUserInfo)) {
+							$rUserInfo['ui_prefs'] = json_encode($uiPrefs);
+							$rUserInfo['lang'] = $selectedLang;
+						}
+					}
 					echo json_encode(array('result' => true, 'location' => 'edit_profile?status=' . intval($rReturn['status']), 'status' => $rReturn['status'], 'reload' => true));
 					exit();
 				}
@@ -1876,10 +1904,87 @@ if (1 < $rICount) { ?>
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
 				exit();
 
+			case 'set_language':
+				$lang = $rData['language'] ?? ($rData['lang'] ?? '');
+				if (!in_array($lang, Translator::available(), true)) {
+					echo json_encode(['result' => false, 'error' => 'Invalid language code']);
+					exit();
+				}
+
+				Translator::setLanguage($lang);
+				setcookie('lang', $lang, time() + (365 * 86400), '/');
+				$_COOKIE['lang'] = $lang;
+
+				$adminUserId = (int) ($_SESSION['hash'] ?? ($rUserInfo['id'] ?? 0));
+				$isRtl = Translator::isRtl($lang);
+				if ($adminUserId > 0) {
+					$db = DatabaseFactory::get();
+					$db->query('SELECT `ui_prefs` FROM `users` WHERE `id` = ?;', $adminUserId);
+					$userRow = $db->get_row();
+					$uiPrefs = [];
+					if (!empty($userRow['ui_prefs'])) {
+						$decoded = json_decode((string) $userRow['ui_prefs'], true);
+						if (is_array($decoded)) {
+							$uiPrefs = $decoded;
+						}
+					}
+					$uiPrefs['rtl'] = $isRtl;
+
+					$db->query('UPDATE `users` SET `lang` = ?, `ui_prefs` = ? WHERE `id` = ?;', $lang, json_encode($uiPrefs), $adminUserId);
+					if (isset($rUserInfo) && is_array($rUserInfo)) {
+						$rUserInfo['lang'] = $lang;
+						$rUserInfo['ui_prefs'] = json_encode($uiPrefs);
+					}
+				}
+
+				if (!empty($rData['set_system_default']) && Authorization::check('adv', 'settings')) {
+					$db = DatabaseFactory::get();
+					$db->query('UPDATE `settings` SET `language` = ?;', $lang);
+					SettingsManager::update('language', $lang);
+					SettingsManager::clearCache();
+				}
+
+				echo json_encode([
+					'result' => true,
+					'lang'   => $lang,
+					'dir'    => $isRtl ? 'rtl' : 'ltr',
+					'status' => STATUS_SUCCESS,
+				]);
+				exit();
+
 			case 'settings':
 				$rReturn = SettingsService::edit($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
+					if (!empty($rData['language']) && in_array($rData['language'], Translator::available(), true)) {
+						$selectedLang = $rData['language'];
+						Translator::setLanguage($selectedLang);
+						setcookie('lang', $selectedLang, time() + (365 * 86400), '/');
+						$_COOKIE['lang'] = $selectedLang;
+
+						$adminUserId = (int) ($_SESSION['hash'] ?? ($rUserInfo['id'] ?? 0));
+						if ($adminUserId > 0) {
+							$db = DatabaseFactory::get();
+							$isRtl = Translator::isRtl($selectedLang);
+
+							$db->query('SELECT `ui_prefs` FROM `users` WHERE `id` = ?;', $adminUserId);
+							$userRow = $db->get_row();
+							$uiPrefs = [];
+							if (!empty($userRow['ui_prefs'])) {
+								$decoded = json_decode((string) $userRow['ui_prefs'], true);
+								if (is_array($decoded)) {
+									$uiPrefs = $decoded;
+								}
+							}
+							$uiPrefs['rtl'] = $isRtl;
+
+							$db->query('UPDATE `users` SET `lang` = ?, `ui_prefs` = ? WHERE `id` = ?;', $selectedLang, json_encode($uiPrefs), $adminUserId);
+							if (isset($rUserInfo) && is_array($rUserInfo)) {
+								$rUserInfo['lang'] = $selectedLang;
+								$rUserInfo['ui_prefs'] = json_encode($uiPrefs);
+							}
+						}
+					}
 					echo json_encode(array('result' => true, 'location' => 'settings?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
 					exit();
 				}

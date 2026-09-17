@@ -33,7 +33,12 @@ class EnigmaController extends BaseAdminController {
 			$rDevice['user'] = ['bouquet' => []];
 		}
 
+		$categoryTemplates = \XcVm\Domain\Stream\CategoryTemplateService::getTemplatesForUser(
+			$GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []),
+			true
+		);
+
 		$this->setTitle('Enigma Device');
-		$this->render('enigma', ['rDevice' => $rDevice]);
+		$this->render('enigma', ['rDevice' => $rDevice, 'categoryTemplates' => $categoryTemplates]);
 	}
 }

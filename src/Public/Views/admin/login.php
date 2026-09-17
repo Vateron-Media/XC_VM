@@ -3,6 +3,7 @@
 use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Auth\AuthRepository;
 use XcVm\Core\Http\RequestManager;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\NetworkUtils;
 use XcVm\Domain\Security\BlocklistService;
 use XcVm\Core\Reference\UiReference;
@@ -79,9 +80,11 @@ if (!isset($_SESSION['hash'])) {
     ];
     $rYears = (date('Y') === '2025') ? '2025' : '2025–' . date('Y');
     $rRecaptcha = (bool)($rSettings['recaptcha_enable'] ?? false);
+    $rCurrentLang = Translator::current();
+    $rIsRtl = Translator::isRtl($rCurrentLang);
 ?>
     <!DOCTYPE html>
-    <html lang="en">
+    <html lang="<?= htmlspecialchars($rCurrentLang, ENT_QUOTES); ?>" dir="<?= $rIsRtl ? 'rtl' : 'ltr'; ?>">
 
     <head>
         <meta charset="UTF-8">
@@ -92,8 +95,12 @@ if (!isset($_SESSION['hash'])) {
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=Share+Tech+Mono&display=swap">
+        <?php if ($rIsRtl): ?>
+            <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700&display=swap">
+        <?php endif; ?>
 
         <link rel="stylesheet" href="assets/xcvm/login.css">
+        <link rel="stylesheet" href="assets/xcvm/rtl.css">
     </head>
 
     <body>

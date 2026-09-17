@@ -72,10 +72,19 @@ class CategoryTemplateService {
 			// 4. Admin-shared templates (is_shared = 1 created by administrators)
 			$orConditions[] = "(t.is_shared = 1 AND (t.owner_id = 1 OR u.member_group_id = 1))";
 
-			// 5. Parent-shared templates (shared by direct parent reseller)
-			if ($parentOwnerId > 0) {
-				$orConditions[] = "(t.is_shared = 1 AND t.owner_id = ?)";
-				$params[] = $parentOwnerId;
+			// 5. Ancestor-shared templates (shared by any parent/ancestor reseller in the hierarchy)
+			$ancestorIds = [];
+			$currOwner = $parentOwnerId;
+			$seen = [$userId];
+			while ($currOwner > 0 && !in_array($currOwner, $seen, true)) {
+				$ancestorIds[] = $currOwner;
+				$seen[] = $currOwner;
+				$db->query("SELECT `owner_id` FROM `users` WHERE `id` = ? LIMIT 1", $currOwner);
+				$currOwner = (int) ($db->get_row()['owner_id'] ?? 0);
+			}
+
+			if ($ancestorIds !== []) {
+				$orConditions[] = "(t.is_shared = 1 AND t.owner_id IN (" . implode(',', $ancestorIds) . "))";
 			}
 
 			$where[] = '(' . implode(' OR ', $orConditions) . ')';
@@ -641,8 +650,12 @@ class CategoryTemplateService {
 		}
 
 		if ((int) ($template['is_shared'] ?? 0) === 1) {
-			// Parent-shared: shared by the caller's direct parent reseller.
+			// Direct parent or any ancestor reseller who shared with sub-resellers
 			if ($ownerId === (int) ($user['owner_id'] ?? 0)) {
+				return true;
+			}
+			$subUsersOfOwner = \XcVm\Domain\User\UserRepository::getSubUsers($ownerId);
+			if (isset($subUsersOfOwner[$userId])) {
 				return true;
 			}
 			// Admin-shared: shared and owned by an administrator.
