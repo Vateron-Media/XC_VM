@@ -1387,4 +1387,74 @@ class ActiveCodeService {
 
 		return $vouchers;
 	}
+
+	/**
+	 * Get resellers who have created or own active codes.
+	 *
+	 * @return array
+	 */
+	public static function getResellersWithCodes(): array {
+		$db = self::db();
+		$resellers = $db->fetchAll(
+			'SELECT DISTINCT u.`id`, u.`username`
+			 FROM `users` u
+			 JOIN `activation_codes` c ON c.`created_by` = u.`id`
+			 ORDER BY u.`username` ASC;'
+		);
+		if (empty($resellers)) {
+			$resellers = $db->fetchAll(
+				'SELECT `id`, `username`
+				 FROM `users`
+				 WHERE `member_group_id` != 1
+				 ORDER BY `username` ASC;'
+			);
+		}
+		return $resellers ?: [];
+	}
+
+	/**
+	 * Get all registered users/resellers available for code assignment.
+	 *
+	 * @return array
+	 */
+	public static function getResellersForAssignment(): array {
+		$db = self::db();
+		$resellers = $db->fetchAll(
+			'SELECT `id`, `username`, `credits`
+			 FROM `users`
+			 ORDER BY `username` ASC;'
+		);
+		return $resellers ?: [];
+	}
+
+	/**
+	 * Get recent unique batch names for filtering.
+	 *
+	 * @param array|int|null $ownerIds Optional array of reseller/owner user IDs, or int limit for backward compatibility.
+	 * @param int            $limit    Maximum number of distinct batches to return.
+	 * @return array
+	 */
+	public static function getRecentBatchNames(array|int|null $ownerIds = null, int $limit = 50): array {
+		$db = self::db();
+		$whereClauses = ['`batch_name` IS NOT NULL', '`batch_name` != ""'];
+		$params = [];
+
+		if (is_int($ownerIds) && $ownerIds > 0 && func_num_args() === 1) {
+			$limit = $ownerIds;
+			$ownerIds = null;
+		}
+
+		if (is_array($ownerIds) && !empty($ownerIds)) {
+			$cleanIds = array_map('intval', array_filter($ownerIds, 'is_numeric'));
+			if (!empty($cleanIds)) {
+				$placeholders = implode(',', array_fill(0, count($cleanIds), '?'));
+				$whereClauses[] = "`user_id` IN ({$placeholders})";
+				$params = array_values($cleanIds);
+			}
+		}
+
+		$sql = 'SELECT DISTINCT `batch_name` FROM `activation_codes` WHERE ' . implode(' AND ', $whereClauses) . ' ORDER BY `id` DESC LIMIT ' . (int) $limit . ';';
+		$batches = $db->fetchAll($sql, ...$params);
+		return $batches ?: [];
+	}
 }

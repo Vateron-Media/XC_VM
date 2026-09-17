@@ -166,6 +166,35 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
                         </select>
                     </div>
 
+                    <!-- Category Template Customization -->
+                    <?php if (!empty($categoryTemplates)): ?>
+                        <div class="mb-4">
+                            <label class="form-label fw-semibold" for="category_template_id">
+                                <i class="icon-base ti tabler-layout-grid me-1 text-primary"></i><?= $language::get('category_template') ?: 'Category Template'; ?>
+                            </label>
+                            <select id="category_template_id" name="category_template_id" class="form-select">
+                                <option value="0"><?= $language::get('reset_to_default_no_template') ?: 'Default (No Custom Template)'; ?></option>
+                                <?php foreach ($categoryTemplates as $tmpl): ?>
+                                    <option value="<?= (int)$tmpl['id']; ?>">
+                                        <?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>
+                                        <?php if (!empty($tmpl['is_system'])): ?>
+                                            (<?= $language::get('system_template') ?: 'System'; ?>)
+                                        <?php elseif (!empty($tmpl['is_admin_shared'])): ?>
+                                            (<?= $language::get('admin_shared') ?: 'Admin Shared'; ?>)
+                                        <?php elseif (!empty($tmpl['is_mine'])): ?>
+                                            (<?= $language::get('my_template') ?: 'Mine'; ?>)
+                                        <?php elseif (!empty($tmpl['is_subreseller'])): ?>
+                                            (<?= $language::get('sub_reseller') ?: 'Sub-Reseller'; ?>)
+                                        <?php else: ?>
+                                            (<?= $language::get('shared_with_subresellers') ?: 'Shared'; ?>)
+                                        <?php endif; ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="form-text small"><?= $language::get('apply_template_to_reorder_categories') ?: 'Apply template to reorder, rename or hide categories for generated vouchers'; ?></div>
+                        </div>
+                    <?php endif; ?>
+
                     <!-- Bouquets Customization -->
                     <div class="mb-4">
                         <div class="bq-wrapper p-3">

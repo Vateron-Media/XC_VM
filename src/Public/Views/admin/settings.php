@@ -118,9 +118,9 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 
 								<div class="col-md-8">
 									<select name="language" id="language" class="form-control" data-toggle="select2">
-										<?php foreach (Translator::available() as $rLangCode): ?>
+										<?php foreach (Translator::getLanguagesWithMeta() as $rLangCode => $rLangMeta): ?>
 											<option value="<?= htmlspecialchars($rLangCode) ?>" <?= ($rSettings["language"] ?? 'en') === $rLangCode ? ' selected' : '' ?>>
-												<?= htmlspecialchars($rLangCode) ?>
+												<?= $rLangMeta['flag'] ?> <?= htmlspecialchars($rLangMeta['native']) ?> (<?= htmlspecialchars($rLangMeta['name']) ?>)
 											</option>
 										<?php endforeach; ?>
 									</select>
@@ -2971,6 +2971,8 @@ renderUnifiedLayoutFooter('admin');
 				});
 			}
 		});
+
+
 
 		// settings form submit
 		var form = document.getElementById('settings-form');

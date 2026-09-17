@@ -18,6 +18,15 @@ use XcVm\Domain\Line\PackageService;
  * @package XC_VM_Public_Controllers_Admin
  */
 class ActiveCodeDetailsController {
+	use \XcVm\Infrastructure\Database\DatabaseAware;
+
+	/**
+	 * Alias for router dispatching details().
+	 */
+	public function details(): never {
+		$this->index();
+	}
+
 	/**
 	 * action=active_code_details — full voucher & companion line details.
 	 */
@@ -25,11 +34,12 @@ class ActiveCodeDetailsController {
 		if (
 			(!defined('PHP_ERRORS') || !PHP_ERRORS)
 			&& strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') !== 'xmlhttprequest'
+			&& !RequestManager::has('id')
 		) {
 			exit();
 		}
 
-		global $db;
+		$db = self::db();
 		$codeId = (int) (RequestManager::get('id') ?? 0);
 
 		$code = $codeId ? $db->fetchOne(

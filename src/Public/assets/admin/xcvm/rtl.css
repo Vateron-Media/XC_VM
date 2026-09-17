@@ -1,0 +1,321 @@
+/**
+ * XC_VM RTL (Right-to-Left) Stylesheet
+ *
+ * Dedicated styling for Arabic and RTL languages.
+ * Provides Cairo typography, layout flips, form fixes, and data table alignments.
+ *
+ * @package XC_VM\Public\assets\admin\xcvm
+ * @copyright 2025-2026 Vateron Media
+ * @license AGPL-3.0 https://www.gnu.org/licenses/agpl-3.0.html
+ */
+
+/* ==========================================================================
+   1. Typography & Global Direction
+   ========================================================================== */
+html[dir="rtl"],
+body[dir="rtl"],
+[dir="rtl"] {
+	direction: rtl;
+	text-align: right;
+	font-family: "Cairo", "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+}
+
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] h5,
+[dir="rtl"] h6,
+[dir="rtl"] .app-brand-text,
+[dir="rtl"] .card-title,
+[dir="rtl"] .navbar-nav,
+[dir="rtl"] .menu-link,
+[dir="rtl"] .btn {
+	font-family: "Cairo", "Public Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
+
+/* ==========================================================================
+   2. Top Navbar & Quick Search
+   ========================================================================== */
+/* Quick Search bar in top navbar */
+[dir="rtl"] #xc-quick-search {
+	padding-right: 2.4rem !important;
+	padding-left: 0.85rem !important;
+	text-align: right;
+}
+
+[dir="rtl"] .nav-item:has(#xc-quick-search) > i.tabler-search,
+[dir="rtl"] #xc-quick-search ~ i.tabler-search,
+[dir="rtl"] #xc-quick-search-wrapper i {
+	right: 0.85rem !important;
+	left: auto !important;
+}
+
+/* Dropdown menus alignment flip */
+[dir="rtl"] .dropdown-menu-end {
+	--bs-position: start;
+	right: auto !important;
+	left: 0 !important;
+}
+
+[dir="rtl"] .dropdown-menu {
+	text-align: right;
+}
+
+[dir="rtl"] .dropdown-item {
+	text-align: right;
+	display: flex;
+	align-items: center;
+	justify-content: flex-start;
+}
+
+[dir="rtl"] .dropdown-item i,
+[dir="rtl"] .dropdown-item .icon-base {
+	margin-left: 0.75rem !important;
+	margin-right: 0 !important;
+}
+
+/* Language Switcher in Navbar */
+.xc-lang-dropdown .dropdown-item {
+	font-size: 0.9rem;
+	padding: 0.5rem 1rem;
+	transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.xc-lang-dropdown .dropdown-item.active,
+.xc-lang-dropdown .dropdown-item:active {
+	background-color: rgba(var(--bs-primary-rgb), 0.12) !important;
+	color: var(--bs-primary) !important;
+	font-weight: 600;
+}
+
+.xc-lang-dropdown .dropdown-item:hover {
+	background-color: rgba(var(--bs-primary-rgb), 0.08);
+}
+
+.xc-lang-flag {
+	font-size: 1.15rem;
+	line-height: 1;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+/* ==========================================================================
+   3. Sidebar & Menu Navigation
+   ========================================================================== */
+[dir="rtl"] .layout-menu {
+	border-left: 1px solid var(--bs-border-color);
+	border-right: none;
+}
+
+[dir="rtl"] .menu-vertical .menu-item .menu-link {
+	padding-right: 1.25rem;
+	padding-left: 1rem;
+}
+
+[dir="rtl"] .menu-vertical .menu-icon {
+	margin-right: 0 !important;
+	margin-left: 0.75rem !important;
+}
+
+[dir="rtl"] .menu-vertical .menu-sub .menu-link {
+	padding-right: 3rem !important;
+	padding-left: 1rem !important;
+}
+
+[dir="rtl"] .menu-toggle::after {
+	left: 1rem !important;
+	right: auto !important;
+	transform: translateY(-50%) rotate(180deg);
+}
+
+[dir="rtl"] .menu-item.open > .menu-toggle::after {
+	transform: translateY(-50%) rotate(270deg) !important;
+}
+
+[dir="rtl"] .app-brand .app-brand-text {
+	margin-right: 0.75rem !important;
+	margin-left: 0 !important;
+}
+
+/* ==========================================================================
+   4. Forms, Inputs & Selects
+   ========================================================================== */
+[dir="rtl"] .form-label,
+[dir="rtl"] .col-form-label {
+	text-align: right;
+}
+
+[dir="rtl"] .form-check {
+	padding-right: 1.7em;
+	padding-left: 0;
+}
+
+[dir="rtl"] .form-check .form-check-input {
+	float: right;
+	margin-right: -1.7em;
+	margin-left: 0;
+}
+
+[dir="rtl"] .form-switch {
+	padding-right: 2.5em;
+	padding-left: 0;
+}
+
+[dir="rtl"] .form-switch .form-check-input {
+	float: right;
+	margin-right: -2.5em;
+	margin-left: 0;
+	background-position: right center;
+}
+
+[dir="rtl"] .form-switch .form-check-input:checked {
+	background-position: left center;
+}
+
+/* Select2 RTL */
+[dir="rtl"] .select2-container .select2-selection--single .select2-selection__rendered {
+	padding-right: 0.85rem;
+	padding-left: 1.75rem;
+	text-align: right;
+}
+
+[dir="rtl"] .select2-container .select2-selection--single .select2-selection__arrow {
+	left: 8px !important;
+	right: auto !important;
+}
+
+[dir="rtl"] .select2-dropdown {
+	direction: rtl;
+	text-align: right;
+}
+
+/* Input groups */
+[dir="rtl"] .input-group > :not(:first-child):not(.dropdown-menu):not(.valid-tooltip):not(.valid-feedback):not(.invalid-tooltip):not(.invalid-feedback) {
+	border-top-left-radius: var(--bs-border-radius);
+	border-bottom-left-radius: var(--bs-border-radius);
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+[dir="rtl"] .input-group > :not(:last-child):not(.dropdown-menu) {
+	border-top-right-radius: var(--bs-border-radius);
+	border-bottom-right-radius: var(--bs-border-radius);
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+
+/* ==========================================================================
+   5. DataTables & Tables
+   ========================================================================== */
+[dir="rtl"] table.dataTable th,
+[dir="rtl"] table.dataTable td,
+[dir="rtl"] .table th,
+[dir="rtl"] .table td {
+	text-align: right;
+}
+
+[dir="rtl"] table.dataTable thead th.sorting:before,
+[dir="rtl"] table.dataTable thead th.sorting_asc:before,
+[dir="rtl"] table.dataTable thead th.sorting_desc:before {
+	left: 1em !important;
+	right: auto !important;
+}
+
+[dir="rtl"] table.dataTable thead th.sorting:after,
+[dir="rtl"] table.dataTable thead th.sorting_asc:after,
+[dir="rtl"] table.dataTable thead th.sorting_desc:after {
+	left: 0.5em !important;
+	right: auto !important;
+}
+
+[dir="rtl"] div.dataTables_wrapper div.dataTables_filter {
+	text-align: left;
+}
+
+[dir="rtl"] div.dataTables_wrapper div.dataTables_filter input {
+	margin-right: 0.5em;
+	margin-left: 0;
+}
+
+[dir="rtl"] div.dataTables_wrapper div.dataTables_paginate {
+	text-align: left;
+}
+
+[dir="rtl"] .pagination {
+	padding-right: 0;
+}
+
+[dir="rtl"] .page-item:first-child .page-link {
+	border-top-right-radius: var(--bs-pagination-border-radius);
+	border-bottom-right-radius: var(--bs-pagination-border-radius);
+	border-top-left-radius: 0;
+	border-bottom-left-radius: 0;
+}
+
+[dir="rtl"] .page-item:last-child .page-link {
+	border-top-left-radius: var(--bs-pagination-border-radius);
+	border-bottom-left-radius: var(--bs-pagination-border-radius);
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+
+/* ==========================================================================
+   6. Badges, Icons & Breadcrumbs
+   ========================================================================== */
+[dir="rtl"] .badge i,
+[dir="rtl"] .btn i {
+	margin-left: 0.35rem;
+	margin-right: 0;
+}
+
+[dir="rtl"] .breadcrumb-item + .breadcrumb-item::before {
+	float: right;
+	padding-left: var(--bs-breadcrumb-item-padding-x);
+	padding-right: 0;
+	content: "\ea60"; /* tabler chevron-left */
+}
+
+/* Header stats divider */
+[dir="rtl"] #header_stats .vr {
+	margin-left: 0.25rem;
+	margin-right: 0.25rem;
+}
+
+/* Modal close button */
+[dir="rtl"] .modal-header .btn-close {
+	margin: calc(-0.5 * var(--bs-modal-header-padding-y)) auto calc(-0.5 * var(--bs-modal-header-padding-y)) calc(-0.5 * var(--bs-modal-header-padding-x));
+}
+
+/* Toast notifications */
+[dir="rtl"] .toast {
+	text-align: right;
+}
+
+[dir="rtl"] .toast-header .btn-close {
+	margin-left: calc(-0.5 * var(--bs-toast-padding-x));
+	margin-right: auto;
+}
+
+/* Cards & Widgets */
+[dir="rtl"] .card-header-elements {
+	margin-right: auto !important;
+	margin-left: 0 !important;
+}
+
+[dir="rtl"] .card-action-element {
+	margin-right: auto !important;
+	margin-left: 0 !important;
+}
+
+/* Category Templates & Multi-select */
+[dir="rtl"] .select2-selection__choice {
+	float: right !important;
+	margin-left: 5px !important;
+	margin-right: 0 !important;
+}
+
+[dir="rtl"] .select2-selection__choice__remove {
+	margin-left: 4px !important;
+	margin-right: 0 !important;
+}

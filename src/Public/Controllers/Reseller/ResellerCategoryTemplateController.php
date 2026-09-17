@@ -18,7 +18,7 @@ class ResellerCategoryTemplateController extends BaseResellerController {
 	public function index() {
 		$this->requirePermission();
 
-		$id = (int) RequestManager::get('id', 0);
+		$id = (int) (RequestManager::get('id', 0) ?: ($_GET['id'] ?? 0));
 		if ($id <= 0) {
 			header('Location: category_templates');
 			exit;

@@ -44,13 +44,68 @@ class ResellerPostController extends BaseResellerController {
 		$language = Translator::class;
 
 		switch ($rAction) {
+			case 'set_language':
+				$lang = $rData['language'] ?? ($rData['lang'] ?? '');
+				if (!in_array($lang, Translator::available(), true)) {
+					echo json_encode(['result' => false, 'error' => 'Invalid language code']);
+					exit();
+				}
+
+				Translator::setLanguage($lang);
+				setcookie('lang', $lang, time() + (365 * 86400), '/');
+				$_COOKIE['lang'] = $lang;
+
+				$userId = (int) (ResellerAPI::$rUserInfo['id'] ?? ($GLOBALS['rUserInfo']['id'] ?? ($_SESSION['id'] ?? ($_SESSION['hash'] ?? 0))));
+				$isRtl = Translator::isRtl($lang);
+				if (!empty($userId)) {
+					$db = self::db();
+					$db->query('SELECT `ui_prefs` FROM `users` WHERE `id` = ?;', $userId);
+					$userRow = $db->get_row();
+					$uiPrefs = [];
+					if (!empty($userRow['ui_prefs'])) {
+						$decoded = json_decode((string) $userRow['ui_prefs'], true);
+						if (is_array($decoded)) {
+							$uiPrefs = $decoded;
+						}
+					}
+					$uiPrefs['rtl'] = $isRtl;
+					$db->query('UPDATE `users` SET `lang` = ?, `ui_prefs` = ? WHERE `id` = ?;', $lang, json_encode($uiPrefs), $userId);
+				}
+
+				echo json_encode([
+					'result' => true,
+					'lang'   => $lang,
+					'dir'    => $isRtl ? 'rtl' : 'ltr',
+					'status' => STATUS_SUCCESS,
+				]);
+				exit();
+
 			case 'edit_profile':
 				$rReturn = ResellerAPI::editResellerProfile($rData);
-				setcookie('hue', $rData['hue'], time() + 315360000);
-				setcookie('theme', $rData['theme'], time() + 315360000);
-				$language::setLanguage($rData['lang']);
+				setcookie('hue', $rData['hue'] ?? '', time() + 315360000);
+				setcookie('theme', (string) ($rData['theme'] ?? 0), time() + 315360000);
+				$selectedLang = $rData['lang'] ?? 'en';
+				$language::setLanguage($selectedLang);
+				setcookie('lang', $selectedLang, time() + (365 * 86400), '/');
+				$_COOKIE['lang'] = $selectedLang;
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
+					$userId = (int) (ResellerAPI::$rUserInfo['id'] ?? ($GLOBALS['rUserInfo']['id'] ?? ($_SESSION['id'] ?? ($_SESSION['hash'] ?? 0))));
+					if (!empty($userId)) {
+						$db = self::db();
+						$isRtl = Translator::isRtl($selectedLang);
+						$db->query('SELECT `ui_prefs` FROM `users` WHERE `id` = ?;', $userId);
+						$userRow = $db->get_row();
+						$uiPrefs = [];
+						if (!empty($userRow['ui_prefs'])) {
+							$decoded = json_decode((string) $userRow['ui_prefs'], true);
+							if (is_array($decoded)) {
+								$uiPrefs = $decoded;
+							}
+						}
+						$uiPrefs['rtl'] = $isRtl;
+						$db->query('UPDATE `users` SET `lang` = ?, `ui_prefs` = ? WHERE `id` = ?;', $selectedLang, json_encode($uiPrefs), $userId);
+					}
 					echo json_encode(['result' => true, 'location' => 'edit_profile?status=' . intval($rReturn['status']), 'status' => $rReturn['status'], 'reload' => true]);
 					exit();
 				}

@@ -40,10 +40,14 @@ class Translator {
 
 		self::$availableLanguages = self::scanAvailableLanguages();
 
-		$requestedLang = $_COOKIE['lang'] ?? 'en';
+		$defaultLang = class_exists(\XcVm\Core\Config\SettingsManager::class)
+			? (string) \XcVm\Core\Config\SettingsManager::get('language', 'en')
+			: 'en';
+
+		$requestedLang = $_COOKIE['lang'] ?? $defaultLang;
 		self::$currentLang = in_array($requestedLang, self::$availableLanguages, true)
 			? $requestedLang
-			: 'en';
+			: (in_array($defaultLang, self::$availableLanguages, true) ? $defaultLang : 'en');
 
 		self::loadLanguage(self::$currentLang);
 	}
@@ -51,15 +55,20 @@ class Translator {
 	/**
 	 * Switch language at runtime and set cookie for 1 year.
 	 *
-	 * @param string $lang Language code (en, ru, de, ...)
+	 * @param string|null $lang Language code (en, ru, de, ...) or null
 	 * @return bool true if language exists and was switched
 	 */
-	public static function setLanguage(string $lang): bool {
-		if (!in_array($lang, self::$availableLanguages, true)) {
+	public static function setLanguage(?string $lang): bool {
+		if (empty(self::$availableLanguages)) {
+			self::$availableLanguages = self::scanAvailableLanguages();
+		}
+
+		if ($lang === null || $lang === '' || !in_array($lang, self::$availableLanguages, true)) {
 			return false;
 		}
 
 		self::$currentLang = $lang;
+		$_COOKIE['lang'] = $lang;
 		self::loadLanguage($lang);
 
 		if (!headers_sent()) {
@@ -67,6 +76,47 @@ class Translator {
 		}
 
 		return true;
+	}
+
+	/**
+	 * Check if a language (or the current language) is RTL.
+	 *
+	 * @param string|null $lang Language code or null for current
+	 * @return bool
+	 */
+	public static function isRtl(?string $lang = null): bool {
+		$lang ??= self::$currentLang;
+		return in_array(strtolower($lang), ['ar', 'fa', 'ur', 'he'], true);
+	}
+
+	/**
+	 * Get metadata for available languages (code, native name, english name, flag, direction).
+	 *
+	 * @return array<string, array{name: string, native: string, flag: string, dir: string}>
+	 */
+	public static function getLanguagesWithMeta(): array {
+		$metadata = [
+			'en' => ['name' => 'English',    'native' => 'English',    'flag' => '🇬🇧', 'dir' => 'ltr'],
+			'ar' => ['name' => 'Arabic',     'native' => 'العربية',    'flag' => '🇸🇦', 'dir' => 'rtl'],
+			'ru' => ['name' => 'Russian',    'native' => 'Русский',    'flag' => '🇷🇺', 'dir' => 'ltr'],
+			'de' => ['name' => 'German',     'native' => 'Deutsch',    'flag' => '🇩🇪', 'dir' => 'ltr'],
+			'fr' => ['name' => 'French',     'native' => 'Français',   'flag' => '🇫🇷', 'dir' => 'ltr'],
+			'es' => ['name' => 'Spanish',    'native' => 'Español',    'flag' => '🇪🇸', 'dir' => 'ltr'],
+			'pt' => ['name' => 'Portuguese', 'native' => 'Português',  'flag' => '🇵🇹', 'dir' => 'ltr'],
+			'bg' => ['name' => 'Bulgarian',  'native' => 'Български',  'flag' => '🇧🇬', 'dir' => 'ltr'],
+		];
+
+		$result = [];
+		foreach (self::$availableLanguages as $code) {
+			$result[$code] = $metadata[$code] ?? [
+				'name'   => strtoupper($code),
+				'native' => strtoupper($code),
+				'flag'   => '🌐',
+				'dir'    => self::isRtl($code) ? 'rtl' : 'ltr',
+			];
+		}
+
+		return $result;
 	}
 
 	/**

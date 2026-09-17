@@ -12,6 +12,7 @@
  */
 
 use XcVm\Core\Enum\Theme;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Reference\UiReference;
 
 ?>
@@ -73,8 +74,24 @@ use XcVm\Core\Reference\UiReference;
                 <label class="col-md-3 col-form-label" for="lang"><?= $language::get('language'); ?></label>
                 <div class="col-md-9">
                     <select name="lang" id="lang" class="form-select">
-                        <?php foreach ((is_array($allowedLangs ?? null) ? $allowedLangs : []) as $rText): ?><option value="<?= htmlspecialchars((string) $rText, ENT_QUOTES); ?>" <?= $rUserInfo['lang'] == $rText ? 'selected' : ''; ?>><?= htmlspecialchars((string) $rText, ENT_QUOTES); ?></option><?php endforeach; ?>
+                        <?php foreach (Translator::getLanguagesWithMeta() as $rCode => $rMeta): ?>
+                            <option value="<?= htmlspecialchars((string) $rCode, ENT_QUOTES); ?>" <?= ($rUserInfo['lang'] ?? 'en') === $rCode ? 'selected' : ''; ?>>
+                                <?= $rMeta['flag']; ?> <?= htmlspecialchars($rMeta['native'], ENT_QUOTES); ?> (<?= htmlspecialchars($rMeta['name'], ENT_QUOTES); ?>)
+                            </option>
+                        <?php endforeach; ?>
                     </select>
+                </div>
+            </div>
+            <?php
+            $rUiPrefs = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
+            $rIsRtl = !empty($rUiPrefs['rtl']) || ($rUserInfo['lang'] ?? 'en') === 'ar';
+            ?>
+            <div class="row mb-3">
+                <label class="col-md-3 col-form-label" for="ui-rtl"><?= $language::get('rtl') ?: 'RTL'; ?></label>
+                <div class="col-md-9">
+                    <div class="form-check form-switch pt-1">
+                        <input class="form-check-input" type="checkbox" id="ui-rtl" name="ui_rtl" value="1" <?= $rIsRtl ? 'checked' : ''; ?>>
+                    </div>
                 </div>
             </div>
             <?php if (isset($apiCode)): ?>
@@ -104,6 +121,15 @@ renderUnifiedLayoutFooter('reseller');
         if (!$) { return; }
         var toast = window.xcToast || function() {};
         if ($.fn.select2) { $('#timezone, #theme, #hue, #lang').select2({ width: '100%' }); }
+
+        // Auto-toggle RTL switch when language is changed to/from Arabic
+        $('#lang').on('change select2:select', function() {
+            var isAr = ($(this).val() === 'ar');
+            var rtlSwitch = document.getElementById('ui-rtl');
+            if (rtlSwitch) {
+                rtlSwitch.checked = isAr;
+            }
+        });
 
         var gen = document.getElementById('generate-code');
         if (gen) {

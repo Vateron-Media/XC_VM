@@ -1,22 +1,19 @@
 <?php
 
 /**
- * Category Templates Management View (Reseller).
+ * Category Templates Management View (Admin).
  *
- * Displays modern cards for accessible category templates (own, system, shared),
- * live search, create template modal, clone action, and bulk line application.
+ * Displays modern cards for all category templates, live filtering,
+ * owner filtering, template creation modal, clone action, bulk line application,
+ * and system template toggles.
  */
 
-$rCurrentUser = $currentUser ?? ($GLOBALS['rUserInfo'] ?? []);
-$rTemplates   = $templates ?? [];
-$rSearch      = $search ?? '';
-$rScope       = $scope ?? '';
-$rCounts      = $counts ?? [
-    'total'       => count($rTemplates),
-    'mine'        => count(array_filter($rTemplates, static fn($t) => !empty($t['is_mine']))),
-    'subreseller' => count(array_filter($rTemplates, static fn($t) => !empty($t['is_subreseller']))),
-    'admin'       => count(array_filter($rTemplates, static fn($t) => !empty($t['is_system']) || !empty($t['is_admin_shared']))),
-];
+$rCurrentUser = $currentUser ?? ($GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []));
+$rIsAdmin = !empty($isAdmin);
+$rTemplates = $templates ?? [];
+$rOwners = $owners ?? [];
+$rSelectedOwner = $selectedOwner ?? null;
+$rSearch = $search ?? '';
 ?>
 
 <div class="container-xxl flex-grow-1 container-p-y">
@@ -40,59 +37,33 @@ $rCounts      = $counts ?? [
         </div>
     </div>
 
-    <!-- Scope Filter Tabs -->
-    <div class="d-flex flex-wrap gap-2 mb-3">
-        <a href="category_templates<?= !empty($rSearch) ? '?search=' . urlencode($rSearch) : ''; ?>" 
-           class="btn btn-sm <?= empty($rScope) ? 'btn-primary' : 'btn-label-secondary'; ?> d-flex align-items-center gap-1">
-            <i class="icon-base ti tabler-layout-grid fs-7"></i>
-            <span><?= $language::get('all_templates') ?? 'All Templates'; ?></span>
-            <span class="badge rounded-pill <?= empty($rScope) ? 'bg-white text-primary' : 'bg-label-primary'; ?> ms-1"><?= (int)($rCounts['total'] ?? 0); ?></span>
-        </a>
-        <a href="category_templates?scope=mine<?= !empty($rSearch) ? '&search=' . urlencode($rSearch) : ''; ?>" 
-           class="btn btn-sm <?= $rScope === 'mine' ? 'btn-primary' : 'btn-label-secondary'; ?> d-flex align-items-center gap-1">
-            <i class="icon-base ti tabler-user fs-7"></i>
-            <span><?= $language::get('my_templates') ?? 'My Templates'; ?></span>
-            <span class="badge rounded-pill <?= $rScope === 'mine' ? 'bg-white text-primary' : 'bg-label-primary'; ?> ms-1"><?= (int)($rCounts['mine'] ?? 0); ?></span>
-        </a>
-        <?php if (!empty($rCounts['subreseller']) || $rScope === 'subreseller'): ?>
-        <a href="category_templates?scope=subreseller<?= !empty($rSearch) ? '&search=' . urlencode($rSearch) : ''; ?>" 
-           class="btn btn-sm <?= $rScope === 'subreseller' ? 'btn-success text-white' : 'btn-label-success'; ?> d-flex align-items-center gap-1">
-            <i class="icon-base ti tabler-users fs-7"></i>
-            <span><?= $language::get('sub_resellers_templates') ?? "Sub-Resellers' Templates"; ?></span>
-            <span class="badge rounded-pill <?= $rScope === 'subreseller' ? 'bg-white text-success' : 'bg-label-success'; ?> ms-1"><?= (int)($rCounts['subreseller'] ?? 0); ?></span>
-        </a>
-        <?php endif; ?>
-        <a href="category_templates?scope=admin<?= !empty($rSearch) ? '&search=' . urlencode($rSearch) : ''; ?>" 
-           class="btn btn-sm <?= $rScope === 'admin' ? 'btn-info text-white' : 'btn-label-info'; ?> d-flex align-items-center gap-1">
-            <i class="icon-base ti tabler-shield-check fs-7"></i>
-            <span><?= $language::get('admin_shared_templates') ?? 'Admin & System'; ?></span>
-            <span class="badge rounded-pill <?= $rScope === 'admin' ? 'bg-white text-info' : 'bg-label-info'; ?> ms-1"><?= (int)($rCounts['admin'] ?? 0); ?></span>
-        </a>
-        <?php if (!empty($rCounts['shared']) || $rScope === 'shared'): ?>
-        <a href="category_templates?scope=shared<?= !empty($rSearch) ? '&search=' . urlencode($rSearch) : ''; ?>" 
-           class="btn btn-sm <?= $rScope === 'shared' ? 'btn-warning text-white' : 'btn-label-warning'; ?> d-flex align-items-center gap-1">
-            <i class="icon-base ti tabler-share fs-7"></i>
-            <span><?= $language::get('shared_with_subresellers') ?? 'Shared with Me'; ?></span>
-            <span class="badge rounded-pill <?= $rScope === 'shared' ? 'bg-white text-warning' : 'bg-label-warning'; ?> ms-1"><?= (int)($rCounts['shared'] ?? 0); ?></span>
-        </a>
-        <?php endif; ?>
-    </div>
-
     <!-- Filter & Search Bar -->
     <div class="card mb-4 border-0 shadow-sm">
         <div class="card-body p-3">
             <form method="GET" action="category_templates" id="filterForm" class="row g-3 align-items-center">
-                <div class="col-12 col-md-9">
+                <div class="col-12 col-md-5">
                     <div class="input-group input-group-merge">
                         <span class="input-group-text"><i class="icon-base ti tabler-search"></i></span>
                         <input type="text" name="search" id="liveSearchInput" class="form-control" placeholder="<?= $language::get('search_templates'); ?>" value="<?= htmlspecialchars((string)$rSearch, ENT_QUOTES); ?>">
                     </div>
                 </div>
+                <?php if ($rIsAdmin): ?>
+                    <div class="col-12 col-md-4">
+                        <select name="owner_id" id="ownerFilterSelect" class="form-select" onchange="this.form.submit()">
+                            <option value="">-- <?= $language::get('filter_by_owner'); ?> --</option>
+                            <?php foreach ($rOwners as $owner): ?>
+                                <option value="<?= (int)$owner['id']; ?>" <?= ($rSelectedOwner !== null && (int)$rSelectedOwner === (int)$owner['id']) ? 'selected' : ''; ?>>
+                                    <?= htmlspecialchars((string)$owner['username'], ENT_QUOTES); ?> (ID: <?= (int)$owner['id']; ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
                 <div class="col-12 col-md-3 d-flex gap-2">
                     <button type="submit" class="btn btn-label-secondary w-100">
                         <i class="icon-base ti tabler-filter me-1"></i> <?= $language::get('filter'); ?>
                     </button>
-                    <?php if (!empty($rSearch)): ?>
+                    <?php if (!empty($rSearch) || !empty($rSelectedOwner)): ?>
                         <a href="category_templates" class="btn btn-outline-secondary" title="<?= $language::get('clear_filter'); ?>">
                             <i class="icon-base ti tabler-x"></i>
                         </a>
@@ -121,12 +92,10 @@ $rCounts      = $counts ?? [
                 $tmplId = (int)$tmpl['id'];
                 $isSystem = (int)$tmpl['is_system'] === 1;
                 $isShared = (int)$tmpl['is_shared'] === 1;
-                $isOwner = !empty($tmpl['is_mine']);
-                $isSubReseller = !empty($tmpl['is_subreseller']);
-                $isAdminShared = !empty($tmpl['is_admin_shared']);
-                $canModify = ($isOwner || $isSubReseller) && !$isSystem;
+                $isOwner = (int)$tmpl['owner_id'] === (int)($rCurrentUser['id'] ?? 0);
+                $canModify = $rIsAdmin || ($isOwner && !$isSystem);
                 ?>
-                <div class="col-12 col-md-6 col-xl-4 template-card-wrapper" data-name="<?= strtolower(htmlspecialchars((string)$tmpl['name'], ENT_QUOTES)); ?>" data-owner="<?= strtolower(htmlspecialchars((string)($tmpl['owner_name'] ?? ''), ENT_QUOTES)); ?>" data-scope="<?= htmlspecialchars((string)($tmpl['scope_type'] ?? 'all'), ENT_QUOTES); ?>">
+                <div class="col-12 col-md-6 col-xl-4 template-card-wrapper" data-name="<?= strtolower(htmlspecialchars((string)$tmpl['name'], ENT_QUOTES)); ?>" data-owner="<?= strtolower(htmlspecialchars((string)($tmpl['owner_name'] ?? ''), ENT_QUOTES)); ?>">
                     <div class="card h-100 border-0 shadow-sm template-card <?= $isSystem ? 'border-system-template' : ''; ?>">
                         <div class="card-body d-flex flex-column justify-content-between p-4">
                             <div>
@@ -144,11 +113,6 @@ $rCounts      = $counts ?? [
                                                 <span class="d-inline-flex align-items-center gap-1" title="<?= $language::get('owner') ?? 'Owner'; ?>">
                                                     <i class="icon-base ti tabler-user fs-7 text-muted"></i>
                                                     <strong class="text-heading"><?= htmlspecialchars((string)($tmpl['owner_name'] ?? 'System'), ENT_QUOTES); ?></strong>
-                                                    <?php if ($isSubReseller): ?>
-                                                        <span class="badge bg-label-success fs-9 py-0 px-1 ms-1"><?= $language::get('sub_reseller') ?? 'Sub-Reseller'; ?></span>
-                                                    <?php elseif ($isOwner): ?>
-                                                        <span class="badge bg-label-primary fs-9 py-0 px-1 ms-1"><?= $language::get('you') ?? 'You'; ?></span>
-                                                    <?php endif; ?>
                                                 </span>
                                                 <span class="text-muted opacity-50">•</span>
                                                 <span class="d-inline-flex align-items-center gap-1 text-muted" title="<?= $language::get('date') ?? 'Created Date'; ?>">
@@ -162,18 +126,6 @@ $rCounts      = $counts ?? [
                                         <?php if ($isSystem): ?>
                                             <span class="badge bg-label-info rounded-pill d-inline-flex align-items-center gap-1" title="<?= $language::get('system_template_desc'); ?>">
                                                 <i class="icon-base ti tabler-world fs-7"></i> <?= $language::get('system'); ?>
-                                            </span>
-                                        <?php elseif ($isAdminShared): ?>
-                                            <span class="badge bg-label-info rounded-pill d-inline-flex align-items-center gap-1" title="Shared by Admin">
-                                                <i class="icon-base ti tabler-shield-check fs-7"></i> <?= $language::get('admin_shared') ?? 'Admin Shared'; ?>
-                                            </span>
-                                        <?php elseif ($isSubReseller): ?>
-                                            <span class="badge bg-label-success rounded-pill d-inline-flex align-items-center gap-1" title="Sub-Reseller Template">
-                                                <i class="icon-base ti tabler-users fs-7"></i> <?= $language::get('sub_reseller') ?? 'Sub-Reseller'; ?>
-                                            </span>
-                                        <?php elseif ($isOwner): ?>
-                                            <span class="badge bg-label-primary rounded-pill d-inline-flex align-items-center gap-1" title="<?= $language::get('my_templates') ?? 'My Template'; ?>">
-                                                <i class="icon-base ti tabler-user fs-7"></i> <?= $language::get('my_template') ?? 'Mine'; ?>
                                             </span>
                                         <?php elseif ($isShared): ?>
                                             <span class="badge bg-label-warning rounded-pill d-inline-flex align-items-center gap-1" title="<?= $language::get('shared_desc'); ?>">
@@ -320,8 +272,8 @@ $rCounts      = $counts ?? [
                             <!-- Operations Footer -->
                             <div class="pt-3 border-top d-flex align-items-center justify-content-between gap-2">
                                 <a href="category_template?id=<?= $tmplId; ?>" class="btn btn-sm btn-primary d-flex align-items-center gap-1.5 flex-grow-1 justify-content-center shadow-xs">
-                                    <i class="icon-base ti <?= $canModify ? 'tabler-pencil' : 'tabler-eye'; ?> fs-6"></i>
-                                    <span><?= $canModify ? $language::get('edit_template') : $language::get('preview'); ?></span>
+                                    <i class="icon-base ti tabler-pencil fs-6"></i>
+                                    <span><?= $language::get('edit_template'); ?></span>
                                 </a>
 
                                 <button type="button" class="btn btn-sm btn-label-success d-flex align-items-center gap-1.5 js-btn-apply-all px-2.5" data-id="<?= $tmplId; ?>" data-name="<?= htmlspecialchars((string)$tmpl['name'], ENT_QUOTES); ?>" title="<?= $language::get('apply_to_all_desc'); ?>">
@@ -340,6 +292,14 @@ $rCounts      = $counts ?? [
                                                 <span><?= $language::get('clone_template'); ?></span>
                                             </a>
                                         </li>
+                                        <?php if ($rIsAdmin): ?>
+                                            <li>
+                                                <a class="dropdown-item d-flex align-items-center gap-2 js-btn-toggle-system py-2 px-3" href="javascript:void(0);" data-id="<?= $tmplId; ?>" data-system="<?= $isSystem ? '0' : '1'; ?>">
+                                                    <i class="icon-base ti tabler-world-share text-info fs-6"></i>
+                                                    <span><?= $isSystem ? 'Unmark System Template' : 'Set as System Template'; ?></span>
+                                                </a>
+                                            </li>
+                                        <?php endif; ?>
                                         <?php if ($canModify): ?>
                                             <li><hr class="dropdown-divider my-1"></li>
                                             <li>
@@ -383,6 +343,14 @@ $rCounts      = $counts ?? [
                             <?= $language::get('share_with_subresellers'); ?>
                         </label>
                     </div>
+                    <?php if ($rIsAdmin): ?>
+                        <div class="form-check form-switch mb-3">
+                            <input class="form-check-input" type="checkbox" id="new_is_system" name="is_system" value="1">
+                            <label class="form-check-label text-info fw-semibold" for="new_is_system">
+                                <i class="icon-base ti tabler-world me-1"></i> <?= $language::get('set_as_system_template'); ?>
+                            </label>
+                        </div>
+                    <?php endif; ?>
                     <div class="alert alert-info py-2 px-3 small mb-0 d-flex align-items-center gap-2">
                         <i class="icon-base ti tabler-info-circle fs-5 flex-shrink-0"></i>
                         <span>Default server categories will be loaded automatically into the template editor.</span>
@@ -418,9 +386,20 @@ $rCounts      = $counts ?? [
                         <i class="icon-base ti tabler-alert-triangle me-1"></i>
                         <strong>Notice:</strong> <?= $language::get('action_cannot_be_undone'); ?>
                     </div>
-                    <p class="mb-0">
+                    <p class="mb-2">
                         <?= $language::get('template'); ?>: <strong id="apply_template_name_display" class="text-primary"></strong>
                     </p>
+                    <?php if ($rIsAdmin): ?>
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold" for="apply_target_reseller">Apply to specific reseller lines (Optional):</label>
+                            <select name="target_reseller_id" id="apply_target_reseller" class="form-select form-select-sm">
+                                <option value="">-- Owner's Lines Only --</option>
+                                <?php foreach ($rOwners as $owner): ?>
+                                    <option value="<?= (int)$owner['id']; ?>"><?= htmlspecialchars((string)$owner['username'], ENT_QUOTES); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    <?php endif; ?>
                 </div>
                 <div class="modal-footer border-top">
                     <button type="button" class="btn btn-label-secondary" data-bs-dismiss="modal"><?= $language::get('cancel'); ?></button>
@@ -436,7 +415,7 @@ $rCounts      = $counts ?? [
 
 <?php
 require_once __DIR__ . '/../layouts/footer.php';
-renderUnifiedLayoutFooter('reseller');
+renderUnifiedLayoutFooter('admin');
 ?>
 
 <script>
@@ -508,14 +487,6 @@ renderUnifiedLayoutFooter('reseller');
         });
     }
 
-    // Auto open Create Template modal if ?create=1 in query parameters
-    if (new URLSearchParams(window.location.search).get('create') === '1') {
-        var createModalEl = document.getElementById('createTemplateModal');
-        if (createModalEl) {
-            new bootstrap.Modal(createModalEl).show();
-        }
-    }
-
     // Create Template Form Submission
     var createForm = document.getElementById('createTemplateForm');
     if (createForm) {
@@ -578,6 +549,29 @@ renderUnifiedLayoutFooter('reseller');
         });
     });
 
+    // Toggle System Template (Admin Only)
+    document.querySelectorAll('.js-btn-toggle-system').forEach(function(el) {
+        el.addEventListener('click', function() {
+            var id = this.getAttribute('data-id');
+            var sys = this.getAttribute('data-system');
+
+            fetch('./api?action=category_template_toggle_system&id=' + encodeURIComponent(id) + '&is_system=' + encodeURIComponent(sys), {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.result) {
+                    toast('success', data.message || 'System template status updated successfully.');
+                    setTimeout(function() { window.location.reload(); }, 600);
+                } else {
+                    toast('error', data.message || 'Failed to update system template status.');
+                }
+            })
+            .catch(function() { toast('error', 'Connection error to server.'); });
+        });
+    });
+
     // Delete Template Action
     document.querySelectorAll('.js-btn-delete').forEach(function(el) {
         el.addEventListener('click', function() {
@@ -630,8 +624,14 @@ renderUnifiedLayoutFooter('reseller');
             spinner.classList.remove('d-none');
 
             var templateId = document.getElementById('apply_template_id').value;
+            var targetReseller = document.getElementById('apply_target_reseller') ? document.getElementById('apply_target_reseller').value : '';
 
-            fetch('./api?action=category_template_apply_all&id=' + encodeURIComponent(templateId), {
+            var url = './api?action=category_template_apply_all&id=' + encodeURIComponent(templateId);
+            if (targetReseller) {
+                url += '&target_reseller_id=' + encodeURIComponent(targetReseller);
+            }
+
+            fetch(url, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             })

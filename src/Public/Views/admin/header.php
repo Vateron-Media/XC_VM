@@ -16,6 +16,7 @@
 use XcVm\Core\Auth\Authorization;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Enum\Theme;
+use XcVm\Core\Localization\Translator;
 use XcVm\Core\Module\NavbarItem;
 use XcVm\Core\Module\NavbarRegistry;
 
@@ -26,10 +27,20 @@ if (count(get_included_files()) == 1) {
 $rUpdate  = (json_decode((string) SettingsManager::getAll()['update_data'], true) ?: []);
 $xmIsDark = Theme::fromId($rUserInfo['theme'] ?? 0)->isDark();
 
+$xmCurrentLang = Translator::current();
+$xmIsRtl       = Translator::isRtl($xmCurrentLang);
+$xmDir         = $xmIsRtl ? 'rtl' : 'ltr';
+$xmAllLangs    = Translator::getLanguagesWithMeta();
+
 // Per-user Bootstrap 5 customizer state (see config.js + StatsAjaxController::saveUiPrefs).
 // The stored theme wins for the initial data-bs-theme paint; 'system'/unset falls
 // back to the legacy per-user theme column so there is no flash.
 $xmUiPrefs   = json_decode($rUserInfo['ui_prefs'] ?? '', true) ?: [];
+if ($xmIsRtl) {
+    $xmUiPrefs['rtl'] = true;
+} else {
+    $xmUiPrefs['rtl'] = false;
+}
 $xmThemePref = $xmUiPrefs['theme'] ?? null;
 $xmBsTheme   = $xmThemePref === 'dark' ? 'dark' : ($xmThemePref === 'light' ? 'light' : ($xmIsDark ? 'dark' : 'light'));
 
@@ -68,9 +79,9 @@ if (!function_exists('_xc_nav_label')) {
 ?>
 <!doctype html>
 <html
-    lang="en"
+    lang="<?= htmlspecialchars($xmCurrentLang, ENT_QUOTES); ?>"
     class="layout-navbar-fixed layout-menu-fixed layout-compact"
-    dir="ltr"
+    dir="<?= $xmDir; ?>"
     data-skin="default"
     data-bs-theme="<?= $xmBsTheme ?>"
     data-assets-path="assets/"
@@ -88,6 +99,9 @@ if (!function_exists('_xc_nav_label')) {
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&display=swap">
+    <?php if ($xmIsRtl): ?>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap">
+    <?php endif; ?>
 
     <!-- Icons: Bootstrap 5 chrome uses Tabler (iconify) -->
     <link rel="stylesheet" href="assets/vendor/fonts/iconify-icons.css">
@@ -104,6 +118,7 @@ if (!function_exists('_xc_nav_label')) {
     <?php require_once __DIR__ . '/vendors.php'; ?>
     <?php xc_newui_vendor_css(xc_newui_vendors_wanted()); ?>
     <link rel="stylesheet" href="assets/xcvm/custom.css">
+    <link rel="stylesheet" href="assets/xcvm/rtl.css">
 
     <!-- Helpers + template customizer must precede config.js -->
     <script src="assets/vendor/js/helpers.js"></script>
@@ -115,6 +130,26 @@ if (!function_exists('_xc_nav_label')) {
         window.XC_VM_UIPrefs = <?= json_encode($xmUiPrefs, JSON_UNESCAPED_SLASHES); ?>;
     </script>
     <script src="assets/js/config.js"></script>
+    <script>
+        window.xcSwitchLanguage = function(lang) {
+            if (!lang) return;
+            var fd = new FormData();
+            fd.append('action', 'set_language');
+            fd.append('language', lang);
+            fetch('post.php?action=set_language', {
+                method: 'POST',
+                body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            }).then(function(r) { return r.json(); })
+            .then(function(res) {
+                document.cookie = 'lang=' + encodeURIComponent(lang) + '; path=/; max-age=' + (365*24*3600);
+                window.location.reload();
+            }).catch(function() {
+                document.cookie = 'lang=' + encodeURIComponent(lang) + '; path=/; max-age=' + (365*24*3600);
+                window.location.reload();
+            });
+        };
+    </script>
 </head>
 
 <?php if (!empty($GLOBALS['_SETUP'])): /* setup wizard — branded bare shell: no sidebar / navbar / menu, and never touches $rUserInfo */ ?>
@@ -194,8 +229,8 @@ if (!function_exists('_xc_nav_label')) {
                                                 <!-- Global quick search -->
                                                 <?php if (!empty($rSettings['enable_search'])): ?>
                                                     <li class="nav-item me-3 d-none d-lg-block" style="position:relative; width:300px;">
-                                                        <i class="icon-base ti tabler-search position-absolute text-body-secondary" style="left:0.85rem; top:50%; transform:translateY(-50%); pointer-events:none; z-index:4;"></i>
-                                                        <input type="text" id="xc-quick-search" class="form-control form-control-sm rounded-pill" style="padding-left:2.4rem;" autocomplete="off" placeholder="<?= htmlspecialchars($language::get('search_placeholder'), ENT_QUOTES); ?>">
+                                                        <i class="icon-base ti tabler-search position-absolute text-body-secondary" style="<?= $xmIsRtl ? 'right:0.85rem;' : 'left:0.85rem;'; ?> top:50%; transform:translateY(-50%); pointer-events:none; z-index:4;"></i>
+                                                        <input type="text" id="xc-quick-search" class="form-control form-control-sm rounded-pill" style="<?= $xmIsRtl ? 'padding-right:2.4rem; padding-left:0.85rem;' : 'padding-left:2.4rem;'; ?>" autocomplete="off" placeholder="<?= htmlspecialchars($language::get('search_placeholder'), ENT_QUOTES); ?>">
                                                         <div id="xc-search-results" class="dropdown-menu w-100 mt-2 p-0 shadow border-0" style="max-height:70vh; overflow-y:auto; min-width:340px;"></div>
                                                     </li>
                                                 <?php endif; ?>
@@ -209,9 +244,30 @@ if (!function_exists('_xc_nav_label')) {
                                                     </li>
                                                 <?php endif; ?>
 
-                                                <!-- NOTE: the tickets dropdown (legacy header ran raw $db queries inline here)
-                                 is intentionally deferred; it will return fed by a controller/provider,
-                                 not inline DB access in the shell. -->
+                                                <!-- Language switcher (Distinctive Navbar Feature) -->
+                                                <li class="nav-item dropdown me-2 me-xl-0">
+                                                    <a class="nav-link dropdown-toggle hide-arrow btn btn-icon btn-text-secondary rounded-pill"
+                                                        id="nav-language" href="javascript:void(0);" data-bs-toggle="dropdown" aria-expanded="false" title="<?= htmlspecialchars($language::get('interface_language') ?: 'Language', ENT_QUOTES); ?>">
+                                                        <i class="icon-base ti tabler-language icon-22px text-heading"></i>
+                                                    </a>
+                                                    <ul class="dropdown-menu dropdown-menu-end xc-lang-dropdown shadow" aria-labelledby="nav-language">
+                                                        <?php foreach ($xmAllLangs as $_code => $_info): ?>
+                                                            <li>
+                                                                <button type="button" class="dropdown-item d-flex align-items-center justify-content-between <?= $_code === $xmCurrentLang ? 'active' : ''; ?>"
+                                                                    onclick="xcSwitchLanguage('<?= htmlspecialchars($_code, ENT_QUOTES); ?>')">
+                                                                    <span class="d-flex align-items-center">
+                                                                        <span class="xc-lang-flag me-2"><?= $_info['flag']; ?></span>
+                                                                        <span class="fw-medium"><?= htmlspecialchars($_info['native'], ENT_QUOTES); ?></span>
+                                                                        <small class="text-body-secondary ms-2">(<?= htmlspecialchars($_info['name'], ENT_QUOTES); ?>)</small>
+                                                                    </span>
+                                                                    <?php if ($_code === $xmCurrentLang): ?>
+                                                                        <i class="icon-base ti tabler-check text-primary ms-2"></i>
+                                                                    <?php endif; ?>
+                                                                </button>
+                                                            </li>
+                                                        <?php endforeach; ?>
+                                                    </ul>
+                                                </li>
 
                                                 <!-- Theme switcher (light / dark / system) -->
                                                 <li class="nav-item dropdown">
