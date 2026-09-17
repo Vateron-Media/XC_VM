@@ -1,0 +1,418 @@
+openapi: 3.0.3
+info:
+  title: XC_VM Player API (XtreamCodes)
+  version: "1.0.0"
+  description: |
+    XtreamCodes-compatible **Player API** — access to Live TV, Radio, VOD (movies),
+    Series and EPG for client applications.
+
+    - **Controller:** `src/Public/Controllers/Api/PlayerApiController.php`
+    - **EPG / XMLTV:** `src/Public/Controllers/Api/EpgApiController.php` (`/xmltv.php`)
+    - **Authentication:** every request requires `username` and `password` query parameters.
+
+    **Request pattern:**
+    ```
+    {protocol}://{host}:{port}/player_api?username={username}&password={password}&action={action}
+    ```
+
+    ## Media access (direct links)
+    After authorization, media is served from:
+    ```
+    /live/{username}/{password}/{stream_id}.ts
+    /movie/{username}/{password}/{vod_id}.mp4
+    /series/{username}/{password}/{episode_id}.mp4
+    ```
+    On the first request a redirect to `/auth/...` occurs for authentication before content is served.
+
+    **Output formats:** `m3u8`, `ts`, `rtmp`.
+servers:
+  - url: '{protocol}://{host}:{port}'
+    description: XC_VM server
+    variables:
+      protocol:
+        default: http
+        enum: [http, https]
+      host:
+        default: your-server.com
+        description: Server IP or domain
+      port:
+        default: '80'
+        description: HTTP port
+
+security:
+  - Username: []
+    Password: []
+
+tags:
+  - name: Authorization
+    description: Credential validation and server information
+  - name: Live TV
+    description: Live streams, categories and EPG
+  - name: VOD
+    description: Video-on-Demand movies
+  - name: Series
+    description: TV series, seasons and episodes
+  - name: Media
+    description: Direct media links
+
+paths:
+  /player_api:
+    get:
+      tags: [Authorization]
+      summary: Authorize
+      description: Validates user credentials and returns user and server information.
+      responses:
+        '200':
+          description: User and server info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user_info: { type: object }
+                  server_info: { type: object }
+              example:
+                user_info:
+                  username: testxc
+                  password: testxc
+                  message: Welcome to XC_VM
+                  auth: 1
+                  status: Active
+                  exp_date: null
+                  is_trial: 0
+                  created_at: 1757353729
+                  max_connections: 1
+                  allowed_output_formats: [m3u8, ts, rtmp]
+                server_info:
+                  xui: true
+                  version: "1.1.0"
+                  url: "176.124.192.118"
+                  port: "80"
+                  https_port: "443"
+                  server_protocol: http
+                  rtmp_port: "8880"
+                  timestamp_now: 1757442189
+                  time_now: "2025-09-09 19:23:09"
+                  timezone: Europe/London
+
+  /player_api?action=get_live_categories:
+    get:
+      tags: [Live TV]
+      summary: Get all live categories
+      responses:
+        '200':
+          description: Live categories
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Category' } }
+              example:
+                - { category_id: "1", category_name: News, parent_id: 0 }
+                - { category_id: "2", category_name: Sports, parent_id: 0 }
+
+  /player_api?action=get_live_streams:
+    get:
+      tags: [Live TV]
+      summary: Get all live streams
+      description: Returns all live streams, optionally filtered by `category_id`.
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema: { type: integer }
+          description: Filter streams by category
+      responses:
+        '200':
+          description: Live streams
+          content:
+            application/json:
+              schema: { type: array, items: { type: object } }
+              example:
+                - num: 1
+                  name: BBC News
+                  stream_type: live
+                  stream_id: 101
+                  stream_icon: "http://176.124.192.118/images/bbc.png"
+                  epg_channel_id: bbc.news.uk
+                  added: "1660568200"
+                  category_id: "1"
+                  custom_sid: ""
+                  tv_archive: 0
+                  direct_source: ""
+                  tv_archive_duration: 0
+
+  /player_api?action=get_short_epg:
+    get:
+      tags: [Live TV]
+      summary: Get channel short EPG
+      parameters:
+        - name: stream_id
+          in: query
+          required: true
+          schema: { type: integer }
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer }
+          description: Number of EPG entries to return
+      responses:
+        '200':
+          description: EPG listings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  epg_listings: { type: array, items: { type: object } }
+              example:
+                epg_listings:
+                  - id: 1
+                    title: Morning News
+                    start: "2022-08-15 07:00:00"
+                    end: "2022-08-15 08:00:00"
+                    description: Daily morning news update.
+
+  /player_api?action=get_simple_data_table:
+    get:
+      tags: [Live TV]
+      summary: Get full channel schedule
+      parameters:
+        - name: stream_id
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Full EPG schedule for the channel
+          content:
+            application/json:
+              schema: { type: object }
+
+  /xmltv.php:
+    get:
+      tags: [Live TV]
+      summary: Get EPG for all channels (XMLTV)
+      description: Returns the full XMLTV guide for all channels.
+      responses:
+        '200':
+          description: XMLTV document
+          content:
+            application/xml:
+              schema: { type: string }
+              example: |
+                <tv>
+                  <channel id="bbc.news.uk">
+                    <display-name>BBC News</display-name>
+                  </channel>
+                  <programme start="20220815070000 +0000" stop="20220815080000 +0000" channel="bbc.news.uk">
+                    <title>Morning News</title>
+                    <desc>Daily morning news update.</desc>
+                  </programme>
+                </tv>
+
+  /player_api?action=get_vod_categories:
+    get:
+      tags: [VOD]
+      summary: Get movie categories
+      responses:
+        '200':
+          description: VOD categories
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Category' } }
+              example:
+                - { category_id: "10", category_name: Action, parent_id: 0 }
+                - { category_id: "11", category_name: Drama, parent_id: 0 }
+
+  /player_api?action=get_vod_streams:
+    get:
+      tags: [VOD]
+      summary: Get all VOD streams
+      description: Returns all movies, optionally filtered by `category_id`.
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: VOD streams
+          content:
+            application/json:
+              schema: { type: array, items: { type: object } }
+              example:
+                - num: 1
+                  name: The Dark Knight (2008)
+                  title: The Dark Knight
+                  year: 2008
+                  stream_type: movie
+                  stream_id: 1
+                  rating: 8.5
+                  rating_5based: 4.3
+                  added: 1757343129
+                  genre: "Drama, Action, Crime"
+                  release_date: "2008-07-16"
+                  youtube_trailer: kmJLuwP3MbY
+                  episode_run_time: "152"
+                  category_id: "1"
+                  category_ids: [1, 2]
+                  container_extension: mp4
+                  custom_sid: ""
+                  direct_source: ""
+
+  /player_api?action=get_vod_info:
+    get:
+      tags: [VOD]
+      summary: Get movie info
+      parameters:
+        - name: vod_id
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Detailed movie info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  info: { type: object }
+                  movie_data: { type: object }
+
+  /player_api?action=get_series_categories:
+    get:
+      tags: [Series]
+      summary: Get series categories
+      responses:
+        '200':
+          description: Series categories
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: '#/components/schemas/Category' } }
+              example:
+                - { category_id: "20", category_name: Drama, parent_id: 0 }
+
+  /player_api?action=get_series:
+    get:
+      tags: [Series]
+      summary: Get all series
+      description: Returns all series, optionally filtered by `category_id`.
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Series list
+          content:
+            application/json:
+              schema: { type: array, items: { type: object } }
+              example:
+                - num: 1
+                  name: Braceface (2001)
+                  title: Braceface
+                  year: 2001
+                  stream_type: series
+                  series_id: 1
+                  genre: "Drama, Animation, Comedy"
+                  release_date: "2001-06-02"
+                  last_modified: "1757348651"
+                  rating: "7"
+                  rating_5based: 3.5
+                  episode_run_time: 25
+                  category_id: "4"
+                  category_ids: [4]
+
+  /player_api?action=get_series_info:
+    get:
+      tags: [Series]
+      summary: Get series info
+      description: Returns seasons, series info and episodes for a series.
+      parameters:
+        - name: series_id
+          in: query
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Series detail
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  seasons: { type: array, items: { type: object } }
+                  info: { type: object }
+                  episodes: { type: object }
+
+  /live/{username}/{password}/{stream_id}.ts:
+    get:
+      tags: [Media]
+      summary: Live TV stream
+      description: Direct link to a live channel stream.
+      parameters:
+        - { name: username, in: path, required: true, schema: { type: string } }
+        - { name: password, in: path, required: true, schema: { type: string } }
+        - { name: stream_id, in: path, required: true, schema: { type: integer } }
+      security: []
+      responses:
+        '200':
+          description: MPEG-TS stream
+          content:
+            video/mp2t:
+              schema: { type: string, format: binary }
+
+  /movie/{username}/{password}/{vod_id}.mp4:
+    get:
+      tags: [Media]
+      summary: Movie (VOD)
+      description: Direct link to a movie file.
+      parameters:
+        - { name: username, in: path, required: true, schema: { type: string } }
+        - { name: password, in: path, required: true, schema: { type: string } }
+        - { name: vod_id, in: path, required: true, schema: { type: integer } }
+      security: []
+      responses:
+        '200':
+          description: Movie file
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+
+  /series/{username}/{password}/{episode_id}.mp4:
+    get:
+      tags: [Media]
+      summary: Episode
+      description: Direct link to an episode file.
+      parameters:
+        - { name: username, in: path, required: true, schema: { type: string } }
+        - { name: password, in: path, required: true, schema: { type: string } }
+        - { name: episode_id, in: path, required: true, schema: { type: integer } }
+      security: []
+      responses:
+        '200':
+          description: Episode file
+          content:
+            video/mp4:
+              schema: { type: string, format: binary }
+
+components:
+  securitySchemes:
+    Username:
+      type: apiKey
+      in: query
+      name: username
+      description: Account username.
+    Password:
+      type: apiKey
+      in: query
+      name: password
+      description: Account password.
+  schemas:
+    Category:
+      type: object
+      properties:
+        category_id: { type: string }
+        category_name: { type: string }
+        parent_id: { type: integer }
