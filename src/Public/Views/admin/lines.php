@@ -377,7 +377,9 @@ renderUnifiedLayoutFooter('admin');
             selected: <?= json_encode($language::get('selected')); ?>,
             error: <?= json_encode($language::get('error_occured')); ?>,
             confirmDelete: 'Are you sure you want to delete this line?',
-            confirmKill: 'Are you sure you want to kill all connections for this line?'
+            confirmKill: 'Are you sure you want to kill all connections for this line?',
+            copied: <?= json_encode($language::get('copied_success') ?: 'Copied!'); ?>,
+            noContent: <?= json_encode($language::get('select_an_option') ?: 'Nothing to copy'); ?>
         };
         // Status code -> [bootstrap colour, label].
         var STATUS = {
@@ -827,38 +829,98 @@ renderUnifiedLayoutFooter('admin');
         };
         jQuery(dlType).on('change', buildDownload);
         jQuery(outType).on('change', buildDownload);
-        var copyTextWithFeedback = function(text, btn) {
-            if (!text) return;
+        function copyToClipboard(text) {
             if (navigator.clipboard && window.isSecureContext) {
-                navigator.clipboard.writeText(text);
-            } else {
-                var ta = document.createElement('textarea');
-                ta.value = text;
-                ta.style.position = 'fixed';
-                ta.style.opacity = '0';
-                document.body.appendChild(ta);
-                ta.select();
-                document.execCommand('copy');
-                document.body.removeChild(ta);
+                return navigator.clipboard.writeText(text).catch(function() {
+                    return fallbackCopy(text);
+                });
             }
-            if (btn) {
-                var icon = btn.querySelector('i');
-                if (icon) {
-                    var origClass = icon.className;
-                    icon.className = 'icon-base ti tabler-check text-success';
-                    setTimeout(function() {
-                        icon.className = origClass;
-                    }, 1500);
+            return fallbackCopy(text);
+        }
+
+        function fallbackCopy(text) {
+            return new Promise(function(resolve, reject) {
+                try {
+                    var textarea = document.createElement('textarea');
+                    textarea.value = String(text != null ? text : '');
+                    textarea.style.position = 'fixed';
+                    textarea.style.left = '-9999px';
+                    textarea.style.top = '0';
+                    textarea.setAttribute('readonly', '');
+                    // CRITICAL: Append inside the open modal (if any) so Bootstrap's focus trap
+                    // does not steal focus and clear the selection before copy.
+                    var host = document.querySelector('.modal.show') || document.body;
+                    host.appendChild(textarea);
+                    textarea.focus();
+                    textarea.select();
+                    textarea.setSelectionRange(0, textarea.value.length);
+                    var ok = false;
+                    try {
+                        ok = document.execCommand('copy');
+                    } catch (e) {
+                        ok = false;
+                    }
+                    host.removeChild(textarea);
+                    if (ok) {
+                        resolve();
+                    } else {
+                        reject(new Error('copy command failed'));
+                    }
+                } catch (err) {
+                    reject(err);
                 }
+            });
+        }
+
+        var copyTextWithFeedback = function(text, btn, isFullButton) {
+            if (!text) {
+                if (window.xcToast) {
+                    xcToast(lang.noContent || 'Nothing to copy', 'warning');
+                }
+                return;
             }
+            copyToClipboard(text).then(function() {
+                if (window.xcToast) {
+                    xcToast(lang.copied || 'Copied!', 'success');
+                }
+                if (btn) {
+                    if (isFullButton) {
+                        if (!btn._origHtml) btn._origHtml = btn.innerHTML;
+                        btn.innerHTML = '<i class="icon-base ti tabler-check me-1"></i> ' + (lang.copied || 'Copied!');
+                        clearTimeout(btn._resetTimer);
+                        btn._resetTimer = setTimeout(function() {
+                            btn.innerHTML = btn._origHtml;
+                            btn._origHtml = null;
+                        }, 1500);
+                    } else {
+                        var icon = btn.querySelector('i');
+                        if (icon) {
+                            if (!btn._origIconClass) btn._origIconClass = icon.className;
+                            icon.className = 'icon-base ti tabler-check text-success';
+                            clearTimeout(btn._resetTimer);
+                            btn._resetTimer = setTimeout(function() {
+                                icon.className = btn._origIconClass;
+                                btn._origIconClass = null;
+                            }, 1500);
+                        }
+                    }
+                }
+            }).catch(function() {
+                prompt('Copy to clipboard:', text);
+            });
         };
 
         jQuery(document).on('click', '.js-quick-copy', function() {
             var targetId = this.getAttribute('data-target');
             var el = document.getElementById(targetId);
             if (el) {
-                copyTextWithFeedback(el.value, this);
+                copyTextWithFeedback(el.value, this, false);
             }
+        });
+
+        // Quick click-to-select for readonly modal inputs
+        jQuery('#downloadModal input[readonly]').on('focus click', function() {
+            this.select();
         });
 
         var btnTogglePass = document.getElementById('btn_toggle_pass');
@@ -892,7 +954,7 @@ renderUnifiedLayoutFooter('admin');
                            "🔑 Password: " + p + "\n\n" +
                            "🔗 M3U Plus URL:\n" + m3u;
 
-                copyTextWithFeedback(text, btnCopyAll);
+                copyTextWithFeedback(text, btnCopyAll, true);
             });
         }
 
@@ -954,7 +1016,7 @@ renderUnifiedLayoutFooter('admin');
             bootstrap.Modal.getOrCreateInstance(dlModal).show();
         });
         document.getElementById('download_copy').addEventListener('click', function() {
-            copyTextWithFeedback(dlUrl.value, this);
+            copyTextWithFeedback(dlUrl.value, this, false);
         });
         dlOpen.addEventListener('click', function() {
             if (dlUrl.value) {
