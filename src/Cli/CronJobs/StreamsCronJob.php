@@ -394,9 +394,29 @@ class StreamsCronJob implements CommandInterface {
 
 				$rUUIDs = [];
 				$rConnections = ConnectionTracker::getConnections(SERVER_ID, null, $rStream['id']);
-				foreach ($rConnections as $rItems) {
-					foreach ($rItems as $rItem) {
-						$rUUIDs[] = $rItem['uuid'];
+				if (!empty($rConnections)) {
+					// In Redis mode: [$rKeys, $rData] where $rKeys contains string keys and $rData contains connection arrays
+					$rItemsList = (isset($rConnections[0], $rConnections[1]) && is_array($rConnections[1]))
+						? $rConnections[1]
+						: $rConnections;
+
+					foreach ($rItemsList as $rSub) {
+						if (is_array($rSub)) {
+							// Single connection array (Redis mode) or array of connection arrays (MySQL mode grouped by user_id)
+							if (isset($rSub['uuid'])) {
+								if (empty($rSub['stream_id']) || $rSub['stream_id'] == $rStream['id']) {
+									$rUUIDs[] = $rSub['uuid'];
+								}
+							} else {
+								foreach ($rSub as $rItem) {
+									if (is_array($rItem) && !empty($rItem['uuid'])) {
+										if (empty($rItem['stream_id']) || $rItem['stream_id'] == $rStream['id']) {
+											$rUUIDs[] = $rItem['uuid'];
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 
