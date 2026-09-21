@@ -43,8 +43,9 @@ class StreamAuthMiddleware {
 			header('Alt-Svc: h3-29=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-T051=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q050=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q046=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,h3-Q043=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000,quic=":' . $rServers[SERVER_ID]['https_broadcast_port'] . '"; ma=2592000; v="46,43"');
 		}
 
-		if (empty($rSettings['send_unique_header_domain']) && !filter_var(HOST, FILTER_VALIDATE_IP)) {
-			$rSettings['send_unique_header_domain'] = '.' . HOST;
+		$rHost = defined('HOST') ? HOST : ($_SERVER['HTTP_HOST'] ?? '');
+		if (empty($rSettings['send_unique_header_domain']) && !empty($rHost) && !filter_var($rHost, FILTER_VALIDATE_IP)) {
+			$rSettings['send_unique_header_domain'] = '.' . $rHost;
 		}
 
 		if (!empty($rSettings['send_unique_header'])) {

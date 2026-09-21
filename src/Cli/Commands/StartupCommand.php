@@ -76,6 +76,27 @@ class StartupCommand implements CommandInterface {
 			@chmod($rRunSh, 0755);
 		}
 
+		// ── Права на системные скрипты и бинарники (service, update, redis) ──
+		foreach (['service', 'update', 'bin/redis/redis-server', 'bin/daemons.sh'] as $rScript) {
+			$rScriptPath = MAIN_HOME . $rScript;
+			if (file_exists($rScriptPath) && !is_executable($rScriptPath)) {
+				@chmod($rScriptPath, 0755);
+			}
+		}
+
+		// ── Проверка наличия конфигураций пулов php-fpm (1..4.conf) ──
+		if (file_exists(MAIN_HOME . 'bin/php/etc/template')) {
+			$rTemplate = file_get_contents(MAIN_HOME . 'bin/php/etc/template');
+			foreach (range(1, 4) as $i) {
+				$rConf = MAIN_HOME . 'bin/php/etc/' . $i . '.conf';
+				if (!file_exists($rConf)) {
+					file_put_contents($rConf, str_replace('#PATH#', MAIN_HOME, str_replace('#ID#', (string) $i, $rTemplate)));
+					@chmod($rConf, 0644);
+					exec('sudo chown xc_vm:xc_vm ' . escapeshellarg($rConf) . ' 2>/dev/null');
+				}
+			}
+		}
+
 		// ── Установка crontab и запуск кэша ──────────────────
 		if (posix_getpwuid(posix_geteuid())['name'] == 'root') {
 			$this->installRootCrontab();
