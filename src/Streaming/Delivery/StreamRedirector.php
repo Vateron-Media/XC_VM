@@ -187,8 +187,9 @@ class StreamRedirector {
 			}
 		}
 		$rDomain = null;
-		if ((string) HOST !== '' && in_array(strtolower(HOST), array_map('strtolower', $rServers[$rServerID]['domains']['urls']))) {
-			$rDomain = HOST;
+		$rHost = defined('HOST') ? (string) HOST : '';
+		if ($rHost !== '' && in_array(strtolower($rHost), array_map('strtolower', $rServers[$rServerID]['domains']['urls']))) {
+			$rDomain = $rHost;
 		} else {
 			if ($rServers[$rServerID]['random_ip'] && 0 < count($rServers[$rServerID]['domains']['urls'])) {
 				$rDomain = $rServers[$rServerID]['domains']['urls'][array_rand($rServers[$rServerID]['domains']['urls'])];
@@ -201,12 +202,13 @@ class StreamRedirector {
 		if ($rDomain) {
 			$rURL = $rProtocol . '://' . $rDomain . ':' . $rServers[$rServerID][$rProtocol . '_broadcast_port'];
 		} else {
-			if (defined('HOST') && (string) HOST !== '' && filter_var(HOST, FILTER_VALIDATE_IP)) {
+			if ($rHost !== '' && filter_var($rHost, FILTER_VALIDATE_IP)) {
 				$rURL = $rProtocol . '://' . $rServers[$rServerID]['server_ip'] . ':' . $rServers[$rServerID][$rProtocol . '_broadcast_port'];
 			} else {
 				$rURL = rtrim($rServers[$rServerID][$rProtocol . '_url'], '/');
 			}
 		}
+
 		if ($rServers[$rServerID]['server_type'] == 1 && $rOriginatorID && $rServers[$rOriginatorID]['is_main'] == 0) {
 			$rURL .= '/' . md5($rServerID . '_' . $rOriginatorID . '_' . OPENSSL_EXTRA);
 		}

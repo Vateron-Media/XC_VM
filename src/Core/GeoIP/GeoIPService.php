@@ -27,13 +27,20 @@ class GeoIPService {
 	public static function getIPInfo(string $rIP) {
 		if (!empty($rIP)) {
 			if (!file_exists(CONS_TMP_PATH . md5($rIP) . '_geo2')) {
-				$rGeoIP = new \MaxMind\Db\Reader(GEOLITE2_BIN);
-				$rResponse = $rGeoIP->get($rIP);
-				$rGeoIP->close();
-				if ($rResponse) {
-					file_put_contents(CONS_TMP_PATH . md5($rIP) . '_geo2', json_encode($rResponse));
+				if (!defined('GEOLITE2_BIN') || !file_exists(GEOLITE2_BIN)) {
+					return false;
 				}
-				return $rResponse;
+				try {
+					$rGeoIP = new \MaxMind\Db\Reader(GEOLITE2_BIN);
+					$rResponse = $rGeoIP->get($rIP);
+					$rGeoIP->close();
+					if ($rResponse) {
+						file_put_contents(CONS_TMP_PATH . md5($rIP) . '_geo2', json_encode($rResponse));
+					}
+					return $rResponse;
+				} catch (\Throwable $e) {
+					return false;
+				}
 			}
 			return json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_geo2'), true);
 		}
@@ -51,17 +58,25 @@ class GeoIPService {
 		if (!empty($rIP)) {
 			$rResponse = (file_exists(CONS_TMP_PATH . md5($rIP) . '_isp') ? json_decode(file_get_contents(CONS_TMP_PATH . md5($rIP) . '_isp'), true) : null);
 			if (!is_array($rResponse)) {
-				$rGeoIP = new \MaxMind\Db\Reader(GEOISP_BIN);
-				$rResponse = $rGeoIP->get($rIP);
-				$rGeoIP->close();
-				if (is_array($rResponse)) {
-					file_put_contents(CONS_TMP_PATH . md5($rIP) . '_isp', json_encode($rResponse));
+				if (!defined('GEOISP_BIN') || !file_exists(GEOISP_BIN)) {
+					return false;
+				}
+				try {
+					$rGeoIP = new \MaxMind\Db\Reader(GEOISP_BIN);
+					$rResponse = $rGeoIP->get($rIP);
+					$rGeoIP->close();
+					if (is_array($rResponse)) {
+						file_put_contents(CONS_TMP_PATH . md5($rIP) . '_isp', json_encode($rResponse));
+					}
+				} catch (\Throwable $e) {
+					return false;
 				}
 			}
 			return $rResponse;
 		}
 		return false;
 	}
+
 
 	/**
 	 * Проверить IP на соответствие CIDR-блокам для ASN.
