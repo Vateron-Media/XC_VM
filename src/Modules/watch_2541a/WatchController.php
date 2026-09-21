@@ -9,6 +9,7 @@ use XcVm\Public\Controllers\Admin\TableController;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Core\Localization\Translator;
 
 /**
  * Watch Module Controller
@@ -64,6 +65,7 @@ class WatchController {
 
     public function add() {
         global $rMobile, $rSettings, $rPermissions, $language, $rTMDBLanguages;
+        $language = $language ?: Translator::class;
 
         if (isset(RequestManager::getAll()['id'])) {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);
@@ -95,6 +97,7 @@ class WatchController {
 
     public function output() {
         global $rMobile, $rSettings, $rServers, $language;
+        $language = $language ?: Translator::class;
         $_TITLE = 'Watch Folder Logs';
 
         renderUnifiedLayoutHeader('admin', ['_TITLE' => $_TITLE]);

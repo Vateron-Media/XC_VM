@@ -56,6 +56,7 @@ if (!function_exists('renderUnifiedLayoutHeader')) {
 
         // Translator FQCN for the legacy header's $language::get(...) calls.
         $language = Translator::class;
+        $GLOBALS['language'] = Translator::class;
 
         $rootPath = dirname(__DIR__, 3);
 

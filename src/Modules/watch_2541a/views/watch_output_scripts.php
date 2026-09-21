@@ -1,3 +1,4 @@
+<?php $language = $language ?? \XcVm\Core\Localization\Translator::class; ?>
 <script id="scripts">
 	(function() {
 		var toast = window.xcToast || function() {};

@@ -8,6 +8,7 @@ use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Server\ServerService;
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Infrastructure\Database\DatabaseFactory;
+use XcVm\Core\Localization\Translator;
 
 /**
  * Plex Module Controller
@@ -60,6 +61,7 @@ class PlexController {
 
     public function add() {
         global $rMobile, $rSettings, $rPermissions, $language;
+        $language = $language ?: Translator::class;
 
         if (isset(RequestManager::getAll()['id'])) {
             $rFolder = StreamRepository::getWatchFolder(RequestManager::getAll()['id']);

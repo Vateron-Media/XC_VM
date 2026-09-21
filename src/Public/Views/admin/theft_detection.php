@@ -21,6 +21,8 @@ if (!Authorization::check('adv', 'movies')):
 endif;
 
 $rCanEdit = Authorization::check('adv', 'edit_user');
+$rRange   = $rRange ?? $range ?? 0;
+$rTheftDetection = $rTheftDetection ?? $theftDetection ?? [];
 $rRanges  = [0 => 'all_time', 604800 => 'last_7_days', 86400 => 'last_24_hours', 3600 => 'last_hour'];
 ?>
 

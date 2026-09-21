@@ -4,6 +4,7 @@ use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamConfigRepository;
 
+$language = $language ?? \XcVm\Core\Localization\Translator::class;
 ?>
 
 <div class="d-flex align-items-center mb-4">
