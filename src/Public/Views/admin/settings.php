@@ -1403,7 +1403,7 @@ use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 
 							<div class="form-group row mb-4">
 								<label class="col-md-4 col-form-label" for="encrypt_playlist">
-									<?= $language::get('encrypt_playlists_not_worked') ?>
+									<?= $language::get('encrypt_playlists') ?>
 									<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('encrypt_line_credentials_in_playlist_files') ?>"></i>
 								</label>
 

@@ -264,9 +264,10 @@ class PlaylistGenerator {
 									$rEncData .= ($rSettings['cloudflare'] && $rOutputExt == 'ts') ? $rChannelInfo['id'] : ($rChannelInfo['id'] . '/' . $rOutputExt);
 								}
 								$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
-								$rURL = $rDomainName . 'play/' . $rToken;
 								if ($rChannelInfo['live'] == 0) {
-									$rURL .= '#.' . $rChannelInfo['target_container'];
+									$rURL = $rDomainName . 'play/' . $rToken . '.' . $rChannelInfo['target_container'];
+								} else {
+									$rURL = $rDomainName . 'play/' . $rToken . (($rSettings['cloudflare'] && $rOutputExt == 'ts') ? '' : ('.' . $rOutputExt));
 								}
 							} else {
 								$rURL = $rDomainName . $rChannelInfo['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/';
@@ -394,7 +395,7 @@ class PlaylistGenerator {
 							} elseif ($rEncryptPlaylist) {
 								$rEncData = $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '/' . $rChannel['target_container'];
 								$rToken = Encryption::mintToken($rEncData, $rSettings['live_streaming_pass'], OPENSSL_EXTRA, !empty($rSettings['secure_stream_tokens']));
-								$rURL = $rDomainName . 'play/' . $rToken . '#.' . $rChannel['target_container'];
+								$rURL = $rDomainName . 'play/' . $rToken . '.' . $rChannel['target_container'];
 							} else {
 								$rURL = $rDomainName . $rChannel['type_output'] . '/' . $rUserInfo['username'] . '/' . $rUserInfo['password'] . '/' . $rChannel['id'] . '.' . $rChannel['target_container'];
 							}
@@ -415,7 +416,7 @@ class PlaylistGenerator {
 									if ($rSettings['cloudflare'] && $rOutputExt == 'ts') {
 										$rURL = $rDomainName . 'play/' . $rToken;
 									} else {
-										$rURL = $rDomainName . 'play/' . $rToken . '/' . $rOutputExt;
+										$rURL = $rDomainName . 'play/' . $rToken . '.' . $rOutputExt;
 									}
 								} else {
 									if ($rSettings['cloudflare'] && $rOutputExt == 'ts') {

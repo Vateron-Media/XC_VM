@@ -35,6 +35,12 @@ $rIsMag = false;
 $rMagToken = null;
 
 if (isset($_GET['token']) && !ctype_xdigit($_GET['token'])) {
+	if (preg_match('/^([A-Za-z0-9_-]+)\.([a-zA-Z0-9]+)$/', (string) $_GET['token'], $rTokenMatch)) {
+		$_GET['token'] = $rTokenMatch[1];
+		if (empty($_GET['extension'])) {
+			$_GET['extension'] = $rTokenMatch[2];
+		}
+	}
 	// Playlist and portal links carry credentials the lookup below checks again,
 	// so the old format is still read here: saved playlists hold it. Each token
 	// that does not read counts against the address — reading an old one byte by
