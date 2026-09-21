@@ -6,6 +6,7 @@ use XcVm\Core\Auth\Authenticator;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
+use XcVm\Infrastructure\Cache\CacheReader;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Signal\SignalQueue;
 
@@ -135,12 +136,23 @@ class UserRepository {
 	 * @return array The row with decoded array fields.
 	 */
 	private static function decodeUserFields(array $rUserInfo): array {
-		$rAllowedIPS = json_decode($rUserInfo['allowed_ips'], true);
-		$rAllowedUa = json_decode($rUserInfo['allowed_ua'], true);
-		$rUserInfo['bouquet'] = json_decode($rUserInfo['bouquet'], true);
+		$rAllowedIPS = is_array($rUserInfo['allowed_ips'] ?? null)
+			? $rUserInfo['allowed_ips']
+			: json_decode((string) ($rUserInfo['allowed_ips'] ?? ''), true);
+		$rAllowedUa = is_array($rUserInfo['allowed_ua'] ?? null)
+			? $rUserInfo['allowed_ua']
+			: json_decode((string) ($rUserInfo['allowed_ua'] ?? ''), true);
+		$rBouquet = is_array($rUserInfo['bouquet'] ?? null)
+			? $rUserInfo['bouquet']
+			: json_decode((string) ($rUserInfo['bouquet'] ?? ''), true);
+		$rAllowedOutputs = is_array($rUserInfo['allowed_outputs'] ?? null)
+			? $rUserInfo['allowed_outputs']
+			: json_decode((string) ($rUserInfo['allowed_outputs'] ?? ''), true);
+
 		$rUserInfo['allowed_ips'] = array_filter(array_map('trim', is_array($rAllowedIPS) ? $rAllowedIPS : []));
 		$rUserInfo['allowed_ua'] = array_filter(array_map('trim', is_array($rAllowedUa) ? $rAllowedUa : []));
-		$rUserInfo['allowed_outputs'] = array_map('intval', json_decode($rUserInfo['allowed_outputs'], true));
+		$rUserInfo['bouquet'] = is_array($rBouquet) ? array_map('intval', $rBouquet) : [];
+		$rUserInfo['allowed_outputs'] = is_array($rAllowedOutputs) ? array_map('intval', $rAllowedOutputs) : [];
 		return $rUserInfo;
 	}
 
@@ -193,22 +205,23 @@ class UserRepository {
 	 * @param array $rBouquets Bouquet map (id => ['streams','series','channels','movies','radios']).
 	 * @return array{channel_ids:int[],series_ids:int[],vod_ids:int[],live_ids:int[],radio_ids:int[]}
 	 */
-	private static function aggregateBouquetIds(array $rBouquet, array $rBouquets): array {
+	private static function aggregateBouquetIds(array $rBouquet, ?array $rBouquets = null): array {
+		$rBouquets = $rBouquets ?? [];
 		$rChannelIDs = $rSeriesIDs = $rVODIDs = $rLiveIDs = $rRadioIDs = [];
 		foreach ($rBouquet as $rID) {
-			if (isset($rBouquets[$rID]['streams'])) {
+			if (isset($rBouquets[$rID]['streams']) && is_array($rBouquets[$rID]['streams'])) {
 				$rChannelIDs = array_merge($rChannelIDs, $rBouquets[$rID]['streams']);
 			}
-			if (isset($rBouquets[$rID]['series'])) {
+			if (isset($rBouquets[$rID]['series']) && is_array($rBouquets[$rID]['series'])) {
 				$rSeriesIDs = array_merge($rSeriesIDs, $rBouquets[$rID]['series']);
 			}
-			if (isset($rBouquets[$rID]['channels'])) {
+			if (isset($rBouquets[$rID]['channels']) && is_array($rBouquets[$rID]['channels'])) {
 				$rLiveIDs = array_merge($rLiveIDs, $rBouquets[$rID]['channels']);
 			}
-			if (isset($rBouquets[$rID]['movies'])) {
+			if (isset($rBouquets[$rID]['movies']) && is_array($rBouquets[$rID]['movies'])) {
 				$rVODIDs = array_merge($rVODIDs, $rBouquets[$rID]['movies']);
 			}
-			if (isset($rBouquets[$rID]['radios'])) {
+			if (isset($rBouquets[$rID]['radios']) && is_array($rBouquets[$rID]['radios'])) {
 				$rRadioIDs = array_merge($rRadioIDs, $rBouquets[$rID]['radios']);
 			}
 		}
@@ -224,14 +237,17 @@ class UserRepository {
 	/**
 	 * The distinct category ids reachable through a line's bouquets. Pure.
 	 *
-	 * @param array $rBouquet     The line's bouquet ids.
-	 * @param array $rCategoryMap Bouquet id => category id list.
+	 * @param array      $rBouquet     The line's bouquet ids.
+	 * @param array|null $rCategoryMap Bouquet id => category id list.
 	 * @return array<int,mixed> Distinct category ids.
 	 */
-	private static function resolveCategoryIds(array $rBouquet, array $rCategoryMap): array {
+	private static function resolveCategoryIds(array $rBouquet, ?array $rCategoryMap = null): array {
+		$rCategoryMap = $rCategoryMap ?? [];
 		$rAllowedCategories = [];
 		foreach ($rBouquet as $rID) {
-			$rAllowedCategories = array_merge($rAllowedCategories, ($rCategoryMap[$rID] ?: []));
+			if (!empty($rCategoryMap[$rID]) && is_array($rCategoryMap[$rID])) {
+				$rAllowedCategories = array_merge($rAllowedCategories, $rCategoryMap[$rID]);
+			}
 		}
 		return array_values(array_unique($rAllowedCategories));
 	}
@@ -530,7 +546,7 @@ class UserRepository {
 	 * @param string      $rIP              Client IP.
 	 * @return array|null User info, or null if not found.
 	 */
-	public static function getStreamingUserInfo(array $rSettings, bool $rCached, array $rBouquets, ?int $rUserID = null, ?string $rUsername = null, ?string $rPassword = null, bool $rGetChannelIDs = false, bool $rGetConnections = false, string $rIP = '') {
+	public static function getStreamingUserInfo(array $rSettings, bool $rCached, ?array $rBouquets = null, ?int $rUserID = null, ?string $rUsername = null, ?string $rPassword = null, bool $rGetChannelIDs = false, bool $rGetConnections = false, string $rIP = '') {
 		$db = self::db();
 		$rUserInfo = null;
 
@@ -549,11 +565,15 @@ class UserRepository {
 		$rUserInfo = self::applyIspInfo($rUserInfo, $rSettings, $rCached, $rIP, $db);
 
 		if ($rGetChannelIDs) {
-			$rUserInfo = array_merge($rUserInfo, self::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets));
+			if ($rBouquets === null) {
+				$rBouquets = CacheReader::get('bouquets') ?: BouquetService::getAll();
+			}
+			$rUserInfo = array_merge($rUserInfo, self::aggregateBouquetIds($rUserInfo['bouquet'], $rBouquets ?: []));
 		}
 
-		$rCategoryMap = igbinary_unserialize(file_get_contents(CACHE_TMP_PATH . 'category_map'));
-		$rUserInfo['category_ids'] = self::resolveCategoryIds($rUserInfo['bouquet'], $rCategoryMap);
+		$rCategoryMapRaw = @file_get_contents(CACHE_TMP_PATH . 'category_map');
+		$rCategoryMap = $rCategoryMapRaw !== false ? @igbinary_unserialize($rCategoryMapRaw) : null;
+		$rUserInfo['category_ids'] = is_array($rCategoryMap) ? self::resolveCategoryIds($rUserInfo['bouquet'], $rCategoryMap) : [];
 		return $rUserInfo;
 	}
 

@@ -1056,10 +1056,14 @@ class PlayerApiController {
 		$rFormatArray = [1 => 'm3u8', 2 => 'ts', 3 => 'rtmp'];
 		$rReturn = [];
 
-		foreach ($rFormats as $rFormat) {
-			$rReturn[] = $rFormatArray[$rFormat];
+		if (is_iterable($rFormats)) {
+			foreach ($rFormats as $rFormat) {
+				if (isset($rFormatArray[$rFormat])) {
+					$rReturn[] = $rFormatArray[$rFormat];
+				}
+			}
 		}
 
-		return $rReturn;
+		return !empty($rReturn) ? $rReturn : ['m3u8', 'ts', 'rtmp'];
 	}
 }
