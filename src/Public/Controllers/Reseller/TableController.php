@@ -1227,7 +1227,11 @@ if (isset($rUserInfo['reports'])) {
 					$rKeys = array_reverse($rKeys);
 				}
 				$rKeyCount = count($rKeys);
-				foreach (RedisManager::instance()->mGet($rKeys) as $rRow) {
+				$rRedisData = !empty($rKeys) ? RedisManager::instance()->mGet($rKeys) : [];
+				if (!is_array($rRedisData)) {
+					$rRedisData = [];
+				}
+				foreach ($rRedisData as $rRow) {
 					$rRow = igbinary_unserialize($rRow);
 					if (is_array($rRow)) {
 						if (!$rFilterBefore) {
@@ -1254,7 +1258,7 @@ if (isset($rUserInfo['reports'])) {
 				} else {
 					$rOrderRow = 0;
 				}
-				if ($rOrder[$rOrderRow]) {
+				if (!empty($rRows) && !empty($rOrder[$rOrderRow])) {
 					array_multisort(array_column($rRows, $rOrder[$rOrderRow]), ($rOrderDirection ? SORT_ASC : SORT_DESC), $rRows);
 				}
 				$rRows = array_slice($rRows, $rStart, $rLimit);

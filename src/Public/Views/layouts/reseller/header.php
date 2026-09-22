@@ -51,116 +51,177 @@ $xmPage        = AdminHelpers::getPageName();
 $xmPermissions = $rPermissions ?? [];
 
 /**
- * Reseller sidebar menu (hardcoded, permission-gated). Each node is:
- *   ['label' => i18n key, 'icon' => tabler class, 'url' => string,
- *    'show' => bool, 'children' => node[]].
- * Only top-level nodes carry an icon (matches the admin vertical-menu markup).
+ * Reseller sidebar menu sections (grouped, permission-gated).
+ * Each section has an optional title, Tabler icon, and a list of menu items.
+ * If all items in a section are hidden by permissions, the section header is omitted.
  */
-$xmMenu = [
+$xmMenuSections = [
     [
-        'label' => 'dashboard',
-        'icon'  => 'ti tabler-smart-home',
-        'url'   => 'dashboard',
+        'title' => '',
+        'icon'  => '',
         'show'  => true,
-    ],
-    [
-        'label' => 'sub_resellers',
-        'icon'  => 'ti tabler-users',
-        'url'   => '#',
-        'show'  => !empty($xmPermissions['create_sub_resellers']),
-        'children' => [
-            ['label' => 'add_user',     'url' => 'user',  'show' => true],
-            ['label' => 'manage_users', 'url' => 'users', 'show' => true],
+        'items' => [
+            [
+                'label' => 'dashboard',
+                'icon'  => 'ti tabler-smart-home',
+                'url'   => 'dashboard',
+                'show'  => true,
+            ],
         ],
     ],
     [
-        'label' => 'devices',
-        'icon'  => 'ti tabler-device-desktop',
-        'url'   => '#',
-        'show'  => !empty($xmPermissions['create_line']) || !empty($xmPermissions['create_mag']) || !empty($xmPermissions['create_enigma']),
-        'children' => [
+        'title' => 'clients',
+        'icon'  => 'ti tabler-users',
+        'show'  => !empty($xmPermissions['create_line']) || !empty($xmPermissions['create_mag']) || !empty($xmPermissions['create_enigma']) || !empty($xmPermissions['create_sub_resellers']),
+        'items' => [
             [
                 'label' => 'user_lines',
+                'icon'  => 'ti tabler-device-desktop',
                 'url'   => '#',
                 'show'  => !empty($xmPermissions['create_line']),
                 'children' => [
-                    ['label' => 'add_line',      'url' => 'line',         'show' => true],
-                    ['label' => 'generate_trial', 'url' => 'line?trial=1', 'show' => $rGenTrials],
-                    ['label' => 'manage_lines',  'url' => 'lines',        'show' => true],
+                    ['label' => 'add_line',       'url' => 'line',         'show' => !empty($xmPermissions['create_line'])],
+                    ['label' => 'generate_trial', 'url' => 'line?trial=1', 'show' => !empty($xmPermissions['create_line'])],
+                    ['label' => 'manage_lines',   'url' => 'lines',        'show' => !empty($xmPermissions['create_line'])],
                 ],
             ],
             [
                 'label' => 'mag_devices',
+                'icon'  => 'ti tabler-device-tv',
                 'url'   => '#',
                 'show'  => !empty($xmPermissions['create_mag']),
                 'children' => [
-                    ['label' => 'add_mag',            'url' => 'mag',         'show' => true],
-                    ['label' => 'generate_trial',     'url' => 'mag?trial=1', 'show' => $rGenTrials],
-                    ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => true],
+                    ['label' => 'add_mag',            'url' => 'mag',         'show' => !empty($xmPermissions['create_mag'])],
+                    ['label' => 'generate_trial',     'url' => 'mag?trial=1', 'show' => !empty($xmPermissions['create_mag'])],
+                    ['label' => 'manage_mag_devices', 'url' => 'mags',        'show' => !empty($xmPermissions['create_mag'])],
                 ],
             ],
             [
                 'label' => 'enigma_devices',
+                'icon'  => 'ti tabler-cpu',
                 'url'   => '#',
                 'show'  => !empty($xmPermissions['create_enigma']),
                 'children' => [
-                    ['label' => 'add_enigma',            'url' => 'enigma',         'show' => true],
-                    ['label' => 'generate_trial',        'url' => 'enigma?trial=1', 'show' => $rGenTrials],
-                    ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => true],
+                    ['label' => 'add_enigma',            'url' => 'enigma',         'show' => !empty($xmPermissions['create_enigma'])],
+                    ['label' => 'generate_trial',        'url' => 'enigma?trial=1', 'show' => !empty($xmPermissions['create_enigma'])],
+                    ['label' => 'manage_enigma_devices', 'url' => 'enigmas',        'show' => !empty($xmPermissions['create_enigma'])],
+                ],
+            ],
+            [
+                'label' => 'active_codes',
+                'icon'  => 'ti tabler-key',
+                'url'   => '#',
+                'show'  => !empty($xmPermissions['create_line']),
+                'children' => [
+                    ['label' => 'generate_codes', 'url' => 'active_code',        'show' => !empty($xmPermissions['create_line'])],
+                    ['label' => 'manage_codes',   'url' => 'active_codes',       'show' => !empty($xmPermissions['create_line'])],
+                    ['label' => 'batch_manager',  'url' => 'active_codes_batch', 'show' => !empty($xmPermissions['create_line'])],
+                ],
+            ],
+            [
+                'label' => 'sub_resellers',
+                'icon'  => 'ti tabler-user',
+                'url'   => '#',
+                'show'  => !empty($xmPermissions['create_sub_resellers']),
+                'children' => [
+                    ['label' => 'add_user',     'url' => 'user',  'show' => !empty($xmPermissions['create_sub_resellers'])],
+                    ['label' => 'manage_users', 'url' => 'users', 'show' => !empty($xmPermissions['create_sub_resellers'])],
                 ],
             ],
         ],
     ],
     [
-        'label' => 'active_codes',
-        'icon'  => 'ti tabler-key',
-        'url'   => '#',
-        'show'  => !empty($xmPermissions['create_line']),
-        'children' => [
-            ['label' => 'generate_codes', 'url' => 'active_code',        'show' => true],
-            ['label' => 'manage_codes',   'url' => 'active_codes',       'show' => true],
-            ['label' => 'batch_manager',  'url' => 'active_codes_batch', 'show' => true],
-        ],
-    ],
-    [
-        'label' => 'category_templates',
-        'icon'  => 'ti tabler-layout-grid',
-        'url'   => 'category_templates',
-        'show'  => true,
-    ],
-    [
-        'label' => 'content',
-        'icon'  => 'ti tabler-player-play',
-        'url'   => '#',
+        'title' => 'content',
+        'icon'  => 'ti tabler-movie',
         'show'  => !empty($xmPermissions['can_view_vod']),
-        'children' => [
-            ['label' => 'streams',          'url' => 'streams',          'show' => true],
-            ['label' => 'created_channels',  'url' => 'created_channels', 'show' => true],
-            ['label' => 'movies',           'url' => 'movies',           'show' => true],
-            ['label' => 'episodes',         'url' => 'episodes',         'show' => true],
-            ['label' => 'radios',           'url' => 'radios',           'show' => true],
-            ['label' => 'tv_guide',         'url' => 'epg_view',         'show' => !$rMobile],
-            ['label' => 'category_templates', 'url' => 'category_templates', 'show' => true],
+        'items' => [
+            [
+                'label' => 'streams',
+                'icon'  => 'ti tabler-player-play',
+                'url'   => 'streams',
+                'show'  => !empty($xmPermissions['can_view_vod']),
+            ],
+            [
+                'label' => 'created_channels',
+                'icon'  => 'ti tabler-video',
+                'url'   => 'created_channels',
+                'show'  => !empty($xmPermissions['can_view_vod']),
+            ],
+            [
+                'label' => 'movies',
+                'icon'  => 'ti tabler-movie',
+                'url'   => 'movies',
+                'show'  => !empty($xmPermissions['can_view_vod']),
+            ],
+            [
+                'label' => 'episodes',
+                'icon'  => 'ti tabler-device-tv',
+                'url'   => 'episodes',
+                'show'  => !empty($xmPermissions['can_view_vod']),
+            ],
+            [
+                'label' => 'radios',
+                'icon'  => 'ti tabler-broadcast',
+                'url'   => 'radios',
+                'show'  => !empty($xmPermissions['can_view_vod']),
+            ],
+            [
+                'label' => 'tv_guide',
+                'icon'  => 'ti tabler-calendar-time',
+                'url'   => 'epg_view',
+                'show'  => !$rMobile && !empty($xmPermissions['can_view_vod']),
+            ],
         ],
     ],
     [
-        'label' => 'tickets',
-        'icon'  => 'ti tabler-ticket',
-        'url'   => 'tickets',
+        'title' => 'category_templates',
+        'icon'  => 'ti tabler-layout-grid',
         'show'  => true,
+        'items' => [
+            [
+                'label' => 'category_templates',
+                'icon'  => 'ti tabler-layout-grid',
+                'url'   => 'category_templates',
+                'show'  => true,
+            ],
+        ],
     ],
     [
-        'label' => 'logs',
+        'title' => 'tickets_and_logs',
         'icon'  => 'ti tabler-clipboard-list',
-        'url'   => '#',
         'show'  => true,
-        'children' => [
-            ['label' => 'live_connections', 'url' => 'live_connections', 'show' => !empty($xmPermissions['reseller_client_connection_logs'])],
-            ['label' => 'activity_logs',    'url' => 'line_activity',    'show' => !empty($xmPermissions['reseller_client_connection_logs'])],
-            ['label' => 'user_logs',        'url' => 'user_logs',        'show' => true],
+        'items' => [
+            [
+                'label' => 'tickets',
+                'icon'  => 'ti tabler-ticket',
+                'url'   => 'tickets',
+                'show'  => true,
+            ],
+            [
+                'label' => 'logs',
+                'icon'  => 'ti tabler-clipboard-list',
+                'url'   => '#',
+                'show'  => true,
+                'children' => [
+                    ['label' => 'live_connections', 'url' => 'live_connections', 'show' => !empty($xmPermissions['reseller_client_connection_logs'])],
+                    ['label' => 'activity_logs',    'url' => 'line_activity',    'show' => !empty($xmPermissions['reseller_client_connection_logs'])],
+                    ['label' => 'user_logs',        'url' => 'user_logs',        'show' => true],
+                ],
+            ],
         ],
     ],
 ];
+
+// Flat fallback for any script expecting $xmMenu
+$xmMenu = [];
+foreach ($xmMenuSections as $xmSec) {
+    if (isset($xmSec['show']) && empty($xmSec['show'])) {
+        continue;
+    }
+    foreach ($xmSec['items'] as $xmIt) {
+        $xmMenu[] = $xmIt;
+    }
+}
 
 /**
  * Render the reseller sidebar tree.
@@ -189,11 +250,25 @@ if (!function_exists('_xc_reseller_menu_node')) {
             }
         }
         $hasKids = $childHtml !== '';
+        if (isset($item['children']) && !$hasKids && (($item['url'] ?? '#') === '#' || ($item['url'] ?? '') === '')) {
+            return ['', false];
+        }
 
         $url  = (string) ($item['url'] ?? '#');
-        // Match the current page by the item's URL basename (strip any query).
         $urlBase    = $url !== '#' && $url !== '' ? basename(explode('?', $url)[0]) : '';
-        $selfActive = $urlBase !== '' && $urlBase === $page;
+        $pageAliases = [
+            'category_templates' => ['category_template'],
+            'tickets'            => ['ticket', 'ticket_view'],
+        ];
+        $hasTrialParam = str_contains($url, 'trial=1');
+        $isPageTrial = isset($_GET['trial']) && (string) $_GET['trial'] === '1';
+        if ($hasTrialParam) {
+            $selfActive = ($urlBase === $page) && $isPageTrial;
+        } elseif (in_array($urlBase, ['line', 'mag', 'enigma'], true)) {
+            $selfActive = ($urlBase === $page) && !$isPageTrial;
+        } else {
+            $selfActive = $urlBase !== '' && ($urlBase === $page || in_array($page, $pageAliases[$urlBase] ?? [], true));
+        }
         $active     = $selfActive || ($hasKids && $childActive);
 
         $liClass = 'menu-item' . ($active ? ' active' : '') . ($hasKids && $active ? ' open' : '');
@@ -209,6 +284,26 @@ if (!function_exists('_xc_reseller_menu_node')) {
         $html .= '</a>' . $childHtml . '</li>';
 
         return [$html, $active];
+    }
+}
+
+/**
+ * Render a Bootstrap 5 sidebar section header (caption + Tabler icon from the theme).
+ */
+if (!function_exists('_xc_reseller_section_header')) {
+    function _xc_reseller_section_header(string $title, string $icon, string $language): string {
+        if ($title === '') {
+            return '';
+        }
+        $label = htmlspecialchars($language::get($title) ?: $title, ENT_QUOTES);
+        $iconHtml = '';
+        if ($icon !== '') {
+            $iconHtml = '<i class="icon-base ' . htmlspecialchars($icon, ENT_QUOTES) . ' icon-xs me-2"></i>';
+        }
+        return '<li class="menu-header small text-uppercase">'
+            . '<span class="menu-header-text d-inline-flex align-items-center">'
+            . $iconHtml . '<span>' . $label . '</span>'
+            . '</span></li>';
     }
 }
 ?>
@@ -315,9 +410,21 @@ if (!function_exists('_xc_reseller_menu_node')) {
                             <div class="menu-inner-shadow"></div>
 
                             <ul class="menu-inner py-1">
-                                <?php foreach ($xmMenu as $xmItem): ?>
-                                    <?php [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language); ?>
-                                    <?= $xmNodeHtml; ?>
+                                <?php foreach ($xmMenuSections as $xmSection): ?>
+                                    <?php
+                                    if (isset($xmSection['show']) && empty($xmSection['show'])) {
+                                        continue;
+                                    }
+                                    $xmSectionBody = '';
+                                    foreach ($xmSection['items'] as $xmItem) {
+                                        [$xmNodeHtml] = _xc_reseller_menu_node($xmItem, 0, $xmPage, $language);
+                                        $xmSectionBody .= $xmNodeHtml;
+                                    }
+                                    ?>
+                                    <?php if ($xmSectionBody !== ''): ?>
+                                        <?= _xc_reseller_section_header($xmSection['title'] ?? '', $xmSection['icon'] ?? '', $language); ?>
+                                        <?= $xmSectionBody; ?>
+                                    <?php endif; ?>
                                 <?php endforeach; ?>
                             </ul>
                         </aside>
@@ -426,7 +533,7 @@ if (!function_exists('_xc_reseller_menu_node')) {
                                             <a class="nav-link dropdown-toggle hide-arrow p-0" href="javascript:void(0);" data-bs-toggle="dropdown">
                                                 <div class="avatar avatar-online">
                                                     <span class="avatar-initial rounded-circle bg-label-primary">
-                                                        <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                        <?= htmlspecialchars(strtoupper(substr((string) ($rUserInfo['username'] ?? ''), 0, 1))); ?>
                                                     </span>
                                                 </div>
                                             </a>
@@ -436,12 +543,12 @@ if (!function_exists('_xc_reseller_menu_node')) {
                                                         <div class="flex-shrink-0 me-2">
                                                             <div class="avatar avatar-online">
                                                                 <span class="avatar-initial rounded-circle bg-label-primary">
-                                                                    <?= htmlspecialchars(strtoupper(substr((string) $rUserInfo['username'], 0, 1))); ?>
+                                                                    <?= htmlspecialchars(strtoupper(substr((string) ($rUserInfo['username'] ?? ''), 0, 1))); ?>
                                                                 </span>
                                                             </div>
                                                         </div>
                                                         <div class="flex-grow-1">
-                                                            <h6 class="mb-0"><?= htmlspecialchars($rUserInfo['username']); ?></h6>
+                                                            <h6 class="mb-0"><?= htmlspecialchars((string) ($rUserInfo['username'] ?? '')); ?></h6>
                                                             <small class="text-body-secondary"><?= $language::get('shell_role_reseller'); ?></small>
                                                         </div>
                                                     </div>

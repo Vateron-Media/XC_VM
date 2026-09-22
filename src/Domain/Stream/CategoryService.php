@@ -149,6 +149,17 @@ class CategoryService {
 	}
 
 	/**
+	 * Get all categories (alias for getFromDatabase).
+	 *
+	 * @param string|null $rType  Category type or null for all.
+	 * @param bool        $rForce Bypass the file cache.
+	 * @return array Categories keyed by id.
+	 */
+	public static function getAll(?string $rType = null, bool $rForce = false) {
+		return self::getFromDatabase($rType, $rForce);
+	}
+
+	/**
 	 * Filter an already-loaded category list by type.
 	 *
 	 * @param array       $rCategories Loaded categories.

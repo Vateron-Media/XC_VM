@@ -36,7 +36,7 @@ $rCanKill = !empty($rPermissions['reseller_client_connection_logs']);
 
 // Deep-link owner filter (?owner=ID) — pre-selects the matching static option.
 $rSelectedOwner = RequestManager::has('owner') ? (string) RequestManager::get('owner') : '';
-$rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : 0;
+$rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : (RequestManager::has('trial') && RequestManager::get('trial') == 1 ? 4 : 0);
 
 // Reseller MAG status filter values handled by ResellerTableRenderer::handleMags.
 $rStatusFilters = [1 => $language::get('active'), 2 => $language::get('disabled'), 3 => $language::get('expired'), 4 => $language::get('trial')];

@@ -31,9 +31,9 @@ use XcVm\Core\Logging\Logger;
 $rShowErrors = false;
 
 if (!isset($_SERVER['argc'])) {
-	$rIP = $_SERVER['REMOTE_ADDR'];
+	$rIP = $_SERVER['REMOTE_ADDR'] ?? '';
 	if (empty($rIP) || !file_exists(FLOOD_TMP_PATH . 'block_' . $rIP)) {
-		define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'])[0]));
+		define('HOST', trim(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]));
 
 		if (file_exists(CACHE_TMP_PATH . 'settings')) {
 			$rData = file_get_contents(CACHE_TMP_PATH . 'settings');

@@ -42,7 +42,7 @@ if (empty($rSiteUrl)) {
 
 // Deep-link owner filter (?owner=ID) — pre-selects the matching static option.
 $rSelectedOwner = RequestManager::has('owner') ? (string) RequestManager::get('owner') : '';
-$rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : 0;
+$rSelectedFilter = RequestManager::has('filter') ? (int) RequestManager::get('filter') : (RequestManager::has('trial') && RequestManager::get('trial') == 1 ? 5 : 0);
 
 // Reseller status filter values handled by ResellerTableRenderer::handleLines.
 $rStatusFilters = [1 => 'Active', 2 => 'Disabled', 3 => 'Banned', 4 => 'Expired', 5 => 'Trial'];

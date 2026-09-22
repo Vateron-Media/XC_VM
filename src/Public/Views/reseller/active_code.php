@@ -337,41 +337,72 @@ $dnsList = array_filter(array_map('trim', explode(',', (string)($rUserInfo['rese
     <!-- Right Column: Live Credit Calculator & Guidelines -->
     <div class="col-12 col-xl-4">
         <!-- Live Credit Calculator Card -->
-        <div class="card shadow-sm border-0 mb-4 bg-primary text-white">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center pb-3 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="avatar avatar-sm bg-label-primary rounded p-2">
+                        <i class="ti tabler-wallet icon-20px text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title mb-0 fw-bold"><?= $language::get('ac_credit_accounting') ?></h6>
+                        <small class="text-muted"><?= $language::get('live_calculator') ?: 'Real-Time Calculation'; ?></small>
+                    </div>
+                </div>
+                <span class="badge bg-label-primary rounded-pill px-3 py-1">
+                    <i class="ti tabler-sparkles me-1"></i><?= $language::get('live') ?: 'Live'; ?>
+                </span>
+            </div>
+
             <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <span class="text-white-50 text-uppercase fw-semibold small"><?= $language::get('ac_credit_accounting') ?></span>
-                    <i class="ti tabler-wallet fs-3 text-white"></i>
+                <!-- Current Balance Display -->
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-label-primary mb-4">
+                    <div>
+                        <small class="text-muted text-uppercase fw-semibold d-block mb-1"><?= $language::get('ac_your_current_balance') ?></small>
+                        <h3 class="text-primary fw-bolder mb-0" id="card-current-balance"><?= number_format($userCredits, 2); ?> <span class="fs-6 fw-normal text-muted"><?= $language::get('ac_credits') ?></span></h3>
+                    </div>
+                    <div class="avatar avatar-md bg-primary text-white rounded-circle shadow-sm d-flex align-items-center justify-content-center">
+                        <i class="ti tabler-coins fs-3"></i>
+                    </div>
                 </div>
 
-                <div class="mb-4">
-                    <small class="text-white-50 d-block"><?= $language::get('ac_your_current_balance') ?></small>
-                    <h2 class="text-white fw-bold mb-0" id="card-current-balance"><?= number_format($userCredits, 2); ?> <span class="fs-6 fw-normal"><?= $language::get('ac_credits') ?></span></h2>
-                </div>
-
-                <div class="p-3 bg-white bg-opacity-10 rounded-3 mb-3">
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-white-50"><?= $language::get('ac_cost_per_voucher') ?>:</span>
-                        <span class="fw-semibold" id="card-cost-per-code">0.00 <?= $language::get('ac_credits') ?></span>
+                <!-- Calculation Breakdown -->
+                <div class="card bg-label-secondary border-0 rounded-3 p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="text-muted small d-flex align-items-center gap-2">
+                            <i class="ti tabler-ticket fs-5 text-secondary"></i>
+                            <?= $language::get('ac_cost_per_voucher') ?>:
+                        </span>
+                        <span class="fw-semibold text-heading" id="card-cost-per-code">0.00 <?= $language::get('ac_credits') ?></span>
                     </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span class="small text-white-50"><?= $language::get('ac_quantity') ?>:</span>
-                        <span class="fw-semibold" id="card-qty">1</span>
+                    <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                        <span class="text-muted small d-flex align-items-center gap-2">
+                            <i class="ti tabler-calculator fs-5 text-secondary"></i>
+                            <?= $language::get('ac_quantity') ?>:
+                        </span>
+                        <span class="badge bg-label-primary fw-bold fs-7 px-2.5 py-1" id="card-qty">1</span>
                     </div>
-                    <hr class="border-white opacity-25 my-2">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="fw-bold"><?= $language::get('ac_total_cost') ?>:</span>
+                    <div class="d-flex justify-content-between align-items-center pt-1">
+                        <span class="fw-bold text-heading d-flex align-items-center gap-2">
+                            <i class="ti tabler-receipt-2 fs-5 text-warning"></i>
+                            <?= $language::get('ac_total_cost') ?>:
+                        </span>
                         <span class="fs-5 fw-bold text-warning" id="card-total-cost">0.00 <?= $language::get('ac_credits') ?></span>
                     </div>
                 </div>
 
-                <div class="d-flex justify-content-between align-items-center p-2 rounded-3 bg-black bg-opacity-25" id="balance-after-box">
-                    <span class="small text-white-50"><?= $language::get('ac_balance_after_generation') ?>:</span>
-                    <span class="fw-bold" id="card-balance-after"><?= number_format($userCredits, 2); ?> <?= $language::get('ac_credits') ?></span>
+                <!-- Balance After Generation Box -->
+                <div class="d-flex justify-content-between align-items-center p-3 rounded-3 bg-body border" id="balance-after-box">
+                    <span class="small text-muted fw-semibold d-flex align-items-center gap-2">
+                        <i class="ti tabler-scale fs-5 text-info"></i>
+                        <?= $language::get('ac_balance_after_generation') ?>:
+                    </span>
+                    <span class="fw-bold text-heading fs-6" id="card-balance-after"><?= number_format($userCredits, 2); ?> <?= $language::get('ac_credits') ?></span>
                 </div>
 
-                <div id="insufficient-balance-alert" class="alert alert-danger bg-danger text-white border-0 mt-3 d-none mb-0">
-                    <i class="ti tabler-alert-circle me-1"></i> <?= $language::get('ac_insufficient_balance') ?>
+                <!-- Insufficient Balance Alert -->
+                <div id="insufficient-balance-alert" class="alert alert-danger d-flex align-items-center mt-3 d-none mb-0" role="alert">
+                    <i class="ti tabler-alert-circle fs-4 me-2 flex-shrink-0"></i>
+                    <div><?= $language::get('ac_insufficient_balance') ?></div>
                 </div>
             </div>
         </div>
