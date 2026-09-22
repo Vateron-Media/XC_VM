@@ -35,6 +35,7 @@ if ($rMobile) {
 
 if (isset($_SESSION['hash'])) {
 	$rUserInfo = UserRepository::getRegisteredUserById($_SESSION['hash']);
+	$GLOBALS['rAdminUserInfo'] = $rUserInfo;
 
 	$__tz = trim($rUserInfo['timezone'] ?? '', '" ');
 	if ($__tz !== '' && in_array($__tz, timezone_identifiers_list())) {

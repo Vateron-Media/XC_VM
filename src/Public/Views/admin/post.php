@@ -2054,7 +2054,8 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'ticket':
-				$rReturn = UserService::submitTicket($rData, $GLOBALS['rAdminUserInfo']);
+				$rAdminUser = $GLOBALS['rAdminUserInfo'] ?? ($GLOBALS['rUserInfo'] ?? []);
+				$rReturn = UserService::submitTicket($rData, $rAdminUser);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'ticket_view?id=' . intval($rReturn['data']['insert_id']) . '&status=' . intval($rReturn['status']), 'status' => $rReturn['status']));

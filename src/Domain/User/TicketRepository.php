@@ -33,19 +33,12 @@ class TicketRepository {
 
 		$rRow = $db->get_row();
 		$rRow['replies'] = [];
-		$rRow['title'] = htmlspecialchars($rRow['title']);
 		$db->query('SELECT * FROM `tickets_replies` WHERE `ticket_id` = ? ORDER BY `date` ASC;', $rID);
 
 		foreach ($db->get_rows() as $rReply) {
-			$rReply['message'] = htmlspecialchars($rReply['message']);
-
-			if (strlen($rReply['message']) < 80) {
-				$rReply['message'] .= str_repeat('&nbsp; ', 80 - strlen($rReply['message']));
-			}
-
 			$rRow['replies'][] = $rReply;
 		}
-		$rRow['user'] = UserRepository::getRegisteredUserById($rRow['member_id']);
+		$rRow['user'] = UserRepository::getRegisteredUserById((int) $rRow['member_id']) ?: ['username' => 'Unknown'];
 		return $rRow;
 	}
 
@@ -62,14 +55,13 @@ class TicketRepository {
 		global $rPermissions;
 		$rReturn = [];
 
-		if ($rID) {
-			if ($rAdmin) {
-				$db->query('SELECT `tickets`.`id`, `tickets`.`member_id`, `tickets`.`title`, `tickets`.`status`, `tickets`.`admin_read`, `tickets`.`user_read`, `users`.`username` FROM `tickets`, `users` WHERE `member_id` IN (SELECT `id` FROM `users` WHERE `owner_id` = ?) AND `users`.`id` = `tickets`.`member_id` ORDER BY `id` DESC;', $rID);
-			} else {
-				$db->query('SELECT `tickets`.`id`, `tickets`.`member_id`, `tickets`.`title`, `tickets`.`status`, `tickets`.`admin_read`, `tickets`.`user_read`, `users`.`username` FROM `tickets`, `users` WHERE `member_id` IN (' . implode(',', array_map('intval', array_merge([$rUserInfo['id']], $rPermissions['all_reports']))) . ') AND `users`.`id` = `tickets`.`member_id` ORDER BY `id` DESC;');
-			}
+		if ($rAdmin || empty($rID) || (!empty($rUserInfo['member_group_id']) && $rUserInfo['member_group_id'] == 1)) {
+			// Administrator view: show all tickets across the system
+			$db->query('SELECT `tickets`.`id`, `tickets`.`member_id`, `tickets`.`title`, `tickets`.`status`, `tickets`.`admin_read`, `tickets`.`user_read`, COALESCE(`users`.`username`, "Unknown") AS `username` FROM `tickets` LEFT JOIN `users` ON `users`.`id` = `tickets`.`member_id` ORDER BY `tickets`.`id` DESC;');
 		} else {
-			$db->query('SELECT `tickets`.`id`, `tickets`.`member_id`, `tickets`.`title`, `tickets`.`status`, `tickets`.`admin_read`, `tickets`.`user_read`, `users`.`username` FROM `tickets`, `users` WHERE `users`.`id` = `tickets`.`member_id` ORDER BY `id` DESC;');
+			// Reseller / scoped view: show tickets for self and direct reports
+			$rUserIDs = array_map('intval', array_merge([$rID], $rPermissions['all_reports'] ?? []));
+			$db->query('SELECT `tickets`.`id`, `tickets`.`member_id`, `tickets`.`title`, `tickets`.`status`, `tickets`.`admin_read`, `tickets`.`user_read`, COALESCE(`users`.`username`, "Unknown") AS `username` FROM `tickets` LEFT JOIN `users` ON `users`.`id` = `tickets`.`member_id` WHERE `tickets`.`member_id` IN (' . implode(',', $rUserIDs) . ') ORDER BY `tickets`.`id` DESC;');
 		}
 
 		if (0 < $db->num_rows()) {
@@ -83,12 +75,12 @@ class TicketRepository {
 				}
 
 				$db->query('SELECT * FROM `tickets_replies` WHERE `ticket_id` = ? ORDER BY `id` DESC LIMIT 1;', $rRow['id']);
-				$rLastResponse = $db->get_row();
-				$rRow['last_reply'] = date('Y-m-d H:i', $rLastResponse['date']);
+				$rLastResponse = $db->get_row() ?: [];
+				$rRow['last_reply'] = !empty($rLastResponse['date']) ? date('Y-m-d H:i', (int) $rLastResponse['date']) : $rRow['created'];
 
 				if ($rRow['member_id'] == $rID) {
 					if ($rRow['status'] != 0) {
-						if ($rLastResponse['admin_reply']) {
+						if (!empty($rLastResponse['admin_reply'])) {
 							if ($rRow['user_read'] == 1) {
 								$rRow['status'] = 3;
 							} else {
@@ -104,7 +96,7 @@ class TicketRepository {
 					}
 				} else {
 					if ($rRow['status'] != 0) {
-						if ($rLastResponse['admin_reply']) {
+						if (!empty($rLastResponse['admin_reply'])) {
 							if ($rRow['user_read'] == 1) {
 								$rRow['status'] = 6;
 							} else {
