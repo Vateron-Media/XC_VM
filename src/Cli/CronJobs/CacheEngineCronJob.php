@@ -4,6 +4,7 @@ namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
 use XcVm\Cli\CronTrait;
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\Multithread;
@@ -30,6 +31,13 @@ class CacheEngineCronJob implements CommandInterface {
 	private $rThreadCount;
 
 	private $rUpdateIDs = [];
+
+	/**
+	 * Set by a worker whose database read failed; the parent run then keeps
+	 * the existing cache files instead of sweeping the ones it did not
+	 * rewrite (they would be live streams/lines, not deleted ones).
+	 */
+	private const FAILED_MARKER = 'cache_engine_failed';
 
 	public function getName(): string {
 		return 'cron:cache_engine';
@@ -71,7 +79,7 @@ class CacheEngineCronJob implements CommandInterface {
 				SettingsManager::update('cache_changes', false);
 			}
 		} else {
-			shell_exec("kill -9 \$(ps aux | grep 'cache_engine' | grep -v grep | grep -v " . $this->rPID . " | awk '{print \$2}')");
+			shell_exec("kill -9 \$(ps aux | grep 'cache_engine' | grep -v grep | awk '\$2 != " . intval($this->rPID) . " {print \$2}')");
 		}
 
 		$this->loadCron($rType, $rGroupStart, $rGroupMax);
@@ -87,7 +95,7 @@ class CacheEngineCronJob implements CommandInterface {
 		if ($db->dbh && $db->result) {
 			if ($db->result->rowCount() > 0) {
 				foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
-					if (!file_exists(STREAMS_TMP_PATH . 'stream_' . $rRow['id']) || (filemtime(STREAMS_TMP_PATH . 'stream_' . $rRow['id']) ?: 0) < $rRow['updated']) {
+					if (!file_exists(STREAMS_TMP_PATH . 'stream_' . $rRow['id']) || (filemtime(STREAMS_TMP_PATH . 'stream_' . $rRow['id']) ?: 0) <= $rRow['updated']) {
 						$rReturn['changes'][] = $rRow['id'];
 					}
 					$rExisting[] = $rRow['id'];
@@ -116,7 +124,7 @@ class CacheEngineCronJob implements CommandInterface {
 		if ($db->dbh && $db->result) {
 			if ($db->result->rowCount() > 0) {
 				foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
-					if (!file_exists(LINES_TMP_PATH . 'line_i_' . $rRow['id']) || (filemtime(LINES_TMP_PATH . 'line_i_' . $rRow['id']) ?: 0) < $rRow['updated']) {
+					if (!file_exists(LINES_TMP_PATH . 'line_i_' . $rRow['id']) || (filemtime(LINES_TMP_PATH . 'line_i_' . $rRow['id']) ?: 0) <= $rRow['updated']) {
 						$rReturn['changes'][] = $rRow['id'];
 					}
 					$cacheRevalidationCheck[] = $rRow['id'];
@@ -183,23 +191,25 @@ class CacheEngineCronJob implements CommandInterface {
 						break;
 					default:
 						$cacheInitTime = $rSeriesCategories = [];
+						@unlink(CACHE_TMP_PATH . self::FAILED_MARKER);
 						$db->query('SELECT `series_id`, MAX(`streams`.`added`) AS `last_modified` FROM `streams_episodes` LEFT JOIN `streams` ON `streams`.`id` = `streams_episodes`.`stream_id` GROUP BY `series_id`;');
 						foreach ($db->get_rows() as $rRow) {
 							$cacheInitTime[$rRow['series_id']] = $rRow['last_modified'];
 						}
-						$db->query('SELECT * FROM `streams_series`;');
-						if ($db->result) {
+						if (!$db->query('SELECT * FROM `streams_series`;') || !$db->result) {
+							$this->markFailed();
+						} else {
 							if ($db->result->rowCount() > 0) {
 								foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rRow) {
 									if (isset($cacheInitTime[$rRow['id']])) {
 										$rRow['last_modified'] = $cacheInitTime[$rRow['id']];
 									}
 									$rSeriesCategories[$rRow['id']] = json_decode($rRow['category_id'], true);
-									file_put_contents(SERIES_TMP_PATH . 'series_' . $rRow['id'], igbinary_serialize($rRow));
+									$this->write(SERIES_TMP_PATH . 'series_' . $rRow['id'], igbinary_serialize($rRow));
 								}
 							}
 						}
-						file_put_contents(SERIES_TMP_PATH . 'series_categories', igbinary_serialize($rSeriesCategories));
+						$this->write(SERIES_TMP_PATH . 'series_categories', igbinary_serialize($rSeriesCategories));
 						$rDelete = ['streams' => [], 'lines_i' => [], 'lines_c' => [], 'lines_t' => []];
 						$cacheDataKey = [];
 						if (SettingsManager::get('cache_changes')) {
@@ -242,6 +252,8 @@ class CacheEngineCronJob implements CommandInterface {
 								$cacheDataKey[] = PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine "series" ' . $rStart . ' ' . $rMax;
 							}
 						} else {
+							// Still merged below, so the empty run's files are consumed too.
+							$cacheStoreMethod[] = 0;
 							$cacheDataKey[] = PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:cache_engine "series" 0 0';
 						}
 						if (SettingsManager::get('cache_changes')) {
@@ -301,11 +313,24 @@ class CacheEngineCronJob implements CommandInterface {
 								unlink(SERIES_TMP_PATH . 'series_episodes_' . $rStart);
 							}
 						}
-						file_put_contents(SERIES_TMP_PATH . 'series_map', igbinary_serialize($rSeriesMap));
+						$this->write(SERIES_TMP_PATH . 'series_map', igbinary_serialize($rSeriesMap));
 						foreach ($rSeriesEpisodes as $rSeriesID => $rSeasons) {
-							file_put_contents(SERIES_TMP_PATH . 'episodes_' . $rSeriesID, igbinary_serialize($rSeasons));
+							$this->write(SERIES_TMP_PATH . 'episodes_' . $rSeriesID, igbinary_serialize($rSeasons));
+						}
+						$rFailed = file_exists(CACHE_TMP_PATH . self::FAILED_MARKER);
+						if ($rFailed) {
+							echo 'A cache worker could not read the database; keeping the existing cache files.' . "\n";
+						}
+						foreach ([STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH, CACHE_TMP_PATH] as $rTmpPath) {
+							FileCache::cleanStaleTemps($rTmpPath);
 						}
 						if (SettingsManager::get('cache_changes')) {
+							// Series and episode lists are rebuilt whole every run, but
+							// only rewritten for what still exists: drop the files of
+							// deleted series and of series left with no episodes.
+							if (!$rFailed) {
+								$this->removeStaleSeries(array_flip(array_keys($rSeriesCategories)), $rSeriesEpisodes);
+							}
 							foreach ($rDelete['streams'] as $rStreamID) {
 								@unlink(STREAMS_TMP_PATH . 'stream_' . $rStreamID);
 							}
@@ -318,7 +343,7 @@ class CacheEngineCronJob implements CommandInterface {
 							foreach ($rDelete['lines_t'] as $rToken) {
 								@unlink(LINES_TMP_PATH . 'line_t_' . $rToken);
 							}
-						} else {
+						} elseif (!$rFailed) {
 							foreach ([STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH] as $rTmpPath) {
 								foreach (scandir($rTmpPath) as $rFile) {
 									if ($rFile === '.' || $rFile === '..') {
@@ -332,7 +357,7 @@ class CacheEngineCronJob implements CommandInterface {
 							}
 						}
 						echo 'Cache updated!' . "\n";
-						file_put_contents(CACHE_TMP_PATH . 'cache_complete', time());
+						$this->write(CACHE_TMP_PATH . 'cache_complete', (string) time());
 						$db->query('UPDATE `settings` SET `last_cache` = ?, `last_cache_taken` = ?;', time(), time() - $rStartTime);
 						break;
 				}
@@ -356,7 +381,7 @@ class CacheEngineCronJob implements CommandInterface {
 						}
 					}
 				}
-				file_put_contents(CACHE_TMP_PATH . 'cache_complete', time());
+				$this->write(CACHE_TMP_PATH . 'cache_complete', (string) time());
 				exit();
 			}
 		} else {
@@ -371,6 +396,7 @@ class CacheEngineCronJob implements CommandInterface {
 			$rCount = count($cacheLockMechanism);
 		}
 		if ($rCount > 0) {
+			$rColumns = '`id`, `username`, `password`, `exp_date`, `created_at`, `admin_enabled`, `enabled`, `bouquet`, `allowed_outputs`, `max_connections`, `is_trial`, `is_restreamer`, `is_stalker`, `is_mag`, `is_e2`, `is_isplock`, `allowed_ips`, `allowed_ua`, `pair_id`, `force_server_id`, `isp_desc`, `forced_country`, `bypass_ua`, `last_expiration_video`, `access_token`, `mag_devices`.`token` AS `mag_token`, `admin_notes`, `reseller_notes`, `lines`.`custom_data`';
 			$rSteps = [];
 			if (!is_null($rStart)) {
 				$rEnd = $rStart + $rCount - 1;
@@ -381,6 +407,7 @@ class CacheEngineCronJob implements CommandInterface {
 				$rSteps = [null];
 			}
 			$rExists = [];
+			$rRead = true;
 			foreach ($rSteps as $rStep) {
 				if (!is_null($rStep)) {
 					if ($rStart + $rCount < $rStep + $this->rSplit) {
@@ -388,32 +415,95 @@ class CacheEngineCronJob implements CommandInterface {
 					} else {
 						$rMax = $this->rSplit;
 					}
-					$db->query('SELECT `id`, `username`, `password`, `exp_date`, `created_at`, `admin_enabled`, `enabled`, `bouquet`, `allowed_outputs`, `max_connections`, `is_trial`, `is_restreamer`, `is_stalker`, `is_mag`, `is_e2`, `is_isplock`, `allowed_ips`, `allowed_ua`, `pair_id`, `force_server_id`, `isp_desc`, `forced_country`, `bypass_ua`, `last_expiration_video`, `access_token`, `mag_devices`.`token` AS `mag_token`, `admin_notes`, `reseller_notes`, `lines`.`custom_data` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` LIMIT ' . $rStep . ', ' . $rMax . ';');
+					// Page the lines themselves, in id order, before the MAG join:
+					// paging the joined rows would skip or repeat lines between
+					// pages (no stable order, a line with several devices).
+					$rOk = $db->query('SELECT ' . $rColumns . ' FROM (SELECT * FROM `lines` ORDER BY `id` ASC LIMIT ' . intval($rStep) . ', ' . intval($rMax) . ') AS `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id`;');
 				} else {
-					$db->query('SELECT `id`, `username`, `password`, `exp_date`, `created_at`, `admin_enabled`, `enabled`, `bouquet`, `allowed_outputs`, `max_connections`, `is_trial`, `is_restreamer`, `is_stalker`, `is_mag`, `is_e2`, `is_isplock`, `allowed_ips`, `allowed_ua`, `pair_id`, `force_server_id`, `isp_desc`, `forced_country`, `bypass_ua`, `last_expiration_video`, `access_token`, `mag_devices`.`token` AS `mag_token`, `admin_notes`, `reseller_notes`, `lines`.`custom_data` FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` IN (' . implode(',', $cacheLockMechanism) . ');');
+					$rOk = $db->query('SELECT ' . $rColumns . ' FROM `lines` LEFT JOIN `mag_devices` ON `mag_devices`.`user_id` = `lines`.`id` WHERE `id` IN (' . implode(',', array_map('intval', $cacheLockMechanism)) . ');');
 				}
-				if ($db->result) {
+				if ($rOk && $db->result) {
 					if ($db->result->rowCount() > 0) {
 						foreach ($db->result->fetchAll(\PDO::FETCH_ASSOC) as $rUserInfo) {
-							$rExists[] = $rUserInfo['id'];
-							file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
-							$rKey = (SettingsManager::get('case_sensitive_line') ? $rUserInfo['username'] . '_' . $rUserInfo['password'] : strtolower($rUserInfo['username'] . '_' . $rUserInfo['password']));
-							file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, $rUserInfo['id']);
+							$rExists[intval($rUserInfo['id'])] = true;
+							$rOldKeys = $this->lineKeys(intval($rUserInfo['id']));
+							$this->write(LINES_TMP_PATH . 'line_i_' . $rUserInfo['id'], igbinary_serialize($rUserInfo));
+							$rKey = $this->credentialKey($rUserInfo['username'], $rUserInfo['password']);
+							$this->write(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserInfo['id']);
 							if (!empty($rUserInfo['access_token'])) {
-								file_put_contents(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], $rUserInfo['id']);
+								$this->write(LINES_TMP_PATH . 'line_t_' . $rUserInfo['access_token'], (string) $rUserInfo['id']);
+							}
+							// Credentials or token changed: the old lookup files
+							// would keep resolving to this line.
+							if ($rOldKeys['c'] !== null && $rOldKeys['c'] !== $rKey) {
+								$this->unlinkLookup('line_c_' . $rOldKeys['c'], intval($rUserInfo['id']));
+							}
+							if ($rOldKeys['t'] !== null && $rOldKeys['t'] !== (string) $rUserInfo['access_token']) {
+								$this->unlinkLookup('line_t_' . $rOldKeys['t'], intval($rUserInfo['id']));
 							}
 						}
 					}
 					$db->result = null;
+				} else {
+					$rRead = false;
 				}
 			}
-			if (count($cacheLockMechanism) > 0) {
-				foreach ($cacheLockMechanism as $rForceID) {
-					if (!in_array($rForceID, $rExists) && file_exists(LINES_TMP_PATH . 'line_i_' . $rForceID)) {
-						unlink(LINES_TMP_PATH . 'line_i_' . $rForceID);
-					}
+			if (!$rRead) {
+				// A failed read says nothing about which lines exist.
+				$this->markFailed();
+				return;
+			}
+			foreach ($cacheLockMechanism as $rForceID) {
+				$rForceID = intval($rForceID);
+				if (!isset($rExists[$rForceID])) {
+					$this->removeLine($rForceID);
 				}
 			}
+		}
+	}
+
+	/** The cache key a line's username and password are looked up by (`line_c_<key>`). */
+	private function credentialKey($rUsername, $rPassword): string {
+		return SettingsManager::get('case_sensitive_line') ? $rUsername . '_' . $rPassword : strtolower($rUsername . '_' . $rPassword);
+	}
+
+	/**
+	 * The credential and token keys of a line's current cache entry, so the
+	 * lookup files can follow a rename or a deletion.
+	 *
+	 * @return array{c: ?string, t: ?string}
+	 */
+	private function lineKeys(int $rUserID): array {
+		$rKeys = ['c' => null, 't' => null];
+		$rRaw = @file_get_contents(LINES_TMP_PATH . 'line_i_' . $rUserID);
+		$rOld = $rRaw !== false ? @igbinary_unserialize($rRaw) : null;
+		if (is_array($rOld)) {
+			if (isset($rOld['username'], $rOld['password'])) {
+				$rKeys['c'] = $this->credentialKey($rOld['username'], $rOld['password']);
+			}
+			if (!empty($rOld['access_token'])) {
+				$rKeys['t'] = (string) $rOld['access_token'];
+			}
+		}
+		return $rKeys;
+	}
+
+	/** Drop a deleted line's entry and the lookup files that pointed to it. */
+	private function removeLine(int $rUserID): void {
+		$rKeys = $this->lineKeys($rUserID);
+		foreach (['c' => 'line_c_', 't' => 'line_t_'] as $rType => $rPrefix) {
+			if ($rKeys[$rType] !== null) {
+				$this->unlinkLookup($rPrefix . $rKeys[$rType], $rUserID);
+			}
+		}
+		@unlink(LINES_TMP_PATH . 'line_i_' . $rUserID);
+	}
+
+	/** Remove a `line_c_` / `line_t_` lookup file, only while it still names $rUserID (another line may hold the key now). */
+	private function unlinkLookup(string $rFile, int $rUserID): void {
+		$rPath = LINES_TMP_PATH . $rFile;
+		if (intval(@file_get_contents($rPath)) === $rUserID) {
+			@unlink($rPath);
 		}
 	}
 
@@ -452,21 +542,24 @@ class CacheEngineCronJob implements CommandInterface {
 				} else {
 					$rRows = StreamCacheBuilder::streamRows($db, array_map('intval', $cacheLockMechanism));
 				}
+				if ($rRows === null) {
+					// A failed read says nothing about which streams exist.
+					$this->markFailed();
+					return;
+				}
 				if ($rRows !== []) {
 					$rStreamMap = StreamCacheBuilder::serverMap($db, array_map(static fn($rRow) => intval($rRow['id']), $rRows));
 					foreach ($rRows as $rStreamInfo) {
-						$rExists[] = $rStreamInfo['id'];
 						$rID = intval($rStreamInfo['id']);
+						$rExists[$rID] = true;
 						StreamCacheBuilder::write($rID, StreamCacheBuilder::entry($rStreamInfo, $rBouquetMap[$rID] ?? [], $rStreamMap[$rID] ?? []));
 					}
 					unset($rRows, $rStreamMap);
 				}
 			}
-			if (count($cacheLockMechanism) > 0) {
-				foreach ($cacheLockMechanism as $rForceID) {
-					if (!in_array($rForceID, $rExists)) {
-						StreamCacheBuilder::remove(intval($rForceID));
-					}
+			foreach ($cacheLockMechanism as $rForceID) {
+				if (!isset($rExists[intval($rForceID)])) {
+					StreamCacheBuilder::remove(intval($rForceID));
 				}
 			}
 		}
@@ -494,7 +587,12 @@ class CacheEngineCronJob implements CommandInterface {
 				} else {
 					$rMax = $this->rSplit;
 				}
-				$db->query('SELECT `stream_id`, `series_id`, `season_num`, `episode_num` FROM `streams_episodes` WHERE `stream_id` IN (SELECT `id` FROM `streams` WHERE `type` = 5) ORDER BY `series_id` ASC, `season_num` ASC, `episode_num` ASC LIMIT ' . $rStep . ', ' . $rMax . ';');
+				if (!$db->query('SELECT `stream_id`, `series_id`, `season_num`, `episode_num` FROM `streams_episodes` WHERE `stream_id` IN (SELECT `id` FROM `streams` WHERE `type` = 5) ORDER BY `series_id` ASC, `season_num` ASC, `episode_num` ASC, `stream_id` ASC LIMIT ' . $rStep . ', ' . $rMax . ';')) {
+					// The episode lists are merged from every worker; a missing
+					// page would empty series that still have episodes.
+					$this->markFailed();
+					continue;
+				}
 				foreach ($db->get_rows() as $rRow) {
 					if ($rRow['stream_id'] && $rRow['series_id']) {
 						$rSeriesMap[intval($rRow['stream_id'])] = intval($rRow['series_id']);
@@ -506,8 +604,8 @@ class CacheEngineCronJob implements CommandInterface {
 				}
 			}
 		}
-		file_put_contents(SERIES_TMP_PATH . 'series_episodes_' . $rStart, igbinary_serialize($rSeriesEpisodes));
-		file_put_contents(SERIES_TMP_PATH . 'series_map_' . $rStart, igbinary_serialize($rSeriesMap));
+		$this->write(SERIES_TMP_PATH . 'series_episodes_' . $rStart, igbinary_serialize($rSeriesEpisodes));
+		$this->write(SERIES_TMP_PATH . 'series_map_' . $rStart, igbinary_serialize($rSeriesMap));
 		unset($rSeriesMap);
 	}
 
@@ -576,7 +674,7 @@ class CacheEngineCronJob implements CommandInterface {
 				}
 				$rReturn['category_ids'] = array_unique($rCategories);
 			}
-			file_put_contents(CACHE_TMP_PATH . 'permissions_' . intval($rGroup['group_id']), igbinary_serialize($rReturn));
+			$this->write(CACHE_TMP_PATH . 'permissions_' . intval($rGroup['group_id']), igbinary_serialize($rReturn));
 		}
 	}
 
@@ -593,7 +691,7 @@ class CacheEngineCronJob implements CommandInterface {
 				$rLinesPerIP[$rTime][] = $rRow;
 			}
 		}
-		file_put_contents(CACHE_TMP_PATH . 'lines_per_ip', igbinary_serialize($rLinesPerIP));
+		$this->write(CACHE_TMP_PATH . 'lines_per_ip', igbinary_serialize($rLinesPerIP));
 	}
 
 	private function generateTheftDetection(): void {
@@ -609,7 +707,36 @@ class CacheEngineCronJob implements CommandInterface {
 				$rTheftDetection[$rTime][] = $rRow;
 			}
 		}
-		file_put_contents(CACHE_TMP_PATH . 'theft_detection', igbinary_serialize($rTheftDetection));
+		$this->write(CACHE_TMP_PATH . 'theft_detection', igbinary_serialize($rTheftDetection));
+	}
+
+	/**
+	 * Remove the `series_<id>` / `episodes_<id>` files of series that are gone
+	 * or have no episodes left.
+	 *
+	 * @param array<int|string, mixed> $rSeries       Current series ids (keys).
+	 * @param array<int|string, mixed> $rWithEpisodes Series ids with episodes (keys).
+	 */
+	private function removeStaleSeries(array $rSeries, array $rWithEpisodes): void {
+		foreach (scandir(SERIES_TMP_PATH) ?: [] as $rFile) {
+			if (preg_match('/^series_(\d+)$/', $rFile, $rMatch) && !isset($rSeries[$rMatch[1]])) {
+				@unlink(SERIES_TMP_PATH . $rFile);
+			} elseif (preg_match('/^episodes_(\d+)$/', $rFile, $rMatch) && !isset($rWithEpisodes[$rMatch[1]])) {
+				@unlink(SERIES_TMP_PATH . $rFile);
+			}
+		}
+	}
+
+	/** Atomic cache write: readers see the old file or the new one, never a partial one. */
+	private function write(string $rPath, string $rData): void {
+		if (!FileCache::writeAtomic($rPath, $rData)) {
+			echo 'Cache write failed: ' . $rPath . "\n";
+		}
+	}
+
+	/** Tell the parent run a worker's database read failed (FAILED_MARKER). */
+	private function markFailed(): void {
+		@touch(CACHE_TMP_PATH . self::FAILED_MARKER);
 	}
 
 	public function shutdown(): void {

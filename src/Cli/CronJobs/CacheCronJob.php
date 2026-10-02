@@ -76,8 +76,10 @@ class CacheCronJob implements CommandInterface {
 			if (!is_array($rSerialize) || !isset($rSerialize['server_name'])) {
 				echo 'Clearing cache...' . "\n\n";
 				foreach ([STREAMS_TMP_PATH, LINES_TMP_PATH, SERIES_TMP_PATH] as $rTmpPath) {
-					foreach (scandir($rTmpPath) as $rFile) {
-						unlink($rTmpPath . $rFile);
+					foreach (scandir($rTmpPath) ?: [] as $rFile) {
+						if (is_file($rTmpPath . $rFile)) {
+							unlink($rTmpPath . $rFile);
+						}
 					}
 				}
 				// No sudo: this runs as xc_vm (service boot chowns tmp/ first),

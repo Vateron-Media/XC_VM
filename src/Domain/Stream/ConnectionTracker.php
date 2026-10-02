@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Stream;
 
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\ClusterHealth;
 use XcVm\Core\Cluster\SignalDispatcher;
@@ -146,7 +147,7 @@ class ConnectionTracker {
 		}
 
 		if (defined('CACHE_TMP_PATH') && is_dir(CACHE_TMP_PATH) && is_writable(CACHE_TMP_PATH)) {
-			file_put_contents(CACHE_TMP_PATH . $rFile, json_encode($rRows), LOCK_EX);
+			FileCache::writeAtomic(CACHE_TMP_PATH . $rFile, (string) json_encode($rRows));
 		}
 		return $rRows;
 	}
