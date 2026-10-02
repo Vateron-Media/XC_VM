@@ -1419,6 +1419,14 @@ class ConnectionTracker {
 					}
 				} else {
 					if (($rActivityInfo['container'] ?? '') == 'hls') {
+						// The server that serves the viewer keeps its marker
+						// (CONS_TMP_PATH/<uuid>), which its segment.php checks for
+						// every segment: without this a killed HLS viewer on another
+						// server kept getting the segments of the playlist it held.
+						$rServerID = intval($rActivityInfo['server_id']);
+						if (!$rEnded && ($rRemove || $rEnd) && $rServerID > 0 && $rServerID != SERVER_ID) {
+							SignalDispatcher::cache($rServerID, ['type' => 'delete_con', 'uuid' => (string) $rActivityInfo['uuid']], false, false, $db);
+						}
 						if (!$rRemove && $rEnd && $rActivityInfo['hls_end'] == 0) {
 							if ($rSettings['redis_handler']) {
 								self::updateConnection($rActivityInfo, [], 'close');
