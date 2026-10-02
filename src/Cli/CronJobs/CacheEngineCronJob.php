@@ -24,8 +24,6 @@ use XcVm\Domain\Stream\StreamCacheBuilder;
 class CacheEngineCronJob implements CommandInterface {
 	use CronTrait;
 
-	private $rPID;
-
 	private $rSplit = 10000;
 
 	private $rThreadCount;
@@ -51,8 +49,7 @@ class CacheEngineCronJob implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
-
-		$this->rPID = getmypid();
+		
 		register_shutdown_function([$this, 'shutdown']);
 
 		ini_set('memory_limit', -1);
@@ -79,7 +76,14 @@ class CacheEngineCronJob implements CommandInterface {
 				SettingsManager::update('cache_changes', false);
 			}
 		} else {
-			shell_exec("kill -9 \$(ps aux | grep 'cache_engine' | grep -v grep | awk '\$2 != " . intval($this->rPID) . " {print \$2}')");
+			// Stop older runs and their workers, so two rebuilds never race.
++			// Read from /proc (own PID excluded), not a ps|grep shell pipeline;
++			// the parent is the cron shell that launched this run.
++			foreach (ProcessManager::findProcessPIDs(['cache_engine']) as $rPID) {
++				if ($rPID !== posix_getppid()) {
++					ProcessManager::kill($rPID);
++				}
++			}
 		}
 
 		$this->loadCron($rType, $rGroupStart, $rGroupMax);
