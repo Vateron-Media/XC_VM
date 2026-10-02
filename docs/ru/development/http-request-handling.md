@@ -1,6 +1,6 @@
 # Обработка HTTP-запросов
 
-Этот документ описывает, как обрабатываются HTTP-запросы в XC_VM, охватывая полный жизненный цикл от первоначального ввода до маршрутизации и отправки. В зависимости от типа запроса существует несколько путей выполнения.
+В этом документе описывается, как HTTP-запросы обрабатываются в XC_VM, охватывая полный жизненный цикл от первоначального ввода до маршрутизации и отправки. В зависимости от типа запроса существует несколько путей выполнения.
 
 ---
 
@@ -54,7 +54,7 @@ nginx -> Public/index.php
 В процессе производственного администрирования не используется `Request::capture()`. Вместо этого `LegacyInitializer::initCore()` управляет обработкой входных данных:
 
 1. `InputValidator::cleanGlobals()` вызывается при `$_GET`, `$_POST`, `$_SESSION`, и `$_COOKIE` на месте, удаляя нулевые байты, последовательности обхода пути (`../`) и символы переопределения RTL.
-2. `InputValidator::parseIncomingRecursively()` очищает ключи и значения (HTML-объекты, теги сценариев, разделители комментариев, окончания строк) и возвращает чистый массив.
+2. `InputValidator::parseIncomingRecursively()` очищает ключи и значения (HTML-объекты, теги скриптов, разделители комментариев, окончания строк) и возвращает чистый массив.
 3. Результат (объединяется с сообщением, сообщение имеет приоритет) сохраняется через `RequestManager::set()`.
 
 Во всей кодовой базе доступ к данным запроса осуществляется через `RequestManager::get($key)` и `RequestManager::getAll()`, а не через объект `Request`.
@@ -77,7 +77,7 @@ nginx -> Public/index.php
 ```
 
 Этот путь полностью обходит маршрутизатор. Модули по-прежнему загружаются (без
-маршрутизатор, так что никаких побочных эффектов от прохождения маршрута), чтобы их реестры были заполнены — a
+маршрутизатор, так что никаких побочных эффектов от прохождения маршрута), чтобы их реестры были заполнены - a
 module-owned serverSide table is therefore reachable over REST. `AdminApiController`
 не имеет жестко заданного регистра для каждой таблицы модулей: его ветвь `default` обслуживает любой идентификатор в
 `TableRegistry` через `AdminAPIWrapper::TableAPI($action, …)`, который отправляет
@@ -117,7 +117,7 @@ nginx -> StreamingRequestBootstrap::init($filename)
 
 1. **Защита от наводнений** -- Если файл `FLOOD_TMP_PATH/block_{IP}` существует, запрос отклоняется по протоколу HTTP 403.
 2. **Загрузка кэша настроек** -- Считывает `$rSettings` из кэша файлов, сериализованных в igbinary, по адресу `CACHE_TMP_PATH/settings`.
-3. **Проверка хостинга** -- Если `$rSettings['verify_host']` имеет значение true, проверяется, отображается ли `HOST` в кэшированном списке `allowed_domains`. Исключения: имя хоста `xc_vm` и любой допустимый IP-адрес всегда разрешены.
+3. **Проверка хостинга** -- Если значение `$rSettings['verify_host']` равно true, проверяется, отображается ли `HOST` в кэшированном списке `allowed_domains`. Исключения: имя хоста `xc_vm` и любой допустимый IP-адрес всегда разрешены. `cron:cache` записывает список каждую минуту (`ServerRepository::getAllowedDomains`): _BOS_7 записей о включенных серверах, серверные и частные IP-адреса, а также `reseller_dns` активных реселлеров, плюс `localhost` и `127.0.0.1`. С марта по сентябрь 2026 года ничего не записывалось, поэтому хост не проверялся. Узел в режиме кластера 2 не считывает данные реселлера из MAIN, поэтому он не ведет список и не проверяет хост.
 4. **Флаг отображения ошибки** - Устанавливает константу `PHP_ERRORS` вместо константы `$rSettings['debug_show_errors']`.
 5. **Инициализация регистратора** -- Вызывает `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`.
 
@@ -331,11 +331,11 @@ $router->dispatchApi($action);            // returns true if matched
 
 Важно: `dispatchApi()` не запускает промежуточное программное обеспечение. Это намеренное отличие от отправки страниц.
 
-Конечные точки в формате JSON на панели администратора `?action=` регистрируются таким образом и обрабатываются выделенными контроллерами в соответствии с `XcVm\Public\Controllers\Admin\Ajax`. Шаблон контроллера и контракт структурированного поиска смотрите в [Admin AJAX API](admin-ajax-api.md).
+Конечные точки в формате JSON на панели администратора `?action=` регистрируются таким образом и обрабатываются выделенными контроллерами в соответствии с `XcVm\Public\Controllers\Admin\Ajax`. Шаблон контроллера и контракт на структурированный поиск смотрите в [Admin AJAX API](admin-ajax-api.md).
 
 #### Когда ничего не совпадает
 
-И `dispatch()`, и `dispatchApi()` возвращают `false`, если маршрут не совпадает. `Public/index.php` затем выдает `http_response_code(404); echo '404 Not Found';` — есть **нет** универсальный контроллер. (Неправильно введенный путь к ресурсу, который достигает главного контроллера, вместо того, чтобы обслуживаться nginx, попадает на тот же 404.)
+И `dispatch()`, и `dispatchApi()` возвращают `false`, если маршрут не совпадает. `Public/index.php` затем выдает `http_response_code(404); echo '404 Not Found';` — есть **нет** универсальный контроллер. (Неправильно набранный путь к ресурсу, который достигает переднего контроллера, а не обслуживается nginx, попадает на тот же 404.)
 
 > **Pitfall — two sanitization APIs + a global.** Input can be reached three ways: `InputValidator` (the global request-sanitization layer), the `Request` class's static `sanitize*()` methods (kept for backward compatibility), and the global-static `RequestManager`. They are not interchangeable and the sanitization one applies depends on the bootstrap path — pick the layer the surrounding code already uses rather than mixing them, and remember `RequestManager`'s static state makes it order-dependent and awkward to isolate in tests (set it explicitly in a test rather than relying on prior request state).
 
@@ -379,7 +379,7 @@ $collisions = $router->drainRouteCollisions();
 | `notFound` | `notFound($message = 'Not Found')` |Отправьте запрос 404 и выйдите|
 | `header` | `header($name, $value)` |Установите один заголовок ответа|
 | `cors` | `cors()` |Установить заголовки CORS (`Access-Control-Allow-Origin: *`)|
-| `noCache` | `noCache()` |Установка заголовков без кэширования (используется для плейлистов HLS)|
+| `noCache` | `noCache()` |Установка заголовков без кэширования (используется для списков воспроизведения HLS)|
 | `raw` | `raw($content, $contentType, $statusCode)` |Отправьте необработанный контент с указанием типа контента и завершите работу|
 | `empty` | `empty($statusCode = 204)` |Отправьте пустой ответ и завершите работу|
 
@@ -392,7 +392,7 @@ $collisions = $router->drainRouteCollisions();
 |Контекст|Что он инициализирует|
 | --- | --- |
 | `BootContext::Minimal` |Автозагрузка + константы + конфигурация + регистратор. Нет подключения к базе данных.|
-| `BootContext::Cli` |+ База данных + `LegacyInitializer::initCore()` (очистка входных данных, настройки, пути FFmpeg). Необязательно Redis.|
+| `BootContext::Cli` |+ База данных + `LegacyInitializer::initCore()` (очистка входных данных, настройки, пути к файлам FFmpeg). Необязательный повтор.|
 | `BootContext::Stream` |+ Только база данных (упрощенная, без `LegacyInitializer`). Конечные точки потоковой передачи используют вместо этого `StreamingRequestBootstrap`.|
 | `BootContext::Admin` |+ Сессия + База данных + `LegacyInitializer::initCore()` + Redis + API администратора + Переводчик + глобальные настройки администратора. Полная инициализация.|
 
@@ -419,7 +419,7 @@ $collisions = $router->drainRouteCollisions();
 | `src/Infrastructure/Bootstrap/StreamingRequestBootstrap.php` |Облегченный загрузчик конечной точки потоковой передачи|
 | `src/Streaming/StreamingBootstrap.php` |Потоковое подключение к базе данных и устаревшая инициализация|
 | `src/bootstrap.php` |Унифицированный bootstrap (класс`XC_Bootstrap`)|
-| `src/Public/index.php` |Внешний контроллер для администратора/реселлера/игрока/API|
+| `src/Public/index.php` |Передний контроллер для администратора/реселлера/игрока/API|
 | `src/Public/routes/admin.php` |Определения маршрутов на странице администратора|
 | `src/Public/routes/reseller.php` |Определения маршрута на странице реселлера|
 | `src/Public/routes/player.php` |Определения маршрута на странице игрока|

@@ -1,6 +1,6 @@
 # Точки расширения модуля
 
-Основные точки расширения, к которым подключается модуль: контейнер DI, потоковое промежуточное программное обеспечение, задачи cron, миграции версий и типизированные события. Чтобы создать модуль, смотрите [Создание модуля](module-authoring.md); для загрузки/жизненного цикла смотрите [Жизненный цикл модуля](module-lifecycle.md).
+Основные точки расширения, к которым подключается модуль: контейнер DI, задачи cron, миграции версий, типизированные события, исходные драйверы, вкладки потоковой формы и виды импорта. Чтобы создать модуль, смотрите [Создание модуля](module-authoring.md); для загрузки/жизненного цикла смотрите [Жизненный цикл модуля](module-lifecycle.md).
 
 ## Оформление контейнеров и сервизов DI
 
@@ -42,36 +42,13 @@ public function has(string $id): bool;
 
 ## Потоковое промежуточное программное обеспечение
 
-
-Модули могут внедрять промежуточное программное обеспечение в потоковый конвейер, реализуя
-`StreamMiddlewareProviderInterface` (отдельно от `ModuleInterface`):
-
-```php
-class MyStreamMiddleware implements StreamMiddlewareInterface {
-
-    public function getPriority(): int {
-        return 50;
-    }
-
-    public function handle(StreamContext $ctx, callable $next): StreamContext {
-        // before — read or set attributes
-        $ctx->set('my.key', 'value');
-        $ctx = $next($ctx);
-        // after
-        return $ctx;
-    }
-}
-```
-
-`StreamContext` - это набор атрибутов (`get`, `set`, `has`, `abort`, `isAborted`). `StreamPipeline`
-выполняет промежуточное программное обеспечение, отсортированное по убыванию `getPriority()`.
-
-### Приоритеты трубопровода
-
-|Диапазон|Владелец|
-| ---------- | ----------------- |
-| `80–100` |Ядро (авторизация, разрешение, ограничение подключения)|
-| `0–79` |Модули|
+!!! предупреждение "Устарело — никогда не запускалось"
+Ядро никогда не запускало конвейер потокового промежуточного программного обеспечения: `getStreamMiddleware()` никогда не вызывался
+и класс конвейера исчез. `StreamMiddlewareProviderInterface`,
+`StreamMiddlewareInterface` и `StreamContext` остаются только существующими модулями, которые
+их реализация продолжает загружаться. Не основывайтесь на них. Чтобы воздействовать на потоки, используйте события
+например, `StreamSavedEvent` и `StreamsDeletedEvent`, или
+[исходный драйвер](source-drivers.md).
 
 ### Зарезервированные слоты на панели навигации
 
@@ -164,7 +141,7 @@ public function registerTopbar(TopbarRegistry $registry): void
 свой СОБСТВЕННЫЙ идентификатор таблицы через `TableProviderInterface::registerTables(TableRegistry
 $registry)` (та же фаза загрузки, что и у других), поэтому разработчик находится в модуле
 вместо core. Когда `./table` получает идентификатор, который не является регистром core, он выглядит так
-в реестре. `BaseModule` по умолчанию отправляет сообщение о том, что операции не выполняются.
+в реестре. `BaseModule` по умолчанию отправлено сообщение о том, что операции не выполняются.
 
 ```php
 use XcVm\Core\Module\TableRegistry;
@@ -200,7 +177,7 @@ public static function tableWatchOutput(array $rReturn, int $rStart, int $rLimit
 - Обработчик получает скелет ответа (`recordsTotal`, `recordsFiltered`,
 `data`) и возвращает его заполненным. Оно должно быть **нет** `echo` или `exit` —
 `TableController` JSON - кодирует возвращаемый массив.
-- Возвращает **чистые строки JSON с ключами — без встроенного сервером HTML**. Значки статуса,
+- Возвращает **чистые строки в формате JSON с ключами — без встроенного сервером HTML**. Значки статуса,
 кнопки действий и ссылки отображаются на стороне клиента с помощью представления (то же самое
 соглашение, которому следуют основные таблицы), что позволяет исключить представление
 контроллер и позволяет ячейкам, зависящим от разрешений, использовать флаги, выдаваемые представлением.
@@ -334,12 +311,12 @@ public function getCronEntries(): array {
 > **Два механизма, оба аддитивные.** **файловая схема**, описанный в разделе
 > [Структура каталогов модулей](module-authoring.md#module-directory-structure) (`database.sql` мастер +
 > `database_drop.sql` разборка + `migrations/<semver>.sql` дельты) используется по умолчанию для
-> обычный DDL/seed. `MigratableInterface` ниже приведен путь **программный** для обновления
-> шаги, требующие логики PHP (повторное заполнение данных, условные изменения). Модуль может использовать
+> обычный DDL/seed. `MigratableInterface` ниже приведен **программный** путь для обновления
+> шаги, требующие логики PHP (обратная загрузка данных, условные изменения). Модуль может использовать
 > один из них или оба; `ModuleManager::updateModule()` сначала запускает файл delta, затем
 > вызываемые миграции.
 
-Модули, для обновления которых требуется PHP логическая реализация `MigratableInterface`:
+Модули, для обновления которых требуется логическая реализация PHP `MigratableInterface`:
 
 ```php
 namespace XcVm\Module\MyModule;
@@ -376,5 +353,118 @@ class MyModuleModule extends BaseModule implements MigratableInterface {
 - Каждая миграция выполняется в рамках своей собственной транзакции — сбой откатывает только этот шаг
 - `BaseModule` предоставляет значение по умолчанию `getMigrations(): array { return []; }`, поэтому реализация
 `MigratableInterface` является необязательным
+
+---
+
+## Исходные драйверы (`SourceDriverInterface`)
+
+Модулю может принадлежать какой-то живой исходный код, который ffmpeg не может прочитать (например, DASH с
+DRM) и запустит для него свой собственный движок вместо ffmpeg. Модуль объявляет драйвер
+классы в `module.json` (`"source_drivers": [...]`), и каждый драйвер задает свой собственный URL
+схема. Потоки остаются обычными потоками XC_VM. Смотрите [Исходные драйверы](source-drivers.md) для получения
+интерфейс, контракт с производителем и полный пример.
+
+---
+
+## Вкладки потоковой формы (`StreamFormRegistry`)
+
+Модуль может добавить свою собственную вкладку на страницу добавления/редактирования потока администратором и сохранить то, что находится на этой вкладке.
+записи в своих собственных таблицах. Зарегистрируйте вкладку с `boot()`. `bootAll()` сбрасывает реестр
+при каждой загрузке, таким образом, вкладка существует только до тех пор, пока загружен ее модуль.
+
+```php
+use XcVm\Core\Container\ServiceContainer;
+use XcVm\Core\Events\ListensTo;
+use XcVm\Core\Events\Stream\StreamSavedEvent;
+use XcVm\Core\Module\StreamFormRegistry;
+
+public function boot(ServiceContainer $container): void {
+    StreamFormRegistry::add(
+        'acme-dash',                                        // id: [a-z0-9_-]
+        'DASH engine',                                      // tab title, already translated
+        static fn(?array $stream, string $mode): string =>  // $mode: 'add' | 'edit'
+            AcmeDashForm::render($stream === null ? null : (int) $stream['id']),
+        'manage_acme_dash',                                 // 'adv' permission, or null
+        static fn(array $fields, ?array $stream): ?string =>
+            ($fields['provider'] ?? '') === '' ? 'Choose a provider' : null,
+    );
+}
+
+#[ListensTo(StreamSavedEvent::class)]
+public function onStreamSaved(StreamSavedEvent $event): void {
+    if (!isset($event->moduleFields['acme-dash'])) {
+        return; // an import, an API call or a form without this tab: keep what is stored
+    }
+    foreach ($event->streamIds as $id) {
+        AcmeDashSettings::save($id, $event->moduleFields['acme-dash']);
+    }
+}
+```
+
+- **Входные** должно быть присвоено имя `module[<id>][<field>]`, например
+`<input name="module[acme-dash][provider]">`. Ядро передает именно этот подмассив
+назад. Поле модуля никогда не достигает столбца `streams`, и ядро отбрасывает поля из
+вкладки, которые администратор может не видеть.
+- **`render`** returns the pane's HTML. `$stream` is the stream row when editing and
+`null` при добавлении. Вкладка не отображается в форме импорта, а для массового редактирования нет
+вкладки модулей.
+- **`validate`** выполняется до того, как что-либо будет записано, и только тогда, когда поля вкладки были заполнены.
+опубликовано: сохранение API или импорт, который не содержит ничего, никогда не отклоняются им. Возвращающийся
+строка отказывается сохраняться, и форма показывает этот текст как есть, поэтому переведите его
+себя.
+- **`StreamSavedEvent`** отправляется один раз за сохранение, после записи каждой строки. Оно
+носит:
+  - `streamIds`;
+  - `isNew`: `false` для редактирования;
+  - `source`: `form` (форма или API администратора), `import` (M3U) или `review`
+(Импорт и обзор);
+  - `moduleFields`: идентификатор вкладки => опубликованные поля.
+
+Действуйте только тогда, когда ваш идентификатор находится в `moduleFields`, в противном случае импорт или сохранение API
+это уничтожило бы ваши настройки. Прослушиватель, который выдает сообщение, регистрируется в журнале и не завершает работу
+сохранить.
+- При сохранении **Не добавляйте внешние ключи к `streams`.** строка (`REPLACE INTO`) будет переписана заново.
+Вместо этого выполните очистку на `StreamsDeletedEvent`.
+
+---
+
+## Виды импорта (`ImportSourceRegistry`)
+
+Модуль может добавить свой собственный источник на страницу **Импорт и обзор** для прямых трансляций, далее
+к встроенному файлу M3U. Администратор выбирает его в селекторе **Источник** и заполняет
+входы модуля. В модуле перечислены каналы, и они проходят через обычный
+просмотрите и импортируйте шаги, чтобы каждый канал стал обычным потоком. Зарегистрируйте
+вид из `boot()`; `bootAll()` сбрасывает реестр при каждой загрузке.
+
+```php
+use XcVm\Core\Module\ImportSourceRegistry;
+
+public function boot(ServiceContainer $container): void {
+    ImportSourceRegistry::add(
+        'acme-dash',                                   // key: [a-z0-9_-]
+        'Acme DASH provider',                          // label in the Source picker
+        static fn(): string => AcmeDashImport::form(), // inputs: import_source[acme-dash][...]
+        static fn(array $fields): array => AcmeDashImport::channels($fields['provider'] ?? ''),
+        'manage_acme_dash',                            // 'adv' permission, or null
+    );
+}
+
+// AcmeDashImport::channels() returns rows like:
+// ['url' => 'acmedash://prov1/demo-001', 'title' => 'Demo One',
+//  'logo' => 'https://…/logo.png', 'tvg_id' => 'demo.one', 'category' => 'News']
+```
+
+- **Входные** такого рода называются `import_source[<key>][<field>]`. Его `list`
+callable получает именно этот подмассив.
+- **Строки** нужен `url`. `title` возвращает к URL-адресу и `logo`, `tvg_id` (соответствует
+против EPG, такого как M3U `tvg-id`) и `category` являются необязательными.
+- **Существующие источники.** URL-адрес источника, который уже есть в панели, не указывается, если только администратор не
+галочки *Показывают потенциальные дубликаты*; затем они отображаются и помечаются.
+- **Ограничение по строкам.** Одна страница обзора занимает не более `ImportSourceRegistry::MAX_ROWS` (500) страниц
+строк; кроме того, на странице отображается слишком много результатов.
+- **Неудачи.** Вызываемый объект `list`, который выдает сообщение "нет источников" и регистрирует сообщение в журнале,
+поэтому держите вызовы провайдера в пределах тайм-аута.
+- **После импорта,** `StreamSavedEvent` запускается с помощью `source = 'review'`, и новый
+идентификаторы потоков. Идентификатор канала указан в URL-адресе источника каждого потока.
 
 ---

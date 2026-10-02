@@ -1,10 +1,10 @@
 # Модель обработки ошибок
 
-XC_VM обработка ошибок состоит из трех уровней:
+Обработка ошибок XC_VM состоит из трех уровней:
 
-- **Коды ошибок** -- что привело к сбою (централизованный реестр именованных строк ошибок)
-- **Обработчики ошибок** -- как генерируется HTTP-ответ клиента (`generateError()`, `generate404()`)
-- **Подсистема регистратора** -- фиксация во время выполнения PHP ошибок, неперехваченных исключений и фатальных сбоев
+- **Коды ошибок** -- какой сбой произошел (централизованный реестр именованных строк ошибок)
+- **Обработчики ошибок** -- как формируется HTTP-ответ клиента (`generateError()`, `generate404()`)
+- **Подсистема регистратора** -- отслеживание ошибок PHP во время выполнения, неперехваченных исключений и фатальных сбоев
 
 ---
 
@@ -64,12 +64,12 @@ Application code
 | `E2_TOKEN_DOESNT_MATCH` |Токен не соответствует записям.|
 | `E2_WATCHDOG_TIMEOUT` |Истек лимит времени.|
 | `EMPTY_USER_AGENT` |Пустые пользовательские агенты запрещены.|
-| `EPG_DISABLED` |EPG был отключен.|
+| `EPG_DISABLED` |Функция EPG была отключена.|
 | `EPG_FILE_MISSING` |Кэшированные файлы EPG отсутствуют.|
 | `EXPIRED` |Срок действия строки истек.|
 | `FORCED_COUNTRY_INVALID` |Страна не совпадает с принудительной страной.|
 | `GENERATE_PLAYLIST_FAILED` |Не удалось создать список воспроизведения.|
-| `HLS_DISABLED` |HLS был отключен.|
+| `HLS_DISABLED` |Функция HLS была отключена.|
 | `HOSTING_DETECT` |Обнаружен хостинг-сервер.|
 | `INVALID_API_PASSWORD` |Неверный пароль API.|
 | `INVALID_CREDENTIALS` |Имя пользователя или пароль неверны.|
@@ -112,7 +112,7 @@ Application code
 | `TS_DISABLED` |MPEG-TS был отключен.|
 | `USER_ALREADY_CONNECTED` |Линия уже подключена с другого IP-адреса.|
 | `USER_DISALLOW_EXT` |Добавочный номер отсутствует в списке разрешенных.|
-| `VOD_DOESNT_EXIST` |VOD файл не существует.|
+| `VOD_DOESNT_EXIST` |Файл VOD не существует.|
 | `WAIT_TIME_EXPIRED` |Время начала трансляции истекло, запустить не удалось.|
 
 Коды, относящиеся к потоковой передаче данных (`CACHE_INCOMPLETE`, `SUBTITLE_DOESNT_EXIST`, `NO_SERVERS_AVAILABLE`, `PROXY_ACCESS_DENIED`), были перенесены из `stream/init.php` в централизованный реестр.
@@ -177,7 +177,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 Регистры:
 
-1. `set_error_handler([Logger::class, 'handleError'])` -- PHP предупреждения, извещения, ошибки
+1. `set_error_handler([Logger::class, 'handleError'])` -- Предупреждения, уведомления об ошибках в PHP
 2. `set_exception_handler([Logger::class, 'handleException'])` -- не перехвачено `Throwable`
 3. `register_shutdown_function([Logger::class, 'handleFatal'])` -- неустранимые ошибки при завершении работы
 
@@ -196,9 +196,9 @@ Logger::init(bool $showErrors, string $logFile): void
 
 ### Отображение уровня ошибок
 
-`Logger::handleError()` сопоставляет PHP константы ошибок со строками уровня журнала с помощью `mapErrorLevel()`:
+`Logger::handleError()` преобразует константы ошибок PHP в строки уровня журнала с помощью `mapErrorLevel()`:
 
-|PHP константа(ы)|Уровень регистрации|
+|Константа(ы) PHP|Уровень регистрации|
 | --- | --- |
 |`E_ERROR`, `E_CORE_ERROR`, `E_COMPILE_ERROR`| `ERROR` |
 |`E_WARNING`, `E_USER_WARNING`| `WARNING` |
@@ -207,7 +207,7 @@ Logger::init(bool $showErrors, string $logFile): void
 
 Обработчик завершения работы (`handleFatal()`) проверяет `error_get_last()` на наличие этих фатальных типов и регистрирует их как `FATAL`:
 
-|PHP постоянные значения при выключении|Уровень регистрации|
+|Константы PHP при завершении работы|Уровень регистрации|
 | --- | --- |
 |`E_ERROR`, `E_PARSE`, `E_CORE_ERROR`, `E_COMPILE_ERROR`| `FATAL` |
 
@@ -241,7 +241,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 | `line` |Номер строки, в которой произошла ошибка|
 | `log_extra` |Трассировка стека (форматированная строка). Пусто для неустранимых ошибок.|
 | `time` |Временная метка Unix|
-| `env` |PHP Имя SAPI (`cli`, `fpm-fcgi` и т.д.)|
+| `env` |Имя PHP SAPI (`cli`, `fpm-fcgi` и т.д.)|
 
 ### Расположение файла журнала
 
@@ -263,7 +263,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 Программа ведения журнала записывает данные в файл `error_log.log` на диске. Отдельная подсистема считывает этот файл и сохраняет записи в таблице базы данных `panel_logs`:
 
 1. **Лесоруб** записывает строки JSON в кодировке base64 в `error_log.log`
-2. **Файловый регистратор** (`src/Core/Logging/FileLogger.php`) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, ошибки EPG и т.д.), который записывает данные в тот же файл в том же формате
+2. **Файловый регистратор** (`src/Core/Logging/FileLogger.php`) предоставляет дополнительный интерфейс ведения журнала, используемый кодом приложения (ошибки PDO, EPG и т.д.), который записывает данные в тот же файл в том же формате
 3. Записи заносятся в таблицу `panel_logs`
 4. **Диагностическая служба** (`src/Core/Diagnostics/DiagnosticsService.php`) считывается из `panel_logs` для:
    - `downloadPanelLogs()` -- извлекает до 1000 последних ошибок, не связанных с EPG, затем обрезает таблицу
@@ -285,7 +285,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 |Класс|Файл|Цель|
 | --- | --- | --- |
-| `Logger` | `Logger.php` |Обработчик глобальной PHP ошибки/исключения/фатального исхода (описанный выше)|
+| `Logger` | `Logger.php` |Обработчик глобальной ошибки/исключения/фатального исхода PHP (описанный выше)|
 | `FileLogger` | `FileLogger.php` |Ведение журнала на уровне приложения (ошибки PDO, EPG и т.д.) до `error_log.log`|
 | `DatabaseLogger` | `DatabaseLogger.php` |Клиент передает события потокового запроса в `client_request.log` (вводимые в таблицу `client_logs`)|
 | `UpdateLogger` | `UpdateLogger.php` |Операции обновления системы до `MAIN_HOME/update.log` (обычный текст, не base64)|
@@ -296,7 +296,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 ## Типы исключений в кодовой базе
 
-В кодовой базе определено небольшое количество пользовательских классов исключений. Все неперехваченные исключения перехватываются командой `Logger::handleException()`, которая регистрирует всю цепочку исключений (включая `getPrevious()`).
+Кодовая база определяет небольшое количество пользовательских классов исключений. Все неперехваченные исключения перехватываются параметром `Logger::handleException()`, который регистрирует всю цепочку исключений (включая `getPrevious()`).
 
 |Класс исключений|Базовый класс|Местоположение|
 | --- | --- | --- |
@@ -306,7 +306,7 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 | `DefinitionException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Definition/DefinitionException.php` |
 | `DumpingException` | `\RuntimeException` | `src/vendor/chrisyue/php-m3u8/src/Dumper/DumpingException.php` |
 
-В большинстве случаев в коде приложения используются общие ошибки `Exception` или используется встроенная система ошибок PHP. Обработчик исключений регистратора принимает любое `Throwable`.
+Большая часть кода приложения использует общие ошибки `Exception` или полагается на встроенную систему ошибок PHP. Обработчик исключений регистратора принимает любые `Throwable`.
 
 ---
 
@@ -335,11 +335,11 @@ Each log entry is written as a single line: `base64_encode(json_encode($data))` 
 
 1. `bootstrap.php` определяет `MAIN_HOME` и регистрирует автозагрузчик Composer
 2. `XC_Bootstrap::loadConstants()` загружает (по порядку):
-   - `Core/Error/ErrorHandler.php` -- определяет `generateError()` и `generate404()` (загружается глобально через Composer `autoload.files`); сам каталог кодов равен `ErrorResponder::codes()` в `Core/Error/ErrorResponder.php`
+   - `Core/Error/ErrorHandler.php` - определяет `generateError()` и `generate404()` (загружается глобально через Composer `autoload.files`); сам каталог кода равен `ErrorResponder::codes()` в `Core/Error/ErrorResponder.php`
    - Путь и конфигурационные файлы
    - `Core/Logging/Logger.php` -- определение класса
 3. вызывается `Logger::init(PHP_ERRORS, LOGS_TMP_PATH . 'error_log.log')`, регистрирующий три глобальных обработчика
-4. Начиная с этого момента, регистрируются все ошибки PHP, неперехваченные исключения и фатальные сбои
+4. С этого момента фиксируются все ошибки PHP, неперехваченные исключения и фатальные сбои
 
 Для конечных точек потоковой передачи, которые обходят полную загрузку, `RequestGuard.php` выполняет шаги 2-3 независимо: загружает настройки из файлового кэша, определяет `PHP_ERRORS` и вызывает `Logger::init()`.
 
@@ -369,7 +369,7 @@ generateError('MY_NEW_ERROR');
 | --- | --- |
 | `src/Core/Error/ErrorResponder.php` |Централизованная карта кодов ошибок (`ErrorResponder::codes()`)|
 | `src/Core/Error/ErrorHandler.php` |функции `generateError()` и `generate404()`|
-| `src/Core/Logging/Logger.php` |Глобальные PHP обработчики ошибок, исключений и фатальных исходов|
+| `src/Core/Logging/Logger.php` |Обработчики глобальных ошибок PHP, исключений и фатальных исходов|
 | `src/Core/Logging/LoggerInterface.php` |Интерфейс контракта ведения журнала|
 | `src/Core/Logging/FileLogger.php` |Ведение журнала файлов на уровне приложения (PDO, EPG и т.д.)|
 | `src/Core/Logging/DatabaseLogger.php` |Ведение журнала событий потокового запроса клиента|

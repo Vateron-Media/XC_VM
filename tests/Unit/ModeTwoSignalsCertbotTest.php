@@ -208,9 +208,10 @@ final class ModeTwoSignalsCertbotTest extends TestCase {
 								}
 
 								// A pass's settings refresh (after its nginx check) and its servers refresh.
+								// The third check stops the loop; otherwise only the stand-in
+								// nginx exiting (after 60s) would.
 								protected function hasFileChanged(): bool {
-									$this->rSettingsChecks++;
-									return parent::hasFileChanged();
+									return ++$this->rSettingsChecks >= 3 || parent::hasFileChanged();
 								}
 
 								protected function refreshServers(): array {

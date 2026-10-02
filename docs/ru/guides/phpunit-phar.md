@@ -1,11 +1,11 @@
 # PHPUnit PHAR: Загрузка и запуск тестов
 
-В этом руководстве показано, как запускать тесты проекта с фиксированным двоичным кодом PHP:
+В этом руководстве показано, как запускать тесты проекта с фиксированным двоичным файлом PHP:
 
-- PHP двоичный файл: `/home/xc_vm/bin/php/bin/php` (связанный PHP **на VDS**)
+- Двоичный код PHP: `/home/xc_vm/bin/php/bin/php` (входящий в комплект PHP **на VDS**)
 - Двоичный файл PHPUnit: local `tests/phpunit.phar`
 
-> **Local vs VDS.** The commands here use the VDS bundled PHP. When running on your **own
+> **Местный против VDS.** Приведенные здесь команды используют PHP, входящий в комплект поставки VDS. При запуске на вашем ** собственном
 > компьютер** (см. [Рабочий процесс разработки](dev-workflow.md)), вместо этого используйте свой локальный PHP 8.1:
 > `php tests/phpunit.phar -c tests/phpunit.xml.dist`. CI запускает тот же набор данных через
 > зафиксированная конфигурация, поэтому зеленый локальный запуск должен соответствовать CI.
@@ -33,7 +33,7 @@ tests/
 ```
 
 Условные обозначения: тестовый класс равен `<Thing>Test` в `tests/Unit/<Thing>Test.php`, расширяет
-`PHPUnit\Framework\TestCase`. `bootstrap.php` подключает **Composer автозагрузчик** (таким образом
+`PHPUnit\Framework\TestCase`. `bootstrap.php` подключает **Автозагрузчик Composer** (таким образом
 `XcVm\…` классы разрешают — для этого требуется `src/vendor/`, т.е. сначала запустить `make dev-tools`) и
 определяет константы среды выполнения, на которые опираются тесты. Минимальный тест:
 
@@ -56,7 +56,7 @@ final class MyThingTest extends TestCase
 > Если классы не загружаются (`Class "XcVm\…" not found`), то в `src/vendor/` отсутствует автозагрузчик —
 > запустите `make dev-tools`.
 
-## 1. Проверить PHP
+## 1. Проверьте PHP
 
 ```bash
 /home/xc_vm/bin/php/bin/php -v
@@ -123,4 +123,4 @@ XDEBUG_MODE=coverage /home/xc_vm/bin/php/bin/php tests/phpunit.phar -c tests/php
 | --- | --- |
 | `tests/phpunit.phar` |Закрепленный двоичный файл PHPUnit|
 | `tests/phpunit.xml.dist` |Конфигурация PHPUnit|
-| `tests/bootstrap.php` |Тестовый bootstrap (Composer автозагрузчик + константы)|
+| `tests/bootstrap.php` |Тестовый bootstrap (автозагрузчик Composer + константы)|

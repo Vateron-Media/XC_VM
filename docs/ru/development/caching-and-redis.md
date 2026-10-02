@@ -35,8 +35,8 @@ flush()
 
 ```php
 $cache = new FileCache(CACHE_TMP_PATH);
-$cache->set('my_key', $data, 3600);
-$data = $cache->get('my_key', 120);     // only if < 2 min old
+$cache->set("my_key", $data, 3600);
+$data = $cache->get("my_key", 120); // only if < 2 min old
 ```
 
 Статический удобный API (обратная совместимость):
@@ -48,7 +48,7 @@ FileCache::getCache($key, $maxAge = null)
 
 Характеристики:
 
-- Сериализация: igbinary (если доступно) или PHP выполнить резервную сериализацию.
+- Сериализация: igbinary (если доступен) или резервная версия PHP serialize.
 - Блокировка: `LOCK_EX` при записи для предотвращения повреждения.
 - Расположение файла: `{basePath}/{key}` (нет подкаталогов для основных ключей).
 - Восстановление поврежденных файлов: обнаруживает поврежденные данные, автоматически удаляет поврежденные файлы.
@@ -62,9 +62,9 @@ FileCache::getCache($key, $maxAge = null)
 Дополнительная высокопроизводительная реализация.
 
 ```php
-$redis = new RedisCache('127.0.0.1', 6379, $password, 'prefix:');
-$redis->set($key, $data, 600);          // 10-minute TTL via SETEX
-$redis->getConnection();                 // raw phpredis for sorted sets, pipelines
+$redis = new RedisCache("127.0.0.1", 6379, $password, "prefix:");
+$redis->set($key, $data, 600); // 10-minute TTL via SETEX
+$redis->getConnection(); // raw phpredis for sorted sets, pipelines
 ```
 
 - Отложенное подключение: подключается при первой операции.
@@ -73,7 +73,7 @@ $redis->getConnection();                 // raw phpredis for sorted sets, pipeli
 
 ---
 
-## Redis Управление подключениями
+## Управление подключениями Redis
 
 Файл: `src/Infrastructure/Redis/RedisManager.php`
 
@@ -86,17 +86,17 @@ RedisManager::isConnected()              // health check
 RedisManager::closeInstance()            // disconnect
 ```
 
-Проверка работоспособности выдает сигнал Redis каждые 30 секунд (отменено). При сбое автоматически восстанавливается соединение. При сбое соединения возвращается значение null (постепенное ухудшение).
+Проверка работоспособности отправляет повторный запрос каждые 30 секунд (отменяется). Автоматическое повторное подключение при сбое. Возвращает значение null при сбое соединения (постепенное ухудшение).
 
 Конфигурация:
 
-|Установка|Источник|По умолчанию|
-| --- | --- | --- |
-| `hostname` | `config.ini` |—|
-| `port` |жестко запрограммированный| `6379` |
-| `password` | `settings.redis_password` |—|
-| `read_timeout` |жестко запрограммированный| `2.0s` |
-| `tcp_keepalive` |жестко запрограммированный| `60s` |
+| Установка       | Источник                   | По умолчанию |
+| --------------- | -------------------------- | ------------ |
+| `hostname`      | `config.ini`               | —            |
+| `port`          | жестко запрограммированный | `6379`       |
+| `password`      | `settings.redis_password`  | —            |
+| `read_timeout`  | жестко запрограммированный | `2.0s`       |
+| `tcp_keepalive` | жестко запрограммированный | `60s`        |
 
 ### Сохраняющиеся при отключении в режиме ожидания (долгоживущие демоны)
 
@@ -107,21 +107,21 @@ RedisManager::closeInstance()            // disconnect
 (LB → ГЛАВНАЯ) ссылка:
 
 - **Сервер простаивает - закрывается.** Redis закрывает любой клиент, который простаивает дольше своего `timeout` (`300s`
-в комплекте `bin/redis/redis.conf`). затем phpredis прозрачно откроется снова.
-сокет в следующей команде **без повторного воспроизведения аутентификации**, поэтому более поздняя команда
-отвечает `NOAUTH` — или просто возвращает `false`.
+  в комплекте `bin/redis/redis.conf`). затем phpredis прозрачно откроется снова.
+  сокет в следующей команде **без повторного воспроизведения аутентификации**, поэтому более поздняя команда
+  отвечает `NOAUTH` — или просто возвращает `false`.
 - **Устранен пробел в проверке работоспособности.** `instance()` пингуется только каждые 30 секунд, так что между
-пингует, что сброшенное соединение еще не замечено.
+  пингует, что сброшенное соединение еще не замечено.
 
 Охранники на месте:
 
 - `instance()` обрабатывает любой ответ, не связанный с`PONG` пингом (беззвучное повторное подключение / `NOAUTH`
-состояние) как отключенное соединение и принудительно выполняет полное, **повторная аутентификация** повторное подключение
-через `\XC_VM::redis_connect()` — это не просто повторная попытка на уровне сокета.
+  состояние) как отключенное соединение и принудительно выполняет полное, **повторная аутентификация** повторное подключение
+  через `\XC_VM::redis_connect()` — это не просто повторная попытка на уровне сокета.
 - Вызывайте сайты, которые командами конвейера проверяют объект конвейера. Например
-`ConnectionTracker::getCapacity()` проверяет, что `$redis->multi()` вернул
-`\Redis` (сломанный сокет возвращает `false` и вызывает `zCard()` для этого bool
-был бы фатальным вне пути повторного подключения) и выдает, чтобы его цикл повторных попыток снова подключился.
+  `ConnectionTracker::getCapacity()` проверяет, что `$redis->multi()` вернул
+  `\Redis` (сломанный сокет возвращает `false` и вызывает `zCard()` для этого bool
+  был бы фатальным вне пути повторного подключения) и выдает, чтобы его цикл повторных попыток снова подключился.
 
 The server-side alternative (`timeout 0`) is deliberately **not** used — the
 вместо этого клиент становится устойчивым, и `tcp-keepalive` по-прежнему получает доступ к мертвым одноранговым узлам.
@@ -159,7 +159,7 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ### Готовность кэша
 
-После каждой полной сборки кэша записывается файл `cache_complete`. Путь потоковой передачи проверяет наличие этого файла и завершает работу с ошибкой, если он отсутствует.
+Файл `cache_complete` записывается после каждой полной сборки кэша. Путь к потоковой передаче проверяет наличие этого файла и завершает работу с ошибкой, если он отсутствует.
 
 ### Безопасность холодного кэширования
 
@@ -168,8 +168,8 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 (fresh boot, cleared tmp) those files do not exist and `CacheReader::get()`
 возвращает `null`, поэтому для каждого такого глобального массива по умолчанию используется пустой массив. Холодный кэш
 следовательно, **не удается закрыть** — запрос не находит серверов и показывает "нет в эфире". —
-вместо предупреждения `foreach(null)` или `in_array($x, null)` со смертельным исходом (PHP 8)
-вниз по течению. Действительно поврежденный кэш *сборка* все еще отображается отдельно с помощью
+вместо предупреждения `foreach(null)` или фатального результата `in_array($x, null)` (PHP 8)
+вниз по течению. Действительно поврежденный кэш _сборка_ все еще отображается отдельно с помощью
 `FileCache` предупреждение о сбое записи, поэтому это значение по умолчанию маскирует только временный
 окно холодного пуска, а не настоящий сбой.
 
@@ -179,52 +179,52 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 
 ### Системные ключи (CACHE_TMP_PATH)
 
-|Ключ|Содержание|
-| --- | --- |
-| `settings` |массив настроек панели|
-| `servers` |`array[server_id]` → конфигурация сервера|
-| `bouquets` |`array[bouquet_id]` → bouquet определение|
-| `categories` |`array[category_id]` → данные категории|
-| `bouquet_map` |`array[stream_id]` → `array[bouquet_id]`|
-| `category_map` |`array[bouquet_id]` → `array[category_id]`|
-| `permissions_{group_id}` |набор групповых разрешений|
-| `cache_complete` |`time()` временная метка последней полной сборки|
+| Ключ                     | Содержание                                       |
+| ------------------------ | ------------------------------------------------ |
+| `settings`               | массив настроек панели                           |
+| `servers`                | `array[server_id]` → конфигурация сервера        |
+| `bouquets`               | `array[bouquet_id]` → определение букета         |
+| `categories`             | `array[category_id]` → данные категории          |
+| `bouquet_map`            | `array[stream_id]` → `array[bouquet_id]`         |
+| `category_map`           | `array[bouquet_id]` → `array[category_id]`       |
+| `permissions_{group_id}` | набор групповых разрешений                       |
+| `cache_complete`         | `time()` временная метка последней полной сборки |
 
 ### Ключи потока (STREAMS_TMP_PATH)
 
-|Ключ|Содержание|
-| --- | --- |
-| `stream_{id}` |информация о потоке + букеты + состояние каждого сервера|
-| `channels_categories` |`array[stream_id]` → `array[category_id]`|
+| Ключ                  | Содержание                                               |
+| --------------------- | -------------------------------------------------------- |
+| `stream_{id}`         | информация о потоке + букеты + состояние каждого сервера |
+| `channels_categories` | `array[stream_id]` → `array[category_id]`                |
 
 ### Линейные ключи (LINES_TMP_PATH)
 
-|Ключ|Содержание|
-| --- | --- |
-| `line_i_{user_id}` |полная запись о пользователе|
-| `line_c_{username_password}` |user_id (поиск учетных данных)|
-| `line_t_{access_token}` |user_id (поиск токена)|
+| Ключ                         | Содержание                     |
+| ---------------------------- | ------------------------------ |
+| `line_i_{user_id}`           | полная запись о пользователе   |
+| `line_c_{username_password}` | user_id (поиск учетных данных) |
+| `line_t_{access_token}`      | user_id (поиск токена)         |
 
 ### Ключи серии (SERIES_TMP_PATH)
 
-|Ключ|Содержание|
-| --- | --- |
-| `series_{id}` |метаданные серии|
-| `series_map` |`array[stream_id]` → идентификатор серии|
-| `episodes_{series_id}` |`array[season_num]` → список эпизодов|
+| Ключ                   | Содержание                               |
+| ---------------------- | ---------------------------------------- |
+| `series_{id}`          | метаданные серии                         |
+| `series_map`           | `array[stream_id]` → идентификатор серии |
+| `episodes_{series_id}` | `array[season_num]` → список эпизодов    |
 
 ---
 
 ## Шаблоны аннулирования
 
-|Спусковой крючок|Затронутые ключи|Механизм|
-| --- | --- | --- |
-|Администратор редактирует поток|`stream_{id}`, `bouquet_map`|сигнал → следующий `cron:cache_engine`|
-|Администратор редактирует строку|`line_i_*`, `line_c_*`, `line_t_*`|следующий `cron:cache_engine`|
-|Настройки изменены|`settings`, категории, блок-листы|`SettingsManager::clearCache()` + хрон|
-|Обновлен список серверов|`servers`, `bouquet_map`|крон|
-|Начало потока (FFprobe)| `{md5(source)}` |5-минутный TTL с помощью проверки mtime файла|
-|Кнопка сброса администратора|все файлы в `CACHE_TMP_PATH`| `rm -rf` |
+| Спусковой крючок                 | Затронутые ключи                   | Механизм                                      |
+| -------------------------------- | ---------------------------------- | --------------------------------------------- |
+| Администратор редактирует поток  | `stream_{id}`, `bouquet_map`       | сигнал → следующий `cron:cache_engine`        |
+| Администратор редактирует строку | `line_i_*`, `line_c_*`, `line_t_*` | следующий `cron:cache_engine`                 |
+| Настройки изменены               | `settings`, категории, блок-листы  | `SettingsManager::clearCache()` + хрон        |
+| Обновлен список серверов         | `servers`, `bouquet_map`           | крон                                          |
+| Начало потока (FFprobe)          | `{md5(source)}`                    | 5-минутный TTL с помощью проверки mtime файла |
+| Кнопка сброса администратора     | все файлы в `CACHE_TMP_PATH`       | `rm -rf`                                      |
 
 ---
 
@@ -244,12 +244,12 @@ The server-side alternative (`timeout 0`) is deliberately **not** used — the
 - Необязательный кратковременный кэш (пример из `BouquetService::getAll()`):
 
 ```php
-$rCache = FileCache::getCache('bouquets', 60);  // only if < 60s old
+$rCache = FileCache::getCache("bouquets", 60); // only if < 60s old
 if (!empty($rCache)) {
-    return $rCache;
+	return $rCache;
 }
 // miss: query database and write cache
-FileCache::setCache('bouquets', $rOutput);
+FileCache::setCache("bouquets", $rOutput);
 ```
 
 ---
@@ -283,14 +283,14 @@ FileCache::setCache('bouquets', $rOutput);
 
 ## Связанные файлы
 
-|Файл|Цель|
-| --- | --- |
-| `src/Core/Cache/CacheInterface.php` |контракт на кэширование|
-| `src/Core/Cache/FileCache.php` |реализация кэша на основе файлов|
-| `src/Core/Cache/RedisCache.php` |Redis реализация кэширования|
-| `src/Infrastructure/Redis/RedisManager.php` |Redis одноэлементное соединение|
-| `src/Infrastructure/Cache/CacheReader.php` |устаревший мост для чтения кэша|
-| `src/Cli/CronJobs/CacheCronJob.php` |облегченная генерация кэша|
-| `src/Cli/CronJobs/CacheEngineCronJob.php` |генерация большого объема кэша (потоки, строки, серии)|
-| `src/Domain/Bouquet/BouquetService.php` |пример кэширования пути администратора|
-| `src/Domain/Stream/ConnectionTracker.php` |Redis отсортированные наборы для определения состояния соединения|
+| Файл                                        | Цель                                                                 |
+| ------------------------------------------- | -------------------------------------------------------------------- |
+| `src/Core/Cache/CacheInterface.php`         | контракт на кэширование                                              |
+| `src/Core/Cache/FileCache.php`              | реализация кэша на основе файлов                                     |
+| `src/Core/Cache/RedisCache.php`             | Реализация кэша Redis                                                |
+| `src/Infrastructure/Redis/RedisManager.php` | Одиночный элемент подключения Redis                                  |
+| `src/Infrastructure/Cache/CacheReader.php`  | устаревший мост для чтения кэша                                      |
+| `src/Cli/CronJobs/CacheCronJob.php`         | облегченная генерация кэша                                           |
+| `src/Cli/CronJobs/CacheEngineCronJob.php`   | генерация большого объема кэша (потоки, строки, серии)               |
+| `src/Domain/Bouquet/BouquetService.php`     | пример кэширования пути администратора                               |
+| `src/Domain/Stream/ConnectionTracker.php`   | Повторно отсортированные наборы для определения состояния соединения |

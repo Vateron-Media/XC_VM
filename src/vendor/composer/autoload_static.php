@@ -11,30 +11,30 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
     );
 
     public static $prefixLengthsPsr4 = array (
-        'X' => 
+        'X' =>
         array (
             'XcVm\\' => 5,
         ),
-        'P' => 
+        'P' =>
         array (
             'Psr\\SimpleCache\\' => 16,
         ),
-        'M' => 
+        'M' =>
         array (
             'MaxMind\\WebService\\' => 19,
             'MaxMind\\Exception\\' => 18,
             'MaxMind\\Db\\' => 11,
             'M3uParser\\' => 10,
         ),
-        'G' => 
+        'G' =>
         array (
             'GeoIp2\\' => 7,
         ),
-        'D' => 
+        'D' =>
         array (
             'Detection\\' => 10,
         ),
-        'C' => 
+        'C' =>
         array (
             'Composer\\CaBundle\\' => 18,
             'Chrisyue\\PhpM3u8\\' => 17,
@@ -42,43 +42,43 @@ class ComposerStaticInit80ff86aa3df258be188ff24c30fbd1e8
     );
 
     public static $prefixDirsPsr4 = array (
-        'XcVm\\' => 
+        'XcVm\\' =>
         array (
             0 => __DIR__ . '/../..' . '/',
         ),
-        'Psr\\SimpleCache\\' => 
+        'Psr\\SimpleCache\\' =>
         array (
             0 => __DIR__ . '/..' . '/psr/simple-cache/src',
         ),
-        'MaxMind\\WebService\\' => 
+        'MaxMind\\WebService\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/WebService',
         ),
-        'MaxMind\\Exception\\' => 
+        'MaxMind\\Exception\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind/web-service-common/src/Exception',
         ),
-        'MaxMind\\Db\\' => 
+        'MaxMind\\Db\\' =>
         array (
             0 => __DIR__ . '/..' . '/maxmind-db/reader/src/MaxMind/Db',
         ),
-        'M3uParser\\' => 
+        'M3uParser\\' =>
         array (
             0 => __DIR__ . '/..' . '/gemorroj/m3u-parser/src',
         ),
-        'GeoIp2\\' => 
+        'GeoIp2\\' =>
         array (
             0 => __DIR__ . '/..' . '/geoip2/geoip2/src',
         ),
-        'Detection\\' => 
+        'Detection\\' =>
         array (
             0 => __DIR__ . '/..' . '/mobiledetect/mobiledetectlib/src',
         ),
-        'Composer\\CaBundle\\' => 
+        'Composer\\CaBundle\\' =>
         array (
             0 => __DIR__ . '/..' . '/composer/ca-bundle/src',
         ),
-        'Chrisyue\\PhpM3u8\\' => 
+        'Chrisyue\\PhpM3u8\\' =>
         array (
             0 => __DIR__ . '/..' . '/chrisyue/php-m3u8/src',
         ),

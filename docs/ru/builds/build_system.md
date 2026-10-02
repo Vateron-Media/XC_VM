@@ -1,4 +1,4 @@
-# XC_VM Система сборки (ОСНОВНАЯ против LB)
+# Система сборки XC_VM (ОСНОВНАЯ против LB)
 
 Как XC_VM создает два варианта сборки из одной кодовой базы: полноценный основной сервер и облегченный сервер балансировки нагрузки (LB).
 
@@ -13,7 +13,7 @@ XC_VM поддерживает две роли развертывания из �
 | **MAIN** | `xc_vm.tar.gz` |Полное приложение — админ-панель, потоковое вещание, все модули, задания cron|
 |**фунт** (Балансировщик нагрузки)| `loadbalancer.tar.gz` |Сервер только для потоковой передачи — нет панели администратора, нет управления пользователями|
 
-**главный** - это основной сервер, который управляет всем: пользовательским интерфейсом администратора, записями в базу данных, управлением пользователями/устройствами, EPG обработкой, резервным копированием и т.д.
+**главный** - это основной сервер, который управляет всем: пользовательским интерфейсом администратора, записями в базу данных, управлением пользователями/устройствами, обработкой EPG, резервным копированием и т.д.
 
 **фунт** - это облегченный потоковый узел, который получает потоки из MAIN (или других источников) и доставляет их клиентам. Он подключается к базе данных master в режиме только для чтения и не имеет панели администратора или возможностей управления.
 
@@ -32,7 +32,9 @@ XC_VM поддерживает две роли развертывания из �
 > `xc_vm.tar.gz` / `loadbalancer.tar.gz` используется как для установки, так и для обновления; фильтрация происходит по
 > сервер во время обновления (см. [Механизм обновления](../administration/update-system.md)). Чтобы удалить
 > files that were *removed* between releases, `make generate_deleted_files [LAST_TAG=vX.Y.Z]` diffs
-> git и записывает `deleted_files.txt`, который применяется программой обновления.
+> git и записывает `deleted_files.txt`, который применяется программой обновления. В архиве LB
+> `migrations/deleted_files.txt` также содержит список всех файлов, которые были удалены при сборке LB (см.
+> [LB Build — Удаленные файлы при обновлении](#lb-build-deleted-files-on-update)).
 
 Дополнительные выходы:
 
@@ -41,10 +43,10 @@ XC_VM поддерживает две роли развертывания из �
 
 ---
 
-## Composer Зависимости
+## Зависимости композитора
 
 `src/vendor/` (автозагрузчик Composer PSR-4 плюс производственные зависимости) - это
-**привержен** и поставляется как есть - путь развертывания не содержит Composer и никогда не выполняется
+**привержен** и поставляется как есть - путь развертывания не содержит Composer и никогда не запускается
 `composer install`. Он поддерживается только для производства через `composer install --no-dev`, так что
 оба варианта сборки предназначены для бережливого производства без инструментов разработки.
 
@@ -70,8 +72,8 @@ XC_VM поддерживает две роли развертывания из �
 
 ```text
 bin/        Cli/        config/     content/    Core/
-Domain/     Infrastructure/         Public/     resources/
-signals/    Streaming/  tmp/        vendor/     www/
+Domain/     Infrastructure/         Public/     signals/
+Streaming/  tmp/        vendor/
 ```
 
 Плюс корневые файлы: `bootstrap.php`, `console.php`, `service`, `update`.
@@ -85,48 +87,49 @@ signals/    Streaming/  tmp/        vendor/     www/
 |Путь|Причина|
 | --- | --- |
 | `bin/install/` |Установочные скрипты (в LB они не нужны)|
-| `bin/redis/` |Redis двоичный файл (LB не запускает свой собственный Redis)|
+| `bin/redis/` |Двоичный файл Redis (LB не запускает свой собственный Redis)|
 | `bin/nginx/conf/codes/` |Страницы с кодами ошибок (пользовательский интерфейс администратора)|
 | `Public/Controllers/Admin/` |Контроллеры панели администратора|
 | `Public/Controllers/Player/` |Контроллеры панели проигрывателя|
+| `Public/Controllers/PlayerV2/` |Контроллеры Web player v2 (область действия плеера, не маршрутизируемые на LB)|
 | `Public/Controllers/Reseller/` |Контроллеры панели реселлера|
 | `Public/Views/` |Шаблоны панелей|
 | `Public/assets/` |Панель статических активов|
 | `Public/routes/` |Карты маршрутов на панели|
 | `Domain/User/` |Управление пользователями|
 | `Domain/Device/` |Регистрация устройства|
-| `Domain/Auth/` |Управление авторизацией (panel auth)|
 | `Core/Reference/` |Ссылка администратора-классы данных (только для ОСНОВНЫХ)|
 | `Core/Localization/lang/` |Файлы языковых ресурсов (`.ini`)|
 
 **Удаленные файлы** (они отражают `LB_FILES_TO_REMOVE` в Makefile):
 
-> ⚠️ В нескольких записях здесь используется устаревший префикс `www/…` (например, `www/stream/auth.php`,
-> `www/xplugin.php`). `src/www/` больше не существует — конечные точки потоковой передачи/API перемещены под
-> `src/Public/stream/` и `src/Public/…`. Таким образом, эти `www/…` записи об удалении равны **никаких операций**
-> сегодня и заслуживают аудита в Makefile (файл, который должен быть удален из LB, на самом деле может
-> все еще отправляется по своему пути `Public/`).
-
 |Файл|Причина|
 | --- | --- |
-| `Public/Controllers/Api/AdminApiController.php` |Полный admin API удален из LB|
-| `Public/Controllers/Api/ResellerRestApiController.php` |API реселлера удален из LB|
-|`www/xplugin.php`, `www/probe.php`, `www/playlist.php`|Конечные точки администрирования|
-|`www/player_api.php`, `www/epg.php`, `www/enigma2.php`|Конечные точки клиентского API (обслуживаемые MAIN)|
-| `www/stream/auth.php` |Конечная точка аутентификации (устаревший путь — см. примечание)|
-|`www/admin/api.php`, `www/admin/proxy_api.php`|API администратора|
-| `bin/maxmind/GeoLite2-City.mmdb` |GeoIP БД поставляется отдельно|
+|`Public/admin/api.php`, `Public/admin/proxy_api.php`|API-интерфейсы администратора и прокси-сервера (только для MAIN; только маршруты LB nginx `/admin/{live,timeshift,thumb,vod}`)|
+|`Public/stream/auth.php`, `Public/stream/probe.php`|Проверка подлинности в Viewer и stream probe (только для MAIN; для них требуется разделенный `Domain/User`, и LB nginx не маршрутизирует их)|
+|`Public/Controllers/Api/AdminApiController.php`, `AdminAPIWrapper.php`|Полный admin API удален из LB|
+|`Public/Controllers/Api/ResellerRestApiController.php`, `ResellerAPIWrapper.php`|API реселлера удален из LB|
+| `Public/Controllers/Api/ActiveCodeApiController.php` |API кода активации (LB nginx никогда не маршрутизирует `active_code`)|
+|`Infrastructure/ResellerApiDispatcher.php`, `ResellerTableRenderer.php`|Помощники на панели реселлеров|
 | `config/rclone.conf` |Конфигурация резервного копирования|
-| `Domain/Epg/EPG.php` |EPG класс обработки|
+| `Domain/Epg/EPG.php` |Класс обработки EPG|
+|`Core/Enum/Theme.php`, `ResellerAction.php`, `ClientFilter.php`|Перечисления только для панели|
 | `bin/nginx/conf/gzip.conf` |Конфигурация Gzip (LB использует собственную)|
+
+Средство просмотра-контроллеры API (`PlayerApiController`, `Enigma2ApiController`, `XPluginApiController`,
+`EpgApiController`, `PlaylistApiController` и их `BaseApiController`) все еще отправляются, потому что
+`lb_configs/nginx.conf` по-прежнему направляет `/api/player_api` и другие конечные точки просмотра на
+`Public/index.php`. Они будут удалены вместе с этими маршрутами на более позднем этапе.
 
 **CLI commands removed:**
 
 |Файл|Причина|
 | --- | --- |
-| `Cli/Commands/MigrateCommand.php` |Миграция является ОСНОВНОЙ|
+|`Cli/Commands/MigrateCommand.php`, `Cli/migration_logic.php`|Миграция является ОСНОВНОЙ|
+| `Cli/Commands/DbMigrateCommand.php` |Применяет перенос схемы MAIN (только для MAIN)|
 | `Cli/Commands/CacheHandlerCommand.php` |Обработчик кэша доступен только для MAIN|
 | `Cli/Commands/ServerInstallCommand.php` |Установщик сервера (не требуется для самой LB)|
+| `Cli/Commands/ServerSyncOpensslExtraCommand.php` |Отправляет значение MAIN `OPENSSL_EXTRA` в LBs (только для MAIN)|
 | `Cli/Commands/LbInstallFlow.php` |Помощник по установке LB (не требуется для самого LB)|
 | `Cli/Commands/ProxyInstallFlow.php` |Помощник по установке прокси-сервера (не требуется для самой LB)|
 
@@ -137,16 +140,18 @@ signals/    Streaming/  tmp/        vendor/     www/
 | `Cli/CronJobs/RootMysqlCronJob.php` |Обслуживание базы данных (только для ОСНОВНОЙ системы)|
 | `Cli/CronJobs/BackupsCronJob.php` |Резервные копии (только для ОСНОВНОЙ системы)|
 | `Cli/CronJobs/CacheEngineCronJob.php` |Полная перестройка кэша (только для основного)|
-| `Cli/CronJobs/EpgCronJob.php` |EPG обработка (только для ОСНОВНОЙ системы)|
+| `Cli/CronJobs/EpgCronJob.php` |Обработка EPG (только для основной системы)|
 | `Cli/CronJobs/UpdateCronJob.php` |Проверка обновлений (только для основной системы)|
 | `Cli/CronJobs/ProvidersCronJob.php` |Синхронизация с поставщиком (только для ОСНОВНОГО)|
 | `Cli/CronJobs/SeriesCronJob.php` |Метаданные серии (только для основной версии)|
 
-> **Примечание:** CRON, связанные с модулями (TMDB, Plex, Watch), находятся внутри `src/Modules/<name>/` и автоматически исключаются из LB-сборок - `Modules/` отсутствует в `LB_DIRS`.
+> **Примечание:** Связанные с модулем crons (Plex, Watch) находятся внутри `src/Modules/<name>/` и автоматически исключаются из LB-сборок - `Modules/` отсутствует в `LB_DIRS`.
+> The TMDB crons are **not** module crons: `Cli/CronJobs/TmdbCronJob.php` and
+> `Cli/CronJobs/TmdbPopularCronJob.php` являются основными заданиями и отправляются в архив LB.
 >
-> **Ministra** (`src/Ministra/`, портал Stalker — ~50 МБ ресурсов) также исключен из списка
+> **Министр** (`src/Ministra/`, портал Stalker — ~50 МБ ресурсов) также исключен из списка
 > **упущение**: его нет в списке `LB_DIRS`, поэтому он никогда не копировался в архив LB (там нет
-> явное правило удаления для него — отсюда и проверка отсутствия `ministra` в *Проверке сборки* ниже).
+> явное правило удаления для него — отсюда и проверка отсутствия `ministra` в *Build Verification* ниже).
 
 ### Конфигурации, замененные при сборке LB
 
@@ -154,8 +159,29 @@ signals/    Streaming/  tmp/        vendor/     www/
 
 |Источник|Цель|Цель|
 | --- | --- | --- |
-| `lb_configs/nginx.conf` | `bin/nginx/conf/nginx.conf` |Настроенная производительность nginx для потоковой передачи|
-| `lb_configs/live.conf` | `bin/nginx_rtmp/conf/live.conf` |RTMP перехватчики обратного вызова|
+| `lb_configs/nginx.conf` | `bin/nginx/conf/nginx.conf` |Оптимизированный по производительности nginx для потоковой передачи|
+| `lb_configs/live.conf` | `bin/nginx_rtmp/conf/live.conf` |Перехватчики обратного вызова RTMP|
+
+### LB Build — Удаленные файлы при обновлении
+
+Обновление извлекает архив поверх установленного дерева, поэтому файл исчезает из установленного LB
+только когда `migrations/deleted_files.txt` выводит его в списке (`MigrationRunner::runFileCleanup()` выполняется в
+после обновления). `make lb` поэтому список LB-архива всегда записывается как объединение:
+
+- записи в области LB из `src/migrations/deleted_files.txt` (пути под `LB_DIRS`, удаленные
+`LB_RETIRED_DIRS` деревья `resources/` и `www/`, или запись `LB_ROOT_FILES`);
+- каждый файл, который удаляется при сборке LB: записи `LB_FILES_TO_REMOVE` и отслеживаемые файлы в разделе
+`LB_DIRS_TO_REMOVE`, ограниченный кодовыми деревьями (`Cli/`, `Core/`, `Domain/`, `Infrastructure/`,
+`Public/`, `Streaming/`). `bin/`, `config/` и `content/` содержат файлы времени выполнения и для каждого сервера, а
+никогда не удаляются из списков разделов. Деревья в `LB_KEEP_ON_UPDATE` также не учитываются.
+
+Таким образом, файл, недавно добавленный в список удаленных файлов, также удаляется из LBs, установленного в более старой версии.
+
+`LB_KEEP_ON_UPDATE` содержит `Domain/User`. Свежий фунт никогда этого не получит, но `Public/stream/rtmp.php` (самый
+RTMP `on_play` auth), и контроллеры viewer-API по-прежнему вызывают его на маршрутах, которые обслуживает LB nginx. Один
+старые LB, которые все еще носят его с собой, сохраняют его до тех пор, пока эти маршруты не будут удалены.
+
+Проверка сборки завершается неудачей, если в списке указан файл, который отправляется архивом LB (`DELETES-SHIPPED`).
 
 ---
 
@@ -166,11 +192,11 @@ signals/    Streaming/  tmp/        vendor/     www/
 |Панель администратора|✅ Полный пользовательский интерфейс|❌ Не входит в комплект поставки|
 |Роль базы данных|Чтение + запись|Пользователь, доступный только для чтения|
 |Управление пользователями/устройствами|✅|❌|
-|EPG обработка|✅|❌|
+|Обработка EPG|✅|❌|
 |Резервные копии|✅|❌|
 |Инструмент для миграции|✅|❌|
 |Потоковая доставка|✅|✅|
-|RTMP прием внутрь|✅|✅|
+|Прием внутрь РТМФ|✅|✅|
 |Транскодирование (FFmpeg)|✅|✅|
 |Команды CLI|26|~15 (удалено только для администратора)|
 |Задания Cron|25|~16 (удалено только для администратора)|
@@ -193,7 +219,7 @@ signals/    Streaming/  tmp/        vendor/     www/
 |Ограничение скорости|20 запросов в секунду на IP-адрес|Смягчение последствий DDoS-атак|
 |Время ожидания отправки|20 мин|Поддержка длительных потоков|
 
-RTMP перехватывает (`lb_configs/live.conf`) аутентификацию маршрута с помощью локальных обратных вызовов HTTP вместо панели администратора:
+Перехватчики RTMP (`lb_configs/live.conf`) перенаправляют аутентификацию через локальные HTTP-обратные вызовы вместо панели администратора:
 
 ```nginx
 on_play http://127.0.0.1:8080/stream/rtmp;
@@ -205,32 +231,36 @@ on_play_done http://127.0.0.1:8080/stream/rtmp;
 
 ## Поведение во время выполнения на LB
 
-### Загрузка условной команды
+### Обнаружение команд
 
-`console.php` использует защиту `file_exists()` для команд, которые могут отсутствовать на серверах LB:
+`console.php` не содержит списка команд. В нем отображаются команды `Cli/Commands/*.php` и `Cli/CronJobs/*.php` и
+регистрирует каждый конкретный класс, который реализует `CommandInterface`:
 
 ```php
-if (file_exists(__DIR__ . '/Cli/Commands/CacheHandlerCommand.php')) {
-    $rRegistry->register(new CacheHandlerCommand());
+foreach (glob($rDir . '/*.php') as $rFile) {
+    $rClass = $rNamespace . basename($rFile, '.php');
+    if (!class_exists($rClass)) {
+        continue;
+    }
+    // ... register it if it is a concrete CommandInterface
 }
 ```
 
-Это предотвращает сбои при попытке LB зарегистрировать команду, файл которой был удален во время сборки.
+Команда или cron-задание, которые используются при сборке LB, просто отсутствуют в LB, поэтому они никогда не регистрируются.
+Никакой охраны не требуется.
 
 ### Цепочка потоковых зависимостей
 
 Серверы LB сохраняют полный конвейер потоковой передачи:
 
 ```text
-www/stream/*.php
-  ├── www/stream/init.php
+Public/stream/index.php (stream gateway) → Public/stream/<handler>.php
   ├── vendor/autoload.php (Composer PSR-4 autoloader)
-  ├── bootstrap.php (lightweight stream/bootstrap path)
+  ├── Infrastructure/Bootstrap/StreamingRequestBootstrap.php
   ├── Core/* (Config, Database, Cache, Auth, Http, Logging, Util)
   ├── Domain/Stream, Domain/Server, Domain/Vod, Domain/Bouquet
   ├── Streaming/* (Auth, Delivery, Codec, Protection)
-  ├── Infrastructure/Redis, Infrastructure/Database
-  └── resources/data
+  └── Infrastructure/Redis, Infrastructure/Database
 ```
 
 ---
@@ -243,7 +273,7 @@ www/stream/*.php
 
 ```makefile
 LB_DIRS := bin Cli config content Core Domain \
-    Infrastructure Public resources signals Streaming tmp vendor www your_dir
+    Infrastructure Public signals Streaming tmp vendor your_dir
 ```
 
 ### Новый каталог, доступный только для администратора
@@ -264,12 +294,27 @@ LB_FILES_TO_REMOVE = ... your_dir/admin_file.php
 
 ### Новая команда CLI (только для администратора)
 
-1. Добавить `file_exists()` защиту в `console.php`
-2. Добавьте файл в `LB_FILES_TO_REMOVE`
+Добавьте файл в `LB_FILES_TO_REMOVE`. Если у него есть привилегии, также добавьте его в `SENSITIVE` в
+`tools/ci/verify-lb-archive.sh`. `console.php` определяет команды с помощью glob, поэтому не требует изменений.
 
 ---
 
 ## Проверка сборки
+
+`make gates` запускает `tools/ci/verify-lb-archive.sh`, который перестраивает список файлов LB из
+Переменные Makefile (архиватор не требуется) и завершается ошибкой при:
+
+|Обнаружение|Значение|
+| --- | --- |
+| `STALE` |Запись `LB_DIRS` / `LB_ROOT_FILES` / `LB_DIRS_TO_REMOVE` / `LB_FILES_TO_REMOVE` / `LB_KEEP_ON_UPDATE` не соответствует ни одному отслеживаемому пути в разделе `src/`. В противном случае переименованный или удаленный путь превратил бы это правило в недействительное.|
+| `WRONG-LIST` |Тип записи не соответствует ее списку: файл находится в `LB_DIRS`, `LB_DIRS_TO_REMOVE` или `LB_KEEP_ON_UPDATE`, или каталог находится в `LB_ROOT_FILES` или `LB_FILES_TO_REMOVE`. При сборке путь `LB_DIRS_TO_REMOVE` заменяется на путь `rm -rf`, поэтому файл в нем удаляется. `rm -f` и `cp` пропускают каталог, поэтому каталог в списке файлов ничего не делает.|
+| `LEAK` |В LB будет отправлен привилегированный путь из списка `SENSITIVE` скрипта.|
+| `MISSING` |Файл, к которому маршрутизируется LB nginx, удаляется. Скрипт проверяет все значения `SCRIPT_FILENAME` и `Public/<scope>/<handler>.php` для каждого обработчика, который принимают местоположения шлюза `/stream/` и `/admin/`. Он также проверяет контроллер, который отправляет `Public/index.php` для каждого значения `XC_API` (например, `internal` для `/api`), а также `BaseApiController`, `StreamingRequestBootstrap` и `WebApiBootstrap`. Значение `XC_API`, которое не соответствует `Public/index.php`, также не отображается.|
+| `DELETES-SHIPPED` |LB `migrations/deleted_files.txt`, созданный с помощью `make lb_delete_files_list`, присваивает имя файлу, который отправляется в архив LB, поэтому обновление удалит его из каждого LB.|
+
+Когда вы удаляете новый файл, добавьте его в `LB_FILES_TO_REMOVE` (это должен быть отслеживаемый файл) и, если он
+привилегированный, до `SENSITIVE` в `tools/ci/verify-lb-archive.sh`. Когда вы удаляете маршрутизируемый обработчик, также
+удалите его маршрут из `lb_configs/nginx.conf`.
 
 После изменения сборки проверьте оба варианта:
 
@@ -288,3 +333,21 @@ tar -tzf dist/loadbalancer.tar.gz | grep -cE "admin/|player/|ministra|reseller"
 # Compare sizes (LB should be significantly smaller)
 ls -lh dist/xc_vm.tar.gz dist/loadbalancer.tar.gz
 ```
+
+## Ночные сборки (канал разработчиков)
+
+`.github/workflows/build-dev.yml` публикует ежевечерние обновления `main` для панелей на канале обновления `Dev`. Он запускается в 02:00 UTC и отправляется вручную (`force` перестраивает неизмененный `main`). Он пропускает сборку, если значение `main` не изменилось с предыдущей ночи или не имеет коммитов с момента последнего выпуска.
+
+Ночные сборки отправляются в репозиторий только для релизов [`Vateron-Media/XC_VM_Dev`](https://github.com/Vateron-Media/XC_VM_Dev), а не в `XC_VM` по трем причинам:
+
+- Панель отображает на одной странице до 100 выпусков. Ежедневные выпуски в `XC_VM` будут вытеснять стабильные версии с этой страницы.
+- Рабочие процессы выпуска принимают самый новый тег как `LAST_TAG`, а ночные теги заменяют его.
+- Каждый выпуск в `XC_VM` уведомляет наблюдателей репозитория и `release-notifier.yml`.
+
+**Версия.** Каждая сборка помечена тегом `<base>-dev.<run number>`. `<base>` - это `XC_VM_VERSION` из исходного кода, если он уже прошел мимо последнего тега `X.Y.Z`, в противном случае - следующий патч после этого тега. Рабочий процесс сначала запускает модульные тесты, затем присваивает версии значение `ConstantsInitializer.php` и запускает `make lb` и `make main`, установив для `LAST_TAG` значение последней версии. `deleted_files.txt` Таким образом, учитываются все удаления, начиная с этой версии, поэтому панель, которая пропускает nightlies, по-прежнему корректно очищается.
+
+**Активы.** Nightly содержит те же ресурсы, что и release (`xc_vm.tar.gz`, `loadbalancer.tar.gz`, `XC_VM.zip`, `hashes.md5`) плюс `changelog.json`, который создается на основе объектов фиксации, выполненных за предыдущую ночь. У `XC_VM_Dev` нет дерева исходных текстов, поэтому `GitHubReleases::getChangelog()` считывает ночные журналы изменений из этого ресурса, а не из помеченного `changelog.json`. В первой строке примечаний к выпуску (`Source: …/commit/<sha>`) записывается исходный коммит, и при следующем запуске выполняется сравнение с ним. Сохраняются только 20 самых новых ночных рубашек.
+
+**Боковая панель.** `UpdateChannels::mainReleases()` предоставляет ОСНОВНОЙ клиентский релиз `GIT_REPO_DEV`. На канале `dev` `GitHubReleases` объединяет релизы обоих репозиториев, упорядочивает их с помощью `version_compare()` и извлекает каждый ресурс из репозитория, опубликовавшего его тег (`GitHubReleases::isDevVersion()`). Если `XC_VM_Dev` недоступен, канал разработчиков по-прежнему получает регулярные обновления.
+
+**Установка.** Рабочий процесс публикуется с использованием детализированного персонального токена доступа, хранящегося в секрете репозитория `DEV_RELEASE_TOKEN`. Установите для токена значение только `XC_VM_Dev` с помощью **Содержание: чтение и запись**. Когда срок действия токена истекает, программа nightly завершает работу с ошибкой при первом вызове `gh`; выдайте новый токен и обновите секрет. `XC_VM_Dev` она должна быть общедоступной, поскольку панели загружаются с нее без токена, и для того, чтобы теги выпуска указывали на нее, требуется по крайней мере одна фиксация.

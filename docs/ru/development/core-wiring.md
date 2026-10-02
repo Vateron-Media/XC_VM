@@ -1,11 +1,11 @@
 # Подключение и регистрация сердечника
 
-Как панель собирается сама по себе при загрузке: один служебный контейнер, как он заполняется и как
+Как панель собирается при загрузке: один служебный контейнер, как он заполняется и как
 модули помещают свои маршруты, события, команды, записи cron и элементы навигационной панели в основные реестры.
 
 Эта страница является **сквозное повествование и потребительская сторона** одним из основных реестров. То
 авторская сторона каждой точки расширения задокументирована в другом месте и связана с
-[Что живет в другом месте](#what-lives-elsewhere) — на этой странице это не повторяется.
+[What lives elsewhere](#what-lives-elsewhere) — this page does not repeat it.
 
 ---
 
@@ -46,7 +46,7 @@
 | `servers` | `ServerRepository::getAll()` | |
 | `bouquets` | `BouquetService::getAll()` | |
 | `categories` | `CategoryService::getFromDatabase()` | |
-| `redis` | `RedisManager::instance()` |только тогда, когда для этого контекста был загружен Redis|
+| `redis` | `RedisManager::instance()` |только тогда, когда Redis был загружен для этого контекста|
 | `translator` | `Translator::class` | |
 | `events` |новый экземпляр `EventDispatcher`|также подключен к статическому фасаду (см. [События](#events))|
 
@@ -94,23 +94,24 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 вклад модуля в основные реестры. Он проверяет каждое значение **подинтерфейс** на `instanceof`
 таким образом, модуль реализует только те перехватчики, которые ему нужны (`ModuleInterface` - это их совокупность).
 
-Порядок для каждого модуля внутри `bootAll(ServiceContainer $container, ?Router $router, ?StreamPipeline $pipeline)`:
+Порядок для каждого модуля внутри `bootAll(ServiceContainer $container, ?Router $router)`:
 
 1. **Сначала основная навигационная панель, один раз** — `(new CoreNavbarProvider())->registerNavbar(...)` перед любым модулем, поэтому узлы основного меню существуют как родительские.
 2. `ServiceProviderInterface` → `boot($container)` **затем** `registerEventSubscribers()` — службы регистрируются до подключения слушателей этого модуля.
-3. `StreamMiddlewareProviderInterface` → `registerStreamMiddleware($pipeline)` — **только в том случае, если было передано значение `$pipeline`**.
-4. `RouteProviderInterface` → `registerRoutes($router)` — **только в том случае, если было передано значение `$router`** (`$router !== null`).
-5. `NavbarProviderInterface` → `registerNavbar(...)`.
-6. `TopbarProviderInterface` → `registerTopbar(...)` — кнопки действий для каждой страницы (объединены в `Topbar::config`).
-7. `TableProviderInterface` → `registerTables(...)` — обработчики таблиц на сервере (просмотрены с помощью `TableController`).
-8. `PermissionProviderInterface` → `registerPermissions(...)` — ключи дополнительных разрешений (объединены в `PermissionReference`).
-9. `QuickToolsProviderInterface` → `registerQuickTools(...)` — Кнопка быстрого доступа + обработчик.
+3. `RouteProviderInterface` → `registerRoutes($router)` — **только в том случае, если было передано значение `$router`** (`$router !== null`).
+4. `NavbarProviderInterface` → `registerNavbar(...)`.
+5. `TopbarProviderInterface` → `registerTopbar(...)` — кнопки действий для каждой страницы (объединены в `Topbar::config`).
+6. `TableProviderInterface` → `registerTables(...)` — обработчики таблиц на сервере (просмотрены с помощью `TableController`).
+7. `PermissionProviderInterface` → `registerPermissions(...)` — ключи дополнительных разрешений (объединены в `PermissionReference`).
+8. `QuickToolsProviderInterface` → `registerQuickTools(...)` — Кнопка быстрого доступа + обработчик.
 
-Шаги 6-9 - это панель администратора, принадлежащая модулю: их реестры (`TopbarRegistry`,
+Шаги 5-8 - это панель администратора, принадлежащая модулю: их реестры (`TopbarRegistry`,
 `TableRegistry`, `PermissionRegistry`, `QuickToolsRegistry`) находятся `reset()` в самом
 запускается с `bootAll` и отображается позже в верхней панели/таблице/разрешениях/быстрых инструментах
 код. Они выполняются независимо от `$router` (только реестры, никаких маршрутов), поэтому модуль
 таблица доступна даже по пути REST API, который загружает модули без маршрутизатора.
+`StreamFormRegistry` и `ImportSourceRegistry` сбрасываются в одной и той же точке; модули
+заполните их, начиная с `boot()` (шаг 2).
 
 Два вклада равны **отдельные проходы, не являющиеся частью `bootAll`**:
 
@@ -158,7 +159,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 `src/Public/index.php`:
 
-1. `XC_Bootstrap::boot(BootContext::Admin)` — создает контейнер; устанавливает `context`/`options`/`config`; загружает константы; выполняет проверку флуда/хостинга; `bootAdmin()` (сессия, база данных, `LegacyInitializer`, Redis, API администратора/реселлера, транслятор, обработчик завершения работы, константы состояния); **`populateContainer()`**; **`assertContainerHealth()`**.
+1. `XC_Bootstrap::boot(BootContext::Admin)` — creates the container; sets `context`/`options`/`config`; loads constants; runs flood/host checks; `bootAdmin()` (session, DB, `LegacyInitializer`, Redis, admin/reseller API, translator, shutdown handler, status constants); **`populateContainer()`**; **`assertContainerHealth()`**.
 2. `Router::getInstance()`, затем `require` основные файлы маршрутов `routes/{scope}.php` (+ `routes/api.php`).
 3. Блок загрузки модуля: `router->beginModuleRegistration()` → `new ModuleLoader; loadAll(); bootAll($container, $router)` → `router->endModuleRegistration()` → `drainRouteCollisions()`. Режим регистрации модуля выполняет **выигрывают основные маршруты** по любому маршруту модуля с одинаковым путем; коллизии фиксируются, а не перезаписываются автоматически.
 4. `Router::dispatch()` / `dispatchApi()` обрабатывает запрос, разрешая `[Class, 'method']` обработчики через контейнер.
@@ -171,7 +172,7 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 `src/console.php`:
 
-1. `require bootstrap.php`; `XC_Bootstrap::boot(BootContext::Cli)` — DB, `LegacyInitializer`, необязательно Redis, заголовок процесса, затем **такой же** `populateContainer()` (таким образом, `events` и friends также существуют в CLI).
+1. `require bootstrap.php`; `XC_Bootstrap::boot(BootContext::Cli)` — DB, `LegacyInitializer`, необязательный Redis, заголовок процесса, затем **такой же** `populateContainer()` (таким образом, `events` и friends также существуют в CLI).
 2. `new CommandRegistry()`; автоматическое обнаружение ядра `Cli/Commands` + `Cli/CronJobs` (глобус + отражение) → `register()`.
 3. `new ModuleLoader; loadAll(); registerAllCommands($registry)` (команды модуля, **до** `bootAll`), затем `bootAll(getContainer())` **без маршрутизатора и трубопровода** — таким образом, маршруты и потоковое промежуточное программное обеспечение пропускаются; подключаются только службы модуля + подписчики событий.
 4. `registry->dispatch($argv)` выполняет запрошенную команду.
@@ -184,12 +185,12 @@ Resolving a `[Class, 'method']` handler (used by the Router) goes **through the 
 
 |Тема|Страница|
 | --- | --- |
-|Какие подсистемы инициализирует каждый контекст; `boot()` параметры; идемпотентность|[Контексты начальной загрузки](bootstrap-contexts.md)|
+| Which subsystems each context initialises; `boot()` options; idempotency |[Контексты начальной загрузки](bootstrap-contexts.md)|
 |Формы регистрации на мероприятия, приоритеты, мероприятия, которые можно отменить, каталог мероприятий|[Система событий](event-system.md)|
 |API маршрутизатора, `begin/endModuleRegistration`, диспетчеризация, разрешение обработчика|[Обработка HTTP-запросов](http-request-handling.md)|
 |Конструктор элементов навигационной панели, правила видимости, рендеринг|[Рендеринг навигационной панели](navbar-rendering.md)|
 |Обнаружение модулей, фильтрация env, топосортировка, включение/ выключение, установка / обновление|[Жизненный цикл модуля](module-lifecycle.md)|
-|DI—оформление, потоковое промежуточное программное обеспечение, cron, миграции - хуки автора модуля|[Точки расширения модуля](module-extension-points.md)|
+|Оформление DI, cron, миграции, исходные тексты драйверов, вкладки потоковой формы, виды импорта — хуки автора модуля|[Точки расширения модуля](module-extension-points.md)|
 |Написание модуля (манифест, контракт класса, макет каталога)|[Разработка модуля](module-authoring.md)|
 
 ## Связанные файлы

@@ -24,7 +24,7 @@ Admin
 
 ## Кредитная система
 
-Кредиты являются валютой для всех операций посредника. Каждое действие имеет определенную стоимость, и баланс посредника должен ее покрывать.
+Кредиты являются валютой для всех операций реселлера. Каждое действие имеет определенную стоимость, и баланс реселлера должен ее покрывать.
 
 ### Затраты по кредиту
 
@@ -152,11 +152,11 @@ AuthRepository::getGroupPermissions()  // builds all_reports recursively
 | `create_enigma` | `bool` |может создавать устройства Enigma2|
 | `create_sub_resellers` | `bool` |может создавать суб-реселлеров|
 | `create_sub_resellers_price` | `int` |стоимость кредита на одного суб-реселлера|
-| `allow_change_bouquets` | `bool` |можно выбрать подмножество bouquet|
+| `allow_change_bouquets` | `bool` |можно выбрать подмножество букетов|
 | `allow_change_username` | `bool` |можно установить пользовательское имя пользователя|
 | `allow_change_password` | `bool` |можно установить пользовательский пароль|
 | `allow_restrictions` | `bool` |можно установить ограничения по IP/UA|
-| `can_view_vod` | `bool` |может просматривать содержимое VOD|
+| `can_view_vod` | `bool` |может просматривать VOD-контент|
 | `reseller_client_connection_logs` | `bool` |можно просматривать журналы подключений|
 | `minimum_username_length` | `int` |минимальная длина имени пользователя|
 | `minimum_password_length` | `int` |минимальная длина пароля|

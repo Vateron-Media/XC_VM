@@ -1,14 +1,14 @@
 # Обнаружение устройств и блокировка STB
 
-XC_VM анализирует клиентский пользовательский агент (Mobile_Detect) для адаптации пользовательского интерфейса администратора и привязывает учетные записи приставок к определенному оборудованию, чтобы строка не могла использоваться совместно на разных устройствах. Эти проверки выполняются параллельно с проверками географического местоположения в `src/Public/stream/auth.php`.
+XC_VM анализирует клиентский пользовательский агент (Mobile_Detect), чтобы адаптировать пользовательский интерфейс администратора, и привязывает учетные записи приставок (STB) к определенному оборудованию, чтобы линия не могла использоваться совместно на разных устройствах. Эти проверки выполняются параллельно с проверками географического местоположения в `src/Public/stream/auth.php`.
 
-> Информацию о геолокации GeoIP/ISP/ASN, геомаршрутизации и обновлениях MaxMind смотрите на сопутствующей странице [GeoIP, Определение провайдера и геомаршрутизация](geoip-isp-and-geo-routing.md). Для получения информации о взаимодействии Stalker/Ministra portal, которое управляет профилями STB, смотрите [Ministra Эмуляцию STB](ministra-browser-emulation.md).
+> Информацию о геолокации GeoIP/ISP/ASN, геомаршрутизации и обновлениях MaxMind смотрите на сопутствующей странице [GeoIP, обнаружение провайдеров и геомаршрутизация](geoip-isp-and-geo-routing.md). Информацию о взаимодействии портала Stalker/Ministra, которое управляет профилями STB, смотрите в [Эмуляция STB Ministra](ministra-browser-emulation.md).
 
 ---
 
 ## Мобильное обнаружение
 
-Файл: `src/vendor/mobiledetect/mobiledetectlib/src/MobileDetect.php` (Composer зависимость `mobiledetect/mobiledetectlib`)
+Файл: `src/vendor/mobiledetect/mobiledetectlib/src/MobileDetect.php` (зависимость от композитора `mobiledetect/mobiledetectlib`)
 
 Библиотека (версия 4.9.0, пространство имен `Detection\MobileDetect`) для синтаксического анализа пользовательским агентом:
 
@@ -43,7 +43,7 @@ $detect->isAndroid();   // brand-specific
 
 ### Где он настроен
 
-В панели администратора: страницы **МАГНИТНЫЕ устройства** и **Устройства "Энигма"** — добавьте/отредактируйте строку устройства, переключите **Запирающее устройство** и (для порталов Ministra) установите разрешенные типы STB с помощью `allowed_stb_types`. Набор типов STB, которые портал рекламирует в окне, передается из настроек панели через `PortalHandler` в профиль клиента (см. [Ministra Эмуляция STB](ministra-browser-emulation.md)).
+В панели администратора: страницы **МАГНИТНЫЕ устройства** и **Устройства "Энигма"** — добавьте/отредактируйте строку устройства, переключите **Запирающее устройство** и (для порталов Министерства) установите разрешенные типы STB с помощью `allowed_stb_types`. Набор типов STB, которые портал рекламирует в окне, передается из настроек панели через `PortalHandler` в профиль клиента (см. [Эмуляция STB Ministra](ministra-browser-emulation.md)).
 
 ### Как осуществляется принудительная блокировка
 
@@ -86,7 +86,7 @@ error: DEVICE_NOT_ALLOWED or TOKEN_EXPIRED
 |Установка|Тип|Описание|
 | --- | --- | --- |
 | `disallow_empty_user_agents` | `0/1` |отклонять запросы без заголовка User-Agent|
-| `allowed_stb_types` | `array` |Типы STB, которые будет принимать портал Ministra (пустые = все)|
+| `allowed_stb_types` | `array` |Типы STB, которые будет принимать портал Министерства (пусто = все)|
 
 Настройки для каждого устройства (`lock_device`, `is_isplock`, `forced_country`) устанавливаются в строке устройства, а не в глобальных настройках.
 
@@ -96,8 +96,8 @@ error: DEVICE_NOT_ALLOWED or TOKEN_EXPIRED
 
 |Файл|Цель|
 | --- | --- |
-| `src/vendor/mobiledetect/mobiledetectlib/src/MobileDetect.php` |`\Detection\MobileDetect` Библиотека агента пользователя (Composer dep)|
+| `src/vendor/mobiledetect/mobiledetectlib/src/MobileDetect.php` |`\Detection\MobileDetect` Библиотека пользовательских агентов (Composer dep)|
 | `src/Domain/Device/EnigmaService.php` |Управление STB-файлами Enigma2 + поля блокировки|
 | `src/Domain/Device/MagService.php` |Управление магнитными полями STB + блокировка полей|
 | `src/Public/stream/auth.php` |потоковая авторизация с проверкой устройства (5-6)|
-| `src/Domain/Security/BlocklistService.php` |заблокированные / разрешенные проверки пользовательского агента|
+| `src/Domain/Security/BlocklistService.php` |заблокированные / разрешенные проверки агента пользователя|

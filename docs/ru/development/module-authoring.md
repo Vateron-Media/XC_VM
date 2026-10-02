@@ -1,6 +1,6 @@
 # Разработка модуля
 
-Как создать модуль XC_VM: его расположение на диске, манифест `module.json`, контракт класса модуля + метода, пространства имен и его контроллер. О том, как модуль обнаруживается/загружается/распространяется, смотрите в [Жизненный цикл модуля](module-lifecycle.md); о подключаемых к нему подключениях смотрите в [Точках расширения модуля](module-extension-points.md).
+Как создать модуль XC_VM: его расположение на диске, манифест `module.json`, контракт класса модуля + метода, пространства имен и его контроллер. О том, как модуль обнаруживается/загружается/распространяется, смотрите в [Жизненный цикл модуля](module-lifecycle.md); о подключениях, к которым он подключается, смотрите в [Точках расширения модуля](module-extension-points.md).
 
 ## Обзор
 
@@ -118,7 +118,7 @@ src/Modules/my-module_9f1c0/   # {name}_{hash5}; canonical name is "my-module"
 - `dependencies` — если какой—либо модуль недоступен (отсутствует на диске, отключен или находится в состоянии `failed`), зависимому модулю присваивается значение **пропущенный** с записанным каскадным предупреждением (все, что зависит от него, также пропускается). Остальные модули, панель администратора и интерфейс командной строки продолжают работать; единственная неудовлетворенная зависимость больше не прерывает всю загрузку.
 - `optional_dependencies` — загружается перед этим модулем, если присутствует, автоматически пропускается, если отсутствует
 
-> **Остерегайтесь дрейфа.** Модуль, от которого зависят все еще включенные модули, не может быть `disabled` передан через панель / `ModuleManager::setState()` - операция отклоняется со списком зависимостей (зеркально отображая защиту `uninstallModule()`). Это предотвращает переход в состояние "`plex` включено, но его зависимость от `watch` отключена".
+> **Остерегайтесь дрейфа.** Модуль, от которого зависят все еще включенные модули, не может быть запущен `disabled` через панель / `ModuleManager::setState()` - операция отклоняется со списком зависимостей (зеркально отображая защиту `uninstallModule()`). Это предотвращает переход в состояние "`plex` включено, но его зависимость от `watch` отключена".
 
 **Priority:**
 
@@ -173,7 +173,6 @@ ModuleInterface
 
 ```text
 (optional, not in ModuleInterface)
-├── StreamMiddlewareProviderInterface → registerStreamMiddleware(StreamPipeline)
 ├── CronProviderInterface             → getCronEntries()
 ├── TopbarProviderInterface           → registerTopbar(TopbarRegistry)      · per-page action buttons
 ├── TableProviderInterface            → registerTables(TableRegistry)       · serverSide DataTable builders
@@ -184,15 +183,6 @@ ModuleInterface
 Topbar / Table / Permission / QuickTools позволяет модулю полностью управлять своим администратором
 след — кнопки, таблицы журналов/отчетов, предоставляемые разрешения и обслуживание
 инструменты — вместо тех, что жестко закодированы в ядре.
-
-```php
-// Optional — not in ModuleInterface
-class MyModule implements ModuleInterface, StreamMiddlewareProviderInterface {
-    public function getStreamMiddleware(): array {
-        return [new MyStreamMiddleware()];
-    }
-}
-```
 
 ---
 
@@ -254,7 +244,7 @@ class MyModuleModule extends BaseModule {
 
 > **Совет:** модулю без маршрутов, элементов навигационной панели и команд CLI требуется только
 > `getName()`, `getVersion()` и `boot()`.
-> Модуль изолированной подсистемы (его собственная точка входа и bootstrap, например Ministra) обычно
+> Модуль изолированной подсистемы (его собственная точка входа и bootstrap, как у Ministra) обычно
 > оставляет `boot()` и `registerRoutes()` унаследованными как не выполняемые операции.
 
 ### Метод контракта
@@ -276,18 +266,18 @@ class MyModuleModule extends BaseModule {
 | `uninstall(): void` | `ModuleInterface` |Запуск при удалении модуля (очистка)|
 
 > **Важно — версия хранится в двух местах.** Модуль объявляет свою версию
-> **дважды**: поле `"version"` в `module.json` и возвращаемое значение из
+> **дважды**: поле `"version"` в `module.json` и возвращаемое значение
 > `getVersion()` в классе module. **Сохраняйте их идентичными и изменяйте оба перед
 > издательский.** Во время выполнения манифест `version` имеет приоритет — установка/обновление
 > и водяной знак `installed_version` сначала читается как `module.json`, и только потом возвращается
 > to `getVersion()` — so a stale `getVersion()` silently drifts out of sync and is a
 > распространенный источник ошибок типа "выполнена /не выполнена неправильная миграция". Если модуль отправляет файл
-> миграции, `database.sql` (основная схема) и самый высокий `migrations/<semver>.sql`
+> migrations, `database.sql` (master schema) and the highest `migrations/<semver>.sql`
 > дельта также должна соответствовать этой версии.
 
 ---
 
-## PHP пространства имен
+## Пространства имен PHP
 
 
 Каждый модуль находится в выделенном пространстве имен PHP: _BOS_0}, где _BOS_1} - это
@@ -390,15 +380,14 @@ class MyController {
 - [ ] Поставьте постоянный штамп `hash_id` (`php -r 'echo bin2hex(random_bytes(16));'`; никогда не пишите его от руки)
 - [ ] Create `<PascalName>Module.php` extending `BaseModule`
 - [ ] Укажите версию в **оба** `module.json` `"version"` и `getVersion()` — они должны совпадать (измените обе версии перед публикацией)
-- [ ] Реализовать `boot()` для всех сервисов, предоставляемых модулем
+- [ ] Реализовать `boot()` для всех служб, предоставляемых модулем
 - [ ] Реализовать `registerRoutes()` для конечных точек HTTP/API
 - [ ] Внедрить `registerNavbar()` для элементов панели администратора (или оставить пустым)
 - [ ] (Если кроны) Создайте `MyCron.php` + `MyCronJob.php`, зарегистрируйтесь в `registerCommands()`
 - [ ] (Если crons) Переопределяет `getCronEntries()` в классе модуля (основной файл не изменяется)
 - [ ] (Схема If) Отправляет значения `database.sql` (мастер), `database_drop.sql` (демонтаж) и `migrations/<semver>.sql` дельт
 - [ ] (При переносе PHP-логики) Реализовать `MigratableInterface::getMigrations()`
-- [ ] (Если страницы) Создайте контроллер, используя `renderUnifiedLayoutHeader/Footer`
-- [ ] (Если потоковое промежуточное программное обеспечение) Реализовать `StreamMiddlewareProviderInterface` отдельно
+- [ ] (Если страницы) Создайте контроллер с помощью `renderUnifiedLayoutHeader/Footer`
 - [ ] Проверить: `php -l src/Modules/<name>/<PascalName>Module.php`
 - [ ] Verify: `php console.php --list` shows the module's commands
 - [ ] Проверьте: удаление каталога модуля не приводит к фатальной ошибке
@@ -428,15 +417,16 @@ class MyController {
 Да. Создайте простой класс или расширьте `AbstractEvent` и вызовите `EventDispatcher::dispatch(new MyEvent(...))`.
 
 **Q: What is `StreamMiddlewareProviderInterface` for?**
-Это позволяет модулю вводить значение `StreamMiddlewareInterface` в конвейер потоковой обработки
-без изменения `StreamProcess.php`. При необходимости реализуйте его вместе с `ModuleInterface`.
+Ничего: оно устарело. Core никогда не запускал конвейер потокового промежуточного программного обеспечения, поэтому интерфейс
+сохраняется только для того, чтобы старые модули продолжали загружаться. Для нового вида живого исходного кода используйте
+[исходный драйвер](source-drivers.md); чтобы реагировать на изменения потока, прослушивайте события.
 
 ## Связанные файлы
 
 
 |Файл|Роль|
 | --- | --- |
-| `src/Core/Module/ModuleLoader.php` | Discovers, sorts and boots modules; PSR-4 class resolver |
+| `src/Core/Module/ModuleLoader.php` |Обнаруживает, сортирует и загружает модули; распознаватель классов PSR-4|
 | `src/config/modules.php` |Конфигурация включения модуля / переопределения класса|
 | `src/Modules/` |Каталоги модулей|
 | `src/Core/Module/Contract/` |Подинтерфейсы модуля|

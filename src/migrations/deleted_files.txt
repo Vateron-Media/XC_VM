@@ -7,6 +7,8 @@ Core/Config/AppConfig.php
 Core/Config/Binaries.php
 Core/Config/Paths.php
 Core/Error/ErrorCodes.php
+Core/Http/Pipeline/StreamPipeline.php
+Core/Http/RequestGuard.php
 Infrastructure/Bootstrap/admin_functions_fc.php
 Infrastructure/Bootstrap/admin_session_fc.php
 Infrastructure/Bootstrap/player_functions.php
@@ -22,6 +24,8 @@ Public/Views/admin/api.php
 Public/Views/admin/functions.php
 Public/Views/admin/modals.php
 Public/Views/admin/session.php
+Public/Views/layouts/admin.php
+Public/Views/layouts/footer.php
 Public/Views/layouts/reseller/modals.php
 Public/Views/reseller/topbar.php
 Public/assets/admin/css/app.css
@@ -447,6 +451,14 @@ Public/assets/admin/libs/videojs/video.min.js
 Public/assets/admin/videos/login-bg.mp4
 Streaming/TimeshiftClient.php
 config/permissions.php
+migrations/001_update_crontab_filenames.sql
+migrations/002_add_maxmind_cron.sql
+migrations/003_set_queue_loop_default.sql
+migrations/005_add_panel_logs_sent_flag.sql
+migrations/006_fix_headers_argument_cmd.sql
+migrations/007_add_platform_api_key.sql
+migrations/008_add_module_updates_cron.sql
+migrations/009_add_proxy_cron.sql
 ministra/JsHttpRequest-debug.js
 ministra/JsHttpRequest.js
 ministra/MinistraBootstrap.php

@@ -1,6 +1,6 @@
 # Система событий
 
-XC_VM использует типизированный диспетчер событий в стиле PSR-14. Все события являются простыми классами PHP
+XC_VM использует типизированный диспетчер событий в стиле PSR-14. Все события представляют собой простые классы PHP
 отправлено и получено по имени. Диспетчер основан на экземпляре и хранится в
 Откройте контейнер под ключом `events`.
 
@@ -132,17 +132,30 @@ EventDispatcher::listen(MyGatingEvent::class, function (MyGatingEvent $e): void 
 
 ## Встроенные основные события
 
-|Класс события|Местоположение|Когда отправлено|Останавливаемый|
-| ----------- | -------- | --------------- | :-------: |
-| `ModuleLoadedEvent` | `Events/Module/` |После загрузки файла модуля|Нет|
-| `ModuleBootedEvent` | `Events/Module/` |После вызова `boot()`|Нет|
-| `PackageInstalledEvent` | `Events/Module/` |После установки marketplace|Нет|
-| `UserAuthenticatedEvent` | `Events/Auth/` |После успешного входа в систему|Да|
-| `UserLoggedOutEvent` | `Events/Auth/` |После выхода из системы|Нет|
-| `StreamStartingEvent` | `Events/Stream/` |Перед запуском потока (gate — extends `AbstractEvent`)|Да|
-| `StreamStartedEvent` | `Events/Stream/` |После начала трансляции|Нет|
-| `StreamStoppedEvent` | `Events/Stream/` |После того, как поток прекратился|Нет|
-| `SettingsChangedEvent` | `Events/Settings/` |После сохранения настроек|Нет|
+Отправлено ядром:
+
+|Класс события|Местоположение|Когда отправлено|
+| ----------- | -------- | --------------- |
+| `StreamsChangedEvent` | `Events/Stream/` |Потоки были созданы или изменены (форма, импорт, EPG, категории, серверы, ...)|
+| `StreamSavedEvent` | `Events/Stream/` |Форма трансляции, импорт или admin API записывают прямые трансляции (содержит поля вкладки модуля)|
+| `StreamsDeletedEvent` | `Events/Stream/` |Потоки были удалены|
+| `StreamArgumentsChangedEvent` | `Events/Stream/` |Изменены значения аргументов глобального потока по умолчанию|
+| `TranscodeProfileSavedEvent` | `Events/Stream/` |Профиль перекодирования был сохранен|
+| `BouquetDeletedEvent` | `Events/Bouquet/` |Букет был удален|
+| `VodImportedEvent` | `Events/Vod/` |Был импортирован элемент VOD|
+| `MediaAnalyzedEvent` | `Events/Vod/` |Был проанализирован VOD-файл|
+| `ServerSavedEvent` | `Events/Server/` |Сервер был сохранен|
+| `ClusterLicenceLapsedEvent` | `Events/Cluster/` |`xcvm_core` отказано в аренде узла из-за отсутствия лицензии (токен был выдан без нее); один раз за отказ в выдаче|
+| `SettingsChangedEvent` | `Events/Settings/` |Настройки были сохранены|
+| `CrontabChangedEvent` | `Events/Settings/` |Кронтаб изменился|
+| `PackageInstalledEvent` | `Events/Module/` |Был установлен пакет marketplace|
+
+!!! предупреждение "Определено, но так и не отправлено"
+`StreamStartingEvent`, `StreamStartedEvent`, `StreamStoppedEvent`,
+`ModuleLoadedEvent`, `ModuleBootedEvent`, `UserAuthenticatedEvent` и
+`UserLoggedOutEvent` существуют как классы, но ничто в ядре не отправляет их. A
+прослушиватель на них никогда не запускается; не создавайте на их основе. В примерах на этой странице используются
+`StreamStartedEvent` только для отображения API.
 
 ---
 
