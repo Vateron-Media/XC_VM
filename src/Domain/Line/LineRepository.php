@@ -46,7 +46,7 @@ class LineRepository {
 		}
 
 		if (count($rPairIDs) > 0) {
-			$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` = (' . implode(',', $rPairIDs) . ');');
+			$db->query('UPDATE `lines` SET `pair_id` = null WHERE `id` IN (' . implode(',', array_map('intval', $rPairIDs)) . ');');
 			LineService::updateLinesSignal($rPairIDs);
 		}
 
