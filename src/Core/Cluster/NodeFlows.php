@@ -106,7 +106,10 @@ final class NodeFlows {
 		if ($rFlows === null) {
 			return self::OFF;
 		}
-		if (self::$rMainCheck) {
+		// Only MAIN's build can be MAIN, and a load balancer's build says so from its
+		// files: the servers it would read come from MAIN's database once their cache
+		// is 10 s old, which segment.php and the other lightweight paths do not open.
+		if (self::$rMainCheck && NodeRole::mainBuild()) {
 			self::$rReading = $rFlows;
 			try {
 				$rMain = NodeRole::isMain();

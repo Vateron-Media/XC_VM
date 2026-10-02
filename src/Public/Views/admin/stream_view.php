@@ -224,9 +224,9 @@ use XcVm\Core\Util\LayoutRenderer;
                                             <td class="text-center" style="width:300px;">
                                                 <div class="d-flex flex-wrap gap-1 justify-content-center">
                                                     <span class="badge bg-label-secondary"><?= number_format(($rStreamInfo['bitrate'] === '?' ? 0 : $rStreamInfo['bitrate']) / 1024, 0) ?> Kbps</span>
-                                                    <span class="badge bg-label-primary"><?= htmlspecialchars($rStreamInfo['codecs']['video']['width'] . ' x ' . $rStreamInfo['codecs']['video']['height']) ?></span>
-                                                    <span class="badge bg-label-info"><?= htmlspecialchars($rStreamInfo['codecs']['video']['codec_name']) ?></span>
-                                                    <span class="badge bg-label-success"><?= htmlspecialchars($rStreamInfo['codecs']['audio']['codec_name']) ?></span>
+                                                    <span class="badge bg-label-primary"><?= htmlspecialchars(($rStreamInfo['codecs']['video']['width'] ?? '') . ' x ' . ($rStreamInfo['codecs']['video']['height'] ?? '')) ?></span>
+                                                    <span class="badge bg-label-info"><?= htmlspecialchars(($rStreamInfo['codecs']['video']['codec_name'] ?? '')) ?></span>
+                                                    <span class="badge bg-label-success"><?= htmlspecialchars(($rStreamInfo['codecs']['audio']['codec_name'] ?? '')) ?></span>
                                                     <?php if (!$rCreated): ?><span class="badge bg-label-secondary"><?= htmlspecialchars($rSpeed) ?></span><?php endif; ?>
                                                     <span class="badge bg-label-secondary"><?= htmlspecialchars($rFPS) ?></span>
                                                 </div>
@@ -504,9 +504,9 @@ use XcVm\Core\Util\LayoutRenderer;
                                         <td class="text-center">
                                             <div class="d-flex flex-wrap gap-1 justify-content-center">
                                                 <span class="badge bg-label-secondary"><?= number_format(intval($rTrack['stream_info']['bitrate']) / 1024, 0) ?> Kbps</span>
-                                                <span class="badge bg-label-primary"><?= htmlspecialchars($rTrack['stream_info']['codecs']['video']['width'] . ' x ' . $rTrack['stream_info']['codecs']['video']['height']) ?></span>
-                                                <span class="badge bg-label-info"><?= htmlspecialchars($rTrack['stream_info']['codecs']['video']['codec_name']) ?></span>
-                                                <span class="badge bg-label-success"><?= htmlspecialchars($rTrack['stream_info']['codecs']['audio']['codec_name']) ?></span>
+                                                <span class="badge bg-label-primary"><?= htmlspecialchars(($rTrack['stream_info']['codecs']['video']['width'] ?? '') . ' x ' . ($rTrack['stream_info']['codecs']['video']['height'] ?? '')) ?></span>
+                                                <span class="badge bg-label-info"><?= htmlspecialchars(($rTrack['stream_info']['codecs']['video']['codec_name'] ?? '')) ?></span>
+                                                <span class="badge bg-label-success"><?= htmlspecialchars(($rTrack['stream_info']['codecs']['audio']['codec_name'] ?? '')) ?></span>
                                                 <span class="badge bg-label-secondary"><?= htmlspecialchars($rFPS) ?></span>
                                             </div>
                                         </td>

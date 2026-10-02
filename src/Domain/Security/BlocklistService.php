@@ -120,7 +120,7 @@ class BlocklistService {
 			return ['status' => STATUS_INVALID_IP, 'data' => $rData];
 		}
 
-		if (QueryHelper::checkExists('rtmp_ips', 'ip', $rData['ip'], 'id', $rArray['id'])) {
+		if (QueryHelper::checkExists('rtmp_ips', 'ip', $rData['ip'], 'id', $rArray['id'] ?? null)) { // a new entry has no id yet
 			return ['status' => STATUS_EXISTS_IP, 'data' => $rData];
 		}
 

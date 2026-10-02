@@ -38,9 +38,10 @@ class ProfileEditController extends BaseAdminController {
 		}
 
 		if (isset($rProfileArr)) {
-			$rProfileOptions = json_decode($rProfileArr['profile_options'], true);
+			// A profile saved without GPU options has neither key.
+			$rProfileOptions = json_decode((string) $rProfileArr['profile_options'], true) ?: [];
 
-			if ($rProfileOptions['software_decoding']) {
+			if (!empty($rProfileOptions['software_decoding'])) {
 				if (isset($rProfileOptions[9])) {
 					$rProfileOptions['gpu']['resize'] = str_replace(':', 'x', $rProfileOptions[9]['val']);
 				}
@@ -49,7 +50,7 @@ class ProfileEditController extends BaseAdminController {
 				if (isset($rProfileOptions['gpu']['resize'])) {
 					$rProfileOptions[9]['val'] = str_replace('x', ':', $rProfileOptions['gpu']['resize']);
 				}
-				$rProfileOptions[17]['val'] = 0 < intval($rProfileOptions['gpu']['deint']);
+				$rProfileOptions[17]['val'] = 0 < intval($rProfileOptions['gpu']['deint'] ?? 0);
 			}
 		}
 
