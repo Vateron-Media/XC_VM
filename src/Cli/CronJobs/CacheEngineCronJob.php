@@ -77,13 +77,13 @@ class CacheEngineCronJob implements CommandInterface {
 			}
 		} else {
 			// Stop older runs and their workers, so two rebuilds never race.
-+			// Read from /proc (own PID excluded), not a ps|grep shell pipeline;
-+			// the parent is the cron shell that launched this run.
-+			foreach (ProcessManager::findProcessPIDs(['cache_engine']) as $rPID) {
-+				if ($rPID !== posix_getppid()) {
-+					ProcessManager::kill($rPID);
-+				}
-+			}
+			// Read from /proc (own PID excluded), not a ps|grep shell pipeline;
+			// the parent is the cron shell that launched this run.
+			foreach (ProcessManager::findProcessPIDs(['cache_engine']) as $rPID) {
+				if ($rPID !== posix_getppid()) {
+					ProcessManager::kill($rPID);
+				}
+			}
 		}
 
 		$this->loadCron($rType, $rGroupStart, $rGroupMax);
