@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""XC_VM support bot: answers questions about XC_VM on Telegram with Claude.
+"""XC_VM support bot: answers questions about XC_VM on Telegram from the project's docs.
 
-Its knowledge is the project's own documentation (docs/en and the README),
-sent as one cached system prompt, so an answer is only as good as the docs.
-Settings come from the environment; see README.md beside this file.
+Two ways to answer, picked by the keys in the environment (see README.md):
+
+- a free cloud model behind an OpenAI-compatible API (Groq by default, LLM_API_KEY):
+  the bot searches the docs and sends the model only the sections that match;
+- Claude (ANTHROPIC_API_KEY): the whole documentation goes as one cached prompt.
 
     python bot.py                      run the bot (long polling)
     python bot.py --ask "question"     one answer in the terminal, no Telegram
@@ -11,25 +13,32 @@ Settings come from the environment; see README.md beside this file.
 
 import asyncio
 import logging
+import math
 import os
+import re
 import sys
 import time
-from collections import deque
+from collections import Counter, deque
 from pathlib import Path
 
 import anthropic
 import httpx2
 
 REPO = Path(__file__).resolve().parents[2]
+REPO_URL = "https://github.com/Vateron-Media/XC_VM"
 DOCS_SITE = "https://vateron-media.github.io/XC_VM/"
 TELEGRAM_LIMIT = 4000  # Telegram's cap is 4096 characters per message
 IDLE_RESET_SEC = 1800  # a conversation forgets itself after 30 idle minutes
 
-MODEL = os.environ.get("BOT_MODEL", "claude-opus-5-5")
-EFFORT = os.environ.get("BOT_EFFORT", "medium")
-SUPPORT_URL = os.environ.get("BOT_SUPPORT_URL", "https://github.com/Vateron-Media/XC_VM/issues")
+LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
+LLM_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
+LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
+DOCS_CHARS = int(os.environ.get("BOT_DOCS_CHARS", "8000"))  # documentation sent with each question (free models)
+CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
+CLAUDE_EFFORT = os.environ.get("CLAUDE_EFFORT", "medium")
+SUPPORT_URL = os.environ.get("BOT_SUPPORT_URL", REPO_URL + "/issues")
 DOCS_DIR = Path(os.environ.get("BOT_DOCS_DIR", REPO / "docs" / "en"))
-HISTORY_TURNS = int(os.environ.get("BOT_HISTORY_TURNS", "6"))
+HISTORY_TURNS = int(os.environ.get("BOT_HISTORY_TURNS", "3"))
 QUESTIONS_PER_HOUR = int(os.environ.get("BOT_QUESTIONS_PER_HOUR", "20"))
 DOCS_SKIP = {d.strip() for d in os.environ.get("BOT_DOCS_SKIP", "").split(",") if d.strip()}
 ALLOWED_CHATS = {c.strip() for c in os.environ.get("BOT_ALLOWED_CHATS", "").split(",") if c.strip()}
@@ -62,6 +71,9 @@ How to answer:
 - Telegram shows your answer as plain text: do not use Markdown (no **, no #, no tables). Use
   numbered steps or lines starting with "- ", and put each command on its own line."""
 
+KEYWORDS_PROMPT = """Turn the user's question about the XC_VM IPTV panel into 5 to 10 English search keywords
+for its English documentation. Reply with the keywords only, separated by spaces."""
+
 
 def doc_url(path: Path, docs_dir: Path) -> str:
     """The published page for a file under docs/en (MkDocs: README.md is its folder's index)."""
@@ -70,19 +82,100 @@ def doc_url(path: Path, docs_dir: Path) -> str:
     return DOCS_SITE + ("" if str(page) == "." else page.as_posix() + "/")
 
 
-def load_docs(docs_dir: Path = DOCS_DIR, readme: Path = REPO / "README.md", skip: set[str] = DOCS_SKIP) -> str:
-    """Every English doc page and the README, in a fixed order so the prompt cache keeps hitting.
+def doc_files(docs_dir: Path = DOCS_DIR, readme: Path = REPO / "README.md", skip: set[str] = DOCS_SKIP) -> list[tuple[Path, str]]:
+    """(file, url) for the README and every English doc page, in a fixed order.
 
     `skip` leaves out top-level folders of the docs (BOT_DOCS_SKIP), e.g. {"development"}.
     """
-    parts = []
-    if readme.is_file():
-        parts.append(f'<doc url="https://github.com/Vateron-Media/XC_VM" path="README.md">\n{readme.read_text()}\n</doc>')
-    for path in sorted(docs_dir.rglob("*.md")):
-        if path.relative_to(docs_dir).parts[0] in skip:
-            continue
-        parts.append(f'<doc url="{doc_url(path, docs_dir)}" path="{path.relative_to(docs_dir)}">\n{path.read_text()}\n</doc>')
+    files = [(readme, REPO_URL)] if readme.is_file() else []
+    return files + [(p, doc_url(p, docs_dir)) for p in sorted(docs_dir.rglob("*.md")) if p.relative_to(docs_dir).parts[0] not in skip]
+
+
+def load_docs(**kwargs) -> str:
+    """The whole documentation as one text, always the same bytes so the prompt cache keeps hitting."""
+    parts = [f'<doc url="{url}">\n{path.read_text()}\n</doc>' for path, url in doc_files(**kwargs)]
     return "<documentation>\n" + "\n".join(parts) + "\n</documentation>"
+
+
+def doc_sections(size: int = 1500, **kwargs) -> list[dict]:
+    """The documentation cut at its headings, and long sections at paragraphs: {url, title, text}."""
+    out = []
+    for path, url in doc_files(**kwargs):
+        page, heading, lines, fence = path.stem, "", [], False
+
+        def flush():
+            pieces = []
+            for para in "\n".join(lines).strip().split("\n\n"):
+                while len(para) > size:  # a long list or table: cut it at a line
+                    cut = para.rfind("\n", 0, size)
+                    cut = cut if cut > 0 else size
+                    pieces.append(para[:cut])
+                    para = para[cut:].lstrip("\n")
+                pieces.append(para)
+            chunk = ""
+            for para in pieces:
+                if chunk and len(chunk) + 2 + len(para) > size:
+                    out.append({"url": url, "title": f"{page} / {heading}".strip(" /"), "text": chunk})
+                    chunk = ""
+                chunk = (chunk + "\n\n" + para).strip()
+            if chunk:
+                out.append({"url": url, "title": f"{page} / {heading}".strip(" /"), "text": chunk})
+
+        for line in path.read_text().splitlines():
+            if line.startswith("```"):
+                fence = not fence
+            if not fence and line.startswith("#"):  # a heading, not a shell comment in a code block
+                flush()
+                lines, heading = [], line.lstrip("#").strip()
+                if line.startswith("# "):
+                    page = heading
+            lines.append(line)
+        flush()
+    return out
+
+
+WORD = re.compile(r"[^\W_]+")
+STOP = set("the and for are with how what why does can you your this that from into its not but when which there".split())
+
+
+def words(text: str) -> list[str]:
+    return [w for w in WORD.findall(text.lower()) if len(w) > 2 and w not in STOP]
+
+
+class DocIndex:
+    """Ranks documentation sections against a question (BM25, the classic search-engine score)."""
+
+    def __init__(self, sections: list[dict]):
+        self.sections = sections
+        self.tf = [Counter(words(s["title"]) * 2 + words(s["text"])) for s in sections]  # titles count double
+        self.len = [sum(t.values()) for t in self.tf]
+        self.avg = sum(self.len) / max(1, len(self.len))
+        df = Counter(w for t in self.tf for w in t)
+        n = len(sections)
+        self.idf = {w: math.log(1 + (n - c + 0.5) / (c + 0.5)) for w, c in df.items()}
+
+    def known(self, text: str) -> float:
+        """How much of a text the documentation's words cover: low for a question in another language."""
+        q = words(text)
+        return sum(w in self.idf for w in q) / len(q) if q else 1.0
+
+    def search(self, query: str, budget: int) -> str:
+        """The best-matching sections, as <doc> excerpts of at most `budget` characters in all."""
+        q = set(words(query))
+        scores = []
+        for i, tf in enumerate(self.tf):
+            s = sum(self.idf[w] * tf[w] * 2.2 / (tf[w] + 1.2 * (0.25 + 0.75 * self.len[i] / self.avg)) for w in q if w in tf)
+            if s > 0:
+                scores.append((s, i))
+        picked, used = [], 0
+        for _, i in sorted(scores, reverse=True):
+            sec = self.sections[i]
+            piece = f'<doc url="{sec["url"]}" title="{sec["title"]}">\n{sec["text"]}\n</doc>'
+            if used + len(piece) > budget:
+                continue
+            picked.append(piece)
+            used += len(piece)
+        return "\n".join(picked)
 
 
 def split_message(text: str, limit: int = TELEGRAM_LIMIT) -> list[str]:
@@ -106,9 +199,9 @@ def question_for_bot(message: dict, bot_username: str) -> str | None:
     if not text:
         return None
     mention = "@" + bot_username.lower()
-    words = text.split(maxsplit=1)
-    if words[0].lower().split("@")[0] == "/ask":
-        return words[1].strip() if len(words) > 1 else ""
+    first = text.split(maxsplit=1)
+    if first[0].lower().split("@")[0] == "/ask":
+        return first[1].strip() if len(first) > 1 else ""
     if message.get("chat", {}).get("type") == "private":
         return text
     replied = message.get("reply_to_message", {}).get("from", {}).get("username", "")
@@ -135,17 +228,105 @@ class RateLimiter:
         return True
 
 
-class Assistant:
-    """Claude with the docs as a cached system prompt, and a short memory per conversation."""
+BUSY = "I'm getting a lot of questions right now. Please try again in a minute."
+DOWN = "I can't reach my answer service right now. Please try again in a few minutes."
+BROKEN = f"Something went wrong on my side. If it keeps happening, please ask at {SUPPORT_URL}"
+
+
+class FreeModel:
+    """A model behind an OpenAI-compatible chat API (Groq, Cerebras, OpenRouter, a local Ollama...).
+
+    Free tiers take a few thousand tokens per request, so each question goes with the
+    documentation sections that match it, not the whole documentation.
+    """
+
+    def __init__(self, index: DocIndex):
+        self.index = index
+        self.http = httpx2.AsyncClient(timeout=120)
+        self.name = f"{LLM_MODEL} at {LLM_BASE_URL}"
+
+    async def chat(self, messages: list[dict], max_tokens: int) -> str:
+        headers = {"Authorization": f"Bearer {LLM_API_KEY}"} if LLM_API_KEY else {}
+        r = await self.http.post(f"{LLM_BASE_URL}/chat/completions", headers=headers, json={
+            "model": LLM_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3})
+        r.raise_for_status()
+        body = r.json()
+        log.info("model usage: %s", body.get("usage"))
+        return (body["choices"][0]["message"].get("content") or "").strip()
+
+    async def complete(self, past: list[dict], question: str) -> tuple[str, bool]:
+        """(answer, whether to remember the exchange)."""
+        try:
+            query = question if not past else past[-2]["content"] + " " + question  # follow-ups keep their topic
+            if self.index.known(question) < 0.5:  # not English: search with English keywords
+                query += " " + await self.chat([{"role": "system", "content": KEYWORDS_PROMPT},
+                                                {"role": "user", "content": question}], 40)
+            excerpts = self.index.search(query, DOCS_CHARS)
+            system = INSTRUCTIONS + "\n\nThe documentation sections that best match this question:\n" + excerpts
+            text = await self.chat([{"role": "system", "content": system}, *past, {"role": "user", "content": question}], 900)
+        except httpx2.HTTPStatusError as e:
+            log.error("model API error %s: %s", e.response.status_code, e.response.text[:300])
+            code = e.response.status_code
+            return (BUSY if code == 429 else DOWN if code >= 500 else BROKEN), False
+        except httpx2.TransportError as e:
+            log.error("model API unreachable: %s", e)
+            return DOWN, False
+        if not text:
+            return "Sorry, I couldn't put an answer together. Could you ask in a different way?", False
+        return text, True
+
+
+class Claude:
+    """Claude with the whole documentation as a cached system prompt."""
 
     def __init__(self, docs: str):
         self.client = anthropic.AsyncAnthropic()
+        self.name = CLAUDE_MODEL
         # The docs block carries the cache marker: instructions + docs are read from the cache
         # (1-hour TTL: support questions come in bursts with gaps longer than 5 minutes).
         self.system = [
             {"type": "text", "text": INSTRUCTIONS},
             {"type": "text", "text": docs, "cache_control": {"type": "ephemeral", "ttl": "1h"}},
         ]
+
+    async def complete(self, past: list[dict], question: str) -> tuple[str, bool]:
+        """(answer, whether to remember the exchange)."""
+        try:
+            response = await self.client.beta.messages.create(
+                model=CLAUDE_MODEL,
+                max_tokens=16000,
+                output_config={"effort": CLAUDE_EFFORT},
+                # A declined request is re-run on Anthropic's recommended fallback model.
+                betas=["server-side-fallback-2026-07-01"],
+                fallbacks="default",
+                system=self.system,
+                messages=[*past, {"role": "user", "content": question}],
+            )
+        except anthropic.RateLimitError:
+            return BUSY, False
+        except anthropic.APIStatusError as e:
+            log.error("Claude API error %s: %s", e.status_code, e.message)
+            return (DOWN if e.status_code >= 500 else BROKEN), False
+        except anthropic.APIConnectionError:
+            log.error("Claude API unreachable")
+            return DOWN, False
+
+        u = response.usage
+        log.info("Claude usage: in=%s cache_read=%s cache_write=%s out=%s stop=%s", u.input_tokens,
+                 u.cache_read_input_tokens, u.cache_creation_input_tokens, u.output_tokens, response.stop_reason)
+        if response.stop_reason == "refusal":
+            return f"Sorry, I can't help with that one. For XC_VM questions, you can also ask at {SUPPORT_URL}", False
+        text = "".join(b.text for b in response.content if b.type == "text").strip()
+        if not text:
+            return "Sorry, I couldn't put an answer together. Could you ask in a different way?", False
+        return text, True
+
+
+class Assistant:
+    """A short memory per conversation, in front of a model (FreeModel or Claude)."""
+
+    def __init__(self, model):
+        self.model = model
         self.history: dict[tuple, deque] = {}
         self.last_seen: dict[tuple, float] = {}
 
@@ -157,37 +338,10 @@ class Assistant:
             self.reset(key)
         self.last_seen[key] = time.time()
         past = self.history.setdefault(key, deque(maxlen=HISTORY_TURNS * 2))
-        try:
-            response = await self.client.beta.messages.create(
-                model=MODEL,
-                max_tokens=16000,
-                output_config={"effort": EFFORT},
-                # A declined request is re-run on Anthropic's recommended fallback model.
-                betas=["server-side-fallback-2026-07-01"],
-                fallbacks="default",
-                system=self.system,
-                messages=[*past, {"role": "user", "content": question}],
-            )
-        except anthropic.RateLimitError:
-            return "I'm getting a lot of questions right now. Please try again in a minute."
-        except anthropic.APIStatusError as e:
-            log.error("Claude API error %s: %s", e.status_code, e.message)
-            if e.status_code >= 500:
-                return "I can't reach my answer service right now. Please try again in a few minutes."
-            return f"Something went wrong on my side. If it keeps happening, please ask at {SUPPORT_URL}"
-        except anthropic.APIConnectionError:
-            log.error("Claude API unreachable")
-            return "I can't reach my answer service right now. Please try again in a few minutes."
-
-        u = response.usage
-        log.info("answered %s: in=%s cache_read=%s cache_write=%s out=%s stop=%s", key, u.input_tokens,
-                 u.cache_read_input_tokens, u.cache_creation_input_tokens, u.output_tokens, response.stop_reason)
-        if response.stop_reason == "refusal":
-            return f"Sorry, I can't help with that one. For XC_VM questions, you can also ask at {SUPPORT_URL}"
-        text = "".join(b.text for b in response.content if b.type == "text").strip()
-        if not text:
-            return "Sorry, I couldn't put an answer together. Could you ask in a different way?"
-        past.extend([{"role": "user", "content": question}, {"role": "assistant", "content": text}])
+        text, remember = await self.model.complete(list(past), question)
+        text = text.replace("**", "")  # Telegram shows Markdown bold as stars, and models still write it
+        if remember:
+            past.extend([{"role": "user", "content": question}, {"role": "assistant", "content": text}])
         return text
 
 
@@ -284,7 +438,7 @@ class TelegramBot:
         me = await self.call("getMe")
         self.username = me["username"]
         await self.call("deleteWebhook")  # long polling and a webhook cannot both be set
-        log.info("running as @%s with %s", self.username, MODEL)
+        log.info("running as @%s with %s", self.username, self.assistant.model.name)
         offset = 0
         while True:
             try:
@@ -299,12 +453,23 @@ class TelegramBot:
                     asyncio.create_task(self.safe_handle(update["message"]))
 
 
+def pick_model():
+    """Claude when an Anthropic key is set, else the free OpenAI-compatible model."""
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        docs = load_docs()
+        log.info("Claude, with %d characters of documentation", len(docs))
+        return Claude(docs)
+    if not LLM_API_KEY and "api.groq.com" in LLM_BASE_URL:
+        sys.exit("Set LLM_API_KEY: a free Groq key from https://console.groq.com/keys (see README.md).")
+    sections = doc_sections()
+    log.info("%s, searching %d documentation sections", LLM_MODEL, len(sections))
+    return FreeModel(DocIndex(sections))
+
+
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     logging.getLogger("httpx2").setLevel(logging.WARNING)  # its request log would print the bot token
-    docs = load_docs()
-    log.info("loaded %d characters of documentation from %s", len(docs), DOCS_DIR)
-    assistant = Assistant(docs)
+    assistant = Assistant(pick_model())
     if len(sys.argv) == 3 and sys.argv[1] == "--ask":
         print(asyncio.run(assistant.answer(("cli",), sys.argv[2])))
         return

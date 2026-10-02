@@ -1,15 +1,18 @@
-"""Self-check for bot.py without network: python test_bot.py (needs `anthropic` installed)."""
+"""Self-check for bot.py without network: python test_bot.py (needs requirements.txt installed)."""
 
 import asyncio
 import os
 from types import SimpleNamespace
 
-os.environ.setdefault("ANTHROPIC_API_KEY", "test")  # the client is built but never called
+os.environ.setdefault("ANTHROPIC_API_KEY", "test")  # the Claude client is built but never called
+
+import httpx2  # noqa: E402
 
 import bot  # noqa: E402
 
 PRIVATE = {"type": "private", "id": 1}
 GROUP = {"type": "supergroup", "id": -100}
+CLUSTER_PAGE = bot.DOCS_SITE + "administration/main-lb-cluster/"
 
 
 def msg(text, chat=PRIVATE, reply_to=None, mid=10):
@@ -21,12 +24,12 @@ def msg(text, chat=PRIVATE, reply_to=None, mid=10):
 
 def test_helpers():
     docs = bot.DOCS_DIR
-    assert bot.doc_url(docs / "administration" / "main-lb-cluster.md", docs) == bot.DOCS_SITE + "administration/main-lb-cluster/"
+    assert bot.doc_url(docs / "administration" / "main-lb-cluster.md", docs) == CLUSTER_PAGE
     assert bot.doc_url(docs / "README.md", docs) == bot.DOCS_SITE
 
     text = bot.load_docs()
     assert text == bot.load_docs(), "the docs must load identically, or the prompt cache never hits"
-    assert 'url="https://vateron-media.github.io/XC_VM/administration/main-lb-cluster/"' in text
+    assert f'url="{CLUSTER_PAGE}"' in text
     lean = bot.load_docs(skip={"development"})
     assert f'url="{bot.DOCS_SITE}development/' not in lean and len(lean) < len(text), "no development page"
 
@@ -46,6 +49,20 @@ def test_helpers():
     assert limiter.allow(1, 0) and limiter.allow(1, 1) and not limiter.allow(1, 2)
     assert limiter.allow(2, 2), "per user"
     assert limiter.allow(1, 3700), "an hour later"
+
+
+def test_search():
+    sections = bot.doc_sections()
+    assert all(not s["title"].endswith("/ Get the code and the docs (the large media files are not needed)") for s in sections), \
+        "a # comment in a code block is no heading"
+    assert max(len(s["text"]) for s in sections) <= 1500, "long sections are cut at paragraphs"
+    index = bot.DocIndex(sections)
+
+    hits = index.search("how do I add a load balancer to my panel", 6000)
+    assert CLUSTER_PAGE in hits and len(hits) <= 6000
+    assert index.known("how do I add a load balancer") > 0.5
+    assert index.known("como adiciono um balanceador de carga") < 0.5, "Portuguese is searched with English keywords"
+    assert index.search("zzzz qqqq", 6000) == ""
 
 
 class FakeAssistant:
@@ -90,8 +107,40 @@ def test_handling():
     asyncio.run(run())
 
 
-def test_assistant():
+def test_free_model():
+    model = bot.FreeModel(bot.DocIndex(bot.doc_sections()))
+    calls = []
+
+    async def chat(messages, max_tokens):
+        calls.append(messages)
+        if messages[0]["content"] == bot.KEYWORDS_PROMPT:
+            return "add load balancer install cluster"
+        return "1. Open **Servers → Install Load Balancer**."
+
+    model.chat = chat
+    a = bot.Assistant(model)
+    assert asyncio.run(a.answer(("c", 1), "How do I add a load balancer?")) == "1. Open Servers → Install Load Balancer."
+    assert len(calls) == 1 and CLUSTER_PAGE in calls[0][0]["content"], "the matching docs go with the question"
+
+    calls.clear()
+    asyncio.run(a.answer(("c", 2), "como adiciono um balanceador de carga?"))
+    assert calls[0][0]["content"] == bot.KEYWORDS_PROMPT and CLUSTER_PAGE in calls[1][0]["content"], "found through English keywords"
+
+    calls.clear()
+    asyncio.run(a.answer(("c", 1), "and then?"))
+    assert [m["role"] for m in calls[0]] == ["system", "user", "assistant", "user"], "the conversation is remembered"
+
+    async def limited(messages, max_tokens):
+        raise httpx2.HTTPStatusError("429", request=httpx2.Request("POST", "http://x"), response=httpx2.Response(429))
+
+    model.chat = limited
+    assert asyncio.run(a.answer(("c", 3), "anything")) == bot.BUSY
+    assert len(a.history[("c", 3)]) == 0, "a failed turn is not remembered"
+
+
+def test_claude():
     sent = []
+    usage = SimpleNamespace(input_tokens=1, cache_read_input_tokens=0, cache_creation_input_tokens=0, output_tokens=1)
 
     async def create(**params):
         sent.append(params)
@@ -99,14 +148,14 @@ def test_assistant():
             return SimpleNamespace(stop_reason="refusal", content=[], usage=usage)
         return SimpleNamespace(stop_reason="end_turn", content=[SimpleNamespace(type="thinking"), SimpleNamespace(type="text", text="Hello!")], usage=usage)
 
-    usage = SimpleNamespace(input_tokens=1, cache_read_input_tokens=0, cache_creation_input_tokens=0, output_tokens=1)
-    a = bot.Assistant("<documentation/>")
-    a.client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
+    claude = bot.Claude("<documentation/>")
+    claude.client = SimpleNamespace(beta=SimpleNamespace(messages=SimpleNamespace(create=create)))
+    a = bot.Assistant(claude)
 
     assert asyncio.run(a.answer(("c", 1), "hi")) == "Hello!"
     assert asyncio.run(a.answer(("c", 1), "and?")) == "Hello!"
     p = sent[-1]
-    assert p["model"] == bot.MODEL and p["fallbacks"] == "default" and p["betas"] == ["server-side-fallback-2026-07-01"]
+    assert p["model"] == bot.CLAUDE_MODEL and p["fallbacks"] == "default" and p["betas"] == ["server-side-fallback-2026-07-01"]
     assert p["system"][-1]["cache_control"] == {"type": "ephemeral", "ttl": "1h"}, "the docs are the cached prefix"
     assert [m["role"] for m in p["messages"]] == ["user", "assistant", "user"], "the conversation is remembered"
     assert "can't help" in asyncio.run(a.answer(("c", 2), "bad"))
@@ -115,6 +164,8 @@ def test_assistant():
 
 if __name__ == "__main__":
     test_helpers()
+    test_search()
     test_handling()
-    test_assistant()
+    test_free_model()
+    test_claude()
     print("ok")

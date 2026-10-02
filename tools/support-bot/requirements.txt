@@ -1,1 +1,2 @@
+httpx2>=2,<3
 anthropic>=1.11,<2

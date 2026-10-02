@@ -43,7 +43,7 @@ Written to test the running panel end-to-end; run by hand as needed.
 
 | Tool | Purpose |
 |------|---------|
-| `support-bot/` | Telegram bot that answers users' questions about XC_VM with Claude, from `docs/en` and the README, in plain words and the user's language. Runs on any small Linux server. See its `README.md` for the step-by-step setup, settings and costs. |
+| `support-bot/` | Telegram bot that answers users' questions about XC_VM with a free cloud AI model (Groq by default) or Claude, from `docs/en` and the README, in plain words and the user's language. Runs on any small Linux server. See its `README.md` for the step-by-step setup, settings and costs. |
 
 ## Repo maintenance
 
