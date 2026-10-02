@@ -51,11 +51,20 @@ def test_helpers():
     assert limiter.allow(1, 3700), "an hour later"
 
 
+def test_panel_menu():
+    menu = bot.panel_menu()
+    assert "- Servers: Install Load Balancer, Manage Servers, Cluster Nodes" in menu, "the real menu, from the panel's code"
+    assert "Settings page tabs: General" in menu and "Cluster" in menu
+    assert bot.panel_menu(bot.REPO / "missing") == "", "no panel source: no menu, no crash"
+
+
 def test_search():
     sections = bot.doc_sections()
     assert all(not s["title"].endswith("/ Get the code and the docs (the large media files are not needed)") for s in sections), \
         "a # comment in a code block is no heading"
     assert max(len(s["text"]) for s in sections) <= 1500, "long sections are cut at paragraphs"
+    dev = bot.developer_urls()
+    assert bot.DOCS_SITE + "guides/dev-workflow/" in dev and CLUSTER_PAGE not in dev and bot.DOCS_SITE + "guides/translations/" not in dev
     index = bot.DocIndex(sections)
 
     hits = index.search("how do I add a load balancer to my panel", 6000)
@@ -63,6 +72,8 @@ def test_search():
     assert index.known("how do I add a load balancer") > 0.5
     assert index.known("como adiciono um balanceador de carga") < 0.5, "Portuguese is searched with English keywords"
     assert index.search("zzzz qqqq", 6000) == ""
+    first = index.search("how to install lb", 6000).split("\n", 1)[0]
+    assert CLUSTER_PAGE in first and "add a load balancer" in first, "lb means load balancer, and the user guide comes first"
 
 
 class FakeAssistant:
@@ -164,6 +175,7 @@ def test_claude():
 
 if __name__ == "__main__":
     test_helpers()
+    test_panel_menu()
     test_search()
     test_handling()
     test_free_model()

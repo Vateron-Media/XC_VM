@@ -33,7 +33,7 @@ IDLE_RESET_SEC = 1800  # a conversation forgets itself after 30 idle minutes
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
 LLM_MODEL = os.environ.get("LLM_MODEL", "openai/gpt-oss-120b")
 # How long a reasoning model thinks (low/medium/high); empty for a model that does not reason.
-LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "low")
+LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "medium")  # low invents menus and slips in commands
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 DOCS_CHARS = int(os.environ.get("BOT_DOCS_CHARS", "8000"))  # documentation sent with each question (free models)
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
@@ -55,26 +55,79 @@ administrators of every skill level, and many are not developers.
 
 How to answer:
 - Answer in the language the person writes in.
-- Use plain, friendly words and short sentences. When something has steps, give them as a numbered
-  list with the exact menu path (for example Servers → Install Load Balancer) or the exact command.
-  If you must use a technical term, explain it in a few words.
+- Always explain how to do it in the admin panel: its menus, pages, fields and buttons, with the
+  exact path (for example Servers → Install Load Balancer), as numbered steps.
+- Only name menus, pages, fields, buttons and settings that appear in the panel menus or the
+  documentation below. Never guess one: a made-up button sends the person looking for something
+  that does not exist. If the documentation does not describe a page's fields and buttons, say
+  which page to open and that its form guides them, without listing fields.
+- Never give SSH, console, Linux or database commands, not even as an extra option for an
+  administrator. If the documentation shows no way to do it in the panel, say so in one friendly
+  sentence and give the documentation link, so the person can pass it to whoever manages their
+  server.
+- Write for someone who is not technical: plain, friendly words and short sentences. If you must
+  use a technical term, explain it in a few words. Never mention code, file names, database
+  tables or fields, or internal setting keys: only what the person sees in the panel.
 - Keep answers short enough to read on a phone. Offer to go into more detail instead of writing
   everything at once.
 - Take facts from the documentation below. If it does not cover the question, or you are not sure,
-  say so plainly and suggest opening an issue at {SUPPORT_URL} with the panel version, the server's
-  operating system and the exact error message. Never invent menu names, settings, commands or
-  version numbers.
+  say so plainly and suggest opening an issue at {SUPPORT_URL} with the panel version and the exact
+  error message shown in the panel. Never invent menu names, settings or version numbers.
 - When a documentation page helps, give its link (the url attribute of its <doc> tag).
 - Never ask for passwords, licence keys, API keys or private server details. If someone pastes one,
   tell them to delete the message and change that secret.
-- Help with installing, running and troubleshooting XC_VM, including the Linux and networking basics
-  it needs. Politely decline unrelated requests, and do not help anyone obtain or share content they
-  have no rights to.
-- Telegram shows your answer as plain text: do not use Markdown (no **, no #, no tables). Use
-  numbered steps or lines starting with "- ", and put each command on its own line."""
+- Help with using and running XC_VM. Politely decline unrelated requests, and do not help anyone
+  obtain or share content they have no rights to.
+- Telegram shows your answer as plain text: do not use Markdown (no **, no #, no tables, no code
+  blocks). Use numbered steps or lines starting with "- "."""
 
 KEYWORDS_PROMPT = """Turn the user's question about the XC_VM IPTV panel into 5 to 10 English search keywords
 for its English documentation. Reply with the keywords only, separated by spaces."""
+
+
+def panel_menu(repo: Path = REPO) -> str:
+    """The admin panel's real menus and Settings tabs, read from its code, so answers name only what exists."""
+    try:
+        src = (repo / "src/Core/Module/CoreNavbarProvider.php").read_text()
+        names = dict(re.findall(r'^(\w+)\s*=\s*"([^"]*)"', (repo / "src/Core/Localization/lang/en.ini").read_text(), re.M))
+        settings = (repo / "src/Public/Views/admin/settings.php").read_text()
+    except OSError:
+        return ""
+    items = {}
+    for item_id, body in re.findall(r"new NavbarItem\('([^']+)'\)\)(.*?);", src, re.S):
+        label, parent = re.search(r"->label\('(\w+)'\)", body), re.search(r"->parent\('([^']+)'\)", body)
+        if label:
+            items[item_id] = (names.get(label.group(1), label.group(1)), parent.group(1) if parent else None)
+
+    def path(i: str) -> str:
+        label, parent = items[i]
+        return (path(parent) + " → " if parent in items else "") + label
+
+    children: dict[str, list[str]] = {}
+    for i, (_, parent) in items.items():
+        if parent in items:
+            children.setdefault(parent, []).append(items[i][0])
+    lines = [f"- {path(i)}: " + ", ".join(children[i]) if i in children else f"- {items[i][0]}"
+             for i, (_, parent) in items.items() if i in children or parent not in items]
+    tabs = re.findall(r'role="tab"><i [^>]*></i><span[^>]*><\?= \$language::get\(\'(\w+)\'\)', settings)
+    if tabs:
+        lines.append("- Settings page tabs: " + ", ".join(names.get(t, t) for t in tabs))
+    return "The admin panel's menus (use only these names; a → b means menu a, item b):\n" + "\n".join(lines) + SECTIONS
+
+
+SECTIONS = """
+
+What the main sections are for:
+- Streams: live TV channels. Streams → Add Stream adds a channel from its source address.
+- Created Channels: a channel the panel builds by playing video files or a series in a loop.
+- Stations: radio stations.
+- Movies and Series: video on demand.
+- Bouquets: packages of channels, movies and series that lines get.
+- User Lines: the subscribers' accounts (username, password, expiry date, connections).
+- MAG Devices and Enigma Devices: set-top boxes.
+- Reseller: accounts that sell lines with credits.
+- Servers: MAIN and its load balancers. Cluster Nodes shows how each load balancer talks to MAIN.
+- Manage Proxies: proxy servers in front of the load balancers."""
 
 
 def doc_url(path: Path, docs_dir: Path) -> str:
@@ -137,18 +190,41 @@ def doc_sections(size: int = 1500, **kwargs) -> list[dict]:
 
 
 WORD = re.compile(r"[^\W_]+")
-STOP = set("the and for are with how what why does can you your this that from into its not but when which there".split())
+STOP = set("the and for are with how what why does can you your this that from into its not but when which there "
+           "to do in on is it of an or at by be as if my me we so".split())
+# Abbreviations users type for what the docs spell out.
+ALIASES = {"lb": "lb load balancer", "lbs": "lbs load balancers"}
 
 
 def words(text: str) -> list[str]:
-    return [w for w in WORD.findall(text.lower()) if len(w) > 2 and w not in STOP]
+    """Search words: lower case, no stop words; two-letter words count ("lb", "ip")."""
+    out = []
+    for w in WORD.findall(text.lower()):
+        if len(w) > 1 and w not in STOP:
+            out.extend(ALIASES.get(w, w).split())
+    return out
+
+
+def developer_urls(mkdocs: Path = REPO / "mkdocs.yml", docs_dir: Path = DOCS_DIR) -> set[str]:
+    """The pages the docs site lists under its Developer Guide tab."""
+    try:
+        nav = mkdocs.read_text().split("\n  - Developer Guide:", 1)[1]
+    except (OSError, IndexError):
+        return set()
+    nav = re.split(r"\n  - |\n\S", nav, maxsplit=1)[0]  # up to the next top-level entry
+    return {doc_url(docs_dir / p, docs_dir) for p in re.findall(r"\ben/(\S+?\.md)", nav)}
 
 
 class DocIndex:
-    """Ranks documentation sections against a question (BM25, the classic search-engine score)."""
+    """Ranks documentation sections against a question (BM25, the classic search-engine score).
 
-    def __init__(self, sections: list[dict]):
+    Developer Guide pages count half, so a user's question lands on the user guide first.
+    """
+
+    def __init__(self, sections: list[dict], developer: set[str] | None = None):
         self.sections = sections
+        developer = developer_urls() if developer is None else developer
+        self.weight = [0.5 if s["url"] in developer else 1.0 for s in sections]
         self.tf = [Counter(words(s["title"]) * 2 + words(s["text"])) for s in sections]  # titles count double
         self.len = [sum(t.values()) for t in self.tf]
         self.avg = sum(self.len) / max(1, len(self.len))
@@ -166,17 +242,17 @@ class DocIndex:
         q = set(words(query))
         scores = []
         for i, tf in enumerate(self.tf):
-            s = sum(self.idf[w] * tf[w] * 2.2 / (tf[w] + 1.2 * (0.25 + 0.75 * self.len[i] / self.avg)) for w in q if w in tf)
+            s = self.weight[i] * sum(self.idf[w] * tf[w] * 2.2 / (tf[w] + 1.2 * (0.25 + 0.75 * self.len[i] / self.avg)) for w in q if w in tf)
             if s > 0:
                 scores.append((s, i))
         picked, used = [], 0
         for _, i in sorted(scores, reverse=True):
             sec = self.sections[i]
             piece = f'<doc url="{sec["url"]}" title="{sec["title"]}">\n{sec["text"]}\n</doc>'
-            if used + len(piece) > budget:
+            if used + len(piece) + 1 > budget:  # + the newline that joins them
                 continue
             picked.append(piece)
-            used += len(piece)
+            used += len(piece) + 1
         return "\n".join(picked)
 
 
@@ -244,6 +320,7 @@ class FreeModel:
 
     def __init__(self, index: DocIndex):
         self.index = index
+        self.prefix = INSTRUCTIONS + "\n\n" + panel_menu()  # the same every time: providers can cache it
         self.http = httpx2.AsyncClient(timeout=120)
         self.name = f"{LLM_MODEL} at {LLM_BASE_URL}"
 
@@ -266,7 +343,7 @@ class FreeModel:
                 query += " " + await self.chat([{"role": "system", "content": KEYWORDS_PROMPT},
                                                 {"role": "user", "content": question}], 400)  # a reasoning model thinks first
             excerpts = self.index.search(query, DOCS_CHARS)
-            system = INSTRUCTIONS + "\n\nThe documentation sections that best match this question:\n" + excerpts
+            system = self.prefix + "\n\nThe documentation sections that best match this question:\n" + excerpts
             text = await self.chat([{"role": "system", "content": system}, *past, {"role": "user", "content": question}], 2000)
         except httpx2.HTTPStatusError as e:
             log.error("model API error %s: %s", e.response.status_code, e.response.text[:300])
@@ -289,7 +366,7 @@ class Claude:
         # The docs block carries the cache marker: instructions + docs are read from the cache
         # (1-hour TTL: support questions come in bursts with gaps longer than 5 minutes).
         self.system = [
-            {"type": "text", "text": INSTRUCTIONS},
+            {"type": "text", "text": INSTRUCTIONS + "\n\n" + panel_menu()},
             {"type": "text", "text": docs, "cache_control": {"type": "ephemeral", "ttl": "1h"}},
         ]
 

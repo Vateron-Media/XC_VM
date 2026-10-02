@@ -1,7 +1,8 @@
 # XC_VM support bot for Telegram
 
 A Telegram bot that answers questions about XC_VM. It reads the project's own documentation and
-explains things in simple words, in the language the person writes in. Use it for small support:
+explains things in simple words, always through the admin panel (never console commands), in the
+language the person writes in. Use it for small support:
 "how do I add a load balancer?", "what does this warning mean?", "why is my stream offline?".
 
 It answers from the documentation in `docs/en` and the main `README.md`. When the docs don't cover
