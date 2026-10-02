@@ -1,0 +1,102 @@
+openapi: 3.0.3
+info:
+  title: XC_VM Playlist API
+  version: "1.0.0"
+  description: |
+    Authentication and playlist generation for XC_VM. Clients authenticate with a
+    username/password pair **or** a token, after which a personalized playlist is generated.
+
+    - **Controller:** `src/Public/Controllers/Api/PlaylistApiController.php`
+    - **Base URL:** `/playlist`
+    - **Authentication:** `username` + `password`, or `token`.
+
+    ## Error codes
+    | Code | Description |
+    | --- | --- |
+    | `NO_CREDENTIALS` | Missing authentication data |
+    | `INVALID_CREDENTIALS` | Invalid username, password or token |
+    | `BLOCKED_USER_AGENT` | User agent is blocked |
+    | `EXPIRED` | Account has expired |
+    | `DEVICE_NOT_ALLOWED` | Device type is not allowed |
+    | `BANNED` | User is banned |
+    | `DISABLED` | Account is disabled |
+    | `EMPTY_USER_AGENT` | User agent is required but missing |
+    | `NOT_IN_ALLOWED_IPS` | IP address is not allowed |
+    | `NOT_IN_ALLOWED_COUNTRY` | Country is not allowed |
+    | `NOT_IN_ALLOWED_UAS` | User agent is not allowed |
+    | `ISP_BLOCKED` | ISP is blocked |
+    | `ASN_BLOCKED` | ASN restriction applied |
+    | `DOWNLOAD_LIMIT_REACHED` | Too many requests |
+    | `GENERATE_PLAYLIST_FAILED` | Failed to generate playlist |
+servers:
+  - url: '{protocol}://{host}:{port}/playlist'
+    description: XC_VM playlist endpoint
+    variables:
+      protocol:
+        default: http
+        enum: [http, https]
+      host:
+        default: your-server.com
+        description: Server IP or domain
+      port:
+        default: '80'
+        description: HTTP port
+
+tags:
+  - name: Playlist
+    description: Authentication and playlist generation
+
+paths:
+  /:
+    get:
+      tags: [Playlist]
+      summary: Authenticate and generate playlist
+      description: |
+        Authenticates the client and returns a personalized playlist in the requested format.
+        Provide **either** `username` + `password` **or** `token`.
+      parameters:
+        - name: username
+          in: query
+          required: false
+          schema: { type: string }
+          description: Username (required if `token` is not used)
+        - name: password
+          in: query
+          required: false
+          schema: { type: string }
+          description: Password (required if `token` is not used)
+        - name: token
+          in: query
+          required: false
+          schema: { type: string }
+          description: Authentication token (required if username/password are not used)
+        - name: type
+          in: query
+          required: false
+          schema: { type: string, default: m3u_plus }
+          description: Device type (default `m3u_plus`)
+        - name: key
+          in: query
+          required: false
+          schema: { type: string, enum: [live, movies, radio_streams, series] }
+          description: Content type — `live`, `movies`, `radio_streams` or `series`
+        - name: output
+          in: query
+          required: false
+          schema: { type: string, enum: [hls, m3u] }
+          description: Output format
+        - name: nocache
+          in: query
+          required: false
+          schema: { type: boolean }
+          description: If true, disables caching
+      responses:
+        '200':
+          description: Playlist file in the requested format (M3U or HLS)
+          content:
+            application/x-mpegurl:
+              schema: { type: string }
+            audio/x-mpegurl:
+              schema: { type: string }
+        '403':
+          description: Authentication or access restriction error (see error codes)
