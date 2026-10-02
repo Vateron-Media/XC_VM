@@ -10,8 +10,8 @@ use PHPUnit\Framework\TestCase;
  * expiry via maxAge, delete/flush, and the path/age accessors.
  */
 final class FileCacheTest extends TestCase {
-
 	private string $dir;
+
 	private FileCache $cache;
 
 	protected function setUp(): void {

@@ -49,7 +49,7 @@ class CacheEngineCronJob implements CommandInterface {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
 		}
-		
+
 		register_shutdown_function([$this, 'shutdown']);
 
 		ini_set('memory_limit', -1);
