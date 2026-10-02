@@ -11,7 +11,7 @@ namespace XcVm\Core\Cache;
  *
  *   Files stored at: {basePath}/{key}
  *   Format: igbinary_serialize($data) — binary, compact, fast
- *   Locking: LOCK_EX on write to prevent corruption
+ *   Writes: atomic (temp file + rename), so readers never see a partial file
  *   TTL: Based on file modification time (filemtime)
  *
  * ServiceContainer Registration:
@@ -98,16 +98,7 @@ class FileCache implements CacheInterface {
 	 */
 	public function set($key, $data, $ttl = 0) {
 		$file = $this->basePath . $key;
-		$serialized = $this->serialize($data);
-
-		$tmp = $file . '.' . getmypid() . '.tmp';
-		if (@file_put_contents($tmp, $serialized, LOCK_EX) === false) {
-			@unlink($tmp);
-			$this->warnWriteFailure($file);
-			return false;
-		}
-		if (!@rename($tmp, $file)) {
-			@unlink($tmp);
+		if (!self::writeAtomic($file, $this->serialize($data))) {
 			$this->warnWriteFailure($file);
 			return false;
 		}
@@ -119,6 +110,48 @@ class FileCache implements CacheInterface {
 			@chgrp($file, 'xc_vm');
 		}
 		return true;
+	}
+
+	/**
+	 * Replace $path with $contents atomically: write a temp file in the same
+	 * directory, then rename() it over the target. A reader (stream auth, the
+	 * player API) sees either the old file or the new one, never a truncated
+	 * one, and a writer killed mid-write leaves the old entry intact.
+	 *
+	 * The temp name is a dotfile (`.<name>.<pid>.tmp`), so the `stream_*` /
+	 * `line_i_*` style globs that enumerate cache entries never match it.
+	 * cleanStaleTemps() sweeps the ones a killed writer leaves behind.
+	 *
+	 * @param string $path     Target file.
+	 * @param string $contents Bytes to write.
+	 * @return bool False when the temp file could not be written or renamed.
+	 */
+	public static function writeAtomic(string $path, string $contents): bool {
+		$tmp = dirname($path) . '/.' . basename($path) . '.' . getmypid() . '.tmp';
+		if (@file_put_contents($tmp, $contents) !== strlen($contents)) {
+			@unlink($tmp);
+			return false;
+		}
+		if (!@rename($tmp, $path)) {
+			@unlink($tmp);
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Remove the temp files writeAtomic() left in $dir when its writer was
+	 * killed between write and rename, once they are older than $maxAge.
+	 *
+	 * @param string $dir    Cache directory.
+	 * @param int    $maxAge Seconds a temp file may live (a write in progress is younger).
+	 */
+	public static function cleanStaleTemps(string $dir, int $maxAge = 3600): void {
+		foreach (glob(rtrim($dir, '/') . '/.*.tmp') ?: [] as $rFile) {
+			if (is_file($rFile) && (int) @filemtime($rFile) < time() - $maxAge) {
+				@unlink($rFile);
+			}
+		}
 	}
 
 	/**
@@ -145,11 +178,8 @@ class FileCache implements CacheInterface {
 	public function delete($key) {
 		$file = $this->basePath . $key;
 
-		if (file_exists($file)) {
-			return unlink($file);
-		}
-
-		return true;
+		// A concurrent delete may remove it first; only a file that stays is a failure.
+		return @unlink($file) || !file_exists($file);
 	}
 
 	/**

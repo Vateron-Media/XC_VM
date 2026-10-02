@@ -2,6 +2,8 @@
 
 namespace XcVm\Domain\Stream;
 
+use XcVm\Core\Cache\FileCache;
+
 /**
  * Stream Cache Builder
  *
@@ -25,12 +27,16 @@ final class StreamCacheBuilder {
 	public const SERVER_COLUMNS = ['stream_id', 'server_id', 'pid', 'to_analyze', 'stream_status', 'monitor_pid', 'on_demand', 'delay_available_at', 'bitrate', 'parent_id', 'stream_info', 'video_codec', 'audio_codec', 'resolution', 'compatible'];
 
 	/**
-	 * Stream rows, either a page (offset/limit) or the given ids.
+	 * Stream rows, either a page (offset/limit, in id order so consecutive
+	 * pages neither skip nor repeat a stream) or the given ids.
+	 *
+	 * Null when the query fails: the caller must not take a failed read for
+	 * "these streams no longer exist" and drop their cache entries.
 	 *
 	 * @param list<int>|null $rIDs
-	 * @return list<array<string, mixed>>
+	 * @return list<array<string, mixed>>|null
 	 */
-	public static function streamRows(object $rDb, ?array $rIDs, ?int $rOffset = null, ?int $rLimit = null): array {
+	public static function streamRows(object $rDb, ?array $rIDs, ?int $rOffset = null, ?int $rLimit = null): ?array {
 		$rSql = 'SELECT ' . self::STREAM_COLUMNS . ' FROM `streams` t1 INNER JOIN `streams_types` t2 ON t2.type_id = t1.type';
 		if ($rIDs !== null) {
 			if ($rIDs === []) {
@@ -38,10 +44,10 @@ final class StreamCacheBuilder {
 			}
 			$rSql .= ' WHERE `t1`.`id` IN (' . implode(',', array_map('intval', $rIDs)) . ');';
 		} else {
-			$rSql .= ' LIMIT ' . intval($rOffset) . ', ' . intval($rLimit) . ';';
+			$rSql .= ' ORDER BY `t1`.`id` ASC LIMIT ' . intval($rOffset) . ', ' . intval($rLimit) . ';';
 		}
 		if (!$rDb->query($rSql) || !$rDb->result) {
-			return [];
+			return null;
 		}
 		$rRows = $rDb->result->rowCount() > 0 ? $rDb->result->fetchAll(\PDO::FETCH_ASSOC) : [];
 		$rDb->result = null;
@@ -90,15 +96,18 @@ final class StreamCacheBuilder {
 		return STREAMS_TMP_PATH . 'stream_' . $rStreamID;
 	}
 
-	/** @param array<string, mixed> $rEntry */
-	public static function write(int $rStreamID, array $rEntry): void {
-		file_put_contents(self::path($rStreamID), igbinary_serialize($rEntry));
+	/**
+	 * Write a stream's entry atomically: stream auth reads these files on
+	 * every request and must never see a half-written one.
+	 *
+	 * @param array<string, mixed> $rEntry
+	 */
+	public static function write(int $rStreamID, array $rEntry): bool {
+		return FileCache::writeAtomic(self::path($rStreamID), igbinary_serialize($rEntry));
 	}
 
 	/** Drop the entry of a stream that no longer exists. */
 	public static function remove(int $rStreamID): void {
-		if (file_exists(self::path($rStreamID))) {
-			unlink(self::path($rStreamID));
-		}
+		@unlink(self::path($rStreamID));
 	}
 }

@@ -2,6 +2,7 @@
 
 namespace XcVm\Domain\Stream;
 
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\DataPlane;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeLease;
@@ -2589,7 +2590,9 @@ class StreamProcess {
 					}
 
 					if (!$rFromCache) {
-						file_put_contents(CACHE_TMP_PATH . md5($rSource), igbinary_serialize($rFFProbeOutput));
+						// md5() only names the probe's cache file, as every reader above does; it protects nothing.
+						// nosemgrep: php.lang.security.weak-crypto.weak-crypto
+						FileCache::writeAtomic(CACHE_TMP_PATH . md5($rSource), igbinary_serialize($rFFProbeOutput));
 					}
 				}
 

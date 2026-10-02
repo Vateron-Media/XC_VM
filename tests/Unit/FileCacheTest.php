@@ -10,8 +10,8 @@ use PHPUnit\Framework\TestCase;
  * expiry via maxAge, delete/flush, and the path/age accessors.
  */
 final class FileCacheTest extends TestCase {
-
 	private string $dir;
+
 	private FileCache $cache;
 
 	protected function setUp(): void {
@@ -77,5 +77,35 @@ final class FileCacheTest extends TestCase {
 		$this->assertFalse($this->cache->getAge('missing'));
 		$this->cache->set('k', 'v');
 		$this->assertLessThanOrEqual(2, $this->cache->getAge('k'), 'fresh entry age ~0');
+	}
+
+	public function testWriteAtomicReplacesFileAndLeavesNoTemp(): void {
+		$path = $this->cache->getPath('stream_1');
+		file_put_contents($path, 'old');
+		$this->assertTrue(FileCache::writeAtomic($path, 'new'));
+		$this->assertSame('new', file_get_contents($path));
+		$this->assertSame([], glob($this->cache->getBasePath() . '.*.tmp'), 'temp file renamed away');
+	}
+
+	public function testWriteAtomicTempIsHiddenFromEntryGlobs(): void {
+		// A temp file left by a killed writer must not look like an entry.
+		touch($this->cache->getBasePath() . '.stream_1.123.tmp');
+		$this->assertSame([], glob($this->cache->getBasePath() . 'stream_*'));
+	}
+
+	public function testCleanStaleTempsRemovesOnlyOldTemps(): void {
+		$base = $this->cache->getBasePath();
+		touch($base . '.old.1.tmp', time() - 7200);
+		touch($base . '.new.2.tmp');
+		$this->cache->set('entry', 1);
+		FileCache::cleanStaleTemps($base, 3600);
+		$this->assertFileDoesNotExist($base . '.old.1.tmp');
+		$this->assertFileExists($base . '.new.2.tmp');
+		$this->assertSame(1, $this->cache->get('entry'));
+		unlink($base . '.new.2.tmp');
+	}
+
+	public function testWriteAtomicFailsIntoMissingDirectory(): void {
+		$this->assertFalse(FileCache::writeAtomic($this->dir . '/missing/sub/file', 'x'));
 	}
 }

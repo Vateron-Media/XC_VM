@@ -3,6 +3,7 @@
 namespace XcVm\Domain\User;
 
 use XcVm\Core\Auth\Authenticator;
+use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Util\GeoIP;
 use XcVm\Domain\Bouquet\BouquetService;
 use XcVm\Domain\Security\BlocklistService;
@@ -93,13 +94,13 @@ class UserRepository {
 			$row = $db->get_row();
 			$rUserID = (int) ($row['id'] ?? 0);
 			if ($rCached && $rUserID > 0) {
-				@file_put_contents(LINES_TMP_PATH . 'line_i_' . $rUserID, igbinary_serialize($row));
+				FileCache::writeAtomic(LINES_TMP_PATH . 'line_i_' . $rUserID, igbinary_serialize($row));
 				if (!empty($row['username']) && !empty($row['password'])) {
 					$rKey = !empty($rSettings['case_sensitive_line']) ? ($row['username'] . '_' . $row['password']) : (strtolower($row['username']) . '_' . strtolower($row['password']));
-					@file_put_contents(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserID);
+					FileCache::writeAtomic(LINES_TMP_PATH . 'line_c_' . $rKey, (string) $rUserID);
 				}
 				if (!empty($row['access_token'])) {
-					@file_put_contents(LINES_TMP_PATH . 'line_t_' . $row['access_token'], (string) $rUserID);
+					FileCache::writeAtomic(LINES_TMP_PATH . 'line_t_' . $row['access_token'], (string) $rUserID);
 				}
 			}
 			return $row;
