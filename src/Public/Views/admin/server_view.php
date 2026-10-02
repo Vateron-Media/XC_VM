@@ -898,6 +898,7 @@ LayoutRenderer::renderFooter('admin');
                             max: rDates[1],
                             range: 3600000,
                             labels: {
+                                datetimeUTC: false,
                                 formatter: function(v, ts) {
                                     var dt = new Date(ts);
                                     return ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2);

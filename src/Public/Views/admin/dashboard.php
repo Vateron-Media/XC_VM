@@ -569,6 +569,7 @@ LayoutRenderer::renderFooter('admin');
                 xaxis: {
                     type: 'datetime',
                     labels: {
+                        datetimeUTC: false,
                         formatter: function(v, ts) {
                             var dt = new Date(ts);
                             return ('0' + dt.getHours()).slice(-2) + ':' + ('0' + dt.getMinutes()).slice(-2);
@@ -689,7 +690,11 @@ LayoutRenderer::renderFooter('admin');
                         data: data
                     }],
                     xaxis: {
-                        type: 'datetime'
+                        type: 'datetime',
+                        labels: {
+                            // Apex formats datetime tooltips in UTC by default.
+                            datetimeUTC: false
+                        }
                     },
                     tooltip: {
                         x: {
