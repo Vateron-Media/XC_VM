@@ -115,11 +115,11 @@ def test_free_model():
         calls.append(messages)
         if messages[0]["content"] == bot.KEYWORDS_PROMPT:
             return "add load balancer install cluster"
-        return "1. Open **Servers → Install Load Balancer**."
+        return "1. Open **Servers → Install Load Balancer**.\n```bash\ncurl -I http://main\n```"
 
     model.chat = chat
     a = bot.Assistant(model)
-    assert asyncio.run(a.answer(("c", 1), "How do I add a load balancer?")) == "1. Open Servers → Install Load Balancer."
+    assert asyncio.run(a.answer(("c", 1), "How do I add a load balancer?")) == "1. Open Servers → Install Load Balancer.\ncurl -I http://main\n", "no Markdown"
     assert len(calls) == 1 and CLUSTER_PAGE in calls[0][0]["content"], "the matching docs go with the question"
 
     calls.clear()

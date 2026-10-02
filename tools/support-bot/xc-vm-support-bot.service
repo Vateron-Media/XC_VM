@@ -1,5 +1,5 @@
 [Unit]
-Description=XC_VM support bot (Telegram + Claude)
+Description=XC_VM support bot (Telegram + AI)
 After=network-online.target
 Wants=network-online.target
 

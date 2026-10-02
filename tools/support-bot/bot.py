@@ -31,7 +31,9 @@ TELEGRAM_LIMIT = 4000  # Telegram's cap is 4096 characters per message
 IDLE_RESET_SEC = 1800  # a conversation forgets itself after 30 idle minutes
 
 LLM_BASE_URL = os.environ.get("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
-LLM_MODEL = os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile")
+LLM_MODEL = os.environ.get("LLM_MODEL", "openai/gpt-oss-120b")
+# How long a reasoning model thinks (low/medium/high); empty for a model that does not reason.
+LLM_REASONING_EFFORT = os.environ.get("LLM_REASONING_EFFORT", "low")
 LLM_API_KEY = os.environ.get("LLM_API_KEY", "")
 DOCS_CHARS = int(os.environ.get("BOT_DOCS_CHARS", "8000"))  # documentation sent with each question (free models)
 CLAUDE_MODEL = os.environ.get("CLAUDE_MODEL", "claude-opus-5-5")
@@ -247,8 +249,10 @@ class FreeModel:
 
     async def chat(self, messages: list[dict], max_tokens: int) -> str:
         headers = {"Authorization": f"Bearer {LLM_API_KEY}"} if LLM_API_KEY else {}
-        r = await self.http.post(f"{LLM_BASE_URL}/chat/completions", headers=headers, json={
-            "model": LLM_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3})
+        payload = {"model": LLM_MODEL, "messages": messages, "max_tokens": max_tokens, "temperature": 0.3}
+        if LLM_REASONING_EFFORT:
+            payload["reasoning_effort"] = LLM_REASONING_EFFORT
+        r = await self.http.post(f"{LLM_BASE_URL}/chat/completions", headers=headers, json=payload)
         r.raise_for_status()
         body = r.json()
         log.info("model usage: %s", body.get("usage"))
@@ -260,10 +264,10 @@ class FreeModel:
             query = question if not past else past[-2]["content"] + " " + question  # follow-ups keep their topic
             if self.index.known(question) < 0.5:  # not English: search with English keywords
                 query += " " + await self.chat([{"role": "system", "content": KEYWORDS_PROMPT},
-                                                {"role": "user", "content": question}], 40)
+                                                {"role": "user", "content": question}], 400)  # a reasoning model thinks first
             excerpts = self.index.search(query, DOCS_CHARS)
             system = INSTRUCTIONS + "\n\nThe documentation sections that best match this question:\n" + excerpts
-            text = await self.chat([{"role": "system", "content": system}, *past, {"role": "user", "content": question}], 900)
+            text = await self.chat([{"role": "system", "content": system}, *past, {"role": "user", "content": question}], 2000)
         except httpx2.HTTPStatusError as e:
             log.error("model API error %s: %s", e.response.status_code, e.response.text[:300])
             code = e.response.status_code
@@ -339,7 +343,8 @@ class Assistant:
         self.last_seen[key] = time.time()
         past = self.history.setdefault(key, deque(maxlen=HISTORY_TURNS * 2))
         text, remember = await self.model.complete(list(past), question)
-        text = text.replace("**", "")  # Telegram shows Markdown bold as stars, and models still write it
+        # Telegram shows Markdown literally, and models still write bold and code fences
+        text = re.sub(r"^```[\w-]*[ \t]*\n?", "", text.replace("**", ""), flags=re.M)
         if remember:
             past.extend([{"role": "user", "content": question}, {"role": "assistant", "content": text}])
         return text

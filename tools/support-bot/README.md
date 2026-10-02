@@ -9,7 +9,8 @@ something, it says so and points the person to the GitHub issues page instead of
 
 It can use either:
 
-- **a free cloud AI model** (the default): [Groq](https://console.groq.com)'s free tier, or any other
+- **a free cloud AI model** (the default): [Groq](https://console.groq.com)'s free tier with OpenAI's open
+  gpt-oss-120b model, or any other
   service with an OpenAI-compatible API (Cerebras, OpenRouter, Mistral, a local Ollama...). For
   each question the bot looks up the matching parts of the documentation and sends only those;
 - **Claude** (paid, the best answers): with an Anthropic API key, the bot sends the whole
@@ -112,7 +113,8 @@ All settings live in `.env`. Only the Telegram token and one AI key are required
 | `TELEGRAM_BOT_TOKEN` | (required) | The token from @BotFather |
 | `LLM_API_KEY` | (required for Groq) | Your free Groq key, or the key of another OpenAI-compatible service |
 | `LLM_BASE_URL` | `https://api.groq.com/openai/v1` | The service's API address (see below) |
-| `LLM_MODEL` | `llama-3.3-70b-versatile` | The model to use on that service |
+| `LLM_MODEL` | `openai/gpt-oss-120b` | The model to use on that service |
+| `LLM_REASONING_EFFORT` | `low` | How long a reasoning model such as gpt-oss thinks before answering (`low`, `medium`, `high`). Leave it empty for a model that does not reason, or the service may refuse the request |
 | `BOT_DOCS_CHARS` | `8000` | How much documentation goes with each question. More gives better answers but uses more of the free allowance |
 | `ANTHROPIC_API_KEY` | (none) | Set it to use Claude instead of the free model |
 | `CLAUDE_MODEL`, `CLAUDE_EFFORT` | `claude-opus-5-5`, `medium` | The Claude model, and how hard it thinks (`low` is faster and cheaper) |
@@ -128,10 +130,10 @@ Any service with an OpenAI-compatible API works: set `LLM_BASE_URL`, `LLM_MODEL`
 
 | Service | `LLM_BASE_URL` | Example `LLM_MODEL` | Get a key |
 |---|---|---|---|
-| Groq (default) | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` | [console.groq.com/keys](https://console.groq.com/keys) |
-| Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
+| Groq (default) | `https://api.groq.com/openai/v1` | `openai/gpt-oss-120b` | [console.groq.com/keys](https://console.groq.com/keys) |
+| Cerebras | `https://api.cerebras.ai/v1` | `gpt-oss-120b` | [cloud.cerebras.ai](https://cloud.cerebras.ai) |
 | OpenRouter (`:free` models) | `https://openrouter.ai/api/v1` | `meta-llama/llama-3.3-70b-instruct:free` | [openrouter.ai/keys](https://openrouter.ai/keys) |
-| Ollama on your own server | `http://127.0.0.1:11434/v1` | `llama3.2:3b` | no key (slow without a GPU) |
+| Ollama on your own server | `http://127.0.0.1:11434/v1` | `llama3.2:3b` (set `LLM_REASONING_EFFORT=` empty) | no key (slow without a GPU) |
 
 The model names change over time; each service lists its current models on its website.
 
@@ -139,7 +141,8 @@ The model names change over time; each service lists its current models on its w
 
 Free tiers limit how much you can use per minute and per day. Each question uses a few thousand
 tokens (the question, the matching documentation and the answer). On Groq's free tier that is
-enough for a small community. When a limit is reached, the bot tells people to try again in a
+enough for a small community (in October 2026 Groq's free tier allowed gpt-oss-120b 1,000 requests a
+day and 8,000 tokens a minute, about two questions a minute). When a limit is reached, the bot tells people to try again in a
 minute. To use less: lower `BOT_DOCS_CHARS`, lower `BOT_QUESTIONS_PER_HOUR`, or use
 `BOT_ALLOWED_CHATS` so only your own group can use it.
 
