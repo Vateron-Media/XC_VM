@@ -94,6 +94,7 @@ plugins:
             Administration: Администрирование
             SSL Certificate Generation: Генерация SSL-сертификата
             Updating a Server: Обновление сервера
+            MAIN and Load Balancers: MAIN и балансировщики нагрузки
             Server Diagnostics: Диагностика сервера
             Update Mechanism: Механизм обновлений
             Reseller System: Система реселлеров
@@ -157,6 +158,7 @@ nav:
       - Administration:
           - SSL Certificate Generation: en/administration/ssl-generation.md
           - Updating a Server: en/administration/server-update.md
+          - MAIN and Load Balancers: en/administration/main-lb-cluster.md
           - Server Diagnostics: en/administration/server-diagnostics.md
           - Update Mechanism: en/administration/update-system.md
           - Reseller System: en/administration/reseller-system.md
