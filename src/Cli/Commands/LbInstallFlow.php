@@ -124,7 +124,14 @@ class LbInstallFlow {
 		return true;
 	}
 
-	/** False when the node could not get its PHP and nginx, or xcvm_core: the archive carries none of them. */
+	/**
+	 * What follows the archive on the node: its binaries, xcvm_core, its two
+	 * ramdisks and, when the admin asked for it, the panel's sysctl.conf. False
+	 * when one of them could not be put in place, and the install stops: the
+	 * archive carries no PHP, nginx or extension, the segments and caches of a
+	 * node without its ramdisks go to disk, and a sysctl.conf that was asked
+	 * for and not written would be recorded as applied.
+	 */
 	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
 		echo "Installing distribution-specific binaries\n";
 		if (!self::installDistributionBinaries($rConn, $rRunSSH, $rDistID, $rVersion)) {
@@ -134,32 +141,49 @@ class LbInstallFlow {
 		if (!self::installExtension($rConn, $rRunSSH, $rSendFileSSH)) {
 			return false;
 		}
-
-		if (stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) === false) {
-			echo "Adding ramdisk mounts\n";
-			call_user_func($rRunSSH, $rConn, self::sudoWrite('tmpfs ' . STREAMS_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0', '/etc/fstab', true));
-			call_user_func($rRunSSH, $rConn, self::sudoWrite('tmpfs ' . TMP_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=2G 0 0', '/etc/fstab', true));
+		if (!self::ensureRamdisks($rConn, $rRunSSH)) {
+			echo "Could not add the ramdisk mounts to /etc/fstab on the node. Exiting\n";
+			return false;
 		}
 
-		if (stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/sysctl.conf')['output'], 'XC_VM') === false) {
-			if ($rUpdateSysctl) {
-				echo "Adding sysctl.conf\n";
-				call_user_func($rRunSSH, $rConn, 'sudo modprobe ip_conntrack');
-				file_put_contents(TMP_PATH . 'sysctl_' . $rServerID, $rSysCtl);
-				call_user_func($rSendFileSSH, $rConn, TMP_PATH . 'sysctl_' . $rServerID, '/etc/sysctl.conf', false);
-				call_user_func($rRunSSH, $rConn, 'sudo sysctl -p');
-				call_user_func($rRunSSH, $rConn, 'sudo touch ' . CONFIG_PATH . 'sysctl.on');
-			} else {
-				call_user_func($rRunSSH, $rConn, 'sudo rm ' . CONFIG_PATH . 'sysctl.on');
+		$rManaged = stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/sysctl.conf')['output'], 'XC_VM') !== false;
+		if ($rUpdateSysctl && !$rManaged) {
+			echo "Adding sysctl.conf\n";
+			call_user_func($rRunSSH, $rConn, 'sudo modprobe ip_conntrack');
+			file_put_contents(TMP_PATH . 'sysctl_' . $rServerID, $rSysCtl);
+			if (!call_user_func($rSendFileSSH, $rConn, TMP_PATH . 'sysctl_' . $rServerID, '/etc/sysctl.conf', false)) {
+				echo "Could not write /etc/sysctl.conf on the node. Exiting\n";
+				return false;
 			}
-		} else {
-			if (!$rUpdateSysctl) {
-				call_user_func($rRunSSH, $rConn, 'sudo rm ' . CONFIG_PATH . 'sysctl.on');
-			} else {
-				call_user_func($rRunSSH, $rConn, 'sudo touch ' . CONFIG_PATH . 'sysctl.on');
-			}
+			// Its exit status is not the file's: one key the node's kernel does not know fails it.
+			call_user_func($rRunSSH, $rConn, 'sudo sysctl -p');
 		}
+		call_user_func($rRunSSH, $rConn, ($rUpdateSysctl ? 'sudo touch ' : 'sudo rm ') . CONFIG_PATH . 'sysctl.on');
 		return true;
+	}
+
+	/**
+	 * The node's two ramdisks in its fstab: the live segments (content/streams)
+	 * and tmp. Each missing one is added, so a file that holds one only is
+	 * completed, and the file is read again: true when both are there.
+	 */
+	public static function ensureRamdisks($rConn, callable $rRunSSH, string $rFstab = '/etc/fstab'): bool {
+		$rRead = static fn(): string => (string) call_user_func($rRunSSH, $rConn, 'sudo cat ' . escapeshellarg($rFstab))['output'];
+		$rHave = $rRead();
+		$rAdded = false;
+		foreach ([STREAMS_PATH => 'size=90%', TMP_PATH => 'size=2G'] as $rPath => $rSize) {
+			if (stripos($rHave, $rPath) === false) {
+				if (!$rAdded) {
+					echo "Adding ramdisk mounts\n";
+				}
+				$rAdded = true;
+				call_user_func($rRunSSH, $rConn, self::sudoWrite('tmpfs ' . $rPath . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,' . $rSize . ' 0 0', $rFstab, true));
+			}
+		}
+		if ($rAdded) {
+			$rHave = $rRead();
+		}
+		return stripos($rHave, STREAMS_PATH) !== false && stripos($rHave, TMP_PATH) !== false;
 	}
 
 	/**
