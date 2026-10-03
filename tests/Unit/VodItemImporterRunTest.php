@@ -133,6 +133,47 @@ final class VodItemImporterRunTest extends TestCase {
         $this->assertSame(array(), $this->results);
     }
 
+    public function testQueueBatchWritesOneLinePerItemAndStartsOneProcess(): void {
+        $rStarted = array();
+        $rItems = array(array('type' => 'series', 'title' => 'A - S01E01'), array('type' => 'series', 'title' => "B's - S01E02"));
+
+        $this->assertTrue(VodItemImporter::queueBatch($rItems, function (string $rFile) use (&$rStarted) {
+            $rStarted[] = $rFile;
+        }));
+        $this->assertFalse(VodItemImporter::queueBatch(array(), function () {
+            $this->fail('an empty import starts nothing');
+        }));
+
+        $this->assertCount(1, $rStarted);
+        $rFile = $rStarted[0];
+        $this->assertSame($rFile, \XcVm\Cli\Commands\VodImportBatchCommand::batchFile($rFile), 'the batch command accepts it');
+        $rCommands = iterator_to_array(VodItemImporter::batchCommands($rFile, 300), false);
+        unlink($rFile);
+
+        $this->assertCount(2, $rCommands);
+        $this->assertStringStartsWith('/usr/bin/timeout 300 ', $rCommands[0]);
+        preg_match("/vod_import_item '([^']+)'$/", $rCommands[1], $rMatch);
+        $this->assertSame($rItems[1], json_decode(base64_decode($rMatch[1]), true));
+    }
+
+    public function testTheBatchCommandRefusesFilesItDidNotQueue(): void {
+        $rOther = WATCH_TMP_PATH . 'notes.jsonl';
+        file_put_contents($rOther, '{}');
+
+        $this->assertNull(\XcVm\Cli\Commands\VodImportBatchCommand::batchFile($rOther));
+        $this->assertNull(\XcVm\Cli\Commands\VodImportBatchCommand::batchFile('/etc/passwd'));
+        $this->assertNull(\XcVm\Cli\Commands\VodImportBatchCommand::batchFile(WATCH_TMP_PATH . '../watch/import_0123456789abcdef.jsonl'));
+        unlink($rOther);
+        $this->assertSame(array(), iterator_to_array(VodItemImporter::batchCommands($rOther, 300)), 'a missing file yields nothing');
+    }
+
+    public function testImportThreadsFallsBackToFour(): void {
+        SettingsManager::set(array('thread_count' => 0));
+        $this->assertSame(4, VodItemImporter::importThreads());
+        SettingsManager::set(array('thread_count' => '12'));
+        $this->assertSame(12, VodItemImporter::importThreads());
+    }
+
     public function testTheCommandRunsOnlyAsXcVm(): void {
         if (posix_getpwuid(posix_geteuid())['name'] === 'xc_vm') {
             $this->markTestSkipped('Running as xc_vm.');

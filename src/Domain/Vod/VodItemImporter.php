@@ -8,7 +8,9 @@ use XcVm\Core\Events\EventDispatcher;
 use XcVm\Core\Events\Stream\StreamsChangedEvent;
 use XcVm\Core\Events\Vod\VodImportResultEvent;
 use XcVm\Core\Util\ImageUtils;
+use XcVm\Core\Process\Multithread;
 use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Infrastructure\Tmdb\TmdbApiService;
 use XcVm\Streaming\Codec\FfmpegPaths;
@@ -877,6 +879,80 @@ class VodItemImporter {
 	}
 
 	/**
+	 * Queue a manual import: write one payload per line to a batch file and
+	 * start a single `vod_import_batch` process that works through it, so a
+	 * playlist of tens of thousands of items neither spawns that many
+	 * processes at once nor holds the web request.
+	 *
+	 * @param array[]       $rItems Thread data, one per file.
+	 * @param callable|null $rStart Starts the batch process for the file (tests pass a fake).
+	 * @return bool Whether the batch was written and started.
+	 */
+	public static function queueBatch(array $rItems, ?callable $rStart = null) {
+		if ($rItems === []) {
+			return false;
+		}
+		$rFile = WATCH_TMP_PATH . 'import_' . bin2hex(random_bytes(8)) . '.jsonl';
+		$rHandle = fopen($rFile, 'w');
+		if ($rHandle === false) {
+			return false;
+		}
+		foreach ($rItems as $rItem) {
+			fwrite($rHandle, json_encode($rItem, JSON_UNESCAPED_UNICODE) . "\n");
+		}
+		fclose($rHandle);
+		($rStart ?? static function (string $rFile): void {
+			shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_batch ' . escapeshellarg($rFile) . ' > /dev/null 2>&1 &');
+		})($rFile);
+		return true;
+	}
+
+	/**
+	 * How many files are imported at once (Settings → VOD Import), for the
+	 * Movies/Series import and the watch module's scans alike.
+	 *
+	 * @return int
+	 */
+	public static function importThreads() {
+		return max(1, intval(SettingsManager::getAll()['thread_count'] ?? 0) ?: 4);
+	}
+
+	/**
+	 * Import every payload of a batch file, `thread_count` files at a time,
+	 * then delete the file.
+	 *
+	 * @param string $rFile         A batch file queueBatch() wrote.
+	 * @param int    $rItemTimeout  Seconds one file may take.
+	 * @return int How many files were started.
+	 */
+	public static function runBatch(string $rFile, int $rItemTimeout = 300) {
+		$rStarted = Multithread::pool(self::batchCommands($rFile, $rItemTimeout), self::importThreads());
+		@unlink($rFile);
+		return $rStarted;
+	}
+
+	/**
+	 * The `vod_import_item` command for each line of a batch file, read lazily.
+	 *
+	 * @param string $rFile
+	 * @param int    $rItemTimeout
+	 * @return \Generator<string>
+	 */
+	public static function batchCommands(string $rFile, int $rItemTimeout) {
+		$rHandle = @fopen($rFile, 'r');
+		if ($rHandle === false) {
+			return;
+		}
+		while (($rLine = fgets($rHandle)) !== false) {
+			$rLine = trim($rLine);
+			if ($rLine !== '') {
+				yield '/usr/bin/timeout ' . $rItemTimeout . ' ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_item ' . escapeshellarg(base64_encode($rLine));
+			}
+		}
+		fclose($rHandle);
+	}
+
+	/**
 	 * Import the file a `vod_import_item` payload (base64-encoded JSON thread
 	 * data) describes.
 	 *
@@ -932,7 +1008,10 @@ class VodItemImporter {
 		}
 
 		if (strpos($rThreadData['file'], $rThreadData['directory']) === 0 || $rThreadData['import']) {
-			$rWatchCategories = (is_array($rThreadData['watch_categories'] ?? null) ? $rThreadData['watch_categories'] : []);
+			// The genre mapping is core's: a payload carries it only to pin it.
+			$rWatchCategories = is_array($rThreadData['watch_categories'] ?? null)
+				? $rThreadData['watch_categories']
+				: [1 => CategoryService::getGenreMap(1), 2 => CategoryService::getGenreMap(2)];
 			if (!isset($rWatchCategories[1]) || !is_array($rWatchCategories[1])) {
 				$rWatchCategories[1] = [];
 			}

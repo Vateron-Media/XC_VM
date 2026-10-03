@@ -49,6 +49,7 @@ To see all available commands:
 | `monitor` | `MonitorCommand` | Monitor stream by ID (start/restart/track). Only for streams the xc_fanout supervisor does not take — it stands down for a supervised one | xc_vm |
 | `thumbnail` | `ThumbnailCommand` | Generate thumbnail frames for a stream | xc_vm |
 | `plex_item` | `PlexItemCommand` | Process single Plex item (movie/series) | xc_vm |
+| `vod_import_batch` | `VodImportBatchCommand` | Work through one Movies/Series → Import batch, `thread_count` files at a time | xc_vm |
 | `vod_import_item` | `VodImportItemCommand` | Import a single movie/episode file (TMDB search/insert); used by Movies/Series → Import and the Watch Folder | xc_vm |
 | `watch_item` | `WatchItemCommand` | Watch module ≤ 1.0.5 only: its own per-file worker, replaced by `vod_import_item` in 1.1.0 | xc_vm |
 | `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |

@@ -190,6 +190,7 @@ return [
 		'stream_fail_sleep',
 		'stream_logs_save',
 		'stream_max_analyze',
+		'thread_count',
 		'tmdb_language',
 		'update_channel_bin',
 		'update_channel_fanout',

@@ -293,12 +293,10 @@ class CategoryService {
 		$db = self::db();
 		foreach ([1 => ['genre', 'bouquet'], 2 => ['genretv', 'bouquettv']] as $rType => [$rGenreKey, $rBouquetKey]) {
 			foreach ($rData as $rKey => $rValue) {
-				$rSplit = explode('_', (string) $rKey, 2);
-				if ($rSplit[0] !== $rGenreKey || !isset($rSplit[1]) || !ctype_digit($rSplit[1])) {
-					continue;
+				if (preg_match('/^' . $rGenreKey . '_(\d+)$/', (string) $rKey, $rMatch)) {
+					$rBouquets = '[' . implode(',', array_map('intval', (array) ($rData[$rBouquetKey . '_' . $rMatch[1]] ?? []))) . ']';
+					$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = ?;', intval($rValue), $rBouquets, intval($rMatch[1]), $rType);
 				}
-				$rBouquets = '[' . implode(',', array_map('intval', (array) ($rData[$rBouquetKey . '_' . $rSplit[1]] ?? []))) . ']';
-				$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = ?;', intval($rValue), $rBouquets, intval($rSplit[1]), $rType);
 			}
 		}
 	}

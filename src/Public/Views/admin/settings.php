@@ -2391,6 +2391,15 @@ use XcVm\Domain\Server\ServerRepository;
 									</div>
 							</div>
 							<div class="form-group row mb-4">
+									<label class="col-md-4 col-form-label" for="thread_count">
+										<?= $language::get('import_threads') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('import_threads_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<input type="number" min="1" class="form-control text-center" id="thread_count" name="thread_count" value="<?= (int) $rSettings["thread_count"] ?>">
+									</div>
+							</div>
+							<div class="form-group row mb-4">
 									<label class="col-md-4 col-form-label" for="alternative_titles">
 										<?= $language::get('check_alternative_titles') ?>
 										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('check_alternative_titles_tooltip') ?>"></i>
