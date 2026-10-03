@@ -201,6 +201,11 @@ class LbInstallFlow {
 	 */
 	public static function installExtension($rConn, callable $rRunSSH, callable $rSendFileSSH): bool {
 		echo "Installing the xcvm_core PHP extension\n";
+		$rInstaller = self::extensionInstaller();
+		if ($rInstaller === null) {
+			echo 'MAIN has no ' . MAIN_HOME . "bin/install/install_xcvm_core.sh and could not take it from GitHub. Exiting\n";
+			return false;
+		}
 		// The script runs as root: it goes where no other user can reach it.
 		$rDir = self::privateDir($rConn, $rRunSSH);
 		if ($rDir === null) {
@@ -208,9 +213,9 @@ class LbInstallFlow {
 			return false;
 		}
 		$rScript = $rDir . '/install_xcvm_core.sh';
-		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/install_xcvm_core.sh', $rScript, true)) {
+		if (!call_user_func($rSendFileSSH, $rConn, $rInstaller, $rScript, true)) {
 			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
-			echo 'Could not send ' . MAIN_HOME . "bin/install/install_xcvm_core.sh to the node (MAIN has no such file, or the transfer failed). Exiting\n";
+			echo 'Could not send ' . $rInstaller . " to the node. Exiting\n";
 			return false;
 		}
 		$rArgs = implode(' ', array_map('escapeshellarg', [GIT_OWNER, GIT_REPO_BIN, BIN_PATH]));
@@ -223,6 +228,36 @@ class LbInstallFlow {
 			return false;
 		}
 		return true;
+	}
+
+	/**
+	 * MAIN's copy of the xcvm_core installer, the script it sends to a node. A
+	 * MAIN that reached its release through updates may not have it: until
+	 * 2.6.0 the updater left bin/install out, and an install then ran
+	 * "bash: /tmp/install_xcvm_core.sh: No such file or directory". A missing
+	 * one is taken from the panel's GitHub repository, at MAIN's release (main
+	 * for a build with no tag of its own), and kept. Null when MAIN has none
+	 * and GitHub gave none.
+	 *
+	 * @param (callable(string, string): bool)|null $rDownload Tests: fetch a URL to a file.
+	 */
+	public static function extensionInstaller(?string $rPath = null, ?callable $rDownload = null): ?string {
+		$rPath ??= MAIN_HOME . 'bin/install/install_xcvm_core.sh';
+		if (is_file($rPath) && filesize($rPath) > 0) {
+			return $rPath;
+		}
+		$rDownload ??= [ReleaseAsset::class, 'download'];
+		$rPart = $rPath . '.part';
+		foreach ([XC_VM_VERSION, 'main'] as $rRef) {
+			$rUrl = 'https://raw.githubusercontent.com/' . GIT_OWNER . '/' . GIT_REPO_MAIN . '/' . rawurlencode((string) $rRef) . '/src/bin/install/install_xcvm_core.sh';
+			// A shell script, not an error page: it is run as root on the node.
+			if ($rDownload($rUrl, $rPart) && str_starts_with((string) @file_get_contents($rPart, false, null, 0, 11), '#!/bin/bash') && @rename($rPart, $rPath)) {
+				echo 'MAIN had no install_xcvm_core.sh: taken from GitHub (' . $rRef . ")\n";
+				return $rPath;
+			}
+			@unlink($rPart);
+		}
+		return null;
 	}
 
 	/**

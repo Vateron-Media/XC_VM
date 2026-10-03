@@ -129,6 +129,14 @@ class ServerInstallCommand implements CommandInterface {
 				echo "MAIN's release " . XC_VM_VERSION . " has no loadbalancer.tar.gz listed in its hashes.md5 on GitHub, or GitHub could not be reached. Exiting\n";
 				return 1;
 			}
+			// Before anything is removed on the node: the script that gives it
+			// xcvm_core, which no archive or bundle carries (taken from GitHub
+			// when MAIN has none).
+			if (LbInstallFlow::extensionInstaller() === null) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo 'MAIN has no ' . MAIN_HOME . "bin/install/install_xcvm_core.sh and could not take it from GitHub. Exiting\n";
+				return 1;
+			}
 			LbInstallFlow::writeInstallMetadata($rInstallDir, $rServerID, $rUsername, $rPort);
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -165,6 +173,16 @@ class ServerInstallCommand implements CommandInterface {
 		$rHostKey = InstallCredentials::normalizeHostKey($rPresentedHostKey);
 		if ($rHostKey !== $rStoredHostKey) {
 			$db->query('UPDATE `servers` SET `ssh_hostkey_sha1` = ? WHERE `id` = ?;', $rHostKey, $rServerID);
+		}
+
+		// Every step below runs through sudo, and so does the node's own service
+		// script. A Debian installed with a root password has no sudo: root
+		// installs it. A sudo that asks for a password cannot be answered here.
+		$rSudo = trim($this->runSSH($rConn, 'command -v sudo >/dev/null 2>&1 || { [ "$(id -u)" = 0 ] && apt-get update >/dev/null 2>&1 && DEBIAN_FRONTEND=noninteractive apt-get -yq install sudo >/dev/null 2>&1; }; sudo -n true >/dev/null 2>&1 && echo SUDO_OK')['output']);
+		if ($rSudo !== 'SUDO_OK') {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "The SSH user must be root, or a user whose sudo asks for no password, and the node needs sudo (apt-get install sudo). Exiting\n";
+			return 1;
 		}
 
 		$rRunSSH = function ($rConnection, string $rCommand): array {
@@ -313,6 +331,9 @@ class ServerInstallCommand implements CommandInterface {
 
 	/** $rGrant false: a load balancer installed in API mode, which never gets MAIN's database. */
 	private function finalizeHostAfterRuntime($rConn, callable $rRunSSH, string $rHost, bool $rGrant = true): void {
+		// systemd 256+ (Debian 13) ships its defaults under /usr/lib/systemd and leaves these absent. systemd
+		// ignores an assignment outside a section, so a file without its header (2.6.0 made one there) starts over.
+		call_user_func($rRunSSH, $rConn, 'for f in system user; do sudo grep -qs "^\[Manager\]" /etc/systemd/$f.conf || echo "[Manager]" | sudo tee /etc/systemd/$f.conf > /dev/null; done');
 		$rSystemConf = call_user_func($rRunSSH, $rConn, 'sudo cat "/etc/systemd/system.conf"')['output'];
 		if (strpos($rSystemConf, 'DefaultLimitNOFILE=1048576') === false) {
 			call_user_func($rRunSSH, $rConn, LbInstallFlow::sudoWrite("\n" . 'DefaultLimitNOFILE=1048576', '/etc/systemd/system.conf', true));
@@ -335,7 +356,13 @@ class ServerInstallCommand implements CommandInterface {
 			BackupService::grantPrivileges($rHost);
 		}
 		echo "Installation complete! Starting XC_VM\n";
-		call_user_func($rRunSSH, $rConn, 'sudo service xc_vm restart');
+		// The node's root cron ran through the install, and after the stop at
+		// its start may have brought the panel's daemons up again: a fanout
+		// supervisor holding the lock file of the bin/ that was since replaced,
+		// next to which the service then started a second one, each killing the
+		// other's daemon every few seconds. systemd holds the unit as stopped,
+		// so a restart alone would only start: what runs as xc_vm goes first.
+		call_user_func($rRunSSH, $rConn, 'sudo systemctl stop xc_vm; sudo pkill -9 -u xc_vm; sudo service xc_vm restart');
 	}
 
 	private function sendFileSSH($rConn, string $rPath, string $rOutput, bool $rWarn = false): bool {

@@ -15,7 +15,7 @@ final class LbInstallExtensionTest extends TestCase {
 	private array $rRan = [];
 
 	public static function setUpBeforeClass(): void {
-		foreach (['GIT_OWNER' => 'Vateron-Media', 'GIT_REPO_BIN' => 'XC_VM_Binaries'] as $rName => $rValue) {
+		foreach (['GIT_OWNER' => 'Vateron-Media', 'GIT_REPO_BIN' => 'XC_VM_Binaries', 'GIT_REPO_MAIN' => 'XC_VM', 'XC_VM_VERSION' => '2.6.0'] as $rName => $rValue) {
 			if (!defined($rName)) {
 				define($rName, $rValue);
 			}
@@ -111,6 +111,50 @@ final class LbInstallExtensionTest extends TestCase {
 		$this->assertFalse($rInstall('mktemp: failed to create directory'));
 		$this->assertCount(1, $this->rRan, 'nothing is downloaded or unpacked');
 		$this->assertCount(1, $rDb->rQueries, 'and the server is marked failed (status 4)');
+	}
+
+	public function testAMainWithoutTheInstallerTakesItFromGitHub(): void {
+		// A MAIN that reached 2.6.0 by updating has no bin/install/install_xcvm_core.sh
+		// (the updater left bin/install out): every install it ran printed
+		// "bash: /tmp/install_xcvm_core.sh: No such file or directory".
+		$rDir = sys_get_temp_dir() . '/xcvm-installer-' . bin2hex(random_bytes(4));
+		mkdir($rDir);
+		$rPath = $rDir . '/install_xcvm_core.sh';
+		$rAsked = [];
+		$rGitHub = static function (string $rUrl, string $rDest) use (&$rAsked): bool {
+			$rAsked[] = $rUrl;
+			if (!str_contains($rUrl, '/main/')) {
+				return false; // a build whose release has no tag
+			}
+			return (bool) file_put_contents($rDest, "#!/bin/bash\necho ok\n");
+		};
+		$rTake = static function (callable $rDownload) use ($rPath): ?string {
+			ob_start();
+			try {
+				return LbInstallFlow::extensionInstaller($rPath, $rDownload);
+			} finally {
+				ob_end_clean();
+			}
+		};
+		try {
+			$rRaw = 'https://raw.githubusercontent.com/' . GIT_OWNER . '/' . GIT_REPO_MAIN . '/';
+			$this->assertSame($rPath, $rTake($rGitHub));
+			$this->assertSame("#!/bin/bash\necho ok\n", file_get_contents($rPath));
+			$this->assertSame([$rRaw . XC_VM_VERSION . '/src/bin/install/install_xcvm_core.sh', $rRaw . 'main/src/bin/install/install_xcvm_core.sh'], $rAsked, "MAIN's release first, then main");
+
+			$rAsked = [];
+			$this->assertSame($rPath, $rTake($rGitHub));
+			$this->assertSame([], $rAsked, 'one that is there is not fetched again');
+
+			unlink($rPath);
+			$this->assertNull($rTake(static fn(string $rUrl, string $rDest): bool => (bool) file_put_contents($rDest, '<html>404</html>')), 'an error page is not a script root may run');
+			$this->assertFileDoesNotExist($rPath);
+			$this->assertFileDoesNotExist($rPath . '.part');
+		} finally {
+			@unlink($rPath);
+			@unlink($rPath . '.part');
+			@rmdir($rDir);
+		}
 	}
 
 	public function testAScriptThatCouldNotBeSentStopsTheInstall(): void {
