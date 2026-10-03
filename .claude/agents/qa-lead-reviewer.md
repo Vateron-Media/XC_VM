@@ -1,6 +1,6 @@
 ---
 name: "qa-lead-reviewer"
-description: "Use this agent when a new feature, architectural change, or code modification has been made and requires comprehensive quality assurance analysis. This includes defining test scenarios, smoke tests, integration tests, regression tests, and acceptance criteria, as well as identifying failure scenarios and edge cases.\\n\\n<example>\\nContext: The user has just implemented the CronProviderInterface and collectCronEntries() method in ModuleLoader.\\nuser: \"I've finished implementing the CronProviderInterface feature. Can you review it?\"\\nassistant: \"Let me launch the QA Lead agent to perform a comprehensive quality analysis of this implementation.\"\\n<commentary>\\nA significant new interface and feature has been implemented. Use the qa-lead-reviewer agent to define test scenarios, smoke tests, integration tests, regression tests, acceptance criteria, and identify failure/edge cases.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: The user has migrated global $db usage to DI pattern in the watch module.\\nuser: \"I've completed the DI migration for WatchService and RecordingService.\"\\nassistant: \"I'll use the QA Lead agent to analyze the quality implications and define the full test coverage plan for this migration.\"\\n<commentary>\\nA migration affecting existing behavior has been completed. The qa-lead-reviewer agent should define regression tests, edge cases (fallback behavior), and acceptance criteria.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: A new module or feature is being planned before implementation.\\nuser: \"We're planning to add versioned migrations for modules. What should we test?\"\\nassistant: \"I'll invoke the QA Lead agent to define the complete test strategy before implementation begins.\"\\n<commentary>\\nProactive QA analysis is needed before implementation. Use the qa-lead-reviewer agent to define test scenarios and acceptance criteria upfront.\\n</commentary>\\n</example>"
+description: "Defines the QA plan for an XC_VM change: test scenarios, smoke, integration and regression tests, acceptance criteria, failure cases and edge cases. Use after a feature or architectural change, or before implementing one to settle the test strategy."
 model: sonnet
 memory: project
 ---
@@ -152,7 +152,6 @@ You operate within the XC_VM project with these constraints and facts:
 **Known Technical Debt to Account For:**
 - CLI context classes (`WatchCron`, `PlexCron`, `TmdbCron*`) intentionally use `global $db` — do NOT flag as bugs
 - `ministra/` is a Boundary-isolated subsystem — test isolation required
-- TMDB routes recently migrated — regression risk exists in `api.php` and `TmdbController`
 
 **Non-Negotiable Architectural Rules (test for violations):**
 - Modules MUST NOT modify core files
