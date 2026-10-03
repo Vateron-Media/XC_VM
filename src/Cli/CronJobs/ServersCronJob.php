@@ -14,6 +14,7 @@ use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Cluster\ClusterBus;
 use XcVm\Domain\Cluster\ClusterPool;
@@ -98,11 +99,18 @@ class ServersCronJob implements CommandInterface {
 		if ($rServers[SERVER_ID]['is_main'] && class_exists(ClusterPool::class)) {
 			ClusterPool::ensure(3.0);
 		}
-		// A load balancer offline when MAIN updated is told only then: once an
-		// hour, every one still on an older release gets MAIN's.
-		if ($rServers[SERVER_ID]['is_main'] && SettingsManager::get('auto_update_lbs') && (int) date('i') === 0) {
-			foreach (UpdateCommand::lbsBehind($rServers, time()) as $rID) {
+		// The load balancers MAIN's last update could not tell (offline then):
+		// each is told once, when it is back and still on an older release.
+		if ($rServers[SERVER_ID]['is_main'] && is_file(UpdateCommand::PENDING)) {
+			$rPending = (array) json_decode((string) @file_get_contents(UpdateCommand::PENDING), true);
+			$rDue = SettingsManager::get('auto_update_lbs') ? UpdateCommand::lbsToTell($rServers, $rPending, time()) : ['tell' => [], 'wait' => []];
+			foreach ($rDue['tell'] as $rID) {
 				NodeActions::update($rID, $db);
+			}
+			if ($rDue['wait'] === []) {
+				@unlink(UpdateCommand::PENDING);
+			} elseif ($rDue['wait'] !== $rPending) {
+				AtomicFile::write(UpdateCommand::PENDING, (string) json_encode($rDue['wait']));
 			}
 		}
 

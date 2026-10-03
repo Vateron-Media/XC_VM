@@ -15,8 +15,8 @@ class UpdateCommandPinnedTest extends TestCase {
 		$this->assertSame('1.2.3-dev.7', UpdateCommand::pinned('1.2.3-dev.7'));
 	}
 
-	/** cron:servers, hourly: a load balancer offline when MAIN updated is told later. */
-	public function testOnlyLoadBalancersBehindMainAreToldToUpdate(): void {
+	/** cron:servers: a load balancer MAIN's update could not tell is told once it is back. */
+	public function testOnlyTheLoadBalancersMainCouldNotTellAreToldLater(): void {
 		if (!defined('XC_VM_VERSION')) {
 			define('XC_VM_VERSION', '2.6.0');
 		}
@@ -31,10 +31,15 @@ class UpdateCommandPinnedTest extends TestCase {
 			6 => ['id' => 6, 'last_check_ago' => $rNow - 600] + $rLb,
 			7 => ['id' => 7, 'enabled' => 0] + $rLb,
 			8 => ['id' => 8, 'xc_vm_version' => null] + $rLb,
+			10 => ['id' => 10] + $rLb,
 		];
-		// Behind (2) or unknown (8); not MAIN, a current one, a proxy, one
-		// updating now, an offline one or a disabled one.
-		$this->assertSame([2, 8], UpdateCommand::lbsBehind($rServers, $rNow));
+		// Back and behind (2), or its release unknown (8): told. Still updating
+		// (5), offline (6) or disabled (7): waited for. MAIN, one on MAIN's
+		// release by now (3), a proxy (4) and one that is gone (9): dropped.
+		$this->assertSame(['tell' => [2, 8], 'wait' => [5, 6, 7]], UpdateCommand::lbsToTell($rServers, [1, 2, 3, 4, 5, 6, 7, 8, 9, '2'], $rNow));
+		// 10 is behind and online, but MAIN's update did tell it: an admin
+		// rolled it back, and it stays there.
+		$this->assertSame(['tell' => [], 'wait' => []], UpdateCommand::lbsToTell($rServers, [], $rNow));
 	}
 
 	public function testRejectsAnythingElse(): void {

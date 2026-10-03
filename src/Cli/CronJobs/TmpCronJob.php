@@ -27,6 +27,30 @@ class TmpCronJob implements CommandInterface {
 		return 'Cron: cleanup temporary files and stale playlists';
 	}
 
+	/**
+	 * State with a life of its own, not leftovers: the seconds each may stay
+	 * untouched. The ten-minute sweep cut them short.
+	 */
+	private const KEEP = [
+		// The root cron's hourly and daily checks of the node's binaries
+		// (RootSignalsCronJob): with their stamps swept, every check ran, and
+		// asked GitHub, every ~11 minutes on every node.
+		'fanout_binary_check' => 172800,
+		'xcvm_core_check' => 172800,
+		'ytdlp_check' => 172800,
+		'ffmpeg_check' => 172800,
+		// "At most once" for each change of the servers (replicaChecks).
+		'replica_servers_checked' => 172800,
+		// The updater's archive: post-update reads it again after the chown of
+		// the whole tree, which can take longer. The updater removes it itself.
+		'.update.tar.gz' => 86400,
+	];
+
+	/** Seconds a file in a swept directory may stay untouched before the sweep removes it. */
+	public static function maxAge(string $rFile): int {
+		return self::KEEP[$rFile] ?? 600;
+	}
+
 	public function execute(array $rArgs): int {
 		if (!$this->assertRunAsXcVm()) {
 			return 1;
@@ -53,7 +77,7 @@ class TmpCronJob implements CommandInterface {
 				if ($rFile === '.' || $rFile === '..') {
 					continue;
 				}
-				if (is_file($fullPath) && time() - filemtime($fullPath) >= 600 && stripos($rFile, 'ministra_') === false) {
+				if (is_file($fullPath) && time() - filemtime($fullPath) >= self::maxAge($rFile) && stripos($rFile, 'ministra_') === false) {
 					unlink($fullPath);
 				}
 			}

@@ -108,10 +108,12 @@ def doUpdate(rFilename):
         if os.path.exists(rNginxConf):
             os.system('sudo cp -a "%s" "%s"' % (rNginxConf, rNginxBak))
 
+        # A failed copy still copied what it could and gave the directories the
+        # archive's owner: the ownership and the nginx.conf check below run
+        # either way, so the service can start on what is there.
         log_msg("INFO", "Copying files to live installation...")
         rCopying = True
-        if os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir)) != 0:
-            raise RuntimeError("copying the files failed: the installation is partly updated; run the update again")
+        rCopied = os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir)) == 0
 
         log_msg("INFO", "Fixing file permissions...")
         os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
@@ -127,6 +129,9 @@ def doUpdate(rFilename):
         if os.path.exists(rNginxBak):
             os.system('sudo rm -f "%s"' % rNginxBak)
 
+        if not rCopied:
+            raise RuntimeError("copying the files failed: the installation is partly updated")
+
         log_msg("INFO", "Running post-update...")
         os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
 
@@ -139,6 +144,9 @@ def doUpdate(rFilename):
         if not rCopying:
             # Nothing was copied: post-update on the unchanged installation puts
             # the server back online (it was set to updating) at its release.
+            # Without the archive, which post-update would take installers from.
+            if os.path.exists(rFilename):
+                os.remove(rFilename)
             os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
         # A partly copied one stays "updating" in the panel, which is what it is.
         log_msg("INFO", "Starting xc_vm service...")
