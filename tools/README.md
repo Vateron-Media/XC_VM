@@ -39,12 +39,6 @@ Written to test the running panel end-to-end; run by hand as needed.
 | `test-stream-generator/` | Generates a synthetic moving test pattern (stopwatch + wall-clock, no input file), served as a HTTP "live" stream to paste into the panel as a source — end-to-end pipeline testing, incl. **LLOD** (`src/Cli/Commands/LlodCommand.php`). See its `README.md`. |
 | `test-install/` | Docker-based end-to-end install test of the built release archive — unpacks `XC_VM.zip`, runs the installer with scripted answers, and checks the key installed files. See its `README.md`. Referenced from `docs/*/builds/updates_checklist.md`. |
 
-## Community support
-
-| Tool | Purpose |
-|------|---------|
-| `support-bot/` | Telegram bot that answers users' questions about XC_VM with a free cloud AI model (Groq by default) or Claude, from `docs/en` and the README, in plain words and the user's language. Runs on any small Linux server. See its `README.md` for the step-by-step setup, settings and costs. |
-
 ## Repo maintenance
 
 | Tool | Purpose |
