@@ -73,6 +73,9 @@ final class HlsReaping {
 	/** @var list<int> CONNECTIONS nodes silent past the orphan TTL, watched by MAIN */
 	private static array $rOrphaned = [];
 
+	/** @var array<int, bool> server id => a node in mode 2: it has no database, so its users cron sweeps nothing of MAIN's */
+	private static array $rNoSweep = [];
+
 	/** On an LB, this pass's answer for its own rows (beginLocal()); null: ask the agent now. */
 	private static ?bool $rLocal = null;
 
@@ -84,6 +87,16 @@ final class HlsReaping {
 			return self::$rLocal ?? self::localReaps();
 		}
 		return self::$rReaps[$rServerID] ?? false;
+	}
+
+	/**
+	 * MAIN, `lines_live` as the store: must MAIN close what this node's agent
+	 * said has ended? There each server's users cron sweeps its own rows,
+	 * and a node in mode 2 runs none (it has no database): nobody else would,
+	 * until the row counted as orphaned. As of the last begin().
+	 */
+	public static function sweptByMain(int $rServerID): bool {
+		return self::$rNoSweep[$rServerID] ?? false;
 	}
 
 	/** On an LB: does this node's own agent end its idle HLS viewers? */
@@ -118,6 +131,7 @@ final class HlsReaping {
 	public static function begin(int $rNowSec, int $rOrphanTtlSec): void {
 		self::$rReaps = [];
 		self::$rOrphaned = [];
+		self::$rNoSweep = [];
 		$db = self::db();
 		try {
 			$rRead = $db->query("SELECT `server_id`, `mode`, `flows`, `features`, `last_seen_at` FROM `cluster_nodes` WHERE `state` = 'active';");
@@ -151,6 +165,9 @@ final class HlsReaping {
 			// whose agent says hls_reaper end their own idle HLS viewers.
 			if ((int) $rRow['mode'] < 1 || ((int) $rRow['flows'] & NodeFlows::CONNECTIONS) === 0) {
 				continue;
+			}
+			if ((int) $rRow['mode'] >= 2) {
+				self::$rNoSweep[$rID] = true;
 			}
 			$rCapable = self::capable($rRow);
 			// Silence counts from max(last_seen_at, cluster_ready_at): the time

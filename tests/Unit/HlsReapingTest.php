@@ -53,6 +53,26 @@ final class HlsReapingTest extends TestCase {
 		}
 	}
 
+	/**
+	 * With `lines_live` as the store each server sweeps its own rows, and a
+	 * node in mode 2 has no database to sweep them in: MAIN closes what it ended.
+	 */
+	public function testMainSweepsForANodeInModeTwoOnly(): void {
+		$this->node(2, 'active', 2, 255, 'hls_reaper', self::T - 1);
+		$this->node(3, 'active', 1, 255, 'hls_reaper', self::T - 1);           // sweeps its own rows
+		$this->node(4, 'active', 2, 255 & ~64, 'hls_reaper', self::T - 1);     // CONNECTIONS off: its viewers are not the agent's
+		$this->node(5, 'quarantined', 2, 255, 'hls_reaper', self::T - 1);
+		HlsReaping::begin(self::T, 120);
+		$this->assertTrue(HlsReaping::sweptByMain(2));
+		foreach ([3, 4, 5, 99] as $rID) {
+			$this->assertFalse(HlsReaping::sweptByMain($rID), (string) $rID);
+		}
+		// The nodes cannot be read: nobody is taken for a node in mode 2.
+		$this->rDb->exec('DROP TABLE `cluster_nodes`');
+		HlsReaping::begin(self::T + 60, 120);
+		$this->assertFalse(HlsReaping::sweptByMain(2));
+	}
+
 	public function testASilentNodeIsOrphanedOnlyAfterTheTtlWatchedByMain(): void {
 		// Silent for 10 minutes already at the first pass: MAIN may just have come back.
 		$this->node(2, 'active', 1, 74, 'hls_reaper', self::T - 600);
