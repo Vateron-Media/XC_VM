@@ -243,7 +243,7 @@ class StatusCommand implements CommandInterface {
 	}
 
 	private function fixPermissions(): void {
-		shell_exec('sudo chmod 0660 ' . MAIN_HOME . 'bin/php/sockets/*');
+		shell_exec('sudo chmod 0660 ' . MAIN_HOME . 'bin/php/sockets/* 2>/dev/null'); // none while PHP-FPM is stopped (an update)
 		shell_exec('sudo chmod 0771 ' . MAIN_HOME . 'bin/daemons.sh');
 		shell_exec('sudo chmod 0775 ' . MAIN_HOME . 'bin/certbot');
 		shell_exec('sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'config');

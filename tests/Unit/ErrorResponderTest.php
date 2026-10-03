@@ -45,20 +45,26 @@ final class ErrorResponderTest extends TestCase {
 		$this->assertArrayHasKey('CACHE_INCOMPLETE', $codes);
 	}
 
-	/** Debug on: styled page is emitted, no HTTP code, terminates only when $kill. */
-	public function testDebugOutcomeEmitsBodyWithoutHttpCode(): void {
+	/**
+	 * Debug on: the styled page, with production's status when the request
+	 * ends (404, or the given code). A 200 page was read by a player as its
+	 * playlist, which then stalled instead of reconnecting.
+	 */
+	public function testDebugOutcomeEmitsBodyWithProductionsStatus(): void {
 		$outcome = ErrorResponder::respondError('BANNED', ['debug_show_errors' => true], true, null);
 
 		$this->assertFalse($outcome->is404);
-		$this->assertNull($outcome->httpCode);
+		$this->assertSame(404, $outcome->httpCode);
 		$this->assertTrue($outcome->shouldExit);
 		$this->assertNotSame('', $outcome->body);
+		$this->assertSame(403, ErrorResponder::respondError('BANNED', ['debug_show_errors' => true], true, 403)->httpCode);
 	}
 
 	public function testDebugNoKillDoesNotExitButStillEmitsBody(): void {
 		$outcome = ErrorResponder::respondError('BANNED', ['debug_show_errors' => true], false, null);
 
 		$this->assertFalse($outcome->shouldExit);
+		$this->assertNull($outcome->httpCode, 'the request goes on: its own status stands');
 		$this->assertNotSame('', $outcome->body);
 	}
 

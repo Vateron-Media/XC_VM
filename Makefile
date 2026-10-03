@@ -63,8 +63,9 @@ LB_DIRS_TO_REMOVE := \
 # STALE or WRONG-LIST entry or a MISSING routed script.
 # The viewer-API controllers (Player/Enigma2/XPlugin/Epg/PlaylistApiController,
 # BaseApiController) still ship: lb_configs/nginx.conf routes /api/player_api etc.
-# to Public/index.php. They go together with those routes in a later phase (§3
-# of the MAIN <-> LB API communication design).
+# to Public/index.php, where viewer_api.conf answers 404 on every load balancer
+# (they need the stripped Domain/User). They go together with those routes in a
+# later phase (§3 of the MAIN <-> LB API communication design).
 LB_FILES_TO_REMOVE := \
 	Public/admin/api.php \
 	Public/admin/proxy_api.php \

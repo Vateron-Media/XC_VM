@@ -20,7 +20,6 @@ use XcVm\Core\Cluster\NodeRole;
  * does not write the file there, whatever a stray flows.json says.
  */
 final class LbNginxApiLegacyTest extends TestCase {
-
 	private string $rRoot;
 
 	private ?string $rFlows = null;
@@ -123,7 +122,7 @@ final class LbNginxApiLegacyTest extends TestCase {
 	 * APIs (player_api, enigma2, xplugin, epg, playlist) answer 404 there, in
 	 * both their forms; every other node serves them, as before.
 	 */
-	public function testTheViewerApisAreGuardedAndFollowTheNodesMode(): void {
+	public function testTheViewerApisAreGuardedAndAnswer404OnEveryLoadBalancer(): void {
 		$rConf = $this->lbConf();
 		$this->assertMatchesRegularExpression('/^\s*include viewer_api\.conf;$/m', $rConf);
 		foreach (['^/api/(player_api|enigma2|xplugin|epg|playlist)$', '^/(player_api|enigma2|xplugin|epg|playlist)(?:\.php)?$'] as $rRegex) {
@@ -131,13 +130,14 @@ final class LbNginxApiLegacyTest extends TestCase {
 			$this->assertMatchesRegularExpression('/^\s*if \(\$viewer_api = 0\) \{\s*return 404;\s*\}/', $rBody, $rRegex . ': the guard comes first');
 			$this->assertStringContainsString('fastcgi_param XC_API $1;', $rBody, $rRegex);
 		}
-		$this->assertSame('set $viewer_api 1;', trim((string) file_get_contents($this->rRoot . '/src/bin/nginx/conf/viewer_api.conf')), 'the shipped default serves them');
+		$this->assertSame('set $viewer_api 0;', trim((string) file_get_contents($this->rRoot . '/src/bin/nginx/conf/viewer_api.conf')), 'the shipped default answers 404');
 
 		$this->rFlows = (string) tempnam(sys_get_temp_dir(), 'flows');
 		NodeRole::useServers(fn () => [SERVER_ID => ['is_main' => 0]]);
 		NodeRole::useMainBuild(false);
 		try {
-			foreach ([[2, 'active', '0'], [2, 'quarantined', '0'], [1, 'active', '1'], [0, 'active', '1']] as [$rMode, $rState, $rOn]) {
+			// Every mode: the controllers need Domain/User, which the LB build strips.
+			foreach ([[2, 'active', '0'], [2, 'quarantined', '0'], [1, 'active', '0'], [0, 'active', '0']] as [$rMode, $rState, $rOn]) {
 				file_put_contents($this->rFlows, json_encode(['mode' => $rMode, 'flows' => NodeFlows::CONFIG, 'state' => $rState]));
 				NodeFlows::usePath($this->rFlows, true);
 				$this->assertSame('set $viewer_api ' . $rOn . ';', RootSignalsCronJob::viewerApiConf(), "mode $rMode, $rState");

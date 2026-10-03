@@ -350,12 +350,13 @@ final class ClusterNginxConfigTest extends TestCase {
 		$this->assertSame(2, substr_count($rRoot, $rRender));
 		// Each render reads the ports file just written (the old port goes to
 		// old_port.conf only if the render sees the new one), and comes before
-		// the handler's own reload.
+		// the handler's reload request (applied once after the pass,
+		// RootSignalsCronJob::reloadAsked()).
 		foreach (["file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/http.conf'", "file_put_contents(MAIN_HOME . 'bin/nginx/conf/ports/https.conf'"] as $rPorts) {
 			$rWrite = strpos($rRoot, $rPorts);
 			$this->assertNotFalse($rWrite, $rPorts);
 			$rCall = strpos($rRoot, $rRender, $rWrite);
-			$rReload = strpos($rRoot, "nginx/sbin/nginx -s reload'", $rWrite);
+			$rReload = strpos($rRoot, 'self::$rReloadNginx = true;', $rWrite);
 			$this->assertNotFalse($rCall, 'a render after ' . $rPorts);
 			$this->assertNotFalse($rReload);
 			$this->assertLessThan($rReload, $rCall, 'the render after ' . $rPorts . ' comes before the reload');

@@ -62,6 +62,7 @@ class ClusterRootCommand implements CommandInterface {
 		$rUntil = time() + (in_array('--once', $rArgs, true) ? 0 : self::WATCH_SECONDS);
 		do {
 			self::drain([self::class, 'runAction'], time());
+			RootSignalsCronJob::reloadAsked(); // once for the actions it ran
 			if (time() >= $rUntil) {
 				break;
 			}
