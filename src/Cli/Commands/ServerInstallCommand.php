@@ -43,7 +43,7 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		// server:install <type> <serverID> <port> <username> <password> [http] [https] [sysctl] [privateIP] [parentIDs]
-		//                [--cred-file=<path>] [--expect-hostkey=<sha1>]
+		//                [--cred-file=<path>] [--expect-hostkey=<sha1>] [--forget-hostkey=1]
 		// The panel passes "-" for username and password and the credentials in
 		// a 0600 --cred-file, read and deleted here, so they never sit in argv.
 		[$rArgs, $rOptions] = InstallCredentials::splitOptions($rArgs);
@@ -154,6 +154,12 @@ class ServerInstallCommand implements CommandInterface {
 
 		$rPresentedHostKey = (string) @ssh2_fingerprint($rConn, SSH2_FINGERPRINT_SHA1 | SSH2_FINGERPRINT_HEX);
 		$rStoredHostKey = $rServers[$rServerID]['ssh_hostkey_sha1'] ?? null;
+		if (!empty($rOptions['forget-hostkey']) && $rStoredHostKey !== null && $rStoredHostKey !== '') {
+			// A rebuilt node has a new key. The stored one is not asked for, and the
+			// one presented now is stored below, once the login has worked.
+			echo 'The saved SSH host key (' . $rStoredHostKey . ") is forgotten, as the admin asked: the key this node presents is trusted and saved\n";
+			$rStoredHostKey = null;
+		}
 		$rHostKeyError = InstallCredentials::checkHostKey($rPresentedHostKey, $rExpectedHostKey, $rStoredHostKey);
 		if ($rHostKeyError !== null) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
