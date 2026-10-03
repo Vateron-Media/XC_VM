@@ -73,9 +73,12 @@ Watch Folder is an automated content import system. It monitors local directorie
 | Setting | Where | Description |
 |---------|-------|-------------|
 | `tmdb_api_key` | Admin → Settings | **Required** — TMDB API key. Watch won't run without it |
-| `fallback_parser` | Admin → Settings | Parser used when primary parser fails |
-| `alternative_titles` | Admin → Settings | Search TMDB alternative titles |
-| `max_genres` | Admin → Settings | Maximum genres to assign per item |
+| `percentage_match` | Admin → Settings → VOD Import | Minimum title similarity a TMDB match needs |
+| `fallback_parser` | Admin → Settings → VOD Import | Run the other parser when the primary one finds no match |
+| `alternative_titles` | Admin → Settings → VOD Import | Search TMDB alternative titles |
+| `max_genres` | Admin → Settings → VOD Import | Maximum genres to turn into categories and bouquets |
+| Genre mapping | Admin → Settings → VOD Import | Category and bouquets per TMDB genre (`watch_categories`, core-owned). Applies to every import, Movies/Series → Import included |
+| `scan_seconds`, `thread_count`, `max_items` | Watch Settings (module) | Scan interval, parallel imports, files per folder per scan |
 
 ---
 
