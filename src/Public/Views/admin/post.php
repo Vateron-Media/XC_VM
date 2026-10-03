@@ -43,7 +43,6 @@ use XcVm\Domain\Vod\MovieService;
 use XcVm\Domain\Vod\SeriesService;
 use XcVm\Domain\Vod\TMDbService;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
-use XcVm\Module\Plex\PlexService;
 
 // Legacy standalone entry: nginx can map /CODE/post.php straight to this file
 // (a `location ~ \.php$` with SCRIPT_FILENAME=$request_filename), bypassing the
@@ -71,9 +70,9 @@ $language = Translator::class;
 AdminScopeBootstrap::hydrateAdminContext();
 
 // nginx serves an existing post.php directly (standalone), bypassing the front
-// controller — so the module web boot in index.php never runs and the module
-// service classes used by the POST handlers below (PlexService)
-// would be unresolved. Load them here. Gated to the standalone
+// controller — so the module web boot in index.php never runs, and the events
+// the POST handlers below dispatch (StreamsDeletedEvent, BouquetDeletedEvent, …)
+// would reach no module subscriber. Boot the modules here. Gated to the standalone
 // POST case only: the FC path (PostController) sets __forcePostMode and has
 // already booted modules, and the footer-render include has $rICount > 1.
 if ($rICount === 1 && empty($GLOBALS['__forcePostMode']) && class_exists(ModuleLoader::class)) {
@@ -386,29 +385,6 @@ if (1 < $rICount) { ?>
 						switch (window.rErrors[rData.status]) {
 							case "STATUS_INVALID_DATA":
 								showError("Please ensure you enter both a title and message.");
-								break;
-							default:
-								showError("An error occured while processing your request.");
-								break;
-						}
-						break;
-					case "watch_add":
-						switch (window.rErrors[rData.status]) {
-							case "STATUS_EXISTS_DIR":
-								showError("This directory is already being watched, please use another.");
-								break;
-							case "STATUS_INVALID_DIR":
-								showError("An invalid directory was entered, please use another.");
-								break;
-							default:
-								showError("An error occured while processing your request.");
-								break;
-						}
-						break;
-					case "plex_add":
-						switch (window.rErrors[rData.status]) {
-							case "STATUS_EXISTS_DIR":
-								showError("This library is already being synced, please use another.");
 								break;
 							default:
 								showError("An error occured while processing your request.");
@@ -1948,17 +1924,6 @@ if (1 < $rICount) { ?>
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
 				exit();
 
-			case 'settings_plex':
-				$rReturn = class_exists(PlexService::class) ? PlexService::editPlexSettings($rData) : array('status' => STATUS_FAILURE, 'data' => null);
-
-				if ($rReturn['status'] == STATUS_SUCCESS) {
-					echo json_encode(array('result' => true, 'location' => 'settings_plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-					exit();
-				}
-
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-				exit();
-
 			case 'server_order':
 				$rReturn = ServerService::reorder($rData);
 
@@ -2038,16 +2003,6 @@ if (1 < $rICount) { ?>
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
 				exit();
 
-			case 'plex_add':
-				$rReturn = class_exists(PlexService::class) ? PlexService::processPlexSync($rData) : array('status' => STATUS_FAILURE, 'data' => null);
-
-				if ($rReturn['status'] == STATUS_SUCCESS) {
-					echo json_encode(array('result' => true, 'location' => 'plex?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-					exit();
-				}
-
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-				exit();
 		}
 	} else {
 		echo json_encode(array('result' => false));
