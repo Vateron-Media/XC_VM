@@ -5,6 +5,7 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\ClusterHealth;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Cluster\StoredConnections;
 use XcVm\Core\Config\SettingsManager;
@@ -944,14 +945,6 @@ class ConnectionTracker {
 		if ($rSettings['redis_handler']) {
 			return self::createConnection($rRecord);
 		}
-		if (($rRecord['container'] ?? '') === 'hls') {
-			// A re-auth after a close reuses the player's HLS uuid. Drop the closed row
-			// (its activity was logged when it was closed) — the reaper deletes by uuid
-			// and would otherwise take this new row down with the old one. Here, so
-			// only when the row goes to the table: a record the node's agent took is
-			// replaced there by uuid, and MAIN's row with it (ConnectionIngest).
-			self::store()->query('DELETE FROM `lines_live` WHERE `uuid` = ? AND `hls_end` = 1;', $rRecord['uuid']);
-		}
 		$rColumns = array_keys($rDbRow);
 		return self::store()->query('INSERT INTO `lines_live` (`' . implode('`,`', $rColumns) . '`) VALUES(' . implode(',', array_fill(0, count($rColumns), '?')) . ');', ...array_values($rDbRow));
 	}
@@ -1075,6 +1068,15 @@ class ConnectionTracker {
 			$rConn["hmac_id"] = $rCtx["is_hmac"];
 			$rConn["hmac_identifier"] = $rCtx["identifier"];
 			$rConn["identity"] = $rCtx["is_hmac"] . "_" . $rCtx["identifier"];
+		}
+
+		if (!$rSettings["redis_handler"] && $rContainer === 'hls' && !NodeRole::refusesConnects()) {
+			// A re-auth after a close reuses the player's HLS uuid. Drop the closed row
+			// (its activity was logged when it was closed) — the reaper deletes by uuid
+			// and would otherwise take this new row down with the old one. Not on a
+			// node in mode 2: it is refused every query, its record is its agent's,
+			// and MAIN's row follows that one (ConnectionIngest).
+			self::store()->query('DELETE FROM `lines_live` WHERE `uuid` = ? AND `hls_end` = 1;', $rConn["uuid"]);
 		}
 
 		$rOwner = is_null($rCtx["is_hmac"]) ? ["user_id" => $rConn["user_id"]] : ["hmac_id" => $rConn["hmac_id"], "hmac_identifier" => $rConn["hmac_identifier"]];

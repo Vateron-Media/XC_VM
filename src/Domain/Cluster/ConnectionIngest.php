@@ -104,16 +104,13 @@ final class ConnectionIngest {
 		}
 
 		$rDb = self::db();
-		if (!$rDb->query('SELECT `activity_id`, `server_id`, `hls_end` FROM `lines_live` WHERE `uuid` = ?;', $rUUID)) {
+		if (!$rDb->query('SELECT `activity_id`, `server_id` FROM `lines_live` WHERE `uuid` = ?;', $rUUID)) {
 			return self::failed($rFailBatch); // unread, it would be inserted a second time
 		}
 		$rRow = $rDb->num_rows() > 0 ? $rDb->get_row() : null;
 		$rColumns = array_intersect_key($rRecord, array_flip(self::COLUMNS));
 		if ($rRow !== null) {
-			// Another node's connection. Only its closed row gives way, to a viewer
-			// that opened again on this node: an HLS uuid names the player, not the
-			// server, and the closed row stays until the reaper's next pass.
-			if ((int) $rRow['server_id'] !== $rServerID && (empty($rRow['hls_end']) || $rRecord['hls_end'])) {
+			if ((int) $rRow['server_id'] !== $rServerID) {
 				return false;
 			}
 			unset($rColumns['uuid']);

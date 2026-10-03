@@ -218,7 +218,7 @@ final class EventIngestFailedWriteTest extends TestCase {
 			'security.block_ip: the servers it never blocks' => ['/^SELECT `server_ip`/'],
 			'security.block_ip: its INSERT' => ['/^INSERT INTO `blocked_ips`/'],
 			'node.state: its UPDATE' => ['/^UPDATE `servers`/'],
-			'conn.upsert: its read' => ['/^SELECT `activity_id`, `server_id`, `hls_end` FROM `lines_live`/'],
+			'conn.upsert: its read' => ['/^SELECT `activity_id`, `server_id` FROM `lines_live`/'],
 			'conn.upsert: its INSERT' => ['/^INSERT INTO `lines_live`/'],
 			'conn.remove and conn.close: the DELETE' => ['/^DELETE FROM `lines_live`/'],
 			'conn.close: its read' => ['/^SELECT \* FROM `lines_live`/'],
