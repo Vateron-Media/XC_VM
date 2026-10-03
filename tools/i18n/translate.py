@@ -101,17 +101,18 @@ def _system_prompt(lang_name: str, glossary: list[str]) -> str:
         f"You are a professional technical translator. Translate the given "
         f"Markdown document from English into {lang_name}.",
         "Rules:",
-        "- Output ONLY the translated Markdown, nothing else. No preamble.",
-        "- Preserve the Markdown structure EXACTLY: headings, lists, tables, "
+        "- Your reply is written straight to the translated file, so reply "
+        "with the translated Markdown alone.",
+        "- Keep the Markdown structure as it is: headings, lists, tables, "
         "blockquotes, admonitions, front matter keys, link/image syntax.",
-        "- NEVER translate content inside fenced code blocks (```...```) or "
-        "inline code (`...`); copy it verbatim.",
-        "- NEVER translate URLs, file paths, HTML tags/attributes, or link "
-        "targets — translate only human-visible link text.",
+        "- Copy fenced code blocks (```...```) and inline code (`...`) "
+        "verbatim; they are commands and identifiers.",
+        "- Keep URLs, file paths, HTML tags/attributes and link targets "
+        "unchanged; translate only human-visible link text.",
         "- Keep heading text natural; anchors are derived from it automatically.",
         "- Preserve inline emphasis markers (**bold**, *italic*, _underscore_) "
-        "verbatim and balanced: wrap the translated words with the SAME opening "
-        "and closing markers; never drop or misplace a closing **.",
+        "verbatim and balanced: wrap the translated words with the same opening "
+        "and closing markers, including every closing **.",
         "- Preserve trailing/leading whitespace and blank-line layout.",
     ]
     if glossary:
@@ -132,7 +133,7 @@ def provider_anthropic(text: str, lang: str, glossary: list[str]) -> str:
     import anthropic  # lazy: only needed when this provider is selected
 
     lang_name = LANG_NAMES.get(lang, lang)
-    model = os.environ.get("DOCS_TRANSLATE_MODEL", "claude-sonnet-5")
+    model = os.environ.get("DOCS_TRANSLATE_MODEL", "claude-sonnet-5-5")
     client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY
     msg = client.messages.create(
         model=model,
@@ -140,6 +141,8 @@ def provider_anthropic(text: str, lang: str, glossary: list[str]) -> str:
         system=_system_prompt(lang_name, glossary),
         messages=[{"role": "user", "content": text}],
     )
+    if msg.stop_reason != "end_turn":
+        raise RuntimeError(f"translation stopped early ({msg.stop_reason})")
     return "".join(
         block.text for block in msg.content if getattr(block, "type", "") == "text"
     )
