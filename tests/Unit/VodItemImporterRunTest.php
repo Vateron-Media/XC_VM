@@ -183,6 +183,15 @@ final class VodItemImporterRunTest extends TestCase {
         $this->assertSame(1, (new \XcVm\Cli\Commands\VodImportItemCommand())->execute(array(base64_encode('{}'))));
     }
 
+    public function testTheBatchCommandRunsOnlyAsXcVm(): void {
+        if (posix_getpwuid(posix_geteuid())['name'] === 'xc_vm') {
+            $this->markTestSkipped('Running as xc_vm.');
+        }
+        $this->expectOutputString("Please run as XC_VM!\n");
+
+        $this->assertSame(1, (new \XcVm\Cli\Commands\VodImportBatchCommand())->execute(array('/etc/passwd')));
+    }
+
     public function testReportsNoMatchAndInsertsNothingWhenTmdbFindsNothing(): void {
         $this->expectOutputRegex('/No match!/');
 

@@ -44,7 +44,6 @@ use XcVm\Domain\Vod\SeriesService;
 use XcVm\Domain\Vod\TMDbService;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
 use XcVm\Module\Plex\PlexService;
-use XcVm\Module\Watch\WatchService;
 
 // Legacy standalone entry: nginx can map /CODE/post.php straight to this file
 // (a `location ~ \.php$` with SCRIPT_FILENAME=$request_filename), bypassing the
@@ -73,7 +72,7 @@ AdminScopeBootstrap::hydrateAdminContext();
 
 // nginx serves an existing post.php directly (standalone), bypassing the front
 // controller — so the module web boot in index.php never runs and the module
-// service classes used by the POST handlers below (WatchService, PlexService)
+// service classes used by the POST handlers below (PlexService)
 // would be unresolved. Load them here. Gated to the standalone
 // POST case only: the FC path (PostController) sets __forcePostMode and has
 // already booted modules, and the footer-render include has $rICount > 1.
@@ -1960,17 +1959,6 @@ if (1 < $rICount) { ?>
 				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
 				exit();
 
-			case 'settings_watch':
-				$rReturn = class_exists(WatchService::class) ? WatchService::editWatchSettings($rData) : array('status' => STATUS_FAILURE, 'data' => null);
-
-				if ($rReturn['status'] == STATUS_SUCCESS) {
-					echo json_encode(array('result' => true, 'location' => 'settings_watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-					exit();
-				}
-
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-				exit();
-
 			case 'server_order':
 				$rReturn = ServerService::reorder($rData);
 
@@ -2044,17 +2032,6 @@ if (1 < $rICount) { ?>
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
 					echo json_encode(array('result' => true, 'location' => 'useragents?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
-					exit();
-				}
-
-				echo json_encode(array('result' => false, 'data' => $rReturn['data'], 'status' => $rReturn['status']));
-				exit();
-
-			case 'watch_add':
-				$rReturn = class_exists(WatchService::class) ? WatchService::processWatchFolder($rData) : array('status' => STATUS_FAILURE, 'data' => null);
-
-				if ($rReturn['status'] == STATUS_SUCCESS) {
-					echo json_encode(array('result' => true, 'location' => 'watch?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
 					exit();
 				}
 

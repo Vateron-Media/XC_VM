@@ -475,9 +475,7 @@ class PageAuthorization {
 	 * api routes (Module_*\/docs/agents/migrate-post-actions.md).
 	 */
 	private const MODULE_POST_ACTIONS = [
-		'settings_plex'  => 'folder_watch_settings',
-		'settings_watch' => 'folder_watch_settings',
-		'plex_add'       => 'folder_watch_add',
-		'watch_add'      => 'folder_watch_add',
+		'settings_plex' => 'folder_watch_settings',
+		'plex_add'      => 'folder_watch_add',
 	];
 }

@@ -91,10 +91,12 @@ Watch Folder is an automated content import system. It monitors local directorie
 |------|-------------|
 | Watch Folder → List | View all configured watch folders with status |
 | Watch Folder → Add | Create/edit a watch folder |
-| Watch Folder → Settings | Global watch settings (parser, TMDB config) |
+| Watch Folder → Settings | Scan interval and files per scan (matching, parallel imports and genres: Settings → VOD Import) |
 | Watch Folder → Logs | View scan output and errors |
 
 ### Admin API actions
+
+The module registers these with core's `AdminApiRegistry`; without it they answer `Invalid action.`
 
 | Action | Description |
 |--------|-------------|
