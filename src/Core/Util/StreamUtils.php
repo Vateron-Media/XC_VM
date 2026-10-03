@@ -276,11 +276,12 @@ class StreamUtils {
 	 * Whether a stream is healthy: its process runs and its playlist exists.
 	 *
 	 * @param string $rPlaylist Playlist path.
-	 * @param int    $rPID      Process id to check (ffmpeg/php).
+	 * @param int    $rPID      Process id to check.
+	 * @param int    $rStreamID Stream whose producer must be running.
 	 * @return bool True if running and the playlist file exists.
 	 */
-	public static function isValidStream(string $rPlaylist, int $rPID) {
-		return (ProcessManager::isRunning($rPID, 'ffmpeg') || ProcessManager::isRunning($rPID, 'php')) && file_exists($rPlaylist);
+	public static function isValidStream(string $rPlaylist, int $rPID, int $rStreamID) {
+		return ProcessManager::isStreamRunning($rPID, $rStreamID) && file_exists($rPlaylist);
 	}
 
 	/**
