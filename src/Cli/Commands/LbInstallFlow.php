@@ -149,6 +149,8 @@ class LbInstallFlow {
 		echo "Installing the xcvm_core PHP extension\n";
 		$rScript = '/tmp/install_xcvm_core.sh';
 		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/install_xcvm_core.sh', $rScript, true)) {
+			// Not fatal: the binaries bundle carries an xcvm_core, and the node's hourly check brings it current.
+			echo 'Could not send ' . MAIN_HOME . "bin/install/install_xcvm_core.sh: the node keeps the xcvm_core of its binaries bundle for now\n";
 			return;
 		}
 		$rArgs = implode(' ', array_map('escapeshellarg', [GIT_OWNER, GIT_REPO_BIN, BIN_PATH]));
