@@ -146,19 +146,40 @@ class LbInstallFlow {
 			return false;
 		}
 
+		return self::applySysctl($rConn, $rRunSSH, $rSendFileSSH, $rUpdateSysctl, $rSysCtl, $rServerID);
+	}
+
+	/**
+	 * The node's sysctl.conf, when its server row asks for one, and the marker
+	 * that says the file is the panel's to keep (config/sysctl.on, read by the
+	 * node's root cron). A file that names XC_VM is ours already and is left.
+	 * False when the file or the marker could not be written.
+	 */
+	public static function applySysctl($rConn, callable $rRunSSH, callable $rSendFileSSH, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
 		$rManaged = stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/sysctl.conf')['output'], 'XC_VM') !== false;
 		if ($rUpdateSysctl && !$rManaged) {
 			echo "Adding sysctl.conf\n";
+			// Best effort: newer kernels name the module nf_conntrack, or build it in.
 			call_user_func($rRunSSH, $rConn, 'sudo modprobe ip_conntrack');
 			file_put_contents(TMP_PATH . 'sysctl_' . $rServerID, $rSysCtl);
 			if (!call_user_func($rSendFileSSH, $rConn, TMP_PATH . 'sysctl_' . $rServerID, '/etc/sysctl.conf', false)) {
 				echo "Could not write /etc/sysctl.conf on the node. Exiting\n";
 				return false;
 			}
-			// Its exit status is not the file's: one key the node's kernel does not know fails it.
-			call_user_func($rRunSSH, $rConn, 'sudo sysctl -p');
+			// One key the node's kernel does not know fails the whole command, while
+			// the file is in place and applies at every boot: what it refused is said,
+			// and the install goes on.
+			$rRefused = trim((string) call_user_func($rRunSSH, $rConn, 'sudo sysctl -p 2>&1 >/dev/null')['output']);
+			if ($rRefused !== '') {
+				echo "sysctl -p did not apply every key on the node (the file is in place and applies at boot):\n" . $rRefused . "\n";
+			}
 		}
-		call_user_func($rRunSSH, $rConn, ($rUpdateSysctl ? 'sudo touch ' : 'sudo rm ') . CONFIG_PATH . 'sysctl.on');
+		$rMarker = escapeshellarg(CONFIG_PATH . 'sysctl.on');
+		$rSet = call_user_func($rRunSSH, $rConn, ($rUpdateSysctl ? 'sudo touch ' . $rMarker . ' && sudo test -e ' : 'sudo rm -f ' . $rMarker . ' && sudo test ! -e ') . $rMarker . ' && echo MARK_OK')['output'];
+		if (trim((string) $rSet) !== 'MARK_OK') {
+			echo 'Could not ' . ($rUpdateSysctl ? 'set' : 'clear') . " the node's sysctl marker (config/sysctl.on). Exiting\n";
+			return false;
+		}
 		return true;
 	}
 
