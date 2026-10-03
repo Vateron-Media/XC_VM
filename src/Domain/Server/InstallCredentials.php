@@ -14,7 +14,9 @@ namespace XcVm\Domain\Server;
  *
  * The node's SSH host key is checked too: an optional expected SHA-1
  * fingerprint from the admin, else the one stored from the node's first install
- * (`servers.ssh_hostkey_sha1`), else trust on first use, as before.
+ * (`servers.ssh_hostkey_sha1`), else trust on first use, as before. An admin
+ * who reinstalls a rebuilt node may have the stored one forgotten for that
+ * install (`--forget-hostkey`): the key the node presents is then stored.
  *
  * @package XC_VM_Domain_Server
  * @author  Divarion_D <https://github.com/Divarion-D>
@@ -73,7 +75,7 @@ final class InstallCredentials {
 	 *
 	 * @param list<string> $rTail Remaining positional arguments, already shell-safe.
 	 */
-	public static function command(int $rType, int $rServerID, int $rPort, string $rUsername, string $rPassword, array $rTail = [], string $rExpectedHostKey = ''): string {
+	public static function command(int $rType, int $rServerID, int $rPort, string $rUsername, string $rPassword, array $rTail = [], string $rExpectedHostKey = '', bool $rForgetHostKey = false): string {
 		$rCred = self::write($rServerID, $rUsername, $rPassword);
 		$rCommand = PHP_BIN . ' ' . MAIN_HOME . 'console.php server:install ' . $rType . ' ' . $rServerID . ' ' . $rPort . ' - -';
 		foreach ($rTail as $rArg) {
@@ -83,6 +85,10 @@ final class InstallCredentials {
 		$rHostKey = self::normalizeHostKey($rExpectedHostKey);
 		if ($rHostKey !== null) {
 			$rCommand .= ' --expect-hostkey=' . $rHostKey;
+		}
+		if ($rForgetHostKey) {
+			// The admin says the node was rebuilt: the key stored at its first install is not asked for.
+			$rCommand .= ' --forget-hostkey=1';
 		}
 		return $rCommand . ' > "' . self::dir() . $rServerID . '.install" 2>/dev/null &';
 	}
@@ -158,7 +164,7 @@ final class InstallCredentials {
 			return hash_equals($rExpected, $rPresented) ? null : "SSH host key mismatch: expected {$rExpected}, got {$rPresented}";
 		}
 		if ($rStored !== null && $rStored !== '' && !hash_equals($rStored, $rPresented)) {
-			return "SSH host key changed since this node was installed (stored {$rStored}, got {$rPresented}). If the node was rebuilt, enter its new fingerprint as the expected host key and retry";
+			return "SSH host key changed since this node was installed (stored {$rStored}, got {$rPresented}). If the node was rebuilt, enter its new fingerprint as the expected host key, or switch on \"Forget the saved SSH host key\", and retry";
 		}
 		return null;
 	}

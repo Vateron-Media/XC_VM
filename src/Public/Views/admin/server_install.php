@@ -68,6 +68,15 @@ $rCoverage = $rIsEdit ? (ServerRepository::getAll()[$rServerArr['id']]['parent_i
                             <label class="col-md-3 col-form-label" for="expected_hostkey"><?= $language::get('expected_ssh_hostkey'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('expected_ssh_hostkey_tooltip'), ENT_QUOTES); ?>"></i></label>
                             <div class="col-md-9"><input type="text" class="form-control" id="expected_hostkey" name="expected_hostkey" value="" placeholder="SHA1:… / 40 hex" autocomplete="off"></div>
                         </div>
+                        <?php if ($rIsEdit && !empty($rServerArr['ssh_hostkey_sha1'])): ?>
+                            <div class="row mb-3">
+                                <label class="col-md-3 col-form-label" for="forget_hostkey"><?= $language::get('forget_ssh_hostkey'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('forget_ssh_hostkey_tooltip'), ENT_QUOTES); ?>"></i></label>
+                                <div class="col-md-9">
+                                    <div class="form-check form-switch mt-2"><input class="form-check-input" type="checkbox" role="switch" id="forget_hostkey" name="forget_hostkey" value="1"></div>
+                                    <small class="text-body-secondary"><?= $language::get('saved_ssh_hostkey'); ?> <code><?= htmlspecialchars((string) $rServerArr['ssh_hostkey_sha1'], ENT_QUOTES); ?></code></small>
+                                </div>
+                            </div>
+                        <?php endif; ?>
                         <?php if ($rIsProxy): ?>
                             <div class="row mb-3">
                                 <label class="col-md-3 col-form-label" for="http_broadcast_port"><?= $language::get('http_port'); ?> <i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= htmlspecialchars((string) $language::get('install_port_tooltip'), ENT_QUOTES); ?>"></i></label>

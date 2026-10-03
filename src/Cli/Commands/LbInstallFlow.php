@@ -49,8 +49,15 @@ class LbInstallFlow {
 		return $rMap[$rDistID][$rMajor] ?? 'debian';
 	}
 
+	/**
+	 * The load-balancer archive of MAIN's own release, from GitHub: a node runs
+	 * MAIN's release, never a newer one, as UpdateCommand pins its updates. The
+	 * md5 is null when the release lists no such asset or cannot be read.
+	 *
+	 * @return array{url: string, md5: ?string}
+	 */
 	public static function resolveUpdateData(GitHubReleases $gitRelease): array {
-		$rUpdateData = $gitRelease->getUpdateFile("lb", XC_VM_VERSION);
+		$rUpdateData = $gitRelease->getVersionFile('lb', XC_VM_VERSION);
 		return [
 			'url' => $rUpdateData['url'],
 			'md5' => $rUpdateData['md5'],
@@ -72,11 +79,32 @@ class LbInstallFlow {
 		return 'echo ' . escapeshellarg($rText) . ' | sudo tee ' . ($rAppend ? '-a ' : '') . escapeshellarg($rPath) . ' > /dev/null';
 	}
 
+	/**
+	 * A directory on the node only the SSH user can enter (mktemp -d: 0700),
+	 * under a name nobody can guess, for what root is about to run or unpack.
+	 * At a fixed path in /tmp another user of the node (the panel's own, whose
+	 * cron runs through a reinstall) could own the file first, and swap it
+	 * between its check and its use. Null when the node gave none; the path
+	 * goes into shell commands, so nothing else is accepted.
+	 */
+	public static function privateDir($rConn, callable $rRunSSH): ?string {
+		$rDir = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'mktemp -d /tmp/xcvm.XXXXXXXXXX'));
+		return preg_match('~^/tmp/xcvm\.[A-Za-z0-9]{10}\z~', $rDir) ? $rDir : null;
+	}
+
 	public static function installArchive($rConn, callable $rRunSSH, string $rInstallFiles, string $rHash, int $rServerID, $db): bool {
 		echo "Download archive\n";
-		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O /tmp/XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
-		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
+		$rDir = self::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Could not create a private directory on the node! Exiting\n";
+			return false;
+		}
+		$rArchive = $rDir . '/XC_VM.tar.gz';
+		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O ' . $rArchive . ' -o /dev/null "' . $rInstallFiles . '"');
+		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum ' . $rArchive . ')); echo $md5;');
 		if (empty($rFileHash['output']) || $rHash != trim($rFileHash['output'])) {
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Invalid MD5 checksum! Exiting\n";
 			return false;
@@ -84,7 +112,8 @@ class LbInstallFlow {
 
 		echo "Extracting to directory\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
-		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf /tmp/XC_VM.tar.gz -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf ' . $rArchive . ' -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 		$rRemoteCheck = trim(call_user_func($rRunSSH, $rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
 		if ($rRemoteCheck !== 'OK') {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -92,57 +121,164 @@ class LbInstallFlow {
 			return false;
 		}
 
-		call_user_func($rRunSSH, $rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
-
 		return true;
 	}
 
-	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): void {
+	/**
+	 * What follows the archive on the node: its binaries, xcvm_core, its two
+	 * ramdisks and, when the admin asked for it, the panel's sysctl.conf. False
+	 * when one of them could not be put in place, and the install stops: the
+	 * archive carries no PHP, nginx or extension, the segments and caches of a
+	 * node without its ramdisks go to disk, and a sysctl.conf that was asked
+	 * for and not written would be recorded as applied.
+	 */
+	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
 		echo "Installing distribution-specific binaries\n";
 		if (!self::installDistributionBinaries($rConn, $rRunSSH, $rDistID, $rVersion)) {
-			echo "Warning: Failed to install distribution binaries, using defaults\n";
+			echo "Failed to install the distribution binaries (PHP, nginx) from GitHub. Exiting\n";
+			return false;
 		}
-		self::installExtension($rConn, $rRunSSH, $rSendFileSSH);
+		if (!self::installExtension($rConn, $rRunSSH, $rSendFileSSH)) {
+			return false;
+		}
+		if (!self::ensureRamdisks($rConn, $rRunSSH)) {
+			echo "Could not add the ramdisk mounts to /etc/fstab on the node. Exiting\n";
+			return false;
+		}
 
-		if (stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) === false) {
-			echo "Adding ramdisk mounts\n";
-			call_user_func($rRunSSH, $rConn, self::sudoWrite('tmpfs ' . STREAMS_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=90% 0 0', '/etc/fstab', true));
-			call_user_func($rRunSSH, $rConn, self::sudoWrite('tmpfs ' . TMP_PATH . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,size=2G 0 0', '/etc/fstab', true));
-		}
+		return self::applySysctl($rConn, $rRunSSH, $rSendFileSSH, $rUpdateSysctl, $rSysCtl, $rServerID);
+	}
 
-		if (stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/sysctl.conf')['output'], 'XC_VM') === false) {
-			if ($rUpdateSysctl) {
-				echo "Adding sysctl.conf\n";
-				call_user_func($rRunSSH, $rConn, 'sudo modprobe ip_conntrack');
-				file_put_contents(TMP_PATH . 'sysctl_' . $rServerID, $rSysCtl);
-				call_user_func($rSendFileSSH, $rConn, TMP_PATH . 'sysctl_' . $rServerID, '/etc/sysctl.conf', false);
-				call_user_func($rRunSSH, $rConn, 'sudo sysctl -p');
-				call_user_func($rRunSSH, $rConn, 'sudo touch ' . CONFIG_PATH . 'sysctl.on');
-			} else {
-				call_user_func($rRunSSH, $rConn, 'sudo rm ' . CONFIG_PATH . 'sysctl.on');
+	/**
+	 * The node's sysctl.conf, when its server row asks for one, and the marker
+	 * that says the file is the panel's to keep (config/sysctl.on, read by the
+	 * node's root cron). A file that names XC_VM is ours already and is left.
+	 * False when the file or the marker could not be written.
+	 */
+	public static function applySysctl($rConn, callable $rRunSSH, callable $rSendFileSSH, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
+		$rManaged = stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/sysctl.conf')['output'], 'XC_VM') !== false;
+		if ($rUpdateSysctl && !$rManaged) {
+			echo "Adding sysctl.conf\n";
+			// Best effort: newer kernels name the module nf_conntrack, or build it in.
+			call_user_func($rRunSSH, $rConn, 'sudo modprobe ip_conntrack');
+			file_put_contents(TMP_PATH . 'sysctl_' . $rServerID, $rSysCtl);
+			if (!call_user_func($rSendFileSSH, $rConn, TMP_PATH . 'sysctl_' . $rServerID, '/etc/sysctl.conf', false)) {
+				echo "Could not write /etc/sysctl.conf on the node. Exiting\n";
+				return false;
 			}
-		} else {
-			if (!$rUpdateSysctl) {
-				call_user_func($rRunSSH, $rConn, 'sudo rm ' . CONFIG_PATH . 'sysctl.on');
-			} else {
-				call_user_func($rRunSSH, $rConn, 'sudo touch ' . CONFIG_PATH . 'sysctl.on');
+			// One key the node's kernel does not know fails the whole command, while
+			// the file is in place and applies at every boot: what it refused is said,
+			// and the install goes on.
+			$rRefused = trim((string) call_user_func($rRunSSH, $rConn, 'sudo sysctl -p 2>&1 >/dev/null')['output']);
+			if ($rRefused !== '') {
+				echo "sysctl -p did not apply every key on the node (the file is in place and applies at boot):\n" . $rRefused . "\n";
 			}
 		}
+		$rMarker = escapeshellarg(CONFIG_PATH . 'sysctl.on');
+		$rSet = call_user_func($rRunSSH, $rConn, ($rUpdateSysctl ? 'sudo touch ' . $rMarker . ' && sudo test -e ' : 'sudo rm -f ' . $rMarker . ' && sudo test ! -e ') . $rMarker . ' && echo MARK_OK')['output'];
+		if (trim((string) $rSet) !== 'MARK_OK') {
+			echo 'Could not ' . ($rUpdateSysctl ? 'set' : 'clear') . " the node's sysctl marker (config/sysctl.on). Exiting\n";
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * The node's two ramdisks in its fstab: the live segments (content/streams)
+	 * and tmp. Each missing one is added, so a file that holds one only is
+	 * completed, and the file is read again: true when both are there.
+	 */
+	public static function ensureRamdisks($rConn, callable $rRunSSH, string $rFstab = '/etc/fstab'): bool {
+		$rRead = static fn(): string => (string) call_user_func($rRunSSH, $rConn, 'sudo cat ' . escapeshellarg($rFstab))['output'];
+		$rHave = $rRead();
+		$rAdded = false;
+		// tee -a writes from the file's last byte: a last line with no newline would get the new one glued to it, and neither would mount.
+		$rBreak = $rHave === '' || str_ends_with($rHave, "\n") ? '' : "\n";
+		foreach ([STREAMS_PATH => 'size=90%', TMP_PATH => 'size=2G'] as $rPath => $rSize) {
+			if (stripos($rHave, $rPath) === false) {
+				if (!$rAdded) {
+					echo "Adding ramdisk mounts\n";
+				}
+				$rAdded = true;
+				call_user_func($rRunSSH, $rConn, self::sudoWrite($rBreak . 'tmpfs ' . $rPath . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,' . $rSize . ' 0 0', $rFstab, true));
+				$rBreak = '';
+			}
+		}
+		if ($rAdded) {
+			$rHave = $rRead();
+		}
+		return stripos($rHave, STREAMS_PATH) !== false && stripos($rHave, TMP_PATH) !== false;
 	}
 
 	/**
 	 * Install xcvm_core on the node. The binaries bundle does not carry it, the
 	 * LB archive has no bin/install, and the node's console.php cannot boot
-	 * without it, so MAIN sends its own installer script over.
+	 * without it, so MAIN sends its own installer script over, which takes the
+	 * extension from GitHub.
+	 *
+	 * False when the node ends without it, and the install stops: the script
+	 * could not be sent, it failed (its exit status), or the node's PHP, run
+	 * as the panel runs it, does not have the extension's class.
 	 */
-	private static function installExtension($rConn, callable $rRunSSH, callable $rSendFileSSH): void {
+	public static function installExtension($rConn, callable $rRunSSH, callable $rSendFileSSH): bool {
 		echo "Installing the xcvm_core PHP extension\n";
-		$rScript = '/tmp/install_xcvm_core.sh';
-		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/install_xcvm_core.sh', $rScript, true)) {
-			return;
+		$rInstaller = self::extensionInstaller();
+		if ($rInstaller === null) {
+			echo 'MAIN has no ' . MAIN_HOME . "bin/install/install_xcvm_core.sh and could not take it from GitHub. Exiting\n";
+			return false;
+		}
+		// The script runs as root: it goes where no other user can reach it.
+		$rDir = self::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			echo "Could not create a private directory on the node for the xcvm_core installer. Exiting\n";
+			return false;
+		}
+		$rScript = $rDir . '/install_xcvm_core.sh';
+		if (!call_user_func($rSendFileSSH, $rConn, $rInstaller, $rScript, true)) {
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
+			echo 'Could not send ' . $rInstaller . " to the node. Exiting\n";
+			return false;
 		}
 		$rArgs = implode(' ', array_map('escapeshellarg', [GIT_OWNER, GIT_REPO_BIN, BIN_PATH]));
-		echo call_user_func($rRunSSH, $rConn, 'sudo bash ' . $rScript . ' ' . $rArgs . ' 2>&1; rm -f ' . $rScript)['output'] . "\n";
+		$rLines = preg_split('/\R/', trim((string) call_user_func($rRunSSH, $rConn, 'sudo bash ' . $rScript . ' ' . $rArgs . ' 2>&1; echo "exit=$?"; rm -rf ' . $rDir)['output'])) ?: [];
+		$rExit = (string) array_pop($rLines);
+		echo implode("\n", $rLines) . "\n";
+		$rLoaded = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg('echo class_exists("XC_VM", false) ? "CORE_OK" : "CORE_MISSING";') . ' 2>/dev/null'));
+		if ($rExit !== 'exit=0' || $rLoaded !== 'CORE_OK') {
+			echo "xcvm_core is not installed on the node, and a load balancer cannot run without it. Check that the node reaches raw.githubusercontent.com, then install again. Exiting\n";
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * MAIN's copy of the xcvm_core installer, the script it sends to a node. A
+	 * MAIN that reached its release through updates may not have it: until
+	 * 2.6.0 the updater left bin/install out, and an install then ran
+	 * "bash: /tmp/install_xcvm_core.sh: No such file or directory". A missing
+	 * one is taken from the panel's GitHub repository, at MAIN's release (main
+	 * for a build with no tag of its own), and kept. Null when MAIN has none
+	 * and GitHub gave none.
+	 *
+	 * @param (callable(string, string): bool)|null $rDownload Tests: fetch a URL to a file.
+	 */
+	public static function extensionInstaller(?string $rPath = null, ?callable $rDownload = null): ?string {
+		$rPath ??= MAIN_HOME . 'bin/install/install_xcvm_core.sh';
+		if (is_file($rPath) && filesize($rPath) > 0) {
+			return $rPath;
+		}
+		$rDownload ??= [ReleaseAsset::class, 'download'];
+		$rPart = $rPath . '.part';
+		foreach ([XC_VM_VERSION, 'main'] as $rRef) {
+			$rUrl = 'https://raw.githubusercontent.com/' . GIT_OWNER . '/' . GIT_REPO_MAIN . '/' . rawurlencode((string) $rRef) . '/src/bin/install/install_xcvm_core.sh';
+			// A shell script, not an error page: it is run as root on the node.
+			if ($rDownload($rUrl, $rPart) && str_starts_with((string) @file_get_contents($rPart, false, null, 0, 11), '#!/bin/bash') && @rename($rPart, $rPath)) {
+				echo 'MAIN had no install_xcvm_core.sh: taken from GitHub (' . $rRef . ")\n";
+				return $rPath;
+			}
+			@unlink($rPart);
+		}
+		return null;
 	}
 
 	/**
@@ -337,7 +473,8 @@ class LbInstallFlow {
 		// install_id / config.enc as root. A root-owned install_id is unreadable by
 		// FPM (xc_vm) and makes config.enc decryption fall back to a default config.
 		call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1');
-		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
+		// No `status 1` here: it runs as root only, and the service restart before
+		// this ran it (`startup`, as root).
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php startup');
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:servers');
 		// The node's ffmpeg builds, which no release archive carries: before its
@@ -413,13 +550,23 @@ class LbInstallFlow {
 			return false;
 		}
 
+		// Root copies these into bin/: they are fetched and unpacked where no other user can reach them.
+		$rDir = self::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			echo "Could not create a private directory on the node\n";
+			return false;
+		}
+		$rTar = $rDir . '/xc_vm_bin.tar.gz';
+		$rUnpacked = $rDir . '/xc_vm_bin';
+
 		$rURL = 'https://github.com/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/download/' . $rTag . '/' . $rBinaryName;
 		echo "Downloading {$rBinaryName} from release {$rTag}\n";
-		call_user_func($rRunSSH, $rConn, 'wget -q --timeout=30 -O /tmp/xc_vm_bin.tar.gz "' . $rURL . '"');
+		call_user_func($rRunSSH, $rConn, 'wget -q --timeout=30 -O ' . $rTar . ' "' . $rURL . '"');
 
-		$rCheck = trim(call_user_func($rRunSSH, $rConn, 'test -s /tmp/xc_vm_bin.tar.gz && echo OK')['output']);
+		$rCheck = trim(call_user_func($rRunSSH, $rConn, 'test -s ' . $rTar . ' && echo OK')['output']);
 		if ($rCheck !== 'OK') {
 			echo "Failed to download distribution binaries\n";
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 			return false;
 		}
 
@@ -450,10 +597,10 @@ class LbInstallFlow {
 		}
 
 		if ($rExpectedHash !== null) {
-			$rActualHash = trim(explode(' ', call_user_func($rRunSSH, $rConn, 'md5sum /tmp/xc_vm_bin.tar.gz')['output'])[0]);
+			$rActualHash = trim(explode(' ', call_user_func($rRunSSH, $rConn, 'md5sum ' . $rTar)['output'])[0]);
 			if ($rActualHash !== $rExpectedHash) {
 				echo "MD5 verification failed for {$rBinaryName}: expected {$rExpectedHash}, got {$rActualHash}\n";
-				call_user_func($rRunSSH, $rConn, 'rm -f /tmp/xc_vm_bin.tar.gz');
+				call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 				return false;
 			}
 			echo "MD5 verification passed for {$rBinaryName}\n";
@@ -462,13 +609,13 @@ class LbInstallFlow {
 		}
 
 		echo "Extracting distribution binaries\n";
-		call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin && mkdir -p /tmp/xc_vm_bin');
-		call_user_func($rRunSSH, $rConn, 'sudo tar -xzf /tmp/xc_vm_bin.tar.gz -C /tmp/xc_vm_bin');
+		call_user_func($rRunSSH, $rConn, 'mkdir -p ' . $rUnpacked);
+		call_user_func($rRunSSH, $rConn, 'sudo tar -xzf ' . $rTar . ' -C ' . $rUnpacked);
 
-		$rSourceDir = trim(call_user_func($rRunSSH, $rConn, 'find /tmp/xc_vm_bin -maxdepth 3 -type d -name php -print -quit 2>/dev/null | xargs dirname 2>/dev/null')['output']);
+		$rSourceDir = trim(call_user_func($rRunSSH, $rConn, 'sudo find ' . $rUnpacked . ' -maxdepth 3 -type d -name php -print -quit 2>/dev/null | xargs dirname 2>/dev/null')['output']);
 		if (empty($rSourceDir) || $rSourceDir === '.') {
 			echo "Could not find binary structure in archive\n";
-			call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
+			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 			return false;
 		}
 
@@ -499,7 +646,7 @@ class LbInstallFlow {
 			echo "Warning: Failed to encode binaries version metadata\n";
 		}
 
-		call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
+		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 		echo "Distribution-specific binaries installed successfully\n";
 		return true;
 	}

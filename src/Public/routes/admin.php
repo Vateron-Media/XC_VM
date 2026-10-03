@@ -395,8 +395,6 @@ $router->api('get_package_trial', [PackageAjaxController::class, 'getPackageTria
 
 // ─── Active Codes ──────────────────────────────────
 $router->api('active_code_details', [ActiveCodeDetailsController::class, 'index']);
-$router->api('active_code_edit', [ActiveCodeAjaxController::class, 'edit']);
-$router->api('active_code_delete', [ActiveCodeAjaxController::class, 'delete']);
 $router->api('generate_active_codes', [ActiveCodeAjaxController::class, 'generate']);
 $router->api('active_codes_batch_action', [ActiveCodeAjaxController::class, 'batchAction']);
 $router->api('active_codes_export_txt', [ActiveCodeAjaxController::class, 'exportTxt']);

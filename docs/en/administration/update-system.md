@@ -109,7 +109,7 @@ It performs privileged system operations:
 
 Final steps are executed in the `post-update` phase of `UpdateCommand`:
 
-1. If **LB auto-update** is enabled and the main node (`MAIN`) was updated → create `update` signals for all Load Balancers.
+1. If **LB auto-update** is enabled and the main node (`MAIN`) was updated → create `update` signals for all Load Balancers. A Load Balancer that is offline at that moment is told as soon as it is back online. A Load Balancer always installs MAIN's release, never a newer one.
 2. Update the **panel version** in the database.
 3. Remove obsolete files.
 4. Re-apply correct permissions:

@@ -52,6 +52,8 @@ final class InstallCredentialsTest extends TestCase {
 		$this->assertStringNotContainsString('S3cret!pw', $rCommand);
 		$this->assertStringContainsString('server:install 2 9 22 - - 80 443 1 --cred-file=', $rCommand);
 		$this->assertStringContainsString('--expect-hostkey=' . sha1('k'), $rCommand);
+		$this->assertStringNotContainsString('--forget-hostkey', $rCommand, 'only when the admin asks');
+		$this->assertStringContainsString(' --forget-hostkey=1 > ', InstallCredentials::command(2, 9, 22, 'root', 'S3cret!pw', ['80', '443', '1'], '', true));
 		$rCred = InstallCredentials::dir() . '9.cred';
 		$this->assertFileExists($rCred);
 		$this->assertSame('S3cret!pw', InstallCredentials::consume($rCred)['password']);
@@ -80,6 +82,7 @@ final class InstallCredentialsTest extends TestCase {
 		$this->assertNull(InstallCredentials::checkHostKey($rA, null, null), 'first install: trust on first use');
 		$this->assertNull(InstallCredentials::checkHostKey($rA, null, $rA), 'reinstall, same key');
 		$this->assertNotNull(InstallCredentials::checkHostKey($rB, null, $rA), 'reinstall, key changed');
+		$this->assertStringContainsString('Forget the saved SSH host key', (string) InstallCredentials::checkHostKey($rB, null, $rA), 'the refusal names the way out');
 		$this->assertNull(InstallCredentials::checkHostKey($rB, $rB, $rA), 'admin supplied the rebuilt node\'s key');
 		$this->assertNotNull(InstallCredentials::checkHostKey($rA, $rB, null), 'expected key not presented');
 		$this->assertNotNull(InstallCredentials::checkHostKey('', null, null), 'no key at all');

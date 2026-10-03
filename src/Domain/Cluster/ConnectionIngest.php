@@ -4,6 +4,7 @@ namespace XcVm\Domain\Cluster;
 
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\DivergenceSink;
+use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Cluster\StoredConnections;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Domain\Stream\ConnectionTracker;
@@ -74,6 +75,92 @@ final class ConnectionIngest {
 		return $rOk;
 	}
 
+	/**
+	 * MAIN closes an HLS row whose server said it has ended (the table store),
+	 * as its sweep does for its own: the row goes, then its activity line is
+	 * written and its server is told to drop the viewer's marker. The row is
+	 * removed only while it is still ended, so one its server opened again
+	 * since $rRow was read stays, and nothing is logged for it. MAIN's own
+	 * decision, at its sweep or its mint: no node's event comes here.
+	 *
+	 * @param array<string, mixed> $rRow a `lines_live` row
+	 * @param int $rEndAt when the viewer was last heard (MAIN's clock)
+	 * @param bool $rTell false: the caller tells the row's server itself (the sweep, once for all its rows)
+	 */
+	public static function retireEnded(array $rRow, int $rEndAt, bool $rTell = true): bool {
+		$rDb = self::db();
+		if (!$rDb->query('DELETE FROM `lines_live` WHERE `activity_id` = ? AND `hls_end` = 1;', $rRow['activity_id']) || $rDb->num_rows() < 1) {
+			return false;
+		}
+		self::retired($rRow, $rEndAt, $rTell);
+		return true;
+	}
+
+	/**
+	 * retireEnded() for the Redis store: the ended HLS record under $rUUID
+	 * that a server other than $rExceptServer holds. Read and removed under
+	 * a WATCH on its key, so one its server opened again in between stays.
+	 * Its divergence is the sweep's (lines_divergence). False when nothing
+	 * was removed.
+	 */
+	public static function retireEndedRecord(\Redis $rRedis, string $rUUID, int $rExceptServer, int $rNow): bool {
+		$rRedis->watch($rUUID);
+		$rRecord = ConnectionTracker::getConnection($rUUID);
+		if (!is_array($rRecord) || empty($rRecord['hls_end']) || ($rRecord['container'] ?? '') !== 'hls' || (int) ($rRecord['server_id'] ?? 0) === $rExceptServer || !isset($rRecord['identity'], $rRecord['stream_id'])) {
+			$rRedis->unwatch();
+			return false;
+		}
+		$rRecord['uuid'] = $rUUID;
+		if (!ConnectionTracker::removeRecord($rRedis, $rRecord)) {
+			return false; // written since it was read
+		}
+		try {
+			self::db()->query('SELECT `divergence` FROM `lines_divergence` WHERE `uuid` = ?;', $rUUID);
+			$rRecord['divergence'] = (int) round((float) (self::db()->get_row()['divergence'] ?? 0));
+		} catch (\Throwable) {
+			// logged as 0, as the sweep does
+		}
+		$rLast = (int) ($rRecord['hls_last_read'] ?? 0);
+		self::retired($rRecord, $rLast > 0 && $rLast < $rNow ? $rLast : $rNow, true);
+		return true;
+	}
+
+	/**
+	 * The activity line of a record MAIN just removed, and its server told to
+	 * drop the viewer's marker.
+	 *
+	 * @param array<string, mixed> $rRow
+	 */
+	private static function retired(array $rRow, int $rEndAt, bool $rTell): void {
+		$rDb = self::db();
+		ConnectionTracker::writeOfflineActivity(
+			SettingsManager::getAll() + ['save_closed_connection' => 0],
+			(int) $rRow['server_id'],
+			(int) ($rRow['proxy_id'] ?? 0),
+			(int) ($rRow['user_id'] ?? 0),
+			(int) ($rRow['stream_id'] ?? 0),
+			(int) ($rRow['date_start'] ?? 0),
+			(string) ($rRow['user_agent'] ?? ''),
+			(string) ($rRow['user_ip'] ?? ''),
+			(string) ($rRow['container'] ?? ''),
+			(string) ($rRow['geoip_country_code'] ?? ''),
+			(string) ($rRow['isp'] ?? ''),
+			(string) ($rRow['external_device'] ?? ''),
+			(int) ($rRow['divergence'] ?? 0),
+			isset($rRow['hmac_id']) ? (int) $rRow['hmac_id'] : null,
+			(string) ($rRow['hmac_identifier'] ?? ''),
+			$rEndAt,
+			false // the row is gone: nothing left for a sweep's hold to wait for
+		);
+		if ($rTell && (int) $rRow['server_id'] !== (int) SERVER_ID) {
+			try {
+				SignalDispatcher::cache((int) $rRow['server_id'], ['type' => 'delete_con', 'uuid' => (string) $rRow['uuid']], false, false, $rDb);
+			} catch (\Throwable) {
+				// The row is closed either way; the marker is the node's to drop.
+			}
+		}
+	}
+
 	/** @param array<string, mixed> $rRecord */
 	private static function write(int $rServerID, array $rRecord, bool $rFailBatch): bool {
 		$rRecord = array_filter(array_intersect_key($rRecord, array_flip(self::KEYS)), static fn($rValue) => is_scalar($rValue) || $rValue === null);
@@ -115,6 +202,13 @@ final class ConnectionIngest {
 			}
 			unset($rColumns['uuid']);
 			$rWritten = $rDb->query('UPDATE `lines_live` SET ' . implode(', ', array_map(static fn($rColumn) => '`' . $rColumn . '` = ?', array_keys($rColumns))) . ' WHERE `activity_id` = ?;', ...array_values($rColumns), ...[(int) $rRow['activity_id']]);
+			// Nothing changed: the same values again, or MAIN closed this ended row
+			// since it was read (retireEnded) and the viewer would be acknowledged
+			// with no row. Gone: the event is not applied, and sent again it finds
+			// no row and records the viewer.
+			if ($rWritten && $rDb->num_rows() < 1 && (!$rDb->query('SELECT 1 FROM `lines_live` WHERE `activity_id` = ? FOR UPDATE;', (int) $rRow['activity_id']) || $rDb->num_rows() < 1)) {
+				return self::failed($rFailBatch);
+			}
 		} else {
 			$rWritten = $rDb->query('INSERT INTO `lines_live` (`' . implode('`,`', array_keys($rColumns)) . '`) VALUES(' . implode(',', array_fill(0, count($rColumns), '?')) . ');', ...array_values($rColumns));
 		}

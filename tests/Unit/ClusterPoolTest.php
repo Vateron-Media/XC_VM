@@ -250,6 +250,19 @@ final class ClusterPoolTest extends TestCase {
 		$this->assertSame(1800000000000, ClusterMeta::readyAtMs());
 	}
 
+	public function testEachPassKeepsTheMarkerYoungerThanTheTmpSweep(): void {
+		// cron:tmp deletes files in tmp/ ten minutes old: a marker written once
+		// was gone every ~11 minutes, and every node got STARTING for a minute.
+		ClusterPool::ensure(0.0);
+		$rMarker = $this->rBase . ClusterPool::MARKER;
+		touch($rMarker, time() - 900);
+		clearstatcache();
+		$this->assertTrue(ClusterPool::ensure(0.0));
+		clearstatcache();
+		$this->assertGreaterThan(time() - 60, filemtime($rMarker));
+		$this->assertSame(1800000000000, ClusterMeta::readyAtMs(), "a pass that finds it ready leaves the nodes' silence clock alone");
+	}
+
 	public function testANewSizeReloadsOnlyThatPool(): void {
 		ClusterPool::ensure(0.0);
 		$this->takeCalls();

@@ -4,6 +4,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Config\SettingsManager;
+use XcVm\Core\Database\DatabaseHandler;
 use XcVm\Domain\Cluster\ConnectionIngest;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
@@ -152,6 +153,21 @@ final class ConnectionStoreTest extends TestCase {
 		$this->rDb->query('SELECT COUNT(*) AS `n`, MAX(`external_device`) AS `d`, MAX(`hls_end`) AS `e` FROM `lines_live` WHERE `uuid` = ?', 'dddd');
 		$this->assertSame(['1', 'box', '0'], array_map('strval', array_values($this->rDb->get_row())), 'the closed row made way for the new one');
 
+		// A node in mode 1 whose agent holds its viewers, and the agent does not
+		// answer: the record goes to the table after all, and the closed row made way.
+		$rDir = sys_get_temp_dir() . '/xcvm-silent-' . bin2hex(random_bytes(4));
+		mkdir($rDir);
+		file_put_contents($rDir . '/flows.json', json_encode(['mode' => 1, 'flows' => NodeFlows::COMMANDS | NodeFlows::STREAMS | NodeFlows::CONNECTIONS, 'state' => 'active']));
+		NodeFlows::usePath($rDir . '/flows.json');
+		AgentClient::useSocket($rDir . '/agent.sock');
+		$this->rDb->query('UPDATE `lines_live` SET `hls_end` = 1 WHERE `uuid` = ?', 'dddd');
+		$this->assertTrue((bool) ConnectionTracker::createLive($rSettings, $rCtx, 'hls', null));
+		$this->rDb->query('SELECT COUNT(*) AS `n`, MAX(`hls_end`) AS `e` FROM `lines_live` WHERE `uuid` = ?', 'dddd');
+		$this->assertSame(['1', '0'], array_map('strval', array_values($this->rDb->get_row())), 'no closed twin for the reaper to take the new row down with');
+		NodeFlows::usePath(null);
+		AgentClient::useSocket(null);
+		exec('rm -rf ' . escapeshellarg($rDir));
+
 		$rHmac = ['is_hmac' => 3, 'identifier' => 'dev'] + $rCtx;
 		$rHmac['uuid'] = 'eeee';
 		ConnectionTracker::createLive($rSettings, $rHmac, 'ts', 77);
@@ -232,7 +248,165 @@ final class ConnectionStoreTest extends TestCase {
 		$this->assertFalse(ConnectionIngest::close(5, 'bad uuid;'));
 	}
 
+	/**
+	 * MAIN closes a row its server said has ended (its sweep for a node in
+	 * mode 2, and its mint): the row, then its activity line. One its server
+	 * opened again since it was read stays, with nothing logged.
+	 */
+	public function testMainRetiresAnEndedRowOnlyWhileItIsStillEnded(): void {
+		if (!defined('LOGS_TMP_PATH')) {
+			define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-logs-' . bin2hex(random_bytes(4)) . '/');
+		}
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		@unlink(LOGS_TMP_PATH . 'activity');
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 1]);
+		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
+		$rRec = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'hls', 'pid' => null, 'uuid' => 'mmmm', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
+		$rEnded = $this->row('mmmm');
+
+		// Its node opened it again after MAIN read it: it stays, and nothing is logged.
+		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 0] + $rRec));
+		$this->assertFalse(ConnectionIngest::retireEnded($rEnded, 1800000040));
+		$this->assertSame(0, (int) $this->row('mmmm')['hls_end']);
+		$this->assertFileDoesNotExist(LOGS_TMP_PATH . 'activity');
+
+		// In a sweep the lines of rows still to be removed are held, and dropped
+		// when their removal fails. This row is gone already: its line is written
+		// at once, and survives that.
+		$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
+		ConnectionTracker::holdActivity();
+		try {
+			$this->assertTrue(ConnectionIngest::retireEnded((array) $this->row('mmmm'), 1800000040));
+			$this->assertNull($this->row('mmmm'));
+			$this->assertCount(1, file(LOGS_TMP_PATH . 'activity') ?: [], 'not held');
+			ConnectionTracker::releaseActivity(false);
+		} finally {
+			ConnectionTracker::holdActivity(false);
+		}
+		$rLines = file(LOGS_TMP_PATH . 'activity', FILE_IGNORE_NEW_LINES) ?: [];
+		$this->assertCount(1, $rLines);
+		$rActivity = json_decode(base64_decode($rLines[0]), true);
+		$this->assertSame([7, 100, 5, 'hls', 1800000000, 1800000040], [$rActivity['user_id'], $rActivity['stream_id'], $rActivity['server_id'], $rActivity['container'], $rActivity['date_start'], $rActivity['date_end']]);
+		$this->assertFalse(ConnectionIngest::retireEnded($rEnded, 1800000040), 'gone already');
+		$this->assertCount(1, file(LOGS_TMP_PATH . 'activity') ?: []);
+		// Its server is told once to drop the viewer's marker.
+		$this->rDb->query('SELECT `server_id`, `custom_data` FROM `signals`');
+		$this->assertSame([['server_id' => 5, 'custom_data' => '{"type":"delete_con","uuid":"mmmm"}']], array_map(static fn(array $rRow): array => ['server_id' => (int) $rRow['server_id'], 'custom_data' => $rRow['custom_data']], $this->rDb->get_rows()));
+		// The sweep tells each server itself, once for all its rows.
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'nnnn'] + $rRec));
+		$this->assertTrue(ConnectionIngest::retireEnded((array) $this->row('nnnn'), 1800000040, false));
+		$this->rDb->query('SELECT COUNT(*) FROM `signals`');
+		$this->assertSame(1, (int) $this->rDb->get_col());
+	}
+
+	/**
+	 * MAIN closed a node's ended row (its sweep, its mint) between this
+	 * event's read and its UPDATE: the UPDATE changes nothing, and the viewer
+	 * that opened again must not be acknowledged with no row. A snapshot's
+	 * record is dropped (the digest asks again); an events batch is not applied.
+	 */
+	public function testAReopenWhoseRowMainJustClosedIsNotAcknowledged(): void {
+		SettingsManager::set(['redis_handler' => 0]);
+		$rRec = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'hls', 'pid' => null, 'uuid' => 'pppp', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 1];
+		$rRacing = new class ($this->rDb) extends DatabaseHandler {
+			public function __construct(private TestDb $rInner) {
+			}
+
+			public function query($query, ...$args): bool {
+				if (str_starts_with((string) $query, 'UPDATE `lines_live` SET')) {
+					$this->rInner->query('DELETE FROM `lines_live` WHERE `uuid` = ?', 'pppp'); // MAIN's retire, committed in between
+				}
+				return $this->rInner->query($query, ...$args);
+			}
+
+			public function get_rows($use_id = false, $column_as_id = '', $unique_row = true, $sub_row_id = '') {
+				return $this->rInner->get_rows($use_id, $column_as_id, $unique_row, $sub_row_id);
+			}
+
+			public function get_row() {
+				return $this->rInner->get_row();
+			}
+
+			public function num_rows(): int {
+				return $this->rInner->num_rows();
+			}
+		};
+
+		$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
+		DatabaseFactory::set($rRacing);
+		$this->assertFalse(ConnectionIngest::upsert(5, ['hls_end' => 0] + $rRec), 'a snapshot record: dropped');
+		$this->assertNull($this->row('pppp'));
+
+		DatabaseFactory::set($this->rDb);
+		$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
+		DatabaseFactory::set($rRacing);
+		try {
+			ConnectionIngest::upsert(5, ['hls_end' => 0] + $rRec, true);
+			$this->fail('an events batch is not applied');
+		} catch (\RuntimeException) {
+			// The node sends the batch again.
+		}
+
+		// Sent again, it finds no row and records the viewer.
+		DatabaseFactory::set($this->rDb);
+		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 0] + $rRec, true));
+		$this->assertSame([5, 0], [(int) $this->row('pppp')['server_id'], (int) $this->row('pppp')['hls_end']]);
+		// The same values again change nothing and are no failure: the row is there.
+		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 0] + $rRec, true));
+	}
+
 	// ── Redis ────────────────────────────────────────────────────────────
+
+	/**
+	 * The Redis store: MAIN's mint closes the player's ended HLS record that
+	 * another server holds, with its sets and its activity line. An open one,
+	 * one on the node the player is sent to, and one that is not HLS stay.
+	 */
+	public function testMainRetiresAnEndedRedisRecordOfAnotherServer(): void {
+		if (!defined('LOGS_TMP_PATH')) {
+			define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-logs-' . bin2hex(random_bytes(4)) . '/');
+		}
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		@unlink(LOGS_TMP_PATH . 'activity');
+		$rRedis = $this->connectRedis();
+		$rRedis->flushAll();
+		SettingsManager::set(['redis_handler' => 1, 'save_closed_connection' => 1]);
+		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_divergence` (`uuid` text, `divergence` real)');
+		$this->rDb->exec("INSERT INTO `lines_divergence` VALUES ('qqqq', 12.4)");
+		$rRec = ['user_id' => 7, 'stream_id' => 100, 'user_ip' => '10.0.0.9', 'container' => 'hls', 'pid' => null, 'uuid' => 'qqqq', 'date_start' => 1800000000, 'hls_last_read' => 1800000040, 'hls_end' => 0];
+
+		// Open on node 5: it never makes way.
+		$this->assertTrue(ConnectionIngest::upsert(5, $rRec));
+		$this->assertFalse(ConnectionIngest::retireEndedRecord($rRedis, 'qqqq', 9, 1800000100));
+		$this->assertNotFalse($rRedis->get('qqqq'));
+
+		// Ended on node 5. A player sent to node 5 itself keeps it (the node re-opens it); one sent elsewhere makes MAIN close it.
+		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_end' => 1] + $rRec));
+		$this->assertFalse(ConnectionIngest::retireEndedRecord($rRedis, 'qqqq', 5, 1800000100));
+		$this->assertTrue(ConnectionIngest::retireEndedRecord($rRedis, 'qqqq', 9, 1800000100));
+		$this->assertFalse($rRedis->get('qqqq'));
+		foreach (['LINE#7', 'LINE_ALL#7', 'STREAM#100', 'SERVER#5', 'CONNECTIONS', 'LIVE'] as $rSet) {
+			$this->assertFalse($rRedis->zScore($rSet, 'qqqq'), $rSet);
+		}
+		$this->assertFalse($rRedis->sIsMember('ENDED', 'qqqq'));
+		$rLines = file(LOGS_TMP_PATH . 'activity', FILE_IGNORE_NEW_LINES) ?: [];
+		$this->assertCount(1, $rLines);
+		$rActivity = json_decode(base64_decode($rLines[0]), true);
+		$this->assertSame([7, 100, 5, 1800000040, 12], [$rActivity['user_id'], $rActivity['stream_id'], $rActivity['server_id'], $rActivity['date_end'], $rActivity['divergence']]);
+		$this->rDb->query('SELECT `server_id`, `custom_data` FROM `signals`');
+		$this->assertSame('{"type":"delete_con","uuid":"qqqq"}', $this->rDb->get_rows()[0]['custom_data'] ?? null);
+		$this->assertFalse(ConnectionIngest::retireEndedRecord($rRedis, 'qqqq', 9, 1800000100), 'gone already');
+
+		// The new node's record then goes in as a new connection.
+		$this->assertTrue(ConnectionIngest::upsert(9, $rRec));
+		$this->assertSame(9, igbinary_unserialize($rRedis->get('qqqq'))['server_id']);
+		// A TS record that ended is not the player's key to clear.
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'rrrr', 'container' => 'ts', 'pid' => 0, 'hls_end' => 1] + $rRec));
+		$this->assertFalse(ConnectionIngest::retireEndedRecord($rRedis, 'rrrr', 9, 1800000100));
+		$this->assertCount(1, file(LOGS_TMP_PATH . 'activity') ?: []);
+	}
 
 	public function testRedisPathKeepsTheRecordAndItsSets(): void {
 		$rRedis = $this->connectRedis();
