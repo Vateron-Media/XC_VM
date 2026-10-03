@@ -89,39 +89,13 @@ final class ConnectionIngest {
 	 */
 	public static function retireEnded(array $rRow, int $rEndAt, bool $rTell = true): bool {
 		$rDb = self::db();
-		if (!$rDb->query('DELETE FROM `lines_live` WHERE `activity_id` = ? AND `hls_end` = 1;', $rRow['activity_id']) || $rDb->num_rows() < 1) {
+		// Never waited for: a node's batch or snapshot holds its rows' locks until it
+		// commits, and a mint or the sweep must not stand still behind one. A locked
+		// row fails at once and stays for the next sweep.
+		if (!$rDb->query('SET STATEMENT innodb_lock_wait_timeout=0 FOR DELETE FROM `lines_live` WHERE `activity_id` = ? AND `hls_end` = 1;', $rRow['activity_id']) || $rDb->num_rows() < 1) {
 			return false;
 		}
 		self::retired($rRow, $rEndAt, $rTell);
-		return true;
-	}
-
-	/**
-	 * retireEnded() for the Redis store: the ended HLS record under $rUUID
-	 * that a server other than $rExceptServer holds. Read and removed under
-	 * a WATCH on its key, so one its server opened again in between stays.
-	 * Its divergence is the sweep's (lines_divergence). False when nothing
-	 * was removed.
-	 */
-	public static function retireEndedRecord(\Redis $rRedis, string $rUUID, int $rExceptServer, int $rNow): bool {
-		$rRedis->watch($rUUID);
-		$rRecord = ConnectionTracker::getConnection($rUUID);
-		if (!is_array($rRecord) || empty($rRecord['hls_end']) || ($rRecord['container'] ?? '') !== 'hls' || (int) ($rRecord['server_id'] ?? 0) === $rExceptServer || !isset($rRecord['identity'], $rRecord['stream_id'])) {
-			$rRedis->unwatch();
-			return false;
-		}
-		$rRecord['uuid'] = $rUUID;
-		if (!ConnectionTracker::removeRecord($rRedis, $rRecord)) {
-			return false; // written since it was read
-		}
-		try {
-			self::db()->query('SELECT `divergence` FROM `lines_divergence` WHERE `uuid` = ?;', $rUUID);
-			$rRecord['divergence'] = (int) round((float) (self::db()->get_row()['divergence'] ?? 0));
-		} catch (\Throwable) {
-			// logged as 0, as the sweep does
-		}
-		$rLast = (int) ($rRecord['hls_last_read'] ?? 0);
-		self::retired($rRecord, $rLast > 0 && $rLast < $rNow ? $rLast : $rNow, true);
 		return true;
 	}
 

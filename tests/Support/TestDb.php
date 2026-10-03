@@ -153,6 +153,8 @@ final class TestDb extends DatabaseHandler {
 		if ($this->driver !== 'mysql') {
 			// SQLite has no row locks and no such clause: a locking read is a plain one there.
 			$query = preg_replace('/\s+FOR UPDATE\s*;?\s*$/i', '', (string) $query);
+			// Nor MariaDB's per-statement variables: the statement itself runs.
+			$query = preg_replace('/^\s*SET STATEMENT\s+\S+\s+FOR\s+/i', '', (string) $query);
 		}
 		$stmt = $this->pdo->prepare($query);
 		$stmt->execute($binds);

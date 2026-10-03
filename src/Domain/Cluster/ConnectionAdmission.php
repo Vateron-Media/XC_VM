@@ -126,8 +126,8 @@ LUA;
 				return null;
 			}
 			// An unlimited line reserves nothing, but its player's ended row on
-			// another server makes way all the same (makeWay): a live HLS mint only.
-			$rHls = ($rTokenData['extension'] ?? '') === 'm3u8' && isset($rTokenData['stream_id']);
+			// another server makes way all the same (makeWay): a live HLS mint, the table store.
+			$rHls = empty($rSettings['redis_handler']) && ($rTokenData['extension'] ?? '') === 'm3u8' && isset($rTokenData['stream_id']);
 			if ($rMax <= 0 && !$rHls) {
 				return null;
 			}
@@ -173,29 +173,25 @@ LUA;
 	 * and MAIN's ingest refuses a uuid another server holds, so the viewer
 	 * would go uncounted until that record is swept. MAIN closes it here, at
 	 * its own mint, as its sweep would (ConnectionIngest::retireEnded). A node
-	 * that still reaches the database does this itself in the table store
-	 * (ConnectionTracker::createLive); one in mode 2 cannot, and in Redis no
-	 * node does.
+	 * that still reaches the database does this itself
+	 * (ConnectionTracker::createLive); one in mode 2 cannot.
 	 *
-	 * An open record never makes way: it may be a second device with the same
-	 * address and player on the same line. Never fails the mint.
+	 * The table store only. In Redis MAIN's sweep closes every server's ended
+	 * record within the minute, from a list it reads at the start of its
+	 * pass: a record closed here and opened by the node meanwhile would be
+	 * taken by that pass's removal. An open record never makes way: it may be
+	 * a second device with the same address and player on the same line.
+	 * Never fails the mint.
 	 *
 	 * @param array<string, mixed> $rSettings
 	 */
 	private static function makeWay(array $rSettings, int $rNode, ?int $rHMAC, string $rIdentifier, int $rLineID, int $rStreamID, string $rIP, string $rUserAgent): void {
-		if ($rStreamID <= 0) {
+		if ($rStreamID <= 0 || !empty($rSettings['redis_handler'])) {
 			return;
 		}
 		try {
 			$rKey = ConnectionTracker::hlsConnectionKey($rHMAC, $rIdentifier, $rLineID, $rStreamID, $rIP, $rUserAgent);
 			$rNow = self::now();
-			if (!empty($rSettings['redis_handler'])) {
-				$rRedis = RedisManager::instance();
-				if ($rRedis instanceof \Redis) {
-					ConnectionIngest::retireEndedRecord($rRedis, $rKey, $rNode, $rNow);
-				}
-				return;
-			}
 			$rDb = self::db();
 			if (!$rDb->query('SELECT * FROM `lines_live` WHERE `uuid` = ? AND `hls_end` = 1 AND `container` = ? AND `server_id` <> ?;', $rKey, 'hls', $rNode)) {
 				return;

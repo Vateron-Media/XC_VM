@@ -141,6 +141,11 @@ final class ConnectionAdmissionTest extends TestCase {
 		$this->rDb->query('SELECT COUNT(*) FROM `cluster_reservations` WHERE `id` = ?', str_repeat('e', 32));
 		$this->assertSame(0, (int) $this->rDb->get_col(), 'nothing is reserved for it');
 
+		// With Redis as the store nothing is read or closed here: MAIN's sweep closes ended records there.
+		$this->rDb->exec('INSERT INTO `lines_live` (`uuid`, `user_id`, `stream_id`, `server_id`, `proxy_id`, `user_agent`, `user_ip`, `container`, `date_start`, `hls_last_read`, `hls_end`) VALUES ' . $rRow($rKey, 9, 1));
+		$this->assertFalse($this->admit($this->token(str_repeat('e', 32), 5, 0, ['extension' => 'm3u8']), ['redis_handler' => 1]));
+		$this->assertSame([$rShort . ':9:1'], $rCount());
+
 		// Without the table the mint still admits: this never fails it.
 		$this->rDb->exec('DROP TABLE `lines_live`');
 		$this->assertTrue($this->admit($this->token(str_repeat('d', 32), 5, 2, ['extension' => 'm3u8'])));
