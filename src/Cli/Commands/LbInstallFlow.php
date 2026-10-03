@@ -79,11 +79,32 @@ class LbInstallFlow {
 		return 'echo ' . escapeshellarg($rText) . ' | sudo tee ' . ($rAppend ? '-a ' : '') . escapeshellarg($rPath) . ' > /dev/null';
 	}
 
+	/**
+	 * A directory on the node only the SSH user can enter (mktemp -d: 0700),
+	 * under a name nobody can guess, for what root is about to run or unpack.
+	 * At a fixed path in /tmp another user of the node (the panel's own, whose
+	 * cron runs through a reinstall) could own the file first, and swap it
+	 * between its check and its use. Null when the node gave none; the path
+	 * goes into shell commands, so nothing else is accepted.
+	 */
+	public static function privateDir($rConn, callable $rRunSSH): ?string {
+		$rDir = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'mktemp -d /tmp/xcvm.XXXXXXXXXX'));
+		return preg_match('~^/tmp/xcvm\.[A-Za-z0-9]{10}\z~', $rDir) ? $rDir : null;
+	}
+
 	public static function installArchive($rConn, callable $rRunSSH, string $rInstallFiles, string $rHash, int $rServerID, $db): bool {
 		echo "Download archive\n";
-		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O /tmp/XC_VM.tar.gz -o /dev/null "' . $rInstallFiles . '"');
-		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum /tmp/XC_VM.tar.gz)); echo $md5;');
+		$rDir = self::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "Could not create a private directory on the node! Exiting\n";
+			return false;
+		}
+		$rArchive = $rDir . '/XC_VM.tar.gz';
+		call_user_func($rRunSSH, $rConn, 'wget --timeout=2 -O ' . $rArchive . ' -o /dev/null "' . $rInstallFiles . '"');
+		$rFileHash = call_user_func($rRunSSH, $rConn, 'md5=($(md5sum ' . $rArchive . ')); echo $md5;');
 		if (empty($rFileHash['output']) || $rHash != trim($rFileHash['output'])) {
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Invalid MD5 checksum! Exiting\n";
 			return false;
@@ -91,15 +112,14 @@ class LbInstallFlow {
 
 		echo "Extracting to directory\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . MAIN_HOME . 'console.php');
-		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf /tmp/XC_VM.tar.gz -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo tar -zxvf ' . $rArchive . ' -C "' . MAIN_HOME . '"');
+		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 		$rRemoteCheck = trim(call_user_func($rRunSSH, $rConn, 'test -f ' . MAIN_HOME . 'console.php && echo OK')['output']);
 		if ($rRemoteCheck !== 'OK') {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
 			echo "Failed to extract files! Exiting\n";
 			return false;
 		}
-
-		call_user_func($rRunSSH, $rConn, 'sudo rm -f "/tmp/XC_VM.tar.gz"');
 
 		return true;
 	}
@@ -154,13 +174,20 @@ class LbInstallFlow {
 	 */
 	public static function installExtension($rConn, callable $rRunSSH, callable $rSendFileSSH): bool {
 		echo "Installing the xcvm_core PHP extension\n";
-		$rScript = '/tmp/install_xcvm_core.sh';
+		// The script runs as root: it goes where no other user can reach it.
+		$rDir = self::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			echo "Could not create a private directory on the node for the xcvm_core installer. Exiting\n";
+			return false;
+		}
+		$rScript = $rDir . '/install_xcvm_core.sh';
 		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/install_xcvm_core.sh', $rScript, true)) {
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 			echo 'Could not send ' . MAIN_HOME . "bin/install/install_xcvm_core.sh to the node (MAIN has no such file, or the transfer failed). Exiting\n";
 			return false;
 		}
 		$rArgs = implode(' ', array_map('escapeshellarg', [GIT_OWNER, GIT_REPO_BIN, BIN_PATH]));
-		$rLines = preg_split('/\R/', trim((string) call_user_func($rRunSSH, $rConn, 'sudo bash ' . $rScript . ' ' . $rArgs . ' 2>&1; echo "exit=$?"; rm -f ' . $rScript)['output'])) ?: [];
+		$rLines = preg_split('/\R/', trim((string) call_user_func($rRunSSH, $rConn, 'sudo bash ' . $rScript . ' ' . $rArgs . ' 2>&1; echo "exit=$?"; rm -rf ' . $rDir)['output'])) ?: [];
 		$rExit = (string) array_pop($rLines);
 		echo implode("\n", $rLines) . "\n";
 		$rLoaded = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg('echo class_exists("XC_VM", false) ? "CORE_OK" : "CORE_MISSING";') . ' 2>/dev/null'));
@@ -440,13 +467,23 @@ class LbInstallFlow {
 			return false;
 		}
 
+		// Root copies these into bin/: they are fetched and unpacked where no other user can reach them.
+		$rDir = self::privateDir($rConn, $rRunSSH);
+		if ($rDir === null) {
+			echo "Could not create a private directory on the node\n";
+			return false;
+		}
+		$rTar = $rDir . '/xc_vm_bin.tar.gz';
+		$rUnpacked = $rDir . '/xc_vm_bin';
+
 		$rURL = 'https://github.com/' . GIT_OWNER . '/' . GIT_REPO_BIN . '/releases/download/' . $rTag . '/' . $rBinaryName;
 		echo "Downloading {$rBinaryName} from release {$rTag}\n";
-		call_user_func($rRunSSH, $rConn, 'wget -q --timeout=30 -O /tmp/xc_vm_bin.tar.gz "' . $rURL . '"');
+		call_user_func($rRunSSH, $rConn, 'wget -q --timeout=30 -O ' . $rTar . ' "' . $rURL . '"');
 
-		$rCheck = trim(call_user_func($rRunSSH, $rConn, 'test -s /tmp/xc_vm_bin.tar.gz && echo OK')['output']);
+		$rCheck = trim(call_user_func($rRunSSH, $rConn, 'test -s ' . $rTar . ' && echo OK')['output']);
 		if ($rCheck !== 'OK') {
 			echo "Failed to download distribution binaries\n";
+			call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 			return false;
 		}
 
@@ -477,10 +514,10 @@ class LbInstallFlow {
 		}
 
 		if ($rExpectedHash !== null) {
-			$rActualHash = trim(explode(' ', call_user_func($rRunSSH, $rConn, 'md5sum /tmp/xc_vm_bin.tar.gz')['output'])[0]);
+			$rActualHash = trim(explode(' ', call_user_func($rRunSSH, $rConn, 'md5sum ' . $rTar)['output'])[0]);
 			if ($rActualHash !== $rExpectedHash) {
 				echo "MD5 verification failed for {$rBinaryName}: expected {$rExpectedHash}, got {$rActualHash}\n";
-				call_user_func($rRunSSH, $rConn, 'rm -f /tmp/xc_vm_bin.tar.gz');
+				call_user_func($rRunSSH, $rConn, 'rm -rf ' . $rDir);
 				return false;
 			}
 			echo "MD5 verification passed for {$rBinaryName}\n";
@@ -489,13 +526,13 @@ class LbInstallFlow {
 		}
 
 		echo "Extracting distribution binaries\n";
-		call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin && mkdir -p /tmp/xc_vm_bin');
-		call_user_func($rRunSSH, $rConn, 'sudo tar -xzf /tmp/xc_vm_bin.tar.gz -C /tmp/xc_vm_bin');
+		call_user_func($rRunSSH, $rConn, 'mkdir -p ' . $rUnpacked);
+		call_user_func($rRunSSH, $rConn, 'sudo tar -xzf ' . $rTar . ' -C ' . $rUnpacked);
 
-		$rSourceDir = trim(call_user_func($rRunSSH, $rConn, 'find /tmp/xc_vm_bin -maxdepth 3 -type d -name php -print -quit 2>/dev/null | xargs dirname 2>/dev/null')['output']);
+		$rSourceDir = trim(call_user_func($rRunSSH, $rConn, 'sudo find ' . $rUnpacked . ' -maxdepth 3 -type d -name php -print -quit 2>/dev/null | xargs dirname 2>/dev/null')['output']);
 		if (empty($rSourceDir) || $rSourceDir === '.') {
 			echo "Could not find binary structure in archive\n";
-			call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
+			call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 			return false;
 		}
 
@@ -526,7 +563,7 @@ class LbInstallFlow {
 			echo "Warning: Failed to encode binaries version metadata\n";
 		}
 
-		call_user_func($rRunSSH, $rConn, 'sudo rm -rf /tmp/xc_vm_bin.tar.gz /tmp/xc_vm_bin');
+		call_user_func($rRunSSH, $rConn, 'sudo rm -rf ' . $rDir);
 		echo "Distribution-specific binaries installed successfully\n";
 		return true;
 	}
