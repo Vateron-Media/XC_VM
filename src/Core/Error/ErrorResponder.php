@@ -134,9 +134,11 @@ class ErrorResponder {
 
 		if ($debug) {
 			$description = self::codes()[$code] ?? '';
-			// Debug branch: always echo the styled page, never set an HTTP code,
-			// terminate only when $kill is set.
-			return new ErrorResponseException($code, null, self::renderDebug($code, $description), false, $kill);
+			// Debug branch: always echo the styled page, terminate only when
+			// $kill is set, and then with production's status (404, or the
+			// given code): a player that read a 200 page as its playlist stalled
+			// instead of reconnecting.
+			return new ErrorResponseException($code, $kill ? ($httpCode ?: 404) : null, self::renderDebug($code, $description), false, $kill);
 		}
 
 		// Production, no termination requested: emit nothing.

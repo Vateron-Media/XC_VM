@@ -1,6 +1,7 @@
 <?php
 
 use PHPUnit\Framework\TestCase;
+use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
 
 /**
@@ -10,7 +11,6 @@ use XcVm\Core\Cluster\NodeRole;
  * nothing on an LB. An unknown answer must read as "not MAIN".
  */
 final class NodeRoleTest extends TestCase {
-
 	protected function setUp(): void {
 		if (!defined('SERVER_ID')) {
 			define('SERVER_ID', 1);
@@ -19,6 +19,34 @@ final class NodeRoleTest extends TestCase {
 
 	protected function tearDown(): void {
 		NodeRole::useServers(null);
+		NodeRole::useMainBuild(null);
+		NodeFlows::usePath(null);
+	}
+
+	/**
+	 * A load balancer's lightweight paths (segment.php) have no database. Its
+	 * build is known from its files, so reading its flows never reads the
+	 * servers there: that read went to MAIN's database once the servers cache
+	 * was 10 s old, and threw (no DatabaseFactory) into the segment request.
+	 */
+	public function testALoadBalancersFlowsAreReadWithoutTheServers(): void {
+		$rFile = tempnam(sys_get_temp_dir(), 'flows');
+		file_put_contents($rFile, json_encode(['v' => 1, 'mode' => 1, 'flows' => NodeFlows::TELEMETRY, 'state' => 'active', 'features' => []]));
+		NodeRole::useServers(static function (): array {
+			throw new \RuntimeException('no database connection available');
+		});
+		try {
+			NodeRole::useMainBuild(false);
+			NodeFlows::usePath($rFile, true);
+			$this->assertTrue(NodeFlows::on(NodeFlows::TELEMETRY));
+
+			NodeRole::useServers(fn () => [SERVER_ID => ['is_main' => 1]]);
+			NodeRole::useMainBuild(true);
+			NodeFlows::usePath($rFile, true);
+			$this->assertFalse(NodeFlows::on(NodeFlows::TELEMETRY), "MAIN's build still rules out MAIN by its servers");
+		} finally {
+			unlink($rFile);
+		}
 	}
 
 	public function testMainNodeIsMain(): void {

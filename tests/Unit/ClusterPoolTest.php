@@ -382,7 +382,7 @@ final class ClusterPoolTest extends TestCase {
 
 		$rStatus = (string) file_get_contents($rSrc . 'Cli/Commands/StatusCommand.php');
 		$this->assertMatchesRegularExpression('#if \(\$rServers\[SERVER_ID\]\[.is_main.\]\) \{[^}]*\$this->ensureClusterPools\(\);#', $rStatus, 'MAIN only');
-		$this->assertStringContainsString("'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:pools'", $rStatus, 'status runs as root, the pools as xc_vm');
+		$this->assertStringContainsString("['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'cluster:pools']", $rStatus, 'status runs as root, the pools as xc_vm');
 		$this->assertStringNotContainsString('ClusterPool::ensure(', $rStatus);
 		$this->assertMatchesRegularExpression('#if \(\$rServers\[SERVER_ID\]\[.is_main.\] && class_exists\(ClusterPool::class\)\) \{\s*ClusterPool::ensure\(#', (string) file_get_contents($rSrc . 'Cli/CronJobs/ServersCronJob.php'), 'cron:servers, as xc_vm, on MAIN only');
 	}

@@ -5110,9 +5110,16 @@ cannot work.
   must use MAIN's address, as the plan's viewer-API routing assumes.
 - **After an update** the archive's default (1) stands until root's next minute.
 
-**Tests.** `LbNginxApiLegacyTest::testTheViewerApisAreGuardedAndFollowTheNodesMode` (the include,
-the guard first in both locations, the shipped default, the switch per mode and state, nothing on
-MAIN), `testTheLbBuildShipsEveryFileItsNginxIncludes`;
+**Later: 404 on every load balancer.** The viewer-API controllers need `Domain/User`, which the
+load balancer build strips as privileged (`verify-lb-archive.sh`), so on a node in mode 0 or 1 the
+routed request ended in a fatal error (`Class "XcVm\Domain\User\UserRepository" not found`, in the
+test panel's `panel_logs`). `viewerApiConf()` now writes 0 on every load balancer and the archive
+ships 0: clients use MAIN's address for these calls in every mode. Nothing that worked stops
+working. The switch stays, for a build that can serve them on a node.
+
+**Tests.** `LbNginxApiLegacyTest::testTheViewerApisAreGuardedAndAnswer404OnEveryLoadBalancer` (the
+include, the guard first in both locations, the shipped default, 0 in every mode and state, nothing
+on MAIN), `testTheLbBuildShipsEveryFileItsNginxIncludes`;
 `ModeTwoPathsTest::testTheRootSignalsMinuteReadsTheReplicaNotMainsDatabase` (a real mode 2 root
 minute writes 0).
 

@@ -286,16 +286,38 @@ class RootSignalsCronJob implements CommandInterface {
 
 	/**
 	 * viewer_api.conf for this node, or null on MAIN: the viewer APIs
-	 * (player_api, enigma2, xplugin, epg, playlist) answer 404 on a node in
-	 * mode 2, which reads no line from MAIN's database to answer them with
-	 * (plan, D16), and are served everywhere else, as before. MAIN's
-	 * nginx.conf has no such switch.
+	 * (player_api, enigma2, xplugin, epg, playlist) answer 404 on every load
+	 * balancer, whatever its mode. Their controllers need Domain/User, which
+	 * the load balancer build strips as privileged (verify-lb-archive.sh), so
+	 * routed there they ended in a fatal error; viewers' apps use MAIN's
+	 * address for them (plan, D16). MAIN's nginx.conf has no such switch.
 	 */
 	public static function viewerApiConf(): ?string {
 		if (NodeRole::isMain()) {
 			return null;
 		}
-		return 'set $viewer_api ' . (NodeRole::refusesConnects() ? '0' : '1') . ';';
+		return 'set $viewer_api 0;';
+	}
+
+	/** The nginx and nginx_rtmp reloads this pass's actions asked for (reloadAsked()). */
+	private static bool $rReloadNginx = false;
+
+	private static bool $rReloadRtmp = false;
+
+	/**
+	 * Apply the reloads this pass's actions asked for, once each. One save of
+	 * a server's ports queues its HTTP, HTTPS and RTMP ports, and each used to
+	 * reload nginx at once: reloads landed within the same second, and nginx
+	 * aborted a worker (signal 6 in MAIN's error.log).
+	 */
+	public static function reloadAsked(): void {
+		if (self::$rReloadRtmp) {
+			self::run(['sudo', BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp', '-s', 'reload']);
+		}
+		if (self::$rReloadNginx) {
+			self::run(['sudo', BIN_PATH . 'nginx/sbin/nginx', '-s', 'reload']);
+		}
+		self::$rReloadNginx = self::$rReloadRtmp = false;
 	}
 
 	/** Tests: run the artefact actions' argv lists through $rRunner (argv => [exit status, output]); null restores run(). */
@@ -749,7 +771,7 @@ class RootSignalsCronJob implements CommandInterface {
 			$rReload = true;
 		}
 		if ($rReload) {
-			shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
+			self::$rReloadNginx = true; // once, after this pass's actions (reloadAsked())
 		}
 		if (SettingsManager::get('restart_php_fpm')) {
 			$rPHP = count(glob(BIN_PATH . 'php/sockets/*.pid') ?: []);
@@ -900,6 +922,7 @@ class RootSignalsCronJob implements CommandInterface {
 					$this->executeAction(is_array($rData) ? $rData : [], $rServers, $db);
 				}
 			}
+			self::reloadAsked();
 			// Purges every node's signals, not just this one's: MAIN only.
 			if (NodeRole::isMain()) {
 				$db->query('DELETE FROM `signals` WHERE LENGTH(`custom_data`) > 0 AND UNIX_TIMESTAMP() - `time` >= 86400;');
@@ -1005,8 +1028,7 @@ class RootSignalsCronJob implements CommandInterface {
 				if (!LogSink::syslog('RELOAD', 'NGINX services reloaded on request.')) {
 					$db->query("INSERT INTO `mysql_syslog`(`server_id`, `type`, `error`, `username`, `ip`, `database`, `date`) VALUES(?, 'RELOAD', 'NGINX services reloaded on request.', 'root', 'localhost', NULL, ?);", SERVER_ID, time());
 				}
-				shell_exec('sudo ' . BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp -s reload');
-				shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
+				self::$rReloadRtmp = self::$rReloadNginx = true;
 				break;
 			case 'disable_ramdisk':
 				echo 'Disabling ramdisk...' . "\n";
@@ -1172,7 +1194,7 @@ class RootSignalsCronJob implements CommandInterface {
 					}
 					file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/live.conf', 'on_play http://127.0.0.1:' . intval($rData['ports'][0]) . '/stream/rtmp; on_publish http://127.0.0.1:' . intval($rData['ports'][0]) . '/stream/rtmp; on_play_done http://127.0.0.1:' . intval($rData['ports'][0]) . '/stream/rtmp;');
 					if ($rData['reload']) {
-						shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
+						self::$rReloadNginx = true;
 					}
 				} elseif (intval($rData['type']) == 1) {
 					$rListen = [];
@@ -1186,12 +1208,12 @@ class RootSignalsCronJob implements CommandInterface {
 						shell_exec('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:nginx --no-reload');
 					}
 					if ($rData['reload']) {
-						shell_exec('sudo ' . BIN_PATH . 'nginx/sbin/nginx -s reload');
+						self::$rReloadNginx = true;
 					}
 				} elseif (intval($rData['type']) == 2) {
 					file_put_contents(MAIN_HOME . 'bin/nginx_rtmp/conf/port.conf', 'listen ' . intval($rData['ports'][0]) . ';');
 					if ($rData['reload']) {
-						shell_exec('sudo ' . BIN_PATH . 'nginx_rtmp/sbin/nginx_rtmp -s reload');
+						self::$rReloadRtmp = true;
 					}
 				}
 				// no break

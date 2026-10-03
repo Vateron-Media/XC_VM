@@ -160,14 +160,14 @@ class VodCronJob implements CommandInterface {
 								$rMovieProperties['duration_secs'] = $rSeconds;
 								$rMovieProperties['duration'] = $rDuration;
 							}
-							if (!isset($rMovieProperties['video']) || $rFFProbee['codecs']['video']['codec_name'] != $rMovieProperties['video']) {
+							if (!isset($rMovieProperties['video']) || ($rFFProbee['codecs']['video']['codec_name'] ?? null) != $rMovieProperties['video']) {
 								$rMovieProperties['video'] = $rFFProbee['codecs']['video'];
 							}
-							if (!isset($rMovieProperties['audio']) || $rFFProbee['codecs']['audio']['codec_name'] != $rMovieProperties['audio']) {
+							if (!isset($rMovieProperties['audio']) || ($rFFProbee['codecs']['audio']['codec_name'] ?? null) != $rMovieProperties['audio']) {
 								$rMovieProperties['audio'] = $rFFProbee['codecs']['audio'];
 							}
 							if (SettingsManager::get('extract_subtitles')) {
-								if (!isset($rMovieProperties['subtitle']) || $rFFProbee['codecs']['subtitle']['codec_name'] != $rMovieProperties['subtitle']) {
+								if (!isset($rMovieProperties['subtitle']) || ($rFFProbee['codecs']['subtitle']['codec_name'] ?? null) != $rMovieProperties['subtitle']) {
 									$rMovieProperties['subtitle'] = $rFFProbee['codecs']['subtitle'];
 								}
 							}
@@ -186,9 +186,9 @@ class VodCronJob implements CommandInterface {
 								}
 							}
 							$rCompatible = intval(DiagnosticsService::checkCompatibility($rFFProbee, SettingsManager::get('player_allow_hevc')));
-							$rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?: null);
-							$rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?: null);
-							$rResolution = ($rFFProbee['codecs']['video']['height'] ?: null);
+							$rAudioCodec = ($rFFProbee['codecs']['audio']['codec_name'] ?? null) ?: null; // a file without an audio track has none
+							$rVideoCodec = ($rFFProbee['codecs']['video']['codec_name'] ?? null) ?: null;
+							$rResolution = ($rFFProbee['codecs']['video']['height'] ?? null) ?: null;
 							if ($rResolution) {
 								$rResolution = StreamSorter::getNearest([240, 360, 480, 576, 720, 1080, 1440, 2160], $rResolution);
 							}
