@@ -32,6 +32,7 @@ use XcVm\Domain\Stream\ChannelService;
 use XcVm\Domain\Stream\ProfileService;
 use XcVm\Domain\Stream\ProviderService;
 use XcVm\Domain\Stream\RadioService;
+use XcVm\Domain\Stream\RecordingService;
 use XcVm\Domain\Cluster\StreamAssign;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamService;
@@ -43,7 +44,6 @@ use XcVm\Domain\Vod\SeriesService;
 use XcVm\Domain\Vod\TMDbService;
 use XcVm\Infrastructure\Bootstrap\AdminScopeBootstrap;
 use XcVm\Module\Plex\PlexService;
-use XcVm\Module\Watch\RecordingService;
 use XcVm\Module\Watch\WatchService;
 
 // Legacy standalone entry: nginx can map /CODE/post.php straight to this file
@@ -73,8 +73,8 @@ AdminScopeBootstrap::hydrateAdminContext();
 
 // nginx serves an existing post.php directly (standalone), bypassing the front
 // controller — so the module web boot in index.php never runs and the module
-// service classes used by the POST handlers below (WatchService, PlexService,
-// RecordingService) would be unresolved. Load them here. Gated to the standalone
+// service classes used by the POST handlers below (WatchService, PlexService)
+// would be unresolved. Load them here. Gated to the standalone
 // POST case only: the FC path (PostController) sets __forcePostMode and has
 // already booted modules, and the footer-render include has $rICount > 1.
 if ($rICount === 1 && empty($GLOBALS['__forcePostMode']) && class_exists(ModuleLoader::class)) {
@@ -1413,11 +1413,9 @@ if (1 < $rICount) { ?>
 				exit();
 
 			case 'record':
-				$rReturn = class_exists(RecordingService::class) ? RecordingService::schedule($rData) : array('status' => STATUS_FAILURE, 'data' => null);
+				$rReturn = RecordingService::schedule($rData);
 
 				if ($rReturn['status'] == STATUS_SUCCESS) {
-					// A recording scheduled on a node: the recorded stream's R2 record carries it.
-					EventDispatcher::dispatch(new StreamsChangedEvent(array(intval($rData['stream_id'] ?? 0))));
 					echo json_encode(array('result' => true, 'location' => 'archive?status=' . intval($rReturn['status']), 'status' => $rReturn['status']));
 					exit();
 				}
