@@ -21,7 +21,7 @@ class RecordingService {
 	use \XcVm\Infrastructure\Database\DatabaseAware;
 
 	/**
-	 * Schedule (or, with an `id`, replace) a recording.
+	 * Schedule a new recording.
 	 *
 	 * @param array $rData Posted form: title, source_id, stream_id, start, end, bouquets[], category_id[], ...
 	 * @return array ['status' => STATUS_*, 'data' => ...]
@@ -35,11 +35,16 @@ class RecordingService {
 			return ['status' => STATUS_NO_SOURCE];
 		}
 
+		// Server-owned columns never come from the form: a posted `id` would
+		// overwrite another recording, a `created_id` would make delete()
+		// remove an arbitrary stream.
+		unset($rData['id'], $rData['created_id'], $rData['status']);
 		$rArray = QueryHelper::verifyPostTable('recordings', $rData);
+		unset($rArray['id']);
 		$rArray['bouquets'] = '[' . implode(',', array_map('intval', (array) ($rData['bouquets'] ?? []))) . ']';
 		$rArray['category_id'] = '[' . implode(',', array_map('intval', (array) ($rData['category_id'] ?? []))) . ']';
 		$rPrepare = QueryHelper::prepareArray($rArray);
-		$rQuery = 'REPLACE INTO `recordings`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
+		$rQuery = 'INSERT INTO `recordings`(' . $rPrepare['columns'] . ') VALUES(' . $rPrepare['placeholder'] . ');';
 
 		if ($db->query($rQuery, ...$rPrepare['data'])) {
 			$rInsertID = $db->last_insert_id();

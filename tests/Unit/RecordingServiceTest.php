@@ -74,6 +74,17 @@ final class RecordingServiceTest extends TestCase {
 		$this->assertSame([[11]], $this->changed);
 	}
 
+	public function testScheduleIgnoresServerOwnedColumnsFromTheForm(): void {
+		$this->db->exec("INSERT INTO recordings (id, title) VALUES (1, 'existing');");
+
+		RecordingService::schedule(['id' => 1, 'created_id' => 500, 'status' => 1, 'title' => 'News', 'source_id' => 6, 'stream_id' => 11]);
+
+		$rRows = RecordingService::getAll();
+		$this->assertSame(['News', 'existing'], array_column($rRows, 'title'), 'a posted id does not overwrite another recording');
+		$this->assertNull($rRows[0]['created_id']);
+		$this->assertNull($rRows[0]['status']);
+	}
+
 	public function testGetAllListsNewestFirst(): void {
 		$this->db->exec("INSERT INTO recordings (id, title) VALUES (1, 'old'), (2, 'new');");
 
