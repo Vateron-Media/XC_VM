@@ -20,10 +20,15 @@ final class SshChannel {
 	}
 
 	public static function send($rConn, string $rPath, string $rOutput, bool $rWarn = false): bool {
-		$rMD5 = md5_file($rPath);
+		// A file MAIN does not have is not sent: its md5 (false) loosely equalled
+		// the empty md5sum of the missing remote file, and passed for a copy.
+		$rMD5 = is_file($rPath) ? md5_file($rPath) : false;
+		if ($rMD5 === false) {
+			return false;
+		}
 		ssh2_scp_send($rConn, $rPath, $rOutput);
 		$rOutMD5 = trim(explode(' ', self::run($rConn, 'md5sum "' . $rOutput . '"')['output'])[0]);
-		if ($rMD5 == $rOutMD5) {
+		if ($rMD5 === $rOutMD5) {
 			return true;
 		}
 		if ($rWarn) {

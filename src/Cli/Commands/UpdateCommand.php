@@ -316,6 +316,16 @@ class UpdateCommand implements CommandInterface {
 				}
 				UpdateLogger::info('Running file cleanup...');
 				MigrationRunner::runFileCleanup();
+				// The updater that ran is the release before this one's, which left
+				// bin/install out: MAIN kept installers too old for the load
+				// balancers it installs (no install_xcvm_core.sh). Take them from
+				// the archive this update came in.
+				// ponytail: drop once every MAIN runs an updater that copies bin/install.
+				$rArchive = TMP_PATH . '.update.tar.gz';
+				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && is_file($rArchive)) {
+					ProcessRunner::run(['tar', '-xzf', $rArchive, '-C', MAIN_HOME, './bin/install/install_xcvm_core.sh', './bin/install/update_binaries.sh', './bin/install/database.sql'], true);
+					ProcessRunner::run(['chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'bin/install'], true);
+				}
 				// MAIN's copies of the binaries it used to hand its nodes: every node
 				// takes them from GitHub itself now (ADR 0004, "Binaries from GitHub
 				// on every node"), and nothing reads these.

@@ -23,7 +23,10 @@ UPDATE_EXCLUDE_DIRS = [
     "bin/php",
     "bin/bin_version.json",               # the installed runtime bundle's release (update_binaries.sh writes it)
     "bin/redis",
-    "bin/install",
+    # Not bin/install: it ships the installers a load balancer install sends
+    # (install_xcvm_core.sh, update_binaries.sh), and MAIN's own files there
+    # (<id>.json, <id>.install, proxy.tar.gz) are not in the archive, so the
+    # copy below leaves them.
     "bin/maxmind",
     "bin/certbot",
     "content",
