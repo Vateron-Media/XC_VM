@@ -104,14 +104,16 @@ class LbInstallFlow {
 		return true;
 	}
 
-	/** False when the node could not get its PHP and nginx: the archive carries neither. */
+	/** False when the node could not get its PHP and nginx, or xcvm_core: the archive carries none of them. */
 	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
 		echo "Installing distribution-specific binaries\n";
 		if (!self::installDistributionBinaries($rConn, $rRunSSH, $rDistID, $rVersion)) {
 			echo "Failed to install the distribution binaries (PHP, nginx) from GitHub. Exiting\n";
 			return false;
 		}
-		self::installExtension($rConn, $rRunSSH, $rSendFileSSH);
+		if (!self::installExtension($rConn, $rRunSSH, $rSendFileSSH)) {
+			return false;
+		}
 
 		if (stripos(call_user_func($rRunSSH, $rConn, 'sudo cat /etc/fstab')['output'], STREAMS_PATH) === false) {
 			echo "Adding ramdisk mounts\n";
@@ -143,18 +145,30 @@ class LbInstallFlow {
 	/**
 	 * Install xcvm_core on the node. The binaries bundle does not carry it, the
 	 * LB archive has no bin/install, and the node's console.php cannot boot
-	 * without it, so MAIN sends its own installer script over.
+	 * without it, so MAIN sends its own installer script over, which takes the
+	 * extension from GitHub.
+	 *
+	 * False when the node ends without it, and the install stops: the script
+	 * could not be sent, it failed (its exit status), or the node's PHP, run
+	 * as the panel runs it, does not have the extension's class.
 	 */
-	private static function installExtension($rConn, callable $rRunSSH, callable $rSendFileSSH): void {
+	public static function installExtension($rConn, callable $rRunSSH, callable $rSendFileSSH): bool {
 		echo "Installing the xcvm_core PHP extension\n";
 		$rScript = '/tmp/install_xcvm_core.sh';
 		if (!call_user_func($rSendFileSSH, $rConn, MAIN_HOME . 'bin/install/install_xcvm_core.sh', $rScript, true)) {
-			// Not fatal: the binaries bundle carries an xcvm_core, and the node's hourly check brings it current.
-			echo 'Could not send ' . MAIN_HOME . "bin/install/install_xcvm_core.sh: the node keeps the xcvm_core of its binaries bundle for now\n";
-			return;
+			echo 'Could not send ' . MAIN_HOME . "bin/install/install_xcvm_core.sh to the node (MAIN has no such file, or the transfer failed). Exiting\n";
+			return false;
 		}
 		$rArgs = implode(' ', array_map('escapeshellarg', [GIT_OWNER, GIT_REPO_BIN, BIN_PATH]));
-		echo call_user_func($rRunSSH, $rConn, 'sudo bash ' . $rScript . ' ' . $rArgs . ' 2>&1; rm -f ' . $rScript)['output'] . "\n";
+		$rLines = preg_split('/\R/', trim((string) call_user_func($rRunSSH, $rConn, 'sudo bash ' . $rScript . ' ' . $rArgs . ' 2>&1; echo "exit=$?"; rm -f ' . $rScript)['output'])) ?: [];
+		$rExit = (string) array_pop($rLines);
+		echo implode("\n", $rLines) . "\n";
+		$rLoaded = self::lastLine((array) call_user_func($rRunSSH, $rConn, 'sudo ' . PHP_BIN . ' -r ' . escapeshellarg('echo class_exists("XC_VM", false) ? "CORE_OK" : "CORE_MISSING";') . ' 2>/dev/null'));
+		if ($rExit !== 'exit=0' || $rLoaded !== 'CORE_OK') {
+			echo "xcvm_core is not installed on the node, and a load balancer cannot run without it. Check that the node reaches raw.githubusercontent.com, then install again. Exiting\n";
+			return false;
+		}
+		return true;
 	}
 
 	/**
