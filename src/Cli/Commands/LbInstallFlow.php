@@ -171,13 +171,16 @@ class LbInstallFlow {
 		$rRead = static fn(): string => (string) call_user_func($rRunSSH, $rConn, 'sudo cat ' . escapeshellarg($rFstab))['output'];
 		$rHave = $rRead();
 		$rAdded = false;
+		// tee -a writes from the file's last byte: a last line with no newline would get the new one glued to it, and neither would mount.
+		$rBreak = $rHave === '' || str_ends_with($rHave, "\n") ? '' : "\n";
 		foreach ([STREAMS_PATH => 'size=90%', TMP_PATH => 'size=2G'] as $rPath => $rSize) {
 			if (stripos($rHave, $rPath) === false) {
 				if (!$rAdded) {
 					echo "Adding ramdisk mounts\n";
 				}
 				$rAdded = true;
-				call_user_func($rRunSSH, $rConn, self::sudoWrite('tmpfs ' . $rPath . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,' . $rSize . ' 0 0', $rFstab, true));
+				call_user_func($rRunSSH, $rConn, self::sudoWrite($rBreak . 'tmpfs ' . $rPath . ' tmpfs defaults,noatime,nosuid,nodev,noexec,mode=1777,' . $rSize . ' 0 0', $rFstab, true));
+				$rBreak = '';
 			}
 		}
 		if ($rAdded) {

@@ -29,7 +29,7 @@ final class LbInstallRamdisksTest extends TestCase {
 			if (str_starts_with($rCommand, 'sudo cat ')) {
 				return ['output' => $rFstab, 'error' => ''];
 			}
-			if ($rWrites && preg_match("/^echo '(.*)' \| sudo tee -a '\/etc\/fstab' > \/dev\/null\z/", $rCommand, $rM)) {
+			if ($rWrites && preg_match("/^echo '(.*)' \| sudo tee -a '\/etc\/fstab' > \/dev\/null\z/s", $rCommand, $rM)) {
 				$rFstab .= $rM[1] . "\n";
 			}
 			return ['output' => '', 'error' => ''];
@@ -56,6 +56,18 @@ final class LbInstallRamdisksTest extends TestCase {
 		$rFstab = self::line(STREAMS_PATH, 'size=90%');
 		$this->assertTrue($this->ensure($rFstab));
 		$this->assertSame(self::line(STREAMS_PATH, 'size=90%') . self::line(TMP_PATH, 'size=2G'), $rFstab, 'tmp is added, the segments are not added twice');
+	}
+
+	public function testALastLineWithNoNewlineIsNotGluedToTheMount(): void {
+		// tee -a writes from the last byte: the glued line does not parse, so
+		// neither the mount nor the entry it was glued to would be mounted.
+		$rFstab = "UUID=abc / ext4 defaults 0 1\n/swapfile none swap sw 0 0";
+		$this->assertTrue($this->ensure($rFstab));
+		$this->assertSame("UUID=abc / ext4 defaults 0 1\n/swapfile none swap sw 0 0\n" . self::line(STREAMS_PATH, 'size=90%') . self::line(TMP_PATH, 'size=2G'), $rFstab);
+
+		$rFstab = rtrim(self::line(STREAMS_PATH, 'size=90%'), "\n");
+		$this->assertTrue($this->ensure($rFstab));
+		$this->assertSame(self::line(STREAMS_PATH, 'size=90%') . self::line(TMP_PATH, 'size=2G'), $rFstab, 'a file that holds one, unterminated');
 	}
 
 	public function testNothingIsWrittenWhenBothAreThere(): void {
