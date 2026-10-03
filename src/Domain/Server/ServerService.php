@@ -365,6 +365,12 @@ class ServerService {
 		if (strlen($rArray['server_ip']) == 0 || !filter_var($rArray['server_ip'], FILTER_VALIDATE_IP)) {
 			return ['status' => STATUS_INVALID_IP, 'data' => $rData];
 		}
+		// A server that already has a row is reinstalled, not added again: a
+		// second row for the same node (or for MAIN) left two servers on one
+		// machine, and deleting the stale one revoked the live node's database grant.
+		if (QueryHelper::checkExists('servers', 'server_ip', $rArray['server_ip'])) {
+			return ['status' => STATUS_EXISTS_IP, 'data' => $rData];
+		}
 
 		if ($rData['type'] == 1) {
 			$rArray['server_type'] = 1;
