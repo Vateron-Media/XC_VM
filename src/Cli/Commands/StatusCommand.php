@@ -9,6 +9,7 @@ use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Container\ServiceContainer;
 use XcVm\Core\Database\MigrationRunner;
 use XcVm\Core\Module\ModuleManager;
+use XcVm\Core\Process\ProcessRunner;
 use XcVm\Domain\Cluster\ClusterNginxConfig;
 use XcVm\Domain\Cluster\ClusterPool;
 use XcVm\Domain\Server\ServerRepository;
@@ -243,10 +244,13 @@ class StatusCommand implements CommandInterface {
 	}
 
 	private function fixPermissions(): void {
-		shell_exec('sudo chmod 0660 ' . MAIN_HOME . 'bin/php/sockets/* 2>/dev/null'); // none while PHP-FPM is stopped (an update)
-		shell_exec('sudo chmod 0771 ' . MAIN_HOME . 'bin/daemons.sh');
-		shell_exec('sudo chmod 0775 ' . MAIN_HOME . 'bin/certbot');
-		shell_exec('sudo chown -R xc_vm:xc_vm ' . MAIN_HOME . 'config');
+		$rSockets = glob(MAIN_HOME . 'bin/php/sockets/*') ?: []; // none while PHP-FPM is stopped (an update)
+		if ($rSockets !== []) {
+			ProcessRunner::run(['sudo', 'chmod', '0660', ...$rSockets], true);
+		}
+		ProcessRunner::run(['sudo', 'chmod', '0771', MAIN_HOME . 'bin/daemons.sh']);
+		ProcessRunner::run(['sudo', 'chmod', '0775', MAIN_HOME . 'bin/certbot']);
+		ProcessRunner::run(['sudo', 'chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'config']);
 		shell_exec("sudo echo 'net.ipv4.ip_unprivileged_port_start=0' > /etc/sysctl.d/50-allports-nonroot.conf && sudo sysctl --system 2> /dev/null");
 	}
 
