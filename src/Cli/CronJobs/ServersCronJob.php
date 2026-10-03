@@ -3,7 +3,9 @@
 namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
+use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeStateSink;
@@ -95,6 +97,13 @@ class ServersCronJob implements CommandInterface {
 		// The cluster API's FPM pools: revived, and resized as servers come and go.
 		if ($rServers[SERVER_ID]['is_main'] && class_exists(ClusterPool::class)) {
 			ClusterPool::ensure(3.0);
+		}
+		// A load balancer offline when MAIN updated is told only then: once an
+		// hour, every one still on an older release gets MAIN's.
+		if ($rServers[SERVER_ID]['is_main'] && SettingsManager::get('auto_update_lbs') && (int) date('i') === 0) {
+			foreach (UpdateCommand::lbsBehind($rServers, time()) as $rID) {
+				NodeActions::update($rID, $db);
+			}
 		}
 
 		// Daemon liveness checks read /proc via ProcessManager: the old

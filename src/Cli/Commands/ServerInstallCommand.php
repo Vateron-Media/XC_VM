@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Server\InstallCredentials;
 use XcVm\Domain\Server\ServerRepository;
@@ -123,6 +124,11 @@ class ServerInstallCommand implements CommandInterface {
 			$rUpdateData = LbInstallFlow::resolveUpdateData($gitRelease);
 			$rInstallFiles = $rUpdateData['url'];
 			$rHash = $rUpdateData['md5'];
+			if (empty($rInstallFiles) || empty($rHash)) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "MAIN's release " . XC_VM_VERSION . " has no loadbalancer.tar.gz listed in its hashes.md5 on GitHub, or GitHub could not be reached. Exiting\n";
+				return 1;
+			}
 			LbInstallFlow::writeInstallMetadata($rInstallDir, $rServerID, $rUsername, $rPort);
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -170,15 +176,17 @@ class ServerInstallCommand implements CommandInterface {
 
 		// 1. Detect remote OS version and distribution
 		echo "Detecting remote OS version...\n";
-		$rOS = $this->runSSH($rConn, 'lsb_release -rs');
+		// Minimal Debian images have no lsb_release: os-release has the version too.
+		$rOS = $this->runSSH($rConn, 'lsb_release -rs 2>/dev/null || (. /etc/os-release && echo $VERSION_ID)');
 		$rVersion = trim($rOS['output']);
 		$rDistID = strtolower(trim($this->runSSH($rConn, 'lsb_release -is 2>/dev/null || (. /etc/os-release && echo $ID)')['output']));
 		echo "\nRemote OS: {$rDistID} {$rVersion}\n";
 
-		// EOL: the binaries release no longer ships debian_11 assets.
-		if ($rType == 2 && $rDistID === 'debian' && explode('.', $rVersion)[0] === '11') {
+		// The binaries release builds PHP and nginx for these only, and the LB
+		// archive carries neither: anywhere else the node would get no PHP.
+		if ($rType == 2 && ReleaseAsset::bundleFor($rDistID, $rVersion) === null) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-			echo "Debian 11 is end-of-life and no longer supported. Use Debian 12 or 13. Exiting\n";
+			echo "Unsupported system: {$rDistID} {$rVersion}. A load balancer runs on Ubuntu 20.04, 22.04 or 24.04, or Debian 12 or 13. Exiting\n";
 			return 1;
 		}
 
@@ -206,8 +214,9 @@ class ServerInstallCommand implements CommandInterface {
 		// config.enc. Decided once, before the enrolment replaces the node's row.
 		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
 
-		if ($rType == 2) {
-			LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID);
+		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			return 1;
 		}
 
 		if ($rType == 1) {
@@ -260,9 +269,6 @@ class ServerInstallCommand implements CommandInterface {
 
 		echo "\nUpdating system\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm /var/lib/dpkg/lock-frontend && sudo rm /var/cache/apt/archives/lock && sudo rm /var/lib/dpkg/lock');
-		if ($rType == 2) {
-			call_user_func($rRunSSH, $rConn, 'sudo add-apt-repository -y ppa:maxmind/ppa');
-		}
 		call_user_func($rRunSSH, $rConn, 'sudo apt-get update');
 		foreach ($rPackages as $rPackage) {
 			echo 'Installing package: ' . $rPackage . "\n";

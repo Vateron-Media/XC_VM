@@ -76,13 +76,15 @@ def doUpdate(rFilename):
 
     rTmpDir = tempfile.mkdtemp(prefix="xc_vm_update_")
     log_msg("INFO", "Temporary directory created: %s" % rTmpDir)
+    rCopying = False
 
     try:
         log_msg("INFO", "Stopping xc_vm service...")
         os.system("sudo systemctl stop xc_vm")
 
         log_msg("INFO", "Extracting archive...")
-        os.system('sudo tar -zxf "%s" -C "%s"' % (rFilename, rTmpDir))
+        if os.system('sudo tar -zxf "%s" -C "%s"' % (rFilename, rTmpDir)) != 0:
+            raise RuntimeError("extracting the archive failed (disk full?); nothing was changed")
 
         log_msg("INFO", "Removing excluded directories from temp copy...")
         for rExclude in UPDATE_EXCLUDE_DIRS:
@@ -104,7 +106,9 @@ def doUpdate(rFilename):
             os.system('sudo cp -a "%s" "%s"' % (rNginxConf, rNginxBak))
 
         log_msg("INFO", "Copying files to live installation...")
-        os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir))
+        rCopying = True
+        if os.system('sudo cp -a "%s/." "%s"' % (rTmpDir, rBaseDir)) != 0:
+            raise RuntimeError("copying the files failed: the installation is partly updated; run the update again")
 
         log_msg("INFO", "Fixing file permissions...")
         os.system('sudo chown -R xc_vm:xc_vm "%s"' % rBaseDir)
@@ -129,6 +133,13 @@ def doUpdate(rFilename):
         log_msg("INFO", "System update completed successfully")
     except Exception as e:
         log_msg("ERROR", "Update failed: %s" % str(e))
+        if not rCopying:
+            # Nothing was copied: post-update on the unchanged installation puts
+            # the server back online (it was set to updating) at its release.
+            os.system('sudo %s %s update "post-update"' % (rPHPDir, rConsole))
+        # A partly copied one stays "updating" in the panel, which is what it is.
+        log_msg("INFO", "Starting xc_vm service...")
+        os.system("sudo systemctl start xc_vm")
     finally:
         log_msg("INFO", "Cleaning up temporary files...")
         os.system('sudo rm -rf "%s"' % rTmpDir)

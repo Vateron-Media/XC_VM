@@ -49,8 +49,15 @@ class LbInstallFlow {
 		return $rMap[$rDistID][$rMajor] ?? 'debian';
 	}
 
+	/**
+	 * The load-balancer archive of MAIN's own release, from GitHub: a node runs
+	 * MAIN's release, never a newer one, as UpdateCommand pins its updates. The
+	 * md5 is null when the release lists no such asset or cannot be read.
+	 *
+	 * @return array{url: string, md5: ?string}
+	 */
 	public static function resolveUpdateData(GitHubReleases $gitRelease): array {
-		$rUpdateData = $gitRelease->getUpdateFile("lb", XC_VM_VERSION);
+		$rUpdateData = $gitRelease->getVersionFile('lb', XC_VM_VERSION);
 		return [
 			'url' => $rUpdateData['url'],
 			'md5' => $rUpdateData['md5'],
@@ -97,10 +104,12 @@ class LbInstallFlow {
 		return true;
 	}
 
-	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): void {
+	/** False when the node could not get its PHP and nginx: the archive carries neither. */
+	public static function runPostExtractSteps($rConn, callable $rRunSSH, callable $rSendFileSSH, string $rDistID, string $rVersion, int $rUpdateSysctl, string $rSysCtl, int $rServerID): bool {
 		echo "Installing distribution-specific binaries\n";
 		if (!self::installDistributionBinaries($rConn, $rRunSSH, $rDistID, $rVersion)) {
-			echo "Warning: Failed to install distribution binaries, using defaults\n";
+			echo "Failed to install the distribution binaries (PHP, nginx) from GitHub. Exiting\n";
+			return false;
 		}
 		self::installExtension($rConn, $rRunSSH, $rSendFileSSH);
 
@@ -128,6 +137,7 @@ class LbInstallFlow {
 				call_user_func($rRunSSH, $rConn, 'sudo touch ' . CONFIG_PATH . 'sysctl.on');
 			}
 		}
+		return true;
 	}
 
 	/**
@@ -337,7 +347,8 @@ class LbInstallFlow {
 		// install_id / config.enc as root. A root-owned install_id is unreadable by
 		// FPM (xc_vm) and makes config.enc decryption fall back to a default config.
 		call_user_func($rRunSSH, $rConn, 'sudo chown xc_vm:xc_vm -R /home/xc_vm >/dev/null 2>&1');
-		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php status 1');
+		// No `status 1` here: it runs as root only, and the service restart before
+		// this ran it (`startup`, as root).
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php startup');
 		call_user_func($rRunSSH, $rConn, 'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cron:servers');
 		// The node's ffmpeg builds, which no release archive carries: before its

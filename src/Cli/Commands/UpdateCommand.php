@@ -89,16 +89,20 @@ class UpdateCommand implements CommandInterface {
 
 				// A load balancer MAIN names a release for installs exactly that
 				// one (NodeActions::update), so it runs MAIN's, never one newer.
-				$rPinned = $rIsMain ? null : self::pinned($rArgs[1] ?? null);
+				// Run without one, it takes the release MAIN's row records.
+				$rPinned = $rIsMain ? null : self::pinned($rArgs[1] ?? self::mainVersion());
+				if (!$rIsMain && $rPinned === null) {
+					echo "ERROR: MAIN's release is unknown: a load balancer installs MAIN's release only.\n";
+					UpdateLogger::error('Aborted: MAIN\'s release is unknown');
+					return 1;
+				}
 				if ($rPinned !== null && version_compare($rPinned, XC_VM_VERSION, '<=')) {
 					echo "Already at MAIN's release {$rPinned} or newer (" . XC_VM_VERSION . ").\n";
 					UpdateLogger::info('Already at MAIN\'s release ' . $rPinned . ' or newer, no action needed');
 					return 0;
 				}
 
-				$rLatest = $rPinned ?? $gitRelease->getLatestVersion(
-					$rIsMain ? XC_VM_VERSION : ServerRepository::getAll()[SERVER_ID]['xc_vm_version']
-				);
+				$rLatest = $rPinned ?? $gitRelease->getLatestVersion(XC_VM_VERSION);
 
 				if ($rLatest === null) {
 					echo "Already up to date.\n";
@@ -109,13 +113,7 @@ class UpdateCommand implements CommandInterface {
 				echo ($rPinned === null ? 'New version available: ' : 'MAIN\'s release: ') . $rLatest . "\n";
 				UpdateLogger::info(($rPinned === null ? 'New version found: ' : 'Updating to MAIN\'s release: ') . $rLatest);
 
-				if ($rIsMain) {
-					$UpdateData = $gitRelease->getUpdateFile("main", XC_VM_VERSION);
-				} elseif ($rPinned !== null) {
-					$UpdateData = $gitRelease->getVersionFile('lb_update', $rPinned);
-				} else {
-					$UpdateData = $gitRelease->getUpdateFile("lb_update", ServerRepository::getAll()[SERVER_ID]['xc_vm_version']);
-				}
+				$UpdateData = $rIsMain ? $gitRelease->getUpdateFile('main', XC_VM_VERSION) : $gitRelease->getVersionFile('lb_update', $rPinned);
 
 				if (!$UpdateData || empty($UpdateData['url'])) {
 					echo "ERROR: Failed to get update file URL.\n";
@@ -403,6 +401,37 @@ class UpdateCommand implements CommandInterface {
 	public static function pinned(mixed $rVersion): ?string {
 		$rVersion = is_string($rVersion) ? trim($rVersion) : '';
 		return preg_match('/^\d+\.\d+\.\d+$/', $rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;
+	}
+
+	/**
+	 * The load balancers to tell to install MAIN's release (cron:servers, every
+	 * hour, for one that was offline when MAIN updated): enabled, online,
+	 * heard from in the last 180 s, on an older release. Proxies follow their
+	 * own releases (XC_VM_Proxy).
+	 *
+	 * @param array<int, array<string, mixed>> $rServers
+	 * @return list<int>
+	 */
+	public static function lbsBehind(array $rServers, int $rNow): array {
+		$rIDs = [];
+		foreach ($rServers as $rServer) {
+			if (empty($rServer['is_main']) && (int) ($rServer['server_type'] ?? 0) !== 1 && !empty($rServer['enabled']) && (int) ($rServer['status'] ?? 0) === 1
+				&& $rNow - (int) ($rServer['last_check_ago'] ?? 0) <= 180 && version_compare((string) ($rServer['xc_vm_version'] ?? ''), XC_VM_VERSION, '<')
+			) {
+				$rIDs[] = (int) $rServer['id'];
+			}
+		}
+		return $rIDs;
+	}
+
+	/** MAIN's release as its servers row records it, or null. */
+	private static function mainVersion(): ?string {
+		foreach (ServerRepository::getAll() as $rServer) {
+			if (!empty($rServer['is_main'])) {
+				return $rServer['xc_vm_version'] ?? null;
+			}
+		}
+		return null;
 	}
 
 	private function downloadFile($url, $targetPath): bool {
