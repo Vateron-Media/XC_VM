@@ -123,6 +123,25 @@ final class VodItemImporterRunTest extends TestCase {
         $this->assertSame((string) SERVER_ID, (string) $this->db->get_col());
     }
 
+    public function testRunPayloadRefusesAnythingButBase64Json(): void {
+        $this->expectOutputString("vod_import_item: payload must be base64-encoded JSON object\nvod_import_item: payload must be base64-encoded JSON object\nvod_import_item: unsupported type\n");
+
+        VodItemImporter::runPayload('not base64!');
+        VodItemImporter::runPayload(base64_encode('"a string"'));
+        VodItemImporter::runPayload(base64_encode(json_encode(array('file' => 'x', 'import' => true, 'type' => 'radio'))));
+
+        $this->assertSame(array(), $this->results);
+    }
+
+    public function testTheCommandRunsOnlyAsXcVm(): void {
+        if (posix_getpwuid(posix_geteuid())['name'] === 'xc_vm') {
+            $this->markTestSkipped('Running as xc_vm.');
+        }
+        $this->expectOutputString("Please run as XC_VM!\n");
+
+        $this->assertSame(1, (new \XcVm\Cli\Commands\VodImportItemCommand())->execute(array(base64_encode('{}'))));
+    }
+
     public function testReportsNoMatchAndInsertsNothingWhenTmdbFindsNothing(): void {
         $this->expectOutputRegex('/No match!/');
 

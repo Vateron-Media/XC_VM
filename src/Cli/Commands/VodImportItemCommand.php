@@ -33,12 +33,6 @@ class VodImportItemCommand implements CommandInterface {
 			return 1;
 		}
 
-		$rThreadData = json_decode((string) base64_decode(trim((string) ($rArgs[0] ?? '')), true), true);
-		if (!is_array($rThreadData)) {
-			echo "vod_import_item: payload must be base64-encoded JSON object\n";
-			return 0;
-		}
-
 		setlocale(LC_ALL, 'en_US.UTF-8');
 		putenv('LC_ALL=en_US.UTF-8');
 
@@ -53,7 +47,7 @@ class VodImportItemCommand implements CommandInterface {
 		});
 		file_put_contents($rPidFile, time());
 
-		VodItemImporter::run($rThreadData, $rTimeout);
+		VodItemImporter::runPayload((string) ($rArgs[0] ?? ''), $rTimeout);
 
 		return 0;
 	}

@@ -877,6 +877,23 @@ class VodItemImporter {
 	}
 
 	/**
+	 * Import the file a `vod_import_item` payload (base64-encoded JSON thread
+	 * data) describes.
+	 *
+	 * @param string $rPayload
+	 * @param int    $rTimeout
+	 * @return void
+	 */
+	public static function runPayload(string $rPayload, int $rTimeout = 60) {
+		$rThreadData = json_decode((string) base64_decode(trim($rPayload), true), true);
+		if (!is_array($rThreadData)) {
+			echo "vod_import_item: payload must be base64-encoded JSON object\n";
+			return;
+		}
+		self::run($rThreadData, $rTimeout);
+	}
+
+	/**
 	 * Import one file described by $rThreadData; the outcome is dispatched as a
 	 * VodImportResultEvent.
 	 *
