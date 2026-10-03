@@ -114,14 +114,14 @@ class StatusCommand implements CommandInterface {
 				error_log('Bundled module sync failed: ' . $e->getMessage());
 			}
 
-			shell_exec('sudo chmod 0775 ' . MAIN_HOME . 'bin/install');
+			ProcessRunner::run(['sudo', 'chmod', '0775', MAIN_HOME . 'bin/install']);
 		}
 
 		$this->fixPermissions();
 		$rReload = $this->fixNginxConfig($rReload);
 
 		if ($rReload) {
-			exec('sudo -u xc_vm ' . MAIN_HOME . 'bin/nginx/sbin/nginx -s reload');
+			ProcessRunner::run(['sudo', '-u', 'xc_vm', MAIN_HOME . 'bin/nginx/sbin/nginx', '-s', 'reload']);
 			exec('sudo service xc_vm restart');
 		}
 
@@ -168,7 +168,7 @@ class StatusCommand implements CommandInterface {
 		if (!class_exists(ClusterNginxConfig::class)) {
 			return;
 		}
-		passthru('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:nginx' . ($this->isRunning() ? '' : ' --no-reload'));
+		ProcessRunner::passThrough(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'cluster:nginx', ...($this->isRunning() ? [] : ['--no-reload'])]);
 	}
 
 	/**
@@ -181,7 +181,7 @@ class StatusCommand implements CommandInterface {
 		if (!class_exists(ClusterPool::class) || !$this->isRunning()) {
 			return;
 		}
-		passthru('sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:pools');
+		ProcessRunner::passThrough(['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'cluster:pools']);
 		echo "\n";
 	}
 

@@ -340,7 +340,7 @@ final class ClusterNginxConfigTest extends TestCase {
 
 		$rStatus = (string) file_get_contents($rSrc . 'Cli/Commands/StatusCommand.php');
 		$this->assertMatchesRegularExpression('#if \(\$rServers\[SERVER_ID\]\[.is_main.\]\) \{[^}]*\$this->ensureClusterNginx\(\);#', $rStatus, 'MAIN only');
-		$this->assertStringContainsString("'sudo -u xc_vm ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php cluster:nginx'", $rStatus, 'status runs as root, the render as xc_vm');
+		$this->assertStringContainsString("['sudo', '-u', 'xc_vm', PHP_BIN, MAIN_HOME . 'console.php', 'cluster:nginx'", $rStatus, 'status runs as root, the render as xc_vm');
 		$this->assertStringNotContainsString('ClusterNginxConfig::apply(', $rStatus);
 
 		$rRoot = (string) file_get_contents($rSrc . 'Cli/CronJobs/RootSignalsCronJob.php');
