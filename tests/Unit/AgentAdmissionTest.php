@@ -4,6 +4,7 @@ use PHPUnit\Framework\TestCase;
 use XcVm\Core\Cluster\AgentClient;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\NodeFlows;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseFactory;
 use XcVm\Streaming\Auth\StreamAuth;
@@ -45,6 +46,7 @@ final class AgentAdmissionTest extends TestCase {
 			proc_close($this->rAgent);
 		}
 		NodeFlows::usePath(null);
+		NodeRole::useMainBuild(null);
 		AgentClient::useSocket(null);
 		DatabaseFactory::reset();
 		// The last refusal outlives the test otherwise, and refuseAdmission() exits on it.
@@ -232,7 +234,15 @@ PHP);
 		$rAdm = ['exp' => time() + 15, 'sid' => 5];
 		$this->assertTrue(ConnectionTracker::createLive(['redis_handler' => 0], $rCtx + ['uuid' => 'i1', 'token' => $this->token('i1', ['adm' => $rAdm])], 'ts', 4321));
 		// HLS: live.php keeps the token's uuid as adm_uuid before it takes the playlist key.
+		// A node in mode 2 is refused any query on MAIN's table, and its viewer
+		// with it: the closed row there is left to MAIN.
+		file_put_contents($this->rDir . '/flows.json', json_encode(['mode' => 2, 'flows' => NodeFlows::COMMANDS | NodeFlows::STREAMS | NodeFlows::CONNECTIONS, 'state' => 'active']));
+		clearstatcache();
+		NodeRole::useMainBuild(false);
+		$this->rDb->exec("INSERT INTO `lines_live` (`uuid`, `hls_end`) VALUES ('hlskey', 1)");
 		$this->assertTrue(ConnectionTracker::createLive(['redis_handler' => 0], $rCtx + ['uuid' => 'hlskey', 'token' => $this->token('hlskey', ['adm' => $rAdm, 'adm_uuid' => 'i2'])], 'hls', null));
+		$this->rDb->query("SELECT COUNT(*) FROM `lines_live` WHERE `uuid` = 'hlskey'");
+		$this->assertSame(1, (int) $this->rDb->get_col());
 		$this->assertSame($rAdm, $this->header(0)['adm'] ?? null);
 		$this->assertSame($rAdm, $this->header(1)['adm'] ?? null);
 		$this->assertSame('i2', $this->requests()[1]['body']['adm_uuid'] ?? null);

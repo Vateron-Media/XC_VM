@@ -183,7 +183,7 @@ if ($rChannelInfo !== null) {
 
 	switch ($rExtension) {
 		case 'm3u8':
-			if (StreamUtils::isValidStream($rPlaylist, $rChannelInfo['pid'])) {
+			if (StreamUtils::isValidStream($rPlaylist, (int) $rChannelInfo['pid'], $rStreamID)) {
 				if (empty(RequestManager::get('segment'))) {
 					if (($rSource = StreamUtils::generateAdminHLS($rPlaylist, $rPassword, $rStreamID, RequestManager::get('uitoken')))) {
 						header('Content-Type: application/vnd.apple.mpegurl');

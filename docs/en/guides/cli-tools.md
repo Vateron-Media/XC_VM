@@ -66,7 +66,10 @@ To see all available commands:
 > `SHA1:…` line of `ssh-keygen -l -E sha1 -f /etc/ssh/ssh_host_ed25519_key.pub`
 > run on the node), else against `servers.ssh_hostkey_sha1` stored by the first
 > install, else it is trusted on first use and stored. A rebuilt node therefore
-> needs its new fingerprint entered on reinstall.
+> needs its new fingerprint entered on reinstall, or `--forget-hostkey=1` (the
+> *Forget the Saved SSH Host Key* switch of the reinstall form): the stored key
+> is then not asked for, and the one the node presents is stored once the login
+> has worked.
 
 > `console.php` registers **every** class it discovers in `Cli/Commands/` and `Cli/CronJobs/` (glob + reflection) — there is **no** `file_exists()` guard. A command is "optional" only in that it may be **stripped from the LB build** (`Makefile` `LB_FILES_TO_REMOVE`) or **provided by an installed module**. `plex_item` and `watch_item` above are **module-provided** (Plex/Watch) — their command classes are not in the committed core tree and exist only when that module is installed.
 

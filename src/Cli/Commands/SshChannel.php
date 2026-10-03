@@ -20,11 +20,28 @@ final class SshChannel {
 	}
 
 	public static function send($rConn, string $rPath, string $rOutput, bool $rWarn = false): bool {
-		$rMD5 = md5_file($rPath);
+		// A file MAIN does not have is not sent: its checksum (false) loosely
+		// equalled the empty sum of the missing remote file, and passed for a copy.
+		$rSum = is_file($rPath) ? hash_file('sha256', $rPath) : false;
+		if ($rSum === false) {
+			return false;
+		}
 		ssh2_scp_send($rConn, $rPath, $rOutput);
-		$rOutMD5 = trim(explode(' ', self::run($rConn, 'md5sum "' . $rOutput . '"')['output'])[0]);
-		if ($rMD5 == $rOutMD5) {
+		$rOutSum = trim(explode(' ', self::run($rConn, 'sha256sum "' . $rOutput . '"')['output'])[0]);
+		if ($rSum === $rOutSum) {
 			return true;
+		}
+		// A sudoer, not root, cannot write to a root-owned place (/etc, the
+		// node's config/): the file goes where only that user can reach, and
+		// root puts it in place. The sum is read as root, as config/ is closed.
+		$rDir = trim(self::run($rConn, 'mktemp -d /tmp/xcvm.XXXXXXXXXX')['output']);
+		if (preg_match('~^/tmp/xcvm\.[A-Za-z0-9]{10}\z~', $rDir)) {
+			$rTarget = escapeshellarg($rOutput);
+			@ssh2_scp_send($rConn, $rPath, $rDir . '/f');
+			$rOutSum = trim(explode(' ', self::run($rConn, 'sudo cp ' . $rDir . '/f ' . $rTarget . '; rm -rf ' . $rDir . '; sudo sha256sum ' . $rTarget)['output'])[0]);
+			if ($rSum === $rOutSum) {
+				return true;
+			}
 		}
 		if ($rWarn) {
 			echo "Failed to write using SCP, reverting to SFTP transfer... This will be take significantly longer!\n";

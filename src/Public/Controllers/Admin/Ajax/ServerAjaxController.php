@@ -448,7 +448,7 @@ class ServerAjaxController extends BaseAjaxController {
 	 * action=reinstall_server — re-run a server install from its saved params.
 	 * The saved params no longer hold the SSH password, so the request must
 	 * carry it (root_password); an optional expected_hostkey overrides the
-	 * stored host key for a rebuilt node.
+	 * stored host key for a rebuilt node, and forget_hostkey has it forgotten.
 	 */
 	public function reinstallServer(): never {
 		$this->requireXhr();
@@ -474,7 +474,7 @@ class ServerAjaxController extends BaseAjaxController {
 			$rTail = isset($rParams['http_broadcast_port'])
 				? [(string) intval($rParams['http_broadcast_port']), (string) intval($rParams['https_broadcast_port'])]
 				: [];
-			$rCommand = InstallCredentials::command($rType, intval($rServerID), intval($rParams['ssh_port']), (string) $rParams['root_username'], $rPassword, $rTail, (string) RequestManager::get('expected_hostkey'));
+			$rCommand = InstallCredentials::command($rType, intval($rServerID), intval($rParams['ssh_port']), (string) $rParams['root_username'], $rPassword, $rTail, (string) RequestManager::get('expected_hostkey'), !empty(RequestManager::get('forget_hostkey')));
 
 			shell_exec($rCommand);
 

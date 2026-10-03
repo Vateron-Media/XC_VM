@@ -557,7 +557,7 @@ class UsersCronJob implements CommandInterface {
 
 		if (!$rRedis || $rServers[SERVER_ID]['is_main']) {
 			$rAutoKick = SettingsManager::getInt('user_auto_kick_hours') * 3600;
-			$rLiveKeys = $rDelete = $rDeleteStream = [];
+			$rLiveKeys = $rDelete = $rDeleteStream = $rRetired = [];
 			$rRedisDelete = ['line' => [], 'server' => [], 'server_lines' => [], 'proxy' => [], 'stream' => [], 'uuid' => [], 'count' => 0];
 
 			if ($rRedis) {
@@ -750,6 +750,18 @@ class UsersCronJob implements CommandInterface {
 								$rDeleteStream[$rConnection['stream_id']] = $rDelete[$rConnection['server_id']];
 							}
 						}
+					} elseif ($rServers[SERVER_ID]['is_main'] && $rConnection['container'] == 'hls' && $rConnection['hls_end'] == 1 && HlsReaping::sweptByMain((int) $rConnection['server_id']) && class_exists(ConnectionIngest::class)) {
+						// MySQL mode: each server sweeps its own rows, and a node in mode 2
+						// has no database to sweep them in. MAIN closes what such a node's
+						// agent said has ended, as it does for every server in Redis mode:
+						// left there, the row refused the same player's next record from
+						// another node until it counted as orphaned.
+						if (ConnectionIngest::retireEnded($rConnection, self::lastHeard($rConnection, $rStartTime), false)) {
+							echo 'Close connection: ' . $rConnection['uuid'] . "\n";
+							// Not $rDelete: its DELETE goes by uuid, and would take the row another node may open under it.
+							$rRetired[(int) $rConnection['server_id']][] = ['type' => 'delete_con', 'uuid' => (string) $rConnection['uuid']];
+						}
+						continue;
 					} elseif ($rServers[SERVER_ID]['is_main'] && self::orphaned($rConnection, $rServers, $rStartTime)) {
 						// MySQL mode: each server sweeps its own rows, so a deleted one's,
 						// or a crashed one's, stayed open for good. MAIN closes them, as
@@ -814,6 +826,14 @@ class UsersCronJob implements CommandInterface {
 			} else {
 				if (!$rRedis && count($rDelete) > 0) {
 					$this->processDeletions($rDelete, $rDeleteStream);
+				}
+			}
+			// The rows MAIN closed for a node in mode 2: each node drops their markers, told once.
+			foreach ($rRetired as $rServerID => $rPayloads) {
+				try {
+					SignalDispatcher::cacheBatch($rServerID, $rPayloads, time(), $db);
+				} catch (\Throwable) {
+					// The rows are closed either way; the markers are the node's to drop.
 				}
 			}
 		}
