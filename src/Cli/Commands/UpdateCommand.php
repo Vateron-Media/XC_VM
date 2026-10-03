@@ -14,6 +14,7 @@ use XcVm\Core\Process\ProcessRunner;
 use XcVm\Core\Updates\GitHubReleases;
 use XcVm\Core\Updates\ReleaseArchiveInspector;
 use XcVm\Core\Updates\UpdateChannels;
+use XcVm\Core\Util\AtomicFile;
 use XcVm\Domain\Server\ServerRepository;
 
 /**
@@ -89,16 +90,20 @@ class UpdateCommand implements CommandInterface {
 
 				// A load balancer MAIN names a release for installs exactly that
 				// one (NodeActions::update), so it runs MAIN's, never one newer.
-				$rPinned = $rIsMain ? null : self::pinned($rArgs[1] ?? null);
+				// Run without one, it takes the release MAIN's row records.
+				$rPinned = $rIsMain ? null : self::pinned($rArgs[1] ?? self::mainVersion());
+				if (!$rIsMain && $rPinned === null) {
+					echo "ERROR: MAIN's release is unknown: a load balancer installs MAIN's release only.\n";
+					UpdateLogger::error('Aborted: MAIN\'s release is unknown');
+					return 1;
+				}
 				if ($rPinned !== null && version_compare($rPinned, XC_VM_VERSION, '<=')) {
 					echo "Already at MAIN's release {$rPinned} or newer (" . XC_VM_VERSION . ").\n";
 					UpdateLogger::info('Already at MAIN\'s release ' . $rPinned . ' or newer, no action needed');
 					return 0;
 				}
 
-				$rLatest = $rPinned ?? $gitRelease->getLatestVersion(
-					$rIsMain ? XC_VM_VERSION : ServerRepository::getAll()[SERVER_ID]['xc_vm_version']
-				);
+				$rLatest = $rPinned ?? $gitRelease->getLatestVersion(XC_VM_VERSION);
 
 				if ($rLatest === null) {
 					echo "Already up to date.\n";
@@ -109,13 +114,7 @@ class UpdateCommand implements CommandInterface {
 				echo ($rPinned === null ? 'New version available: ' : 'MAIN\'s release: ') . $rLatest . "\n";
 				UpdateLogger::info(($rPinned === null ? 'New version found: ' : 'Updating to MAIN\'s release: ') . $rLatest);
 
-				if ($rIsMain) {
-					$UpdateData = $gitRelease->getUpdateFile("main", XC_VM_VERSION);
-				} elseif ($rPinned !== null) {
-					$UpdateData = $gitRelease->getVersionFile('lb_update', $rPinned);
-				} else {
-					$UpdateData = $gitRelease->getUpdateFile("lb_update", ServerRepository::getAll()[SERVER_ID]['xc_vm_version']);
-				}
+				$UpdateData = $rIsMain ? $gitRelease->getUpdateFile('main', XC_VM_VERSION) : $gitRelease->getVersionFile('lb_update', $rPinned);
 
 				if (!$UpdateData || empty($UpdateData['url'])) {
 					echo "ERROR: Failed to get update file URL.\n";
@@ -318,6 +317,16 @@ class UpdateCommand implements CommandInterface {
 				}
 				UpdateLogger::info('Running file cleanup...');
 				MigrationRunner::runFileCleanup();
+				// The updater that ran is the release before this one's, which left
+				// bin/install out: MAIN kept installers too old for the load
+				// balancers it installs (no install_xcvm_core.sh). Take them from
+				// the archive this update came in.
+				// ponytail: drop once every MAIN runs an updater that copies bin/install.
+				$rArchive = TMP_PATH . '.update.tar.gz';
+				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && is_file($rArchive)) {
+					ProcessRunner::run(['tar', '-xzf', $rArchive, '-C', MAIN_HOME, './bin/install/install_xcvm_core.sh', './bin/install/update_binaries.sh', './bin/install/database.sql'], true);
+					ProcessRunner::run(['chown', '-R', 'xc_vm:xc_vm', MAIN_HOME . 'bin/install'], true);
+				}
 				// MAIN's copies of the binaries it used to hand its nodes: every node
 				// takes them from GitHub itself now (ADR 0004, "Binaries from GitHub
 				// on every node"), and nothing reads these.
@@ -330,14 +339,21 @@ class UpdateCommand implements CommandInterface {
 
 				if (ServerRepository::getAll()[SERVER_ID]['is_main'] && SettingsManager::get('auto_update_lbs')) {
 					UpdateLogger::info('Broadcasting update signal to LB servers');
+					// Every load balancer is listed, with when it was told (0: not
+					// yet), until its row shows MAIN's release (cron:servers). The
+					// first condition skips MAIN, the one row updating itself here.
+					$rList = [];
 					foreach (ServerRepository::getAll() as $rServer) {
-						// `|| !is_main` made the liveness test dead: every other row was
-						// queued an update, offline or disabled. MAIN is updating itself
-						// here, so it is the one row to skip.
-						if (!$rServer['is_main'] && $rServer['enabled'] && $rServer['status'] == 1 && time() - $rServer['last_check_ago'] <= 180) {
-							NodeActions::update(intval($rServer['id']), $db);
+						if ($rServer['is_main']) {
+							continue;
+						}
+						$rTold = $rServer['enabled'] && $rServer['status'] == 1 && time() - $rServer['last_check_ago'] <= 180
+							&& NodeActions::update(intval($rServer['id']), $db);
+						if ((int) ($rServer['server_type'] ?? 0) !== 1) {
+							$rList[intval($rServer['id'])] = $rTold ? time() : 0;
 						}
 					}
+					AtomicFile::write(self::PENDING, (string) json_encode($rList, JSON_FORCE_OBJECT));
 				}
 
 				NodeStateSink::status(1, $db);
@@ -403,6 +419,58 @@ class UpdateCommand implements CommandInterface {
 	public static function pinned(mixed $rVersion): ?string {
 		$rVersion = is_string($rVersion) ? trim($rVersion) : '';
 		return preg_match('/^\d+\.\d+\.\d+$/', $rVersion) || GitHubReleases::isDevVersion($rVersion) ? $rVersion : null;
+	}
+
+	/**
+	 * MAIN: the load balancers its last update has yet to see on its release,
+	 * as a JSON map of server id to when it was told (0: not yet). cron:servers
+	 * tells the ones that are back, and drops each once it is on MAIN's release.
+	 */
+	public const PENDING = CONFIG_PATH . 'lbs_to_update.json';
+
+	/** Seconds a told update lives (the signals purge, a node.root command's TTL): after it, a listed one is told again. */
+	public const TELL_AGAIN = 86400;
+
+	/**
+	 * Of the load balancers MAIN's update listed ($rPending, id => told at),
+	 * those to tell now and those still listed. One is told when it is enabled,
+	 * online and heard from in the last 180 s, and was not told in the last
+	 * day: never, or its update was not queued, or it expired while the node
+	 * was away. One that is gone, or on MAIN's release by now, is dropped.
+	 * Only listed ones are ever told: a load balancer an admin rolled back
+	 * reached MAIN's release first, and is on an older one on purpose.
+	 *
+	 * @param array<int, array<string, mixed>> $rServers by server id
+	 * @param array<mixed> $rPending
+	 * @return array{tell: list<int>, wait: array<int, int>}
+	 */
+	public static function lbsToTell(array $rServers, array $rPending, int $rNow): array {
+		$rOut = ['tell' => [], 'wait' => []];
+		foreach ($rPending as $rID => $rToldAt) {
+			$rID = (int) $rID;
+			$rServer = $rServers[$rID] ?? null;
+			if ($rServer === null || !empty($rServer['is_main']) || (int) ($rServer['server_type'] ?? 0) === 1
+				|| !version_compare((string) ($rServer['xc_vm_version'] ?? ''), XC_VM_VERSION, '<')
+			) {
+				continue;
+			}
+			$rBack = !empty($rServer['enabled']) && (int) ($rServer['status'] ?? 0) === 1 && $rNow - (int) ($rServer['last_check_ago'] ?? 0) <= 180;
+			if ($rBack && $rNow - (int) $rToldAt >= self::TELL_AGAIN) {
+				$rOut['tell'][] = $rID;
+			}
+			$rOut['wait'][$rID] = (int) $rToldAt;
+		}
+		return $rOut;
+	}
+
+	/** MAIN's release as its servers row records it, or null. */
+	private static function mainVersion(): ?string {
+		foreach (ServerRepository::getAll() as $rServer) {
+			if (!empty($rServer['is_main'])) {
+				return $rServer['xc_vm_version'] ?? null;
+			}
+		}
+		return null;
 	}
 
 	private function downloadFile($url, $targetPath): bool {

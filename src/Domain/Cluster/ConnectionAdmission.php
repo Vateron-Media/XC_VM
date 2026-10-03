@@ -5,6 +5,7 @@ namespace XcVm\Domain\Cluster;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\StoredConnections;
 use XcVm\Core\Cluster\StrictQuery;
+use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Infrastructure\Database\DatabaseAware;
 use XcVm\Infrastructure\Redis\RedisManager;
 use XcVm\Streaming\Protection\ConnectionLimiter;
@@ -121,7 +122,13 @@ LUA;
 			$rUser = is_array($rTokenData['user_info'] ?? null) ? $rTokenData['user_info'] : [];
 			$rMax = (int) ($rUser['max_connections'] ?? 0);
 			$rUUID = (string) ($rTokenData['uuid'] ?? '');
-			if ($rMax <= 0 || empty($rSettings['cluster_api_enabled']) || !preg_match(AgentConnections::CONN_UUID, $rUUID)) {
+			if (empty($rSettings['cluster_api_enabled']) || !preg_match(AgentConnections::CONN_UUID, $rUUID)) {
+				return null;
+			}
+			// An unlimited line reserves nothing, but its player's ended row on
+			// another server makes way all the same (makeWay): a live HLS mint, the table store.
+			$rHls = empty($rSettings['redis_handler']) && ($rTokenData['extension'] ?? '') === 'm3u8' && isset($rTokenData['stream_id']);
+			if ($rMax <= 0 && !$rHls) {
 				return null;
 			}
 			$rNode = self::nodeOf($rTokenData);
@@ -137,6 +144,10 @@ LUA;
 			$rIdentity = StoredConnections::identity(['user_id' => $rLineID, 'hmac_id' => $rHMAC, 'hmac_identifier' => $rIdentifier]);
 			$rTtl = self::ttl($rSettings);
 			$rStreamID = (int) ($rTokenData['stream_id'] ?? $rTokenData['stream'] ?? 0);
+			if ($rMax <= 0) {
+				self::makeWay($rSettings, $rNode, $rHMAC !== 0 ? $rHMAC : null, $rIdentifier, $rLineID, $rStreamID, (string) $rIP, (string) $rUserAgent);
+				return null;
+			}
 			$rOthers = self::reserve(!empty($rSettings['redis_handler']), $rIdentity, $rUUID, $rTtl, $rNode, $rStreamID);
 			if ($rOthers === null) {
 				return null;
@@ -145,9 +156,52 @@ LUA;
 			// the others still on their way to a node.
 			$rRoom = max(0, $rMax - $rOthers - 1);
 			self::enforce($rHMAC !== 0 ? null : $rLineID, (int) ($rUser['pair_id'] ?? 0), $rRoom, $rHMAC !== 0 ? $rHMAC : null, $rIdentifier, $rIP, $rUserAgent, $rUUID);
+			if ($rHls) {
+				self::makeWay($rSettings, $rNode, $rHMAC !== 0 ? $rHMAC : null, $rIdentifier, $rLineID, $rStreamID, (string) $rIP, (string) $rUserAgent);
+			}
 			return ['exp' => self::now() + $rTtl, 'sid' => $rNode];
 		} catch (\Throwable) {
 			return null;
+		}
+	}
+
+	/**
+	 * The player a live HLS mint sends to $rNode may have a session on another
+	 * server that has ended and still has its record in MAIN's store: its own
+	 * end, or the cut just above. The node's record carries the same uuid
+	 * (ConnectionTracker::hlsConnectionKey names the player, not the server)
+	 * and MAIN's ingest refuses a uuid another server holds, so the viewer
+	 * would go uncounted until that record is swept. MAIN closes it here, at
+	 * its own mint, as its sweep would (ConnectionIngest::retireEnded). A node
+	 * that still reaches the database does this itself
+	 * (ConnectionTracker::createLive); one in mode 2 cannot.
+	 *
+	 * The table store only. In Redis MAIN's sweep closes every server's ended
+	 * record within the minute, from a list it reads at the start of its
+	 * pass: a record closed here and opened by the node meanwhile would be
+	 * taken by that pass's removal. An open record never makes way: it may be
+	 * a second device with the same address and player on the same line.
+	 * Never fails the mint.
+	 *
+	 * @param array<string, mixed> $rSettings
+	 */
+	private static function makeWay(array $rSettings, int $rNode, ?int $rHMAC, string $rIdentifier, int $rLineID, int $rStreamID, string $rIP, string $rUserAgent): void {
+		if ($rStreamID <= 0 || !empty($rSettings['redis_handler'])) {
+			return;
+		}
+		try {
+			$rKey = ConnectionTracker::hlsConnectionKey($rHMAC, $rIdentifier, $rLineID, $rStreamID, $rIP, $rUserAgent);
+			$rNow = self::now();
+			$rDb = self::db();
+			if (!$rDb->query('SELECT * FROM `lines_live` WHERE `uuid` = ? AND `hls_end` = 1 AND `container` = ? AND `server_id` <> ?;', $rKey, 'hls', $rNode)) {
+				return;
+			}
+			foreach ($rDb->get_rows() as $rRow) {
+				$rLast = (int) ($rRow['hls_last_read'] ?? 0);
+				ConnectionIngest::retireEnded($rRow, $rLast > 0 && $rLast < $rNow ? $rLast : $rNow);
+			}
+		} catch (\Throwable) {
+			// The record stays for the sweep, as before.
 		}
 	}
 

@@ -3,7 +3,9 @@
 namespace XcVm\Cli\CronJobs;
 
 use XcVm\Cli\CommandInterface;
+use XcVm\Cli\Commands\UpdateCommand;
 use XcVm\Cli\CronTrait;
+use XcVm\Core\Cluster\NodeActions;
 use XcVm\Core\Cluster\NodeFlows;
 use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\NodeStateSink;
@@ -12,6 +14,7 @@ use XcVm\Core\Config\OpensslExtra;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
 use XcVm\Core\Process\ProcessManager;
+use XcVm\Core\Util\AtomicFile;
 use XcVm\Core\Util\SystemInfo;
 use XcVm\Domain\Cluster\ClusterBus;
 use XcVm\Domain\Cluster\ClusterPool;
@@ -95,6 +98,24 @@ class ServersCronJob implements CommandInterface {
 		// The cluster API's FPM pools: revived, and resized as servers come and go.
 		if ($rServers[SERVER_ID]['is_main'] && class_exists(ClusterPool::class)) {
 			ClusterPool::ensure(3.0);
+		}
+		// The load balancers MAIN's last update has yet to see on its release
+		// (UpdateCommand::PENDING), every ten minutes: one that is back and
+		// was not told, or whose update expired while it was away, is told.
+		if ($rServers[SERVER_ID]['is_main'] && (int) date('i') % 10 === 0 && is_file(UpdateCommand::PENDING)) {
+			$rPending = (array) json_decode((string) @file_get_contents(UpdateCommand::PENDING), true);
+			$rDue = SettingsManager::get('auto_update_lbs') ? UpdateCommand::lbsToTell($rServers, $rPending, time()) : ['tell' => [], 'wait' => []];
+			foreach ($rDue['tell'] as $rID) {
+				// One whose update could not be queued keeps its time: told at the next pass.
+				if (NodeActions::update($rID, $db)) {
+					$rDue['wait'][$rID] = time();
+				}
+			}
+			if ($rDue['wait'] === []) {
+				@unlink(UpdateCommand::PENDING);
+			} elseif ($rDue['wait'] != $rPending) {
+				AtomicFile::write(UpdateCommand::PENDING, (string) json_encode($rDue['wait'], JSON_FORCE_OBJECT));
+			}
 		}
 
 		// Daemon liveness checks read /proc via ProcessManager: the old

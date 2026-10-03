@@ -275,7 +275,17 @@ class StatusCommand implements CommandInterface {
 	}
 
 	private function configureFileLimits(): void {
-		$rFile = file('/etc/systemd/system.conf');
+		// systemd 256+ (Debian 13) ships its defaults under /usr/lib/systemd and
+		// leaves these absent: file() answered false, count() threw, and status
+		// stopped there. They start with the section the keys belong to, as
+		// systemd ignores an assignment outside one; a file without that header
+		// (2.6.0 made one there) holds nothing systemd reads, and starts over.
+		foreach (['system', 'user'] as $rName) {
+			if (!preg_match('/^\[Manager\]/m', (string) @file_get_contents('/etc/systemd/' . $rName . '.conf'))) {
+				@file_put_contents('/etc/systemd/' . $rName . '.conf', "[Manager]\n");
+			}
+		}
+		$rFile = @file('/etc/systemd/system.conf') ?: [];
 		$rHasHard = false;
 		$rHasSoft = false;
 		$counter = count($rFile);
