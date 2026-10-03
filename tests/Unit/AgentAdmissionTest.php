@@ -232,7 +232,12 @@ PHP);
 		$rAdm = ['exp' => time() + 15, 'sid' => 5];
 		$this->assertTrue(ConnectionTracker::createLive(['redis_handler' => 0], $rCtx + ['uuid' => 'i1', 'token' => $this->token('i1', ['adm' => $rAdm])], 'ts', 4321));
 		// HLS: live.php keeps the token's uuid as adm_uuid before it takes the playlist key.
+		// The table is MAIN's, not this node's store: its closed row is left to
+		// MAIN (a node in mode 2 is refused any query, and its viewer with it).
+		$this->rDb->exec("INSERT INTO `lines_live` (`uuid`, `hls_end`) VALUES ('hlskey', 1)");
 		$this->assertTrue(ConnectionTracker::createLive(['redis_handler' => 0], $rCtx + ['uuid' => 'hlskey', 'token' => $this->token('hlskey', ['adm' => $rAdm, 'adm_uuid' => 'i2'])], 'hls', null));
+		$this->rDb->query("SELECT COUNT(*) FROM `lines_live` WHERE `uuid` = 'hlskey'");
+		$this->assertSame(1, (int) $this->rDb->get_col());
 		$this->assertSame($rAdm, $this->header(0)['adm'] ?? null);
 		$this->assertSame($rAdm, $this->header(1)['adm'] ?? null);
 		$this->assertSame('i2', $this->requests()[1]['body']['adm_uuid'] ?? null);

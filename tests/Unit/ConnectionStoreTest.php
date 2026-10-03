@@ -152,6 +152,21 @@ final class ConnectionStoreTest extends TestCase {
 		$this->rDb->query('SELECT COUNT(*) AS `n`, MAX(`external_device`) AS `d`, MAX(`hls_end`) AS `e` FROM `lines_live` WHERE `uuid` = ?', 'dddd');
 		$this->assertSame(['1', 'box', '0'], array_map('strval', array_values($this->rDb->get_row())), 'the closed row made way for the new one');
 
+		// A node whose agent holds its viewers, and the agent does not answer: the
+		// record goes to the table after all, and the closed row makes way there too.
+		$rDir = sys_get_temp_dir() . '/xcvm-silent-' . bin2hex(random_bytes(4));
+		mkdir($rDir);
+		file_put_contents($rDir . '/flows.json', json_encode(['mode' => 1, 'flows' => NodeFlows::COMMANDS | NodeFlows::STREAMS | NodeFlows::CONNECTIONS, 'state' => 'active']));
+		NodeFlows::usePath($rDir . '/flows.json');
+		AgentClient::useSocket($rDir . '/agent.sock');
+		$this->rDb->query('UPDATE `lines_live` SET `hls_end` = 1 WHERE `uuid` = ?', 'dddd');
+		$this->assertTrue((bool) ConnectionTracker::createLive($rSettings, $rCtx, 'hls', null));
+		$this->rDb->query('SELECT COUNT(*) AS `n`, MAX(`hls_end`) AS `e` FROM `lines_live` WHERE `uuid` = ?', 'dddd');
+		$this->assertSame(['1', '0'], array_map('strval', array_values($this->rDb->get_row())), 'no closed twin for the reaper to take the new row down with');
+		NodeFlows::usePath(null);
+		AgentClient::useSocket(null);
+		exec('rm -rf ' . escapeshellarg($rDir));
+
 		$rHmac = ['is_hmac' => 3, 'identifier' => 'dev'] + $rCtx;
 		$rHmac['uuid'] = 'eeee';
 		ConnectionTracker::createLive($rSettings, $rHmac, 'ts', 77);
@@ -197,17 +212,29 @@ final class ConnectionStoreTest extends TestCase {
 		$rRow = $this->row('iiii');
 		$this->assertSame([5, 7, 'hls', 0], [(int) $rRow['server_id'], (int) $rRow['user_id'], $rRow['container'], (int) $rRow['hls_end']], 'server_id is the sender');
 
+		$this->assertFalse(ConnectionIngest::upsert(6, $rRec), 'another node cannot take it over');
 		$this->assertTrue(ConnectionIngest::upsert(5, ['hls_last_read' => 1800000030, 'hls_end' => 1] + $rRec));
 		$rAfter = $this->row('iiii');
 		$this->assertSame([(int) $rRow['activity_id'], 1800000030, 1], [(int) $rAfter['activity_id'], (int) $rAfter['hls_last_read'], (int) $rAfter['hls_end']], 'updated in place');
 
-		$this->assertFalse(ConnectionIngest::upsert(6, $rRec), 'another node cannot take it over');
+		$this->assertFalse(ConnectionIngest::upsert(6, ['hls_end' => 1] + $rRec), 'nor close it again');
 		$this->assertFalse(ConnectionIngest::upsert(5, ['uuid' => 'jjjj', 'stream_id' => 1]), 'no owner');
 		$this->assertFalse(ConnectionIngest::upsert(5, ['uuid' => 'bad uuid;'] + $rRec));
 		ConnectionIngest::remove(6, 'iiii');
 		$this->assertNotNull($this->row('iiii'), 'another node cannot remove it');
 		ConnectionIngest::remove(5, 'iiii');
 		$this->assertNull($this->row('iiii'));
+
+		// An HLS uuid names the player, not the server: a viewer closed on one
+		// node that opens again on another takes its closed row, which stays
+		// until the reaper's next pass.
+		$this->assertTrue(ConnectionIngest::upsert(5, ['uuid' => 'kkkk', 'hls_end' => 1] + $rRec));
+		$rClosed = $this->row('kkkk');
+		$this->assertTrue(ConnectionIngest::upsert(6, ['uuid' => 'kkkk'] + $rRec));
+		$rOpen = $this->row('kkkk');
+		$this->assertSame([(int) $rClosed['activity_id'], 6, 0], [(int) $rOpen['activity_id'], (int) $rOpen['server_id'], (int) $rOpen['hls_end']]);
+		ConnectionIngest::remove(5, 'kkkk');
+		$this->assertNotNull($this->row('kkkk'), 'the node it left cannot remove it');
 	}
 
 	public function testAFanoutCloseWritesTheActivityRowThenDropsTheRow(): void {
