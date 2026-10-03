@@ -15,8 +15,8 @@ class UpdateCommandPinnedTest extends TestCase {
 		$this->assertSame('1.2.3-dev.7', UpdateCommand::pinned('1.2.3-dev.7'));
 	}
 
-	/** cron:servers: a load balancer MAIN's update could not tell is told once it is back. */
-	public function testOnlyTheLoadBalancersMainCouldNotTellAreToldLater(): void {
+	/** cron:servers: a load balancer stays listed until it is on MAIN's release, and is told when it is back. */
+	public function testAListedLoadBalancerIsToldWhenItIsBackAndNotARolledBackOne(): void {
 		if (!defined('XC_VM_VERSION')) {
 			define('XC_VM_VERSION', '2.6.0');
 		}
@@ -33,12 +33,19 @@ class UpdateCommandPinnedTest extends TestCase {
 			8 => ['id' => 8, 'xc_vm_version' => null] + $rLb,
 			10 => ['id' => 10] + $rLb,
 		];
-		// Back and behind (2), or its release unknown (8): told. Still updating
-		// (5), offline (6) or disabled (7): waited for. MAIN, one on MAIN's
-		// release by now (3), a proxy (4) and one that is gone (9): dropped.
-		$this->assertSame(['tell' => [2, 8], 'wait' => [5, 6, 7]], UpdateCommand::lbsToTell($rServers, [1, 2, 3, 4, 5, 6, 7, 8, 9, '2'], $rNow));
-		// 10 is behind and online, but MAIN's update did tell it: an admin
-		// rolled it back, and it stays there.
+		// Listed and never told (0). Back and behind (2), or its release
+		// unknown (8): told. Still updating (5), offline (6) or disabled (7):
+		// waited for. MAIN, one on MAIN's release by now (3), a proxy (4) and
+		// one that is gone (9): dropped.
+		$rNever = array_fill_keys([1, 2, 3, 4, 5, 6, 7, 8, 9], 0);
+		$this->assertSame(['tell' => [2, 8], 'wait' => [2 => 0, 5 => 0, 6 => 0, 7 => 0, 8 => 0]], UpdateCommand::lbsToTell($rServers, $rNever, $rNow));
+		// Told an hour ago: its update is on its way, it only stays listed.
+		// Told more than a day ago and still behind: that update expired while
+		// it was away, so it is told again.
+		$this->assertSame(['tell' => [], 'wait' => [2 => $rNow - 3600]], UpdateCommand::lbsToTell($rServers, [2 => $rNow - 3600], $rNow));
+		$this->assertSame(['tell' => [2], 'wait' => [2 => $rNow - 90000]], UpdateCommand::lbsToTell($rServers, ['2' => $rNow - 90000], $rNow));
+		// 10 is behind and online but not listed: it reached MAIN's release,
+		// then an admin rolled it back, and it stays there.
 		$this->assertSame(['tell' => [], 'wait' => []], UpdateCommand::lbsToTell($rServers, [], $rNow));
 	}
 

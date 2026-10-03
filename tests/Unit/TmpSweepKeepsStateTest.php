@@ -13,7 +13,7 @@ final class TmpSweepKeepsStateTest extends TestCase {
 	public function testEveryStampOfTheRootCronOutlivesItsPeriod(): void {
 		$rSource = (string) file_get_contents(dirname(__DIR__, 2) . '/src/Cli/CronJobs/RootSignalsCronJob.php');
 		// A stamp, and the longest period the lines right after it compare its age with.
-		preg_match_all("/CRONS_TMP_PATH \. '(\w+)';\n(?:[^\n]*\n){0,2}?[^\n]*> [^\n]*?(86400|3600)\b/", $rSource, $rStamps, PREG_SET_ORDER);
+		preg_match_all("/CRONS_TMP_PATH \. '(\w+)';\n(?:[^\n]*\n){0,2}?[^\n]*\b(86400|3600)\b/", $rSource, $rStamps, PREG_SET_ORDER);
 		$rFound = array_column($rStamps, 2, 1);
 		$this->assertSame(['fanout_binary_check', 'ffmpeg_check', 'xcvm_core_check', 'ytdlp_check'], (static function (array $rNames): array {
 			sort($rNames);
