@@ -78,13 +78,15 @@ test.describe.serial('killing an HLS viewer on the load balancer', () => {
     let failed = false;
     for (let cycle = 1; cycle <= 3; cycle++) {
       // A player connects through MAIN (the caches take a new line at their next passes).
+      // Until MAIN's caches know the channel runs, MAIN answers itself with its
+      // off-air video's playlist: only one MAIN sends on to the load balancer counts.
       let playlistURL = '';
       await expect
         .poll(async () => {
           const r = await fetch(`${origin}/live/${line.username}/${line.password}/${channelID}.m3u8`, { redirect: 'follow' });
           const text = await r.text();
           playlistURL = r.url;
-          return r.status === 200 && text.includes('#EXTINF') ? 'served' : `${r.status} ${text.slice(0, 80)}`;
+          return r.status === 200 && r.redirected && text.includes('#EXTINF') ? 'served' : `${r.status}${r.redirected ? '' : ' from MAIN'} ${text.slice(0, 80)}`;
         }, { timeout: cycle === 1 ? 780_000 : 120_000, intervals: [cycle === 1 ? 15_000 : 3_000] })
         .toBe('served');
 
