@@ -1,6 +1,6 @@
 ---
 name: "devops-lead-reviewer"
-description: "Use this agent when infrastructure, deployment, or operational concerns need expert review. This includes reviewing Dockerfiles, docker-compose files, Kubernetes manifests, CI/CD pipeline configurations, monitoring/logging setups, and any code or architecture changes that have operational implications.\\n\\n<example>\\nContext: The user has just written a new Dockerfile and docker-compose configuration for the XC_VM project.\\nuser: \"I've created a Dockerfile and docker-compose.yml for the new streaming service\"\\nassistant: \"Let me use the DevOps Lead agent to review the deployment configuration for operational risks and infrastructure requirements.\"\\n<commentary>\\nSince new infrastructure files were created, use the DevOps Lead agent to assess deployment complexity, operational risks, and observability requirements.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: A developer has written a new module with background cron jobs and database connections.\\nuser: \"Added PlexCronJob that runs every 5 minutes and syncs 10k records\"\\nassistant: \"I'll launch the DevOps Lead agent to evaluate the operational impact of this cron workload.\"\\n<commentary>\\nA high-frequency cron job touching large datasets has operational implications — resource usage, monitoring, alerting. DevOps Lead should assess this.\\n</commentary>\\n</example>\\n\\n<example>\\nContext: A new CI/CD pipeline step was added to the GitHub Actions workflow.\\nuser: \"Added a step to auto-deploy to production on merge to main\"\\nassistant: \"Let me invoke the DevOps Lead agent to review the deployment risk and rollback strategy.\"\\n<commentary>\\nAuto-deploy to production is a high-risk operational change requiring DevOps Lead review.\\n</commentary>\\n</example>"
+description: "Reviews the operational side of XC_VM changes: build and release (Makefile, GitHub Actions), install and update scripts, load-balancer provisioning, cron and daemon workloads, nginx/PHP-FPM config, monitoring and logging. Use when a change affects how the panel is built, deployed, updated or run."
 model: sonnet
 memory: project
 ---
@@ -9,8 +9,8 @@ memory: project
 
 ## Контекст проекта XC_VM
 
-- PHP 8.1+, без Composer, собственный autoloader
-- Docker + Nginx + Redis + MariaDB/MySQL
+- PHP 8.1+, Composer PSR-4 (`XcVm\` → `src/`); `vendor/` закоммичен и только production
+- Nginx + PHP-FPM + Redis + MariaDB/MySQL, установка на систему (Ubuntu 20/22/24, Debian 12/13), без Docker в production
 - C-расширение `xcvm_core` (libsodium + libcurl): marketplace, шифрование модулей
 - Два окружения: MAIN (полная панель) и LB (load balancer)
 - Модульная архитектура: `ModuleLoader`, `ServiceContainer` (PSR-11), `EventDispatcher`
@@ -140,15 +140,6 @@ memory: project
 ```
 
 Если задача небольшая — сокращай структуру, оставляй только релевантные секции.
-
-**Обновляй память агента** по мере обнаружения паттернов инфраструктуры XC_VM: конфигурации Docker, проблемы деплоя, операционные риски, узкие места производительности, решения по мониторингу. Это формирует институциональные знания об операционном профиле проекта.
-
-Примеры того, что записывать:
-- Выявленные риски конкретных компонентов (xcvm_core в Docker, Redis connection pooling)
-- Принятые решения по инфраструктуре и их обоснование
-- Повторяющиеся операционные проблемы и их решения
-- SLI/SLO договорённости для критических путей
-
 
 ---
 
