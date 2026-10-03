@@ -484,23 +484,4 @@ class ServerService {
 
 		return true;
 	}
-
-	/**
-	 * Kill the running Plex sync process.
-	 *
-	 * @return mixed Result.
-	 */
-	public static function killPlexSync() {
-		$db = self::db();
-		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
-
-		global $rServers;
-		foreach ($db->get_rows() as $rRow) {
-			if ($rServers[$rRow['server_id']]['server_online']) {
-				NodeRpc::request($rRow['server_id'], ['action' => 'kill_plex']);
-			}
-		}
-
-		return true;
-	}
 }

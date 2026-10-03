@@ -10,6 +10,8 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\GeoIP\MaxMindUpdater;
 use XcVm\Core\Localization\Translator;
 use XcVm\Core\Util\AdminHelpers;
+use XcVm\Domain\Bouquet\BouquetService;
+use XcVm\Domain\Stream\CategoryService;
 use XcVm\Streaming\Codec\FfmpegBinaries; // Code reconstruction by Squallp
 use XcVm\Streaming\Fanout\FanoutConfig;
 use XcVm\Core\Util\LayoutRenderer;
@@ -73,6 +75,7 @@ use XcVm\Domain\Server\ServerRepository;
 				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#api" role="tab"><i class="icon-base ti tabler-code me-1"></i><span class="d-none d-sm-inline">API</span></button></li>
 				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#streaming" role="tab"><i class="icon-base ti tabler-player-play me-1"></i><span class="d-none d-sm-inline"><?= $language::get('streaming') ?></span></button></li>
 				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#cluster" role="tab"><i class="icon-base ti tabler-topology-star-3 me-1"></i><span class="d-none d-sm-inline"><?= $language::get('cluster') ?></span></button></li>
+				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#vod-import" role="tab"><i class="icon-base ti tabler-movie me-1"></i><span class="d-none d-sm-inline"><?= $language::get('vod_import') ?></span></button></li>
 				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#mag" role="tab"><i class="icon-base ti tabler-device-tablet me-1"></i><span class="d-none d-sm-inline"><?= $language::get('mag') ?></span></button></li>
 				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#webplayer" role="tab"><i class="icon-base ti tabler-world me-1"></i><span class="d-none d-sm-inline">Web Player</span></button></li>
 				<li class="nav-item"><button type="button" class="nav-link" data-bs-toggle="tab" data-bs-target="#logs" role="tab"><i class="icon-base ti tabler-file-text me-1"></i><span class="d-none d-sm-inline"><?= $language::get('logs') ?></span></button></li>
@@ -2363,6 +2366,105 @@ use XcVm\Domain\Server\ServerRepository;
 									<textarea class="form-control" rows="3" id="cluster_db_allowlist_extra" name="cluster_db_allowlist_extra"><?= htmlspecialchars((string) ($rSettings['cluster_db_allowlist_extra'] ?? '')) ?></textarea>
 								</div>
 							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="tab-pane fade" id="vod-import" role="tabpanel">
+					<div class="row">
+						<div class="col-12">
+							<h5 class="card-title mb-4"><?= $language::get('vod_import_matching') ?></h5>
+							<div class="form-group row mb-4">
+									<label class="col-md-4 col-form-label" for="percentage_match">
+										<?= $language::get('match_percentage') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('match_percentage_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<input type="number" min="0" class="form-control text-center" id="percentage_match" name="percentage_match" value="<?= (int) $rSettings["percentage_match"] ?>">
+									</div>
+									<label class="col-md-4 col-form-label" for="max_genres">
+										<?= $language::get('max_genres') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('max_genres_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<input type="number" min="0" class="form-control text-center" id="max_genres" name="max_genres" value="<?= (int) $rSettings["max_genres"] ?>">
+									</div>
+							</div>
+							<div class="form-group row mb-4">
+									<label class="col-md-4 col-form-label" for="thread_count">
+										<?= $language::get('import_threads') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('import_threads_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<input type="number" min="1" class="form-control text-center" id="thread_count" name="thread_count" value="<?= (int) $rSettings["thread_count"] ?>">
+									</div>
+							</div>
+							<div class="form-group row mb-4">
+									<label class="col-md-4 col-form-label" for="alternative_titles">
+										<?= $language::get('check_alternative_titles') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('check_alternative_titles_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<div class="form-check form-switch"><input name="alternative_titles" id="alternative_titles" type="checkbox" <?= $rSettings["alternative_titles"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
+									</div>
+									<label class="col-md-4 col-form-label" for="fallback_parser">
+										<?= $language::get('use_fallback_parser') ?>
+										<i class="icon-base ti tabler-info-circle text-body-secondary" data-bs-toggle="tooltip" title="<?= $language::get('use_fallback_parser_tooltip') ?>"></i>
+									</label>
+									<div class="col-md-2">
+										<div class="form-check form-switch"><input name="fallback_parser" id="fallback_parser" type="checkbox" <?= $rSettings["fallback_parser"] == 1 ? ' checked' : '' ?> class="form-check-input"></div>
+									</div>
+							</div>
+
+							<p class="text-body-secondary"><?= $language::get('genre_mapping_help') ?></p>
+							<?php $rGenreBouquetList = BouquetService::getAll(); ?>
+							<h5 class="card-title mb-4"><?= $language::get('genre_mapping_movies') ?></h5>
+								<?php foreach (CategoryService::getGenreMap(1) as $rGenre): ?>
+									<?php $rGenreBouquets = array_map('intval', (array) json_decode((string) $rGenre['bouquets'], true)); ?>
+									<div class="form-group row mb-4">
+										<label class="col-md-2 col-form-label" for="genre_<?= (int) $rGenre['genre_id'] ?>"><?= htmlspecialchars((string) $rGenre['genre']) ?></label>
+										<div class="col-md-4">
+											<select name="genre_<?= (int) $rGenre['genre_id'] ?>" id="genre_<?= (int) $rGenre['genre_id'] ?>" class="form-control" data-toggle="select2">
+												<option value="0"><?= $language::get('do_not_use') ?></option>
+												<?php foreach (CategoryService::getAllByType('movie') as $rCategory): ?>
+													<option value="<?= (int) $rCategory['id'] ?>" <?= intval($rGenre['category_id']) === intval($rCategory['id']) ? ' selected' : '' ?>><?= htmlspecialchars((string) $rCategory['category_name']) ?></option>
+												<?php endforeach; ?>
+											</select>
+										</div>
+										<label class="col-md-2 col-form-label" for="bouquet_<?= (int) $rGenre['genre_id'] ?>"><?= $language::get('bouquets') ?></label>
+										<div class="col-md-4">
+											<select name="bouquet_<?= (int) $rGenre['genre_id'] ?>[]" id="bouquet_<?= (int) $rGenre['genre_id'] ?>" class="form-control" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose') ?>">
+												<?php foreach ($rGenreBouquetList as $rBouquet): ?>
+													<option value="<?= (int) $rBouquet['id'] ?>" <?= in_array(intval($rBouquet['id']), $rGenreBouquets, true) ? ' selected' : '' ?>><?= htmlspecialchars((string) $rBouquet['bouquet_name']) ?></option>
+												<?php endforeach; ?>
+											</select>
+										</div>
+									</div>
+								<?php endforeach; ?>
+
+							<h5 class="card-title mb-4 mt-6"><?= $language::get('genre_mapping_series') ?></h5>
+								<?php foreach (CategoryService::getGenreMap(2) as $rGenre): ?>
+									<?php $rGenreBouquets = array_map('intval', (array) json_decode((string) $rGenre['bouquets'], true)); ?>
+									<div class="form-group row mb-4">
+										<label class="col-md-2 col-form-label" for="genretv_<?= (int) $rGenre['genre_id'] ?>"><?= htmlspecialchars((string) $rGenre['genre']) ?></label>
+										<div class="col-md-4">
+											<select name="genretv_<?= (int) $rGenre['genre_id'] ?>" id="genretv_<?= (int) $rGenre['genre_id'] ?>" class="form-control" data-toggle="select2">
+												<option value="0"><?= $language::get('do_not_use') ?></option>
+												<?php foreach (CategoryService::getAllByType('series') as $rCategory): ?>
+													<option value="<?= (int) $rCategory['id'] ?>" <?= intval($rGenre['category_id']) === intval($rCategory['id']) ? ' selected' : '' ?>><?= htmlspecialchars((string) $rCategory['category_name']) ?></option>
+												<?php endforeach; ?>
+											</select>
+										</div>
+										<label class="col-md-2 col-form-label" for="bouquettv_<?= (int) $rGenre['genre_id'] ?>"><?= $language::get('bouquets') ?></label>
+										<div class="col-md-4">
+											<select name="bouquettv_<?= (int) $rGenre['genre_id'] ?>[]" id="bouquettv_<?= (int) $rGenre['genre_id'] ?>" class="form-control" data-toggle="select2" multiple="multiple" data-placeholder="<?= $language::get('choose') ?>">
+												<?php foreach ($rGenreBouquetList as $rBouquet): ?>
+													<option value="<?= (int) $rBouquet['id'] ?>" <?= in_array(intval($rBouquet['id']), $rGenreBouquets, true) ? ' selected' : '' ?>><?= htmlspecialchars((string) $rBouquet['bouquet_name']) ?></option>
+												<?php endforeach; ?>
+											</select>
+										</div>
+									</div>
+								<?php endforeach; ?>
 						</div>
 					</div>
 				</div>

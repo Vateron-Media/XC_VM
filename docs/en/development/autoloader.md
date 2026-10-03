@@ -63,8 +63,8 @@ directory.
 | Project convention: no `declare(strict_types=1)` | — |
 
 Because the namespace carries the location, duplicate short names in different
-namespaces no longer collide — `XcVm\Public\Controllers\Admin\PlexController` and
-`XcVm\Module\Plex\PlexController` are distinct.
+namespaces no longer collide — `XcVm\Public\Controllers\Player\HomeController` and
+`XcVm\Public\Controllers\PlayerV2\HomeController` are distinct.
 
 ## Procedural and third-party files
 

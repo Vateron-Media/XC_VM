@@ -87,9 +87,9 @@ $rModuleLoader = new ModuleLoader();
 $rModuleLoader->loadAll();
 $rModuleLoader->registerAllCommands($rRegistry);
 
-// Boot modules so their service-locator dependencies (e.g. WatchCron::setDb,
-// WatchItem::setDb) are injected before any module command runs. Without this
-// CLI commands hit "::setDb() must be called before use." — the web path boots
+// Boot modules and register their #[ListensTo] subscribers before any command
+// runs: core commands dispatch events modules own the handling of (e.g.
+// vod_import_item's VodImportResultEvent → watch_logs). The web path boots
 // modules in index.php, so the CLI must do the same. No Router in CLI, so route
 // registration is skipped.
 $rModuleLoader->bootAll(XC_Bootstrap::getContainer());

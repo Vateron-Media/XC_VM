@@ -49,18 +49,13 @@ final class PageAuthorizationPostActionTest extends TestCase {
 		$this->assertTrue(PageAuthorization::checkPermissions('no_such_page', false));
 	}
 
-	/** Plex / Watch saves need the permission the modules give their own pages. */
-	public function testModuleSavesNeedTheirPermission(): void {
-		foreach (['settings_plex', 'settings_watch', 'plex_add', 'watch_add'] as $rAction) {
+	/** Module saves are the modules' own API routes now: post.php refuses them. */
+	public function testModuleSavesAreNoLongerPostActions(): void {
+		$GLOBALS['rPermissions']['advanced'] = ['folder_watch_settings', 'folder_watch_add'];
+		foreach (['settings_watch', 'watch_add', 'settings_plex', 'plex_add'] as $rAction) {
 			$this->assertFalse(PageAuthorization::checkPostAction($rAction, false), $rAction);
+			$this->assertFalse(PageAuthorization::checkPostAction($rAction, true), $rAction . ' (edit)');
 		}
-		$GLOBALS['rPermissions']['advanced'] = ['folder_watch_settings'];
-		$this->assertTrue(PageAuthorization::checkPostAction('settings_plex', false));
-		$this->assertTrue(PageAuthorization::checkPostAction('settings_watch', false));
-		$this->assertFalse(PageAuthorization::checkPostAction('plex_add', false));
-		$GLOBALS['rPermissions']['advanced'] = ['folder_watch_add'];
-		$this->assertTrue(PageAuthorization::checkPostAction('plex_add', false));
-		$this->assertTrue(PageAuthorization::checkPostAction('watch_add', true));
 	}
 
 	public function testEnigmaPageFollowsTheMagRules(): void {

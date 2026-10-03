@@ -11,7 +11,7 @@ use XcVm\Domain\Cluster\ClusterAudit;
 use XcVm\Domain\Cluster\ClusterOverview;
 use XcVm\Domain\Server\ServerRepository;
 use XcVm\Domain\Stream\StreamConfigRepository;
-use XcVm\Module\Watch\WatchService;
+use XcVm\Domain\Stream\RecordingService;
 
 /**
  * Admin-ajax controller for the small admin actions that do not belong to a
@@ -176,11 +176,7 @@ class MiscAjaxController extends BaseAjaxController {
 			$this->fail();
 		}
 
-		if (!class_exists(WatchService::class)) {
-			$this->fail();
-		}
-
-		WatchService::deleteRecording(RequestManager::get('id'));
+		RecordingService::delete(RequestManager::get('id'));
 
 		$this->ok();
 	}

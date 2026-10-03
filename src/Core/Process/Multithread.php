@@ -110,4 +110,55 @@ class Multithread {
 		}
 		return null;
 	}
+
+	/**
+	 * Run commands with at most $rSize at a time, taking each from $rCommands
+	 * only when a slot frees up, so a generator can feed tens of thousands of
+	 * them without holding them in memory. Output is discarded; the loop polls
+	 * every $rPollMicros instead of spinning.
+	 *
+	 * @param iterable $rCommands   Shell commands.
+	 * @param int      $rSize       Maximum running at once (at least 1).
+	 * @param int      $rPollMicros Poll interval while every slot is busy.
+	 * @return int How many commands were started.
+	 */
+	public static function pool(iterable $rCommands, int $rSize, int $rPollMicros = 100000): int {
+		$rSize = max(1, $rSize);
+		$rNull = [['file', '/dev/null', 'r'], ['file', '/dev/null', 'w'], ['file', '/dev/null', 'w']];
+		$rRunning = [];
+		$rStarted = 0;
+		foreach ($rCommands as $rCommand) {
+			$rRunning = self::waitBelow($rRunning, $rSize, $rPollMicros);
+			$rProcess = proc_open($rCommand, $rNull, $rPipes);
+			if (is_resource($rProcess)) {
+				$rRunning[] = $rProcess;
+				$rStarted++;
+			}
+		}
+		self::waitBelow($rRunning, 1, $rPollMicros);
+		return $rStarted;
+	}
+
+	/**
+	 * Wait until fewer than $rLimit processes run, closing the finished ones.
+	 *
+	 * @param resource[] $rRunning
+	 * @param int        $rLimit
+	 * @param int        $rPollMicros
+	 * @return resource[] The ones still running.
+	 */
+	private static function waitBelow(array $rRunning, int $rLimit, int $rPollMicros): array {
+		while (true) {
+			foreach ($rRunning as $rKey => $rProcess) {
+				if (!proc_get_status($rProcess)['running']) {
+					proc_close($rProcess);
+					unset($rRunning[$rKey]);
+				}
+			}
+			if (count($rRunning) < $rLimit) {
+				return $rRunning;
+			}
+			usleep($rPollMicros);
+		}
+	}
 }
