@@ -8,7 +8,7 @@ Watch Folder is an automated content import system. It monitors local directorie
 
 ```
 ┌──────────────────┐     ┌──────────────────┐     ┌──────────────────┐
-│  Watch Folder    │────▶│   WatchCron       │────▶│  WatchItem       │
+│  Watch Folder    │────▶│   WatchCron       │────▶│ VodItemImporter  │
 │  (directory on   │     │  scans for new    │     │  parses filename │
 │   disk / rclone) │     │  files, filters   │     │  queries TMDB    │
 │                  │     │  already imported  │     │  creates DB row  │
@@ -28,8 +28,8 @@ Watch Folder is an automated content import system. It monitors local directorie
 2. **Cron job `cron:watch`** runs periodically (controlled by `scan_offset` — seconds between scans). It queries `watch_folders` table for active folders where `last_run` exceeded the offset.
 3. **File discovery** — the cron uses `find` for local directories or `rclone lsjson` for cloud/remote mounts. Files are filtered by allowed extensions (default: `mp4, mkv, avi, mpg, flv, 3gp, m4v, wmv, mov, ts`). Files already present in `streams.stream_source` are skipped.
 4. **Stability check** — files modified less than 30 seconds ago are skipped (to avoid importing partially uploaded files).
-5. **Parallel processing** — each new file is dispatched to a `watch_item` command (via `shell_exec`), running up to `thread_count` items in parallel using `Multithread`.
-6. **WatchItem** parses the filename using PTN or guessit (see parser docs below), resolves metadata via TMDB API, and inserts a record into `streams` (for movies) or `streams_series` + `streams_episodes` (for series).
+5. **Parallel processing** — each new file is dispatched to core's `vod_import_item` command (via `shell_exec`), running up to `thread_count` items in parallel using `Multithread`. Movies/Series → Import (M3U or folder) uses the same command, so manual import works without this module.
+6. **VodItemImporter** (core, `Domain/Vod/VodItemImporter.php`) parses the filename using PTN or guessit (see parser docs below), resolves metadata via TMDB API, and inserts a record into `streams` (for movies) or `streams_series` + `streams_episodes` (for series). It reports each file's outcome as a `VodImportResultEvent`, which the module writes to `watch_logs`.
 7. **Bouquet assignment** — imported items are automatically added to the configured bouquets.
 
 ---
