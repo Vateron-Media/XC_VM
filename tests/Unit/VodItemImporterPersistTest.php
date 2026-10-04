@@ -35,9 +35,12 @@ final class VodItemImporterPersistTest extends TestCase {
         EventDispatcher::listen(VodImportResultEvent::class, function (VodImportResultEvent $rEvent): void {
             $this->results[] = $rEvent;
         });
+        // The importer reports its progress on stdout for the CLI run: not this test's output.
+        ob_start();
     }
 
     protected function tearDown(): void {
+        ob_end_clean();
         EventDispatcher::unlisten(VodImportResultEvent::class);
     }
 

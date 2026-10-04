@@ -22,9 +22,12 @@ final class VodItemImporterUpgradeTest extends TestCase {
             define('SERVER_ID', 1);
         }
         VodItemImporter::setDb($this->db);
+        // The importer reports its progress on stdout for the CLI run: not this test's output.
+        ob_start();
     }
 
     protected function tearDown(): void {
+        ob_end_clean();
         foreach ($this->tmpFiles as $rPath) {
             @unlink($rPath);
         }

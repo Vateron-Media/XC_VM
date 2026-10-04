@@ -153,6 +153,10 @@ register_shutdown_function(static function () use ($ingestLockDir): void {
 // suite; a test that checks it gives it its own directory.
 \XcVm\Core\Cluster\ConnectAudit::useDir(false);
 
+// cluster:exec writes each refusal to STDERR for the agent's log, which PHPUnit
+// does not capture: the refusals the negative tests provoke go to a buffer instead.
+\XcVm\Cli\Commands\ClusterExecCommand::useErrors(fopen('php://memory', 'w+'));
+
 // The node's own store of its streams' runtime state (StreamRuntime) defaults
 // to the deploy's config/cluster/runtime/, and every stream state write with
 // STREAMS off lapses it (or with STREAMS on keeps into it): a per-run
