@@ -394,26 +394,6 @@ class AdminApiController {
 				case 'delete_category':
 					echo json_encode(AdminAPIWrapper::deleteCategory($rData['id']));
 					break;
-				case 'get_watch_folders':
-					echo json_encode(AdminAPIWrapper::filterRows(AdminAPIWrapper::getWatchFolders(), $rShowColumns, $rHideColumns));
-					break;
-				case 'get_watch_folder':
-					echo json_encode(AdminAPIWrapper::filterRow(AdminAPIWrapper::getWatchFolder($rData['id']), $rShowColumns, $rHideColumns));
-					break;
-				case 'create_watch_folder':
-					echo json_encode(AdminAPIWrapper::createWatchFolder($rData));
-					break;
-				case 'edit_watch_folder':
-					$rID = $rData['id'];
-					unset($rData['id']);
-					echo json_encode(AdminAPIWrapper::editWatchFolder($rID, $rData));
-					break;
-				case 'delete_watch_folder':
-					echo json_encode(AdminAPIWrapper::deleteWatchFolder($rData['id']));
-					break;
-				case 'reload_watch_folder':
-					echo json_encode(AdminAPIWrapper::reloadWatchFolder((isset($rData['server_id']) ? $rData['server_id'] : SERVER_ID), $rData['id']));
-					break;
 				case 'get_blocked_isps':
 					echo json_encode(AdminAPIWrapper::filterRow(AdminAPIWrapper::getBlockedISPs(), $rShowColumns, $rHideColumns));
 					break;
@@ -661,8 +641,12 @@ class AdminApiController {
 					echo json_encode(AdminAPIWrapper::checkActiveCode($rData['code'] ?? ''));
 					break;
 				default:
-					// Module-owned serverSide tables (TableRegistry) are exposed generically
-					// by their id, so a module table needs no hard-coded case here.
+					// Module actions (AdminApiRegistry) and module-owned serverSide tables
+					// (TableRegistry) are exposed generically, so a module needs no case here.
+					if ($rModuleAction = \XcVm\Core\Module\AdminApiRegistry::get($rAction)) {
+						echo json_encode(AdminAPIWrapper::moduleAction($rModuleAction, $rData, $rShowColumns, $rHideColumns));
+						break;
+					}
 					if (class_exists(\XcVm\Core\Module\TableRegistry::class) && \XcVm\Core\Module\TableRegistry::has($rAction)) {
 						echo json_encode(AdminAPIWrapper::TableAPI($rAction, $rStart, $rLimit, $rData, $rShowColumns, $rHideColumns));
 						break;

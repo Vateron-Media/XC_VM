@@ -253,9 +253,51 @@ class CategoryService {
 			$db->query("UPDATE `streams_series` SET `category_id` = ? WHERE `id` = ?;", '[' . implode(',', array_map('intval', $rRow['category_id'])) . ']', $rRow['id']);
 		}
 		$db->query('DELETE FROM `streams_categories` WHERE `id` = ?;', $rID);
+		$db->query('UPDATE `watch_categories` SET `category_id` = 0 WHERE `category_id` = ?;', $rID);
 		$db->query('UPDATE `watch_folders` SET `category_id` = null WHERE `category_id` = ?;', $rID);
 		$db->query('UPDATE `watch_folders` SET `fb_category_id` = null WHERE `fb_category_id` = ?;', $rID);
 
 		return true;
+	}
+
+	/**
+	 * The TMDb genre → category/bouquet mapping the VOD importer applies
+	 * (`watch_categories`; the name predates core owning it), keyed by genre_id.
+	 *
+	 * @param int|null $rType 1 = movie, 2 = series (3/4 are Plex's); null for all.
+	 * @return array
+	 */
+	public static function getGenreMap(?int $rType = null) {
+		$db = self::db();
+		if ($rType) {
+			$db->query('SELECT * FROM `watch_categories` WHERE `type` = ? ORDER BY `genre_id` ASC;', $rType);
+		} else {
+			$db->query('SELECT * FROM `watch_categories` ORDER BY `genre_id` ASC;');
+		}
+		$rReturn = [];
+		foreach (($db->get_rows() ?: []) as $rRow) {
+			$rReturn[$rRow['genre_id']] = $rRow;
+		}
+		return $rReturn;
+	}
+
+	/**
+	 * Save the movie and series genre mapping from the settings form:
+	 * `genre_<id>` / `genretv_<id>` hold a category id (0 = none),
+	 * `bouquet_<id>[]` / `bouquettv_<id>[]` its bouquets.
+	 *
+	 * @param array $rData
+	 * @return void
+	 */
+	public static function saveGenreMap(array $rData) {
+		$db = self::db();
+		foreach ([1 => ['genre', 'bouquet'], 2 => ['genretv', 'bouquettv']] as $rType => [$rGenreKey, $rBouquetKey]) {
+			foreach ($rData as $rKey => $rValue) {
+				if (preg_match('/^' . $rGenreKey . '_(\d+)$/', (string) $rKey, $rMatch)) {
+					$rBouquets = '[' . implode(',', array_map('intval', (array) ($rData[$rBouquetKey . '_' . $rMatch[1]] ?? []))) . ']';
+					$db->query('UPDATE `watch_categories` SET `category_id` = ?, `bouquets` = ? WHERE `genre_id` = ? AND `type` = ?;', intval($rValue), $rBouquets, intval($rMatch[1]), $rType);
+				}
+			}
+		}
 	}
 }

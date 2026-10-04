@@ -33,7 +33,6 @@ use XcVm\Domain\User\UserService;
 use XcVm\Domain\Vod\EpisodeService;
 use XcVm\Domain\Vod\MovieService;
 use XcVm\Domain\Vod\SeriesService;
-use XcVm\Module\Watch\WatchService;
 use XcVm\Public\Controllers\Admin\TableController;
 
 class AdminAPIWrapper {
@@ -885,65 +884,26 @@ class AdminAPIWrapper {
 		return ['status' => 'STATUS_FAILURE'];
 	}
 
-	public static function getWatchFolders() {
-		// watch is an optional module — report failure cleanly when it is absent.
-		if (!class_exists(WatchService::class)) {
-			return ['status' => 'STATUS_FAILURE'];
+	/**
+	 * Run a module's Admin API action (AdminApiRegistry): its reply's numeric
+	 * status becomes the STATUS_* name, and show/hide_columns apply as the
+	 * action declared.
+	 *
+	 * @param array      $rAction      The AdminApiRegistry entry.
+	 * @param array      $rData
+	 * @param array|null $rShowColumns
+	 * @param array|null $rHideColumns
+	 * @return array
+	 */
+	public static function moduleAction(array $rAction, array $rData, $rShowColumns, $rHideColumns) {
+		$rReply = parseerror(($rAction['handler'])($rData));
+		if ($rAction['columns'] === 'rows') {
+			return self::filterRows($rReply, $rShowColumns, $rHideColumns);
 		}
-		return ['status' => 'STATUS_SUCCESS', 'data' => WatchService::getWatchFolders()];
-	}
-
-	public static function getWatchFolder($rID) {
-		if (!($rFolder = StreamRepository::getWatchFolder($rID))) {
-			return ['status' => 'STATUS_FAILURE'];
+		if ($rAction['columns'] === 'row') {
+			return self::filterRow($rReply, $rShowColumns, $rHideColumns);
 		}
-		return ['status' => 'STATUS_SUCCESS', 'data' => $rFolder];
-	}
-
-	public static function createWatchFolder($rData) {
-		if (!class_exists(WatchService::class)) {
-			return ['status' => 'STATUS_FAILURE'];
-		}
-		if (isset($rData['edit'])) {
-			unset($rData['edit']);
-		}
-		$rReturn = parseerror(WatchService::processWatchFolder($rData));
-		if (isset($rReturn['data']['insert_id'])) {
-			$rReturn['data'] = self::getWatchFolder($rReturn['data']['insert_id'])['data'];
-		}
-		return $rReturn;
-	}
-
-	public static function editWatchFolder($rID, $rData) {
-		if (!class_exists(WatchService::class)) {
-			return ['status' => 'STATUS_FAILURE'];
-		}
-		if (!($rFolder = self::getWatchFolder($rID)) || !isset($rFolder['data'])) {
-			return ['status' => 'STATUS_FAILURE'];
-		}
-		$rData['edit'] = $rID;
-		$rReturn = parseerror(WatchService::processWatchFolder($rData));
-		if (isset($rReturn['data']['insert_id'])) {
-			$rReturn['data'] = self::getWatchFolder($rReturn['data']['insert_id'])['data'];
-		}
-		return $rReturn;
-	}
-
-	public static function deleteWatchFolder($rID) {
-		if (($rFolder = self::getWatchFolder($rID)) && isset($rFolder['data'])) {
-			if (StreamRepository::deleteWatchFolder($rID)) {
-				return ['status' => 'STATUS_SUCCESS'];
-			}
-		}
-		return ['status' => 'STATUS_FAILURE'];
-	}
-
-	public static function reloadWatchFolder($rServerID, $rID) {
-		if (!class_exists(WatchService::class)) {
-			return ['status' => 'STATUS_FAILURE'];
-		}
-		WatchService::forceWatch($rServerID, $rID);
-		return ['status' => 'STATUS_SUCCESS'];
+		return $rReply;
 	}
 
 	public static function getBlockedISPs() {

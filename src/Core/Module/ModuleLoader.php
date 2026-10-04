@@ -258,6 +258,7 @@ class ModuleLoader {
 		// Module stream-form tabs and import kinds (modules add them from boot()).
 		StreamFormRegistry::reset();
 		ImportSourceRegistry::reset();
+		AdminApiRegistry::reset();
 
 		foreach ($this->modules as $module) {
 			if ($module instanceof ServiceProviderInterface) {

@@ -49,7 +49,9 @@ To see all available commands:
 | `monitor` | `MonitorCommand` | Monitor stream by ID (start/restart/track). Only for streams the xc_fanout supervisor does not take — it stands down for a supervised one | xc_vm |
 | `thumbnail` | `ThumbnailCommand` | Generate thumbnail frames for a stream | xc_vm |
 | `plex_item` | `PlexItemCommand` | Process single Plex item (movie/series) | xc_vm |
-| `watch_item` | `WatchItemCommand` | Process single Watch item (TMDB search/update) | xc_vm |
+| `vod_import_batch` | `VodImportBatchCommand` | Work through one Movies/Series → Import batch, `thread_count` files at a time | xc_vm |
+| `vod_import_item` | `VodImportItemCommand` | Import a single movie/episode file (TMDB search/insert); used by Movies/Series → Import and the Watch Folder | xc_vm |
+| `watch_item` | `WatchItemCommand` | Watch module ≤ 1.0.5 only: its own per-file worker, replaced by `vod_import_item` in 1.1.0 | xc_vm |
 | `migrate` | `MigrateCommand` | Transfer data from `xc_vm_migrate` database | xc_vm |
 | `db:migrate` | `DbMigrateCommand` | Apply pending database migrations from the `migrations/` directory | xc_vm |
 | `server:install` | `ServerInstallCommand` | Install/configure server (Proxy/LB) via SSH | root |
@@ -71,7 +73,7 @@ To see all available commands:
 > is then not asked for, and the one the node presents is stored once the login
 > has worked.
 
-> `console.php` registers **every** class it discovers in `Cli/Commands/` and `Cli/CronJobs/` (glob + reflection) — there is **no** `file_exists()` guard. A command is "optional" only in that it may be **stripped from the LB build** (`Makefile` `LB_FILES_TO_REMOVE`) or **provided by an installed module**. `plex_item` and `watch_item` above are **module-provided** (Plex/Watch) — their command classes are not in the committed core tree and exist only when that module is installed.
+> `console.php` registers **every** class it discovers in `Cli/Commands/` and `Cli/CronJobs/` (glob + reflection) — there is **no** `file_exists()` guard. A command is "optional" only in that it may be **stripped from the LB build** (`Makefile` `LB_FILES_TO_REMOVE`) or **provided by an installed module**. `plex_item` and `watch_item` above are **module-provided** (Plex/Watch ≤ 1.0.5) — their command classes are not in the committed core tree and exist only when that module is installed.
 
 ### Daemon Commands (persistent processes)
 

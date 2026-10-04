@@ -454,9 +454,6 @@ class PageAuthorization {
 	 * @param bool   $rIsEdit Whether the form edits an existing record (`edit`).
 	 */
 	public static function checkPostAction(string $rAction, bool $rIsEdit): bool {
-		if (isset(self::MODULE_POST_ACTIONS[$rAction])) {
-			return Authorization::check('adv', self::MODULE_POST_ACTIONS[$rAction]);
-		}
 		if (str_starts_with($rAction, 'mass_delete_')) {
 			return self::checkPermissions('mass_delete', $rIsEdit, false);
 		}
@@ -468,16 +465,4 @@ class PageAuthorization {
 
 		return self::checkPermissions($rPage, $rIsEdit, false);
 	}
-
-	/**
-	 * Plex / Watch saves core's post.php still serves, held to the permissions the
-	 * modules give their own pages. They go when the modules post to their own
-	 * api routes (Module_*\/docs/agents/migrate-post-actions.md).
-	 */
-	private const MODULE_POST_ACTIONS = [
-		'settings_plex'  => 'folder_watch_settings',
-		'settings_watch' => 'folder_watch_settings',
-		'plex_add'       => 'folder_watch_add',
-		'watch_add'      => 'folder_watch_add',
-	];
 }
