@@ -5,6 +5,7 @@ namespace XcVm\Domain\Stream;
 use XcVm\Core\Cache\FileCache;
 use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\ClusterHealth;
+use XcVm\Core\Cluster\NodeRole;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Cluster\StoredConnections;
 use XcVm\Core\Config\SettingsManager;
@@ -1069,10 +1070,12 @@ class ConnectionTracker {
 			$rConn["identity"] = $rCtx["is_hmac"] . "_" . $rCtx["identifier"];
 		}
 
-		if (!$rSettings["redis_handler"] && $rContainer === 'hls') {
+		if (!$rSettings["redis_handler"] && $rContainer === 'hls' && !NodeRole::refusesConnects()) {
 			// A re-auth after a close reuses the player's HLS uuid. Drop the closed row
 			// (its activity was logged when it was closed) — the reaper deletes by uuid
-			// and would otherwise take this new row down with the old one.
+			// and would otherwise take this new row down with the old one. Not on a
+			// node in mode 2: it is refused every query, its record is its agent's,
+			// and MAIN's row follows that one (ConnectionIngest).
 			self::store()->query('DELETE FROM `lines_live` WHERE `uuid` = ? AND `hls_end` = 1;', $rConn["uuid"]);
 		}
 
@@ -1542,13 +1545,14 @@ class ConnectionTracker {
 	 * @param int|null    $rIsHMAC         HMAC ID.
 	 * @param string      $rIdentifier     HMAC identifier.
 	 * @param int|null    $rEnd            When it ended (MAIN's clock); null: now.
+	 * @param bool        $rHold           False: its record is gone already, so the line is written at once even in a sweep.
 	 */
-	public static function writeOfflineActivity(array $rSettings, int $rServerID, int $rProxyID, int $rUserID, int $rStreamID, int $rStart, string $rUserAgent, string $rIP, string $rExtension, string $rGeoIP, string $rISP, string $rExternalDevice = '', int $rDivergence = 0, ?int $rIsHMAC = null, string $rIdentifier = '', ?int $rEnd = null): void {
+	public static function writeOfflineActivity(array $rSettings, int $rServerID, int $rProxyID, int $rUserID, int $rStreamID, int $rStart, string $rUserAgent, string $rIP, string $rExtension, string $rGeoIP, string $rISP, string $rExternalDevice = '', int $rDivergence = 0, ?int $rIsHMAC = null, string $rIdentifier = '', ?int $rEnd = null, bool $rHold = true): void {
 		if ($rSettings['save_closed_connection'] != 0) {
 			if ($rServerID && ($rUserID || $rIsHMAC) && $rStreamID) { // a line's viewer, or an HMAC identity's
 				$rActivityInfo = ['user_id' => intval($rUserID), 'stream_id' => intval($rStreamID), 'server_id' => intval($rServerID), 'proxy_id' => intval($rProxyID), 'date_start' => intval($rStart), 'user_agent' => $rUserAgent, 'user_ip' => htmlentities($rIP), 'date_end' => $rEnd ?? time(), 'container' => $rExtension, 'geoip_country_code' => $rGeoIP, 'isp' => $rISP, 'external_device' => htmlentities($rExternalDevice), 'divergence' => intval($rDivergence), 'hmac_id' => $rIsHMAC, 'hmac_identifier' => $rIdentifier];
 				$rLine = base64_encode(json_encode($rActivityInfo)) . "\n";
-				if (self::$rHeldActivity !== null) {
+				if ($rHold && self::$rHeldActivity !== null) {
 					self::$rHeldActivity[] = $rLine;
 				} else {
 					file_put_contents(LOGS_TMP_PATH . 'activity', $rLine, FILE_APPEND | LOCK_EX);

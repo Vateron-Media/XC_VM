@@ -386,7 +386,10 @@ final class ClusterPool {
 			}
 		}
 		if ($rMarked) {
-			// Both masters run and have answered since they started.
+			// Both masters run and have answered since they started. Touched each
+			// pass: cron:tmp deletes files in tmp/ ten minutes old, and the API
+			// would answer STARTING until the next pass wrote the marker again.
+			@touch($rBase . self::MARKER);
 			return true;
 		}
 

@@ -56,6 +56,13 @@ if (!defined('VOD_PATH')) {
 if (!is_dir(VOD_PATH)) {
 	mkdir(VOD_PATH, 0775, true);
 }
+// VodItemImporter keeps its TMDb caches and per-series locks here.
+if (!defined('WATCH_TMP_PATH')) {
+	define('WATCH_TMP_PATH', $tmpRoot . '/watch/');
+}
+if (!is_dir(WATCH_TMP_PATH)) {
+	mkdir(WATCH_TMP_PATH, 0775, true);
+}
 
 foreach (array('40', '71', '80') as $version) {
 	$ffmpegConst = 'FFMPEG_BIN_' . $version;
@@ -98,6 +105,7 @@ require_once __DIR__ . '/Support/ReplicaFixture.php';
 require_once __DIR__ . '/Support/TestSourceDriver.php';
 require_once __DIR__ . '/Support/AgentUser.php';
 require_once __DIR__ . '/Support/NodeLeaseFixture.php';
+require_once __DIR__ . '/Support/FakeTmdbClient.php';
 
 // EventIngest's lane locks are real flock files. Without this they would land
 // in the shared TMP_PATH or system temp dir, where suite runs from other

@@ -89,6 +89,13 @@ final class Logger {
 	 * @param \Throwable $e The uncaught exception
 	 */
 	public static function handleException(\Throwable $e): void {
+		// Handled here, an uncaught exception would leave PHP's 200 on a request
+		// that did nothing — and nginx-rtmp reads a 2xx from its play callback as
+		// "let the viewer in". PHP's own answer to an unhandled one is a 500.
+		if (!headers_sent() && http_response_code() === 200) {
+			http_response_code(500);
+		}
+
 		self::log(
 			'EXCEPTION',
 			$e->getMessage(),

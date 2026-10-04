@@ -81,6 +81,76 @@ final class ConnectionAdmissionTest extends TestCase {
 		$this->assertCount(2, $this->rCuts);
 	}
 
+	/**
+	 * A player closed on one server that MAIN now sends to a node: its ended
+	 * HLS row there would refuse the node's record (the uuid names the player,
+	 * not the server). MAIN closes it at the mint. An open row, a row on the
+	 * node itself, and a row of another player or stream stay.
+	 */
+	public function testAMintClosesThePlayersEndedHlsRowOnAnotherServer(): void {
+		if (!defined('LOGS_TMP_PATH')) {
+			define('LOGS_TMP_PATH', sys_get_temp_dir() . '/xcvm-logs-' . bin2hex(random_bytes(4)) . '/');
+		}
+		@mkdir(LOGS_TMP_PATH, 0777, true);
+		@unlink(LOGS_TMP_PATH . 'activity');
+		SettingsManager::set(['redis_handler' => 0, 'save_closed_connection' => 1]);
+		$this->rDb->exec('CREATE TABLE `signals` (`signal_id` INTEGER PRIMARY KEY AUTOINCREMENT, `server_id` int, `time` int, `custom_data` text, `cache` tinyint DEFAULT 0)');
+		$this->rDb->exec('CREATE TABLE `lines_live` (`activity_id` INTEGER PRIMARY KEY AUTOINCREMENT, `uuid` text, `user_id` int, `stream_id` int, `server_id` int, `proxy_id` int, `user_agent` text, `user_ip` text, `container` text, `date_start` int, `hls_last_read` int, `hls_end` int DEFAULT 0)');
+		$rKey = \XcVm\Domain\Stream\ConnectionTracker::hlsConnectionKey(null, '', 42, 100, '10.0.0.1', 'VLC');
+		$rOther = \XcVm\Domain\Stream\ConnectionTracker::hlsConnectionKey(null, '', 42, 101, '10.0.0.1', 'VLC');
+		$rRow = static fn(string $rUUID, int $rServer, int $rEnd): string => "('" . $rUUID . "', 42, 100, " . $rServer . ", 0, 'VLC', '10.0.0.1', 'hls', 1700000000, 1700000040, " . $rEnd . ')';
+		$rCount = function (): array {
+			$this->rDb->query('SELECT `uuid`, `server_id`, `hls_end` FROM `lines_live` ORDER BY `activity_id`');
+			return array_map(static fn(array $rRow): string => substr($rRow['uuid'], 0, 4) . ':' . (int) $rRow['server_id'] . ':' . (int) $rRow['hls_end'], $this->rDb->get_rows());
+		};
+		$rShort = substr($rKey, 0, 4);
+		$rShortOther = substr($rOther, 0, 4);
+
+		// A TS mint, and one whose only row is open or on the node itself, close nothing.
+		$this->rDb->exec('INSERT INTO `lines_live` (`uuid`, `user_id`, `stream_id`, `server_id`, `proxy_id`, `user_agent`, `user_ip`, `container`, `date_start`, `hls_last_read`, `hls_end`) VALUES ' . $rRow($rKey, 9, 1) . ', ' . $rRow($rOther, 9, 1));
+		$this->assertTrue($this->admit($this->token(str_repeat('a', 32), 5, 2, ['extension' => 'ts'])));
+		$this->assertSame([$rShort . ':9:1', $rShortOther . ':9:1'], $rCount());
+
+		// The HLS mint for node 5: the player's ended row on server 9 goes, with its activity line; the other stream's stays.
+		$this->assertTrue($this->admit($this->token(str_repeat('b', 32), 5, 2, ['extension' => 'm3u8'])));
+		$this->assertSame([$rShortOther . ':9:1'], $rCount());
+		$rLines = file(LOGS_TMP_PATH . 'activity', FILE_IGNORE_NEW_LINES) ?: [];
+		$this->assertCount(1, $rLines);
+		$rActivity = json_decode(base64_decode($rLines[0]), true);
+		$this->assertSame([42, 100, 9, 1700000040], [$rActivity['user_id'], $rActivity['stream_id'], $rActivity['server_id'], $rActivity['date_end']], 'ended when it was last heard');
+		$this->rDb->query('SELECT `server_id`, `custom_data` FROM `signals`');
+		$this->assertSame('{"type":"delete_con","uuid":"' . $rKey . '"}', $this->rDb->get_rows()[0]['custom_data'] ?? null);
+
+		// An open row of another server never makes way, nor an ended one on the node the player is sent to.
+		$this->rDb->exec('DELETE FROM `lines_live`');
+		$this->rDb->exec('INSERT INTO `lines_live` (`uuid`, `user_id`, `stream_id`, `server_id`, `proxy_id`, `user_agent`, `user_ip`, `container`, `date_start`, `hls_last_read`, `hls_end`) VALUES ' . $rRow($rKey, 9, 0) . ', ' . $rRow($rKey, 5, 1));
+		$this->assertTrue($this->admit($this->token(str_repeat('c', 32), 5, 2, ['extension' => 'm3u8'])));
+		$this->assertSame([$rShort . ':9:0', $rShort . ':5:1'], $rCount());
+		$this->assertCount(1, file(LOGS_TMP_PATH . 'activity') ?: []);
+
+		// An unlimited line reserves nothing, but its player's ended row elsewhere makes way too. Its TS mint reads nothing.
+		$this->rDb->exec('DELETE FROM `lines_live`');
+		$this->rDb->exec('INSERT INTO `lines_live` (`uuid`, `user_id`, `stream_id`, `server_id`, `proxy_id`, `user_agent`, `user_ip`, `container`, `date_start`, `hls_last_read`, `hls_end`) VALUES ' . $rRow($rKey, 9, 1));
+		$this->assertFalse($this->admit($this->token(str_repeat('e', 32), 5, 0, ['extension' => 'ts'])));
+		$this->assertSame([$rShort . ':9:1'], $rCount());
+		$this->assertFalse($this->admit($this->token(str_repeat('e', 32), 6, 0, ['extension' => 'm3u8'])), 'a node whose agent does not hold its viewers');
+		$this->assertSame([$rShort . ':9:1'], $rCount());
+		$this->assertFalse($this->admit($this->token(str_repeat('e', 32), 5, 0, ['extension' => 'm3u8'])));
+		$this->assertSame([], $rCount());
+		$this->assertCount(2, file(LOGS_TMP_PATH . 'activity') ?: []);
+		$this->rDb->query('SELECT COUNT(*) FROM `cluster_reservations` WHERE `id` = ?', str_repeat('e', 32));
+		$this->assertSame(0, (int) $this->rDb->get_col(), 'nothing is reserved for it');
+
+		// With Redis as the store nothing is read or closed here: MAIN's sweep closes ended records there.
+		$this->rDb->exec('INSERT INTO `lines_live` (`uuid`, `user_id`, `stream_id`, `server_id`, `proxy_id`, `user_agent`, `user_ip`, `container`, `date_start`, `hls_last_read`, `hls_end`) VALUES ' . $rRow($rKey, 9, 1));
+		$this->assertFalse($this->admit($this->token(str_repeat('e', 32), 5, 0, ['extension' => 'm3u8']), ['redis_handler' => 1]));
+		$this->assertSame([$rShort . ':9:1'], $rCount());
+
+		// Without the table the mint still admits: this never fails it.
+		$this->rDb->exec('DROP TABLE `lines_live`');
+		$this->assertTrue($this->admit($this->token(str_repeat('d', 32), 5, 2, ['extension' => 'm3u8'])));
+	}
+
 	public function testRoomLeavesSpaceForThisViewerAndTheOnesInFlight(): void {
 		$this->admit($this->token(str_repeat('a', 32), 5, 2));
 		$this->admit($this->token(str_repeat('b', 32), 5, 2));

@@ -55,6 +55,16 @@ if (!($_GET['addr'] == '127.0.0.1' && $_GET['call'] == 'publish')) {
 		if ($rRequest['call'] != 'play_done') {
 			if (!(ViewerKey::passMatches($rSettings['live_streaming_pass'] ?? null, $rRequest['password'] ?? null) || isset($rAllowed[$rIP]) && $rAllowed[$rIP]['pull'] && (!$rAllowed[$rIP]['password'] || AuthService::secretMatches($rAllowed[$rIP]['password'], $rRequest['password'] ?? null)))) {
 				if (isset($rRequest['tcurl']) && isset($rRequest['app'])) {
+					// A load balancer is not shipped the line lookup (Domain/User): it
+					// cannot tell who a viewer is, so it refuses one rather than crash
+					// on the missing class, which nginx-rtmp took for a yes.
+					if (!class_exists(UserRepository::class)) {
+						$rDeny = false;
+						http_response_code(404);
+
+						exit();
+					}
+
 					if (isset($rRequest['token'])) {
 						if (!ctype_xdigit($rRequest['token'])) {
 							$rTokenData = explode('/', (string) Encryption::readToken($rRequest['token'], $rSettings['live_streaming_pass'], OPENSSL_EXTRA, true));

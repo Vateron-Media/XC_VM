@@ -18,7 +18,6 @@ use XcVm\Domain\Stream\CategoryService;
 use XcVm\Domain\Stream\StreamProcess;
 use XcVm\Domain\Stream\StreamRepository;
 use XcVm\Infrastructure\Database\DatabaseAware;
-use XcVm\Module\Watch\WatchService;
 
 /**
  * MovieService — movie service
@@ -644,19 +643,12 @@ class MovieService {
 							}
 						}
 					}
-					// watch is an optional module (fetched from its own repo). When it is
-					// not installed there are no watch categories — degrade to empty.
-					$rWatchCategories = class_exists(WatchService::class)
-						? [1 => WatchService::getWatchCategories(1), 2 => WatchService::getWatchCategories(2)]
-						: [];
-
+					$rItems = [];
 					foreach ($rImportStreams as $rImportStream) {
-						$rData = ['import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => [], 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => [], 'category_id' => [], 'language' => SettingsManager::getString('tmdb_language'), 'watch_categories' => $rWatchCategories, 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => SettingsManager::getInt('max_genres'), 'duplicate_tmdb' => true];
-						$rCommand = '/usr/bin/timeout 300 ' . PHP_BIN . ' ' . MAIN_HOME . 'console.php watch_item "' . base64_encode(json_encode($rData, JSON_UNESCAPED_UNICODE)) . '" > /dev/null 2>/dev/null &';
-						shell_exec($rCommand);
+						$rItems[] = ['import' => true, 'type' => 'movie', 'title' => $rImportStream['title'], 'file' => $rImportStream['url'], 'subtitles' => [], 'servers' => $rServerIDs, 'fb_category_id' => $rCategories, 'fb_bouquets' => $rBouquets, 'disable_tmdb' => $rDisableTMDB, 'ignore_no_match' => $rIgnoreMatch, 'bouquets' => [], 'category_id' => [], 'language' => SettingsManager::getString('tmdb_language'), 'read_native' => $rData['read_native'], 'movie_symlink' => $rData['movie_symlink'], 'remove_subtitles' => $rData['remove_subtitles'], 'direct_source' => $rData['direct_source'], 'direct_proxy' => $rData['direct_proxy'], 'auto_encode' => $rRestart, 'auto_upgrade' => false, 'fallback_title' => false, 'ffprobe_input' => false, 'transcode_profile_id' => $rData['transcode_profile_id'], 'target_container' => $rImportStream['container'], 'max_genres' => SettingsManager::getInt('max_genres'), 'duplicate_tmdb' => true];
 					}
 
-					return ['status' => STATUS_SUCCESS];
+					return ['status' => VodItemImporter::queueBatch($rItems) ? STATUS_SUCCESS : STATUS_FAILURE];
 				}
 				return ['status' => STATUS_NO_SOURCES, 'data' => $rPostData];
 			}

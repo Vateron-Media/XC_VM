@@ -7,6 +7,7 @@ use XcVm\Core\Cluster\AgentConnections;
 use XcVm\Core\Cluster\SignalDispatcher;
 use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\Config\SettingsRepository;
+use XcVm\Core\Module\SourceDriverRegistry;
 use XcVm\Core\Process\ProcessManager;
 use XcVm\Domain\Stream\ConnectionTracker;
 use XcVm\Domain\Stream\NodeStreams;
@@ -86,6 +87,9 @@ class OndemandCommand implements CommandInterface {
 			$rCurentMD5Hash = md5_file(__FILE__);
 			if (!$rLastCheck || time() - $rLastCheck > $rInterval || $rCurentMD5Hash !== $rMD5) {
 				SettingsManager::set(SettingsRepository::getAll(true));
+				// The kill below asks whether a pid is this stream's producer: a driver
+				// module installed since this daemon started names an engine it must know.
+				SourceDriverRegistry::reset();
 				$rLastCheck = time();
 				$rMD5 = $rCurentMD5Hash;
 				$rLocal = StreamSource::local();
@@ -166,10 +170,12 @@ class OndemandCommand implements CommandInterface {
 				FanoutClient::release($rStreamID);
 				FanoutClient::unregister($rStreamID);
 
-				if ($rMonitorPID > 0) {
+				// A pid file outlives its process, and the number is handed to
+				// another one: each is killed only while it still is this stream's.
+				if (ProcessManager::isMonitorAlive($rMonitorPID, $rStreamID)) {
 					@posix_kill($rMonitorPID, 9);
 				}
-				if ($rPID > 0) {
+				if (ProcessManager::isStreamRunning($rPID, (int) $rStreamID)) {
 					@posix_kill($rPID, 9);
 				}
 

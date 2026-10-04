@@ -69,12 +69,10 @@ use XcVm\Core\Exception\XcVmException;
  * Для модулей:
  * ──────────────────────────────────────────────────────────────────
  *
- *   class PlexModule implements ModuleInterface {
+ *   class ExampleModule implements ModuleInterface {
  *       public function boot(ServiceContainer $container): void {
- *           $db    = $container->get('db');
- *           $cache = $container->get('cache');
- *           $container->set('plex.service', function($c) {
- *               return new PlexService($c->get('db'), $c->get('settings'));
+ *           $container->set('example.client', function($c) {
+ *               return new ExampleClient($c->get('settings'));
  *           });
  *       }
  *   }

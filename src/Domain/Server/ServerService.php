@@ -350,9 +350,9 @@ class ServerService {
 
 			$db->query('UPDATE `servers` SET `status` = 3, `parent_id` = ? WHERE `id` = ?;', '[' . implode(',', $rParentIDs) . ']', $rServer['id']);
 			if ($rData['type'] == 1) {
-				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''));
+				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], [(string) intval($rData['http_broadcast_port']), (string) intval($rData['https_broadcast_port']), (string) intval($rUpdateSysctl), (string) intval($rPrivateIP), escapeshellarg(json_encode($rParentIDs))], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
 			} else {
-				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], ['80', '443', (string) intval($rUpdateSysctl)], (string) ($rData['expected_hostkey'] ?? ''));
+				$rCommand = InstallCredentials::command(intval($rData['type']), intval($rServer['id']), intval($rData['ssh_port']), (string) $rData['root_username'], (string) $rData['root_password'], ['80', '443', (string) intval($rUpdateSysctl)], (string) ($rData['expected_hostkey'] ?? ''), !empty($rData['forget_hostkey']));
 			}
 			shell_exec($rCommand);
 			return ['status' => STATUS_SUCCESS, 'data' => ['insert_id' => $rServer['id']]];
@@ -364,6 +364,12 @@ class ServerService {
 
 		if (strlen($rArray['server_ip']) == 0 || !filter_var($rArray['server_ip'], FILTER_VALIDATE_IP)) {
 			return ['status' => STATUS_INVALID_IP, 'data' => $rData];
+		}
+		// A server that already has a row is reinstalled, not added again: a
+		// second row for the same node (or for MAIN) left two servers on one
+		// machine, and deleting the stale one revoked the live node's database grant.
+		if (QueryHelper::checkExists('servers', 'server_ip', $rArray['server_ip'])) {
+			return ['status' => STATUS_EXISTS_IP, 'data' => $rData];
 		}
 
 		if ($rData['type'] == 1) {
@@ -479,25 +485,6 @@ class ServerService {
 		foreach (array_keys($rServers) as $rServerID) {
 			if ($rServers[$rServerID]['server_online']) {
 				NodeRpc::request($rServerID, ['action' => 'restore_images']);
-			}
-		}
-
-		return true;
-	}
-
-	/**
-	 * Kill the running Plex sync process.
-	 *
-	 * @return mixed Result.
-	 */
-	public static function killPlexSync() {
-		$db = self::db();
-		$db->query("SELECT DISTINCT(`server_id`) AS `server_id` FROM `watch_folders` WHERE `active` = 1 AND `type` = 'plex';");
-
-		global $rServers;
-		foreach ($db->get_rows() as $rRow) {
-			if ($rServers[$rRow['server_id']]['server_online']) {
-				NodeRpc::request($rRow['server_id'], ['action' => 'kill_plex']);
 			}
 		}
 

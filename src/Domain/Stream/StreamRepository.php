@@ -228,27 +228,6 @@ class StreamRepository {
 	}
 
 	/**
-	 * Resolve selectable streams from a set of sources.
-	 *
-	 * @param array $rSources Source identifiers.
-	 * @return array Matching stream selections.
-	 */
-	public static function getSelections(array $rSources) {
-		$db = self::db();
-		$rReturn = [];
-
-		foreach ($rSources as $rSource) {
-			$db->query("SELECT `id` FROM `streams` WHERE `type` IN (2,5) AND `stream_source` LIKE ? ESCAPE '|' LIMIT 1;", '%' . str_replace('/', '\\/', $rSource) . '"%');
-
-			if ($db->num_rows() == 1) {
-				$rReturn[] = intval($db->get_row()['id']);
-			}
-		}
-
-		return $rReturn;
-	}
-
-	/**
 	 * Delete a single stream and its associated data.
 	 *
 	 * @param int  $rID                Stream id.
@@ -373,41 +352,6 @@ class StreamRepository {
 				SignalDispatcher::cache(intval($rServerID), ['type' => 'delete_vods', 'id' => $rIDs], false, false, $db);
 			}
 		}
-
-		return true;
-	}
-
-	/**
-	 * Fetch a watch-folder row by id.
-	 *
-	 * @param int $rID Watch-folder id.
-	 * @return array|false The row, or false if not found.
-	 */
-	public static function getWatchFolder(int $rID) {
-		$db = self::db();
-		$db->query('SELECT * FROM `watch_folders` WHERE `id` = ?;', $rID);
-
-		if ($db->num_rows() == 1) {
-			return $db->get_row();
-		}
-		return false;
-	}
-
-	/**
-	 * Delete a watch folder.
-	 *
-	 * @param int $rID Watch-folder id.
-	 * @return bool True on success.
-	 */
-	public static function deleteWatchFolder(int $rID) {
-		$db = self::db();
-		$db->query('SELECT `id` FROM `watch_folders` WHERE `id` = ?;', $rID);
-
-		if (0 >= $db->num_rows()) {
-			return false;
-		}
-
-		$db->query('DELETE FROM `watch_folders` WHERE `id` = ?;', $rID);
 
 		return true;
 	}

@@ -8,6 +8,7 @@ use XcVm\Core\Config\SettingsManager;
 use XcVm\Core\License\LicenseGate;
 use XcVm\Core\Proxy\ProxyArchiveUpdater;
 use XcVm\Core\Updates\GitHubReleases;
+use XcVm\Core\Updates\ReleaseAsset;
 use XcVm\Core\Updates\UpdateChannels;
 use XcVm\Domain\Server\InstallCredentials;
 use XcVm\Domain\Server\ServerRepository;
@@ -42,7 +43,7 @@ class ServerInstallCommand implements CommandInterface {
 		}
 
 		// server:install <type> <serverID> <port> <username> <password> [http] [https] [sysctl] [privateIP] [parentIDs]
-		//                [--cred-file=<path>] [--expect-hostkey=<sha1>]
+		//                [--cred-file=<path>] [--expect-hostkey=<sha1>] [--forget-hostkey=1]
 		// The panel passes "-" for username and password and the credentials in
 		// a 0600 --cred-file, read and deleted here, so they never sit in argv.
 		[$rArgs, $rOptions] = InstallCredentials::splitOptions($rArgs);
@@ -123,6 +124,19 @@ class ServerInstallCommand implements CommandInterface {
 			$rUpdateData = LbInstallFlow::resolveUpdateData($gitRelease);
 			$rInstallFiles = $rUpdateData['url'];
 			$rHash = $rUpdateData['md5'];
+			if (empty($rInstallFiles) || empty($rHash)) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo "MAIN's release " . XC_VM_VERSION . " has no loadbalancer.tar.gz listed in its hashes.md5 on GitHub, or GitHub could not be reached. Exiting\n";
+				return 1;
+			}
+			// Before anything is removed on the node: the script that gives it
+			// xcvm_core, which no archive or bundle carries (taken from GitHub
+			// when MAIN has none).
+			if (LbInstallFlow::extensionInstaller() === null) {
+				$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+				echo 'MAIN has no ' . MAIN_HOME . "bin/install/install_xcvm_core.sh and could not take it from GitHub. Exiting\n";
+				return 1;
+			}
 			LbInstallFlow::writeInstallMetadata($rInstallDir, $rServerID, $rUsername, $rPort);
 		} else {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -140,6 +154,12 @@ class ServerInstallCommand implements CommandInterface {
 
 		$rPresentedHostKey = (string) @ssh2_fingerprint($rConn, SSH2_FINGERPRINT_SHA1 | SSH2_FINGERPRINT_HEX);
 		$rStoredHostKey = $rServers[$rServerID]['ssh_hostkey_sha1'] ?? null;
+		if (!empty($rOptions['forget-hostkey']) && $rStoredHostKey !== null && $rStoredHostKey !== '') {
+			// A rebuilt node has a new key. The stored one is not asked for, and the
+			// one presented now is stored below, once the login has worked.
+			echo 'The saved SSH host key (' . $rStoredHostKey . ") is forgotten, as the admin asked: the key this node presents is trusted and saved\n";
+			$rStoredHostKey = null;
+		}
 		$rHostKeyError = InstallCredentials::checkHostKey($rPresentedHostKey, $rExpectedHostKey, $rStoredHostKey);
 		if ($rHostKeyError !== null) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
@@ -161,6 +181,16 @@ class ServerInstallCommand implements CommandInterface {
 			$db->query('UPDATE `servers` SET `ssh_hostkey_sha1` = ? WHERE `id` = ?;', $rHostKey, $rServerID);
 		}
 
+		// Every step below runs through sudo, and so does the node's own service
+		// script. A Debian installed with a root password has no sudo: root
+		// installs it. A sudo that asks for a password cannot be answered here.
+		$rSudo = trim($this->runSSH($rConn, 'command -v sudo >/dev/null 2>&1 || { [ "$(id -u)" = 0 ] && apt-get update >/dev/null 2>&1 && DEBIAN_FRONTEND=noninteractive apt-get -yq install sudo >/dev/null 2>&1; }; sudo -n true >/dev/null 2>&1 && echo SUDO_OK')['output']);
+		if ($rSudo !== 'SUDO_OK') {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			echo "The SSH user must be root, or a user whose sudo asks for no password, and the node needs sudo (apt-get install sudo). Exiting\n";
+			return 1;
+		}
+
 		$rRunSSH = function ($rConnection, string $rCommand): array {
 			return $this->runSSH($rConnection, $rCommand);
 		};
@@ -170,15 +200,17 @@ class ServerInstallCommand implements CommandInterface {
 
 		// 1. Detect remote OS version and distribution
 		echo "Detecting remote OS version...\n";
-		$rOS = $this->runSSH($rConn, 'lsb_release -rs');
+		// Minimal Debian images have no lsb_release: os-release has the version too.
+		$rOS = $this->runSSH($rConn, 'lsb_release -rs 2>/dev/null || (. /etc/os-release && echo $VERSION_ID)');
 		$rVersion = trim($rOS['output']);
 		$rDistID = strtolower(trim($this->runSSH($rConn, 'lsb_release -is 2>/dev/null || (. /etc/os-release && echo $ID)')['output']));
 		echo "\nRemote OS: {$rDistID} {$rVersion}\n";
 
-		// EOL: the binaries release no longer ships debian_11 assets.
-		if ($rType == 2 && $rDistID === 'debian' && explode('.', $rVersion)[0] === '11') {
+		// The binaries release builds PHP and nginx for these only, and the LB
+		// archive carries neither: anywhere else the node would get no PHP.
+		if ($rType == 2 && ReleaseAsset::bundleFor($rDistID, $rVersion) === null) {
 			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
-			echo "Debian 11 is end-of-life and no longer supported. Use Debian 12 or 13. Exiting\n";
+			echo "Unsupported system: {$rDistID} {$rVersion}. A load balancer runs on Ubuntu 20.04, 22.04 or 24.04, or Debian 12 or 13. Exiting\n";
 			return 1;
 		}
 
@@ -206,8 +238,9 @@ class ServerInstallCommand implements CommandInterface {
 		// config.enc. Decided once, before the enrolment replaces the node's row.
 		$rApiMode = $rType == 2 && LbInstallFlow::installsInApiMode(SettingsManager::getAll(), $rServerID);
 
-		if ($rType == 2) {
-			LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID);
+		if ($rType == 2 && !LbInstallFlow::runPostExtractSteps($rConn, $rRunSSH, $rSendFileSSH, $rDistID, $rVersion, $rUpdateSysctl, $rSysCtl, $rServerID)) {
+			$db->query('UPDATE `servers` SET `status` = 4 WHERE `id` = ?;', $rServerID);
+			return 1;
 		}
 
 		if ($rType == 1) {
@@ -260,9 +293,6 @@ class ServerInstallCommand implements CommandInterface {
 
 		echo "\nUpdating system\n";
 		call_user_func($rRunSSH, $rConn, 'sudo rm /var/lib/dpkg/lock-frontend && sudo rm /var/cache/apt/archives/lock && sudo rm /var/lib/dpkg/lock');
-		if ($rType == 2) {
-			call_user_func($rRunSSH, $rConn, 'sudo add-apt-repository -y ppa:maxmind/ppa');
-		}
 		call_user_func($rRunSSH, $rConn, 'sudo apt-get update');
 		foreach ($rPackages as $rPackage) {
 			echo 'Installing package: ' . $rPackage . "\n";
@@ -307,6 +337,9 @@ class ServerInstallCommand implements CommandInterface {
 
 	/** $rGrant false: a load balancer installed in API mode, which never gets MAIN's database. */
 	private function finalizeHostAfterRuntime($rConn, callable $rRunSSH, string $rHost, bool $rGrant = true): void {
+		// systemd 256+ (Debian 13) ships its defaults under /usr/lib/systemd and leaves these absent. systemd
+		// ignores an assignment outside a section, so a file without its header (2.6.0 made one there) starts over.
+		call_user_func($rRunSSH, $rConn, 'for f in system user; do sudo grep -qs "^\[Manager\]" /etc/systemd/$f.conf || echo "[Manager]" | sudo tee /etc/systemd/$f.conf > /dev/null; done');
 		$rSystemConf = call_user_func($rRunSSH, $rConn, 'sudo cat "/etc/systemd/system.conf"')['output'];
 		if (strpos($rSystemConf, 'DefaultLimitNOFILE=1048576') === false) {
 			call_user_func($rRunSSH, $rConn, LbInstallFlow::sudoWrite("\n" . 'DefaultLimitNOFILE=1048576', '/etc/systemd/system.conf', true));
@@ -329,7 +362,13 @@ class ServerInstallCommand implements CommandInterface {
 			BackupService::grantPrivileges($rHost);
 		}
 		echo "Installation complete! Starting XC_VM\n";
-		call_user_func($rRunSSH, $rConn, 'sudo service xc_vm restart');
+		// The node's root cron ran through the install, and after the stop at
+		// its start may have brought the panel's daemons up again: a fanout
+		// supervisor holding the lock file of the bin/ that was since replaced,
+		// next to which the service then started a second one, each killing the
+		// other's daemon every few seconds. systemd holds the unit as stopped,
+		// so a restart alone would only start: what runs as xc_vm goes first.
+		call_user_func($rRunSSH, $rConn, 'sudo systemctl stop xc_vm; sudo pkill -9 -u xc_vm; sudo service xc_vm restart');
 	}
 
 	private function sendFileSSH($rConn, string $rPath, string $rOutput, bool $rWarn = false): bool {

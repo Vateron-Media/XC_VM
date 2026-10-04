@@ -4,8 +4,8 @@ namespace XcVm\Public\Controllers\Admin;
 
 use XcVm\Core\Http\RequestManager;
 use XcVm\Domain\Stream\StreamRepository;
+use XcVm\Domain\Stream\RecordingService;
 use XcVm\Domain\Stream\StreamService;
-use XcVm\Module\Watch\WatchService;
 
 /**
  * ArchiveController — TV Archive / Recordings.
@@ -39,8 +39,7 @@ class ArchiveController extends BaseAdminController {
 
 			$rArchive = StreamService::getArchive($rStream['id']);
 		} else {
-			// Recordings are provided by the optional watch module; empty when absent.
-			$rRecordings = class_exists(WatchService::class) ? WatchService::getRecordings() : [];
+			$rRecordings = RecordingService::getAll();
 		}
 
 		$rTitle = (!is_null($rRecordings) ? 'Recordings' : 'TV Archive');
