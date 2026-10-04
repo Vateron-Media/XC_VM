@@ -23,6 +23,9 @@ final class VodItemImporterPersistTest extends TestCase {
     private array $results = array();
 
     protected function setUp(): void {
+        // First, before anything that can throw: tearDown() closes this buffer, never PHPUnit's.
+        // The importer reports its progress on stdout for the CLI run: not this test's output.
+        ob_start();
         $this->db = new TestDb();
         $this->db->exec('CREATE TABLE streams (id INTEGER PRIMARY KEY AUTO_INCREMENT, category_id TEXT, series_no INTEGER, movie_subtitles TEXT, added INTEGER, stream_display_name TEXT);');
         $this->db->exec('CREATE TABLE streams_servers (stream_id INTEGER, server_id INTEGER, parent_id INTEGER);');
@@ -35,8 +38,6 @@ final class VodItemImporterPersistTest extends TestCase {
         EventDispatcher::listen(VodImportResultEvent::class, function (VodImportResultEvent $rEvent): void {
             $this->results[] = $rEvent;
         });
-        // The importer reports its progress on stdout for the CLI run: not this test's output.
-        ob_start();
     }
 
     protected function tearDown(): void {

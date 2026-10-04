@@ -117,7 +117,24 @@ jobs:
     needs: plan
     if: needs.plan.outputs.build == 'true'
     runs-on: ubuntu-latest
+    # The tests run on the database engine production runs (tests/Support/TestDb.php).
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: xcvm-test
+        ports:
+          - 3306:3306
+        options: >-
+          --tmpfs /var/lib/mysql
+          --health-cmd="healthcheck.sh --connect --innodb_initialized"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
     env:
+      XCVM_TEST_DB_DSN: mysql:host=127.0.0.1;port=3306
+      XCVM_TEST_DB_USER: root
+      XCVM_TEST_DB_PASS: xcvm-test
       VERSION: ${{ needs.plan.outputs.version }}
       LAST_TAG: ${{ needs.plan.outputs.last_tag }}
       SINCE: ${{ needs.plan.outputs.since }}
@@ -134,6 +151,7 @@ jobs:
         with:
           php-version: '8.1'
           coverage: none
+          extensions: pdo_mysql
 
       - name: Run unit tests
         run: php tests/phpunit.phar -c tests/phpunit.xml.dist
