@@ -108,6 +108,74 @@ class ToolsCommand implements CommandInterface {
 		return 0;
 	}
 
+	/**
+	 * Restore a backup into xc_vm_migrate, whatever database the dump names,
+	 * and make sure something arrived there.
+	 *
+	 * @param string $rFile The .sql backup.
+	 * @return bool
+	 */
+	private function restoreMigrationBackup(string $rFile): bool {
+		$rCopy    = (string) tempnam(sys_get_temp_dir(), 'xc_migrate_');
+		$rDropped = self::stripDatabaseSwitches($rFile, $rCopy);
+		if ($rDropped === null) {
+			@unlink($rCopy);
+			echo "Error: Cannot read {$rFile}.\n";
+			return false;
+		}
+		if ($rDropped > 0) {
+			echo "Ignored {$rDropped} USE / CREATE DATABASE statement(s): the backup is restored into xc_vm_migrate.\n";
+		}
+		$rRestored = \XC_VM::db_restore($rCopy, 'xc_vm_migrate');
+		@unlink($rCopy);
+		if (!$rRestored) {
+			echo "Error: Restore failed. Check the SQL file and database credentials.\n";
+			return false;
+		}
+		if ($this->migrationTableCount() === 0) {
+			echo "Error: xc_vm_migrate is still empty after the restore: the file holds no tables, or its statements failed.\n";
+			return false;
+		}
+		return true;
+	}
+
+	/**
+	 * Copy a .sql dump without its `USE` and `CREATE DATABASE` statements.
+	 * mysql honours them over the database named on its command line, so a
+	 * dump made with --databases / --all-databases would restore into its
+	 * original database (the live panel's, when that is `xc_vm`) and leave
+	 * xc_vm_migrate empty while reporting success.
+	 *
+	 * @param string $rSource The dump.
+	 * @param string $rTarget Where the copy goes.
+	 * @return int|null Statements left out, or null when a file can't be opened.
+	 */
+	public static function stripDatabaseSwitches(string $rSource, string $rTarget): ?int {
+		$rIn  = @fopen($rSource, 'rb');
+		$rOut = @fopen($rTarget, 'wb');
+		if ($rIn === false || $rOut === false) {
+			return null;
+		}
+		$rDropped = 0;
+		while (($rLine = fgets($rIn)) !== false) {
+			if (preg_match('/^\s*(USE\s|CREATE\s+DATABASE\b)/i', $rLine)) {
+				$rDropped++;
+				continue;
+			}
+			fwrite($rOut, $rLine);
+		}
+		fclose($rIn);
+		fclose($rOut);
+		return $rDropped;
+	}
+
+	/** Tables in xc_vm_migrate. */
+	private function migrationTableCount(): int {
+		$db = self::db();
+		$db->query("SELECT COUNT(*) AS `count` FROM `information_schema`.`tables` WHERE `table_schema` = 'xc_vm_migrate';");
+		return (int) ($db->get_row()['count'] ?? 0);
+	}
+
 	private function processMigration(array $rArgs, array $rServers): int {
 		$db = self::db();
 		// Re-join the argument tail so an unquoted path with spaces still resolves
@@ -136,8 +204,7 @@ class ToolsCommand implements CommandInterface {
 
 		if ($database !== null) {
 			echo 'Restoring: ' . $database . "\n";
-			if (!\XC_VM::db_restore($database, 'xc_vm_migrate')) {
-				echo "Error: Restore failed. Check the SQL file and database credentials.\n";
+			if (!$this->restoreMigrationBackup($database)) {
 				return 1;
 			}
 			echo "Restore completed. You can now run: console.php migrate\n\n";

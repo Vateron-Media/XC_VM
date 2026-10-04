@@ -179,6 +179,13 @@ Restore a backup to a migration database for selective import:
 sudo /home/xc_vm/console.php tools migration /path/to/backup.sql
 ```
 
+The backup always goes into `xc_vm_migrate`: `USE` and `CREATE DATABASE` statements in
+the dump (written by `mysqldump --databases` / `--all-databases`) are left out, because
+mysql would otherwise restore into the database they name — the live panel's, when
+that is `xc_vm` — and leave `xc_vm_migrate` empty. The command fails if
+`xc_vm_migrate` is still empty after the restore. Then run
+`sudo /home/xc_vm/console.php migrate`.
+
 ### tools database --confirm
 
 Reset to a blank database (destroys all data):
