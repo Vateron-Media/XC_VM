@@ -58,4 +58,14 @@ final class ToolsMigrationDumpTest extends TestCase {
 	public function testAMissingDumpIsReported(): void {
 		$this->assertNull(ToolsCommand::stripDatabaseSwitches($this->source . '.missing', $this->target));
 	}
+
+	public function testAFailedWriteIsReportedInsteadOfATruncatedCopy(): void {
+		$rFull = '/dev/' . 'full'; // every write fails (ENOSPC)
+		if (!is_writable($rFull)) {
+			$this->markTestSkipped('No ' . $rFull . ' here.');
+		}
+		file_put_contents($this->source, "DROP TABLE IF EXISTS `streams`;\nINSERT INTO `streams` VALUES (1);\n");
+
+		$this->assertNull(ToolsCommand::stripDatabaseSwitches($this->source, $rFull));
+	}
 }

@@ -120,7 +120,7 @@ class ToolsCommand implements CommandInterface {
 		$rDropped = self::stripDatabaseSwitches($rFile, $rCopy);
 		if ($rDropped === null) {
 			@unlink($rCopy);
-			echo "Error: Cannot read {$rFile}.\n";
+			echo "Error: Cannot copy {$rFile} for the restore (read or write failed; is the temp directory full?).\n";
 			return false;
 		}
 		if ($rDropped > 0) {
@@ -148,7 +148,8 @@ class ToolsCommand implements CommandInterface {
 	 *
 	 * @param string $rSource The dump.
 	 * @param string $rTarget Where the copy goes.
-	 * @return int|null Statements left out, or null when a file can't be opened.
+	 * @return int|null Statements left out, or null when the copy is not complete
+	 *                  (a file can't be opened, read or written).
 	 */
 	public static function stripDatabaseSwitches(string $rSource, string $rTarget): ?int {
 		$rIn  = @fopen($rSource, 'rb');
@@ -157,16 +158,19 @@ class ToolsCommand implements CommandInterface {
 			return null;
 		}
 		$rDropped = 0;
-		while (($rLine = fgets($rIn)) !== false) {
+		$rCopied  = true;
+		while ($rCopied && ($rLine = fgets($rIn)) !== false) {
 			if (preg_match('/^\s*(USE\s|CREATE\s+DATABASE\b)/i', $rLine)) {
 				$rDropped++;
 				continue;
 			}
-			fwrite($rOut, $rLine);
+			$rCopied = @fwrite($rOut, $rLine) === strlen($rLine);
 		}
+		// A truncated copy (disk full, read error) would restore part of the backup.
+		$rCopied = $rCopied && feof($rIn);
 		fclose($rIn);
-		fclose($rOut);
-		return $rDropped;
+		$rCopied = fclose($rOut) && $rCopied;
+		return $rCopied ? $rDropped : null;
 	}
 
 	/** Tables in xc_vm_migrate. */
