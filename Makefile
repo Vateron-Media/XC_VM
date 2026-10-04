@@ -152,7 +152,8 @@ dev-tools:
 # System PHP 8.1 + the extensions the code, PHPStan and the test suite need
 # (Ubuntu/Debian). Adds packages.sury.org when the distro has no php8.1-* (the
 # ondrej PPA dropped new Ubuntu releases). Only versioned php8.1-* packages:
-# unversioned ones (php-pcov, composer) pull the newest PHP and take over /usr/bin/php.
+# unversioned ones (php-pcov, composer) pull the newest PHP and take over /usr/bin/php,
+# so composer comes from getcomposer.org's installer (checksum-verified) instead.
 DEV_PHP_PACKAGES := cli mysql mbstring curl xml intl zip gd gmp bcmath redis igbinary pcov
 SUDO := $(if $(filter 0,$(shell id -u)),,sudo)
 
@@ -167,6 +168,12 @@ dev-php:
 	$(SUDO) apt-get install -y $(addprefix php8.1-,$(DEV_PHP_PACKAGES))
 	$(SUDO) update-alternatives --set php /usr/bin/php8.1
 	@php -v | head -1
+	@command -v composer >/dev/null 2>&1 || { \
+		curl -sSLo /tmp/composer-setup.php https://getcomposer.org/installer && \
+		echo "$$(curl -sSL https://composer.github.io/installer.sig)  /tmp/composer-setup.php" | sha384sum -c --quiet && \
+		$(SUDO) php /tmp/composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer; \
+		rc=$$?; rm -f /tmp/composer-setup.php; exit $$rc; }
+	@composer --version
 
 # Inverse of dev-tools: once you no longer need the checks, remove the installed
 # dev libraries (PHPStan, phpcs + transitive deps) and restore the
