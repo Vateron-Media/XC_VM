@@ -49,7 +49,7 @@ class VodItemImporter {
 		if ($rImport) {
 			BouquetService::addItems($rType, $rBouquetID, $rID);
 		} else {
-			file_put_contents(WATCH_TMP_PATH . md5($rSourceFile . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.bouquet', json_encode(['type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID]));
+			file_put_contents(WATCH_TMP_PATH . hash('sha256', $rSourceFile . '_' . $rType . '_' . $rBouquetID . '_' . $rID) . '.bouquet', json_encode(['type' => $rType, 'bouquet_id' => $rBouquetID, 'id' => $rID]));
 		}
 	}
 
@@ -66,6 +66,8 @@ class VodItemImporter {
 		} else {
 			$rCommand = '/usr/bin/python3 ' . MAIN_HOME . 'bin/python/release.py ' . escapeshellarg(str_replace('-', '_', $rRelease));
 		}
+		// The parser path is MAIN_HOME's; the release name is escapeshellarg()'d.
+		// nosemgrep: php.lang.security.exec-use.exec-use
 		$rResult = json_decode(shell_exec($rCommand), true);
 		if (!is_array($rResult)) {
 			$rResult = [];
@@ -152,6 +154,8 @@ class VodItemImporter {
 	 */
 	public static function checksource($rFilename) {
 		$rCommand = 'timeout 10 ' . FfmpegPaths::probe() . ' -show_streams -show_format -v quiet ' . escapeshellarg($rFilename) . ' -of json';
+		// The ffprobe path is the bundled binary's; the file is escapeshellarg()'d.
+		// nosemgrep: php.lang.security.exec-use.exec-use
 		return json_decode(shell_exec($rCommand), true);
 	}
 
@@ -902,6 +906,8 @@ class VodItemImporter {
 		}
 		fclose($rHandle);
 		($rStart ?? static function (string $rFile): void {
+			// The node's own PHP_BIN and console.php; the batch file is ours, escapeshellarg()'d.
+			// nosemgrep: php.lang.security.exec-use.exec-use
 			shell_exec(PHP_BIN . ' ' . MAIN_HOME . 'console.php vod_import_batch ' . escapeshellarg($rFile) . ' > /dev/null 2>&1 &');
 		})($rFile);
 		return true;

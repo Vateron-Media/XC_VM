@@ -82,6 +82,8 @@ class RecordingService {
 			if ($rRecording['created_id']) {
 				StreamRepository::deleteStream($rRecording['created_id'], $rRecording['source_id'], true, true);
 			}
+			// The only variable part is the recording id, intval()'d.
+			// nosemgrep: php.lang.security.exec-use.exec-use
 			shell_exec("kill -9 `ps -ef | grep 'Record[" . intval($rID) . "]' | grep -v grep | awk '{print $2}'` 2>/dev/null");
 			$db->query('DELETE FROM `recordings` WHERE `id` = ?;', $rID);
 			// The recorded stream's R2 record no longer carries it.

@@ -129,6 +129,8 @@ class Multithread {
 		$rStarted = 0;
 		foreach ($rCommands as $rCommand) {
 			$rRunning = self::waitBelow($rRunning, $rSize, $rPollMicros);
+			// Callers build the commands from fixed binaries and escapeshellarg()'d values.
+			// nosemgrep: php.lang.security.exec-use.exec-use
 			$rProcess = proc_open($rCommand, $rNull, $rPipes);
 			if (is_resource($rProcess)) {
 				$rRunning[] = $rProcess;
