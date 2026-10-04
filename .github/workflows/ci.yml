@@ -16,18 +16,33 @@ name: CI
 # gate — so this can never silently disable checks for a real source change. Do
 # not switch this to a `src/**` allowlist: the result also depends on tools/,
 # tests/, Makefile, composer.json/lock, build/phpcs.xml.dist and build/phpstan.dist.neon.
+#
+# Other workflows are listed by name rather than as `.github/workflows/**`, so
+# an edit to ci.yml itself still runs CI; a newly added workflow runs CI until
+# it is listed here (the safe direction).
 on:
   push:
     branches: [main]
-    paths-ignore:
+    paths-ignore: &non-code
       - 'docs/**'
       - '**/*.md'
       - 'LICENSE'
+      - 'mkdocs.yml'
+      - '.claude/**'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/CODEOWNERS'
+      - '.github/dependabot.yml'
+      - '.github/workflows/add-to-project.yml'
+      - '.github/workflows/build-dev.yml'
+      - '.github/workflows/build-release.yml'
+      - '.github/workflows/build_pre-release.yml'
+      - '.github/workflows/contributors.yml'
+      - '.github/workflows/move-to-review.yml'
+      - '.github/workflows/pages.yml'
+      - '.github/workflows/release-notifier.yml'
+      - '.github/workflows/security-scan.yml'
   pull_request:
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - 'LICENSE'
+    paths-ignore: *non-code
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
