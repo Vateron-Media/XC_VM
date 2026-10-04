@@ -19,8 +19,10 @@ final class StoredConnections {
 	/**
 	 * The line identity a record is kept under (Redis `LINE#<identity>`, an
 	 * admission's reservation): the line's id, or `<hmac_id>_<hmac_identifier>`
-	 * for an HMAC identity. It is recomputed from the record's owner, as the
-	 * digest reads it (ConnectionDigest::owner()): both ids as integers.
+	 * for an HMAC identity, the identifier cut to 255 bytes as `lines_live`
+	 * keeps it (`cluster_reservations.identity` holds the 267 characters). It
+	 * is recomputed from the record's owner, as the digest reads it
+	 * (ConnectionDigest::owner()): both ids as integers.
 	 *
 	 * @param array<string, mixed> $rRecord
 	 */
@@ -28,7 +30,7 @@ final class StoredConnections {
 		if (!empty($rRecord['user_id'])) {
 			return (string) (int) $rRecord['user_id'];
 		}
-		return (int) ($rRecord['hmac_id'] ?? 0) . '_' . ($rRecord['hmac_identifier'] ?? '');
+		return (int) ($rRecord['hmac_id'] ?? 0) . '_' . substr((string) ($rRecord['hmac_identifier'] ?? ''), 0, 255);
 	}
 
 	/**
