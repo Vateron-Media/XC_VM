@@ -11,7 +11,7 @@ Step-by-step guide for preparing and publishing an XC_VM release.
 ```bash
 make new                 # wipe + recreate dist/ ONCE, at the very start
 PREV_TAG=$(git describe --tags --abbrev=0)
-git log --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
+git log --no-merges --pretty=format:"- %s (%h)" "$PREV_TAG"..main > dist/changes.md
 ```
 
 > ⚠️ Run `make new` here, at the very start of the release — it wipes **and** recreates `dist/`. Everything below writes into `dist/` (starting with `changes.md`), so `make new` must run **before** this and **never again** before building — a later `make new` would delete `dist/changes.md`.
@@ -35,16 +35,28 @@ The panel fetches this file from the release tag automatically via `GitHubReleas
 
 Before publishing, verify the build works:
 
-**Quality checks** (CI runs the same set on the tag — confirm it is green):
+**Quality checks** (CI runs the same set on every push to `main` and on pull requests, not on tags — confirm it is green on the release commit once step 5 has pushed it):
 
 ```bash
 make dev-tools
 make phpstan
 make cs
 make gates
+make test-db     # only without a local MariaDB: the unit tests run on MariaDB
 php tests/phpunit.phar -c tests/phpunit.xml.dist
 make dev-clean   # remove the dev tools afterwards, restoring the prod-only vendor/
 ```
+
+**Every new migration can be rolled back.** A version rollback (**Servers → Rollback Version**) reverses the migrations the older release lacks with their `down/` files and skips any that has none, leaving its schema change behind. List the migrations added since the last release that have no down file:
+
+```bash
+PREV_TAG=$(git describe --tags --abbrev=0)
+for f in $(git diff --name-only --diff-filter=A "$PREV_TAG" -- src/migrations/database/up); do
+  [ -f "src/migrations/database/down/$(basename "$f")" ] || echo "no down file: $f"
+done
+```
+
+Write the missing ones (`src/migrations/database/down/<same name>.sql`) before the release; a migration that truly cannot be reversed says so in a comment at the top of its up file.
 
 > ℹ️ The Docker test install moved to step 6 — it requires a built `dist/XC_VM.zip`.
 
@@ -172,7 +184,8 @@ sed -i "s/define('XC_VM_VERSION', '[0-9]\+\.[0-9]\+\.[0-9]\+');/define('XC_VM_VE
 
 ```bash
 git add src/Core/Config/ConstantsInitializer.php changelog.json src/migrations/deleted_files.txt
-git add docs/en docs/ru   # include any doc edits + the regenerated ru (step 2)
+git add src/Core/Localization/lang/   # the synced language files (step 2)
+git add docs/en docs/ru               # include any doc edits + the regenerated ru (step 2)
 git commit -m "Prepare release ${VERSION}"
 git push
 ```
@@ -228,7 +241,7 @@ This builds the image, starts the container with systemd, and runs the installer
 ## 7. GitHub Release
 
 1. Go to [GitHub Releases](https://github.com/Vateron-Media/XC_VM/releases)
-2. Create a new release with the tag from the first step
+2. Create a new release targeting `main`, with the tag `${VERSION}` from step 3: plain `X.Y.Z`, no `v` prefix (the existing tags are `2.6.0`, `2.5.3`, …), equal to `XC_VM_VERSION`
 3. Paste the changelog as the release description
 4. Publish **without attaching files** — GitHub Actions will build and attach them
 
@@ -276,7 +289,7 @@ After publishing, the workflow will automatically:
 
 - **Actions build failed after publishing** — the release has no (or partial) assets. Re-run the
   failed workflow from the Actions tab; if the tag itself is wrong, delete the release **and** the
-  tag (`git push --delete origin vX.Y.Z`), fix, and re-tag. Don't leave a published release with
+  tag (`git push --delete <remote> X.Y.Z`, the remote as `git remote` names it), fix, and re-tag. Don't leave a published release with
   missing assets — panels fetch `hashes.md5` / archives from it.
 - **A released asset is broken** — publish a **PATCH** hotfix release (new tag) rather than editing
   a published one; clients pin to a tag.
@@ -302,9 +315,10 @@ Every `make` target used during release prep, in one place.
 | `make phpstan-baseline`                            | Regenerate the PHPStan baseline                                       |
 | `make cs`                                          | Code-style check — import/namespace hygiene (phpcs + Slevomat)        |
 | `make cs-fix`                                      | Apply code-style fixes in place                                       |
-| `make gates`                                       | PSR-4 regression gates (procedural-use, LB-archive, vendor-prod-only) |
+| `make gates`                                       | Regression gates: procedural-use, LB-archive, vendor-prod-only, LB settings keys, Core→cluster refs |
 | `make dev-clean`                                   | Remove the dev tools again, restoring the production-only `vendor/`   |
-| `php tests/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests                                                            |
+| `make test-db`                                     | Throwaway MariaDB in Docker for the unit tests (no local server)      |
+| `php tests/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests, on MariaDB                                                |
 
 **Release prep & build:**
 

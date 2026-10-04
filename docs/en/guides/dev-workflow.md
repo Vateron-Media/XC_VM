@@ -6,7 +6,7 @@ How to set up the project locally, run the quality checks, and deploy code to a 
 
 ## Local Setup
 
-**Prerequisites:** PHP **8.1** (the codebase pins `php: 8.1.33`; newer majors are not supported) and Composer available locally.
+**Prerequisites:** PHP **8.1** (the codebase pins `php: 8.1.33`; newer majors are not supported) with `pdo_mysql`, and Composer available locally. The unit tests also need a MariaDB/MySQL server: without one, `make test-db` starts a throwaway MariaDB in Docker (see [Unit Tests](phpunit-phar.md#2-database)).
 
 The committed `src/vendor/` is **production-only**, so the dev tools (PHPStan,
 phpcs) are not in the tree. Install them once from the committed lock:
@@ -30,7 +30,7 @@ Run these before pushing — CI runs the same set:
 | `make cs` | Code style — import/namespace hygiene (phpcs + Slevomat) |
 | `make cs-fix` | Apply the style fixes in place |
 | `make gates` | PSR-4 regression gates (below) |
-| `php tests/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests — see [PHPUnit Setup](phpunit-phar.md) |
+| `php tests/phpunit.phar -c tests/phpunit.xml.dist` | Unit tests, on MariaDB (`make test-db` if you have none) — see [Unit Tests](phpunit-phar.md) |
 | `make e2e` | Browser tests against a live test panel — see [End-to-End Tests](#end-to-end-tests) |
 | `make rector` | Dry-run automated refactoring — see [Automated Refactoring (Rector)](refactoring.md) |
 

@@ -134,7 +134,7 @@ plugins:
             Development Workflow: Процесс разработки
             CLI Tools & Console Reference: CLI-инструменты и консоль
             Database Migrations: Миграции базы данных
-            PHPUnit Setup: Настройка PHPUnit
+            Unit Tests: Юнит-тесты
             Automated Refactoring (Rector): Автоматический рефакторинг (Rector)
             Feature Flags: Флаги функций
             Process Management: Управление процессами
@@ -199,7 +199,7 @@ nav:
           - Development Workflow: en/guides/dev-workflow.md
           - CLI Tools & Console Reference: en/guides/cli-tools.md
           - Database Migrations: en/guides/database-migrations.md
-          - PHPUnit Setup: en/guides/phpunit-phar.md
+          - Unit Tests: en/guides/phpunit-phar.md
           - Automated Refactoring (Rector): en/guides/refactoring.md
           - Feature Flags: en/guides/feature-flags.md
           - Process Management: en/guides/process-management.md
